@@ -726,7 +726,8 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     // composites moved to the `-role` steps, so 155 styles pointed at tokens that do not exist.
     const emitted = nodeAt(`type.${c.path}`)?.$value;
     const resolves: Record<string, string> = emitted && typeof emitted === 'object' ? { ...emitted } : {};
-    if (c.italic && resolves.fontStyle === undefined) resolves.fontStyle = 'italic';
+    // #1296 — an italic-default category's bare composites are italic too; same reading as tree.ts.
+    if ((c.italic || c.italicDefault) && resolves.fontStyle === undefined) resolves.fontStyle = 'italic';
     if (c.textCase !== 'none' && resolves.textCase === undefined) resolves.textCase = c.textCase;
     if (c.link && resolves.textDecoration === undefined) resolves.textDecoration = 'underline';
     // Key by the real tree path (`type.<path>`) so aliased_by references resolve.

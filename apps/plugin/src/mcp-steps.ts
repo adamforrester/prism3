@@ -297,7 +297,7 @@ export const runFont = (raw: unknown) => writeStep(raw, 'font', async (host, d, 
 /** TEXT styles (#237). */
 export const runText = (raw: unknown) => writeStep(raw, 'text', async (host, d, r) => {
   const res = await applyTextStylePlan(d.plan as TextStylePlan, textApiOf(host));
-  Object.assign(r, { created: res.created, total: res.total, bound: res.bound, misses: res.misses, skipped: res.skipped, resolvedStyles: res.resolvedStyles });
+  Object.assign(r, { created: res.created, total: res.total, bound: res.bound, misses: res.misses, skipped: res.skipped, resolvedStyles: res.resolvedStyles, resolvedCuts: res.resolvedCuts, cutRefused: res.cutRefused });
 });
 
 /** PERSIST (#131) — last, as in the plugin, where it runs only after every executor returned. */

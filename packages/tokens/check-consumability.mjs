@@ -88,6 +88,7 @@ const discoverBrands = () =>
  */
 const PROMISED = {
   nb: 'the legacy nbds.* dialect and hand-authored regression target',
+  prism3: 'the canonical default theme (#1296): an italic-default heading category, one weight on two family spellings',
   aurora: 'gradients (Paint Styles) + a decoupled action palette',
   harbor: 'a third input profile',
   wendys: 'the standard-dialect front door (parseStandard + classifier)',
@@ -220,7 +221,7 @@ for (const [name, why] of Object.entries(PROMISED)) {
  * Widening either number to make a failure go away is the same move as adding a preprocessor: it ends
  * the measurement.
  */
-const CONSUMER_GAP = { nb: 0, aurora: 2, harbor: 0, wendys: 0 };
+const CONSUMER_GAP = { nb: 0, prism3: 0, aurora: 2, harbor: 0, wendys: 0 };
 
 for (const brand of brands) {
   const src = readSource(brand);
@@ -342,6 +343,27 @@ for (const brand of brands) {
     `${brand}: [#1148] and the retired \`color.appearance.*\` tier reaches the consumer in NO form (${retired.length ? `${retired.length} still do, e.g. ${retired.slice(0, 3).join(', ')}` : 'none'}) — one collection means one name per role, and a consumer choosing between two spellings of the same value is the state the collapse removed`);
 
   ok(src.modes.length >= 3, `${brand}: [#609] the projection covers every declared mode (${src.modes.length})`);
+}
+
+// ---- #1296: ITALIC AND WEIGHT REACH THE CONSUMER AS CSS VALUES, NEVER AS A FIGMA STYLE NAME ----
+// Prism3 sets `strong` to 600 on two families that SPELL 600 differently in Figma (Playfair "SemiBold
+// Italic", Inter "Semi Bold"). The plugin reconciles that spelling in the file; code must never need to.
+// So, read off the CSS a stock Style Dictionary emits (not the JSON): the italic heading's shorthand
+// opens with `italic`, both families' 600 composites key on the SAME weight-role variable, that variable
+// resolves to the number 600, and no CSS value anywhere carries a Figma style name. Literals throughout.
+{
+  const p3 = readEmitted(await buildProjected('prism3', 'base'));
+  const title = p3.byName['--pds3-type-title-lg-strong'] ?? '';
+  const body = p3.byName['--pds3-type-body-md-strong'] ?? '';
+  ok(title.startsWith('italic ') && title.includes('var(--pds3-core-font-weight-role-strong)'),
+    `prism3: [#1296] the italic-default title keys on font-style + the weight ROLE — --pds3-type-title-lg-strong: ${title || 'ABSENT'}`);
+  ok(!body.startsWith('italic') && body.includes('var(--pds3-core-font-weight-role-strong)'),
+    `prism3: [#1296] Inter's body strong keys on the SAME weight role, upright — --pds3-type-body-md-strong: ${body || 'ABSENT'}`);
+  ok(p3.byName['--pds3-core-font-weight-role-strong'] === 'var(--pds3-core-font-weight-600)' && p3.byName['--pds3-core-font-weight-600'] === '600',
+    `prism3: [#1296] that role resolves to the number 600 (${p3.byName['--pds3-core-font-weight-role-strong']} → ${p3.byName['--pds3-core-font-weight-600']})`);
+  const styleNamed = Object.entries(p3.byName).filter(([, v]) => /semi\s?bold|medium italic|bold italic/i.test(v)).map(([k]) => k);
+  ok(styleNamed.length === 0,
+    `prism3: [#1296] no CSS value carries a Figma style name, so nothing downstream keys on its spelling (${styleNamed.length ? styleNamed.slice(0, 3).join(', ') : 'none'})`);
 }
 
 if (fail.length) {

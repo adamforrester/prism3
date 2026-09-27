@@ -924,6 +924,21 @@ export type TypeGroup = typeof TYPE_GROUPS[number];
  *  cut is still weight 300), so it stays truthful. */
 export type FacePin = { family: string; style: string };
 
+/** #1296 — does a Figma STYLE NAME name an italic cut? A face pin that does is refused (`buildComposites`):
+ *  italic belongs to the italics levers, which also put `fontStyle: 'italic'` into the tokens, whereas a
+ *  pin changes only the Figma style and would leave code upright.
+ *
+ *  THE RULE: the case-insensitive substring `italic`. A substring rather than a whole word because Figma
+ *  style names come from each font's own subfamily names, and slanted cuts are spelled several ways —
+ *  "Italic", "Medium Italic", "SemiBold Italic", "Light Condensed Italic", and the joined "BoldItalic"
+ *  some families ship. A whole-word match would let the joined form through, and a miss is the defect
+ *  this refuses. It is also the test TokenPress applies to the same style name when it reads it back to
+ *  DTCG (`typography-converter.ts` `extractFontStyle`), transcribed here rather than imported so the two
+ *  stay independent. `Oblique` is deliberately NOT matched: the italics levers derive "<Weight> Italic"
+ *  names, and the plugin's style resolver has no Italic-to-Oblique synonym, so refusing an oblique pin
+ *  would leave an oblique-only family with no route at all. */
+export const isItalicCut = (style: string): boolean => style.toLowerCase().includes('italic');
+
 // A semantic composite: a (group, variant) bundling family + size + weight role +
 // line-height + tracking. Two composites may share a size primitive (e.g. title.xs
 // and body.lg both at 18px) — they differ on family/line-height/weight/intent;
@@ -949,6 +964,11 @@ export type TypeComposite = {
                                                    // (`strong` + `strong-italic`), NOT a weight role; emits
                                                    // `fontStyle: 'italic'` on the composite $value (off-core-DTCG,
                                                    // the shared Token-Press contract), omitted when normal.
+  // #1296 — the category is italic by default (`typography.italicDefault`): this composite, though bare
+  // (no `-italic` modifier in its name), renders in the italic cut. Present only when true, so a
+  // composite object for every other category is unchanged. Distinct from `italic`, which marks the
+  // paired MODIFIER variant and drives the `-italic` path suffix.
+  italicDefault?: true;
   // #1368 — a verbatim Figma face pinned for THIS slot (see `FacePin`). Present only on the composites
   // whose (group, weightRole) the brand pinned via `typography.faces`; absent ⇒ the fontStyle is derived
   // from the weight-role numeric as before. Carries the whole pin so the emitter needs no re-lookup.
@@ -1197,6 +1217,21 @@ export type TypographyInput = {
    *  are a deliberate brand choice, so default output ships none (opt in per role,
    *  e.g. `['body','caption']` for emphasis in running text). */
   italics?: TypeGroup[];
+  /** #1296 — which categories are ITALIC BY DEFAULT: every composite the category ships is set in the
+   *  italic cut, under its ordinary name (`type.display.lg.emphasis`, no `-italic` suffix). Its `$value`
+   *  carries `fontStyle: 'italic'`, and the derived Figma style name is the weight's italic instance
+   *  (emphasis 500 → "Medium Italic"), through the same weight-to-style-name table the `italics` modifier
+   *  uses. The numeric weight is untouched.
+   *
+   *  Same shape as `italics` and `links` — a list of categories — because it answers the same kind of
+   *  question about a category ("which cut does it ship"), and a list is the smallest thing that can.
+   *  The difference from `italics`: `italics` ADDS a paired `-italic` twin beside each upright weight;
+   *  this REPLACES the upright cut. A category ships no upright variant while it is here (a heading voice
+   *  is one or the other), and it may not also be in `italics`, where every twin would duplicate its bare
+   *  weight — `buildComposites` refuses that by name. Italic is this lever family's job alone: a
+   *  `typography.faces` pin naming an italic cut is refused and pointed here.
+   *  Default `[]`, so every existing brand is byte-identical. */
+  italicDefault?: TypeGroup[];
   /** Responsive sizing (Phase 3). `fluid` (default true) gives heading groups a
    *  mobile endpoint (= desktop × a per-group factor, snapped to the ladder); the
    *  same min/max pair drives the web `clamp()` and the Figma desktop/mobile modes.
@@ -1489,6 +1524,15 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   }
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
+  // #1296 — categories whose DEFAULT cut is italic (default none). Each is a refusal-checked choice: an
+  // unknown category name, and a category also listed in `italics`, fail here by name.
+  const italicDefaultGroups = new Set(t.italicDefault ?? []);
+  for (const g of italicDefaultGroups) {
+    if (!(TYPE_GROUPS as readonly string[]).includes(g))
+      throw new Error(`typography.italicDefault: '${g}' is not a type category (${TYPE_GROUPS.join('/')}).`);
+    if (italicGroups.has(g))
+      throw new Error(`typography.italicDefault: '${g}' is also in typography.italics. A category that is italic by default has no upright weight to pair an -italic variant with, so every twin would repeat its bare weight. Keep '${g}' in one list.`);
+  }
   // #1368 — verbatim face pins, validated once here so a bad pin fails at build with a named message
   // rather than emitting a Text Style the host silently drops. Each throw is a refusal with its own
   // by-name mutation test (docs/34). `familyPrimary` is `stack[0]` — the value the `font.family.<cat>`
@@ -1507,6 +1551,16 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
         throw new Error(`typography.faces.${g}.${role}: a face pin needs a non-empty { family, style } — the exact Figma family and style to bind (e.g. { family: 'ITC Garamond Std', style: 'Light Condensed' }).`);
       if (pin.family !== familyPrimary)
         throw new Error(`typography.faces.${g}.${role}: family '${pin.family}' must match the category's bound family '${familyPrimary}' — a pin names a WIDTH/STYLE cut WITHIN the face, not a different family. The Text Style binds fontFamily to the category's variable, so a divergent family is dropped at the host.`);
+      // #1296 — one method per job. Italic is the italics levers' job; a pin is for the cuts the engine
+      // cannot derive (a width cut like NB's "Light Condensed", an optical size). A pin binds its style
+      // VERBATIM and changes nothing else, so an italic pin rendered italic in Figma and upright in code.
+      // `isItalicCut` is the recognition rule; see its header for why it is a substring match.
+      if (isItalicCut(pin.style))
+        throw new Error(`typography.faces.${g}.${role}: '${pin.style}' names an italic cut, and a face pin binds only the Figma style, so code would render it upright. Set italic with the italics levers instead: typography.italicDefault makes italic the category's default cut, and typography.italics adds -italic variants. A face pin is for cuts the weight axis cannot reach, such as a condensed width.`);
+      // A pin in an italic-default category would bind an upright cut verbatim while the tokens say
+      // italic (the pin is not italic, or the check above refused it) — the same disagreement, reversed.
+      if (italicDefaultGroups.has(g as TypeGroup))
+        throw new Error(`typography.faces.${g}.${role}: '${g}' is italic by default (typography.italicDefault), and a pin binds its style verbatim, so the upright cut '${pin.style}' would contradict it. Remove the pin, or take '${g}' out of typography.italicDefault.`);
     }
   }
   const out: TypeComposite[] = [];
@@ -1534,6 +1588,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       const facePin = facePins[group]?.[weightRole];   // #1368 — verbatim style for this slot, if pinned
       out.push({
         group, variant, weightRole, link, italic, path: segs.join('.'), sizePx, sizeMinPx,
+        ...(italicDefaultGroups.has(group) ? { italicDefault: true as const } : {}),
         ...(facePin ? { facePin } : {}),
         // The derived rung is size-sensitive; the per-group nudge shifts that curve
         // rather than replacing it, so `title` keeps tightening as it grows.

@@ -1,4 +1,60 @@
 {
+  "prism3": {
+    "id": "prism3",
+    "root": "pds3",
+    "primary": {
+      "l": 0.4709,
+      "c": 0.3001,
+      "h": 266.75
+    },
+    "neutral": {
+      "hue": 266.75,
+      "chroma": 0.005
+    },
+    "surfaces": {
+      "light": {
+        "base": "white"
+      }
+    },
+    "density": "comfortable",
+    "radiusScale": 1,
+    "iconContrast": "text",
+    "motionPersonality": {
+      "tempo": "standard"
+    },
+    "typography": {
+      "families": {
+        "display": "Playfair Display",
+        "title": "Playfair Display",
+        "body": "Inter",
+        "label": "Inter",
+        "caption": "Inter",
+        "eyebrow": "Inter",
+        "code": "JetBrains Mono"
+      },
+      "weights": {
+        "display": [
+          "emphasis",
+          "strong"
+        ],
+        "title": [
+          "emphasis",
+          "strong"
+        ]
+      },
+      "weightRoles": {
+        "emphasis": 500,
+        "strong": 600
+      },
+      "italicDefault": [
+        "display",
+        "title"
+      ],
+      "responsive": {
+        "fluid": true
+      }
+    }
+  },
   "aurora": {
     "id": "aurora",
     "root": "ads",

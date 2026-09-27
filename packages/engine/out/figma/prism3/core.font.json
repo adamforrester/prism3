@@ -1,0 +1,555 @@
+{
+  "$collection": "core",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "pds3/core/font/family/display",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Display font — Playfair Display; falls back to system-ui, -apple-system, Segoe UI, …",
+      "value": "Playfair Display",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/family/title",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Title font — Playfair Display; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
+      "value": "Playfair Display",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/family/body",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Body font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, Helvetica, …",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/family/label",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Label font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, Helvetica, …",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/family/caption",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Caption font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/family/eyebrow",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Eyebrow font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/family/code",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "Code font — JetBrains Mono; falls back to ui-monospace, SFMono-Regular, Menlo, Consolas, …",
+      "value": "JetBrains Mono",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/10",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "10px (0.625rem) font size",
+      "value": 10,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/11",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "11px (0.6875rem) font size",
+      "value": 11,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/12",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "12px (0.75rem) font size",
+      "value": 12,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/14",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "14px (0.875rem) font size",
+      "value": 14,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/16",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "16px (1rem) font size",
+      "value": 16,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/18",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "18px (1.125rem) font size",
+      "value": 18,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/20",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "20px (1.25rem) font size",
+      "value": 20,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/24",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "24px (1.5rem) font size",
+      "value": 24,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/28",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "28px (1.75rem) font size",
+      "value": 28,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/32",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "32px (2rem) font size",
+      "value": 32,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/36",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "36px (2.25rem) font size",
+      "value": 36,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/40",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "40px (2.5rem) font size",
+      "value": 40,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/48",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "48px (3rem) font size",
+      "value": 48,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/56",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "56px (3.5rem) font size",
+      "value": 56,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/64",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "64px (4rem) font size",
+      "value": 64,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/72",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "72px (4.5rem) font size",
+      "value": 72,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/80",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "80px (5rem) font size",
+      "value": 80,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/96",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "96px (6rem) font size",
+      "value": 96,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/112",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "112px (7rem) font size",
+      "value": 112,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/128",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "128px (8rem) font size",
+      "value": 128,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/144",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "144px (9rem) font size",
+      "value": 144,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/size/160",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "160px (10rem) font size",
+      "value": 160,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/weight/300",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Font weight 300",
+      "value": 300,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/weight/400",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Font weight 400",
+      "value": 400,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/weight/500",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Font weight 500",
+      "value": 500,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/weight/600",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Font weight 600",
+      "value": 600,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/weight/900",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Font weight 900",
+      "value": 900,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/font/weight-role/subtle",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Weight role 'subtle' → 300.",
+      "value": 300,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/font/weight/300"
+      }
+    },
+    {
+      "name": "pds3/core/font/weight-role/default",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Weight role 'default' → 400.",
+      "value": 400,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/font/weight/400"
+      }
+    },
+    {
+      "name": "pds3/core/font/weight-role/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Weight role 'emphasis' → 500.",
+      "value": 500,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/font/weight/500"
+      }
+    },
+    {
+      "name": "pds3/core/font/weight-role/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Weight role 'strong' → 600.",
+      "value": 600,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/font/weight/600"
+      }
+    },
+    {
+      "name": "pds3/core/font/weight-role/max",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Weight role 'max' → 900.",
+      "value": 900,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/font/weight/900"
+      }
+    },
+    {
+      "name": "pds3/core/font/style/display/emphasis",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for display emphasis text styles",
+      "value": "Medium Italic",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/display/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for display strong text styles",
+      "value": "Semi Bold Italic",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/title/emphasis",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for title emphasis text styles",
+      "value": "Medium Italic",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/title/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for title strong text styles",
+      "value": "Semi Bold Italic",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/body/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for body default text styles",
+      "value": "Regular",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/body/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for body strong text styles",
+      "value": "Semi Bold",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/label/emphasis",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for label emphasis text styles",
+      "value": "Medium",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/caption/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for caption default text styles",
+      "value": "Regular",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/caption/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for caption strong text styles",
+      "value": "Semi Bold",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/eyebrow/emphasis",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for eyebrow emphasis text styles",
+      "value": "Medium",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/code/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for code default text styles",
+      "value": "Regular",
+      "alias": null
+    }
+  ]
+}

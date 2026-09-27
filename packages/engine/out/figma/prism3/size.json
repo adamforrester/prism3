@@ -1,0 +1,344 @@
+{
+  "$collection": "size",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "pds3/size/xs/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 28px",
+      "value": 28,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/28"
+      }
+    },
+    {
+      "name": "pds3/size/xs/padding-x",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, label side — 8px",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/100"
+      }
+    },
+    {
+      "name": "pds3/size/xs/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, icon side — 6px (the icon's box adds space; label side is 8px)",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/075"
+      }
+    },
+    {
+      "name": "pds3/size/xs/padding-y",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Vertical padding — 4px",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/050"
+      }
+    },
+    {
+      "name": "pds3/size/xs/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Gap between label and icon — 4px",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/050"
+      }
+    },
+    {
+      "name": "pds3/size/sm/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 36px",
+      "value": 36,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/36"
+      }
+    },
+    {
+      "name": "pds3/size/sm/padding-x",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, label side — 16px",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/200"
+      }
+    },
+    {
+      "name": "pds3/size/sm/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/150"
+      }
+    },
+    {
+      "name": "pds3/size/sm/padding-y",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Vertical padding — 6px",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/075"
+      }
+    },
+    {
+      "name": "pds3/size/sm/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Gap between label and icon — 8px",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/100"
+      }
+    },
+    {
+      "name": "pds3/size/md/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 44px",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/44"
+      }
+    },
+    {
+      "name": "pds3/size/md/min-height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Minimum target size — 44px (WCAG 2.2 SC 2.5.5)",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/44"
+      }
+    },
+    {
+      "name": "pds3/size/md/padding-x",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, label side — 16px",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/200"
+      }
+    },
+    {
+      "name": "pds3/size/md/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/150"
+      }
+    },
+    {
+      "name": "pds3/size/md/padding-y",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Vertical padding — 8px",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/100"
+      }
+    },
+    {
+      "name": "pds3/size/md/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Gap between label and icon — 8px",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/100"
+      }
+    },
+    {
+      "name": "pds3/size/lg/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 56px",
+      "value": 56,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/56"
+      }
+    },
+    {
+      "name": "pds3/size/lg/padding-x",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, label side — 24px",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/300"
+      }
+    },
+    {
+      "name": "pds3/size/lg/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, icon side — 16px (the icon's box adds space; label side is 24px)",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/200"
+      }
+    },
+    {
+      "name": "pds3/size/lg/padding-y",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Vertical padding — 8px",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/100"
+      }
+    },
+    {
+      "name": "pds3/size/lg/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Gap between label and icon — 12px",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/150"
+      }
+    },
+    {
+      "name": "pds3/size/xl/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 68px",
+      "value": 68,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/68"
+      }
+    },
+    {
+      "name": "pds3/size/xl/padding-x",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, label side — 24px",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/300"
+      }
+    },
+    {
+      "name": "pds3/size/xl/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Horizontal padding, icon side — 16px (the icon's box adds space; label side is 24px)",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/200"
+      }
+    },
+    {
+      "name": "pds3/size/xl/padding-y",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Vertical padding — 16px",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/200"
+      }
+    },
+    {
+      "name": "pds3/size/xl/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Gap between label and icon — 12px",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/150"
+      }
+    }
+  ]
+}

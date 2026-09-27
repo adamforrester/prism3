@@ -1,0 +1,2555 @@
+{
+  "$collection": "text-styles",
+  "styles": [
+    {
+      "name": "display/3xl/emphasis",
+      "description": "display 3xl emphasis — 48→160px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/3xl/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -3
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/3xl/strong",
+      "description": "display 3xl strong — 48→160px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/3xl/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -3
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/2xl/emphasis",
+      "description": "display 2xl emphasis — 48→128px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/2xl/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -3
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/2xl/strong",
+      "description": "display 2xl strong — 48→128px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/2xl/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -3
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/xl/emphasis",
+      "description": "display xl emphasis — 48→96px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/xl/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -3
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/xl/strong",
+      "description": "display xl strong — 48→96px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/xl/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -3
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/lg/emphasis",
+      "description": "display lg emphasis — 40→80px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/lg/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -2
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/lg/strong",
+      "description": "display lg strong — 40→80px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/lg/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -2
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/md/emphasis",
+      "description": "display md emphasis — 40→64px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/md/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -2
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/md/strong",
+      "description": "display md strong — 40→64px Playfair Display, tight line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/md/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 105
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -2
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/sm/emphasis",
+      "description": "display sm emphasis — 36→48px Playfair Display, snug line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/sm/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -2
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "display/sm/strong",
+      "description": "display sm strong — 36→48px Playfair Display, snug line-height, for hero headlines.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/display",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/display/sm/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -2
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/2xl/emphasis",
+      "description": "title 2xl emphasis — 36→40px Playfair Display, snug line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/2xl/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/2xl/strong",
+      "description": "title 2xl strong — 36→40px Playfair Display, snug line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/2xl/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/xl/emphasis",
+      "description": "title xl emphasis — 28→32px Playfair Display, snug line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/xl/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/xl/strong",
+      "description": "title xl strong — 28→32px Playfair Display, snug line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/xl/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/lg/emphasis",
+      "description": "title lg emphasis — 24→28px Playfair Display, snug line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/lg/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/lg/strong",
+      "description": "title lg strong — 24→28px Playfair Display, snug line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/lg/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/md/emphasis",
+      "description": "title md emphasis — 20→24px Playfair Display, compact line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/md/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/md/strong",
+      "description": "title md strong — 20→24px Playfair Display, compact line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/title/md/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/sm/emphasis",
+      "description": "title sm emphasis — 20px Playfair Display, compact line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/20",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/sm/strong",
+      "description": "title sm strong — 20px Playfair Display, compact line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/20",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/xs/emphasis",
+      "description": "title xs emphasis — 18px Playfair Display, compact line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/xs/strong",
+      "description": "title xs strong — 18px Playfair Display, compact line-height, for headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/default",
+      "description": "body lg default — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/default-link",
+      "description": "body lg default link — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/strong",
+      "description": "body lg strong — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/strong-link",
+      "description": "body lg strong link — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/md/default",
+      "description": "body md default — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/md/default-link",
+      "description": "body md default link — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/md/strong",
+      "description": "body md strong — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/md/strong-link",
+      "description": "body md strong link — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/default",
+      "description": "body sm default — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/default-link",
+      "description": "body sm default link — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/strong",
+      "description": "body sm strong — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/strong-link",
+      "description": "body sm strong link — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "label/lg/emphasis",
+      "description": "label lg emphasis — 18px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "label/md/emphasis",
+      "description": "label md emphasis — 14px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "label/sm/emphasis",
+      "description": "label sm emphasis — 12px Inter, snug line-height, for control and form labels.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/label/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/lg/default",
+      "description": "caption lg default — 12px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/lg/default-link",
+      "description": "caption lg default link — 12px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "caption/lg/strong",
+      "description": "caption lg strong — 12px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/lg/strong-link",
+      "description": "caption lg strong link — 12px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/default",
+      "description": "caption md default — 11px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/default-link",
+      "description": "caption md default link — 11px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/strong",
+      "description": "caption md strong — 11px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/strong-link",
+      "description": "caption md strong link — 11px Inter, cozy line-height, for captions and helper text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "eyebrow/lg/emphasis",
+      "description": "eyebrow lg emphasis — 18→20px Inter, snug line-height, for labels above headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/eyebrow",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/eyebrow/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/font-fluid/eyebrow/lg/emphasis",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "eyebrow/md/emphasis",
+      "description": "eyebrow md emphasis — 14px Inter, snug line-height, for labels above headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/eyebrow",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/eyebrow/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "eyebrow/sm/emphasis",
+      "description": "eyebrow sm emphasis — 12px Inter, snug line-height, for labels above headings.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/eyebrow",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/eyebrow/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 500
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "code/inline/default",
+      "description": "code inline default — 14px JetBrains Mono, normal line-height, for code.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/code",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/code/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    }
+  ]
+}

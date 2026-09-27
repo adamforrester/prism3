@@ -2926,6 +2926,21 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.181.0 — #1296: the canonical default theme, `prism3` at root `pds3`, and italic as a category's
+ * DEFAULT cut. (1) A new lever, `typography.italicDefault: TypeGroup[]` (the shape of `italics`/`links`):
+ * a listed category's bare composites are the italic cut — `$value.fontStyle: 'italic'` under the
+ * ordinary name, and the derived Figma cut is the weight's italic instance (500 → "Medium Italic") — with
+ * no upright variant; a category may not also be in `italics` (refused by name). (2) One method per job:
+ * a `typography.faces` pin whose style names an italic cut (case-insensitive substring `italic`) is
+ * refused and pointed at the lever, as is any pin inside an italic-default category; NB's upright
+ * "Light Condensed" pins are unaffected. (3) The Figma cut SLOT stays keyed on the modifier in the
+ * style's name, and its VALUE follows what the composite renders. (4) The plugin's text-style executor
+ * reconciles each bound cut VARIABLE's value to the family's real spelling, per mode (#499's resolver),
+ * so Playfair's 600 binds "SemiBold Italic" while Inter's binds "Semi Bold". (5) `prism3` is emitted to
+ * `out/` and `out/figma/prism3/`, and becomes the studio and plugin boot brand. Existing brands' artifacts
+ * are byte-identical before this bump; after it they restamp only. ENGINE MINOR; CONTRACT STANDS at
+ * 13.1.0 (`prism3` is not a corpus member; `token-contract --check` unchanged).
+ *
  * 0.180.0 — the plugin places a page header on each component page (owner decisions, 2026-09-27). After a
  * build lands on its `↳ <family>` page, the plugin adds ONE instance of the `_Section-header` file component
  * (Size=Medium, FIXED width at the content's width, HUG height, its bottom 80px above the content's top) and
@@ -3910,7 +3925,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.180.0';
+export const ENGINE_VERSION = '0.181.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

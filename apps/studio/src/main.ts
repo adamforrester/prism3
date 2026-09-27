@@ -60,8 +60,9 @@ type Mode = ResolvedPreview['modes'][number];
 
 // Boot from a VALIDATED example brand — the emitted schema/example-brands.json (a
 // test.ts gate asserts every brand there resolves all-green on the preview
-// contracts). aurora: indigo anchor, action DECOUPLED onto an azure accent, tinted
-// page. brandState is the mutable working copy the inputs edit.
+// contracts). prism3 is the canonical default theme (#1296): Prism 2's bright blue as
+// the one interactive color, italic Playfair Display headings over an Inter UI.
+// brandState is the mutable working copy the inputs edit.
 const BRANDS = exampleBrands as Record<string, BrandInput>;
 // Web persists the working brand to localStorage; the plugin uses Figma shared-data instead (restored
 // via the host `restore-input` message below). `PRISM3_HOST` is a build-time define (`'figma'` in the
@@ -74,6 +75,9 @@ const BRANDS = exampleBrands as Record<string, BrandInput>;
 //
 // #722: boot now also decides the ORIGIN, and `firstRun` is derived from it rather than tracked
 // beside it (see `firstRun` below).
+/** The example the studio and the plugin open with — the canonical default theme (#1296). Named once,
+ *  so the web demo behind the start screen and the plugin's placeholder cannot boot different brands. */
+const BOOT_BRAND = 'prism3';
 const bootBrand = (): { input: BrandInput; origin: Origin } => {
   if (PRISM3_HOST !== 'figma') {
     const restored = restoreInput(localStorage);
@@ -88,12 +92,12 @@ const bootBrand = (): { input: BrandInput; origin: Origin } => {
     // Web, nothing valid stored → the EMPTY STATE. brandState still holds the demo so the app is in a
     // valid state behind the start screen, but the origin is `none`: nothing has been chosen yet, so
     // there is nothing to be dirty against and nothing an import could lose.
-    return { input: structuredClone(BRANDS.aurora), origin: { kind: 'none' } };
+    return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'none' } };
   }
   // Plugin: boot on the demo and wait for the host. `restore-input` (#131) may replace this within
   // milliseconds with the file's own brand — until it arrives, `example` is the honest answer, and a
   // file with no stored blob correctly keeps it (that is #721's state 2).
-  return { input: structuredClone(BRANDS.aurora), origin: { kind: 'example', id: 'aurora' } };
+  return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'example', id: BOOT_BRAND } };
 };
 const boot = bootBrand();
 let brandState: BrandInput = boot.input;
@@ -105,8 +109,8 @@ let provenance: Provenance = provenanceOf(boot.origin, brandState);
  *  Identity, not value, and the difference is a bug this caught rather than a precaution. Every user
  *  choice goes through `loadBrand`, which ASSIGNS a new provenance — so `provenance === bootProvenance`
  *  is exactly "nothing has been chosen in this session". The value-based version of the same test
- *  ("origin is example/aurora and nothing is dirty") reads TRUE after a designer picks the aurora chip,
- *  because boot's placeholder is aurora too, and a late host message then discarded a brand they had
+ *  ("origin is example/<boot brand> and nothing is dirty") reads TRUE after a designer picks that
+ *  brand's chip, because boot's placeholder is the same example, and a late host message then discarded a brand they had
  *  just chosen. Two states that are equal by value and different in every way that matters. */
 const bootProvenance: Provenance = provenance;
 /**
@@ -804,7 +808,7 @@ commit.onHostMessage((m) => {
     // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
     // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
     // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
-    // and `example/aurora` is the honest one until the host answers (#721 state 2). This message is
+    // and `example/<BOOT_BRAND>` is the honest one until the host answers (#721 state 2). This message is
     // the host answering "nothing", and it is the only moment at which `none` becomes true.
     //
     // GUARDED ON THE BOOT PROVENANCE BY IDENTITY, not on `firstRun()` and not on its value. Between
@@ -819,8 +823,8 @@ commit.onHostMessage((m) => {
     // `readonly` and `provenanceOf` deep-freezes what it returns, asserted in `test-provenance.ts`.
     //
     // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
-    // is `example/aurora`, so "origin is example/aurora and nothing is dirty" also reads true straight
-    // after a designer clicks the aurora chip. A late empty-restore then threw away the brand they had
+    // was `example/aurora` (the boot brand then; `BOOT_BRAND` now), so "origin is example/aurora and
+    // nothing is dirty" also read true straight after a designer clicked the aurora chip. A late empty-restore then threw away the brand they had
     // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
     // chip click, which is the only reason it is not still in here.
     if (provenance === bootProvenance) { provenance = noOrigin(brandState); build(); }
@@ -6245,7 +6249,7 @@ const renderRepoints = (): HTMLElement | null => {
 const renderCategorySetup = (): HTMLElement => {
   const ty = theme.typography;
   const roleOrder = ty.weightRoles.map((w) => w.role);
-  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
+  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants, or sets italic as its only cut. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
   // #416 — everything in this table is MODE-INVARIANT by contract (#296): which weights a category
   // ships and whether it gets italic/link decide which styles EXIST, and a mode never adds or removes
   // a token. The nudges are brand-level too. It used to disable every control outside Light, which
@@ -6255,6 +6259,9 @@ const renderCategorySetup = (): HTMLElement => {
   // Dark from another page, which would have left this table permanently dead).
   sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (face, weight numerics, sizes, rungs), which is done on Semantics and above.'));
   const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
+  // #1296 — categories whose default cut is italic. Read from the composites like `italicG`, so the box
+  // reports what the engine built rather than what the input asked for.
+  const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
   const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
   const wrap = el('div', 'cs-wrap');
   const table = el('table', 'cs-table');
@@ -6266,7 +6273,7 @@ const renderCategorySetup = (): HTMLElement => {
   // rendered ui-monospace beside -apple-system in one header row. That was the only user-visible
   // change in the whole casing question, and it made things worse. Reverted.
   for (const r of roleOrder) head.append(el('th', 'cs-c', r));
-  head.append(el('th', 'cs-c', 'Leading'), el('th', 'cs-c', 'Tracking'), el('th', 'cs-c', 'Italic'), el('th', 'cs-c', 'Link'));
+  head.append(el('th', 'cs-c', 'Leading'), el('th', 'cs-c', 'Tracking'), el('th', 'cs-c', 'Italic default'), el('th', 'cs-c', 'Italic'), el('th', 'cs-c', 'Link'));
   table.append(head);
   const cb = (checked: boolean, onChange: (v: boolean) => void): HTMLInputElement => {
     const c = el('input') as HTMLInputElement;
@@ -6414,11 +6421,25 @@ const renderCategorySetup = (): HTMLElement => {
     }
     const ltd = el('td', 'cs-c'); ltd.append(nudge(g, 'leadingShift')); tr.append(ltd);
     const ttd = el('td', 'cs-c'); ttd.append(nudge(g, 'trackingShift')); tr.append(ttd);
+    // #1296 — Italic default and Italic are exclusive per category (the engine refuses both: an italic
+    // default leaves no upright weight to pair an -italic twin with). The box that would reach that
+    // refusal is disabled with the reason on hover, the same way the weight boxes above disable an
+    // untick the engine would refuse. `applyFull`, because each box's disabled state reads the other.
+    const idtd = el('td', 'cs-c');
+    const idBox = cb(italicDefG.has(g), (v) => {
+      const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : italicDefG.has(x)));
+      setPath(brandState, 'typography.italicDefault', next.length ? next : undefined); applyFull();
+    });
+    if (italicG.has(g)) { idBox.disabled = true; idBox.title = 'This category ships -italic variants. Clear Italic first: an italic default replaces the upright cut those variants pair with.'; }
+    idtd.append(idBox);
+    tr.append(idtd);
     const itd = el('td', 'cs-c');
-    itd.append(cb(italicG.has(g), (v) => {
+    const iBox = cb(italicG.has(g), (v) => {
       const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : italicG.has(x)));
-      setPath(brandState, 'typography.italics', next); apply();
-    }));
+      setPath(brandState, 'typography.italics', next); applyFull();
+    });
+    if (italicDefG.has(g)) { iBox.disabled = true; iBox.title = 'This category is already italic by default, so an -italic variant would repeat each style. Clear Italic default first.'; }
+    itd.append(iBox);
     tr.append(itd);
     const ktd = el('td', 'cs-c');
     ktd.append(cb(linkG.has(g), (v) => {
@@ -7268,7 +7289,8 @@ const renderTypeRamp = (): HTMLElement => {
         samp.style.lineHeight = String(lhOf(v.lhKey));
         samp.style.letterSpacing = `${lsOf(v.lsKey)}em`;
         if (c.link) samp.style.textDecoration = 'underline';
-        if (c.italic) samp.style.fontStyle = 'italic';
+        // The modifier, or an italic-default category's bare style (#1296) — the tree's `fontStyle` rule.
+        if (c.italic || c.italicDefault) samp.style.fontStyle = 'italic';
         if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
         col.append(samp);
         cols.append(col);
@@ -9664,7 +9686,7 @@ const renderStartScreen = (): HTMLElement => {
   c2.append(t2, b2);
   col.append(c2);
 
-  // Path 3 — open a fully-built example (aurora / harbor), explicitly framed as examples.
+  // Path 3 — open a fully-built example (prism3 / aurora / harbor), explicitly framed as examples.
   const c3 = el('div', 'start-card');
   c3.append(el('h2', 'start-ct', 'Explore an example'));
   c3.append(el('p', 'start-cd', 'Open a fully-built example to see what the engine produces from a brand.'));

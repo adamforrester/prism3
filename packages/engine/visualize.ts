@@ -34,6 +34,7 @@ const outDir = resolve(here, 'out');
 // preview spec + resolvePreview, dogfooding the same model the plugin/playground use.
 const themeFor: Record<string, Theme> = {
   nb: nbTheme(),
+  prism3: brandTheme(readExampleBrand('./examples/prism3.design.md')),
   aurora: brandTheme(readExampleBrand('./examples/aurora.design.md')),
   harbor: brandTheme(readExampleBrand('./examples/harbor.design.md')),
 };
@@ -72,7 +73,7 @@ const textOn = (hex: string) => {
 };
 
 // ---------------------------------------------------------------------------
-const brands = [load('nb'), load('aurora'), load('harbor')];
+const brands = [load('nb'), load('prism3'), load('aurora'), load('harbor')];
 const txt: string[] = [];
 const html: string[] = [];
 

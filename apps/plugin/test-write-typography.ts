@@ -624,5 +624,63 @@ const fresh = await preloadFonts(auroraTextPlan, {
 ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded === auroraFaces.length,
   `#680 a FRESH file has no cross product at all — ${fresh.loaded} faces, all from the theme. That is why aurora applied to an empty file and failed on a themed one`);
 
+// =============================================================================================
+// #1296 — ONE WEIGHT, TWO FAMILY SPELLINGS, ONE FILE: THE CUT VARIABLE THE TEXT STYLE BINDS
+// =============================================================================================
+// Prism3 sets `strong` to 600 and ships it on Playfair Display (title/display, italic by default) and on
+// Inter (body/caption). The engine emits ONE canonical guess per weight (`Semi Bold`, `Semi Bold Italic`),
+// and the two families spell 600 differently: Playfair "SemiBold Italic", Inter "Semi Bold". #499 fixed
+// the baked `fontName`; but the Text Style's `fontStyle` BINDS the `<root>/core/font/style/<cat>/<role>`
+// STRING variable (#1485), and before #1296 that variable kept the engine's guess — so the binding
+// named a Playfair style that does not exist. The registries below are Figma's real style lists for the
+// two families (Playfair read live 2026-09-27; Inter as Figma ships it). The expected values are
+// LITERALS, never derived from `resolveFontStyle` — a test asking the resolver what the resolver says
+// would pass with the reconciliation deleted (docs/34 shape 1).
+{
+  const PLAYFAIR = ['Regular', 'Italic', 'Medium', 'Medium Italic', 'SemiBold', 'SemiBold Italic', 'Bold', 'Bold Italic',
+    'ExtraBold', 'ExtraBold Italic', 'Black', 'Black Italic'];
+  const INTER = ['Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black',
+    'Italic', 'Medium Italic', 'Semi Bold Italic', 'Bold Italic'];
+  const MONO = ['Regular', 'Medium', 'Bold', 'Italic'];
+  const registry = new Set<string>([
+    ...PLAYFAIR.map((s) => `Playfair Display|${s}`), ...INTER.map((s) => `Inter|${s}`), ...MONO.map((s) => `JetBrains Mono|${s}`),
+  ]);
+  class RegistryFontsApi extends TextStylesShim {
+    async listAvailableFontsAsync(): Promise<ReadonlyArray<{ fontName: { family: string; style: string } }>> {
+      return [...registry].map((k) => ({ fontName: { family: k.slice(0, k.indexOf('|')), style: k.slice(k.indexOf('|') + 1) } }));
+    }
+  }
+  const p3 = brandTheme(exampleBrands()['prism3'] as BrandInput);
+  const p3Vars = new VariablesShim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shims satisfy the ports
+  await applyVarCollectionPlan(buildFontVarPlan(p3), p3Vars as any);
+  const p3Text = buildTextStylePlan(p3);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p3Styles = new RegistryFontsApi(registry, p3Vars) as any;
+  const p3Res = await applyTextStylePlan(p3Text, p3Styles);
+  const cut = (tail: string): unknown => { const v = p3Vars.vars.find((x) => x.name === `pds3/core/font/style/${tail}`); return v ? Object.values(v.valuesByMode)[0] : 'NO SUCH VARIABLE'; };
+  const styleOf = (name: string): FontName | undefined => (p3Styles.styles as ShimTextStyle[]).find((s) => s.name === name)?.fontName;
+
+  ok(cut('title/strong') === 'SemiBold Italic',
+    `#1296 Playfair 600: the bound cut variable pds3/core/font/style/title/strong holds 'SemiBold Italic', the family's own spelling (got ${JSON.stringify(cut('title/strong'))})`);
+  ok(cut('display/strong') === 'SemiBold Italic' && cut('display/emphasis') === 'Medium Italic' && cut('title/emphasis') === 'Medium Italic',
+    `#1296 the other Playfair cuts: display/strong 'SemiBold Italic', display/emphasis and title/emphasis 'Medium Italic' (got ${JSON.stringify([cut('display/strong'), cut('display/emphasis'), cut('title/emphasis')])})`);
+  ok(cut('body/strong') === 'Semi Bold' && cut('caption/strong') === 'Semi Bold',
+    `#1296 Inter 600: body/strong and caption/strong stay 'Semi Bold' — the same weight, Inter's spelling (got ${JSON.stringify([cut('body/strong'), cut('caption/strong')])})`);
+  const tStrong = styleOf('title/lg/strong'), bStrong = styleOf('body/md/strong');
+  ok(tStrong?.family === 'Playfair Display' && tStrong?.style === 'SemiBold Italic' && bStrong?.family === 'Inter' && bStrong?.style === 'Semi Bold',
+    `#1296 the baked fontNames agree with the cut each binds: title/lg/strong = Playfair Display SemiBold Italic, body/md/strong = Inter Semi Bold (got ${JSON.stringify(tStrong)}, ${JSON.stringify(bStrong)})`);
+  // Counted per (variable, mode): prism3's core font collection has one mode, and only the two Playfair
+  // 600 cuts are spelled differently from the guess. Both Inter 600 cuts already match and are untouched.
+  ok(p3Res.resolvedCuts === 2 && p3Res.cutRefused.length === 0 && p3Res.skipped.length === 0,
+    `#1296 exactly the 2 Playfair 600 cut variables were corrected, none refused, no style skipped (resolvedCuts ${p3Res.resolvedCuts}, refused ${p3Res.cutRefused.length}, skipped ${p3Res.skipped.length})`);
+  // Idempotent: a second apply writes the guess again through the variable executor, then corrects it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await applyVarCollectionPlan(buildFontVarPlan(p3), p3Vars as any);
+  const again = await applyTextStylePlan(p3Text, p3Styles);
+  ok(cut('title/strong') === 'SemiBold Italic' && again.created === 0,
+    `#1296 a re-apply lands on the same 'SemiBold Italic' with no new styles (got ${JSON.stringify(cut('title/strong'))}, +${again.created})`);
+}
+
 console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
