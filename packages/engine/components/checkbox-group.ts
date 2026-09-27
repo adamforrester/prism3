@@ -65,7 +65,9 @@ import { ComponentDef } from '../component-schema';
 export const checkboxGroup: ComponentDef = {
   id: 'checkbox-group',
   name: 'Checkbox.Group',
-  aliases: ['checkbox-set', 'checkboxes', 'checkbox-list', 'multiselect', 'checkbox-fieldset'],
+  // `choice-list` joined from `checkbox-row` in #1698: it names the SET (Polaris's ChoiceList), as do
+  // `checkbox-list` and `multiselect`, which the row also carried.
+  aliases: ['checkbox-set', 'checkboxes', 'checkbox-list', 'multiselect', 'checkbox-fieldset', 'choice-list'],
   category: 'form',
   status: 'draft',
   summary: 'Labeled stack of Checkbox rows. Owns the value array, required and validation.',
@@ -216,6 +218,8 @@ export const checkboxGroup: ComponentDef = {
       'orientation — [HELD]. The brief\'s §15 names a group `orientation` (vertical / horizontal); Prism 2 is vertical only. Vertical scans better and lets long labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at.',
       'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
       'the id / describedby WIRING and role="group" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).',
+      'RTL — the group mirrors through logical properties: the label aligns to the reading start and each row mirrors its control to that side (brief §9). Figma members are drawn left to right.',
+      'text expansion — the group label and the row labels expand like any string (150-200% in German or Russian, brief §9); the rows wrap and keep their controls on the first line, and the vertical stack absorbs the extra lines. The Figma members carry the English placeholder only.',
     ],
   },
 
@@ -232,8 +236,10 @@ export const checkboxGroup: ComponentDef = {
     role: 'group (role="group" on the container, or a native <fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native <input type="checkbox">',
     wcag: [
       '1.3.1 Info and Relationships (the group structure — role="group" + the shared label — is the meaning)',
-      '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion (GROUP-level, announced once)',
+      '3.3.2 Labels or Instructions (the group label, announced once for the set)',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.',
       '4.1.2 Name Role Value (the group name via aria-labelledby; each row carries its own checked / mixed)',
+      '2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each row)',
       '2.5.8 Target Size (each row is its own target — the group does not change that)',
       '3.3.7 Redundant Entry (repeated consents across a form)',
     ],
@@ -271,12 +277,14 @@ export const checkboxGroup: ComponentDef = {
     whenToUse: 'A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.',
     avoidWhen: 'Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).',
     commonPartners: ['checkbox-row', 'checkbox-control', 'field-label', 'field-message'],
-    triggerKeywords: ['checkbox group', 'checkbox set', 'checkboxes', 'multiselect', 'select all', 'choose any', 'notification preferences', 'opt in list'],
+    triggerKeywords: ['checkbox group', 'checkbox set', 'checkboxes', 'multiselect', 'choice list', 'select all', 'choose any', 'notification preferences', 'opt in list'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['checkbox-row', 'field-label', 'field-message'],
+    // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label and the rows. `field-message`
+    // is a partner (the held group-error display), carried in `ai.commonPartners`.
+    composesWith: ['checkbox-row', 'field-label'],
     alternativeTo: ['radio-group', 'select', 'switch-row'],
     replacesPatterns: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
@@ -286,17 +294,30 @@ export const checkboxGroup: ComponentDef = {
     planned: ['form', 'combobox'],
   },
 
+  // Brief §8: no layout motion. The group moves nothing; each row's control carries its own glyph motion.
+  motion: {
+    enter: 'None (present on mount). Each row\'s nested control draws its own check, about 100-150ms.',
+    exit: 'None. Rows do not animate in or out of the stack.',
+    reduceMotion: 'No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly.',
+  },
+
   notes: {
     contested: [
       'THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2\'s group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Recorded as a fork rather than presented as settled.',
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — the first projecting def whose whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `checkbox-row`.',
+      '`required` DEFAULTS TO `true`, where the brief (§15) defaults it to `false`. The reason is the nested FieldLabel: it carries the required marker on by its own default (Prism 2\'s group `formLabel` ships Required on), so the projected group shows the marker by default, and a code default of `false` would disagree with the Figma default. The alternative is the brief\'s default with the label pinned to required-off, which moves the Figma set. Recorded here because it was only in a comment; it follows FieldLabel\'s default, so a change there reopens it.',
+      '`orientation` AND `density` ARE OMITTED. Brief §3 and §15 give the group `orientation` (vertical default, horizontal for a few short options) and `density` (comfortable, compact). Prism 2\'s group is vertical and single-density, so neither is an axis here; vertical is the built default and horizontal is held (see `codeOnly`). The alternative is declaring both as axes, which multiplies the set for configurations nobody has designed.',
+      'THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` (helper text, describedby-wired) beside `required` and the error message. It would compose the same part the group error does, and that part is the held field-message decision, so it waits for it rather than inventing a helper slot the error design may reshape.',
     ],
     unverified: [
-      'THE INTER-ROW GAP IS RESOLVED (#1623 sign-off). Each `checkbox-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group\'s `size` axis still scales its label and rows through `follow`.',
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like (a recolored label? a message below the stack? a per-row neutral hold?), needs the owner. Building one now would invent the very thing the brief left to design.',
       'THE VARIABLE ROW COUNT AND SELECT-ALL ARE `[HELD]`. The three fixed row nests stand in for Prism 2\'s six-rows-with-booleans (a Figma convenience for `children: CheckboxRow[]`). If the projection should carry a designer-toggleable count, the mechanism is the node-visibility boolean on each row nest (the corpus\'s first boolean-toggled `nest` — schema-legal, unbuilt). A select-all parent is likewise expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`\'s and the other decompositions\' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named, and #1503 extends it to assert each row reads back `layoutAlign: STRETCH` — but a three-deep nest is new ground; the symptom to look for is a row instance that does NOT fill the group (the STRETCH dropped on a real host), or an exposed selection that does not surface at the group.',
-      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The inter-row gap was settled separately (0px, #1623 sign-off, below).',
+    ],
+    evolution: [
+      'THE INTER-ROW GAP IS RESOLVED (#1623 sign-off). Each `checkbox-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group\'s `size` axis still scales its label and rows through `follow`.',
+      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The inter-row gap was settled separately (0px, #1623 sign-off, the entry above).',
+      'Field POV (brief §13): the group became a first-class component owning the value array and group validation, replacing ad-hoc hand-wired fieldsets; and `role="group"` + `aria-labelledby` replaced `fieldset`/`legend`, driven by fieldset\'s CSS-layout quirks.',
     ],
   },
 };

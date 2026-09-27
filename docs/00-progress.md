@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-09-27) — the checkbox and radio families aligned to their briefs (#1698)
+
+**STATUS: PR open from `lane/align-checkbox-radio-b`, labeled DO NOT MERGE.** Six defs (`checkbox-control`, `checkbox-row`, `checkbox-group`, `radio-control`, `radio-row`, `radio-group`), `test.ts`, `apps/plugin/test-write-components.ts`, `version.ts`, the two re-accepted baselines. **ENGINE 0.175.0 → 0.176.0 (rebased behind #1702, which took 0.175.0); CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`, stamp-only `--accept`). Another alignment lane may land first; the orchestrator renumbers.
+
+**Decisions applied (owner-delegated in the issue; each can be vetoed).**
+1. **`radio-control` drops per-option error.** No `error` state, no `unchecked.border.error` / `checked.border.error`, no error column: 36 → 30 members. `radio-row` stops declaring `error` too. Its Figma set is size-only, so this moves only its code-projection grid (21 → 18 coordinates in the paint census). **This reverses #1433a's radio half.** #1433a (owner, 2026-09-16) put error on the ring of both controls. The `test.ts` #1433a loop now covers checkbox only, and the new #1698 block pins both halves: radio has no per-option error, and checkbox keeps its ring (the brief lets an isolated checkbox recolor its own boundary).
+2. **`radio-group`'s `name` is `required: true`,** per brief §15 and the prop's own text.
+3. **The group `description` prop is deferred** and recorded in `notes.contested` on both groups. It would compose the same part as the held group error.
+
+**Mechanical fixes, all six.**
+- `motion` from brief §8: the check draw, the dot scale-in, the sibling-dot exit, and the reduced-motion snap.
+- `notes.evolution` from brief §13.
+- The stale claims that the schema has no motion field are reworded. So are the retired `radio` / `switch` ids and "RadioGroup deferred (#901)" (both now resolve to built defs).
+- Resolved `unverified` entries (the groups' gap and width/fill) moved to `evolution`.
+- 2.5.8 on both rows, and 3.3.1 / 3.3.3 on both groups, are reworded as intent. The row's 2.5.8 now names what *is* gated: `lint-hit-target` holds the default (medium) row's `min-height` to 44px on comfortable and spacious density; `small` is not measured.
+- Group terms (`checkbox-list`, `multiselect`, `choice-list`; `radio group`, `single select`, `exactly one`) moved from the rows to the groups.
+- `composesWith` lists only what a def nests (the #1700 rule): rows name their control, groups name their label and rows.
+- `checkbox-group` gains 1.4.11 / 2.4.13. `checkbox-row` gains the brief's `description` prop (code-only, as on `radio-row`).
+- `checkbox-row`'s `alternativeTo` drops `select`; `listbox` and `chip` go to `planned`. `radio-row`'s `supersededBy` is `select` (a segmented control stays in `planned`).
+- `checkbox-control`'s `docs.usage` / `do` / `dont` / `ai.whenToUse` carry the brief §2 nesting guidance.
+- The groups record the `required: true` default (brief: `false`) and the omitted `orientation` / `density` in `contested`. `radio-group` also carries the options-array-versus-composition entry.
+- `radio-row`'s "Note that…" is gone. Its `label` prop now matches `labelPattern` (centered within the first line-box, #1201).
+
+**Where i18n went.** `ComponentDef` has no i18n field. The brief §9 content (the check glyph does not mirror in RTL; text expansion; radio's vertical-for-expansion rule) is carried as `codeOnly` entries that lead with `RTL —` / `text expansion —`, following `switch-row`'s RTL precedent. `codeOnly` is stripped from the bundle, so this is maintainer-facing only. Whether i18n should be a schema field is held for the owner.
+
+**Also fixed in passing, same defs.** Aurora moved to comfortable density (#1215), so the "12/16/20 on aurora" and "6 on aurora" claims now say compact density (the `minimal-compact` fixture). `checkbox-row`'s "ALL FOUR brands" vs "5 brands" is reconciled: four shipped brands, and the 5 was the brands measured at the time. `checkbox-control`'s "never built in Figma" now says the row has been built in the owner's import QA but no read-back measures the nested sizing.
+
+**Baselines.** `component-surface.json`: `radio-control` 36 → 30. The five other defs move plan digest at the same count: `planStamp` hashes the whole plan, `codeOnly` and part notes included, and every one of the six changed its `codeOnly` (the RTL / text-expansion / motion entries) or a part note. `paint-census.json`: `radio-control` set/grid 36 → 30 (54 → 45 assignments, the dropped error ring) and `radio-row` grid 21 → 18. Nothing else moved.
+
+**Mutations, committed first, each failing by name.**
+- `radio-control` with `unchecked.border.error` restored → `#1698 radio-control has NO per-option error …` (plus the structural-validity arms, since nothing supplies `error` any more).
+- `radio-control` back to its full pre-#1698 shape (the `error` state, the state-axis value, both `*.border.error` keys) → `#1698 radio-control has NO per-option error …` and `#1348 radio-control carries the 30 …`. Nothing else fails, so the old shape is still a valid def and only the decision's pins catch it.
+- The same full pre-#1698 shape in the plugin suite (`test-write-components.ts`, the built set read back off the shim) → `#1698 radio-control builds no per-option error — no \`error\` member and no danger ring on any option`, plus the member-count pins (36/30). That arm replaced the #1348 arm that asserted the danger rim on radio's ring.
+- `radio-row` with `error` restored to `states` → `#1698 radio-row declares no error state …`.
+- `radio-group` `name` back to `required: false` → `#1698 radio-group's name prop is required …`.
+
+**Traps for whoever re-verifies.** Every member digest of these six moved, and only `radio-control`'s count did. A `codeOnly` or part-note edit moves a def's digest (the `planStamp` over-sensitivity `version.ts` documents), so diff the plans before reading the move as a layout or paint change. Also, `motion` is shipped prose (it is in the bundle, unlike `notes` / `codeOnly`), so it passes the voice and US-English gates and names no Prism 2.
+
+---
+
 ## (2026-09-27) — Component alignment: the button and icon-button families (#1697)
 
 **STATUS: PR open from `lane/align-buttons`, labeled DO NOT MERGE.** `components/button.ts`, `components/icon-button.ts`, `test.ts`, `version.ts`, the two accepted baselines (`schema/component-surface.json`, `schema/paint-census.json`), and `out/**` by the version stamp. **ENGINE 0.174.0 → 0.175.0** (the orchestrator renumbers if another alignment lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.

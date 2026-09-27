@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.176.0 — #1698: the checkbox and radio families aligned to their briefs. The projected surface moves in
+ * two ways. `radio-control` drops its per-option error (owner-delegated decision 1): no `error` state, no
+ * `unchecked.border.error` / `checked.border.error`, so its set goes 36 → 30 members and `radio-row` stops
+ * declaring `error` (its code-projection grid 21 → 18). And all six defs changed `codeOnly` or a part note
+ * (the RTL / text-expansion entries; the glyph and dot notes now point at the new `motion` field), which
+ * moves the plan digest of the other five at the same member count. The rest
+ * is def metadata a consumer reads through the bundle: `motion` on all six, `radio-group`'s `name` now
+ * required (decision 2), `checkbox-row` gains the `description` prop, WCAG entries reworded as intent where
+ * the def does not meet them, group terms moved from rows to groups, `composesWith` listing only what a def
+ * nests. No emitted token moves, so `out/**` restamps only. CONTRACT STANDS at 13.1.0: a component id,
+ * prop or state is not a guaranteed token name (`token-contract --check` level `none`).
+ *
  * 0.175.0 — #1697: the button and icon-button families aligned to the KB button brief. Three projected
  * moves, all on the component surface (`out/**` moves by the version stamp only):
  *   (1) ICON-BUTTON'S DISABLED EDGE rebinds `color.disabled.border` → `color.disabled.icon`, the rebind #1349
@@ -3850,7 +3862,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.175.0';
+export const ENGINE_VERSION = '0.176.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
