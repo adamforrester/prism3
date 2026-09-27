@@ -16,7 +16,7 @@
  * backticked and resolvable, facts in structured fields as well as prose, and a versioned JSON Schema
  * (`schema/ai-metadata.schema.json`, `$id` === `AI_METADATA_SCHEMA`) documenting every field.
  */
-import { Theme, CORE_TIER } from './theme';
+import { Theme, CORE_TIER, compositeFontStyle } from './theme';
 import { resolveAllModes, ResolvedRole } from './modes';
 import { contrast, hexToRgb } from './color';
 
@@ -726,7 +726,10 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     // composites moved to the `-role` steps, so 155 styles pointed at tokens that do not exist.
     const emitted = nodeAt(`type.${c.path}`)?.$value;
     const resolves: Record<string, string> = emitted && typeof emitted === 'object' ? { ...emitted } : {};
-    if (c.italic && resolves.fontStyle === undefined) resolves.fontStyle = 'italic';
+    // #1296 — the same rule the tree's $value reads (the italic modifier, or a face pin naming a slanted
+    // cut), so this backfill can never disagree with the emitted composite it normally copies.
+    const fontStyle = compositeFontStyle(c);
+    if (fontStyle && resolves.fontStyle === undefined) resolves.fontStyle = fontStyle;
     if (c.textCase !== 'none' && resolves.textCase === undefined) resolves.textCase = c.textCase;
     if (c.link && resolves.textDecoration === undefined) resolves.textDecoration = 'underline';
     // Key by the real tree path (`type.<path>`) so aliased_by references resolve.

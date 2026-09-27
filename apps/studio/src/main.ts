@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
+import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE, compositeFontStyle } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
@@ -7268,7 +7268,10 @@ const renderTypeRamp = (): HTMLElement => {
         samp.style.lineHeight = String(lhOf(v.lhKey));
         samp.style.letterSpacing = `${lsOf(v.lsKey)}em`;
         if (c.link) samp.style.textDecoration = 'underline';
-        if (c.italic) samp.style.fontStyle = 'italic';
+        // The engine's rule, not `c.italic`: a face pin naming a slanted cut ("Medium Italic") renders
+        // slanted too, exactly as the emitted `$value.fontStyle` says (#1296).
+        const fs = compositeFontStyle(c);
+        if (fs) samp.style.fontStyle = fs;
         if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
         col.append(samp);
         cols.append(col);

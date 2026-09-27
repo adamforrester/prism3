@@ -425,6 +425,78 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
     '#1368(f): a malformed pin (empty style) is REFUSED');
 }
 
+// ── #1296 — A PINNED ITALIC CUT IS ITALIC IN CODE, NOT ONLY IN FIGMA ─────────────────────────────────
+// Before #1296 a face pin changed only the Figma style: `$value.fontStyle` followed the composite's
+// `italic` MODIFIER alone, so a slot pinned to "Medium Italic" rendered slanted in Figma and upright in
+// every code surface. The expectations below are LITERALS ('italic', 'oblique', absent) written from the
+// input pin, never re-derived through `compositeFontStyle` — a gate that asked the rule what the rule
+// should say would pass with the rule deleted (docs/34 shape 1). Each emitted surface is read on its own:
+// the DTCG tree, the conforming base projection a stock consumer resolves, the agent sidecar, and the
+// Figma cut (which must keep the pin verbatim and its modifier-keyed slot name).
+{
+  const italicPin: BrandInput = {
+    id: 'italicpin', primary: { l: 0.47, c: 0.3, h: 266.7 }, neutral: { hue: 266.7, chroma: 0.005 }, modes: ['light'],
+    typography: {
+      families: { display: 'Playfair Display', title: 'Playfair Display' },
+      weights: { display: ['emphasis'], title: ['emphasis'] },
+      weightRoles: { emphasis: 500 },
+      // display pins an ITALIC cut; title pins an UPRIGHT one in the same weight role, so the upright arm
+      // below is the same brand, the same slot shape, and differs only in the style string.
+      faces: {
+        display: { emphasis: { family: 'Playfair Display', style: 'Medium Italic' } },
+        title: { emphasis: { family: 'Playfair Display', style: 'Medium' } },
+      },
+    },
+  };
+  const theme = brandTheme(italicPin);
+  const tree = buildTree(theme).tree as any;
+  const root = Object.keys(tree)[0];
+  const disp = tree[root].type.display.lg.emphasis;
+  const title = tree[root].type.title.lg.emphasis;
+  // (a) THE DTCG TREE — the pinned italic cut says italic; the upright pin says nothing.
+  ok(disp?.$value?.fontStyle === 'italic',
+    `#1296(a): a display slot pinned to 'Medium Italic' emits $value.fontStyle 'italic' in the DTCG tree (got ${JSON.stringify(disp?.$value?.fontStyle)})`);
+  ok(title && !('fontStyle' in title.$value),
+    `#1296(a): a title slot pinned to the UPRIGHT 'Medium' cut emits no fontStyle (got ${JSON.stringify(title?.$value?.fontStyle)})`);
+  // (b) THE WEIGHT STAYS TRUTHFUL — the pin moves the slant, never the numeric: 500, via the weight role.
+  const weightLeaf = tree[root].core.font['weight-role'].emphasis;
+  ok(disp?.$value?.fontWeight === `{${root}.core.font.weight-role.emphasis}` && weightLeaf?.$extensions?.prism3?.numeric === 500,
+    `#1296(b): the italic-pinned slot still binds weight-role.emphasis = 500 (got ${JSON.stringify(disp?.$value?.fontWeight)} → ${JSON.stringify(weightLeaf?.$extensions?.prism3?.numeric)})`);
+  ok(/emphasis weight, italic,/.test(disp?.$description ?? ''),
+    `#1296(b): the composite's $description states the slant it emits (got ${JSON.stringify(disp?.$description)})`);
+  // (c) THE CONFORMING PROJECTION — what a stock Style Dictionary reads. Built from the tree, but read here
+  // as its own artifact: a projection that dropped the key would pass (a) and fail this.
+  const base = buildOverlaySet(buildTree(theme).tree).base as any;
+  ok(base?.[root]?.type?.display?.lg?.emphasis?.$value?.fontStyle === 'italic',
+    `#1296(c): the conforming base projection carries fontStyle 'italic' (got ${JSON.stringify(base?.[root]?.type?.display?.lg?.emphasis?.$value?.fontStyle)})`);
+  // (d) THE AGENT SIDECAR — `resolves_to` is what an agent in an ejected repo writes CSS from.
+  const ai = buildAiMetadata(theme, buildTree(theme).tree) as any;
+  ok(ai?.typography?.['type.display.lg.emphasis']?.resolves_to?.fontStyle === 'italic',
+    `#1296(d): the .ai.json resolves_to for the italic-pinned slot carries fontStyle 'italic' (got ${JSON.stringify(ai?.typography?.['type.display.lg.emphasis']?.resolves_to?.fontStyle)})`);
+  ok(ai?.typography?.['type.title.lg.emphasis']?.resolves_to?.fontStyle === undefined,
+    `#1296(d): …and the upright-pinned title slot carries none (got ${JSON.stringify(ai?.typography?.['type.title.lg.emphasis']?.resolves_to?.fontStyle)})`);
+  // (e) FIGMA IS UNCHANGED IN SHAPE — the cut is the pin verbatim, and the slot keeps its modifier-keyed
+  // name (`display/emphasis`, not `display/emphasis-italic`), so a file already holding it is not renamed.
+  const fontVars = buildFigmaFont(theme)[0].variables;
+  const dispStyle = buildFigmaTextStyles(theme).styles.find((s) => s.name === 'display/lg/emphasis');
+  const cutVar = (dispStyle?.properties.fontStyle as any)?.variable as string | undefined;
+  ok(/core\/font\/style\/display\/emphasis$/.test(cutVar ?? '') && fontVars.find((v) => v.name === cutVar)?.value === 'Medium Italic',
+    `#1296(e): display/lg/emphasis binds core/font/style/display/emphasis = 'Medium Italic' (got ${JSON.stringify(cutVar)} = ${JSON.stringify(fontVars.find((v) => v.name === cutVar)?.value)})`);
+  // (f) THE RECOGNITION RULE, as a literal table — the joined form and oblique included, and the upright
+  // width cuts NB pins (#1368) kept upright. Each row is a style string a real family ships in Figma.
+  const RULE: Array<[string, string | undefined]> = [
+    ['Italic', 'italic'], ['Medium Italic', 'italic'], ['Bold Italic', 'italic'], ['Light Condensed Italic', 'italic'],
+    ['BoldItalic', 'italic'], ['Oblique', 'oblique'], ['Bold Oblique', 'oblique'],
+    ['Light Condensed', undefined], ['Medium', undefined], ['Regular', undefined], ['Semi Bold', undefined],
+  ];
+  const ruleMiss = RULE.filter(([style, want]) => {
+    const t = brandTheme({ ...italicPin, typography: { ...italicPin.typography, faces: { display: { emphasis: { family: 'Playfair Display', style } } } } });
+    return (buildTree(t).tree as any)[root].type.display.lg.emphasis.$value.fontStyle !== want;
+  });
+  ok(ruleMiss.length === 0,
+    `#1296(f): every pinned style emits its literal font-style (${RULE.length} rows) — ${ruleMiss.map(([s, w]) => `'${s}' should be ${w ?? 'upright'}`).join('; ') || 'all match'}`);
+}
+
 
 // ---------------------------------------------------------------- colour math
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
