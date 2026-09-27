@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component, and a maintainer record that does not ship (#1701)
 
-**STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.180.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
+**STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.181.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
 
 **What `emit-component-docs.ts` writes** (a `regen.ts` step):
 - `out/components/components.ai.json` — PAYLOAD. Every registered def in one brand-independent file, validated against the authored `schema/component-docs.schema.json` (`$id` `prism3-component-docs/1.0`, every object closed). It carries the shipped fields only: identity, the code API (`props`, `states`, `variants` with each axis's `kind`), `summary`, `description`, `docs`, `accessibility`, `content`, `motion`, `composition` and `ai`.
@@ -53,6 +53,46 @@
 - Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`. Arm C un-escapes before comparing and splits table cells on unescaped pipes only. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a miss on every string that carries the character.
 - A new page heading, or a renamed one, needs its line in the gate's `SECTION` map; a doc field with no entry fails as `NO SECTION`, and a missing heading as `SECTION MISSING`.
 - `--all` lists every failure; the default stops at 60, so a mutation whose named line falls past 60 needs it.
+
+## (2026-09-27) — Plugin: a section header at the top of each component page
+
+**STATUS: PR open from `lane/page-section-header`, labeled DO NOT MERGE.** New `apps/plugin/src/page-header.ts` and `apps/plugin/test-page-header.ts` (wired into the plugin `test` script), `main.ts` wiring, plugin README, `version.ts`. **ENGINE 0.179.0 → 0.180.0 (plugin behavior, MINOR); CONTRACT STANDS at 13.1.0** (stamp-only `--accept`). The orchestrator renumbers if another lane lands first.
+
+**What it does (owner decisions, 2026-09-27).** After `build-components` lands a set on its `↳ <family>` page, the plugin places ONE instance of the `_Section-header` file component on that page: Size=Medium, FIXED width at the content's width, HUG height, x on the content's left edge, bottom 80px above the content's top. The title is the family, the description the primary def's `summary`, and the `Description` boolean is on. It runs inside `buildOne`, so a dependency built first (spinner, icon) gets its own page's header too.
+
+**Diagnosis that kept it small.** The page mapping already had the family. `file-taxonomy.ts` lists each leaf's defs in build order, so the primary def is `leaf.defs[0]`, and the family title is that def's `name` up to its first `.` (`Button`, `IconButton`, `Checkbox`, `Radio`, `Switch`). No second family list exists to drift. The measurement is the page's top-level nodes, taken before the header is added. Placement runs after the text write, because the text sets the hugged height the y arithmetic reads.
+
+**Deliberate choices.**
+- **Idempotency is by main component**, not by name. A rebuild looks for a top-level INSTANCE whose `getMainComponentAsync()` parent is the `_Section-header` set, by id or, for a header instanced from a duplicate, by the set's name. It never adds a second, and never touches Size, width or position. A designer's Size=Small stays Small because the check matches any member of the set.
+- **"Placeholder" means the main component's own text.** Text is written only while the instance's Title/Description equals its main component's. A header dropped in by hand, or one whose font failed on the first build, is filled on the next build. Anything a designer typed is kept.
+- **The gap is a literal 80.** A page-level `y` is not a bindable field (only an auto-layout gap is), and wrapping the page in a frame is not what the owner's hand-placed headers do.
+- **A missing set is a skip, never a throw.** `ensurePageHeader` returns `skipped: no-set`. The verdict gains "no header on ↳ Buttons — this file has no _Section-header component; Set up file adds it". A host throw mid-placement is caught in `main.ts` and reported the same way, because the set is already built and a header is labeling. `sink.data` carries `pageHeaders` for the agent link.
+
+**Both build paths.** The agent link's `build-components` calls `ACTIONS.buildComponents`, the same handler, so it is covered. The `use_figma` paste path (`src/mcp-steps.ts` `runComponentChunk`/`runComponentEmit`) runs the engine's payloads rather than this handler, and **does not place a header**. That is noted in the README and the PR, not built here.
+
+**Mutations, committed first, each failing by name.**
+- `HEADER_VARIANT` → `Size=XL` → `2: the header is Size=Medium`.
+- `inst.height` dropped from the y arithmetic → `2: header bottom sits 80px above the content top`.
+- The placeholder check removed → `3: the user-edited description is left alone`.
+- Every instance skipped in the existing-header search → `3: still exactly one header after a second build`.
+- `n.setProperties?.({ Size: 'Medium' })` added to the rebuild branch → `4: the header the user set to Small stays Small`.
+- The missing-set guard removed → `5: no set: skipped, not thrown`.
+
+**Traps for whoever re-verifies.** The shim cannot lay out, so it models HUG as a fixed height per variant (Medium 120). A live host must recompute an instance's hugged height synchronously after the text write for the y placement to be exact. That is host-verified only. The header is placed once, at the width of the content at that moment. A family page built one set at a time (Buttons) takes the first set's width, and later sets do not widen it, by design ("width is never touched on a rebuild").
+
+**Held for the owner.** (1) On Checkbox, Radio and Switch the first-listed def is the Control, so those pages carry the Control's summary ("…Nested by Checkbox.Row; no label."). A leaf field naming the primary def, or a reorder, would change that. (2) Titles are code names (`IconButton`, `TextField`, `FieldLabel`), not the page names (`Icon button`, `Text field`).
+
+
+**Net (orchestrator).** Review fixes applied, plus the owner's calls on copy:
+- **Primary def.** A page's primary def is the first that is not a bare `-control` atom. The Checkbox, Radio and Switch pages carry the Row's summary, not the nested Control's "no label".
+- **Titles.** Titles are sentence-case display names (`IconButton` → "Icon button").
+- **Finding headers.** Headers are found anywhere on the page, including inside a Section. A detached header, now a FRAME named `_Section-header`, counts as present, so no second one is added.
+- **Width.** Hidden top-level nodes no longer widen or move the header.
+- **Result text.** The notes start with a capital. A failed write reads "Figma refused the write" and no longer puts the raw host error into the UI.
+- **Tests.** The Description boolean arm could not fail, because the shim started it `true`; it now starts `false`.
+- **Coverage gap.** Nothing tests the `main.ts` wiring, which is the #1106 limitation.
+- **Mutation.** Dropping the `-control` skip fails `1: the Checkbox page carries the Row's summary …` by name.
+---
 
 ## (2026-09-27) — Component alignment: field family + switch (#1699)
 

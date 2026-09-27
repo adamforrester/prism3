@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.180.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
+ * 0.181.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
  * registered def's documentation from the same data: `out/components/components.ai.json` (one
  * brand-independent file, field names mirroring the def, validated against the authored
  * `schema/component-docs.schema.json`) and `out/components/<id>.md` (one page per def), both PAYLOAD; and
@@ -2939,6 +2939,16 @@
  * is the one stamp. One def string moves (`radio-row`'s focus-ring note, `MUST` → `must`); no plan
  * moves. A new emitted surface → MINOR. CONTRACT STANDS at 13.1.0: no token name moves
  * (`token-contract --check` level `none`).
+ *
+ * 0.180.0 — the plugin places a page header on each component page (owner decisions, 2026-09-27). After a
+ * build lands on its `↳ <family>` page, the plugin adds ONE instance of the `_Section-header` file component
+ * (Size=Medium, FIXED width at the content's width, HUG height, its bottom 80px above the content's top) and
+ * writes the family title and the primary def's `summary` into it. A rebuild finds the header by its main
+ * component, adds no second one, never touches its Size, width or position, and rewrites text only while
+ * it still reads the placeholder. A file with no `_Section-header` set skips the header and says so in the
+ * build result (`apps/plugin/src/page-header.ts`, `test-page-header.ts`). A PLUGIN behavior change →
+ * ENGINE MINOR; no engine emission or projected member moves, so `out/**` restamps only. CONTRACT STANDS
+ * at 13.1.0 (`token-contract --check` level `none`).
  *
  * 0.179.0 — #1699: the field family and the switch align to their KB briefs (owner-delegated decisions).
  * Two projected-surface moves: (1) `select` gains `read-only` and `pending` (text-field's state set);
@@ -3914,7 +3924,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.180.0';
+export const ENGINE_VERSION = '0.181.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
