@@ -41,8 +41,6 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 - **Use when:** A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).
 - **Avoid when:** The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.
 - **Often used with:** `icon`, `spinner`, `focus-ring`
-- **Keywords:** delete icon button, trash button, remove icon button, danger icon button, destructive icon button
-- **Generation priority:** 3
 
 ## Props
 
@@ -87,7 +85,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
   - 2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)
 - **Keyboard:** Native \<button> — Enter on keydown, Space on keyup. Identical to Button.
 - **Focus:** Same offset :focus-visible ring as Button; retained through pending/inactive.
-- **ARIA:** aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), since the spinner is invisible to assistive tech. Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).
+- **ARIA:** aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).
 
 ## Motion
 
@@ -104,18 +102,6 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
   - div[role=button] wrapping an icon
   - a \<button> holding only an \<svg> and no accessible name
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 36px square in every example brand (28px at compact density), so the optical box is below the Apple HIG 44×44 floor in every brand. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.
-- focus-ring-offset — the ring GEOMETRY projects (an absolute sibling nesting the shared `focus-ring`), and its position is FROZEN at paste: Figma's x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers and writes their sum (#801 — the ring's stroke draws INSIDE its own bounds and would otherwise consume the whole gap). A brand changing either value re-themes every bound paint and does not move an already-pasted ring; nor does a REBUILD, which finds the set by name and skips each member by name, so a corrected position needs the existing set deleted or a fresh page. See `button`'s entry — the caveat is general to any geometry change, not to the ring. The `:focus-visible` CONDITION is likewise unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.
-- focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. Both numbers reach the build: since #801 the host positions the ring at -(offset + width), and since #1266 the width is the ring's own bound `strokeWeight`, so the compensation and the stroke are one figure. What stays unbound is the stroke style (`focus.ring.style`), which Figma holds as a dash pattern rather than a keyword — the same remaining gap `button` records.
-- aria-label — the REQUIRED accessible name, and the def's entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on every member would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.
-- inactive — a real state (isInactive), deliberately NOT a Figma variant, and the two reasons fail it independently. Its whole delta from `disabled` is behavioral (retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, surfaces the blockage reason on focus), so a variant has nothing to encode; and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control.
-- Spinner delay — in code the spinner appears only after a short delay (brief §8), so a fast response does not flash one. Figma holds the swapped member alone.
-- RTL mirroring (button brief §9) — only a directional glyph flips under RTL (a back or forward chevron), set per icon (`autoMirror`); search, settings, close and media-transport glyphs stay as drawn. Figma draws the glyph once.
-
 ---
 
-Generated from the `icon-button-destructive` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `icon-button-destructive` component definition.

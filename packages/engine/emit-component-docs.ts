@@ -1,9 +1,11 @@
 /**
- * Prism3 engine — COMPONENT DOCS PROJECTION (#1701). One projector, two forms, from the same def data.
+ * Prism3 engine — COMPONENT DOCS PROJECTION (#1701). One projector, two shipped forms and one maintainer
+ * record, from the same def data.
  *
  *   npx tsx packages/engine/emit-component-docs.ts
- *     → out/components/components.ai.json   (machine-readable: every registered def, for agents and code)
- *     → out/components/<id>.md              (human-readable: one page per def, for people and payload skills)
+ *     → out/components/components.ai.json      (PAYLOAD, machine-readable: every registered def)
+ *     → out/components/<id>.md                 (PAYLOAD, human-readable: one page per def)
+ *     → schema/component-maintainer.json       (NOT payload: each def's `codeOnly` and `notes.*`)
  *
  * THE GAP THIS CLOSES. `component-schema.ts` carries `docs`, `accessibility`, `content`, `motion`,
  * `composition`, `ai` and `notes` "so docs are a projection, not a re-author" (docs/19 §6), and promised a
@@ -13,29 +15,41 @@
  *
  * DECISIONS, stated so a reviewer can disagree with them rather than infer them:
  *
+ *  · WHAT SHIPS IS WHAT #1623 ALREADY SHIPS (owner decision, 2026-09-27). #1623 ruled `notes.*` and
+ *    `anatomy.codeOnly` maintainer-only — `apps/plugin/lint-bundle-prose.ts` strips them from the plugin —
+ *    and they read that way: issue numbers, brief section references, ALL-CAPS headings. So the payload
+ *    carries the shipped fields only: identity (`id`, `name`, `aliases`, `category`, `status`, `inherits`),
+ *    the code API (`props`, `states`, `variants`), and the prose `summary`, `description`, `docs`,
+ *    `accessibility`, `content`, `motion`, `composition`, plus `ai` in the JSON. Neither form carries a
+ *    `codeOnly` or a `notes` entry.
+ *  · THE PAGE IS FOR PEOPLE. It leaves out the agent-only half of `ai` — `triggerKeywords` and
+ *    `generationPriority` are search and tiebreak metadata a person does not act on — and keeps the
+ *    decision half (purpose, when to use, when to avoid, common partners) as "Choosing it". The JSON keeps
+ *    the whole `ai` block.
+ *  · THE MAINTAINER RECORD IS A SEPARATE, NON-SHIPPING FILE: `schema/component-maintainer.json`. It sits in
+ *    `schema/` beside the engine's other contracts rather than in `out/`, because every `out/` file is
+ *    scanned as shipped prose by `lint-us-english.ts` and `lint-voice.ts`, and keeping one out would mean
+ *    narrowing their scan. In `schema/` it is listed in `regen.ts`'s `MAINTAINER_ARTIFACTS` — drift-checked
+ *    like every artifact, classified `ours` in `payload-manifest.json`, and a class of its own in
+ *    `lint-schema-classification.ts` — and never in `SCHEMA_ARTIFACTS`, the list the prose gates read.
+ *  · THE MAINTAINER RECORD IS COMPLETE. The owner rule is that no SHIPPED artifact cites Prism 2; this file
+ *    does not ship, so its entries that name Prism 2 are kept rather than withheld — withholding them would
+ *    make the record disagree with the def it records, and hide the entries a rewording pass needs to find.
+ *    The payload carries no `codeOnly` or `notes` field, so there is nothing left to withhold there.
  *  · ONE BRAND-INDEPENDENT FILE, not a `components` section in each `<brand>.ai.json`. A def binds token
  *    NAMES, never values, so the same text would be written four times and could only ever agree with
- *    itself. Per-brand values belong to the token sidecar beside it, which already answers "what does
- *    `color.border.focus` resolve to in this brand".
- *  · FIELD NAMES MIRROR THE DEF. `docs.usage` in the def is `docs.usage` here; nothing is renamed. A reader
- *    who knows `component-schema.ts` knows this file, and the round-trip gate can compare a def field to its
- *    projection by path without a translation table.
- *  · `anatomy.codeOnly` IS PROJECTED as `codeOnly` in both forms — it is the list of structure Figma cannot
- *    carry, which is exactly what a code author building the component needs.
- *  · `notes.*` IS MAINTAINER RECORD. It is projected into the JSON only, under `maintainer`, labeled as
- *    such; the markdown leaves it out, because its register (open findings, resolved history, issue
- *    numbers) is not usage guidance (`docs/voice-standard.md` §4) and a person reading a component page
- *    should not have to sort guidance from working notes.
- *  · NO SHIPPED ARTIFACT CITES PRISM 2 (owner rule). A `codeOnly` or `notes` entry that names Prism 2 is
- *    WITHHELD — never rewritten — and the count is stated per component (`withheld`), so the omission is
- *    visible rather than silent. Rewording those entries is a def edit, not a projection decision; filed
- *    as #1703 so they can ship once they read without the citation (34 entries across 11 defs at landing).
+ *    itself. Per-brand values belong to the token sidecar beside it.
+ *  · FIELD NAMES MIRROR THE DEF. `docs.usage` in the def is `docs.usage` here, and `notes.contested` is
+ *    `notes.contested` in the maintainer record. The one reshaping: `variants.<axis>` is `{ values, kind }`.
+ *  · THE VERSION STAMP IS IN THE JSON'S TOP LEVEL ONLY. A page names no engine version, and the maintainer
+ *    record carries none, so an engine bump rewrites one file here rather than every page.
  *  · The Figma-only and paint layers (`tokens`, `paintKeys`, `anatomy.parts`, `figmaProperties`,
  *    `weightIntent`) are NOT documentation and are not projected. They reach Figma through the plan.
  *
- * GATED BY `lint-component-docs.ts` — every registered def in both forms, every schema-required field
- * represented, a def's field values round-tripping into both, and no Prism 2 anywhere in either. The
- * machine-readable form validates against the AUTHORED `schema/component-docs.schema.json`.
+ * GATED BY `lint-component-docs.ts` — every registered def in all three files, every schema-required field
+ * represented, each def field value round-tripping to its JSON path and into its own page section, no
+ * maintainer prose in either payload form, and no Prism 2 in either. The machine-readable form validates
+ * against the AUTHORED `schema/component-docs.schema.json`.
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -48,26 +62,13 @@ import { ENGINE_VERSION } from './version';
 /** The sidecar's schema id. `schema/component-docs.schema.json` carries the same `$id`; both move together. */
 export const COMPONENT_DOCS_SCHEMA = 'prism3-component-docs/1.0';
 
-/** The owner rule's pattern: an entry matching it does not ship. */
-export const PRISM2 = /prism\s*2/i;
-
-const withholding = (xs: readonly string[] | undefined): { kept: string[]; withheld: number } => {
-  const all = xs ?? [];
-  const kept = all.filter((s) => !PRISM2.test(s));
-  return { kept, withheld: all.length - kept.length };
-};
-
 /** Drop `undefined` keys so an absent optional field is absent, not `null`. */
 const compact = <T extends Record<string, unknown>>(o: T): T =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
-/** One def's machine-readable entry. Field names mirror `ComponentDef`. */
-export const projectDef = (def: ComponentDef) => {
-  const codeOnly = withholding(def.anatomy?.codeOnly);
-  const contested = withholding(def.notes?.contested);
-  const unverified = withholding(def.notes?.unverified);
-  const evolution = withholding(def.notes?.evolution);
-  return compact({
+/** One def's machine-readable entry: the shipped fields only. Field names mirror `ComponentDef`. */
+export const projectDef = (def: ComponentDef) =>
+  compact({
     id: def.id,
     name: def.name,
     aliases: def.aliases ?? [],
@@ -103,13 +104,7 @@ export const projectDef = (def: ComponentDef) => {
       planned: def.composition?.planned ?? [],
       replacesPatterns: def.composition?.replacesPatterns ?? [],
     }),
-    codeOnly: codeOnly.kept,
-    maintainer: {
-      notes: { contested: contested.kept, unverified: unverified.kept, evolution: evolution.kept },
-      withheld: codeOnly.withheld + contested.withheld + unverified.withheld + evolution.withheld,
-    },
   });
-};
 
 export const projectComponentDocs = (defs: readonly ComponentDef[]) => ({
   $schema: COMPONENT_DOCS_SCHEMA,
@@ -119,10 +114,31 @@ export const projectComponentDocs = (defs: readonly ComponentDef[]) => ({
     'Documentation for every registered component, projected from its definition — the same source the ' +
     'Figma component and a coded component are built from. Brand-independent: a definition binds token ' +
     'names, and each brand\'s `<brand>.ai.json` resolves them. Field names mirror the definition schema. ' +
-    '`codeOnly` lists the structure Figma cannot carry, which code implements. `maintainer` is the ' +
-    'definition\'s working record (open questions, unverified claims, resolved history), not usage ' +
-    'guidance; `withheld` counts entries left out because they cite an external reference system.',
+    '`ai` is the decision surface for choosing a component; the other fields are usage guidance and the ' +
+    'code API.',
   components: Object.fromEntries(defs.map((d) => [d.id, projectDef(d)])),
+});
+
+/** One def's maintainer record: the two fields #1623 ruled maintainer-only, kept whole (see the header). */
+export const projectMaintainer = (def: ComponentDef) => ({
+  codeOnly: [...(def.anatomy?.codeOnly ?? [])],
+  notes: {
+    contested: [...(def.notes?.contested ?? [])],
+    unverified: [...(def.notes?.unverified ?? [])],
+    evolution: [...(def.notes?.evolution ?? [])],
+  },
+});
+
+export const projectComponentMaintainer = (defs: readonly ComponentDef[]) => ({
+  $comment: [
+    'GENERATED by `packages/engine/emit-component-docs.ts` (#1701); edit the component definitions, not this file.',
+    'MAINTAINER RECORD, NOT PAYLOAD. Each definition\'s `anatomy.codeOnly` and `notes.*`, which #1623 ruled',
+    'maintainer-only. Classified `ours` in `payload-manifest.json`, listed in `regen.ts`\'s MAINTAINER_ARTIFACTS',
+    'rather than SCHEMA_ARTIFACTS, and so outside the shipped-prose gates by construction. Complete: entries',
+    'that cite an external reference system are kept here, because this file does not ship.',
+  ],
+  generated: true,
+  components: Object.fromEntries(defs.map((d) => [d.id, projectMaintainer(d)])),
 });
 
 // ---- markdown ---------------------------------------------------------------------------------
@@ -175,8 +191,7 @@ export const renderMarkdown = (def: ComponentDef): string => {
   field('Use when', def.ai.whenToUse);
   field('Avoid when', def.ai.avoidWhen);
   if (e.ai.commonPartners.length) out.push(`- **Often used with:** ${list(e.ai.commonPartners)}`);
-  if (e.ai.triggerKeywords.length) out.push(`- **Keywords:** ${e.ai.triggerKeywords.map(mdEscape).join(', ')}`);
-  if (def.ai.generationPriority !== undefined) out.push(`- **Generation priority:** ${def.ai.generationPriority}`);
+  // `triggerKeywords` and `generationPriority` are agent-only metadata; they stay in the JSON's `ai` block.
   out.push('');
 
   out.push('## Props', '');
@@ -238,14 +253,8 @@ export const renderMarkdown = (def: ComponentDef): string => {
     out.push('');
   }
 
-  if (e.codeOnly.length) {
-    out.push('## In code, not in Figma', '');
-    out.push('Structure and behavior the Figma component cannot carry. Code implements each one.', '');
-    bullets(e.codeOnly);
-  }
-
   out.push('---', '');
-  out.push(`Generated from the ${code(def.id)} definition by Prism3 ${ENGINE_VERSION}. Maintainer notes are in ${code('components.ai.json')}.`, '');
+  out.push(`Generated from the ${code(def.id)} component definition.`, '');
   return out.join('\n');
 };
 
@@ -253,6 +262,7 @@ export const renderMarkdown = (def: ComponentDef): string => {
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const COMPONENT_DOCS_DIR = resolve(here, 'out', 'components');
+export const COMPONENT_MAINTAINER_FILE = resolve(here, 'schema', 'component-maintainer.json');
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   // Cleared first, so a def that leaves the registry leaves no stale page behind for `regen --check` to miss.
@@ -260,5 +270,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(COMPONENT_DOCS_DIR, { recursive: true });
   writeFileSync(resolve(COMPONENT_DOCS_DIR, 'components.ai.json'), JSON.stringify(projectComponentDocs(componentDefs), null, 2) + '\n');
   for (const def of componentDefs) writeFileSync(resolve(COMPONENT_DOCS_DIR, `${def.id}.md`), renderMarkdown(def));
-  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json + ${componentDefs.length} pages`);
+  writeFileSync(COMPONENT_MAINTAINER_FILE, JSON.stringify(projectComponentMaintainer(componentDefs), null, 2) + '\n');
+  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
 }

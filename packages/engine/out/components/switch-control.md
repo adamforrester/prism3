@@ -22,7 +22,7 @@ Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a f
 
 ### Don't
 
-- Place a bare track as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target
+- Place a bare track as the clickable element — the labeled row is the hit target, and a compact small track (16px) is under the SC 2.5.8 minimum on its own
 - Double-label a nested control — the host row already provides the accessible name
 - Put the focus ring on the thumb — it moves, so the indicator would travel with it
 - Hardcode "On"/"Off" text beside the control — the glyph affordance and the role announcement carry it
@@ -42,8 +42,6 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Use when:** Nested by the labeled Switch.Row (the common case), or standalone only for a control with an external label and its own aria wiring.
 - **Avoid when:** You want the labeled case (that is Switch.Row), a staged binary submitted with a form (Checkbox.Row / Checkbox.Control), or a mutually-exclusive one-of-many (Radio.Control). Never place a bare track as the clickable element — the hit target is the labeled row.
 - **Often used with:** `switch-row`, `focus-ring`
-- **Keywords:** switch control, switch track, toggle control, switch thumb, toggle handle
-- **Generation priority:** 3
 
 ## Props
 
@@ -77,6 +75,12 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Focus:** The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring traveling with it reads as two indicators). Offset, keyboard traversal only.
 - **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off.
 
+## Motion
+
+- **Enter:** none (present on mount)
+- **Exit:** none
+- **Reduced motion:** The thumb slides across the track in ~150–200ms, ease-in-out, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the slide drops and the thumb snaps (0ms); the track-color crossfade may remain if it stays under flashing thresholds. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back.
+
 ## Composition
 
 - **Composes with:** `focus-ring`
@@ -84,16 +88,6 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Replaces:**
   - the painted track and thumb inlined in a switch row
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (a lock affordance, not an ink — and the one candidate token, `color.border.secondary`, resolves to the same step as the rest border in all four brands). The Row decides it.
-- pending — a THUMB SWAP (a spinner replaces the thumb) and an `aria-busy` lock, not a skin. `button` spells exactly this as an `overlay` part (#848), so the mechanism exists and the part is unauthored here — a second concern in a PR whose subject is the split and the affordance.
-- THE THUMB'S TRAVEL AS MOTION. `positionWhen` states WHERE the thumb is at each coordinate; the ~150–200ms ease-in-out slide between them (with the track-color crossfade, collapsing to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in this schema.
-- THE GLYPH'S OWN MICRO-MOTION — the check/X draw and the cross-fade onto the thumb on an async toggle. Neither the def schema nor a Figma variant carries motion, so the glyphs are static outlines at every coordinate.
-- THE WHOLE-ROW HIT TARGET. A bare track is a 16–36px pill that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `switch` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.
-
 ---
 
-Generated from the `switch-control` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `switch-control` component definition.

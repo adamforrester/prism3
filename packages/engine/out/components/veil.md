@@ -41,8 +41,6 @@ The veil holds no copy. Where its variants surface in a UI, name the polarity an
 - **Use when:** Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, and verify contrast against the real photo.
 - **Avoid when:** The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).
 - **Often used with:** `icon`, `button`
-- **Keywords:** veil, wash, photo wash, image overlay, image scrim, photo overlay, text over image, darken image, media wash
-- **Generation priority:** 3
 
 ## Props
 
@@ -79,13 +77,6 @@ None — not interactive.
 - **Replaces:**
   - a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- full-bleed — a veil covers its container edge to edge, which is a LAYOUT fact (the box fills its parent) that a STANDALONE Figma component cannot hold: there is no parent to fill, and a fill-sized root acquires no extent at all (the 100×100 default-frame defect `lint-standalone-floor.ts` exists for). So the standalone member binds a NOMINAL square side (`container.narrow`, 720px) and a designer resizes or sets it to fill over their image. In code the veil is an absolutely-positioned or inset overlay sized to its media container; the fixed nominal square is the placeholder that reads as a wash in the library.
-- the intensity is a magnitude, not a state — subtle/medium/strong is how much the wash mutes the image, and Figma carries it as a variant coordinate a designer selects, never a runtime state. A veil has no interaction states at all (`states: []`), so there is no hover, press or focus member; a control placed on top of the veil carries its own states.
-
 ---
 
-Generated from the `veil` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `veil` component definition.

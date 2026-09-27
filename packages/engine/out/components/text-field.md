@@ -18,7 +18,8 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 - Always render a visible, associated label (FieldLabel) — visually-hidden only for search
 - Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)
 - Emit a real \<input name> so it works uncontrolled, in a native form, with Server Actions
-- Separate a decorative prefix (aria-hidden) from an interactive suffix action (a labeled button)
+- Separate a decorative glyph (aria-hidden) from an interactive trailing action (a labeled button)
+- Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)
 
 ### Don't
 
@@ -43,8 +44,6 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 - **Use when:** Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.
 - **Avoid when:** The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).
 - **Often used with:** `field-label`, `field-message`, `icon`, `button`
-- **Keywords:** text field, text input, input, form field, textbox, email field, search field
-- **Generation priority:** 2
 
 ## Props
 
@@ -65,10 +64,10 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 | `readOnly` | boolean | `false` | no | Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component's live edge. |
 | `autoComplete` | string (WHATWG token) | — | no | Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience. |
 | `inputMode` | enum: 'text' \| 'numeric' \| 'decimal' \| 'tel' \| 'email' \| 'url' \| 'search' | — | no | Selects the mobile virtual keyboard. |
-| `prefix` | slot (adornment) | — | no | Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field's PURPOSE; validation never mutates it. |
-| `suffix` | slot (adornment \| action) | — | no | Trailing adornment. May be decorative (aria-hidden) OR a real labeled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing. |
-| `leadingIcon` | slot | — | no | An optional leading glyph before the value (a purpose or category mark), aria-hidden. Hidden by default; the file nominates the swap target. The Figma-projected form of the `prefix` adornment (its presence boolean + content swap). |
-| `trailingIcon` | slot | — | no | An optional trailing affix at the field's trailing edge (the glyph of a clear / reveal action, or a decorative mark), aria-hidden as a glyph. Hidden by default; the file nominates the swap target. The Figma-projected glyph of the `suffix` / `clearable` action, whose interactive behavior Figma cannot carry. |
+| `prefix` | string | — | no | A leading TEXT affix inside the field, before the value — a currency symbol or a unit ("$", "€"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale's placement (a symbol before or after the number). A glyph is `leadingIcon`, not this. |
+| `suffix` | string | — | no | A trailing TEXT affix inside the field, after the value — a unit or a domain ("kg", ".com"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is `trailingIcon` / `clearable`, not this. |
+| `leadingIcon` | slot | — | no | An optional leading glyph before the value (a purpose or category mark, such as search), aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. Signals the field's purpose; validation never mutates it. |
+| `trailingIcon` | slot | — | no | An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target. Figma carries the glyph, not the action's behavior. |
 | `clearable` | boolean | `false` | no | Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus). |
 | `isPending` | boolean | `false` | no | Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers (height + padding). A single bordered (outline) style; filled/underline are theming, not API. |
@@ -95,10 +94,16 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
   - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
   - 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1) / 2.4.13 Focus Appearance
   - 4.1.2 Name/Role/Value / 2.5.8 Target Size
-  - 3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (login/checkout fields, WCAG 2.2)
+  - 3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste
 - **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.
 - **Focus:** :focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
-- **ARIA:** The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
+- **ARIA:** The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
+
+## Motion
+
+- **Enter:** none (present on mount)
+- **Exit:** none
+- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
 
 ## Composition
 
@@ -110,20 +115,6 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
   - placeholder-as-label
   - type=number for formatted numeric
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- size — the small / medium / large ladder is a code-API PROP + geometry tokens (`size.{small,medium,large}.*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare geometry keys — the field control is one interactive target, and a projected size axis would triple the set for geometry a designer reads off one member); a code consumer picks the density via the `size` prop. It is kept off `variants` deliberately: `size` is `figmaAnatomyPlan`'s positional argument, so a declared size axis must project a rung (#795), which is why select — the template for this def — also expresses its single size as bare `md` geometry rather than a `size` variant. Same not-projected posture as the `style` axis, reached a different way.
-- style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.
-- pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.
-- empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving status(4) × state(6) = 24 members over rest / hover / filled / focus-visible / disabled / read-only. In code the placeholder and the value are one \<input>: its `placeholder` attribute and its value, never two elements.
-- the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser's native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder's muted one.
-- the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `suffix` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host's.
-- the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).
-- the nested LABEL's disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label's state vocabulary (rest / disabled) is not the field's, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.
-- the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.
-
 ---
 
-Generated from the `text-field` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `text-field` component definition.

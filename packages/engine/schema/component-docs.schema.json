@@ -3,7 +3,7 @@
   "$id": "prism3-component-docs/1.0",
   "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the projector would agree with whatever the projector wrote. Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/components.ai.json` against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the projector adds, drops or renames fails until this schema and its `$id` version move with it.",
   "title": "Prism3 component documentation (components.ai.json)",
-  "description": "Documentation for every registered component, projected from its definition. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema, so `docs.usage` here is `docs.usage` in the definition.",
+  "description": "Documentation for every registered component, projected from its definition: usage guidance, the accessibility contract, the code API and the decision surface for choosing a component. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema, so `docs.usage` here is `docs.usage` in the definition.",
   "type": "object",
   "additionalProperties": false,
   "required": ["$schema", "generated", "engineVersion", "note", "components"],
@@ -53,7 +53,7 @@
       "type": "object",
       "description": "One component's documentation.",
       "additionalProperties": false,
-      "required": ["id", "name", "aliases", "category", "status", "summary", "description", "props", "states", "variants", "accessibility", "docs", "ai", "composition", "codeOnly", "maintainer"],
+      "required": ["id", "name", "aliases", "category", "status", "summary", "description", "props", "states", "variants", "accessibility", "docs", "ai", "composition"],
       "properties": {
         "id": { "$ref": "#/$defs/id", "description": "The component id. Equal to this entry's key." },
         "name": { "$ref": "#/$defs/text", "description": "The display name." },
@@ -143,27 +143,6 @@
             "supersededBy": { "$ref": "#/$defs/ids", "description": "Components that replace it." },
             "planned": { "$ref": "#/$defs/ids", "description": "Related components not built yet, by the id they would take." },
             "replacesPatterns": { "$ref": "#/$defs/texts", "description": "Hand-built or native patterns it replaces, as prose." }
-          }
-        },
-        "codeOnly": { "$ref": "#/$defs/texts", "description": "Structure and behavior the Figma component cannot carry, which code implements." },
-        "maintainer": {
-          "type": "object",
-          "description": "The definition's working record, for whoever maintains it. Not usage guidance.",
-          "additionalProperties": false,
-          "required": ["notes", "withheld"],
-          "properties": {
-            "notes": {
-              "type": "object",
-              "description": "Research notes carried beside the definition.",
-              "additionalProperties": false,
-              "required": ["contested", "unverified", "evolution"],
-              "properties": {
-                "contested": { "$ref": "#/$defs/texts", "description": "Points where practice disagrees." },
-                "unverified": { "$ref": "#/$defs/texts", "description": "Claims stated but not yet checked by a gate." },
-                "evolution": { "$ref": "#/$defs/texts", "description": "Findings a later revision resolved, kept to explain the current shape." }
-              }
-            },
-            "withheld": { "type": "integer", "minimum": 0, "description": "How many `codeOnly` and `notes` entries were left out because they cite an external reference system." }
           }
         }
       }

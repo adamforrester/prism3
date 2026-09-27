@@ -11,19 +11,22 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 
 ## Usage
 
-Do not place this on its own. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the uncommon case with no labeled row.
+Do not place this on its own as a form control. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). It is also the unit a host nests when the label is decoupled — a select-all in a table's first column, a card-select where the card is the accessible name, a list or menu row. Nested that way, the host names the control through aria-labelledby, the host owns the hit target (the whole row toggles, unless the row has its own primary action — then the control is a secondary affordance with its own name, such as "Select \<item>"), and the enclosing collection is the group: it owns the selected ids and select-all, so no Checkbox.Group goes inside a list. Resolve every nested case to one model — the whole row is one control, or the control is a named secondary affordance — never a control inside a row that is itself a button or link with no clear click target.
 
 ### Do
 
 - Nest this from Checkbox.Row rather than redrawing the box per host
 - Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row
 - Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it
+- Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection
 
 ### Don't
 
 - Place a bare control square as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target
 - Double-label a nested control — the host row already provides the accessible name
 - Reach for this atom when you want the labeled case — that is Checkbox.Row
+- Nest a Checkbox.Group inside a selectable list — the collection is the group
+- Put the control inside a row that is itself a button or link with no clear model of which one a click hits
 
 ### Content guidelines
 
@@ -37,11 +40,9 @@ The atom has no copy of its own; all label, description and error text belongs t
 ## Choosing it
 
 - **Purpose:** Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.
-- **Use when:** Nested by the labeled Checkbox.Row (the common case), or standalone only for a control with an external label and its own aria wiring.
+- **Use when:** Nested by the labeled Checkbox.Row (the common case), or by a host whose label is decoupled — a table select-all, a card-select, a selectable list row — where the host names the control and the collection owns the selection. Standalone only with an external label and its own aria wiring.
 - **Avoid when:** You want the labeled case (that is Checkbox.Row), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch.Control). Never place a bare control square as the clickable element — the hit target is the labeled row.
 - **Often used with:** `checkbox-row`, `focus-ring`, `checkbox-group`
-- **Keywords:** checkbox control, checkbox box, check box atom, checkbox square
-- **Generation priority:** 3
 
 ## Props
 
@@ -75,6 +76,12 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Focus:** The nested focus ring surrounds the square on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Keyboard traversal only, never mouse or touch.
 - **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; `aria-checked="mixed"` carries it, and the host sets it.
 
+## Motion
+
+- **Enter:** On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.
+- **Exit:** On uncheck, the same glyph transition runs back and the fill crossfades out.
+- **Reduced motion:** Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.
+
 ## Composition
 
 - **Composes with:** `focus-ring`
@@ -82,14 +89,6 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Replaces:**
   - the painted control inlined in a checkbox row
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.
-- The check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). Neither the def schema nor a Figma variant carries motion, so the two glyph parts are static outlines at every coordinate.
-- The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.
-
 ---
 
-Generated from the `checkbox-control` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `checkbox-control` component definition.

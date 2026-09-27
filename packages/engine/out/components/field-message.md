@@ -36,8 +36,6 @@ Place directly below a field to carry persistent helper guidance (default status
 - **Use when:** Under any field control that needs persistent guidance or an error/warning/success message.
 - **Avoid when:** As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.
 - **Often used with:** `text-field`, `select`, `checkbox-row`, `field-label`, `icon`
-- **Keywords:** helper text, help text, error message, validation message, field error, caption, hint
-- **Generation priority:** 3
 
 ## Props
 
@@ -72,15 +70,6 @@ None — not interactive.
 - **Composes with:** `text-field`, `select`, `field-label`, `icon`
 - **Planned:** `number-field`, `tooltip`, `inline-alert`
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- aria-describedby wiring — the message's entire relationship to its field is a DOM one the HOST owns (§6): the field references this node's id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.
-- the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `tone=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.
-- the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by tone, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: 'vector'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.
-- the default tone's OPTIONAL icon, which is now the only half of this that Figma cannot express. Since #1010 the two sides agree on the common case — no glyph on the default tone, three fixed glyphs on the validation tones — so what is left is narrower than the entry it replaces: in code a host MAY pass `props.icon` on the default tone and get a glyph painted `default.icon`, and there is no Figma member for that. A member either has the node or does not, so "optional in the same sense the prop is" has no projection, and adding a boolean property for it would offer a designer a toggle whose ON state has no glyph to show. **The reason the previous entry gave had expired and the entry had not**, which is why this one is worth reading carefully: it said the part is always-present because `present()` builds no optional part outside the two slot names it hardcodes — accurate for a `kind: 'slot'` part, and false the moment these became `presentWhen`-gated `vector` parts, since `presentWhen` IS a mechanism for variant-scoped absence (#910). The gating is what let the default tone lose its glyph at all.
-
 ---
 
-Generated from the `field-message` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `field-message` component definition.

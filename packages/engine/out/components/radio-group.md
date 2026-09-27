@@ -7,7 +7,7 @@ A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, a
 - **ID:** `radio-group`
 - **Category:** form
 - **Status:** draft
-- **Also known as:** radio-set, radios, radio-list, single-select, radio-fieldset, radio-button-group
+- **Also known as:** radio-set, radios, radio-list, single-select, radio-fieldset, radio-button-group, choice-list
 
 ## Usage
 
@@ -46,8 +46,6 @@ The group label names the decision; the rows carry the short options. Group erro
 - **Use when:** A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.
 - **Avoid when:** Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or a segmented control, not built yet), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).
 - **Often used with:** `radio-row`, `radio-control`, `field-label`, `field-message`
-- **Keywords:** radio group, radio set, radios, single select, exactly one, pick one, choose one, mutually exclusive, shipping method, plan tier
-- **Generation priority:** 2
 
 ## Props
 
@@ -57,9 +55,9 @@ The group label names the decision; the rows carry the short options. Group erro
 | `value` | string | — | no | The controlled SCALAR selected option value — exactly one, where Checkbox.Group owns an array. The GROUP owns it; each row's checked appearance is DERIVED (`checked = (value === row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form. |
 | `defaultValue` | string | — | no | Uncontrolled initial selection — a single option value. Start EMPTY (unset) to force a deliberate choice; pre-select only where a genuinely safe recommended default exists, and never pre-select a consent-shaped option. |
 | `onChange` | (value: string, event) => void | — | no | Fires with the NEW scalar value when a different row is selected. The group dispatches it; a row never owns its own onChange inside a group. Keep it CHEAP — selection follows focus by default, so a screen-reader user arrowing through fires it at every step. |
-| `required` | boolean | `true` | no | Whether an option must be chosen. On by default. Drives the nested FieldLabel's required marker and aria-required on the group. Group-level: an individual row never owns its own required. An optional group must instead carry an explicit "None" option, because a radio cannot be deselected — a stray click is otherwise permanent. |
+| `required` | boolean | `false` | no | Whether an option must be chosen. Off by default. Drives the nested FieldLabel's required marker and aria-required on the group. Group-level: an individual row never owns its own required. An optional group must instead carry an explicit "None" option, because a radio cannot be deselected — a stray click is otherwise permanent. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the group — the label's type and every row (control circle, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form. |
-| `name` | string | — | no | The shared control name — LOAD-BEARING here, not a submission convenience: it is what enforces browser-level exclusivity across the set. An individual option NEVER sets its own, which would break exclusivity outright. |
+| `name` | string | — | yes | The shared control name — LOAD-BEARING here, not a submission convenience: it is what enforces browser-level exclusivity across the set, so every group sets one. An individual option NEVER sets its own, which would break exclusivity outright. |
 | `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own. |
 
 ## States
@@ -77,7 +75,8 @@ The group label names the decision; the rows carry the short options. Group erro
 - **Role:** radiogroup (role="radiogroup" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="radio"> sharing the group's name
 - **WCAG:**
   - 1.3.1 Info and Relationships (the group structure — role="radiogroup" + the shared label — is the meaning)
-  - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion (GROUP-level, announced once)
+  - 3.3.2 Labels or Instructions (the group label, announced once for the set)
+  - 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.
   - 4.1.2 Name Role Value (the group name via aria-labelledby; each option carries its own checked)
   - 2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each option)
   - 2.5.8 Target Size (each row is its own target — the group does not change that)
@@ -85,9 +84,15 @@ The group label names the decision; the rows carry the short options. Group erro
 - **Focus:** Focus lands on ONE option at a time (roving), not on every option in turn. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option. The group container is not itself focusable. Keep the :focus-visible ring INSTANT (a fade lags rapid arrow navigation) and circular (the control is full-round).
 - **ARIA:** Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual option never owns its own required or error. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.
 
+## Motion
+
+- **Enter:** None (present on mount). On select, the chosen option's dot scales in, about 100-150ms.
+- **Exit:** Selecting an option animates the previously selected option's dot out — exclusivity made visible, and the only exit a radio has. Rows do not animate in or out of the stack.
+- **Reduced motion:** No layout motion. Under prefers-reduced-motion, both dots snap through opacity and color only; the focus ring appears instantly at every setting.
+
 ## Composition
 
-- **Composes with:** `radio-row`, `field-label`, `field-message`
+- **Composes with:** `radio-row`, `field-label`
 - **Alternative to:** `checkbox-group`, `select`, `switch-row`
 - **Planned:** `form`, `combobox`, `segmented-control`
 - **Replaces:**
@@ -95,15 +100,6 @@ The group label names the decision; the rows carry the short options. Group erro
   - a set of checkboxes misused for a mutually exclusive choice
   - per-option required / error scattered across the options instead of owned by the group
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- value / onChange — the GROUP owns the SCALAR selected value and the change callback (`value: string`, exactly one — where CheckboxGroup owns an array), and each row's checked appearance is DERIVED from it (`checked = value === row.value`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the scalar and its wiring are the code projection's. This is the contract the group owns and a single `radio-row` structurally cannot express — and for radio it is what makes the options mutually exclusive at all.
-- name — the SHARED control name that enforces browser-level EXCLUSIVITY, owned by the group and load-bearing rather than a submission convenience. An individual option setting its own name breaks exclusivity outright. Figma has no DOM naming, so the shared name is the code projection's; the projected rows cannot show the exclusivity that makes them radios rather than toggles.
-- roving tabindex / single tab stop — THE OPPOSITE OF CHECKBOX-GROUP, and radio's headline keyboard difference. The whole group is ONE tab stop: Tab moves into it and the next Tab moves out, while arrow keys move between options (wrapping, Home/End to first/last) and Space/selection-follows-focus selects. Implement with roving tabindex (the checked option at tabindex="0", siblings at -1). Making each option its own tab stop is the most common radio a11y failure. Figma has no accessibility tree and no keyboard model, so none of this is projectable — it lives in `accessibility.keyboard` and here.
-- the id / describedby WIRING and role="radiogroup" — the host generates ids, ties the FieldLabel to the group via aria-labelledby, and stitches any group message into aria-describedby. Figma has no accessibility tree and no node-to-node reference, so the nested label sits above the rows and is associated by proximity alone (the ceiling field-label already hits).
-
 ---
 
-Generated from the `radio-group` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `radio-group` component definition.

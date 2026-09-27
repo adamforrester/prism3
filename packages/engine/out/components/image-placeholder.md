@@ -41,8 +41,6 @@ The frame holds no copy. Where its ratio surfaces in a UI, name the proportion (
 - **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick 1:1, 4:3 or 16:9 from the media it will hold; the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.
 - **Avoid when:** The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).
 - **Often used with:** `icon`, `veil`
-- **Keywords:** image placeholder, media frame, photo frame, aspect ratio, 16:9, 4:3, square image, empty image, image slot, no image, media slot
-- **Generation priority:** 3
 
 ## Props
 
@@ -76,15 +74,6 @@ None — not interactive.
 - **Replaces:**
   - a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- aspect-lock derive — the frame holds its RATIO while its real size flexes, and Figma expresses that as an aspect-ratio LOCK (`lockAspectRatio()`) that DERIVES the second dimension from the first. The engine binds ONE nominal dimension and locks the ratio; that a variable BINDING on the single axis makes Figma derive the other at PASTE time (as a resize does) is a live-file behavior no offline host can witness, filed for the real-host round-trip arm (`tools/component-roundtrip/`). What the offline gates hold is the lock capturing the right ratio, read back as `targetAspectRatio`.
-- raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modeled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.
-- scrim/veil and play-circle overlays — DEFERRED to a follow-up (#1316 residue, owner-held). A wash for text over the image nests the `veil` component, and a video affordance nests the `play-circle` glyph; both are compositions this core empty-state frame does not carry. Named here so the absence reads as a deferral rather than a gap.
-- the ratio is a magnitude of SHAPE, not a state — 1:1 / 4:3 / 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`).
-
 ---
 
-Generated from the `image-placeholder` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `image-placeholder` component definition.

@@ -2927,14 +2927,17 @@
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
  * 0.180.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
- * registered def's documentation twice from the same data: `out/components/components.ai.json` (one
+ * registered def's documentation from the same data: `out/components/components.ai.json` (one
  * brand-independent file, field names mirroring the def, validated against the authored
- * `schema/component-docs.schema.json`) and `out/components/<id>.md` (one page per def). `anatomy.codeOnly`
- * ships in both; `notes.*` ships in the JSON only, under `maintainer`; any `codeOnly`/`notes` entry naming
- * Prism 2 is withheld and counted. Five def strings (`focus-ring`, `radio-row`, `text-field`, `textarea`)
- * are respelled or reworded so the newly shipped prose passes the US-English and voice gates; no meaning
- * moves. A projected plan carries its def's `codeOnly`, so `focus-ring`'s and `text-field`'s plans move and
- * `component-surface.json` is re-accepted for those two (member counts unchanged). A new emitted surface → MINOR. CONTRACT STANDS at 13.1.0: no token name moves
+ * `schema/component-docs.schema.json`) and `out/components/<id>.md` (one page per def), both PAYLOAD; and
+ * `schema/component-maintainer.json`, each def's `anatomy.codeOnly` and `notes.*`, which is NOT payload.
+ * The split follows #1623 (owner decision, 2026-09-27): the payload carries the fields the plugin already
+ * ships, and the page leaves out `ai`'s agent-only keywords and priority, which stay in the JSON. The
+ * maintainer record is a regen artifact in a new `regen.ts` list, `MAINTAINER_ARTIFACTS`, drift-checked
+ * but outside `SCHEMA_ARTIFACTS`, so the shipped-prose gates and this version's emission gate do not read
+ * it. No page and no maintainer entry carries the engine version; the JSON's top-level `engineVersion`
+ * is the one stamp. One def string moves (`radio-row`'s focus-ring note, `MUST` → `must`); no plan
+ * moves. A new emitted surface → MINOR. CONTRACT STANDS at 13.1.0: no token name moves
  * (`token-contract --check` level `none`).
  *
  * 0.179.0 — #1699: the field family and the switch align to their KB briefs (owner-delegated decisions).

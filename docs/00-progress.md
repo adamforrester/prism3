@@ -7,41 +7,53 @@
 
 ---
 
-## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component (#1701)
+## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component, and a maintainer record that does not ship (#1701)
 
-**STATUS: PR open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. ENGINE 0.175.0 → **0.176.0** (a new emitted surface, MINOR). CONTRACT stands at 13.1.0; no token name moves.
+**STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.180.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
 
-**What ships.** `emit-component-docs.ts` (a `regen.ts` step) writes:
-- `out/components/components.ai.json`: every registered def in one brand-independent file. It validates against the authored `schema/component-docs.schema.json` (`$id` `prism3-component-docs/1.0`, every object closed).
-- `out/components/<id>.md`: one page per def.
+**What `emit-component-docs.ts` writes** (a `regen.ts` step):
+- `out/components/components.ai.json` — PAYLOAD. Every registered def in one brand-independent file, validated against the authored `schema/component-docs.schema.json` (`$id` `prism3-component-docs/1.0`, every object closed). It carries the shipped fields only: identity, the code API (`props`, `states`, `variants` with each axis's `kind`), `summary`, `description`, `docs`, `accessibility`, `content`, `motion`, `composition` and `ai`.
+- `out/components/<id>.md` — PAYLOAD. One page per def, written for people: the same fields minus `ai`'s agent-only `triggerKeywords` and `generationPriority`, which stay in the JSON.
+- `schema/component-maintainer.json` — NOT payload. Each def's `anatomy.codeOnly` and `notes.*`, which #1623 ruled maintainer-only. Classified `ours` in `payload-manifest.json`.
 
-Both are classified **payload** in `payload-manifest.json`. `regen --check` goes 111 → **136** artifacts, in `verify.ts` and `ci.yml` together.
+`regen --check` goes 111 → **137** artifacts, in `verify.ts` and `ci.yml` together.
 
 **Decisions a reviewer can disagree with.**
-- **One brand-independent file, not a `components` section in each `<brand>.ai.json`.** A def binds token *names*. Four per-brand copies would be four identical texts that could only agree with each other. Each brand's own sidecar already resolves the names.
-- **Field names mirror the def.** `docs.usage` is `docs.usage`. Only three paths differ: `notes` → `maintainer.notes`, `anatomy.codeOnly` → `codeOnly`, `variants.<axis>` → `variants.<axis>.values` (+ `kind` from `axisKindOf`). So the gate's path table is three lines it owns, not the projector's.
-- **`codeOnly` ships in both forms; `notes.*` ships in the JSON only**, under a `maintainer` section. Notes are the def's working record (open findings, resolved history, issue numbers). Under voice-standard §4 that is not usage guidance, and a person reading a component page should not have to sort one from the other.
-- **Prism 2: withheld, never rewritten.** 34 `codeOnly`/`notes` entries across 11 defs name it. They are left out of both forms, and each component's `maintainer.withheld` says how many. Rewording them is a def edit, filed as **#1703**. Some are guidance a code author needs (checkbox-group and radio-group group-level validation, row count, orientation), so those pages are thinner until #1703 lands.
+- **The maintainer record lives in `schema/`, in a new `regen.ts` list, `MAINTAINER_ARTIFACTS`.** Not in `out/`: `lint-us-english.ts` and `lint-voice.ts` walk all of `out/`, so keeping it unscanned there would mean narrowing their scan. Not in `SCHEMA_ARTIFACTS` either: every reader of that list treats membership as "this ships" — both prose gates scan it and `lint-emission-version.ts` demands an ENGINE bump when it moves. The new list is drift-checked by `regen --check`, classified by `lint-payload-manifest.ts`, and accepted by `lint-schema-classification.ts` as a fourth class (generated, maintainer-only, not prose-gated), mutually exclusive with the other three. So a notes-only def edit moves the maintainer record and needs no ENGINE bump.
+- **No Prism 2 withholding anywhere.** The payload carries no `codeOnly` or `notes` field, so there is nothing to withhold there, and arm E still fails the payload on any Prism 2. The maintainer record keeps its 37 entries that name Prism 2: it does not ship, and withholding would make it disagree with the defs it records. #1703 (rewording those entries so they can ship) has lost its reason; held for the owner to close or repurpose.
+- **The version stamp is the JSON's top-level `engineVersion` only.** Pages carry no stamp and the maintainer record none, so an engine bump rewrites one file here, not 25. Nothing needed the per-page stamp: the round-trip arm reads def values, and `regen --check` owns freshness.
+- **The page keeps "Choosing it"** — `ai`'s purpose, when to use, when to avoid and common partners — and drops only keywords and priority. The owner's note read "`ai` in the JSON only" and "drop agent-only metadata from the page"; these four are the decision half a person uses to pick a component. Held for the owner if the intent was to drop the whole block.
+- **Def edits reverted.** The first pass reworded `focus-ring`, `text-field` and `textarea` `codeOnly`/`notes` strings because they shipped. They no longer do, so those three defs are back to `main` and `component-surface.json` is `main`'s. `radio-row`'s focus-ring note keeps #1708's content with `MUST` written as `must`.
 - **Not projected:** `tokens`, `paintKeys`, `anatomy.parts`, `figmaProperties`, `weightIntent`. They are the plan's input, not documentation.
 
-**Diagnosis worth keeping: shipping maintainer prose surfaced gate findings the def files had been carrying.** The first run of the prose gates over the new output failed on 1 en-GB spelling (`modelled`), 3 × `simply` and 2 × normative `MUST`, all in `codeOnly`/`notes`. Those fields had shipped nowhere since #1623 stripped them from the plugin bundle, so no gate had read them as shipped text. Fixed at the source (`focus-ring`, `radio-row`, `text-field`, `textarea`), with the meaning unchanged. A projected plan carries its def's `codeOnly`, so the respellings move `focus-ring`'s and `text-field`'s plan digests. `component-surface.json` is re-accepted for those two, with member counts unchanged. Expect the same after #1703 rewords its 34 entries: they join shipped text and meet both gates for the first time.
+**Diagnosis worth keeping: a page-wide search could not see a short value leave its table.** The first gate checked each def string with `page.includes(v)`. Replacing every page's Variants `Values` cell with `x` removes 183 values; with the scoping neutralized to a page-wide search, 179 of them still passed, including `small` and `filled` on `button` (each appears in the Props table's type prose). docs/34 shape 13: the promise names a table, the predicate took the file. Arm C now reads each page as sections (a heading's own body, up to the next heading of any level) and tables (row by the first column's code span, column by header), and the section map is written in the gate, not read from the projector.
 
-**The gate: `lint-component-docs.ts`.** Wired into CI, `verify.ts` and the three checklists. It reads the committed files and never imports the projector.
-- **A. Representation.** Every registered def is in both forms, checked both ways. Floor: 24 defs.
-- **B. Schema.** The JSON validates. Every field the schema declares on a component, nested fields included, is carried non-empty by at least one component. This arm found `composition.supersedes`/`supersededBy` unused anywhere in the corpus. Both are exempt by name, and the exemption fails once either is used.
-- **C. Round-trip.** A generic walk over each def's doc fields. 2,951 leaves are checked at their JSON path, and 2,562 strings are checked on the page after un-escaping `\|`/`\<`.
-- **D. Prism 2.** Neither form contains it. `withheld` equals the matching entries counted from the def. A self-check fails if nothing matches.
+**The gate: `lint-component-docs.ts`.** Reads the committed files; imports neither the projector nor `axisKindOf`.
+- **A. Representation** — every def in all three files, both ways. Floor: 24 defs.
+- **B. Schema** — the JSON validates; every declared field is carried by some component. `composition.supersededBy` is now carried (`radio-row` → `select`, from #1708), so only `supersedes` stays exempt.
+- **C. Round-trip** — 2,832 def leaves at their JSON path; 1,334 strings in their own page section; 1,309 values in their own table cell; 52 axis kinds in the JSON and the Variants `Changes` cell, from the def's `axisKinds` read in the gate; 440 maintainer entries by index in the record.
+- **D. Maintainer prose does not ship** — none of the 440 entries' tail halves is in either payload form (one `switch-row` note restates its own prop description verbatim, counted as shared); the page carries no agent-only label; the manifest lists the record under `ours`, by literal path.
+- **E. No Prism 2** in either payload form, with the detector self-checked on literal samples.
 
-**Mutations, each failing by name:**
-- M1: `select` dropped from the projection → `MISSING FROM JSON` + `MISSING PAGE: def \`select\``.
-- M2: `accessibility.keyboard` dropped from the mapping → `FIELD NOT REPRESENTED: … accessibility.keyboard` + a `ROUND-TRIP (json)` line per def.
-- M3: the Prism 2 filter removed → `PRISM 2:` naming the JSON and each page.
-- M4: keyboard dropped from the page only → `ROUND-TRIP (page)` per def.
+**Mutations, each failing by name** (harness asserts the diff landed and restores in `finally`):
+- M1 `select` dropped from all three files → `MISSING FROM JSON` / `MISSING PAGE` / `MISSING FROM MAINTAINER RECORD: def \`select\``.
+- M2 `accessibility.keyboard` dropped from the JSON mapping → `FIELD NOT REPRESENTED … accessibility.keyboard` + `ROUND-TRIP (json)` per def.
+- M3 every Variants `Values` cell → `x` → 183 × `ROUND-TRIP (page cell)`, one per variant value, `button` `small` and `filled` among them. Neutralized to a page-wide search, 4 fire.
+- M4 every axis projected `runtime` → `KIND (json)` + `KIND (page)` per authoring axis.
+- M5 `codeOnly` rendered back on the page → `MAINTAINER PROSE SHIPPED (page)`; `notes.contested` appended to the JSON `description` → `MAINTAINER PROSE SHIPPED (json)`.
+- M6 "Prism 2" in the JSON note and a page footer → `PRISM 2:` for both.
+- M7 the Keywords line back on the page → `AGENT-ONLY ON PAGE`.
+- M8 the maintainer rule moved to `payload` in the manifest → `MAINTAINER RECORD CLASS` (`lint-payload-manifest.ts` stays green, its documented limit).
+- M9 the record drops each def's first `codeOnly` → `ROUND-TRIP (maintainer)`.
+- M10 Do and Don't headings swapped → `ROUND-TRIP (page) … is not in the ### Do section`.
+- Classification: `MAINTAINER_ARTIFACTS` emptied → `UNCLASSIFIED` (and the manifest's `STALE RULE`); the file added to `SCHEMA_ARTIFACTS` as well → `classified more than once`.
 
 **Traps for whoever re-verifies.**
 - The gate reads the *committed* output. After editing a def, run `regen.ts` first, or arm C reports the old text as a round-trip miss.
-- Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`, so `<button>` renders as text and table cells stay intact. Arm C un-escapes before comparing. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a page miss on every string that carries the character.
-- The page footer stamps `ENGINE_VERSION`, so every version bump moves all 24 pages. That is the stamp, not drift.
+- Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`. Arm C un-escapes before comparing and splits table cells on unescaped pipes only. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a miss on every string that carries the character.
+- A new page heading, or a renamed one, needs its line in the gate's `SECTION` map; a doc field with no entry fails as `NO SECTION`, and a missing heading as `SECTION MISSING`.
+- `--all` lists every failure; the default stops at 60, so a mutation whose named line falls past 60 needs it.
+
 ## (2026-09-27) — Component alignment: field family + switch (#1699)
 
 **STATUS: PR open from `lane/align-fields-switch-b`, labeled DO NOT MERGE.** ENGINE 0.178.0 → 0.179.0 (MINOR); CONTRACT stands at 13.1.0 (every binding is an existing role; `token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for select (20 → 24 members), field-label, text-field, textarea (their nested label moved, and their `codeOnly` prose is on every plan) and switch-control (its `codeOnly` hit-target entry). `lint-paint` census re-accepted for select only.

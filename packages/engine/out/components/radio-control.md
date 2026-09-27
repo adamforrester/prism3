@@ -16,7 +16,7 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 ### Do
 
 - Nest this from Radio.Row rather than redrawing the circle per host
-- Let the host row pass `selection` and `state` through, and `follow` its size, so the nested control tracks the row
+- Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row
 - Let the inner circle and the ring recolor carry the selection; the ring border stays constant in WEIGHT across states, going brand-colored (not thicker) on select
 - Supply an external aria-label only when using the control genuinely alone
 
@@ -34,7 +34,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 ### Copy patterns
 
 - **Labels:** None — the atom carries no label. The option label and its rules live on Radio.Row (`radio-row`); the decision it belongs to lives on Radio.Group (`radio-group`).
-- **Errors:** None of its own — an error boundary is a color treatment the host coordinate selects, and radio error is GROUP-level only, never per-option; the message is the group's.
+- **Errors:** None — radio error is GROUP-level only, never per-option, so this atom has no error state and no error ring. The group carries the message and the error display.
 
 ## Choosing it
 
@@ -42,8 +42,6 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Use when:** Nested by the labeled Radio.Row (the common case), or standalone only for a control with an external label and its own aria wiring.
 - **Avoid when:** You want the labeled case (that is Radio.Row), a staged binary opt-in (Checkbox.Row / Checkbox.Control), or an immediate-effect toggle (Switch.Row / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labeled row.
 - **Often used with:** `radio-row`, `focus-ring`, `radio-group`
-- **Keywords:** radio control, radio circle, radio disc, radio dot, option control
-- **Generation priority:** 3
 
 ## Props
 
@@ -56,7 +54,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 ## States
 
-`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `error`
+`rest`, `hover`, `pressed`, `focus-visible`, `disabled`
 
 ## Variants
 
@@ -76,6 +74,12 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Focus:** The nested focus ring surrounds the circle on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Circular, because the host is full-round. Keyboard traversal only.
 - **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `radio`; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here.
 
+## Motion
+
+- **Enter:** On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.
+- **Exit:** When a sibling is selected, this dot animates out — the one exit a radio has, since it is never deselected on its own.
+- **Reduced motion:** Under prefers-reduced-motion, the dot snaps in and out through opacity and color only, with no scale.
+
 ## Composition
 
 - **Composes with:** `focus-ring`
@@ -84,14 +88,6 @@ The atom has no copy of its own; all label, description and error text belongs t
   - the painted circle and dot inlined in a radio row
   - a filled-disc radio that signals selection by the ring filling in
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- read-only — deliberately not a state of this atom. A radio has no working native readonly, so there is no treatment to project; the field/row/group decides it. The Row admits it in its own `codeOnly`.
-- The select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). Neither the def schema nor a Figma variant carries motion, so the dot is static at every coordinate.
-- The whole-row hit target. A bare control circle is a 12-24px disc that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `radio` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.
-
 ---
 
-Generated from the `radio-control` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `radio-control` component definition.

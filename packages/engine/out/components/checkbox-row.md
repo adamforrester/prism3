@@ -7,7 +7,7 @@ A control for an independent binary choice that is staged into a form and submit
 - **ID:** `checkbox-row`
 - **Category:** form
 - **Status:** draft
-- **Also known as:** checkbox, check, tickbox, checkbox-field, checkbox-list, choice-list, multiselect
+- **Also known as:** checkbox, check, tickbox, checkbox-field
 - **Builds on:** `text-field`
 
 ## Usage
@@ -16,7 +16,7 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 
 ### Do
 
-- Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint reaches 24x24 and beyond
+- Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond
 - Set aria-checked="mixed" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech
 - Let the GROUP own required, validation and the value array; a row inside a group never manages its own error
 - Accept rich content in the label, so a consent line can carry the link it needs
@@ -46,8 +46,6 @@ The label states what becomes true when checked. Group errors read "Select at le
 - **Use when:** A single opt-in (consent, "remember me", "include X"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.
 - **Avoid when:** The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).
 - **Often used with:** `checkbox-control`, `checkbox-group`, `field-label`, `field-message`, `focus-ring`, `button`
-- **Keywords:** checkbox, check box, tickbox, check, choice list, multiselect, select all, consent, terms and conditions, opt in
-- **Generation priority:** 2
 
 ## Props
 
@@ -57,6 +55,7 @@ The label states what becomes true when checked. Group errors read "Select at le
 | `defaultChecked` | boolean | `false` | no | Uncontrolled initial value. Never `true` for a consent checkbox — pre-checked consent is a dark pattern and, for marketing consent, often unlawful. |
 | `indeterminate` | boolean | `false` | no | The mixed visual state — dash glyph, `aria-checked="mixed"`. PRESENTATIONAL: the underlying value is still true/false, and this is for parent/child select-all hierarchy only, never a third state a user can click to. There is no `indeterminate` HTML attribute — it is a DOM PROPERTY (`node.indeterminate = true`), which is the single most common checkbox bug; in React apply it through a synchronous ref callback rather than a JSX prop. |
 | `label` | node | — | no | Rich content: a node, not a string. The substrate's label is a string above the field; this one sits inline-end, doubles as the hit target, and must be able to hold a link, because the single most common real checkbox label is a consent line with one in it ("I agree to the Terms of Service"). A standalone control with no label is `checkbox-control`, which then requires an external `aria-label`/`aria-labelledby`. |
+| `description` | node | — | no | Optional helper beneath the label, describedby-wired — the detail that qualifies the choice without lengthening the label. |
 | `onChange` | (checked: boolean, event) => void | — | no | Restated rather than inherited: the substrate's change yields a string, this one yields the resulting BOOLEAN alongside the event. |
 | `value` | string | — | no | The string submitted when checked (the platform default is `"on"`), and the element this row contributes to a Checkbox.Group's array. An unchecked box submits nothing at all rather than a false value — the missing-key trap. |
 | `readOnly` | boolean | `false` | no | Restated only for the caveat: `<input type="checkbox">` has NO working `readonly` — only `disabled` — so a genuinely read-only checkbox needs `aria-readonly` plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not. |
@@ -76,36 +75,31 @@ The label states what becomes true when checked. Group errors read "Select at le
 
 - **Role:** checkbox (native \<input type="checkbox">), with aria-checked true / false / mixed
 - **WCAG:**
-  - 2.5.8 Target Size (the whole ROW is the target — the 12–24px box fails in isolation)
+  - 2.5.8 Target Size — the intent: the whole ROW is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.
   - 4.1.2 Name Role Value (role, checked AND mixed — `aria-checked="mixed"` must be set explicitly)
   - 1.3.1 Info and Relationships (group structure)
   - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion (group-level)
   - 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)
   - 3.3.7 Redundant Entry (repeated consents)
 - **Keyboard:** Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.
-- **Focus:** :focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles, giving at least 24x24 and scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.
+- **Focus:** :focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.
 - **ARIA:** Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.
+
+## Motion
+
+- **Enter:** None of the row's own (present on mount). On check, the nested Checkbox.Control draws its glyph and crossfades its fill, about 100-150ms.
+- **Exit:** None of the row's own. On uncheck, the nested control runs the same glyph transition back.
+- **Reduced motion:** No layout motion. Under prefers-reduced-motion, the nested glyph flips instantly; a crossfade under 150ms may remain.
 
 ## Composition
 
-- **Composes with:** `checkbox-control`, `field-label`, `field-message`, `focus-ring`
-- **Alternative to:** `switch-row`, `radio-row`, `select`
-- **Planned:** `form`, `toggle-button`, `combobox`
+- **Composes with:** `checkbox-control`
+- **Alternative to:** `switch-row`, `radio-row`
+- **Planned:** `form`, `toggle-button`, `combobox`, `listbox`, `chip`
 - **Replaces:**
   - a bare \<input type="checkbox"> with no label wiring
   - a role="checkbox" div where a styled native input would do
 
-## In code, not in Figma
-
-Structure and behavior the Figma component cannot carry. Code implements each one.
-
-- read-only — a `states` value the Figma set does not carry. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control's `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row's own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.
-- states — the Row's per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection's, not Figma's. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).
-- min-height — `size.*.min-height` is the row's FLOOR (48 at medium on nb) and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping consent label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.
-- The whole-row hit target beyond the row's own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout rather than a property of this component. `row` is the node it lands on — that is what this block newly makes expressible — but the value is not the def's to pick.
-- The label's RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.
-- The nested control's glyph micro-motion (brief §8: a stroke-dasharray draw morphing dash to check). It lives in `checkbox-control` now, not here — the Row nests the control and carries none of its geometry or motion — and has no expression in the def schema at either level.
-
 ---
 
-Generated from the `checkbox-row` definition by Prism3 0.176.0. Maintainer notes are in `components.ai.json`.
+Generated from the `checkbox-row` component definition.
