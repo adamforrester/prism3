@@ -285,7 +285,7 @@ export const checkboxGroup: ComponentDef = {
     // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label and the rows. `field-message`
     // is a partner (the held group-error display), carried in `ai.commonPartners`.
     composesWith: ['checkbox-row', 'field-label'],
-    alternativeTo: ['radio-group', 'select', 'switch-row'],
+    alternativeTo: ['radio-group', 'switch-row'],
     replacesPatterns: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
       'per-row required / error scattered across the options instead of owned by the group',

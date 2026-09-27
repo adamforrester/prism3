@@ -60,8 +60,8 @@
  * `inherits: 'checkbox-row'` (renamed from `checkbox`, #1347). The brief's §15 states
  * `inherits: [text-field, checkbox]` — **a chain** — and `ComponentDef.inherits` is a single string, so the
  * chain cannot be written down. The nearest parent is named and the rest is this sentence: the form-field
- * substrate (`description`/helper, `error`, the `aria-describedby` wiring, `name`/`id`/`required`/`disabled`/`readOnly`)
- * reaches this def *through* `checkbox-row`, along with the Row's own shape — the rich-content label that doubles as the hit
+ * substrate (`description`/helper, the `aria-describedby` wiring, `name`/`id`/`required`/`disabled`/`readOnly`)
+ * reaches this def *through* `checkbox-row` — all but `error`, which stops at the group since #1698 (decision 1) —, along with the Row's own shape — the rich-content label that doubles as the hit
  * target, top-baseline alignment, and native DOM naming.
  *
  * As on `textarea` and `checkbox`, **nothing in the engine resolves `inherits`**: it is prose for a
@@ -83,7 +83,7 @@
  * Brief §15 lists `radio-specific: [selected, no-deselect, no-indeterminate]`: `selected` is the
  * `selection` AXIS (now on the atom); `no-deselect` is a BEHAVIOUR (activating a selected radio does
  * nothing), and behaviors have no coordinate; `no-indeterminate` is an ABSENCE, which is a thing you
- * cannot declare at all. So `states` is checkbox's seven exactly, and this note stops the next reader
+ * cannot declare at all. So `states` was checkbox's seven exactly until #1698 removed `error` (below), and this note stops the next reader
  * concluding three were dropped. These drive the CODE projection (a disabled Row dims its label); the
  * Figma set is size-only (the nested control's `state` is exposed). `read-only` is admitted in `codeOnly`.
  * `error` LEFT the list in #1698 (decision 1): radio error is group-level only, so neither the option nor
@@ -109,8 +109,8 @@ export const radioRow: ComponentDef = {
     'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).',
 
   // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated.
-  // THREE PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
-  // the header); `props` cannot express an absence, so `docs.dont` carries it too.
+  // FOUR PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
+  // the header), and `error` is group-level only (#1698, decision 1); `props` cannot express an absence, so `docs.dont` carries it too.
   props: [
     { name: 'value', type: 'string', required: true, description: 'Required, where Checkbox.Row\'s is optional. This is the option\'s identity within its group, not a string that happens to be submitted. Selection is derived from it: `checked = (group.value === props.value)`. The option never holds a boolean of its own.' },
     { name: 'label', type: 'node', required: false, description: 'Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels WRAP rather than truncate, with the control centered within the first line-box so it stays on the first line. Per-option detail or price belongs in `description`, not in the label.' },
@@ -330,7 +330,8 @@ export const radioRow: ComponentDef = {
     wcag: [
       '1.3.1 Info and Relationships (the group structure is the meaning)',
       '4.1.2 Name Role Value (role and checked)',
-      '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion (group-level, announced once — never per option)',
+      '3.3.2 Labels or Instructions (the option label)',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the group\'s, announced once and never per option. The group error display is not designed yet, so neither is met today.',
       '1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)',
       '2.5.8 Target Size — the intent: the whole row is the target, as in Checkbox.Row. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.',
     ],

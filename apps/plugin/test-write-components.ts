@@ -2736,8 +2736,8 @@ ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger'
 ok(rb.rows.length === 30, `#1348 reachable: radio-control built every member (${rb.rows.length}/30)`);
 ok(rb.rows.every((r) => r.fill === null),
   `#1348 radio's ring binds NO fill at any member — the Prism 2 outlined model, not a filled disc (${rb.rows.filter((r) => r.fill !== null).map((r) => `${r.member} -> ${r.fill}`).slice(0, 3).join('; ') || 'none does'})`);
-ok(rb.rows.filter((r) => r.state !== 'error').every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
-  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every non-error member, unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.state !== 'error' && r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
+ok(rb.rows.every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
+  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every member (radio has no error member since #1698), unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
 // RECOLORS ACROSS SELECTION (#1423), read off the BUILT node — the sharpest form of the rebind: at each
 // interactive non-error state the UNCHECKED ring resolves the neutral field-border edge and the CHECKED
 // ring the interactive brand edge, so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
