@@ -60,7 +60,7 @@ type Mode = ResolvedPreview['modes'][number];
 
 // Boot from a VALIDATED example brand — the emitted schema/example-brands.json (a
 // test.ts gate asserts every brand there resolves all-green on the preview
-// contracts). prism3 is the canonical default theme (#1296): Prism 2's bright blue as
+// contracts). prism3 is the canonical default theme (#1296): a bright blue (#1E1EFF) as
 // the one interactive color, italic Playfair Display headings over an Inter UI.
 // brandState is the mutable working copy the inputs edit.
 const BRANDS = exampleBrands as Record<string, BrandInput>;
@@ -6431,6 +6431,7 @@ const renderCategorySetup = (): HTMLElement => {
       setPath(brandState, 'typography.italicDefault', next.length ? next : undefined); applyFull();
     });
     if (italicG.has(g)) { idBox.disabled = true; idBox.title = 'This category ships -italic variants. Clear Italic first: an italic default replaces the upright cut those variants pair with.'; }
+    else if (!italicDefG.has(g) && Object.keys((getPath(brandState, `typography.faces.${g}`) as Record<string, unknown> | undefined) ?? {}).length) { idBox.disabled = true; idBox.title = 'This category pins a cut. Clear its pinned cut first: an italic default sets the cut from the weight, and a pin would override it.'; }
     idtd.append(idBox);
     tr.append(idtd);
     const itd = el('td', 'cs-c');
