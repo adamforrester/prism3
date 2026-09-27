@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Prism3: the canonical default theme at `pds3`, and italic as a category's default cut (#1296)
 
-**STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.185.0 (MINOR: 0.184.0 for the theme, 0.185.0 for the second pass below); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.
+**STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.186.0 (renumbered in the net after #1733 and #1731) (MINOR: 0.184.0 for the theme, 0.185.0 for the second pass below); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.
 
 **What shipped.** A new brand, `examples/prism3.design.md` (id `prism3`, root `pds3`), emitted to `out/` and `out/figma/prism3/`, first in `EXAMPLE_IDS`, and the brand the studio and plugin boot on (`BOOT_BRAND` in `apps/studio/src/main.ts`). Primary is Prism 2's `brand.primary.650`, `rgb(30, 30, 255)` = #1E1EFF, converted with the engine's own `rgbToOklch` to `{ l: 0.4709, c: 0.3001, h: 266.75 }`, which round-trips to `#1e1eff` (unrounded: l 0.470917, c 0.300127, h 266.746). The engine pins it at step 600. Type: Playfair Display on display/title, Inter on body/label/caption/eyebrow, JetBrains Mono on code.
 
@@ -43,6 +43,63 @@
 - **Byte-identity, re-proven.** Regen before the bump moved zero bytes in `out/{nb,aurora,harbor,wendys}*` and their Figma trees. After the bump, the only lines that move are the eight `generator.version` stamps.
 
 **Held for the owner (in the PR):** every lever beyond the ones decided, and the second-pass values (status set, shadow amount, the radial's stops).
+
+---
+
+## (2026-09-27) — Component sets: 24px inner padding so the variant-set border shows
+
+**STATUS: PR open from `lane/set-inner-padding`, labeled DO NOT MERGE.** ENGINE 0.185.0 (MINOR; renumbered in the net after #1733 took 0.184.0), CONTRACT stands at 13.1.0.
+
+**The report (owner, 2026-09-27).** #1714 writes the purple dashed variant-set border (#9747FF, 1px, INSIDE, dash 10/5), and a member on the set's edge covered it. The cause was not the border: all three layout scripts laid the grid out from (0,0), and INSIDE strokes paint within the set's bounds. The owner approved 24px of inner padding, matching the grid's `GAP = 24`.
+
+**The change.** `PAD = 24` is named once per layout script, next to `GAP`: the plugin's `applyComponentPlan` (`write-components.ts`), the one-shot paste (`planSetToPluginJs`) and the chunked paste (`planSetChunks`). The grid starts at (PAD,PAD), and the set is resized to the grid's extent plus 2×PAD.
+
+**The one-shot paste used to lay out BEFORE the combine and never resize.** It relied on `combineAsVariants` to size the box to the members' bounds. Under that host behavior, any offset placed before the combine is absorbed and is not padding. So the one-shot now lays out and resizes AFTER the combine, as the plugin path and the chunked script already did. **Unverified live:** the host behavior this relies on (that combine sizes the set to its members, and that a later `resize` plus member x/y hold) is the same the plugin path already depends on, so it is proven there. The one-shot's new ordering was not run against a live file, because the only open file is the owner's.
+
+**The paste budget.** The tight `test.ts` `#536 item 6` probe (one chunk under `SET_CHUNK_BYTES = 42_000`) moved from 41,940 B to **41,957 B** (+17 B, 43 B of headroom left). It still fits in one chunk, so the budget was not raised. The one-shot grew from 40,067 B to 40,147 B. **The next change to the chunked script's fixed prelude has about 40 bytes to spend.**
+
+**What else assumed "set size = grid bounds", checked.**
+- The build summary's `W×Hpx` figure (`main.ts`) prints `set.width/height`, so it now includes the padding. That is correct, because it reports the set that was built.
+- The page header (`page-header.ts`) measures the top-level nodes' bounds, so it sees the padded set. No change.
+- The plugin's box read-back (`boxMiss`) compares against the same `wantW/wantH`, so it moves with them.
+- No other read-back or conformance check compares set size.
+
+**The gates.** Expected values are literals authored in the tests (24, 48), never read from any `PAD` (docs/34):
+- `test.ts`: `set padding (plugin)`, `set padding (paste one-shot)`, `set padding (chunked paste)`, `set padding (lockstep)` (plugin vs one-shot box), and `set padding (lockstep, chunked)` (plugin vs chunked, every member's position plus the box).
+- `test-roundtrip.ts`: `set padding` over every projected def.
+
+The `posMap` parity comment said the box was deliberately not compared because the one-shot never resized. It now resizes, so the box is compared.
+
+**Mutations (PAD=0 on one path at a time, each after a `wip:` commit):**
+- **Plugin:** `set padding (plugin)`, `set padding (lockstep)`, `set padding (lockstep, chunked)`, `parity` (posMap) and round-trip `set padding` fail by name.
+- **One-shot:** `set padding (paste one-shot)`, `set padding (lockstep)` and `parity` fail.
+- **Chunked:** `set padding (chunked paste)` and `set padding (lockstep, chunked)` fail.
+
+**Surface and paint gates.** `lint-component-surface` and `lint-paint` did not move, since no plan moved. `token-contract` was re-accepted as a stamp only (`engineVersion`).
+
+**Version collision.** #1733 (file-component name case) merged first at 0.184.0, so this PR takes 0.185.0.
+
+---
+
+## (2026-09-27) — Plugin: find the file-component sets whatever their name's case
+
+**STATUS: PR open from `lane/file-component-name-case`, labeled DO NOT MERGE.** ENGINE 0.183.0 → **0.184.0** (a plugin behavior change, MINOR by the running convention; `out/**` restamps only). CONTRACT stands at 13.1.0.
+
+**The live measurement (2026-09-27, engine 0.183.0, via the agent link).** In both of the owner's NB files — the MCP Testing File and the master file — the header set on `↳ File Components` is named **`_section-header`**, lowercase s. The plugin matched `_Section-header` exactly, in three places:
+- **The page header (#1711).** `ensurePageHeader` searched for the set with `n.name === SECTION_HEADER_SET`, so every build in those files reported "No header on ↳ Veil: this file has no _Section-header component, and Set up file adds it". No header was ever placed, and the message was false: the file has one.
+- **`isHeaderMain`** compared the parent set's name exactly too, so a header instanced from a lowercase duplicate of the set would not count as present.
+- **File setup (#1554).** `main.ts` checked for existing sets with `n.name === '_Section-header' || n.name === '_Headings'`, so running Set up file in those files would have built a second `_Section-header` beside the owner's.
+
+**The fix.** One match, `isTemplateSet(name, set)` in `apps/plugin/src/file-components.ts`, compares lowercased names, and every lookup of either set calls it: the page header's set search, `isHeaderMain`, the detached-header FRAME check (already case-insensitive, now through the same helper), and file setup. File setup's check moved out of `main.ts` into `ensureFileComponents` beside the builder, because inside `main.ts` it read the `figma` global and no test could drive it. `main.ts` now calls `ensureFileComponents(figma, page)`. The builder names a new set `_Section-header` / `_Headings` as before, and nothing renames an existing set. The "no header component" message is unchanged and now fires only when no set exists in any case. The other exact-name lookups in the plugin (`mcp-steps.ts`'s read-back and cleanup) match names from a caller's manifest, not these two sets, so they are out of scope.
+
+**Tests, each literal and independent of the helper.** `test-page-header.ts` §6: a file whose set is `_section-header` gets status `placed` and a result with no "No header"; a rebuild in a file holding both `_Section-header` and a `_section-header` duplicate finds the header instanced from the duplicate and adds none. The shim's own `headersOn` lowercases a literal rather than calling `isTemplateSet`. `test-file-components.ts`: a page holding `_section-header` + `_headings`, one holding only `_section-header`, and one holding only `_headings` each build no set; an empty page and a page holding only `Button` build both, so the arms can fail. The single-set arms exist so that restoring the exact match on either half of the check fails an arm of its own.
+
+**Mutations, committed before each and restored from HEAD, each failing by name.**
+- `ensurePageHeader`'s set search back to `n.name === SECTION_HEADER_SET` → "6: a `_section-header` set gets a header placed" (got `skipped / no-set`), "6: exactly one header on the page" and "6: the result says nothing about a missing header" fail — the last one printing the exact false message measured live.
+- `isHeaderMain`'s parent check back to `main.parent.name === SECTION_HEADER_SET` → "6: a header from a `_section-header` duplicate counts as present; none added" fails.
+- `ensureFileComponents` back to `n.name === '_Section-header' || n.name === '_Headings'` → the three "file setup: a page holding … gets NO second set" arms fail.
+
+**Trap for whoever re-verifies this.** A mutation on `isTemplateSet` itself turns every arm red at once, which reads as proof and proves nothing about any one call site (docs/34 corollary 1). Mutate each call site.
 
 ---
 

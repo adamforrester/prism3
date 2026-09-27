@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.185.0 — #1296/#1718: the default theme gains its accent, gradients and extras, and the numeric weight
+ * 0.186.0 — #1296/#1718: the default theme gains its accent, gradients and extras, and the numeric weight
  * tier always carries the contract's standard weights. (1) ENGINE: `weightsRef` now unions the four
  * contract-guaranteed numerics (300/400/700/900, a literal `CONTRACT_WEIGHTS` list, deliberately not
  * derived from the default roles) onto the numerics a brand's weight roles use. A brand that remaps a role
@@ -2939,7 +2939,7 @@
  * gains `core.font.weight.700`. Emission moves → ENGINE MINOR. CONTRACT STANDS at 13.1.0 — no guaranteed
  * name moves; prism3 now emits every guaranteed path.
  *
- * 0.184.0 — #1296: the canonical default theme, `prism3` at root `pds3`, and italic as a category's
+ *   (0.186.0, continued — the first pass) #1296: the canonical default theme, `prism3` at root `pds3`, and italic as a category's
  * DEFAULT cut. (1) A new lever, `typography.italicDefault: TypeGroup[]` (the shape of `italics`/`links`):
  * a listed category's bare composites are the italic cut — `$value.fontStyle: 'italic'` under the
  * ordinary name, and the derived Figma cut is the weight's italic instance (500 → "Medium Italic") — with
@@ -2953,6 +2953,24 @@
  * `out/` and `out/figma/prism3/`, and becomes the studio and plugin boot brand. Existing brands' artifacts
  * are byte-identical before this bump; after it they restamp only. ENGINE MINOR; CONTRACT STANDS at
  * 13.1.0 (`prism3` is not a corpus member; `token-contract --check` unchanged).
+ *
+ * 0.185.0 — component sets get 24px of inner padding, so the variant-set border shows (owner-reported and
+ * approved 2026-09-27, 24 to match the grid's GAP). #1714 writes the border INSIDE the set's edge, and all
+ * three layout scripts laid the grid out from (0,0), so an edge member covered it. The grid now starts at
+ * (PAD,PAD) and the set is the grid's extent plus 2×PAD, in lockstep across `write-components.ts` and both
+ * paste scripts. The one-shot paste now lays out AFTER the combine and resizes, as the other two do. No
+ * plan moves; the executors and pasted payloads do → MINOR. CONTRACT STANDS at 13.1.0 (no token name
+ * moves; `token-contract --check` level `none`).
+ *
+ * 0.184.0 — the plugin finds the two file-component sets whatever their name's case. Both of the owner's NB
+ * files name the header set `_section-header` (lowercase s), measured live on 2026-09-27 at 0.183.0; the
+ * plugin matched `_Section-header` exactly, so every build skipped the page header and reported that the
+ * file had no header component, and Set up file would have built a second pair beside the owner's. Every
+ * lookup of either set — the page header's set search and main-component check, and file setup's
+ * "already built" check, now `ensureFileComponents` — goes through one case-insensitive match,
+ * `isTemplateSet` (`apps/plugin/src/file-components.ts`). No set is renamed; a new set is still built as
+ * `_Section-header` / `_Headings`. A PLUGIN behavior change → ENGINE MINOR; no engine emission or projected
+ * member moves, so `out/**` restamps only. CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`).
  *
  * 0.183.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
  * registered def's documentation from the same data: `out/components/components.ai.json` (one
@@ -3972,7 +3990,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.185.0';
+export const ENGINE_VERSION = '0.186.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

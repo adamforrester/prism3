@@ -34,7 +34,7 @@ import { runApplyTheme } from './apply-theme';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode } from './write-components';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
-import { buildFileComponents } from './file-components';
+import { ensureFileComponents } from './file-components';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
@@ -774,7 +774,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
  * pages, the Foundations placeholder pages, and the Sandbox `↳ File Components` page — then builds
  * `_Section-header` and `_Headings` onto File Components. Idempotent: a re-run creates nothing already
  * present and rebuilds no set already there (`buildFileComponents` combines fresh sets, so a second run
- * makes a second pair — guarded below by skipping the build when the page already holds them).
+ * would make a second pair — `ensureFileComponents` skips the build when the page already holds either
+ * set, whatever the case of its name).
  *
  * Its own action, not part of `apply-theme` or `build-components`, for the #652 reason every canvas write
  * on this bridge is its own action: a distinct designer choice with its own trigger and its own verdict.
@@ -787,16 +788,12 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     let assetNote = '';
     let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean } = {};
     if (page) {
-      // IDEMPOTENT ASSET BUILD: skip if the page already holds a file component, so a re-run does not stack
-      // a second `_Section-header`/`_Headings` beside the first. `findOne` is available on a real PageNode.
-      const already = (page as unknown as PageNode).findOne(
-        (n) => n.type === 'COMPONENT_SET' && (n.name === '_Section-header' || n.name === '_Headings'),
-      );
-      if (already) {
+      // IDEMPOTENT ASSET BUILD: skipped when the page already holds either set, in any case (`ensureFileComponents`).
+      const res = await ensureFileComponents(figma, page);
+      if (res.skipped) {
         assetNote = ', file components already present (skipped)';
         assets = { skipped: true };
       } else {
-        const res = await buildFileComponents(figma, page as unknown as { appendChild(child: unknown): void });
         assets = { built: res.built, fontMisses: res.fontMisses };
         assetNote = `, built ${res.built.join(' + ')}` +
           (res.fontMisses.length ? ` (⚠️ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');

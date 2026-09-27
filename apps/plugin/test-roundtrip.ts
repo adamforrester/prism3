@@ -728,6 +728,41 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#1430 left alone: a set the host returns already stroked keeps its own stroke — the executor writes the purple only onto a bare set (${JSON.stringify(keptSet?.strokes)})`);
 }
 
+// ── SET INNER PADDING: THE GRID STARTS 24px INSIDE THE SET (owner-reported 2026-09-27) ────────────
+//
+// #1714 writes the variant-set border INSIDE the set's edge, and a grid laid out from (0,0) covered it
+// wherever a member touched an edge. The owner approved 24px of inner padding, matching the grid's GAP.
+// The oracle is authored HERE as literals (24 and 48), never read from the executor's PAD (docs/34): every
+// member sits at least 24 in from the set's top-left, and the set is the members' extent plus 48 on each
+// axis — so the padding is 24 on all four sides, not only the top-left. Set PAD to 0 in
+// `write-components.ts` and this arm fails by name.
+{
+  let checked = 0;
+  const off: string[] = [];
+  for (const def of PROJECTED) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any, {});
+    const set = page.children[0] as unknown as { type?: string; width: number; height: number; children: { name: string; x: number; y: number; width: number; height: number }[] } | undefined;
+    if (set?.type !== 'COMPONENT_SET' || !set.children.length) continue;
+    checked++;
+    const ms = set.children;
+    const inside = ms.filter((m) => m.x < 24 || m.y < 24).map((m) => `${m.name}@${m.x},${m.y}`);
+    const left = Math.min(...ms.map((m) => m.x)), right = Math.max(...ms.map((m) => m.x + m.width));
+    const top = Math.min(...ms.map((m) => m.y)), bottom = Math.max(...ms.map((m) => m.y + m.height));
+    const wantW = right - left + 48, wantH = bottom - top + 48;
+    const problems: string[] = [];
+    if (inside.length) problems.push(`members inside the 24px padding: ${inside.slice(0, 3).join(', ')}`);
+    if (Math.abs(left - 24) > 0.5 || Math.abs(top - 24) > 0.5) problems.push(`grid starts at ${left},${top}, want exactly 24,24 (#1731 net: equal padding on every side)`);
+    if (Math.abs(set.width - wantW) > 0.5 || Math.abs(set.height - wantH) > 0.5) problems.push(`set ${set.width}×${set.height}, want ${wantW}×${wantH} (members' extent + 48)`);
+    if (problems.length) off.push(`${def.id}: ${problems.join('; ')}`);
+  }
+  ok(checked > 0, `set padding: the corpus produced ${checked} emitted COMPONENT_SET(s) to check the padding on (scope floor)`);
+  ok(off.length === 0,
+    `set padding: every emitted set places its members 24px inside its edge and is the members' extent + 48 on each axis, so no member covers the variant-set border${off.length ? ` — OFF: ${off.slice(0, 6).join(' | ')}` : ''}`);
+}
+
 // ── OVERLAY-WASH: BOUND ON container.fills AND RESOLVED BY THE EMITTED BRAND (#1429) ────────────
 //
 // THE QA FINDING (2026-09-15, ENGINE 0.87.0): all button families reported 96 misses and all
