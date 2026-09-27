@@ -7,6 +7,42 @@
 
 ---
 
+## (2026-09-27) — Spinner: its KB brief carried forward to the def standard
+
+**STATUS: PR open from `lane/spinner-brief-carryforward-b`, labeled DO NOT MERGE.** `components/spinner.ts`, `components/button.ts` and `components/icon-button.ts` (`accessibility.aria`, and icon-button's spinner part note), `test.ts`, `version.ts`, the accepted baselines (`schema/component-surface.json`, `schema/token-contract.json` by its engine stamp), and `out/**` by the version stamp. **ENGINE 0.175.0 → 0.176.0** (the orchestrator renumbers if another lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.
+
+**What the def carries now, against `components/spinner.md`, to the `textarea.ts` / `button.ts` standard.** The no-value contract and the polite status in `accessibility.aria`; the pending-host focus rule (`aria-disabled`, not `disabled`, USWDS) in `accessibility.focus`; the fixed arc (`disableShrink` by construction), RTL force-clockwise and the anti-flash figures (about 200–500ms delay, about 500ms minimum display, the host's) in `anatomy.codeOnly`; the §7 label rules in `content.labelPattern` and `docs.contentGuidelines`; the Material 3 time bands in `ai.whenToUse` / `avoidWhen`; `inline-loading` / `loading` / `spin` in `aliases` and `triggerKeywords`; `toast` in `composition.planned`; the brief's three contested points, two unverified points and five §13 field points in `notes`.
+
+**The owner's decisions of 2026-09-27, as applied.**
+- *Default announcement.* `label` defaults to "Loading", the `role="status"` wrapper's name. A host that announces its own busy state opts out with `aria-hidden="true"`. Button and IconButton did not say so: both said the spinner is "invisible to assistive tech", which was true only while the spinner was hidden by default. Each now says to set `aria-hidden="true"` on the embedded spinner, in `accessibility.aria` (and icon-button's spinner part note). Neither field is in the plan, so neither def's surface moved.
+- *Enter fade* on `motion.duration.fast`. `instant` (50ms) is shorter but is three frames at 60Hz and reads as a cut, so `fast` is the shortest role that reads as a fade. Under reduced motion it runs `motion.duration-reduced.fast`, which the ramp keeps at 100ms at the standard tempo. No new token.
+- *Deferred:* a visible label / `labelPosition`, `staticColor`, the overlay / mask, a `spinning` prop. *Declined:* a success / error end state. Each is a `notes.contested` entry with the brief's alternative.
+
+**Two judgment calls, recorded in the def.**
+- `category` moves `feedback` → `foundations`, to brief §15. Measured first: nothing reads the field beyond `validateComponentDef`'s required check. No emitter, plan or gate reads it, and the Figma page comes from the plugin's file taxonomy, keyed on the id.
+- `circular-progress` / `progress-circle` are not aliases. They are MUI's and Spectrum's names for the fold the practice rejects, and this repo's circular progress on record (`reference/Prism2/component-specs/circular-progress-indicator.json`) is determinate and feeds the planned Progress. Recorded as a contested entry.
+
+**What moved on the projected surface.** Only the four `spinner/<size>` members, and only their `codeOnly` list (diffed plan against plan: `.codeOnly[3..7]` and nothing else).
+
+**Mutations, each failing by name (committed before each, restored from HEAD):**
+- `label` default removed → `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, …`.
+- `motion.enter` back to `none` → `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, …`.
+- Button's `aria-hidden` sentence removed → `spinner 2026-09-27: button's accessibility.aria hides its embedded spinner …`.
+- The `never role="progressbar"` clause removed from `accessibility.aria` → `spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract …`.
+- `staticColor`'s deferral mark removed → `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner … — missing: staticColor`.
+- A `codeOnly` entry edited without an accept → `lint-component-surface.ts`: `surface/spinner: plan digest …, baseline … — the same member COUNT, projecting different plans`.
+
+**Recorded rather than changed.**
+- `status: 'draft'` vs the brief's `stable`: #1700's convention, as #1702 left it.
+- `motion.exit` stays `none`. The brief fades both ways (§8); the owner's decision named the enter fade only.
+- The #1670 test's "aria-hidden by default" title was false after the decision. The assertion now checks the rotation rule only, and the new block asserts the announcement.
+
+**Traps for whoever re-verifies.**
+- Text Field and Switch Row also swap in a spinner while pending and set `aria-busy`, and neither `accessibility.aria` says to hide it. Text Field names no live region of its own, so its spinner's default "Loading" may be the only announcement it gets. Whether those hosts hide it is held for the owner, not changed here (neither projects a pending spinner in Figma yet).
+- `planStamp` hashes `codeOnly`, so any edit to a spinner `codeOnly` entry moves all four members on `lint-component-surface.ts`.
+
+---
+
 ## (2026-09-27) — Component alignment: the button and icon-button families (#1697)
 
 **STATUS: PR open from `lane/align-buttons`, labeled DO NOT MERGE.** `components/button.ts`, `components/icon-button.ts`, `test.ts`, `version.ts`, the two accepted baselines (`schema/component-surface.json`, `schema/paint-census.json`), and `out/**` by the version stamp. **ENGINE 0.174.0 → 0.175.0** (the orchestrator renumbers if another alignment lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.

@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.176.0 — the spinner carries its KB brief forward to the def standard, with the owner's decisions of
+ * 2026-09-27. Two shipped behavior changes: (1) the DEFAULT ANNOUNCEMENT — `label` defaults to "Loading" and a
+ * standalone spinner is a polite `role="status"`; a host that announces its own busy state (Button /
+ * IconButton `isPending`) opts out with `aria-hidden="true"`, which both hosts' `accessibility.aria` now state;
+ * (2) the ENTER FADE — `motion.enter` is a quick opacity fade on the existing `motion.duration.fast`, kept under
+ * reduced motion. One projected move: the four `spinner/<size>` members carry the revised `codeOnly` list (the
+ * fixed arc, RTL force-clockwise, the fade, the anti-flash figures, the announcement). No other def's plan moves
+ * (Button / IconButton change only `accessibility.aria` and a part note, neither in the plan). No token name
+ * moves, so CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`); `out/**` moves by the stamp only.
+ *
  * 0.175.0 — #1697: the button and icon-button families aligned to the KB button brief. Three projected
  * moves, all on the component surface (`out/**` moves by the version stamp only):
  *   (1) ICON-BUTTON'S DISABLED EDGE rebinds `color.disabled.border` → `color.disabled.icon`, the rebind #1349
@@ -3850,7 +3860,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.175.0';
+export const ENGINE_VERSION = '0.176.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
