@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-09-27) — Prism3: the canonical default theme at `pds3`, and italic as a category's default cut (#1296)
+
+**STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.184.0 (MINOR); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.
+
+**What shipped.** A new brand, `examples/prism3.design.md` (id `prism3`, root `pds3`), emitted to `out/` and `out/figma/prism3/`, first in `EXAMPLE_IDS`, and the brand the studio and plugin boot on (`BOOT_BRAND` in `apps/studio/src/main.ts`). Primary is Prism 2's `brand.primary.650`, `rgb(30, 30, 255)` = #1E1EFF, converted with the engine's own `rgbToOklch` to `{ l: 0.4709, c: 0.3001, h: 266.75 }`, which round-trips to `#1e1eff` (unrounded: l 0.470917, c 0.300127, h 266.746). The engine pins it at step 600. Type: Playfair Display on display/title, Inter on body/label/caption/eyebrow, JetBrains Mono on code.
+
+**The owner changed direction mid-lane, and the history shows it.** The first commit made a face pin that names an italic cut also emit `fontStyle: italic`. The owner then set the rule "one method per job": italic belongs to the italics levers, a face pin is only for cuts the engine cannot derive (width, optical size). That commit is reverted by a new commit, not rewritten.
+
+**The lever.** `typography.italicDefault: TypeGroup[]`, the shape of `italics` and `links`. A listed category's bare composites are the italic cut: `$value.fontStyle: 'italic'` under the ordinary name (`type.title.lg.emphasis`), and the derived Figma cut is the weight's italic instance (500 → "Medium Italic"). No upright variant ships. A category in both `italicDefault` and `italics` is refused (every `-italic` twin would repeat its bare weight). A face pin whose style contains `italic` (case-insensitive substring, the same test TokenPress applies to the style name) is refused and pointed at the lever. So is any pin inside an italic-default category, because a verbatim upright cut would contradict the tokens. **Oblique is deliberately outside the refusal** (#1719): the levers derive "<Weight> Italic", and the plugin resolver has no Italic ↔ Oblique synonym, so refusing an oblique pin would leave an oblique-only family with no route.
+
+**The diagnosis that kept the Figma side small.** `emit-figma-font.ts` read `italic = ext.italic || $value.fontStyle === 'italic'` for two jobs: the cut SLOT name and the cut VALUE. Before this change the two readings could not differ. Now they can, so they are split. The slot stays keyed on the modifier in the style's own name (`font/style/title/emphasis`, not `…/emphasis-italic`), which keeps the text style's words inside the prune vocabulary. The value follows what the composite renders.
+
+**One weight, two spellings, in one file (owner requirement).** `strong` is 600, and it ships on Playfair (display and title) and Inter (body, caption). Figma spells 600 "SemiBold Italic" for Playfair and "Semi Bold" for Inter. Findings by layer:
+- **Figma write lane: a real defect, fixed.** #499's `resolveFontStyle` corrected the baked `fontName`, but the text style's `fontStyle` BINDS the `<root>/core/font/style/<cat>/<role>` STRING variable (#1485), and `applyVarCollectionPlan` wrote that variable verbatim with the engine's guess. For Playfair the binding named "Semi Bold Italic", which Playfair does not have. `applyTextStylePlan` now reconciles each bound cut variable, per mode, against the family that mode binds, with the same resolver. It is done there because the font library is already fetched there, and both write paths (plugin and `use_figma` paste) call it. New result fields: `resolvedCuts` and `cutRefused`.
+- **Token handoff: canonical, documented.** The DTCG tree, the base projection and `.ai.json` state no style name: a weight is an alias to `core.font.weight-role.strong` → `core.font.weight.600`, plus `fontStyle: italic`. `out/figma/prism3/core.font.json` holds the engine's canonical guess ("Semi Bold Italic") for the cut variable, and the plugin corrects it at write time. TokenPress reading the committed emission sees the guess. Reading a live file, it sees "SemiBold Italic", and its own table maps both spellings to 600 (`apps/tokenpress/src/types/dtcg.ts`). Its text-style reader extracts italic by the same substring rule. #1489 (TokenPress reading a fontStyle-bound variable) is still open.
+- **Code: keys on the number.** The stock Style Dictionary CSS is `--pds3-type-title-lg-strong: italic var(--pds3-core-font-weight-role-strong) …`, and the role resolves to `600`. No CSS value carries a style name. This is asserted in `check-consumability.mjs`.
+
+**Decided here (technical).**
+- **Reservation.** `test.ts` `#1283` gains `RESERVED_ROOT_OK`, in the `ZERO_OK`/`LEAF_OK` shape: `prism3 → pds3` with its reason. It admits only `pds3` (never the `prism` fallback), at most one brand, and a stale admission fails.
+- **Fallback.** `input.root ?? 'prism'` is unchanged, with the ~235 fixtures pinning the historical default. Recorded on #1296 as a follow-up.
+- **Not a corpus member.** The corpus spans input VARIATION, and each member's demotion is attributable to one lever (`token-contract.ts` header). A rich brand adds nothing attributable. Instead, `test.ts` asserts prism3 emits the guaranteed surface against the COMMITTED baseline. That found #1718: `core.font.weight.700` is guaranteed only because no corpus member ever remapped `strong`, and prism3 (600) lacks it. This is pinned exactly, and held for the owner as a contract decision.
+- **Display ships `strong` too.** The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and a brand without them resolves to 0px sans-serif in `resolvePreview` (#1720, latent). `test.ts` asserts prism3 emits every type style the preview binds.
+- **Figma emission committed.** The boot theme should be materializable, and committing it puts it under `regen --check` and every figma gate.
+
+**Traps for whoever re-verifies.** (1) Byte-identity is proven in two steps: regen BEFORE the ENGINE bump moved zero committed bytes, and after it only the `generator.version` stamps move. (2) The MCP `tools/list` ceiling (60,000 chars) had 45 chars of headroom. The new lever fits only because the `italics` and `links` schema descriptions were compressed (59,955 → 59,942). (3) `resolvedCuts` counts per (variable, mode). prism3 has one font mode, so it is 2: Playfair's two 600 cuts.
+
+**Held for the owner (in the PR):** every lever beyond the ones decided, and #1718.
+
+---
+
 ## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component, and a maintainer record that does not ship (#1701)
 
 **STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.183.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.

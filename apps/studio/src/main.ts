@@ -6481,7 +6481,7 @@ const renderCategorySetup = (): HTMLElement => {
  *  family here, and a pin left STALE by a later face change is surfaced inline — never silent. */
 const renderFacePins = (): HTMLElement => {
   const ty = theme.typography;
-  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The face is fixed to the category’s bound family; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight.');
+  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The face is fixed to the category’s bound family; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight. Italic is set with the Italic columns above, not with a pin.');
   // The BOUND family for a category — `stack[0]`, the value `font.family.<cat>` carries and the value
   // the engine's pin validation compares against (`buildComposites` `familyPrimary`). This is the same
   // source the row's Face column reads, so the family the control WRITES cannot disagree with the one
@@ -6510,9 +6510,13 @@ const renderFacePins = (): HTMLElement => {
   head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Face'), el('th', 'cs-c', 'Style pin'));
   table.append(head);
   let slots = 0;
+  // #1296 — an italic-default category takes no pin: the engine refuses any pin there, since a verbatim
+  // upright cut would contradict the italic its tokens carry. Not offered, and named below the table.
+  const italicDefault = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
   for (const g of TYPE_GROUP_ORDER) {
     const fam = boundFamily(g);
     if (!fam) continue;   // an unbound category has no face to pin a cut WITHIN — the engine refuses it, so it is never offered
+    if (italicDefault.has(g)) continue;
     const shipped = roleOrder.filter((r) => ty.composites.some((c) => c.group === g && c.weightRole === r));
     for (const role of shipped) {
       slots++;
@@ -6551,6 +6555,10 @@ const renderFacePins = (): HTMLElement => {
   wrap.append(table);
   sec.append(wrap);
   if (!slots) sec.append(el('p', 'sl-note', 'No pinnable slots yet — bind a face to a category on Semantics first.'));
+  if (italicDefault.size) {
+    const cats = TYPE_GROUP_ORDER.filter((g) => italicDefault.has(g)).join(' and ');
+    sec.append(el('p', 'sl-note', `Not listed: ${cats}, which ${italicDefault.size === 1 ? 'is' : 'are'} italic by default. A pin binds its style verbatim, so it would override the italic. Clear Italic default above to pin a cut there.`));
+  }
   return sec;
 };
 // ---- object-value editors (#97) --------------------------------------------

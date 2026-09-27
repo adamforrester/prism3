@@ -2445,6 +2445,17 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   ok(slotCount > 0, `${brand}: the Pin-a-cut section offers at least one pinnable slot (found ${slotCount})`);
   const inputCount = await page.locator('.pincut-in').count();
   ok(inputCount === slotCount, `${brand}: every pinnable slot carries a free-text style input (${inputCount} inputs for ${slotCount} slots)`);
+  // #1296 — the engine refuses ANY pin in an italic-default category, so the control must not offer one.
+  // Oracle: the committed emission (a category whose every composite is italic under its bare name).
+  {
+    const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+    const typeNode = tree[Object.keys(tree)[0]].type ?? {};
+    const leavesOf = (n, out = []) => { for (const [k, v] of Object.entries(n)) { if (k.startsWith('$')) continue; if (v && v.$type === 'typography') out.push([k, v]); else if (v && typeof v === 'object') leavesOf(v, out); } return out; };
+    const italicCats = Object.entries(typeNode).filter(([, n]) => { const l = leavesOf(n); return l.length > 0 && l.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k)); }).map(([c]) => c);
+    const offered = await page.locator('.pincut-row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-cat')));
+    const wrong = offered.filter((c) => italicCats.includes(c));
+    ok(wrong.length === 0, `${brand}: Pin a cut offers no slot in an italic-default category [${italicCats.join(', ') || 'none'}] (offered ${wrong.length ? wrong.join(', ') : 'none of them'})`);
+  }
 
   // Pick the first slot and read its identity + BOUND FACE from the DOM. The bound face the row shows is
   // the oracle for the write's family — restating it from the brand would make the family assertion a
