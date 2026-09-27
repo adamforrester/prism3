@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — read-back: the saved brand's declared modes against the file's modes (#1662 follow-up)
 
-**STATUS: PR open from `lane/readback-declared-modes`, labeled DO NOT MERGE.** Engine (`read-back.ts`) + plugin (`seed-modes.ts`, `main.ts` `seedFromFile`). **ENGINE 0.173.0 → 0.174.0** (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else. Owner decision 2026-09-27: yes, do it — the question #1662's net left held.
+**STATUS: PR open from `lane/readback-declared-modes`, labeled DO NOT MERGE.** Engine (`read-back.ts`) + plugin (`seed-modes.ts`, `main.ts` `seedFromFile`). **ENGINE 0.175.0 → 0.176.0** (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else. Owner decision 2026-09-27: yes, do it — the question #1662's net left held.
 
 **The gap.** #1662 made a single-mode file pass `modesDistinct`, and stated its limit: `verifyReadback` saw only the file, so a light/dark brand whose `dark` never landed (`addMode` refused on a plan tier's mode cap) read "contract holds ✓" with one mode. The declared set is a brand fact, and the brand is in the file (#131, `prism3/brandInput`).
 
@@ -24,6 +24,41 @@
 **Known limit.** The one line in `main.ts` that passes `declaredModesOf(figma.root)` is not driven by a test: the suites that import `main.ts` (`test-agent-link.ts`, `test-agent-bridge.ts`) run on a host with no color variables, so `seedFromFile` returns before verifying. Replacing that argument with a constant skip would pass every gate. The pill-text and resolution logic sit in `seed-modes.ts` so everything but that argument is covered.
 
 **Trap for re-verification.** The comparison is by mode NAME. It holds because the emitter names each `color` mode after the brand's mode; a designer renaming a mode in Figma now reads as one missing mode plus one extra, which is the correct report.
+
+---
+
+## (2026-09-27) — Component alignment: the button and icon-button families (#1697)
+
+**STATUS: PR open from `lane/align-buttons`, labeled DO NOT MERGE.** `components/button.ts`, `components/icon-button.ts`, `test.ts`, `version.ts`, the two accepted baselines (`schema/component-surface.json`, `schema/paint-census.json`), and `out/**` by the version stamp. **ENGINE 0.174.0 → 0.175.0** (the orchestrator renumbers if another alignment lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.
+
+**What moved on the projected surface, measured by diffing every member's plan against `origin/main`:**
+- Icon-button, all three siblings: 6 outline-disabled members per sibling (and their inverse twins) change their stroke from `color/disabled/border` to `color/disabled/icon`; 36 pending members per sibling swap `icon` for `spinner/small|medium|large`; every member carries the revised `codeOnly` list. Nothing else.
+- Button, all three siblings: every member's `codeOnly` list grows by the four brief §9/§11 rules. Nothing else, so the part-note voice fixes do not reach the plan.
+
+**The four owner-delegated decisions, as applied.**
+1. *Icon-button's disabled edge* binds the disabled icon ink, as #1349 did for Button. The old role measured 1.48–1.80:1 against the page. The new one clears 3:1 in every example brand and mode.
+2. *Distinguishable siblings.* `makeButton` / `makeIconButton` take a per-sibling block (`triggerKeywords`, an avoid-when suffix naming the better-fitting sibling, `generationPriority`, a `docs.do` tail). Destructive carries brief §10's `danger` / `destructive` aliases and §5's pairing rule. Neutral no longer advertises "delete" or "primary action". Priorities: primary 1, neutral 2, destructive 2 (button) / 3 (icon-button). The brief sets no priority, so these numbers are a judgment call, flagged in the PR.
+3. *Icon-button's pending state* projects the real spinner. The old codeOnly ceiling argued that an overlay replacing the only part had no `overlaysWhenAbsent` floor. The schema needs a fallback only when every `replaces` target is optional, and `icon` is required, so none is declared.
+4. *Restated API.* Icon-button declares `onClick` and `type` (default `button`, the submit trap), because `inherits` has no reader.
+
+**The factory guard had to change shape, not loosen.** `test.ts`'s #1223/#1225 identity arms compared whole `ai` / `docs` / `composition` blocks. They now mask only the per-sibling keys (`sharedPart`) and still compare everything else byte for byte. Dropping the three fields whole would have let `docs.usage` or `composesWith` drift between siblings unseen. The button arm also gained `ai`, which it never compared before.
+
+**#867, one instance retired.** Icon-button's `pending — the SPINNER…` codeOnly entry led with a state name, so `admits()` licensed dropping `pending` from the axis. The entry is gone, and `test.ts` now asserts that the same mutation is refused. #867 itself (the leading-word rule) is untouched. The new codeOnly entries on both defs avoid leading with an axis or state name for the same reason.
+
+**Mutations, each failing by name (committed before each, restored from HEAD):**
+- Icon-button `disabled.border` back to `color.disabled.border` → `#1697 disabled edge: icon-button <brand>/<mode> border … clears 3:1 against the page (ratio 1.48…)` ×24, plus the equality pin.
+- Neutral's `triggerKeywords` copied from primary → `#1697 sibling triggerKeywords differ: button vs button-neutral` and `#1697 button-neutral advertises neither "delete" nor "primary action"`.
+- Icon-button's `spinner` part removed → `#1697 icon-button: all 36 pending members swap the icon for spinner/* …` on each sibling.
+- Icon-button's restated `type` removed → `#1697 icon-button restates onClick and type …` on each sibling.
+
+**Recorded rather than changed.**
+- `status: 'draft'` vs the brief's `stable`: the schema-wide convention is #1700's, not this lane's.
+- `motion.reduceMotion`'s ~100–150ms is now stated as a target with no bound motion token, and listed in `notes.unverified` on both defs. Binding a transition token would be a new token decision.
+- 2.5.5 is stated as intent. `lint-hit-target.ts` gates the 44px floor at the default size on comfortable and spacious densities, with the small size and compact density as named exceptions.
+
+**Traps for whoever re-verifies.**
+- `planStamp` hashes the whole plan, `codeOnly` included, so any codeOnly edit moves every member of a def on `lint-component-surface.ts`. Diff the plans before reading a whole-family move as a paint change.
+- The icon-button spinner rung is the icon's 1:1 rung (medium → `spinner/medium`), one member larger than a medium Button's (`spinner/small`, #1350). The test writes the px ladder literally rather than reading it from the def.
 
 ---
 
