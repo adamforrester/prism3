@@ -18,6 +18,8 @@ import { brandTheme, nbThemeFrom } from '@prism3/engine/theme';
 import { applyWritePlan, applyFloatPlan } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { readFigmaVariables } from './src/read-figma';
+import { persistInput } from './src/persist-figma';
+import { declaredModesOf, seedSummary, SKIP_NO_BRAND, SKIP_UNREADABLE } from './src/seed-modes';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
@@ -67,7 +69,7 @@ const api = shim as any;
 
 await applyWritePlan(plan, api);
 const snap = await readFigmaVariables(api);
-const verdict = verifyReadback(snap);
+const verdict = verifyReadback(snap, { modes: ['light', 'dark', 'hc-light', 'hc-dark'] });
 
 console.log('plugin read-back (#109) — write → read → verify round-trip on the shim\n');
 
@@ -129,6 +131,7 @@ class StylesShim {
   createEffectStyle(): StyleShim { const s = new StyleShim(); this.effectStyles.push(s); return s; }
   createPaintStyle(): StyleShim { const s = new StyleShim(); this.paintStyles.push(s); return s; }
 }
+const auroraInput0 = (): BrandInput => structuredClone(exampleBrands['aurora'] as unknown as BrandInput);
 const auroraTheme = brandTheme(exampleBrands['aurora'] as unknown as BrandInput);
 // One FILE, one variable table (#236): the gradient stops bind to `palette/*` variables, so the styles
 // shim's `variables` slice must be the SAME shim the colour executor wrote into — otherwise the stop
@@ -338,6 +341,62 @@ const stopsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string[] =>
 ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWith(`${FOREIGN_ROOT}/`))
   && stopsOf(runNative).map(dropRoot).join('|') === stopsOf(runForeign).map(dropRoot).join('|'),
   `#1097 ...but a gradient stop binds a VARIABLE, so it IS rooted — and agrees modulo the root (${stopsOf(runForeign).length} stops)`);
+
+// ═══ DECLARED MODES vs THE FILE'S MODES (#1662 follow-up, owner decision 2026-09-27) ══════════════════════
+//
+// The case the owner named: a multi-mode brand whose other modes never landed (`addMode` refused on a plan
+// tier's mode cap) read "contract holds ✓" with one mode. Modeled as the file a refused `addMode` leaves: the
+// REAL executor writes a light-only plan, while the brand persisted in the file (#131) is aurora as authored,
+// which declares no `modes` and so ships the default four. The declared set is read out of shared-data by
+// `declaredModesOf` — the same function `seedFromFile` calls — and the expected strings are WRITTEN here.
+{
+  const auroraLightOnly = brandTheme({ ...auroraInput0(), modes: ['light'] });
+  const vars = new VariablesShim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await applyWritePlan(buildWritePlan(buildFigmaColor(auroraLightOnly)), vars as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fileSnap = await readFigmaVariables(vars as any);
+  const store = new Map<string, string>();
+  const root = {
+    getSharedPluginData: (ns: string, key: string) => store.get(`${ns}/${key}`) ?? '',
+    setSharedPluginData: (ns: string, key: string, v: string) => { store.set(`${ns}/${key}`, v); },
+  };
+
+  // No saved brand → skipped, and the pill says why.
+  const none = verifyReadback(fileSnap, declaredModesOf(root));
+  ok(none.declaredModes.status === 'skipped' && none.ok
+    && seedSummary(none) === `Existing theme: ${fileSnap.color.length} color vars, modes light — contract holds ✓ · mode check skipped — no saved brand in this file`,
+    `declared modes: no saved brand → skipped, reason in the pill ("${seedSummary(none)}")`);
+  ok(SKIP_NO_BRAND === 'no saved brand in this file', 'declared modes: the no-brand reason reads as written');
+
+  // A stored blob this build refuses (#480) → skipped with its own reason, not "no saved brand".
+  root.setSharedPluginData('prism3', 'brandInput', '{"not":"a brand"}');
+  const unreadable = verifyReadback(fileSnap, declaredModesOf(root));
+  ok(unreadable.declaredModes.status === 'skipped' && unreadable.declaredModes.reason === SKIP_UNREADABLE
+    && SKIP_UNREADABLE === 'the saved brand could not be read',
+    `declared modes: an unreadable saved brand → skipped, reason "${unreadable.declaredModes.status === 'skipped' ? unreadable.declaredModes.reason : '—'}"`);
+
+  // The saved brand declares four modes; the file holds light → FAILS, naming the three that never landed.
+  persistInput(root, auroraInput0());
+  const capped = verifyReadback(fileSnap, declaredModesOf(root));
+  ok(capped.declaredModes.status === 'fail' && JSON.stringify(capped.declaredModes.missing) === '["dark","hc-light","hc-dark"]' && !capped.ok,
+    `declared modes: saved brand declares light/dark/hc-light/hc-dark, file holds light → FAILS naming the missing modes (${JSON.stringify(capped.declaredModes)})`);
+  ok(seedSummary(capped) === `Existing theme: ${fileSnap.color.length} color vars, modes light — FAILED: declaredModes · saved brand declares dark/hc-light/hc-dark, not in this file`,
+    `declared modes: the pill names the missing modes ("${seedSummary(capped)}")`);
+
+  // The saved brand declares light only; the file holds light → passes.
+  persistInput(root, { ...auroraInput0(), modes: ['light'] });
+  const match = verifyReadback(fileSnap, declaredModesOf(root));
+  ok(match.declaredModes.status === 'pass' && match.ok
+    && seedSummary(match) === `Existing theme: ${fileSnap.color.length} color vars, modes light — contract holds ✓`,
+    `declared modes: saved brand declares light, file holds light → passes ("${seedSummary(match)}")`);
+
+  // An extra mode in the file is reported, not failed.
+  const extraSnap = { ...fileSnap, collections: fileSnap.collections.map((c) => c.name === 'color' ? { ...c, modes: [...c.modes, 'promo'] } : c) };
+  const extra = verifyReadback(extraSnap, declaredModesOf(root));
+  ok(extra.declaredModes.status === 'pass' && seedSummary(extra).endsWith(' · promo in this file, not declared by the saved brand'),
+    `declared modes: an extra file mode is reported, not failed ("${seedSummary(extra)}")`);
+}
 
 console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

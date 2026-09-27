@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-27) — read-back: the saved brand's declared modes against the file's modes (#1662 follow-up)
+
+**STATUS: PR open from `lane/readback-declared-modes`, labeled DO NOT MERGE.** Engine (`read-back.ts`) + plugin (`seed-modes.ts`, `main.ts` `seedFromFile`). **ENGINE 0.173.0 → 0.174.0** (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else. Owner decision 2026-09-27: yes, do it — the question #1662's net left held.
+
+**The gap.** #1662 made a single-mode file pass `modesDistinct`, and stated its limit: `verifyReadback` saw only the file, so a light/dark brand whose `dark` never landed (`addMode` refused on a plan tier's mode cap) read "contract holds ✓" with one mode. The declared set is a brand fact, and the brand is in the file (#131, `prism3/brandInput`).
+
+**The shape.** `verifyReadback(snap, declared)` — `declared` is **required**, `{ modes }` or `{ skipped: <reason> }`, so no caller skips the comparison by omission. The result is a tri-state `declaredModes` field **beside** `checks`, not inside it: a `checks` entry is a boolean, and a boolean cannot say "not checked". A missing declared mode fails `ok` and is named; an extra mode in the file is reported and never failed (it may be a designer's own); a skip carries its reason. The pure function still reads nothing from the file.
+
+**Where the declared set comes from.** `declaredModesOf(figma.root)` in `apps/plugin/src/seed-modes.ts` restores the persisted `BrandInput` and takes `brandTheme(input).modes` — the list `emit-figma-color.ts` iterates to name the `color` collection's modes. Re-deriving from `input.modes ?? ALL_MODES` plus `customModes` would restate the default set and the custom-mode append, and could drift from what Apply writes. Cost: one `brandTheme` at boot, ~13 ms for aurora in Node. Three skip reasons, each its own string, because a designer acts on each differently: no saved brand, a blob this build refuses (#480), a brand that no longer resolves.
+
+**Copy.** New pill text is appended to the existing detail line after ` · `; the strings are in the PR under "Held for owner — copy". No studio change: the pill already renders the plugin's summary, and a failed comparison sets `ok: false`, which styles it `.bad` like any contract failure.
+
+**Tests.** `test.ts` (#1662 block, literal expectations): declared light/dark over a light file fails naming `["dark"]` with every other check still passing; declared light passes; `{ skipped }` reports skipped with the reason; an extra `brand-x` is reported, not failed. `apps/plugin/test-readback.ts`: the real executor writes a light-only aurora file, the full aurora brand is persisted into a shared-data shim, and `declaredModesOf` + `seedSummary` produce the exact pill strings — missing `dark/hc-light/hc-dark`, match, extra `promo`, no brand, unreadable blob. **Mutations, by name:** the fail branch replaced with pass → `❌ read-back declared modes: declared light/dark, file holds light → FAILS naming dark`; a skip turned into a pass → `❌ read-back declared modes: no brand → SKIPPED with the reason stated, not passed`; `declaredModesOf` always skipping → four `✗ declared modes: …` arms in `test-readback.ts`.
+
+**Known limit.** The one line in `main.ts` that passes `declaredModesOf(figma.root)` is not driven by a test: the suites that import `main.ts` (`test-agent-link.ts`, `test-agent-bridge.ts`) run on a host with no color variables, so `seedFromFile` returns before verifying. Replacing that argument with a constant skip would pass every gate. The pill-text and resolution logic sit in `seed-modes.ts` so everything but that argument is covered.
+
+**Trap for re-verification.** The comparison is by mode NAME. It holds because the emitter names each `color` mode after the brand's mode; a designer renaming a mode in Figma now reads as one missing mode plus one extra, which is the correct report.
+
+---
+
 ## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
 
 **STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.

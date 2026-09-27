@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.174.0 — #1662 follow-up (owner decision 2026-09-27): the plugin's boot read-back compares the modes the
+ * saved brand DECLARES with the modes the file's `color` collection HOLDS. `verifyReadback` takes the declared
+ * set as a required second argument (`{ modes }`, or `{ skipped: <reason> }` when the file stores no brand or
+ * the stored one cannot be read) and returns a tri-state `declaredModes` result beside `checks`: a declared
+ * mode missing from the file FAILS the verdict and is named; a mode in the file the brand does not declare is
+ * REPORTED, not failed (a designer's own mode); no saved brand SKIPS the comparison and the seed pill states
+ * why. Before this a multi-mode brand whose other modes never landed (`addMode` refused on a plan tier's mode
+ * cap) read "contract holds ✓" with one mode. A plugin behavior change (the seed pill's verdict) → MINOR. No
+ * token value or name moves — `out/**` restamps the generator version only; CONTRACT STANDS.
+ *
  * 0.173.0 — #1687: the legacy CLI paste path's `verify` pass (`materialise-to-figma.ts`) no longer fails a
  * single-mode brand's `modesDistinct` — the twin of #1662 in `read-back.ts`. With exactly one mode it now
  * passes iff `color/background/primary` is aliased to a variable that exists (not absent, not a literal);
@@ -3825,7 +3835,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.173.0';
+export const ENGINE_VERSION = '0.174.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

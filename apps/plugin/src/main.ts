@@ -43,6 +43,7 @@ import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
 import { restoreInput } from './persist-figma';
+import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
@@ -811,14 +812,14 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
       sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
       return;
     }
-    const v = verifyReadback(snap);
-    const failed = Object.entries(v.checks).filter(([, ok]) => !ok).map(([k]) => k);
-    const summary =
-      `Existing theme: ${v.details.colorVars} color vars, modes ${v.details.modes.join('/') || '—'}` +
-      (v.ok ? ' — contract holds ✓' : ` — FAILED: ${failed.join(', ')}`);
+    // The saved brand's declared modes against the file's (#1662 follow-up): resolved here from the persisted
+    // `BrandInput`, passed in so `verifyReadback` stays pure. No saved brand → skipped, with the reason stated.
+    const v = verifyReadback(snap, declaredModesOf(figma.root));
+    const failed = failedChecks(v);
+    const summary = seedSummary(v);
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
     // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.
-    sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, details: v.details } });
+    sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, declaredModes: v.declaredModes, details: v.details } });
     sink.post({ type: 'seed-info', ok: v.ok, present: true, summary });
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error

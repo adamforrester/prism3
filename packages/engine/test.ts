@@ -3070,7 +3070,7 @@ for (const b of brands) {
     })),
   });
 
-  const good = verifyReadback(snapFrom(plan.color.aliases));
+  const good = verifyReadback(snapFrom(plan.color.aliases), { skipped: 'not under test in this arm' });
   ok(good.ok, 'read-back: a faithful NB read passes every contract check' + (good.ok ? '' : ` — ${Object.entries(good.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
   ok(good.checks.modesDistinct, 'read-back: background/primary distinct per mode (collapse-guard holds)');
   ok(good.checks.aliasesResolve && good.details.danglingAliases.length === 0, 'read-back: every alias target resolves (0 dangling)');
@@ -3093,7 +3093,7 @@ for (const b of brands) {
   const collapsed = plan.color.aliases.map((r) =>
     r.name === nbVar('color/background/primary') ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
-  const bad = verifyReadback(snapFrom(collapsed));
+  const bad = verifyReadback(snapFrom(collapsed), { skipped: 'not under test in this arm' });
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
 }
 
@@ -3118,15 +3118,36 @@ for (const b of brands) {
       .filter((c) => !(dropProbe && tailOf(c.name) === 'color/background/primary')),
   });
   ok(plan.color.modes.length === 1, `read-back single-mode: the fixture really is single-mode (${plan.color.modes.join('/')})`);
-  const one = verifyReadback(snapOf(false));
+  const one = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
   ok(one.checks.modesDistinct, 'read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)');
   ok(one.ok, 'read-back single-mode: a faithful single-mode read passes every contract check' + (one.ok ? '' : ` — ${Object.entries(one.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
-  const unbound = verifyReadback(snapOf(true));
+  const unbound = verifyReadback(snapOf(true), { skipped: 'not under test in this arm' });
   ok(!unbound.checks.modesDistinct, 'read-back single-mode: background/primary ABSENT still FAILS modesDistinct (the vacuous pass is not "unchecked")');
   // #1691 net — a LITERAL probe (color-create ran, color-aliases did not) is not bound to the palette. A
   // multi-mode file whose probe is literal in every mode fails; a single-mode one must fail too.
-  const literal = verifyReadback(snapOf(false, true));
+  const literal = verifyReadback(snapOf(false, true), { skipped: 'not under test in this arm' });
   ok(!literal.checks.modesDistinct, 'read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased');
+
+  // DECLARED MODES (#1662 follow-up, owner decision 2026-09-27). The single-mode check above verifies what the
+  // file holds; it cannot tell a `modes: ['light']` brand from a light/dark brand whose `dark` never landed
+  // (`addMode` refused on a plan tier's mode cap). The saved brand's declared set is the second input, and the
+  // expected values below are WRITTEN, not read off the plan or the snapshot — the file here holds `light`.
+  ok(JSON.stringify(plan.color.modes) === '["light"]', 'read-back declared modes: the fixture file holds exactly light');
+  const missingDark = verifyReadback(snapOf(false), { modes: ['light', 'dark'] });
+  ok(missingDark.declaredModes.status === 'fail' && JSON.stringify(missingDark.declaredModes.missing) === '["dark"]' && !missingDark.ok,
+    `read-back declared modes: declared light/dark, file holds light → FAILS naming dark (${JSON.stringify(missingDark.declaredModes)})`);
+  ok(Object.values(missingDark.checks).every(Boolean),
+    'read-back declared modes: ...and every other check still passes, so the failure is the mode comparison alone');
+  const lightOnly = verifyReadback(snapOf(false), { modes: ['light'] });
+  ok(lightOnly.declaredModes.status === 'pass' && lightOnly.ok,
+    `read-back declared modes: declared light, file holds light → passes (${JSON.stringify(lightOnly.declaredModes)})`);
+  const noBrand = verifyReadback(snapOf(false), { skipped: 'no saved brand in this file' });
+  ok(noBrand.declaredModes.status === 'skipped' && noBrand.declaredModes.reason === 'no saved brand in this file',
+    `read-back declared modes: no brand → SKIPPED with the reason stated, not passed (${JSON.stringify(noBrand.declaredModes)})`);
+  // An EXTRA mode in the file is reported, never failed: it may be one the designer added.
+  const withExtra = verifyReadback({ ...snapOf(false), collections: [{ name: 'core', modes: ['Default'] }, { name: 'color', modes: ['light', 'brand-x'] }] }, { modes: ['light'] });
+  ok(withExtra.declaredModes.status === 'pass' && JSON.stringify(withExtra.declaredModes.extra) === '["brand-x"]',
+    `read-back declared modes: a mode in the file the brand does not declare is REPORTED, not failed (${JSON.stringify(withExtra.declaredModes)})`);
 }
 
 // BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted
