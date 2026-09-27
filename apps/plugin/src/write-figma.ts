@@ -281,6 +281,37 @@ export const stampOwnedModes = (collection: VarCollection, written: Iterable<str
   return union;
 };
 
+/** The key the mode NAMES this collection's most recent apply PLANNED live under (#1704). Written by
+ *  `reconcileModes` BEFORE its first `addMode`, so an apply that a refused `addMode` aborts (a plan tier's
+ *  mode cap) still leaves the record of what it asked for — which the boot read-back compares against the
+ *  modes the collection holds. The brand blob (#131) cannot serve: it persists only after every executor
+ *  returns, so an aborted apply leaves the PREVIOUS brand stored and the comparison reads a match. */
+const MODES_PLANNED_KEY = 'modes:planned';
+
+/** Record the planned mode names on the collection. Best-effort, like `stampOwnedModes`: an apply never
+ *  fails because a stamp could not be written. */
+export const stampPlannedModes = (collection: Pick<VarCollection, 'setSharedPluginData'>, planned: readonly string[]): void => {
+  try {
+    // namespace convention — 579 Lane 2; DRY later
+    collection.setSharedPluginData?.('prism3', MODES_PLANNED_KEY, JSON.stringify([...planned]));
+  } catch { /* best-effort */ }
+};
+
+/** The mode names the collection's last apply planned, or `null` when there is no readable record — every
+ *  file written before #1704, a shim with no shared data, or a value that is not a string array. Tolerant
+ *  by the same contract as `ownedModeIds`: an unreadable record is an absent one, never an error. */
+export const plannedModeNames = (collection: Pick<VarCollection, 'getSharedPluginData'>): string[] | null => {
+  let raw = '';
+  try {
+    raw = collection.getSharedPluginData?.('prism3', MODES_PLANNED_KEY) ?? '';
+  } catch { return null; }
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length && parsed.every((x) => typeof x === 'string') ? (parsed as string[]) : null;
+  } catch { return null; }
+};
+
 /**
  * Reconcile a collection's modes against the plan's — the fix for #1570's DUPLICATE MODE.
  *
@@ -322,6 +353,8 @@ export const stampOwnedModes = (collection: VarCollection, written: Iterable<str
  * of one repair for that reason.
  */
 export const reconcileModes = (collection: VarCollection, planned: readonly string[]): Record<string, string> => {
+  // Step 0 — record what this apply ASKS for, before any mode write can throw (#1704). See `stampPlannedModes`.
+  stampPlannedModes(collection, planned);
   // Step 1 — the claims, by identity. The same call the prune detector makes.
   const modeIds: Record<string, string> = {};
   for (const [name, modeId] of claimModes(collection.modes, planned)) modeIds[name] = modeId;
