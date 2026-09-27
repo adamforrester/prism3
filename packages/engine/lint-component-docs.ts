@@ -311,7 +311,7 @@ for (const def of componentDefs) {
         return;
       }
       pageChecked++;
-      if (!got.includes(String(v))) note(`ROUND-TRIP (page token): ${where(path)} = \`${String(v)}\` is not a code span ${place.label ? `on the \`${place.label}\` line` : ''} in the ${place.heading ?? 'opening'} section of out/components/${def.id}.md (spans: ${got.map((t) => `\`${t}\``).join(', ').slice(0, 80) || 'none'})`);
+      if (!got.includes(String(v))) note(`ROUND-TRIP (page token): ${where(path)} = \`${String(v)}\` is not a code span${place.label ? ` on the \`${place.label}\` line` : ''} in the ${place.heading ?? 'opening'} section of out/components/${def.id}.md (spans: ${got.map((t) => `\`${t}\``).join(', ').slice(0, 80) || 'none'})`);
       return;
     }
     if (place.kind === 'text') {

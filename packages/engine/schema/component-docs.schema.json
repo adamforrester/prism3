@@ -58,7 +58,7 @@
         "id": { "$ref": "#/$defs/id", "description": "The component id. Equal to this entry's key." },
         "name": { "$ref": "#/$defs/text", "description": "The display name." },
         "aliases": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Other names the component goes by, for search." },
-        "category": { "type": "string", "minLength": 1, "description": "The grouping by purpose (action, form, feedback, …)." },
+        "category": { "enum": ["foundations", "layout", "form", "navigation", "feedback", "data", "overlay"], "description": "The grouping by purpose, from the knowledge base's seven categories." },
         "status": { "enum": ["draft", "stable", "deprecated"], "description": "The definition's maturity." },
         "summary": { "$ref": "#/$defs/text", "description": "The one-line summary, also written as the Figma component description." },
         "description": { "$ref": "#/$defs/text", "description": "What the component is and where it stops." },
@@ -116,7 +116,7 @@
             "primaryPurpose": { "$ref": "#/$defs/text", "description": "What the component is for, in one sentence." },
             "whenToUse": { "$ref": "#/$defs/text", "description": "The situations it fits." },
             "avoidWhen": { "$ref": "#/$defs/text", "description": "The situations it does not fit, and what fits instead." },
-            "commonPartners": { "$ref": "#/$defs/ids", "description": "Components it is often used with." },
+            "commonPartners": { "$ref": "#/$defs/ids", "description": "Components it is used with, in either direction: the hosts that nest it, the parts it nests, and the ones that sit beside it." },
             "triggerKeywords": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Words in a request that point to this component." },
             "generationPriority": { "type": "integer", "minimum": 0, "description": "The tiebreaker when several components could serve a request; higher wins." }
           }
@@ -137,7 +137,7 @@
           "additionalProperties": false,
           "required": ["composesWith", "alternativeTo", "supersedes", "supersededBy", "planned", "replacesPatterns"],
           "properties": {
-            "composesWith": { "$ref": "#/$defs/ids", "description": "Components it contains or sits beside." },
+            "composesWith": { "$ref": "#/$defs/ids", "description": "Components it nests: exactly the ones its anatomy places inside it, in flow, out of flow or swapped in. The components it sits beside, and the hosts that nest it, are in `ai.commonPartners`." },
             "alternativeTo": { "$ref": "#/$defs/ids", "description": "Components that solve a neighboring problem." },
             "supersedes": { "$ref": "#/$defs/ids", "description": "Components it replaces." },
             "supersededBy": { "$ref": "#/$defs/ids", "description": "Components that replace it." },
