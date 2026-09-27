@@ -1,0 +1,216 @@
+{
+  "$collection": "type-sets",
+  "$mode": "desktop",
+  "variables": [
+    {
+      "name": "pds3/font-fluid/display/sm/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display sm emphasis size — 48px desktop, 36px mobile",
+      "value": 48,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/sm/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display sm strong size — 48px desktop, 36px mobile",
+      "value": 48,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/md/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display md emphasis size — 64px desktop, 40px mobile",
+      "value": 64,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/md/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display md strong size — 64px desktop, 40px mobile",
+      "value": 64,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/lg/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display lg emphasis size — 80px desktop, 40px mobile",
+      "value": 80,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/lg/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display lg strong size — 80px desktop, 40px mobile",
+      "value": 80,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/xl/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display xl emphasis size — 96px desktop, 48px mobile",
+      "value": 96,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display xl strong size — 96px desktop, 48px mobile",
+      "value": 96,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/2xl/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display 2xl emphasis size — 128px desktop, 48px mobile",
+      "value": 128,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/2xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display 2xl strong size — 128px desktop, 48px mobile",
+      "value": 128,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/3xl/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display 3xl emphasis size — 160px desktop, 48px mobile",
+      "value": 160,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/display/3xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "display 3xl strong size — 160px desktop, 48px mobile",
+      "value": 160,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/md/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title md emphasis size — 24px desktop, 20px mobile",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/md/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title md strong size — 24px desktop, 20px mobile",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/lg/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title lg emphasis size — 28px desktop, 24px mobile",
+      "value": 28,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/lg/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title lg strong size — 28px desktop, 24px mobile",
+      "value": 28,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/xl/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title xl emphasis size — 32px desktop, 28px mobile",
+      "value": 32,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title xl strong size — 32px desktop, 28px mobile",
+      "value": 32,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/2xl/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title 2xl emphasis size — 40px desktop, 36px mobile",
+      "value": 40,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/title/2xl/strong",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "title 2xl strong size — 40px desktop, 36px mobile",
+      "value": 40,
+      "alias": null
+    },
+    {
+      "name": "pds3/font-fluid/eyebrow/lg/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "eyebrow lg emphasis size — 20px desktop, 18px mobile",
+      "value": 20,
+      "alias": null
+    }
+  ]
+}

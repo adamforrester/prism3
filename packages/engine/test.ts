@@ -201,6 +201,7 @@ const nbVar = (tail: string): string => `${NB_ROOT}/${tail}`;
  */
 const BRAND_ROOTS: Record<string, string> = {
   nb: NB_ROOT,
+  prism3: brandTheme(exampleBrands()['prism3'] as BrandInput).root,
   aurora: brandTheme(exampleBrands()['aurora'] as BrandInput).root,
   wendys: brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input).root,
 };
@@ -270,10 +271,36 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
    *  sees a clean corpus cannot tell "the rule works" from "the rule is `() => true`". */
   const squatsReserved = (root: string): boolean => (RESERVED_ROOTS as readonly string[]).includes(root);
 
-  // 2. NO SHIPPED BRAND SQUATS ONE.
-  const squatters = catalog.filter((id) => squatsReserved(emittedRoot(id)));
+  // 2. NO SHIPPED BRAND SQUATS ONE — except the brand the reservation was HELD FOR (#1296).
+  //
+  // `RESERVED_ROOT_OK` maps a catalog id → the reserved root it is admitted at, WITH the reason, in the
+  // `ZERO_OK` / `LEAF_OK` shape: an admission is a reasoned decision, not a name on a list. Three rules
+  // keep it from becoming the hole in the gate. (a) Only `pds3` may ever be admitted: `prism` is the
+  // engine's FALLBACK for an undeclared root, so a shipped brand there is indistinguishable from one
+  // that forgot to declare — the exact wendys case #1283 was written for. (b) The admission must match
+  // what the brand actually EMITS, root and all, or it is stale. (c) At most one: the reservation holds
+  // the namespace for ONE canonical default theme, and a second admission is a second decision.
+  const RESERVED_ROOT_OK: Record<string, { root: string; reason: string }> = {
+    prism3: {
+      root: 'pds3',
+      reason: 'The canonical default theme (#1296): the one brand #1283 reserved `pds3` for. It declares the root in its brief rather than inheriting it, so arm 3 below still covers it.',
+    },
+  };
+  const admittedAt = (id: string): string | undefined => RESERVED_ROOT_OK[id]?.root;
+  const squatters = catalog.filter((id) => squatsReserved(emittedRoot(id)) && admittedAt(id) !== emittedRoot(id));
   ok(squatters.length === 0,
-    `#1283 no shipped brand roots at a reserved namespace [${RESERVED_ROOTS.join(', ')}] — ${squatters.map((id) => `${id}@${emittedRoot(id)}`).join(', ') || catalog.map((id) => `${id}@${emittedRoot(id)}`).join(', ')}`);
+    `#1283 no shipped brand roots at a reserved namespace [${RESERVED_ROOTS.join(', ')}] unless admitted in RESERVED_ROOT_OK — ${squatters.map((id) => `${id}@${emittedRoot(id)}`).join(', ') || catalog.map((id) => `${id}@${emittedRoot(id)}`).join(', ')}`);
+  const admissions = Object.entries(RESERVED_ROOT_OK);
+  ok(admissions.every(([, a]) => a.root === 'pds3'),
+    `#1296 RESERVED_ROOT_OK admits only 'pds3' — 'prism' is the undeclared-root fallback and is never admitted (got ${admissions.map(([id, a]) => `${id}@${a.root}`).join(', ')})`);
+  ok(admissions.length <= 1,
+    `#1296 RESERVED_ROOT_OK admits at most one brand — the reservation holds the namespace for one canonical default theme (got ${admissions.length}: ${admissions.map(([id]) => id).join(', ')})`);
+  for (const [id, a] of admissions) {
+    ok(catalog.includes(id) && emittedRoot(id) === a.root,
+      `#1296 RESERVED_ROOT_OK['${id}'] is live — the brand ships and emits the admitted root '${a.root}' (${catalog.includes(id) ? `emits '${emittedRoot(id)}'` : 'NOT in the shipped catalog'}); a stale admission must be removed`);
+    ok(a.reason.trim().length >= 60,
+      `#1296 RESERVED_ROOT_OK['${id}'] carries its reason (${a.reason.trim().length} chars, floor 60)`);
+  }
   // …and the predicate is not vacuously true. Driven over a synthetic root the corpus does not hold.
   ok(RESERVED_ROOTS.every((r) => squatsReserved(r)) && !squatsReserved('zzds') && RESERVED_ROOTS.length > 0,
     `#1283 the reserved predicate actually discriminates (${RESERVED_ROOTS.join(', ')} caught, 'zzds' not) — the arm above is clean because the catalog is, not because the rule is empty`);
@@ -423,6 +450,118 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
     '#1368(f): a pin on an unbound category (code: null) is REFUSED');
   ok(/needs a non-empty \{ family, style \}/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'ITC Garamond Std', style: '' } } } })),
     '#1368(f): a malformed pin (empty style) is REFUSED');
+}
+
+// ── #1296 — ITALIC AS A CATEGORY'S DEFAULT CUT (`typography.italicDefault`), AND ONE METHOD PER JOB ───
+// A category listed in `italicDefault` ships its bare composites in the italic cut: `$value.fontStyle`
+// is 'italic' and the Figma cut is the weight's italic instance, under the ordinary name. A face pin
+// naming an italic cut is refused and pointed at the lever. Every expectation below is a LITERAL written
+// from the input — 'italic', 'Medium Italic', 'Semi Bold Italic', the refusal wording — never re-derived
+// through the code under test (docs/34 shape 1). Byte-identity for brands that do not use the lever is
+// `regen.ts --check`'s job, against the committed artifacts.
+{
+  const idBase: BrandInput = {
+    id: 'italicdefault', primary: { l: 0.47, c: 0.3, h: 266.7 }, neutral: { hue: 266.7, chroma: 0.005 }, modes: ['light'],
+    typography: {
+      families: { display: 'Playfair Display', title: 'Playfair Display', body: 'Inter' },
+      weights: { display: ['emphasis'], title: ['emphasis', 'strong'] },
+      weightRoles: { emphasis: 500, strong: 600 },
+      italicDefault: ['display', 'title'],
+    },
+  };
+  const theme = brandTheme(idBase);
+  const tree = buildTree(theme).tree as any;
+  const root = Object.keys(tree)[0];
+  const T = tree[root].type;
+  // (a) THE TOKENS — bare names, italic values; no upright twin and no `-italic` twin in the category.
+  ok(T.display?.lg?.emphasis?.$value?.fontStyle === 'italic' && T.title?.lg?.emphasis?.$value?.fontStyle === 'italic' && T.title?.lg?.strong?.$value?.fontStyle === 'italic',
+    `#1296(a): italic-default display/title composites emit $value.fontStyle 'italic' under their bare names (display.lg.emphasis=${JSON.stringify(T.display?.lg?.emphasis?.$value?.fontStyle)}, title.lg.strong=${JSON.stringify(T.title?.lg?.strong?.$value?.fontStyle)})`);
+  const headingKeys = [...Object.values(T.display ?? {}), ...Object.values(T.title ?? {})].flatMap((v: any) => Object.keys(v ?? {}).filter((k) => !k.startsWith('$')));
+  ok(headingKeys.length > 0 && headingKeys.every((k) => k === 'emphasis' || k === 'strong'),
+    `#1296(a): the category ships no upright variant and no -italic twin — only its bare weights (got ${[...new Set(headingKeys)].join(', ')})`);
+  ok(!('fontStyle' in (T.body?.md?.default?.$value ?? { fontStyle: 'MISSING' })),
+    `#1296(a): a category NOT in italicDefault is upright (body.md.default fontStyle ${JSON.stringify(T.body?.md?.default?.$value?.fontStyle)})`);
+  ok(/emphasis weight, italic,/.test(T.display?.lg?.emphasis?.$description ?? ''),
+    `#1296(a): the composite's $description states the italic it emits (got ${JSON.stringify(T.display?.lg?.emphasis?.$description)})`);
+  // (b) THE WEIGHT STAYS NUMERIC — 500 and 600 through the weight roles, never the style name.
+  const wr = tree[root].core.font['weight-role'];
+  ok(T.title?.lg?.strong?.$value?.fontWeight === `{${root}.core.font.weight-role.strong}` && wr.emphasis?.$extensions?.prism3?.numeric === 500 && wr.strong?.$extensions?.prism3?.numeric === 600,
+    `#1296(b): the italic slots bind weight-role.emphasis = 500 and weight-role.strong = 600 (got ${wr.emphasis?.$extensions?.prism3?.numeric}/${wr.strong?.$extensions?.prism3?.numeric})`);
+  // (c) FIGMA — the derived cut is the weight's ITALIC instance, bound under the style's own slot name.
+  const fontVars = buildFigmaFont(theme)[0].variables;
+  const styles = buildFigmaTextStyles(theme).styles;
+  const cutOf = (styleName: string): { v?: string; val?: unknown } => {
+    const v = (styles.find((s) => s.name === styleName)?.properties.fontStyle as any)?.variable as string | undefined;
+    return { v, val: fontVars.find((x) => x.name === v)?.value };
+  };
+  const dEm = cutOf('display/lg/emphasis'), tEm = cutOf('title/lg/emphasis'), tSt = cutOf('title/lg/strong'), bSt = cutOf('body/md/strong');
+  ok(/core\/font\/style\/display\/emphasis$/.test(dEm.v ?? '') && dEm.val === 'Medium Italic',
+    `#1296(c): display/lg/emphasis binds core/font/style/display/emphasis = 'Medium Italic' (got ${JSON.stringify(dEm.v)} = ${JSON.stringify(dEm.val)})`);
+  ok(/core\/font\/style\/title\/emphasis$/.test(tEm.v ?? '') && tEm.val === 'Medium Italic' && /core\/font\/style\/title\/strong$/.test(tSt.v ?? '') && tSt.val === 'Semi Bold Italic',
+    `#1296(c): title emphasis/strong bind 'Medium Italic' / 'Semi Bold Italic' (got ${JSON.stringify(tEm.val)} / ${JSON.stringify(tSt.val)})`);
+  ok(bSt.val === 'Semi Bold',
+    `#1296(c): the upright body strong at 600 stays 'Semi Bold' (got ${JSON.stringify(bSt.val)})`);
+  // (d) THE OTHER CODE SURFACES — the conforming base projection and the agent sidecar, read on their own.
+  const base = buildOverlaySet(buildTree(theme).tree).base as any;
+  ok(base?.[root]?.type?.title?.lg?.strong?.$value?.fontStyle === 'italic',
+    `#1296(d): the conforming base projection carries fontStyle 'italic' (got ${JSON.stringify(base?.[root]?.type?.title?.lg?.strong?.$value?.fontStyle)})`);
+  const ai = buildAiMetadata(theme, buildTree(theme).tree) as any;
+  ok(ai?.typography?.['type.display.lg.emphasis']?.resolves_to?.fontStyle === 'italic' && ai?.typography?.['type.body.md.default']?.resolves_to?.fontStyle === undefined,
+    `#1296(d): .ai.json resolves_to says italic for the italic-default slot and nothing for body (got ${JSON.stringify(ai?.typography?.['type.display.lg.emphasis']?.resolves_to?.fontStyle)} / ${JSON.stringify(ai?.typography?.['type.body.md.default']?.resolves_to?.fontStyle)})`);
+  // (e) REFUSALS — each a named throw with its own mutation.
+  const threw = (t: BrandInput['typography']): string => { try { brandTheme({ ...idBase, typography: t }); return ''; } catch (e) { return (e as Error).message; } };
+  ok(/typography\.italicDefault: 'title' is also in typography\.italics/.test(threw({ ...idBase.typography, italics: ['title'] })),
+    '#1296(e): a category in BOTH italicDefault and italics is REFUSED');
+  ok(/typography\.italicDefault: 'headline' is not a type category/.test(threw({ ...idBase.typography, italicDefault: ['headline' as any] })),
+    '#1296(e): an unknown category in italicDefault is REFUSED');
+  // An italic face pin, in each spelling the recognition rule exists for, on a category NOT in the lever.
+  for (const style of ['Medium Italic', 'Italic', 'BoldItalic', 'Light Condensed Italic']) {
+    ok(/names an italic cut, and a face pin binds only the Figma style/.test(threw({ families: { display: 'Playfair Display' }, weights: { display: ['emphasis'] }, faces: { display: { emphasis: { family: 'Playfair Display', style } } } })),
+      `#1296(e): a face pin naming the italic cut '${style}' is REFUSED and pointed at the italics lever`);
+  }
+  ok(/is italic by default \(typography\.italicDefault\), and a pin binds its style verbatim/.test(threw({ ...idBase.typography, faces: { display: { emphasis: { family: 'Playfair Display', style: 'Medium' } } } })),
+    '#1296(e): an UPRIGHT pin inside an italic-default category is REFUSED');
+  // …and the rule does not over-reach: an upright width cut on an ordinary category still binds, and an
+  // oblique cut (deliberately outside the rule — see `isItalicCut`) is not refused.
+  ok(threw({ families: { display: 'ITC Garamond Std' }, weights: { display: ['subtle'] }, faces: { display: { subtle: { family: 'ITC Garamond Std', style: 'Light Condensed' } } } }) === ''
+    && threw({ families: { display: 'Helvetica' }, weights: { display: ['strong'] }, faces: { display: { strong: { family: 'Helvetica', style: 'Bold Oblique' } } } }) === '',
+    "#1296(e): an upright width pin ('Light Condensed') and an oblique pin still bind — the refusal is italic-only");
+}
+
+// ── #1296 — THE CANONICAL DEFAULT THEME IS A COMPLETE REFERENCE ─────────────────────────────────────
+// `prism3` is not a contract corpus member (the corpus spans input VARIATION; see `token-contract.ts`),
+// so nothing forces it to emit the guaranteed surface — a default theme that quietly lacked a promised
+// name would be the worst place for that gap. Both sides are independent of the brand: the COMMITTED
+// baseline (never regenerated, #464) and the preview spec's own bindings, which are the names the studio
+// resolves before a designer has changed anything.
+{
+  const p3 = brandTheme(exampleBrands()['prism3'] as BrandInput);
+  const paths = pathsOf(p3);
+  const guaranteed = Object.keys(readBaseline().guaranteed);
+  const missing = guaranteed.filter((p) => !paths.has(p));
+  // #1718 RESOLVED: prism3 remaps `strong` to 600 (owner decision), which used to drop
+  // `core.font.weight.700` from a numeric tier minted only from the roles. The engine now always mints
+  // the contract's four standard numerics, so the default theme misses NOTHING the baseline guarantees.
+  ok(guaranteed.length > 400 && missing.length === 0,
+    `#1296/#1718 prism3 emits every guaranteed contract path (${guaranteed.length - missing.length}/${guaranteed.length}; missing ${missing.join(', ') || 'none'})`);
+  // #1726 net — every GUARANTEED numeric weight survives a brand that remaps EVERY role off it. The expected
+  // set is read from the committed baseline (`core.font.weight.*`), never from `CONTRACT_WEIGHTS`, so trimming
+  // that literal to any subset fails here by name (prism3 alone only exercised 700: its roles supply the rest).
+  const guaranteedWeights = guaranteed.filter((p) => /^core\.font\.weight\.\d+$/.test(p));
+  const remapped = brandTheme({ ...(exampleBrands()['aurora'] as BrandInput), typography: { ...(exampleBrands()['aurora'] as BrandInput).typography, weightRoles: { subtle: 200, default: 450, emphasis: 550, strong: 650, max: 850 } } } as BrandInput);
+  const remappedPaths = pathsOf(remapped);
+  const lostWeights = guaranteedWeights.filter((p) => !remappedPaths.has(p));
+  ok(guaranteedWeights.length === 4 && lostWeights.length === 0,
+    `#1726 a brand remapping every weight role still emits each guaranteed weight (${guaranteedWeights.length - lostWeights.length}/${guaranteedWeights.length}; lost ${lostWeights.join(', ') || 'none'})`);
+  const tree = buildTree(p3).tree as any;
+  const data = tree[Object.keys(tree)[0]];
+  const typeRefs = previewTokenRefs().filter((r) => r.startsWith('type.'));
+  const unbound = typeRefs.filter((r) => at(data, r)?.$type !== 'typography');
+  ok(typeRefs.length >= 3 && unbound.length === 0,
+    `#1296 prism3 emits every type style the preview spec binds (${typeRefs.join(', ')}${unbound.length ? `; MISSING ${unbound.join(', ')}` : ''})`);
+  // The two owner-named facts about this brand, as literals: its root and its primary.
+  ok(p3.root === 'pds3' && hex(oklchToRgb((exampleBrands()['prism3'] as BrandInput).primary)) === '#1e1eff',
+    `#1296 prism3 roots at 'pds3' and its primary round-trips to #1e1eff (root ${p3.root})`);
 }
 
 

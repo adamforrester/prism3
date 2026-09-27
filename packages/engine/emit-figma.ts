@@ -263,14 +263,18 @@ const compileStandard = (file: string): Theme =>
 
 if (isMain) {
   // Generalise (docs/10 §7 item 6). NB is the byte-fixture regression target;
-  // AURORA proves the alias-driven Paint Style path (it opts into gradients and
+  // PRISM3 is the canonical default theme the studio and plugin open with (#1296), so
+  // its Figma materialization is committed and gated like the others — and it is the
+  // one brand whose headings are italic by default and whose 600 lands on two family
+  // spellings; AURORA proves the alias-driven Paint Style path (it opts into gradients and
   // sets `action = accent`, so its colour axis exercises a decoupled action
   // palette); WENDYS proves the standard-dialect front door (parseStandard +
-  // classifier + brandTheme → the same emit-figma shell). All three write to
+  // classifier + brandTheme → the same emit-figma shell). All four write to
   // out/figma/<id>/. No new adapter code — the axes are already brand-agnostic;
   // this is where that claim gets exercised.
   const brands: Array<{ id: string; theme: Theme }> = [
     { id: 'nb', theme: nbTheme() },
+    { id: 'prism3', theme: compileNative('prism3.design.md') },
     { id: 'aurora', theme: compileNative('aurora.design.md') },
     { id: 'wendys', theme: compileStandard('wendys.design.md') },
   ];

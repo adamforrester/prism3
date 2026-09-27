@@ -265,6 +265,21 @@ const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: stri
       issue: '#731',
     },
   ],
+  // #1296 gave the default theme the same two gradient names, so the same cause covers them.
+  prism3: [
+    {
+      path: 'gradient.brand',
+      why: 'a Figma PAINT style; TokenPress\'s scanner reads variables + text + effect styles only, and has no gradient converter',
+      owner: 'tokenpress',
+      issue: '#731',
+    },
+    {
+      path: 'gradient.glow',
+      why: 'a Figma PAINT style; TokenPress\'s scanner reads variables + text + effect styles only, and has no gradient converter',
+      owner: 'tokenpress',
+      issue: '#731',
+    },
+  ],
 };
 
 /**

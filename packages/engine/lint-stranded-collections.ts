@@ -120,6 +120,7 @@ const OUT = join(HERE, 'out');
  */
 const THEMES: Record<string, () => Theme> = {
   nb: () => nbTheme(),
+  prism3: () => brandTheme(readExampleBrand('./examples/prism3.design.md')),
   aurora: () => brandTheme(readExampleBrand('./examples/aurora.design.md')),
   harbor: () => brandTheme(readExampleBrand('./examples/harbor.design.md')),
   wendys: () =>

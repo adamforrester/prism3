@@ -1,0 +1,5005 @@
+{
+  "$collection": "color",
+  "$mode": "hc-dark",
+  "variables": [
+    {
+      "name": "pds3/color/background/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Page surface — the base canvas",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/background/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Page surface, second tier — one step off the base",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/background/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Page surface, third tier",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Surface on the page — a card",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Second surface — a panel or nested container",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Third surface step",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold brand fill — 3:1 on background/secondary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold success fill — 3:1 on background/secondary",
+      "value": {
+        "r": 0.3333333432674408,
+        "g": 0.7411764860153198,
+        "b": 0.49803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/300"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold warning fill — 3:1 on background/secondary",
+      "value": {
+        "r": 0.8941176533699036,
+        "g": 0.5843137502670288,
+        "b": 0.10980392247438431,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/300"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold info fill — 3:1 on background/secondary",
+      "value": {
+        "r": 0.23137255012989044,
+        "g": 0.7058823704719543,
+        "b": 0.8980392217636108,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/300"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle brand tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.01568627543747425,
+        "g": 0,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/900"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle success tint — banners, badges, selected rows",
+      "value": {
+        "r": 0,
+        "g": 0.11372549086809158,
+        "b": 0.0470588244497776,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/900"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle warning tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.1411764770746231,
+        "g": 0.07450980693101883,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/900"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle danger tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0,
+        "b": 0.0117647061124444,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/900"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle info tint — banners, badges, selected rows",
+      "value": {
+        "r": 0,
+        "g": 0.10196078568696976,
+        "b": 0.14901961386203766,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/900"
+      }
+    },
+    {
+      "name": "pds3/color/foreground/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold danger fill — 3:1 on background/secondary",
+      "value": {
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary text — strongest neutral",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/text/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Secondary text — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6509804129600525,
+        "g": 0.6549019813537598,
+        "b": 0.6627451181411743,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Tertiary text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "pds3/color/text/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Brand text — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Success text — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.3333333432674408,
+        "g": 0.7411764860153198,
+        "b": 0.49803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Warning text — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.8941176533699036,
+        "g": 0.5843137502670288,
+        "b": 0.10980392247438431,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Danger text — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Info text — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.23137255012989044,
+        "g": 0.7058823704719543,
+        "b": 0.8980392217636108,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted brand text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/text/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted success text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.29411765933036804,
+        "g": 0.6823529601097107,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/350"
+      }
+    },
+    {
+      "name": "pds3/color/text/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.5372549295425415,
+        "b": 0.06666667014360428,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/350"
+      }
+    },
+    {
+      "name": "pds3/color/text/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "pds3/color/text/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted info text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.19607843458652496,
+        "g": 0.6509804129600525,
+        "b": 0.8352941274642944,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/350"
+      }
+    },
+    {
+      "name": "pds3/color/text/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Text on a solid brand fill — 4.5:1 on foreground/brand",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/text/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Text on a solid success fill — 4.5:1 on foreground/success",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/text/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Text on a solid warning fill — 4.5:1 on foreground/warning",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/text/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Text on a solid danger fill — 4.5:1 on foreground/danger",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/text/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Text on a solid info fill — 4.5:1 on foreground/info",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, default — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, hover — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6705882549285889,
+        "g": 0.7607843279838562,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/200"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, visited — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.9529411792755127,
+        "g": 0.9686274528503418,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/025"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, focused — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, pressed — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/100"
+      }
+    },
+    {
+      "name": "pds3/color/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Secondary icon — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6509804129600525,
+        "g": 0.6549019813537598,
+        "b": 0.6627451181411743,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Tertiary icon — 3:1 on background/secondary",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.3333333432674408,
+        "g": 0.7411764860153198,
+        "b": 0.49803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.8941176533699036,
+        "g": 0.5843137502670288,
+        "b": 0.10980392247438431,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.23137255012989044,
+        "g": 0.7058823704719543,
+        "b": 0.8980392217636108,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted brand icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted success icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.29411765933036804,
+        "g": 0.6823529601097107,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted warning icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.5372549295425415,
+        "b": 0.06666667014360428,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted danger icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted info icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.19607843458652496,
+        "g": 0.6509804129600525,
+        "b": 0.8352941274642944,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, default — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, hover — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6705882549285889,
+        "g": 0.7607843279838562,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/200"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, visited — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.9529411792755127,
+        "g": 0.9686274528503418,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/025"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, focused — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, pressed — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/100"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill, rest — 3:1 on background/secondary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill, hover — 3:1 on background/secondary",
+      "value": {
+        "r": 0.6705882549285889,
+        "g": 0.7607843279838562,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/200"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill, pressed — 3:1 on background/secondary",
+      "value": {
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/100"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill, focused — 3:1 on background/secondary",
+      "value": {
+        "r": 0.6705882549285889,
+        "g": 0.7607843279838562,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/200"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill, selected — 3:1 on background/secondary",
+      "value": {
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/100"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the primary fill — 4.5:1 at rest",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, rest — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/150"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/150"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, rest — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/150"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary hover wash — 10% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary pressed wash — 20% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/primary/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected wash — 20% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill, rest — 3:1 on background/secondary",
+      "value": {
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/300"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill, hover — 3:1 on background/secondary",
+      "value": {
+        "r": 0.9411764740943909,
+        "g": 0.6980392336845398,
+        "b": 0.6745098233222961,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/200"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill, pressed — 3:1 on background/secondary",
+      "value": {
+        "r": 0.95686274766922,
+        "g": 0.8352941274642944,
+        "b": 0.8196078538894653,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/100"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill, focused — 3:1 on background/secondary",
+      "value": {
+        "r": 0.9411764740943909,
+        "g": 0.6980392336845398,
+        "b": 0.6745098233222961,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/200"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill, selected — 3:1 on background/secondary",
+      "value": {
+        "r": 0.95686274766922,
+        "g": 0.8352941274642944,
+        "b": 0.8196078538894653,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/100"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the destructive fill — 4.5:1 at rest",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, rest — 4.5:1 on background/tertiary (outline, text)",
+      "value": {
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, hover — 4.5:1 on background/tertiary (outline, text)",
+      "value": {
+        "r": 0.9333333373069763,
+        "g": 0.6274510025978088,
+        "b": 0.6000000238418579,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, pressed — 4.5:1 on background/tertiary (outline, text)",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.7686274647712708,
+        "b": 0.7490196228027344,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/150"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive icon, rest — 4.5:1 on background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive icon, hover — 4.5:1 on background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.9333333373069763,
+        "g": 0.6274510025978088,
+        "b": 0.6000000238418579,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive icon, pressed — 4.5:1 on background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.7686274647712708,
+        "b": 0.7490196228027344,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/150"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, rest — 3:1 on background/tertiary, follows the label",
+      "value": {
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, hover — 3:1 on background/tertiary, follows the label",
+      "value": {
+        "r": 0.9333333373069763,
+        "g": 0.6274510025978088,
+        "b": 0.6000000238418579,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/250"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, pressed — 3:1 on background/tertiary, follows the label",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.7686274647712708,
+        "b": 0.7490196228027344,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/150"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive hover wash — 10% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive pressed wash — 20% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/destructive/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive selected wash — 20% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill, rest",
+      "value": {
+        "r": 0.12941177189350128,
+        "g": 0.12941177189350128,
+        "b": 0.13725490868091583,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/850"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill, hover",
+      "value": {
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill, pressed",
+      "value": {
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.32156863808631897,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill, focused",
+      "value": {
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill, selected",
+      "value": {
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.32156863808631897,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the neutral fill — 4.5:1 at rest",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, rest — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, hover — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, pressed — 4.5:1 on background/primary (outline, text)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, rest — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, hover — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, pressed — 3:1 on background/primary, follows the label",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral hover wash — 10% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral pressed wash — 20% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/interactive/neutral/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral selected wash — 20% neutral over the page (inverse surfaces use the inverse wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/disabled/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled control fill — one muted neutral, any intent",
+      "value": {
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "pds3/color/disabled/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label / icon on a disabled fill — muted, 3:1",
+      "value": {
+        "r": 0.6509804129600525,
+        "g": 0.6549019813537598,
+        "b": 0.6627451181411743,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/300"
+      }
+    },
+    {
+      "name": "pds3/color/disabled/text",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Disabled text — reduced contrast, 3:1 on background/secondary",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "pds3/color/disabled/icon",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Disabled icon — reduced contrast, 3:1 on background/secondary",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "pds3/color/disabled/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Disabled control border — muted neutral",
+      "value": {
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "pds3/color/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.7058823704719543,
+        "b": 0.7098039388656616,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/250"
+      }
+    },
+    {
+      "name": "pds3/color/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "pds3/color/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on background/primary",
+      "value": {
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on background/primary",
+      "value": {
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on background/primary",
+      "value": {
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on background/primary",
+      "value": {
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on background/primary",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on background/primary",
+      "value": {
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/300"
+      }
+    },
+    {
+      "name": "pds3/color/scrim/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Modal and drawer backdrop — black, 40% (60% in dark and hc-light; 70% in hc-dark)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.7019608020782471
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/70"
+      }
+    },
+    {
+      "name": "pds3/color/veil/dark/subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil — 50% black wash over an image to lift light text. Check contrast on your photo.",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.501960813999176
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/50"
+      }
+    },
+    {
+      "name": "pds3/color/veil/dark/medium",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil — 60% black wash over an image to lift light text. Check contrast on your photo.",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.6000000238418579
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/60"
+      }
+    },
+    {
+      "name": "pds3/color/veil/dark/strong",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil — 70% black wash over an image to lift light text. Check contrast on your photo.",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.7019608020782471
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/70"
+      }
+    },
+    {
+      "name": "pds3/color/veil/light/subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil — 40% white wash over an image to lift dark text. Check contrast on your photo.",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.4000000059604645
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/40"
+      }
+    },
+    {
+      "name": "pds3/color/veil/light/medium",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil — 50% white wash over an image to lift dark text. Check contrast on your photo.",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.501960813999176
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/50"
+      }
+    },
+    {
+      "name": "pds3/color/veil/light/strong",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil — 60% white wash over an image to lift dark text. Check contrast on your photo.",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.6000000238418579
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white-alpha/60"
+      }
+    },
+    {
+      "name": "pds3/color/field/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Form field fill — transparent by default; the border marks the field",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/transparent"
+      }
+    },
+    {
+      "name": "pds3/color/field/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Form field border — 3:1 on background/secondary",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/field/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Form field hover border — 3:1 on background/secondary; pair it with a second cue",
+      "value": {
+        "r": 0.5529412031173706,
+        "g": 0.5568627715110779,
+        "b": 0.5647059082984924,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/400"
+      }
+    },
+    {
+      "name": "pds3/color/field/placeholder",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Form field placeholder — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.6039215922355652,
+        "b": 0.6117647290229797,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/350"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/background/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Inverse page surface — the opposite-polarity band",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/background/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Inverse page surface, second tier",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/background/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Inverse page surface, third tier",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Inverse surface — the opposite-polarity fill",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Inverse surface, second tier",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Inverse surface, third tier",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold brand fill — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold success fill — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold warning fill — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold danger fill — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold info fill — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle brand tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.8156862854957581,
+        "g": 0.8627451062202454,
+        "b": 0.9764705896377563,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/100"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle success tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.6039215922355652,
+        "g": 0.9490196108818054,
+        "b": 0.7254902124404907,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/100"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle warning tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.8392156958580017,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/100"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle danger tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.95686274766922,
+        "g": 0.8352941274642944,
+        "b": 0.8196078538894653,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/100"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/foreground/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Subtle info tint — banners, badges, selected rows",
+      "value": {
+        "r": 0.7529411911964417,
+        "g": 0.8823529481887817,
+        "b": 0.9490196108818054,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/100"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, rest — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, hover — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.04313725605607033,
+        "g": 0,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.04313725605607033,
+        "g": 0,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, hover — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, pressed — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, focused — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, selected — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, rest — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, hover — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.04313725605607033,
+        "g": 0,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary hover wash on inverse — 10%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/10"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary pressed wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/primary/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, rest — 4.5:1 on inverse/background/tertiary (outline, text)",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, hover — 4.5:1 on inverse/background/tertiary (outline, text)",
+      "value": {
+        "r": 0.4313725531101227,
+        "g": 0.05882352963089943,
+        "b": 0.0784313753247261,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/750"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, pressed — 4.5:1 on inverse/background/tertiary (outline, text)",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.019607843831181526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/850"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive icon, rest — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive icon, hover — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.4313725531101227,
+        "g": 0.05882352963089943,
+        "b": 0.0784313753247261,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/750"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive icon, pressed — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.019607843831181526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/850"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, hover — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, pressed — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, focused — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, selected — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, rest — 3:1 on inverse/background/tertiary, follows the label",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, hover — 3:1 on inverse/background/tertiary, follows the label",
+      "value": {
+        "r": 0.4313725531101227,
+        "g": 0.05882352963089943,
+        "b": 0.0784313753247261,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/750"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, pressed — 3:1 on inverse/background/tertiary, follows the label",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.019607843831181526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/850"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive hover wash on inverse — 10%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/10"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive pressed wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/destructive/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive selected wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, rest — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, hover — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, hover — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, pressed — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, focused — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, selected — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the neutral inverse fill — 4.5:1 at rest",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, rest — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, hover — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral hover wash on inverse — 10%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/10"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral pressed wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/interactive/neutral/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral selected wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black-alpha/20"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/disabled/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled control fill — one muted neutral, any intent",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.7058823704719543,
+        "b": 0.7098039388656616,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/250"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/disabled/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label / icon on a disabled fill — muted, 3:1",
+      "value": {
+        "r": 0.25882354378700256,
+        "g": 0.26274511218070984,
+        "b": 0.27450981736183167,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/disabled/text",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Disabled text — reduced contrast, 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/disabled/icon",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Disabled icon — reduced contrast, 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/disabled/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Disabled control border — muted neutral",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.7058823704719543,
+        "b": 0.7098039388656616,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/250"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/field/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Form field fill — transparent by default; the border marks the field",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/transparent"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/field/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Form field border — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/field/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Form field hover border — 3:1 on inverse/background/secondary; pair it with a second cue",
+      "value": {
+        "r": 0.35686275362968445,
+        "g": 0.3607843220233917,
+        "b": 0.37254902720451355,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/field/placeholder",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Form field placeholder — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.32156863808631897,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary text — strongest neutral",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Secondary text — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.32156863808631897,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Tertiary text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Brand text — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Success text — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.003921568859368563,
+        "g": 0.30980393290519714,
+        "b": 0.16862745583057404,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Warning text — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.3803921639919281,
+        "g": 0.23137255012989044,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Danger text — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.5058823823928833,
+        "g": 0.10196078568696976,
+        "b": 0.11372549086809158,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Info text — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0,
+        "g": 0.2862745225429535,
+        "b": 0.38823530077934265,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted brand text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.09803921729326248,
+        "g": 0.0784313753247261,
+        "b": 0.886274516582489,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted success text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted info text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
+      "value": {
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, default — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, hover — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, visited — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.01568627543747425,
+        "g": 0,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, focused — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text, pressed — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.04313725605607033,
+        "g": 0,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Secondary icon — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.32156863808631897,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Tertiary icon — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Success icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.003921568859368563,
+        "g": 0.30980393290519714,
+        "b": 0.16862745583057404,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Warning icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.3803921639919281,
+        "g": 0.23137255012989044,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Danger icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.5058823823928833,
+        "g": 0.10196078568696976,
+        "b": 0.11372549086809158,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Info icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0,
+        "g": 0.2862745225429535,
+        "b": 0.38823530077934265,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted brand icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.09803921729326248,
+        "g": 0.0784313753247261,
+        "b": 0.886274516582489,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted success icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted warning icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted danger icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted info icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, hover — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, visited — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.01568627543747425,
+        "g": 0,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, focused — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon, pressed — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.04313725605607033,
+        "g": 0,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.25882354378700256,
+        "g": 0.26274511218070984,
+        "b": 0.27450981736183167,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    }
+  ]
+}

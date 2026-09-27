@@ -120,7 +120,7 @@ const collectComposites = (typeNode: any, prefix: string, out: Array<{ path: str
 /** A distinct cut slot, keyed by `cutSlug`. The (category, weight-role, italic) descriptor is
  *  mode-invariant; the numeric (and hence a derived cut) is resolved per-mode where the variable is
  *  emitted. `facePin` rides the slot because it is keyed (category, weight-role). */
-type CutSlot = { slug: string; category: string; weightRole: string; italic: boolean; facePin?: { family: string; style: string } };
+type CutSlot = { slug: string; category: string; weightRole: string; italic: boolean; slanted: boolean; facePin?: { family: string; style: string } };
 const collectCutSlots = (composites: Array<{ leaf: any }>): CutSlot[] => {
   const bySlug = new Map<string, CutSlot>();
   for (const { leaf } of composites) {
@@ -128,10 +128,17 @@ const collectCutSlots = (composites: Array<{ leaf: any }>): CutSlot[] => {
     const ext = leaf.$extensions?.prism3 ?? {};
     const category = familyCategoryFromAlias(v.fontFamily);
     const weightRole = weightRoleFromAlias(v.fontWeight);
-    const italic = !!ext.italic || v.fontStyle === 'italic';
+    // TWO READINGS, and #1296 is where they came apart. `italic` is the MODIFIER in the composite's NAME
+    // (`strong-italic`), and it keys the slot, so the cut variable is named after the text style that
+    // binds it. `slanted` is what the composite RENDERS — the modifier, or an italic-default category's
+    // bare composite (`fontStyle: 'italic'` on a `display/lg/emphasis`) — and it picks the cut's VALUE,
+    // the italic instance ("Medium Italic"). Before #1296 every italic composite carried both, so the
+    // one expression served both jobs.
+    const italic = !!ext.italic;
+    const slanted = italic || v.fontStyle === 'italic';
     const facePin = ext.facePin as { family: string; style: string } | undefined;
     const slug = cutSlug(category, weightRole, italic);
-    if (!bySlug.has(slug)) bySlug.set(slug, { slug, category, weightRole, italic, facePin });
+    if (!bySlug.has(slug)) bySlug.set(slug, { slug, category, weightRole, italic, slanted, facePin });
   }
   return [...bySlug.values()];
 };
@@ -255,7 +262,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         resolvedType: 'STRING',
         scopes: ['FONT_STYLE'],
         description: figmaFontCutDescription(slot.category, slot.weightRole, slot.italic),
-        value: cutName(isMonoCategory(font, slot.category), numeric, slot.italic, slot.facePin),
+        value: cutName(isMonoCategory(font, slot.category), numeric, slot.slanted, slot.facePin),
         alias: null,
       });
     }
@@ -412,7 +419,7 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const familyCategory = familyCategoryFromAlias(v.fontFamily);
     const weightRole = weightRoleFromAlias(v.fontWeight);
     const numeric = numericWeightForRole(font, weightRole);
-    const italic = !!ext.italic || v.fontStyle === 'italic';
+    const italic = !!ext.italic;   // the MODIFIER — keys the cut slot and the style's words (see `collectCutSlots`, #1296)
     // #1368 — a verbatim face pin bakes its Figma STYLE directly, OVERRIDING the numeric-weight →
     // style-name derivation (which can only reach weights, never a WIDTH cut like "Light Condensed").
     // fontFamily still binds the category's `font/family/*` variable, whose value equals the pin's

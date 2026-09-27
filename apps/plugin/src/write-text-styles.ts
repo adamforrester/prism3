@@ -137,6 +137,13 @@ export type TextStyleApplyResult = {
    *  plan asked for `Semi Bold` and the family spells it `SemiBold`. Zero means every guess was already
    *  right (or no font library was available to check against). */
   resolvedStyles: number;
+  /** #1296 — CUT VARIABLES whose value was corrected to the family's real spelling, counted per
+   *  (variable, mode). A Text Style's `fontStyle` BINDS the `<root>/core/font/style/<cat>/<role>` STRING
+   *  variable (#1485), so correcting only the baked `fontName` above left the binding pointing at the
+   *  engine's guess — "Semi Bold Italic" for a Playfair Display that ships "SemiBold Italic". */
+  resolvedCuts: number;
+  /** Cut-variable corrections the host refused (the #680 re-resolution refusal), recorded, never thrown. */
+  cutRefused: { name: string; mode: string; reason: string }[];
 };
 
 /**
@@ -168,6 +175,10 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
 
   let created = 0;
   let resolvedStyles = 0;
+  let resolvedCuts = 0;
+  const cutRefused: { name: string; mode: string; reason: string }[] = [];
+  /** Cut variables already reconciled — one variable backs every size in its (category, role) slot. */
+  const reconciled = new Set<string>();
   let bound = 0;
   const skipped: { name: string; reason: string }[] = [];
   const misses: string[] = [];
@@ -202,6 +213,32 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     s.textCase = row.textCase;
     s.textDecoration = row.textDecoration;
 
+    // #1296 — RECONCILE THE CUT VARIABLE THIS STYLE BINDS, in every mode, against the family that mode
+    // binds. The variable executor wrote the engine's GUESS (`WEIGHT_STYLE_NAME`, one spelling per
+    // weight), and the binding below overrides the `fontName` just resolved — so without this a family
+    // that spells 600 "SemiBold" would bind a variable holding "Semi Bold", a style it does not have. The
+    // same `resolveFontStyle` as the fontName above, so the two cannot disagree, and the same posture:
+    // no library in hand, or no spelling of the weight, leaves the guess untouched. Done here rather than
+    // in `applyVarCollectionPlan` because this is where the library is already fetched, and both write
+    // paths (plugin and paste) call this executor. Once per variable: after this row's font loaded, so
+    // the base mode's re-resolution has its face; a mode whose family is not loaded is a recorded refusal.
+    if (row.fontStyleVar && !reconciled.has(row.fontStyleVar)) {
+      reconciled.add(row.fontStyleVar);
+      const cutVar = varByName.get(row.fontStyleVar);
+      const famVar = varByName.get(row.fontFamilyVar);
+      if (cutVar && famVar) {
+        for (const [modeId, cut] of Object.entries(cutVar.valuesByMode)) {
+          const fam = famVar.valuesByMode[modeId];
+          if (typeof cut !== 'string' || typeof fam !== 'string') continue;
+          const avail = stylesByFamily.get(fam);
+          const real = avail && resolveFontStyle(avail, cut);
+          if (!real || real === cut) continue;
+          try { cutVar.setValueForMode(modeId, real); resolvedCuts++; }
+          catch (e) { cutRefused.push({ name: cutVar.name, mode: modeId, reason: (e as Error)?.message ?? 'setValueForMode refused the write' }); }
+        }
+      }
+    }
+
     // Bind the variable-backed props. The binding overrides the literal; a missing target is a miss
     // (shouldn't happen — the var plan ran first — but recorded honestly, never thrown).
     // #1485 — the single weight/style control binds the STRING cut variable (`fontStyle`), NOT the FLOAT
@@ -219,5 +256,5 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     bind('fontStyle', row.fontStyleVar);
   }
 
-  return { total: plan.length, created, skipped, bound, misses, resolvedStyles };
+  return { total: plan.length, created, skipped, bound, misses, resolvedStyles, resolvedCuts, cutRefused };
 };

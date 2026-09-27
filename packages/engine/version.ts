@@ -2926,6 +2926,34 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.186.0 — #1296/#1718: the default theme gains its accent, gradients and extras, and the numeric weight
+ * tier always carries the contract's standard weights. (1) ENGINE: `weightsRef` now unions the four
+ * contract-guaranteed numerics (300/400/700/900, a literal `CONTRACT_WEIGHTS` list, deliberately not
+ * derived from the default roles) onto the numerics a brand's weight roles use. A brand that remaps a role
+ * no longer drops a guaranteed `core.font.weight.*` path (#1718, the always-emit option); every brand at
+ * the default roles already emitted all four, so nb, aurora, harbor and wendys move only their version
+ * stamps. (2) prism3: a violet `accent` brand color (#7A3CFF), a linear `brand` gradient (primary.600 →
+ * accent.500, 135°) and a radial `glow` (accent.400 → primary.700), paired italics on body
+ * (`italics: [body]`, beside `italicDefault: [display, title]`), shadows tinted toward the primary hue
+ * (amount 0.35), and a brand-specific status set (success 155, warning 70, danger 25, info 230). prism3
+ * gains `core.font.weight.700`. Emission moves → ENGINE MINOR. CONTRACT STANDS at 13.1.0 — no guaranteed
+ * name moves; prism3 now emits every guaranteed path.
+ *
+ *   (0.186.0, continued — the first pass) #1296: the canonical default theme, `prism3` at root `pds3`, and italic as a category's
+ * DEFAULT cut. (1) A new lever, `typography.italicDefault: TypeGroup[]` (the shape of `italics`/`links`):
+ * a listed category's bare composites are the italic cut — `$value.fontStyle: 'italic'` under the
+ * ordinary name, and the derived Figma cut is the weight's italic instance (500 → "Medium Italic") — with
+ * no upright variant; a category may not also be in `italics` (refused by name). (2) One method per job:
+ * a `typography.faces` pin whose style names an italic cut (case-insensitive substring `italic`) is
+ * refused and pointed at the lever, as is any pin inside an italic-default category; NB's upright
+ * "Light Condensed" pins are unaffected. (3) The Figma cut SLOT stays keyed on the modifier in the
+ * style's name, and its VALUE follows what the composite renders. (4) The plugin's text-style executor
+ * reconciles each bound cut VARIABLE's value to the family's real spelling, per mode (#499's resolver),
+ * so Playfair's 600 binds "SemiBold Italic" while Inter's binds "Semi Bold". (5) `prism3` is emitted to
+ * `out/` and `out/figma/prism3/`, and becomes the studio and plugin boot brand. Existing brands' artifacts
+ * are byte-identical before this bump; after it they restamp only. ENGINE MINOR; CONTRACT STANDS at
+ * 13.1.0 (`prism3` is not a corpus member; `token-contract --check` unchanged).
+ *
  * 0.185.0 — component sets get 24px of inner padding, so the variant-set border shows (owner-reported and
  * approved 2026-09-27, 24 to match the grid's GAP). #1714 writes the border INSIDE the set's edge, and all
  * three layout scripts laid the grid out from (0,0), so an edge member covered it. The grid now starts at
@@ -3962,7 +3990,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.185.0';
+export const ENGINE_VERSION = '0.186.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

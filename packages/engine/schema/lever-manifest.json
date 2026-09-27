@@ -462,6 +462,15 @@
       "description": "Which roles ship an .*-italic variant per weight (fontStyle:italic). Default none — italics are opt-in."
     },
     {
+      "key": "typography.italicDefault",
+      "group": "type",
+      "label": "Italic-default roles",
+      "control": "list",
+      "advanced": true,
+      "itemLabel": "type role",
+      "description": "Which roles set italic as their only cut: the bare styles are italic (fontStyle:italic; 500 → Medium Italic), with no upright variant. Default none. A role here cannot also be in Italic roles."
+    },
+    {
       "key": "motionPersonality.tempo",
       "group": "motion",
       "label": "Motion tempo",
