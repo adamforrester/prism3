@@ -20166,12 +20166,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // (`{tone}.{genre}.{slot}`), so the projector refuses a coordinate without it — a deliberate guard
         // (#1248's unfillable-key throw, the partial-paint-coordinate throw) rather than a part asserted on
         // no evidence. A refusal is the conservative answer too, so it passes here only when its message
-        // NAMES the gated axis; any other throw still fails. Every def before badge projects and is unchanged.
+        // NAMES the gated axis AS THE MISSING ONE — read from the refusal's own missing list, not from anywhere
+        // in the message, since the partial-coordinate throw also lists every axis the template needs; any other
+        // throw still fails. Every def before badge projects and is unchanged.
         let absent: boolean;
         let how = 'absent from the structure-only projection';
         try { absent = !has(rest); } catch (err) {
-          absent = new RegExp(`\\b${axis}\\b`).test(String((err as Error).message));
-          how = absent ? `refused by the projector, which names '${axis}'` : `refused for another reason: ${String((err as Error).message).slice(0, 160)}`;
+          const msg = String((err as Error).message);
+          const missingList = /and \[([^\]]*)\] was not given/.exec(msg)?.[1] ?? /placeholders \[([^\]]*)\] have no value/.exec(msg)?.[1];
+          absent = (missingList ?? '').split(', ').includes(axis);
+          how = absent ? `refused by the projector, which names '${axis}' as missing` : `refused for another reason: ${msg.slice(0, 160)}`;
         }
         ok(absent,
           `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach (${how})`);
