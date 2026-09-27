@@ -739,5 +739,34 @@ const rescan = computePrunePlan({
 ok(prunePlanCount(rescan) === 0,
   `shrink: a second scan of the pruned file finds nothing stale at all — "removing them leaves a clean current-config file" (${prunePlanCount(rescan)} items)`);
 
+// ═══ A PRUNED MODE LEAVES THE PLANNED-MODES RECORD (#1704 net) ══════════════════════════════════════════════
+// The prune plan comes from the knobs, which need not have been applied, so it can remove a mode the last apply
+// PLANNED. The boot read-back compares each collection's record against its modes; a record still naming the
+// pruned mode would report it missing. Expected records are written here.
+{
+  class StampedColl extends RColl {
+    data = new Map<string, string>();
+    getSharedPluginData(ns: string, key: string): string { return this.data.get(`${ns}/${key}`) ?? ''; }
+    setSharedPluginData(ns: string, key: string, v: string): void { this.data.set(`${ns}/${key}`, v); }
+  }
+  const six = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
+  const layout = new StampedColl('L', 'layout', six.map((name, i) => ({ modeId: `L:${i}`, name })));
+  layout.setSharedPluginData('prism3', 'modes:planned', JSON.stringify(six));
+  const unstamped = new StampedColl('R', 'radius', [{ modeId: 'R:0', name: 'Default' }, { modeId: 'R:1', name: 'old' }]);
+  const stampShim = new PruneShim([layout, unstamped], [], { text: [], effect: [], paint: [], grid: [] });
+  const stampRes = await applyPrunePlan(
+    { variables: [], collections: [], styles: [], modes: [
+      { collection: 'layout', modes: [{ modeId: 'L:0', name: 'xs' }, { modeId: 'L:3', name: 'lg' }] },
+      { collection: 'radius', modes: [{ modeId: 'R:1', name: 'old' }] },
+    ] },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stampShim as any as PruneApi,
+  );
+  ok(stampRes.modes === 3 && layout.getSharedPluginData('prism3', 'modes:planned') === '["sm","md","xl","2xl"]',
+    `planned-modes record: pruning xs/lg drops them from layout's record (${layout.getSharedPluginData('prism3', 'modes:planned')})`);
+  ok(unstamped.getSharedPluginData('prism3', 'modes:planned') === '',
+    `planned-modes record: a collection with no record gets none written by a prune ("${unstamped.getSharedPluginData('prism3', 'modes:planned')}")`);
+}
+
 console.log(`\nplugin OPT-IN PRUNE: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

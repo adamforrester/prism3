@@ -50,7 +50,7 @@ export const seedSummary = (v: ReadbackVerdict): string => {
   const notes: string[] = [];
   const pm = v.plannedModes;
   if (pm.status === 'fail') {
-    notes.push(`the last apply did not finish — ${pm.missing.map((m) => `${m.collection} is missing ${m.modes.join('/')}`).join('; ')}`);
+    notes.push(pm.missing.map((m) => `${m.collection} is missing ${m.modes.join('/')}, planned by the last apply`).join('; '));
   }
   if (dm.status === 'skipped') notes.push(`mode check skipped — ${dm.reason}`);
   else {

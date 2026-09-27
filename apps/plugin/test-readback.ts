@@ -453,7 +453,7 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
       `planned modes (float cap): the saved brand alone reads a match (${v.declaredModes.status}) — the gap this check closes`);
     ok(v.plannedModes.status === 'fail' && JSON.stringify(v.plannedModes.missing) === '[{"collection":"layout","modes":["xl","2xl"]}]' && !v.ok,
       `planned modes (float cap): the boot read-back FAILS naming layout xl/2xl (${JSON.stringify(v.plannedModes)})`);
-    ok(seedSummary(v) === `Existing theme: ${snap.color.length} color vars, modes light — FAILED: plannedModes · the last apply did not finish — layout is missing xl/2xl`,
+    ok(seedSummary(v) === `Existing theme: ${snap.color.length} color vars, modes light — FAILED: plannedModes · layout is missing xl/2xl, planned by the last apply`,
       `planned modes (float cap): the pill names what did not land ("${seedSummary(v)}")`);
   }
 

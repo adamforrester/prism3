@@ -290,7 +290,7 @@ const MODES_PLANNED_KEY = 'modes:planned';
 
 /** Record the planned mode names on the collection. Best-effort, like `stampOwnedModes`: an apply never
  *  fails because a stamp could not be written. */
-export const stampPlannedModes = (collection: VarCollection, planned: readonly string[]): void => {
+export const stampPlannedModes = (collection: Pick<VarCollection, 'setSharedPluginData'>, planned: readonly string[]): void => {
   try {
     // namespace convention — 579 Lane 2; DRY later
     collection.setSharedPluginData?.('prism3', MODES_PLANNED_KEY, JSON.stringify([...planned]));
@@ -300,7 +300,7 @@ export const stampPlannedModes = (collection: VarCollection, planned: readonly s
 /** The mode names the collection's last apply planned, or `null` when there is no readable record — every
  *  file written before #1704, a shim with no shared data, or a value that is not a string array. Tolerant
  *  by the same contract as `ownedModeIds`: an unreadable record is an absent one, never an error. */
-export const plannedModeNames = (collection: VarCollection): string[] | null => {
+export const plannedModeNames = (collection: Pick<VarCollection, 'getSharedPluginData'>): string[] | null => {
   let raw = '';
   try {
     raw = collection.getSharedPluginData?.('prism3', MODES_PLANNED_KEY) ?? '';
