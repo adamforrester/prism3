@@ -1084,6 +1084,14 @@ const viewOnly = <T extends HTMLElement>(c: T): T => { c.setAttribute(VIEW_ONLY,
  *  this; `test-smoke.mjs` fails on inline ink it finds unmarked, so a new specimen cannot land as chrome. */
 const SPECIMEN = 'data-specimen';
 const specimen = <T extends HTMLElement>(e: T): T => { e.setAttribute(SPECIMEN, ''); return e; };
+/** A specimen that previews one ENGINE ROLE PAIR — an ink role on a fill role, both mode-relative keys as
+ *  `paint()` takes them (#1652). The smoke suite reads the pair, resolves both roles from the committed
+ *  emission rather than from this file's `paint()`, and holds the node to the contract THAT PAIR carries:
+ *  the ink's own `min` where the fill is the ink's `against`, the #1281 exemption where it is a pressed /
+ *  selected state of the ink's own fill. So the claim is written beside the paint call, not derived from
+ *  it: a call site that paints one pair and claims another fails there by name. */
+const SPECIMEN_PAIR = 'data-specimen-pair';
+const specimenPair = <T extends HTMLElement>(e: T, ink: string, fill: string): T => { specimen(e).setAttribute(SPECIMEN_PAIR, `${ink} on ${fill}`); return e; };
 /** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
  *  `button` is excluded because the buttons in these sections play a motion preview or expand a
  *  disclosure; `[data-view-only]` because a playback speed is not a token. */
@@ -2216,8 +2224,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Interactive — button sets in rows
   const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.');
   const STATES = ['rest', 'hover', 'pressed'];
-  const btn = (bg: string, fg: string, bd: string | null): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; specimen(b).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
-  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
+  // `pair` names the engine roles an OPAQUE fill specimen previews (#1652) — see `specimenPair`. The
+  // outline row passes none: its fill is a translucent wash and its ink is contracted against the page, so
+  // it has no single ink-on-fill pair to claim and stays on the smoke floor.
+  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
+  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string]): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd, pair), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
   const footLine = (lbl: string, p: HTMLElement): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), p); return s; };
   const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
     const row = el('div', 'sg-trow');
@@ -2248,7 +2259,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const paletteBlock = (nm: string, c: string): HTMLElement => {
     const block = el('div', 'sg-pblock');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
-    const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`));
+    const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`,
+      [`interactive.${c}.on-fill`, `interactive.${c}.fill.${s}`]));
     // Each state's hover fill comes from whichever family the METHOD emits — `outlineFillRole`, the
     // same helper the emitter branches on, not a second copy of the mapping. Reading `overlay.*`
     // unconditionally is #288, and it was still here: under `solid-tint` the overlay role does not
@@ -2297,7 +2309,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
     const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
-    const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`));
+    const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`,
+      [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`]));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
     // The Inverse row paints its own inverse band so the inverse-column variants have the ground they
@@ -2311,9 +2324,9 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   {
     const block = el('div', 'sg-pblock');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'color.disabled')); block.append(hd);
-    block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], false));
+    block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill', ['disabled.on-fill', 'disabled.fill'])], false));
     block.append(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false));
-    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], !onInverseGround));
+    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill', ['disabled.on-fill', 'disabled.fill'])], !onInverseGround));
     secInt.append(block);
   }
   host.append(ground(secInt));

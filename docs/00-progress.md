@@ -7,6 +7,43 @@
 
 ---
 
+## (2026-09-27) — Preview's pressed button specimens are the engine's exempt pair, now held to it (#1652)
+
+**STATUS: PR open from `lane/pressed-specimen-contrast`, labeled DO NOT MERGE.** Studio only (`main.ts` render-site marker, `test-smoke.mjs`). **No version bump:** no emitted artifact or projected surface moves; `regen --check` stays in sync.
+
+**Diagnosis: every row in #1652's table is case (2), and none is a studio pairing bug.** Measured from the committed emission (`out/<brand>.tokens.json`, aliases resolved per mode), not from the studio's `paint()`. Each rendered hex in the issue is exactly the engine's `…on-fill` over its own `…fill.pressed`:
+
+| row | engine pair | emitted hexes | ratio | covered by |
+|---|---|---|---|---|
+| aurora Light, inverse primary | `inverse.interactive.primary.on-fill` on `….fill.pressed` | #007cbb on #c1c1c3 | 2.54 | #1456 |
+| aurora Light, inverse destructive | same, destructive | #c94c44 on #c1c1c3 | 2.54 | #1456 (+ 2026-09-24 lever scope) |
+| harbor Light, inverse primary | same, harbor | #437f7f on #c2c1bf | 2.55 | #1456 |
+| harbor Light, inverse destructive | same, destructive | #cd4840 on #c2c1bf | 2.54 | #1456 |
+| harbor Dark, filled primary | `interactive.primary.on-fill` on `….fill.pressed` | #f7f7f6 on #7ca1a1 | 2.62 | **#1281** |
+
+No other on-fill × fill-state pair in aurora or harbor, in any of the four modes, falls under 3:1, and every rest pair clears 4.5. Both `on-fill` roles declare `against: …fill.rest`, `min: 4.5`, so no pair falls below its own declared contract. **The harbor Dark row, which the issue said (2) does not obviously cover, is covered by name.** It is not inverse, but `preview.ts`'s #1281 declaration lists "harbor/primary 2.62" as one of the three cells the owner decided on: pressed and selected are never floored for ink-on-fill contrast, on any family, declared as `min: 0` in `preview-spec.json`. The inverse rows are the #1456 exemption, stated in each emitted `fill.pressed` description ("drops to about 2.5:1 … exempt by default").
+
+**What changed: the exemption is classified, not excused wholesale.** Every opaque button specimen in Preview → Interactive (filled, inverse, and the disabled filled pair) now carries `data-specimen-pair="<ink role> on <fill role>"` through a new `specimenPair()` beside `specimen()`. The claim is written at the call site beside the paint call, not derived from it. The smoke probe:
+1. **Proves the claim.** The ink must be the fill family's own `on-fill`. The fill must be the state its column is labeled. Both rendered colors must equal the emission's hexes for that mode. The mode id is the bar label in the emission's spelling, checked against the emission's mode list.
+2. **Then classifies it from the engine.** CONTRACTED (the fill is the ink's `against`) → held to that role's emitted `min`. This is new strictness: rest on-fill at 4.5, disabled at 3. EXEMPT (a pressed/selected state of the ink's own fill) → held to the pressed `min` read from `preview-spec.json` (0 today, so the 2.0 smoke floor governs), plus distinction from its row's rest fill, the one thing #1281 keeps gated. UNMAPPED (hover) → stays on `CONTRAST_FLOOR`, #779's open specimen-to-contract decision.
+3. **Floors, so none of this is vacuous:** the spec must declare the pressed contract; both mapped classes must be represented over the sweep; every brand × mode that renders paired specimens must render an exempt one.
+
+Full sweep: 16,954 text nodes, lowest exempt 2.54:1. No floor was lowered.
+
+**Mutations, each failing by name:**
+- (M1) The inverse row painted with the page on-fill → `… renders exactly the engine role pair it claims — "rest" renders #000000 on #000000, but the engine emits …`.
+- (M2) Filled hover/pressed painted with the rest fill → same arm.
+- (M3) The inverse row painting AND claiming the page on-fill (consistent but wrong) → `… that ink is not the fill family's own on-fill`.
+- (M4) `preview-spec.json` pressed `min` 0 → 3, as if the owner floored pressed → `every paired specimen meets the contract of the pair it previews`, naming exactly #1652's five rows.
+- (M5) Marker dropped → `the sweep held paired specimens in both mapped classes — 0 contracted, 0 exempt …`.
+- (M6) The engine emitting inverse pressed = rest, regenerated → `exempt … is distinct from its row's rest fill … (#ffffff vs rest #ffffff)`. No studio-side mutation can reach this arm: the integrity arm rejects a mispainted fill first, so only an engine regression fires it.
+
+**Traps for whoever re-verifies.**
+- The oracle is the COMMITTED emission, and the studio renders the LIVE engine. A stale `out/` fails the integrity arm with a "renders X but the engine emits Y" line that looks like a studio bug. Run `regen.ts --check` before debugging the studio.
+- The brand chip's text is the emission's file stem (`aurora`, `harbor`). A chip renamed away from its example id fails the emission-load line by name.
+- The outline row carries no pair on purpose. Its fill is a translucent wash, and its ink is contracted against the page, not the fill. Pairing it needs the composited ground, which is a separate question.
+---
+
 ## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
 
 **STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.

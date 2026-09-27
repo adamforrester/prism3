@@ -169,6 +169,12 @@ const LEGIBILITY_PROBE = (rootSel) => {
     const col = parse(cs.color);
     if (!col) continue;
     const ground = groundOf(el);
+    // A specimen that names the engine role pair it previews (#1652) also reports what it RENDERED for
+    // each half, the column label it sits under, and its row, so the suite can check the claim against the
+    // emission rather than trust it. The fill is the pair host's OWN background, not `ground`: the claim is
+    // about the button, and a composited ground would hide a mispainted fill behind whatever sits under it.
+    const pairHost = el.closest('[data-specimen-pair]');
+    const pairRow = pairHost?.closest('.sg-btns');
     text.push({
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
       cls: name(el),
@@ -180,6 +186,13 @@ const LEGIBILITY_PROBE = (rootSel) => {
       weight: Number(cs.fontWeight),
       specimen: el.closest('[data-specimen]') !== null,
       inlineInk: (() => { for (let n = el; n; n = n.parentElement) if (n.style?.color) return true; return false; })(),
+      pair: pairHost ? {
+        claim: pairHost.getAttribute('data-specimen-pair'),
+        ink: col,
+        fill: parse(getComputedStyle(pairHost).backgroundColor),
+        state: pairHost.closest('.sg-bcol')?.querySelector('.sg-st')?.textContent.trim() ?? '',
+        row: pairRow ? [...document.querySelectorAll('.sg-btns')].indexOf(pairRow) : -1,
+      } : null,
     });
   }
 
@@ -257,6 +270,96 @@ const CHROME_TEXT_MIN = 4.5;
 const CHROME_LARGE_TEXT_MIN = 3;
 const isLargeText = (r) => r.px >= 24 || (r.px >= 18.66 && r.weight >= 700);
 const barOf = (r) => (r.specimen ? CONTRAST_FLOOR : isLargeText(r) ? CHROME_LARGE_TEXT_MIN : CHROME_TEXT_MIN);
+
+/**
+ * PAIRED SPECIMENS ARE HELD TO THE CONTRACT OF THE PAIR THEY PREVIEW (#1652).
+ *
+ * #1652 measured Preview's pressed button specimens at 2.54–2.62:1, under the ~3:1 the header above calls
+ * the lowest legitimate band, and asked whether the studio pairs the wrong roles or previews a real,
+ * exempt state. Measured from the committed emission, it is the second in every row: each rendered hex is
+ * the engine's own `on-fill` over its own `fill.pressed`, and the engine emits that pair on purpose. The
+ * `on-fill` role is contracted against `fill.rest` ONLY, and pressed is exempt by two owner decisions —
+ * #1281 (the page family: pressed and selected are never floored for ink-on-fill, declared as `min: 0` in
+ * `preview-spec.json`) and #1456 (the inverse family: the stepped fills' labels drop to ~2.5:1 by design,
+ * said out loud in each `fill.pressed` description). Harbor Dark's 2.62 is not an inverse case, and #1281
+ * names it: "harbor/primary 2.62" is one of the three cells that decision was taken on.
+ *
+ * So an exempt node is not a finding — but it must not be EXCUSED WHOLESALE either, by a specimen floor
+ * that happens to sit under it. The render site names the pair (`specimenPair` in `main.ts`), and this
+ * reads the pair's contract from the ENGINE, never from the studio:
+ *
+ *  - the two hexes come from `packages/engine/out/<brand>.tokens.json`, the committed emission, not the
+ *    studio's `paint()` — so the check is independent of the painting it checks;
+ *  - CONTRACTED — the fill is the ink's own `against` — holds the node to that role's emitted `min`;
+ *  - EXEMPT — the fill is a pressed / selected state of the ink's own fill family — holds it to what the
+ *    exemption leaves owed: the pressed contract `preview-spec.json` declares (0 today, so the smoke floor
+ *    governs), and distinction from rest, the one invariant #1281 keeps gated. If the owner ever floors
+ *    pressed, that number is read here and the node is held to it; nothing in this file has to move;
+ *  - anything else (hover) is not mapped here and stays on `CONTRAST_FLOOR`, #779's open decision.
+ *
+ * A node is only classified once its claim is PROVEN: the ink is the fill family's own `on-fill`, the fill
+ * is the state its column is labeled, and both rendered colors equal the emitted ones. A specimen that
+ * paints the rest ink on a pressed fill, or the page ink on an inverse fill, fails here by name rather than
+ * borrowing an exemption for a pair the engine never emitted.
+ */
+const OUT_DIR = join(ROOT, '..', '..', 'packages', 'engine', 'out');
+const PREVIEW_SPEC = JSON.parse(await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'schema', 'preview-spec.json'), 'utf8'));
+/** The pressed ink-on-fill contract the engine declares, read from the spec — not restated. */
+const PRESSED_MIN = (() => {
+  const v = PREVIEW_SPEC.components.find((c) => c.id === 'button')?.variants.find((x) => x.name === 'pressed');
+  const ct = v?.contracts?.find((k) => /\.fill\.pressed$/.test(k.bg) && /\.on-fill$/.test(k.fg));
+  return ct ? ct.min : null;
+})();
+const EXEMPT_STATES = new Set(['pressed', 'selected']);   // #1281: categorical, a predicate on the STATE
+
+/** Resolve one brand's emission into `role key × mode id → { hex, against, min }`. */
+const loadEmission = async (brand) => {
+  let tree;
+  try { tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8')); } catch { return null; }
+  const rootKey = Object.keys(tree)[0];
+  const at = (path) => path.split('.').reduce((n, s) => n?.[s], tree[rootKey]);
+  const inMode = (leaf, mode, base) => (mode !== base && leaf.$extensions?.prism3?.modes?.[mode]) || { ...leaf.$extensions?.prism3, $value: leaf.$value };
+  const probeLeaf = at('color.interactive.primary.on-fill');
+  const modes = probeLeaf?.$extensions?.prism3?.figma?.modes ?? [];
+  const base = modes[0];
+  const role = (key, mode) => {
+    const leaf = at(`color.${key}`);
+    if (!leaf || !modes.includes(mode)) return null;
+    const m = inMode(leaf, mode, base);
+    let v = m.$value;
+    for (let hops = 0; typeof v === 'string' && v.startsWith('{') && hops < 8; hops++) {
+      const target = at(v.slice(1, -1).replace(`${rootKey}.`, ''));
+      if (!target) return null;
+      v = inMode(target, mode, base).$value;
+    }
+    return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? { hex: v.toLowerCase(), against: m.against, min: m.min } : null;
+  };
+  return { modes, role };
+};
+const hexOf = (c) => (c ? `#${[c.r, c.g, c.b].map((n) => Math.round(n).toString(16).padStart(2, '0')).join('')}` : 'none');
+
+/** Prove a paired specimen's claim, then classify it. Returns `{ problem }` or `{ cls, bar, contract }`. */
+const classifyPair = (p, emission, mode) => {
+  const m = /^(\S+) on (\S+)$/.exec(p.claim ?? '');
+  if (!m) return { problem: `unreadable pair claim "${p.claim}"` };
+  const [, inkKey, fillKey] = m;
+  // The ink must be the fill family's OWN on-fill: `<fam>.on-fill` over `<fam>.fill[.<state>]`.
+  const fam = inkKey.replace(/\.on-fill$/, '');
+  if (fam === inkKey || !(fillKey === `${fam}.fill` || fillKey.startsWith(`${fam}.fill.`)))
+    return { problem: `claims ${inkKey} on ${fillKey} — that ink is not the fill family's own on-fill` };
+  // The fill must be the state its column is LABELED — the reader's reading of the specimen.
+  const fillState = fillKey === `${fam}.fill` ? p.state : fillKey.slice(`${fam}.fill.`.length);
+  if (fillState !== p.state) return { problem: `under the "${p.state}" label but claims the ${fillState} fill (${fillKey})` };
+  const ink = emission.role(inkKey, mode), fill = emission.role(fillKey, mode);
+  if (!ink || !fill) return { problem: `${!ink ? inkKey : fillKey} does not resolve in the ${mode} emission` };
+  if (hexOf(p.ink) !== ink.hex || hexOf(p.fill) !== fill.hex)
+    return { problem: `renders ${hexOf(p.ink)} on ${hexOf(p.fill)}, but the engine emits ${inkKey} ${ink.hex} on ${fillKey} ${fill.hex}` };
+  if (fillKey === ink.against) return { cls: 'contracted', bar: Math.max(CONTRAST_FLOOR, ink.min), contract: `${inkKey} min ${ink.min} on ${ink.against}` };
+  const restOf = ink.against?.replace(/\.rest$/, '');
+  if (restOf && fillKey.startsWith(`${restOf}.`) && EXEMPT_STATES.has(fillState) && PRESSED_MIN !== null)
+    return { cls: 'exempt', bar: Math.max(CONTRAST_FLOOR, PRESSED_MIN), contract: `${fillState} exempt (#1281/#1456), declared min ${PRESSED_MIN}` };
+  return { cls: 'unmapped', bar: CONTRAST_FLOOR, contract: 'unmapped (#779)' };
+};
 
 /**
  * NON-EMPTY FLOORS — DID THE SWEEP LOOK? (#779, defect 1.)
@@ -387,11 +490,20 @@ let worstChrome = Infinity;
 let worstChromeWhere = '';
 let fieldsMeasured = 0;
 let statesVisited = 0;
+/** Paired specimens by class (#1652), and the brand × mode cells that previewed an exempt one. */
+const pairedByClass = { contracted: 0, exempt: 0, unmapped: 0 };
+const exemptCells = new Set();
+const modeCells = new Set();
+let worstExempt = Infinity;
+let worstExemptWhere = '';
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const boot = drain();
   ok(boot.length === 0, `${brand}: boots clean — 0 console errors${boot.length ? ` (${boot[0]})` : ''}`);
+  const emission = await loadEmission(brand);
+  ok(emission !== null && emission.modes.length >= 2,
+    `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
   // The rail's own labels, read from the `b` that carries them — the `small` beside it is the
   // subtitle, and taking the button's whole textContent would glue the two together.
@@ -517,6 +629,34 @@ for (const brand of BRANDS) {
       ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${
         unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}: wrap it in specimen() where it is painted, or it is held to the chrome bar as if the studio chose that color` : ''}`);
 
+      // --- paired specimens, held to the contract of the pair they preview (#1652) --------------
+      // The mode id is the bar's label in the emission's own spelling ("HC light" → `hc-light`), checked
+      // against the emission's mode list rather than a label table restated here.
+      const paired = rows.filter((r) => r.pair);
+      if (paired.length && emission) {
+        const modeId = mode.toLowerCase().replace(/\s+/g, '-');
+        modeCells.add(`${brand}/${mode}`);
+        ok(emission.modes.includes(modeId), `${where}: the mode "${mode}" is one the emission carries (${emission.modes.join(', ')})`);
+        const judged = paired.map((r) => ({ r, c: classifyPair(r.pair, emission, modeId) }));
+        const bad = judged.filter(({ c }) => c.problem);
+        ok(bad.length === 0, `${where}: every one of ${paired.length} paired specimens renders exactly the engine role pair it claims${
+          bad.length ? ` — ${bad.slice(0, 3).map(({ r, c }) => `"${r.pair.state}" ${c.problem}`).join(' | ')}` : ''}`);
+        const held = judged.filter(({ c }) => !c.problem);
+        for (const { c } of held) pairedByClass[c.cls]++;
+        const pairUnder = held.filter(({ r, c }) => r.ratio < c.bar);
+        ok(pairUnder.length === 0, `${where}: every paired specimen meets the contract of the pair it previews${
+          pairUnder.length ? ` — ${pairUnder.slice(0, 3).map(({ r, c }) => `${r.pair.claim} at ${r.ratio}:1 (${c.contract}, needs ${c.bar}:1)`).join(' | ')}` : ''}`);
+        // What the exemption still OWES (#1281): a pressed fill distinct from its own row's rest fill.
+        for (const { r, c } of held.filter(({ c }) => c.cls === 'exempt')) {
+          exemptCells.add(`${brand}/${mode}`);
+          if (r.ratio < worstExempt) { worstExempt = r.ratio; worstExemptWhere = `${where} — ${r.pair.claim}`; }
+          const rest = held.find(({ r: q }) => q.pair.row === r.pair.row && q.pair.state === 'rest');
+          ok(rest && hexOf(rest.r.pair.fill) !== hexOf(r.pair.fill),
+            `${where}: exempt ${r.pair.claim} is distinct from its row's rest fill — the one thing #1281 keeps gated (${
+              rest ? `${hexOf(r.pair.fill)} vs rest ${hexOf(rest.r.pair.fill)}` : 'NO rest specimen in its row'})`);
+        }
+      }
+
       // --- rendered contrast, form controls (#1031) ---------------------------------------------
       // NO PER-STATE FLOOR HERE, deliberately: a derived mode replaces the whole editor with the
       // read-only note, so zero fields is a legitimate state and a floor would fail on the app being
@@ -545,6 +685,15 @@ ok(nodesMeasured >= SWEEP_NODE_FLOOR,
 // means every node was marked and the WCAG bar judged nothing.
 ok(specimensMeasured > 0 && nodesMeasured - specimensMeasured > 0,
   `the sweep measured both classes — ${specimensMeasured} specimen and ${nodesMeasured - specimensMeasured} chrome text nodes (#779)`);
+// The pair classification REPRESENTED (#1652), per class and per brand × mode: the exemption arm is an
+// implication over exempt nodes and passes vacuously over none, so a marker that stopped reaching the DOM,
+// or a spec that stopped declaring the pressed contract, must fail here rather than read as clean.
+ok(PRESSED_MIN !== null, `preview-spec.json declares the button's pressed ink-on-fill contract — the exemption's source (#1281); read ${PRESSED_MIN}`);
+ok(pairedByClass.contracted > 0 && pairedByClass.exempt > 0,
+  `the sweep held paired specimens in both mapped classes — ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (#1652)`);
+ok(modeCells.size > 0 && [...modeCells].every((k) => exemptCells.has(k)),
+  `every brand × mode that previewed paired specimens previewed an exempt pressed one (${exemptCells.size} of ${modeCells.size})${
+    [...modeCells].filter((k) => !exemptCells.has(k)).length ? ` — none in ${[...modeCells].filter((k) => !exemptCells.has(k)).join(', ')}` : ''}`);
 ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
   `the sweep measured ${fieldsMeasured} form controls in total (floor ${SWEEP_FIELD_FLOOR})`);
 
@@ -553,6 +702,9 @@ console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (specimen floo
 console.log(`    ${worstWhere}`);
 console.log(`  Lowest chrome text: ${worstChrome}:1 (bar ${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) — ${specimensMeasured} of ${nodesMeasured} nodes are specimens`);
 console.log(`    ${worstChromeWhere}`);
+console.log(`  Lowest exempt pressed specimen: ${worstExempt}:1 (declared pressed min ${PRESSED_MIN}, smoke floor ${CONTRAST_FLOOR.toFixed(1)}:1 — #1281/#1456, not a finding)`);
+console.log(`    ${worstExemptWhere}`);
+console.log(`  Paired specimens: ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (hover — #779) across ${modeCells.size} brand × mode cells.`);
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered
