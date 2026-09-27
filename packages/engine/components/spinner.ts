@@ -137,13 +137,13 @@ export const spinner: ComponentDef = {
       '1.4.11 Non-text Contrast (the arc takes its host\'s icon ink, meant to clear 3:1; the track is decorative and exempt)',
       '4.1.3 Status Messages (the polite "Loading" status when it stands alone; the host\'s own announcement when the host hides it)',
     ],
-    focus: 'None. The spinner takes no focus. A pending host control keeps its own: it takes `aria-disabled="true"`, not native `disabled`, which removes the control from the accessibility tree and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button\'s `isPending`.',
+    focus: 'None. The spinner takes no focus. A pending host control keeps its own: it takes `aria-disabled="true"`, not native `disabled`, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button\'s `isPending`.',
     aria: 'Standalone, the default: a `role="status"` wrapper with `aria-live="polite"`, named by `label` ("Loading" unless a more specific label is given), around an `aria-hidden` drawing. Inside a host that already announces its busy state — a Button or IconButton `isPending`, which set `aria-busy` and carry their own polite live region — the host sets `aria-hidden="true"` on the spinner, so the state is announced once rather than twice. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value.',
   },
 
   // Brief §7, owner-approved 2026-09-27 for the optional label.
   content: {
-    labelPattern: 'Name the work, in sentence case: "Loading results", "Saving changes" — not "Loading…" or "Please wait". "Loading" is the fallback only when nothing more specific is known. One status for the whole wait, not a chain of steps ("Fetching…", "Parsing…") that floods the live region; for a region or a longer wait, the host announces completion ("Results loaded").',
+    labelPattern: 'Name the work, in sentence case: "Loading results", "Saving changes" — not a generic "Loading…". "Loading" is the fallback only when nothing more specific is known. One status for the whole wait, not a chain of steps ("Fetching…", "Parsing…") that floods the live region; for a region or a longer wait, the host announces completion ("Results loaded").',
   },
 
   docs: {
@@ -164,13 +164,13 @@ export const spinner: ComponentDef = {
       'Put `role="progressbar"` or `aria-valuenow` on a spinner — it has no value, and a value is determinate progress',
       'Stop the turn under reduced motion — slow it',
     ],
-    contentGuidelines: 'Label: specific and in sentence case — "Loading results", "Updating profile" — not "Loading…" or "Please wait"; "Loading" is the fallback when nothing more specific is known. One status for the whole wait, and for a region or a longer wait the host announces completion ("Results loaded"). Inside a button, the button keeps its accessible name while pending.',
+    contentGuidelines: 'Label: specific and in sentence case — "Loading results", "Updating profile" — not a generic "Loading…"; "Loading" is the fallback when nothing more specific is known. One status for the whole wait, and for a region or a longer wait the host announces completion ("Results loaded"). Inside a button, the button keeps its accessible name while pending.',
   },
 
   ai: {
     primaryPurpose: 'Show that work is in progress with no known end, inside the control or region that is waiting.',
     whenToUse: 'A short indeterminate wait of about 200ms to 5s (Material 3\'s bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host\'s icon slot.',
-    avoidWhen: 'The wait is under 200ms (show nothing — a spinner that brief only flashes), runs past about 5s or has a known length (determinate progress, not built yet — including a circular progress with a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.',
+    avoidWhen: 'The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (determinate progress, not built yet — including a circular progress with a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.',
     commonPartners: ['button', 'icon-button', 'text-field', 'select'],
     triggerKeywords: ['spinner', 'loading', 'loader', 'busy', 'pending', 'activity indicator', 'loading indicator', 'inline-loading', 'spin'],
     generationPriority: 3,
@@ -216,7 +216,7 @@ export const spinner: ComponentDef = {
     evolution: [
       'VERIFIED ON A REAL HOST (2026-09-26). The two items this def shipped as unverified were measured live through `figma.createNodeFromSvg` in the owner\'s test file. The importer makes one VECTOR per `<path>`, in path order, named by its `id`. `track` imports at layer opacity 0.2 (read back as 0.20000000298, single precision), even-odd winding, 22x22 at (1,1). `arc` imports at opacity 1, nonzero winding, 12x16.79 at (11,1). Both outlines arrive as cubic curves (24 and 16 segments, no straight lines), so the elliptical-arc commands convert without flattening.',
       'THE DEFAULT ANNOUNCEMENT (owner, 2026-09-27). The def shipped hidden by default, speaking only with a `label` — which put the brief\'s first trap, an unlabeled spinner silent to assistive tech, on the default path of every standalone use. Now `label` defaults to "Loading" and the spinner is a polite status; a host that announces its own busy state opts out with `aria-hidden="true"`. Button and IconButton say so in their `accessibility.aria`.',
-      'THE ENTER FADE (owner, 2026-09-27). `motion.enter` was "none (present on mount)"; it is now a quick opacity fade on `motion.duration.fast`, the brief\'s "appear is a quick fade" (§8). `instant` (50ms) was the shorter candidate and reads as a cut. No new token.',
+      'THE ENTER FADE (owner, 2026-09-27). `motion.enter` was "none (present on mount)"; it is now a quick opacity fade on `motion.duration.fast`, the brief\'s "appear is a quick fade" (§8). `instant` (50ms) was the shorter candidate and reads as a cut at the standard tempo. At the relaxed tempo `motion.duration-reduced.fast` falls to 50ms too, so under reduced motion a relaxed brand gets the shorter fade; accepted, since a shorter fade is the conservative direction there. No new token.',
       'CATEGORY `feedback` → `foundations` (2026-09-27), to brief §15. Nothing reads the field beyond the required check, so no surface moved.',
       'FIELD (brief §13.1): loading rendering went from GIF to CSS `border-radius` to inline SVG — precise, and themeable through `currentColor` and dash control. This def is the SVG end, drawn as outlines in Figma.',
       'FIELD (brief §13.2): the spinner-versus-progress split. Material 2 folded the two into an indeterminate `CircularProgress`; Material 3 (May 2025) split its "Loading indicator" out for short waits. The practice keeps them distinct in name and contract even where the rendering is shared.',

@@ -4640,6 +4640,9 @@ for (const b of brands) {
   // Expectations written here, from the decisions, not read back from the def: the label defaults to the literal
   // "Loading"; a standalone spinner is a polite status that never carries a value; the embedding hosts hide it
   // with the standard attribute; the enter fade names `motion.duration.fast`, which must exist in a built tree.
+  // No 2.2.2 / 2.3.3 claim (owner, 2026-09-26): the reduced-motion turn is slowed, not stopped, so neither is claimed.
+  ok(!(spinner.accessibility.wcag ?? []).some((w) => /^2\.2\.2\b|^2\.3\.3\b/.test(w)),
+    `spinner 2026-09-26: accessibility.wcag claims neither 2.2.2 nor 2.3.3 (${JSON.stringify((spinner.accessibility.wcag ?? []).map((w) => w.split(' ')[0]))})`);
   const labelProp = spinner.props.find((p) => p.name === 'label');
   ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
     `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
