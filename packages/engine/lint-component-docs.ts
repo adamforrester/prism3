@@ -23,12 +23,15 @@
  *      page SECTION that owns it — not merely somewhere on the page (docs/34 shape 13: a short value such
  *      as `small` or `filled` is on every page several times, so a page-wide search could not see one go
  *      missing from its own table). Table values are held to their ROW and COLUMN: a variant value to the
- *      Variants table's `Values` cell on its axis's row, a prop's fields to their cells on its row. Each
+ *      Variants table's `Values` cell on its axis's row, a prop's fields to their cells on its row. A value
+ *      the page writes as a CODE SPAN (ids, states, axis values, defaults, partner and composition lists) is
+ *      matched as a whole span — `small` is not satisfied by `xsmall` — and a span the def does not have
+ *      fails as `EXTRA VALUE` (review of #1705: substring matching passed both). Each
  *      axis's `kind` is checked in the JSON and in the Variants table's `Changes` cell, against the def's
  *      own `axisKinds` read here. `codeOnly` and `notes` are checked, by index, in the maintainer record.
- *   D  MAINTAINER PROSE DOES NOT SHIP. No `codeOnly` or `notes` entry is in either payload form (the tail
- *      half of each, the whole entry when short — the probe `apps/plugin/lint-bundle-prose.ts` uses on the
- *      bundles, restated here; an entry whose text a shipped field of the same def already carries is
+ *   D  MAINTAINER PROSE DOES NOT SHIP. No `codeOnly` or `notes` entry is in either payload form (a
+ *      `codeOnly` entry's tail half, as `apps/plugin/lint-bundle-prose.ts` probes the bundles; BOTH halves of
+ *      a `notes` entry, whose head is its most internal part; the whole entry when short; an entry whose text a shipped field of the same def already carries is
  *      counted as shared, not as a leak), the page carries none of the agent-only `ai` labels, and the maintainer
  *      record is classified `ours` in `payload-manifest.json`, by its literal path.
  *   E  NO PRISM 2 (owner rule) in either payload form. The detector is self-checked on literal samples
@@ -49,7 +52,9 @@
  * files) · `accessibility.keyboard` dropped from the projector's mapping (arm B names the field; arm C each
  * def) · every page's Variants `Values` cell replaced with `x` (arm C, page, one per variant value — and
  * with the section scoping neutralized to a page-wide search, the same mutation passes: the scoping is
- * why) · every axis projected as `runtime` (arm C, `KIND`, JSON and page) · `codeOnly` rendered back onto
+ * why) · `button`'s size values written `xsmall`/`xmedium`/`xlarge`, and a States span `hover-ish` (arm C,
+ * `ROUND-TRIP (page cell)`/`(page token)` + `EXTRA VALUE`) · the first half of a `notes` entry pasted on a
+ * page (arm D, `(its first half)`) · every axis projected as `runtime` (arm C, `KIND`, JSON and page) · `codeOnly` rendered back onto
  * the page (arm D) · a Prism 2 entry let through (arm E).
  *
  * WHAT THIS DOES NOT CHECK: that the committed forms match what the projector emits NOW — that is
@@ -89,14 +94,35 @@ type Path = (string | number)[];
 type Place =
   | { kind: 'none' }
   | { kind: 'text'; heading: string | null }
-  | { kind: 'cell'; heading: string; row: string; column: string };
+  | { kind: 'list'; heading: string | null; label?: string }
+  | { kind: 'cell'; heading: string; row: string; column: string; tokens?: true };
+/** A `list` place, and a cell with `tokens`, hold CODE SPANS — ids, states, axis values, defaults — and are
+ *  compared token for token: `small` matches the span `` `small` ``, never `` `xsmall` ``, and a span the
+ *  def does not have is flagged as extra (review of #1705: a substring check passed both). A `list` with a
+ *  `label` reads only the one bullet line that starts with it. */
+
+/** The bullet each id list sits on, as the page spells it. Written here, like the headings. */
+const LABEL: Record<string, string> = {
+  id: '- **ID:**',
+  inherits: '- **Builds on:**',
+  commonPartners: '- **Often used with:**',
+  composesWith: '- **Composes with:**',
+  alternativeTo: '- **Alternative to:**',
+  supersedes: '- **Supersedes:**',
+  supersededBy: '- **Superseded by:**',
+  planned: '- **Planned:**',
+};
 
 /** THE SECTION MAP — written here, never read from the projector. Each value's own section, and for a
  *  table its own row and column. `none` is a field the page deliberately leaves out. */
 const SECTION = (path: Path): Place | undefined => {
   const [f, a, b] = path;
   switch (f) {
-    case 'id': case 'name': case 'aliases': case 'category': case 'status': case 'summary': case 'description': case 'inherits':
+    case 'id':
+      return { kind: 'list', heading: null, label: LABEL.id };
+    case 'inherits':
+      return { kind: 'list', heading: null, label: LABEL.inherits };
+    case 'name': case 'aliases': case 'category': case 'status': case 'summary': case 'description':
       return { kind: 'text', heading: null };
     case 'docs':
       return a === 'usage' ? { kind: 'text', heading: '## Usage' }
@@ -109,22 +135,25 @@ const SECTION = (path: Path): Place | undefined => {
     case 'ai':
       // Agent-only metadata stays in the JSON (owner decision, 2026-09-27); the page is written for people.
       if (a === 'triggerKeywords' || a === 'generationPriority') return { kind: 'none' };
+      if (a === 'commonPartners') return { kind: 'list', heading: '## Choosing it', label: LABEL.commonPartners };
       return { kind: 'text', heading: '## Choosing it' };
     case 'props': {
       const column = b === 'name' ? 'Name' : b === 'type' || b === 'values' ? 'Type' : b === 'default' ? 'Default'
         : b === 'required' ? 'Required' : b === 'description' ? 'Description' : b === 'deprecated' ? 'Name' : undefined;
+      if (column === 'Default') return { kind: 'cell', heading: '## Props', row: '', column, tokens: true };
       return column ? { kind: 'cell', heading: '## Props', row: '', column } : undefined; // row filled by the caller
     }
     case 'states':
-      return { kind: 'text', heading: '## States' };
+      return { kind: 'list', heading: '## States' };
     case 'variants':
-      return { kind: 'cell', heading: '## Variants', row: String(a), column: 'Values' };
+      return { kind: 'cell', heading: '## Variants', row: String(a), column: 'Values', tokens: true };
     case 'accessibility':
       return { kind: 'text', heading: '## Accessibility' };
     case 'motion':
       return { kind: 'text', heading: '## Motion' };
     case 'composition':
-      return { kind: 'text', heading: '## Composition' };
+      return a === 'replacesPatterns' ? { kind: 'text', heading: '## Composition' }
+        : LABEL[a as string] ? { kind: 'list', heading: '## Composition', label: LABEL[a as string] } : undefined;
     default:
       return undefined;
   }
@@ -207,12 +236,19 @@ const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
 /** Page text as a reader sees it: the projector's `\|` and `\<` escapes undone, whitespace folded. */
 const unescape = (md: string) => norm(md.replace(/\\([|<])/g, '$1'));
 
-type Page = { preamble: string; sections: Map<string, string>; tables: Map<string, { header: string[]; rows: string[][] }> };
+type Page = {
+  preamble: string; preambleRaw: string[];
+  sections: Map<string, string>; raw: Map<string, string[]>;
+  tables: Map<string, { header: string[]; rows: string[][] }>;
+};
+/** The code spans in a stretch of page text, verbatim, with the projector's `\|` escape undone. */
+const spans = (text: string): string[] => [...text.replace(/\\\|/g, '|').matchAll(/`([^`]+)`/g)].map((m) => m[1]);
 /** Split a page on its headings. A section is its heading's OWN body — up to the next heading of any
  *  level — so `## Usage` does not reach into `### Do`. A table in a section is parsed into cells. */
 const readPage = (md: string): Page => {
   const lines = md.split('\n');
   const sections = new Map<string, string>();
+  const raw = new Map<string, string[]>();
   const tables = new Map<string, { header: string[]; rows: string[][] }>();
   const preamble: string[] = [];
   let current: string | null = null;
@@ -220,6 +256,7 @@ const readPage = (md: string): Page => {
   const close = () => {
     if (current === null) return;
     sections.set(current, unescape(body.join('\n')));
+    raw.set(current, body);
     const t = body.filter((l) => l.startsWith('|'));
     if (t.length >= 2) {
       // Cells split on UNescaped pipes; the projector escapes a `|` inside a cell as `\|`.
@@ -232,7 +269,17 @@ const readPage = (md: string): Page => {
     if (current === null) preamble.push(l); else body.push(l);
   }
   close();
-  return { preamble: unescape(preamble.join('\n')), sections, tables };
+  return { preamble: unescape(preamble.join('\n')), preambleRaw: preamble, sections, raw, tables };
+};
+
+/** The code spans at a `list` place: its labeled bullet line, or its whole section. `undefined` when the
+ *  section itself is missing; `[]` when the section is there and the labeled line is not. */
+const listSpans = (page: Page, place: { heading: string | null; label?: string }): string[] | undefined => {
+  const lines = place.heading === null ? page.preambleRaw : page.raw.get(place.heading);
+  if (!lines) return undefined;
+  if (!place.label) return spans(lines.join('\n'));
+  const line = lines.find((l) => l.startsWith(place.label!));
+  return line === undefined ? [] : spans(line.slice(place.label.length));
 };
 
 // ---- ARM C: round-trip, def → JSON path, page section, maintainer record ----------------------
@@ -255,6 +302,18 @@ for (const def of componentDefs) {
     if (place.kind === 'none') return;
     if (place.kind === 'text' && typeof v !== 'string') return; // numbers and booleans outside tables are JSON-only
     const want = norm(String(v));
+    if (place.kind === 'list') {
+      const got = listSpans(page, place);
+      if (got === undefined) {
+        const k = `${def.id} ${place.heading}`;
+        if (!missingSection.has(k)) note(`SECTION MISSING: out/components/${def.id}.md has no \`${place.heading}\`, and ${where(path)} belongs there`);
+        missingSection.add(k);
+        return;
+      }
+      pageChecked++;
+      if (!got.includes(String(v))) note(`ROUND-TRIP (page token): ${where(path)} = \`${String(v)}\` is not a code span ${place.label ? `on the \`${place.label}\` line` : ''} in the ${place.heading ?? 'opening'} section of out/components/${def.id}.md (spans: ${got.map((t) => `\`${t}\``).join(', ').slice(0, 80) || 'none'})`);
+      return;
+    }
     if (place.kind === 'text') {
       const text = place.heading === null ? page.preamble : page.sections.get(place.heading);
       if (text === undefined) {
@@ -282,7 +341,8 @@ for (const def of componentDefs) {
     if (!r) { note(`TABLE: out/components/${def.id}.md's \`${place.heading}\` table has no row for \`${row}\``); return; }
     cellChecked++;
     const expected = path[2] === 'required' ? (v ? 'yes' : 'no') : path[2] === 'deprecated' ? (v ? '(deprecated)' : '') : want;
-    if (expected && !r[col].includes(expected)) note(`ROUND-TRIP (page cell): ${where(path)} = ${JSON.stringify(v).slice(0, 80)} is not in the \`${place.column}\` cell of the \`${row}\` row under \`${place.heading}\` in out/components/${def.id}.md (the cell reads ${JSON.stringify(r[col].slice(0, 60))})`);
+    const cellHas = place.tokens ? spans(r[col]).includes(String(v)) : r[col].includes(expected);
+    if (expected && !cellHas) note(`ROUND-TRIP (page cell): ${where(path)} = ${JSON.stringify(v).slice(0, 80)} is not in the \`${place.column}\` cell of the \`${row}\` row under \`${place.heading}\` in out/components/${def.id}.md (the cell reads ${JSON.stringify(r[col].slice(0, 60))})`);
   };
 
   if (entry) {
@@ -309,6 +369,28 @@ for (const def of componentDefs) {
       const r = table?.rows.find((cells) => cells[0]?.startsWith(`\`${axis}\``));
       if (page && (!r || col < 0 || r[col] !== KIND_ON_PAGE[want])) note(`KIND (page): \`${def.id}\` axis \`${axis}\` should read "${KIND_ON_PAGE[want]}" in the Variants table's \`Changes\` column of out/components/${def.id}.md (found ${JSON.stringify(r && col >= 0 ? r[col] : null)})`);
     }
+  }
+
+  // EXTRA spans: every code-span place holds the def's values and NOTHING ELSE. The per-value check above
+  // proves each value is present; this proves no value the def lacks rides along (`hover-ish` in States).
+  if (page) {
+    const extra = (what: string, want: readonly string[], got: string[] | undefined) => {
+      for (const t of got ?? []) if (!want.includes(t)) note(`EXTRA VALUE (page): out/components/${def.id}.md carries \`${t}\` in ${what}, and the def has no such value (def: ${want.map((w) => `\`${w}\``).join(', ') || 'none'})`);
+    };
+    const cell = (heading: string, row: string, column: string): string[] | undefined => {
+      const t = page.tables.get(heading);
+      const c = t?.header.indexOf(column) ?? -1;
+      const r = t?.rows.find((cells) => cells[0]?.startsWith(`\`${row}\``));
+      return r && c >= 0 ? spans(r[c]) : undefined;
+    };
+    extra('the ID line', [def.id], listSpans(page, { heading: null, label: LABEL.id }));
+    extra('the Builds on line', def.inherits ? [def.inherits] : [], listSpans(page, { heading: null, label: LABEL.inherits }));
+    extra('## States', def.states, listSpans(page, { heading: '## States' }));
+    extra('the Often used with line', def.ai.commonPartners ?? [], listSpans(page, { heading: '## Choosing it', label: LABEL.commonPartners }));
+    for (const k of ['composesWith', 'alternativeTo', 'supersedes', 'supersededBy', 'planned'] as const)
+      extra(`the ${LABEL[k]} line`, def.composition?.[k] ?? [], listSpans(page, { heading: '## Composition', label: LABEL[k] }));
+    for (const [axis, values] of Object.entries(def.variants)) extra(`the Variants \`Values\` cell of \`${axis}\``, values ?? [], cell('## Variants', axis, 'Values'));
+    for (const pr of def.props) extra(`the Props \`Default\` cell of \`${pr.name}\``, pr.default === undefined ? [] : [String(pr.default)], cell('## Props', pr.name, 'Default'));
   }
 
   // The maintainer record: each `codeOnly` and `notes` entry at its own index, nothing else in the entry.
@@ -343,10 +425,16 @@ const FLOORS: [string, number, number][] = [
 for (const [what, n, floor] of FLOORS) if (n < floor) note(`ROUND-TRIP FLOOR: only ${n} ${what} were checked (floor ${floor}) — the walk is not reaching the defs`);
 
 // ---- ARM D: maintainer prose does not ship ---------------------------------------------------
-/** The part of an entry that must be absent: its tail half, or all of it when short. `codeOnly` entries
- *  lead with the name they admit (`size — …`), and that name is legitimately on the page, so the head is
- *  not searched. Same rule as `apps/plugin/lint-bundle-prose.ts`'s probe, restated rather than imported. */
-const probe = (s: string) => norm(s.length < 40 ? s : s.slice(Math.floor(s.length / 2)));
+/** The parts of an entry that must be absent. A `codeOnly` entry leads with the name it admits (`size — …`),
+ *  and that name is legitimately on the page, so only its TAIL half is searched — the rule
+ *  `apps/plugin/lint-bundle-prose.ts` uses, restated rather than imported. A `notes` entry has no such
+ *  lead, and its head is the most internal part (`THE DECOMPOSITION IS UNVERIFIED…`), so BOTH halves are
+ *  searched (review of #1705: a leaked first half passed). A short entry is searched whole. */
+const probes = (s: string, isNote: boolean): string[] => {
+  if (s.length < 40) return [norm(s)];
+  const mid = Math.floor(s.length / 2);
+  return isNote ? [norm(s.slice(0, mid)), norm(s.slice(mid))] : [norm(s.slice(mid))];
+};
 const jsonStrings: string[] = [];
 const collect = (v: unknown) => { if (typeof v === 'string') jsonStrings.push(norm(v)); else if (v && typeof v === 'object') Object.values(v).forEach(collect); };
 collect(doc);
@@ -370,10 +458,15 @@ for (const def of componentDefs) {
   ];
   for (const [path, s] of maintainerOnly) {
     probed++;
-    const p = probe(s);
-    if (ownHay.includes(p)) { shared++; continue; }
-    if (jsonHay.includes(p)) note(`MAINTAINER PROSE SHIPPED (json): \`${def.id}\` ${path} is in components.ai.json — #1623 ruled it maintainer-only`);
-    if (pageHay.includes(p)) note(`MAINTAINER PROSE SHIPPED (page): \`${def.id}\` ${path} is on out/components/${def.id}.md — #1623 ruled it maintainer-only`);
+    const ps = probes(s, path.startsWith('notes.'));
+    // A half a shipped field of the same def carries verbatim ships through that field; the other half is
+    // still searched.
+    if (ps.some((p) => ownHay.includes(p))) shared++;
+    const half = (p: string) => (ps.length === 2 ? (p === ps[0] ? ' (its first half)' : ' (its second half)') : '');
+    for (const p of ps.filter((q) => !ownHay.includes(q))) {
+      if (jsonHay.includes(p)) note(`MAINTAINER PROSE SHIPPED (json): \`${def.id}\` ${path}${half(p)} is in components.ai.json — #1623 ruled it maintainer-only`);
+      if (pageHay.includes(p)) note(`MAINTAINER PROSE SHIPPED (page): \`${def.id}\` ${path}${half(p)} is on out/components/${def.id}.md — #1623 ruled it maintainer-only`);
+    }
   }
 }
 if (probed < 370) note(`MAINTAINER PROBE FLOOR: only ${probed} codeOnly/notes entries were probed — the walk is not reaching the defs`);

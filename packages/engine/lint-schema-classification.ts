@@ -53,6 +53,17 @@
  *                                          regen.ts says why, and `payload-manifest.json` classifies the
  *                                          file `ours`. A file that ships does not belong in class 4.
  *
+ * CLASS 4 IS ASSERTED, NOT TAKEN ON TRUST (review of #1705). Listing a file in `MAINTAINER_ARTIFACTS` is the
+ * one edit that removes it from both prose gates AND from `lint-emission-version.ts` at once, so membership
+ * cannot be the only evidence. Each entry must also be:
+ *   (i)   named in `MAINTAINER_ONLY` below, with a reason — authored here, so moving a file into the regen
+ *         list without a second, argued edit fails. MEASURED: moving `lever-manifest.json` from
+ *         `SCHEMA_ARTIFACTS` into `MAINTAINER_ARTIFACTS` passes (ii) and (iii) — it is `ours`, and nothing
+ *         under `apps/` names it — and fails only here, which is why this arm exists;
+ *   (ii)  classified `ours`, and not `payload`, in `payload-manifest.json`, by its literal `schema/` path;
+ *   (iii) named by NO tracked file under `apps/` (both surfaces and every bundle entry live there) and not
+ *         by `packages/engine/mcp.ts` — a file a shipped surface reads is a file that ships.
+ *
  * Class 2 requires BOTH gates, and that is the point rather than a convenience: they share one scope
  * rule, so a file in one and not the other is a DIVERGENCE, and at most one side of it can be right.
  * Requiring both means such a state cannot be reached silently — it has to be argued for by editing
@@ -131,6 +142,22 @@ const EXEMPT: { file: string; why: string }[] = [
       'widening this reason.',
   },
 ];
+
+/**
+ * Class 4 — the files allowed in `MAINTAINER_ARTIFACTS`, each with the reason it does not ship. Checked
+ * both ways against that list, the same posture as `EXEMPT`.
+ */
+const MAINTAINER_ONLY: { file: string; why: string }[] = [
+  {
+    file: 'component-maintainer.json',
+    why:
+      'Each component def\'s `anatomy.codeOnly` and `notes.*`, which the #1623 sign-off ruled ' +
+      'maintainer-only (the plugin strips both from its bundles). The docs payload beside it ' +
+      '(`out/components/**`) carries the shipped fields; this is the working record.',
+  },
+];
+/** What class 4's (iii) reads: every tracked file under `apps/`, plus the MCP server. */
+const SHIPPED_READERS = ['apps', 'packages/engine/mcp.ts'];
 
 type Failure = string;
 const failures: Failure[] = [];
@@ -293,6 +320,43 @@ for (const file of MAINTAINER_ARTIFACTS) {
     failures.push(
       `STALE MAINTAINER_ARTIFACTS: regen.ts lists \`${file}\`, which does not exist in ${SCHEMA_DIR}.`,
     );
+  }
+}
+
+// ---- Class 4 is asserted: authored, `ours`, and read by no shipped surface --------------------
+const maintainerOnlyByFile = new Map(MAINTAINER_ONLY.map((e) => [e.file, e]));
+const payloadManifest = JSON.parse(readFileSync(join(repo, SCHEMA_DIR, 'payload-manifest.json'), 'utf8')) as {
+  payload: { pattern: string }[]; ours: { pattern: string }[];
+};
+const readerFiles = execSync(`git ls-files ${SHIPPED_READERS.join(' ')}`, { cwd: repo, encoding: 'utf8' })
+  .trim().split('\n').filter(Boolean);
+if (readerFiles.length < 50) {
+  failures.push(`CLASS 4 READERS: only ${readerFiles.length} tracked file(s) under ${SHIPPED_READERS.join(', ')} — the reference scan is not reaching the surfaces, so it cannot vouch that nothing reads a maintainer file.`);
+}
+const readerText = readerFiles.map((f) => { try { return [f, readFileSync(join(repo, f), 'utf8')] as const; } catch { return [f, ''] as const; } });
+for (const file of MAINTAINER_ARTIFACTS) {
+  const entry = maintainerOnlyByFile.get(file);
+  if (!entry || !entry.why.trim()) {
+    failures.push(
+      `CLASS 4 NOT ARGUED: regen.ts lists \`${file}\` in MAINTAINER_ARTIFACTS, which takes it out of both ` +
+        `prose gates and the emission-version gate, but MAINTAINER_ONLY in this file does not name it with a ` +
+        `reason. A file that ships belongs in SCHEMA_ARTIFACTS; one that does not is named here, with why.`,
+    );
+  }
+  const path = `schema/${file}`;
+  const ours = payloadManifest.ours.some((r) => r.pattern === path);
+  const payload = payloadManifest.payload.some((r) => r.pattern === path);
+  if (!ours || payload) {
+    failures.push(`CLASS 4 NOT OURS: \`${path}\` is in MAINTAINER_ARTIFACTS but payload-manifest.json does not classify it \`ours\` alone (ours: ${ours}, payload: ${payload}).`);
+  }
+  const readers = readerText.filter(([, t]) => t.includes(file)).map(([f]) => f);
+  if (readers.length) {
+    failures.push(`CLASS 4 READ BY A SHIPPED SURFACE: \`${file}\` is in MAINTAINER_ARTIFACTS but ${readers.join(', ')} name(s) it — a file a surface reads is a file that ships.`);
+  }
+}
+for (const { file } of MAINTAINER_ONLY) {
+  if (!MAINTAINER_ARTIFACTS.includes(file)) {
+    failures.push(`STALE MAINTAINER_ONLY: \`${file}\` is named in MAINTAINER_ONLY but regen.ts does not list it in MAINTAINER_ARTIFACTS.`);
   }
 }
 
