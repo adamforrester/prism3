@@ -27,6 +27,74 @@
 
 ---
 
+## (2026-09-27) — UI exploration brief: one surface for progress, results and fixes (docs only)
+
+**STATUS: docs only.** The owner added a direction to the studio/plugin UI exploration: the product needs a more robust way to show progress, component-build status, errors and their resolution. A drawer that shows progress, then the final status and errors, with actions to fix them, was given as an example, not the answer. It is recorded as §7.1 of `docs/superpowers/specs/2026-09-26-ui-exploration-brief.md`. That section lists the failure causes known today with the fix each implies (Apply Theme first, Build again to repair links, Prune stale, rebuild a stale plugin, and so on). The ideation prompt's required moments gain one: a long build with an error and its resolving action.
+
+---
+
+## (2026-09-27) — Preview's pressed button specimens are the engine's exempt pair, now held to it (#1652)
+
+**STATUS: PR open from `lane/pressed-specimen-contrast`, labeled DO NOT MERGE.** Studio only (`main.ts` render-site marker, `test-smoke.mjs`). **No version bump:** no emitted artifact or projected surface moves; `regen --check` stays in sync.
+
+**Diagnosis: every row in #1652's table is case (2), and none is a studio pairing bug.** Measured from the committed emission (`out/<brand>.tokens.json`, aliases resolved per mode), not from the studio's `paint()`. Each rendered hex in the issue is exactly the engine's `…on-fill` over its own `…fill.pressed`:
+
+| row | engine pair | emitted hexes | ratio | covered by |
+|---|---|---|---|---|
+| aurora Light, inverse primary | `inverse.interactive.primary.on-fill` on `….fill.pressed` | #007cbb on #c1c1c3 | 2.54 | #1456 |
+| aurora Light, inverse destructive | same, destructive | #c94c44 on #c1c1c3 | 2.54 | #1456 (+ 2026-09-24 lever scope) |
+| harbor Light, inverse primary | same, harbor | #437f7f on #c2c1bf | 2.55 | #1456 |
+| harbor Light, inverse destructive | same, destructive | #cd4840 on #c2c1bf | 2.54 | #1456 |
+| harbor Dark, filled primary | `interactive.primary.on-fill` on `….fill.pressed` | #f7f7f6 on #7ca1a1 | 2.62 | **#1281** |
+
+No other on-fill × fill-state pair in aurora or harbor, in any of the four modes, falls under 3:1, and every rest pair clears 4.5. Both `on-fill` roles declare `against: …fill.rest`, `min: 4.5`, so no pair falls below its own declared contract. **The harbor Dark row, which the issue said (2) does not obviously cover, is covered by name.** It is not inverse, but `preview.ts`'s #1281 declaration lists "harbor/primary 2.62" as one of the three cells the owner decided on: pressed and selected are never floored for ink-on-fill contrast, on any family, declared as `min: 0` in `preview-spec.json`. The inverse rows are the #1456 exemption, stated in each emitted `fill.pressed` description ("drops to about 2.5:1 … exempt by default").
+
+**What changed: the exemption is classified, not excused wholesale.** Every opaque button specimen in Preview → Interactive (filled, inverse, and the disabled filled pair) now carries `data-specimen-pair="<ink role> on <fill role>"` through a new `specimenPair()` beside `specimen()`. The claim is written at the call site beside the paint call, not derived from it. The smoke probe:
+1. **Proves the claim.** The ink must be the fill family's own `on-fill`. The fill must be the state its column is labeled. Both rendered colors must equal the emission's hexes for that mode. The mode id is the bar label in the emission's spelling, checked against the emission's mode list.
+2. **Then classifies it from the engine.** CONTRACTED (the fill is the ink's `against`) → held to that role's emitted `min`. This is new strictness: rest on-fill at 4.5, disabled at 3. EXEMPT (a pressed/selected state of the ink's own fill) → held to the pressed `min` read from `preview-spec.json` (0 today, so the 2.0 smoke floor governs), plus distinction from its row's rest fill, the one thing #1281 keeps gated. UNMAPPED (hover) → stays on `CONTRAST_FLOOR`, #779's open specimen-to-contract decision.
+3. **Floors, so none of this is vacuous:** the spec must declare the pressed contract; both mapped classes must be represented over the sweep; every brand × mode that renders paired specimens must render an exempt one.
+
+Full sweep: 16,954 text nodes, lowest exempt 2.54:1. No floor was lowered.
+
+**Mutations, each failing by name:**
+- (M1) The inverse row painted with the page on-fill → `… renders exactly the engine role pair it claims — "rest" renders #000000 on #000000, but the engine emits …`.
+- (M2) Filled hover/pressed painted with the rest fill → same arm.
+- (M3) The inverse row painting AND claiming the page on-fill (consistent but wrong) → `… that ink is not the fill family's own on-fill`.
+- (M4) `preview-spec.json` pressed `min` 0 → 3, as if the owner floored pressed → `every paired specimen meets the contract of the pair it previews`, naming exactly #1652's five rows.
+- (M5) Marker dropped → `the sweep held paired specimens in both mapped classes — 0 contracted, 0 exempt …`.
+- (M6) The engine emitting inverse pressed = rest, regenerated → `exempt … is distinct from its row's rest fill … (#ffffff vs rest #ffffff)`. No studio-side mutation can reach this arm: the integrity arm rejects a mispainted fill first, so only an engine regression fires it.
+
+**Traps for whoever re-verifies.**
+- The oracle is the COMMITTED emission, and the studio renders the LIVE engine. A stale `out/` fails the integrity arm with a "renders X but the engine emits Y" line that looks like a studio bug. Run `regen.ts --check` before debugging the studio.
+- The brand chip's text is the emission's file stem (`aurora`, `harbor`). A chip renamed away from its example id fails the emission-load line by name.
+- The outline row carries no pair on purpose. Its fill is a translucent wash, and its ink is contracted against the page, not the fill. Pairing it needs the composited ground, which is a separate question.
+
+
+**Orchestrator net (review findings).**
+- **Hover.** Hover is no longer "unmapped": #1281 keeps it a UI contract, and `preview-spec.json` declares hover on-fill at `min: 3`. A hover specimen is now held to that `HOVER_MIN`, read from the spec the way `PRESSED_MIN` is. The lowest hover today is 3.30, so the run stays green, with 112 contracted, 48 exempt and 0 unmapped. Mutation (the declared hover min raised to 4) → `✗ <brand> / Preview / <mode>: every paired specimen meets the contract … inverse.interactive.primary.on-fill on ….fill.hover at 3.3:1 (hover keeps UI (#1281), declared min 4…)`.
+- **A missing emitted `min`** is now refused by name. Before, it made the bar NaN, which passes everything.
+- **Per-brand coverage is asserted**, so a brand that stops emitting markers can't hide behind the sweep-wide counts.
+---
+
+## (2026-09-26) — Vocabulary: trait citations are checked against the briefs they quote (#1685)
+
+**STATUS: PR open from `lane/trait-citations`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.173.0 → 0.174.0** (renumbered in the net after #1686, #1690, #1691, #1692) (four shipped `why` strings change); **CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only: no corpus brand sets `personality`.
+
+**Owner direction (2026-09-26): keep `dense`, no new example brand.** Its `why` now says outright that no example brief asks for density and that it stands as the opposite pole of `generous`; harbor's "not a dense dashboard" stays, verbatim, described as the brief rejecting density rather than asking for it.
+
+**The gate.** `test.ts` checked each `why` by `why.length > 20`, which any sentence passes (docs/34: a check on the subject's shape, not its meaning). The new arm reads every `examples/*.design.md` off disk; each double-quoted span in a `why` must occur in the brief named most recently before it, after collapsing whitespace and case only (a brief wraps its prose across lines). A `…` inside a quote marks an elision, and its fragments must occur in order. A `why` with no quote, or a quote under no brief name, fails by the trait's name. A floor arm fails if fewer than nine traits or four briefs are in scope.
+
+**What the stricter check found beyond `dense`.** Three more `why` strings were not verbatim, and none of them could have been caught before:
+- `sharp` quoted no brief at all. nb-redesign says "Corners are sharp", so it now cites that; the opposite-pole wording stays after it. This goes one step past the owner's direction, which spoke only of `dense`, and is flagged in the PR. **Owner confirmed 2026-09-27:** keep the nb-redesign citation.
+- `premium` quoted `"premium restraint → tighter tracking"`, but aurora keeps the arrow outside its quote marks. Now it quotes "premium restraint" and says the brief maps it to tighter tracking.
+- `bold` quoted across wendys' markdown bold (`**Bold, not loud** — …`). Now it's two quotes. Stripping markdown in the gate was the other option; the owner's rule was whitespace and case only, so the `why` moved rather than the gate.
+
+**Mutations, each failing by name.** One character in the `dense` quote (`dashbaord`) → `trait 'dense' … not verbatim in harbor.design.md`. The quoted words edited in harbor's brief instead → the same arm, from the other side. `restrained` re-attributed to aurora → `trait 'restrained' … not verbatim in aurora.design.md`. `sharp`'s citation removed → `trait 'sharp' … no quoted brief text`. `sharp` deleted outright → the floor arm (`found 8 traits`), alongside the existing schema-enum arm. An EMPTY `TRAITS` crashes the suite earlier, in arms that resolve `personality: ['soft']`, so it goes red but not through this arm; the eight-trait mutation is what proves the floor.
+
+**Trap for whoever re-verifies.** The attribution is "the nearest brief name before the quote, outside quotes", so a `why` whose prose mentions a second brief between the citation and its quote would re-attribute the quote. Today every `why` is written `<brief>: "…"` or `<brief> … "…"`; keep it that way.
+
+---
+
 ## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
 
 **STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.

@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.174.0 — #1662 follow-up (owner decision 2026-09-27): the plugin's boot read-back compares the modes the
+ * 0.176.0 — #1662 follow-up (owner decision 2026-09-27): the plugin's boot read-back compares the modes the
  * saved brand DECLARES with the modes the file's `color` collection HOLDS. `verifyReadback` takes the declared
  * set as a required second argument (`{ modes }`, or `{ skipped: <reason> }` when the file stores no brand or
  * the stored one cannot be read) and returns a tri-state `declaredModes` result beside `checks`: a declared
@@ -2935,6 +2935,17 @@
  * why. Before this a multi-mode brand whose other modes never landed (`addMode` refused on a plan tier's mode
  * cap) read "contract holds ✓" with one mode. A plugin behavior change (the seed pill's verdict) → MINOR. No
  * token value or name moves — `out/**` restamps the generator version only; CONTRACT STANDS.
+ *
+ * 0.174.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
+ * strings in `vocabulary.ts` change, and each one ships: it is the bracketed text of the note `brandTheme`
+ * returns when a `personality` trait fills a lever, and it is inlined into the studio bundle. `dense` now
+ * states that no example brief asks for density and that it stands as the opposite pole of `generous`
+ * (harbor's "not a dense dashboard" rejects density, and the old wording read as if it cited it). `sharp`
+ * gains the citation it never had (nb-redesign: "Corners are sharp"). `premium` and `bold` split quotes that
+ * spanned markup or an arrow the brief keeps outside its quote marks, so each quoted span is verbatim.
+ * No lever value moves, and no corpus brand sets `personality`, so `out/**` moves by the version stamp
+ * only. A note a consumer reads is observable output, so ENGINE bumps (MINOR, by the running convention).
+ * CONTRACT STANDS at 13.1.0: no token name moves (`token-contract --check` level `none`).
  *
  * 0.173.0 — #1687: the legacy CLI paste path's `verify` pass (`materialise-to-figma.ts`) no longer fails a
  * single-mode brand's `modesDistinct` — the twin of #1662 in `read-back.ts`. With exactly one mode it now
@@ -3835,7 +3846,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.174.0';
+export const ENGINE_VERSION = '0.176.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
