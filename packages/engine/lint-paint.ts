@@ -279,6 +279,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
   'select|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'select|error.border.read-only':
+    "status `error` maps to the `danger` border role — the read-only coordinate (#1699, text-field's state set), bound so an errored read-only select keeps the danger boundary",
   // `text-field`'s validation axis is spelled `status` for the same reason select's is (its values are the
   // validation states a consumer names; both align to `field-message`), and `danger` is the token tier's
   // name for that boundary colour — the same axis-value→role mapping select's `error.border.*` records, one
