@@ -52,6 +52,7 @@ export interface HNode {
   y?: number;
   readonly width?: number;
   readonly height?: number;
+  readonly visible?: boolean;
   readonly parent?: { readonly id?: string; readonly name?: string } | null;
   readonly children?: readonly HNode[];
   characters?: string;
@@ -71,6 +72,8 @@ export interface HeaderPage {
   readonly name: string;
   readonly children: readonly unknown[];
   appendChild(child: unknown): void;
+  /** Page-wide search, so a header inside a Section or frame is found. Optional: a shim may omit it. */
+  findAllWithCriteria?(criteria: { types: ('INSTANCE' | 'FRAME')[] }): readonly unknown[];
 }
 
 /** The host surface — a file-wide set search (the header set lives on another page) and font loading.
@@ -99,9 +102,20 @@ export const pageHeaderCopy = (
 ): HeaderCopy | null => {
   const found = leafForDef(defId, taxonomy);
   if (!found) return null;
-  const primary = defs.find((d) => d.id === found.leaf.defs[0]);
+  // The page's PRIMARY def: the first one that is not a bare `-control` atom. On Checkbox, Radio and Switch the
+  // leaf lists the Control first, and its summary ("…no label") describes the nested atom, not the component a
+  // designer reaches for; the Row is that component (#1711 net).
+  const primaryId = found.leaf.defs.find((id) => !id.endsWith('-control')) ?? found.leaf.defs[0];
+  const primary = defs.find((d) => d.id === primaryId);
   if (!primary) return null;
-  return { title: primary.name.split('.')[0], description: primary.summary, primary: primary.id };
+  return { title: displayName(primary.name), description: primary.summary, primary: primary.id };
+};
+
+/** A def's code name as a sentence-case title: the family segment (`Checkbox.Row` → `Checkbox`), words split at
+ *  case changes and lowercased after the first (`IconButton` → `Icon button`) — the voice standard's sentence case. */
+export const displayName = (codeName: string): string => {
+  const words = codeName.split('.')[0].replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return words.charAt(0) + words.slice(1).toLowerCase();
 };
 
 /** What happened on one page. */
@@ -167,8 +181,15 @@ export const ensurePageHeader = async (
   const top = page.children as readonly HNode[];
   const fontMisses: string[] = [];
 
-  // A REBUILD: the page already has its header. Text only, and only placeholder text.
-  for (const n of top) {
+  // A REBUILD: the page already has its header, ANYWHERE on it — inside a Section or frame too (#1711 net).
+  // A DETACHED header (now a FRAME) still counts as present by its name, so a second is never added; its
+  // text is not refreshed, because nothing marks which of its words were placeholders.
+  const all = page.findAllWithCriteria
+    ? (page.findAllWithCriteria({ types: ['INSTANCE', 'FRAME'] }) as readonly HNode[])
+    : top;
+  if (all.some((n) => n.type === 'FRAME' && n.name?.toLowerCase() === SECTION_HEADER_SET.toLowerCase()))
+    return { page: page.name, status: 'present', written: [], kept: ['Title', 'Description'], fontMisses };
+  for (const n of all) {
     if (n.type !== 'INSTANCE') continue;
     const main = (await n.getMainComponentAsync?.()) ?? null;
     if (!isHeaderMain(main, set)) continue;
@@ -182,11 +203,13 @@ export const ensurePageHeader = async (
     return { page: page.name, status: 'present', written, kept, fontMisses };
   }
 
-  // A FIRST BUILD: measure the content before anything is added to the page.
-  if (top.length === 0) return { page: page.name, status: 'skipped', reason: 'no-content' };
-  const left = Math.min(...top.map((n) => n.x ?? 0));
-  const right = Math.max(...top.map((n) => (n.x ?? 0) + (n.width ?? 0)));
-  const topEdge = Math.min(...top.map((n) => n.y ?? 0));
+  // A FIRST BUILD: measure the VISIBLE content before anything is added to the page (a hidden scratch node
+  // must not widen or move the header, #1711 net).
+  const shown = top.filter((n) => n.visible !== false);
+  if (shown.length === 0) return { page: page.name, status: 'skipped', reason: 'no-content' };
+  const left = Math.min(...shown.map((n) => n.x ?? 0));
+  const right = Math.max(...shown.map((n) => (n.x ?? 0) + (n.width ?? 0)));
+  const topEdge = Math.min(...shown.map((n) => n.y ?? 0));
   const width = right - left;
 
   const variant = set.children?.find((c) => c.name === HEADER_VARIANT);
@@ -225,17 +248,17 @@ export const pageHeaderNote = (outcomes: readonly PageHeaderOutcome[]): string =
   const parts: string[] = [];
   for (const o of outcomes) {
     if (o.status === 'placed') {
-      parts.push(`header added to ${o.page}${o.fontMisses.length ? ` (${o.fontMisses.join('; ')})` : ''}`);
+      parts.push(`Header added to ${o.page}${o.fontMisses.length ? ` (${o.fontMisses.join('; ')})` : ''}`);
     } else if (o.status === 'present') {
-      if (o.fontMisses.length) parts.push(`header on ${o.page} kept its placeholder text (${o.fontMisses.join('; ')})`);
+      if (o.fontMisses.length) parts.push(`The header on ${o.page} kept its placeholder text (${o.fontMisses.join('; ')})`);
     } else if (o.status === 'failed') {
-      parts.push(`no header on ${o.page} — placing it failed: ${o.message}`);
+      parts.push(`No header on ${o.page}: Figma refused the write`);
     } else if (o.reason === 'no-set') {
-      parts.push(`no header on ${o.page} — this file has no ${SECTION_HEADER_SET} component; Set up file adds it`);
+      parts.push(`No header on ${o.page}: this file has no ${SECTION_HEADER_SET} component, and Set up file adds it`);
     } else if (o.reason === 'no-variant') {
-      parts.push(`no header on ${o.page} — ${SECTION_HEADER_SET} has no ${HEADER_VARIANT} variant`);
+      parts.push(`No header on ${o.page}: ${SECTION_HEADER_SET} has no ${HEADER_VARIANT} variant`);
     } else {
-      parts.push(`no header on ${o.page} — the page has no content to place it above`);
+      parts.push(`No header on ${o.page}: the page has no content to place it above`);
     }
   }
   return parts.length ? `. ${parts.join('. ')}` : '';

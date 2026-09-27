@@ -30,7 +30,7 @@
  *     "4: the header the user set to Small stays Small" fails;
  *   - drop the missing-set guard → "5: no set: skipped, not thrown" fails.
  */
-import { ensurePageHeader, pageHeaderCopy, pageHeaderNote } from './src/page-header';
+import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName } from './src/page-header';
 import type { HNode, HeaderPage, PageHeaderApi, HeaderCopy } from './src/page-header';
 import { componentDefs } from '@prism3/engine/components/index';
 
@@ -86,7 +86,7 @@ const makeInstance = (main: ShimNode): ShimNode => {
   let mainNow = main;
   let width = 2517;
   let fixedHeight = 1;
-  const props: Record<string, { type: string; value: unknown }> = { 'Description#12:0': { type: 'BOOLEAN', value: true } };
+  const props: Record<string, { type: string; value: unknown }> = { 'Description#12:0': { type: 'BOOLEAN', value: false } }; // starts OFF, so the arm below needs the placement to turn it on
   const inst = {
     type: 'INSTANCE', name: '_Section-header', x: 0, y: 0, parent: null,
     children: [{ type: 'FRAME', name: 'Text', children: [textNode('Title', 'Section header', 'Bold'), textNode('Description', 'Descriptive Text', 'Regular')], parent: null }],
@@ -138,7 +138,7 @@ const textOf = (n: HNode, name: string): string | undefined => n.findOne?.((x) =
 
 // The literal copy — from `packages/engine/components/button.ts` and `checkbox-control.ts`.
 const BUTTON_SUMMARY = 'Triggers an action in place, in the brand color. For navigation, use a link.';
-const CHECKBOX_CONTROL_SUMMARY = 'Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.';
+const CHECKBOX_ROW_SUMMARY = 'Labeled checkbox for a staged on/off choice. The whole row is the hit target.';
 const BUTTON_COPY: HeaderCopy = { title: 'Button', description: BUTTON_SUMMARY, primary: 'button' };
 
 // ── 1. The copy ──────────────────────────────────────────────────────────────────────────────────────
@@ -149,12 +149,35 @@ console.log('1. header copy for a page');
   ok(neutral?.description === BUTTON_SUMMARY, '1: the Buttons page carries the primary def\'s (button) summary');
   const row = pageHeaderCopy('checkbox-row', componentDefs);
   ok(row?.title === 'Checkbox', `1: Checkbox.Row titles its page "Checkbox" (got ${JSON.stringify(row?.title)})`);
-  ok(row?.description === CHECKBOX_CONTROL_SUMMARY, '1: the Checkbox page carries its first-listed def\'s (checkbox-control) summary');
+  ok(row?.description === CHECKBOX_ROW_SUMMARY, '1: the Checkbox page carries the Row\'s summary, not the nested Control\'s (#1711 net)');
+  ok(displayName('IconButton') === 'Icon button' && displayName('TextField') === 'Text field' && displayName('Checkbox.Row') === 'Checkbox',
+    `1: titles are sentence-case display names (got ${displayName('IconButton')} / ${displayName('TextField')} / ${displayName('Checkbox.Row')})`);
   ok(pageHeaderCopy('veil', componentDefs)?.title === 'Veil', '1: a single-def page takes the def name ("Veil")');
   ok(pageHeaderCopy('not-a-real-def', componentDefs) === null, '1: an unmapped def has no page, so no header copy');
 }
 
 // ── 2. A fresh page ──────────────────────────────────────────────────────────────────────────────────
+console.log('1b. a header anywhere on the page, and hidden nodes (#1711 net)');
+{
+  // A DETACHED header (a FRAME named _Section-header) inside a Section: present, so no second header is added.
+  const set = makeHeaderSet();
+  const { api } = makeApi([set]);
+  const detached: HNode = { type: 'FRAME', name: '_Section-header', x: 0, y: -200, width: 1200, height: 152 };
+  const section: HNode = { type: 'SECTION', name: 'Header', x: 0, y: -300, width: 1300, height: 300, children: [detached] };
+  const base = makePage('↳ Buttons', [{ name: 'Button', x: 0, y: 0, width: 1200, height: 800 }]);
+  base.children.push(section);
+  const flat = (ns: readonly HNode[]): HNode[] => ns.flatMap((n) => [n, ...flat(n.children ?? [])]);
+  const page = { ...base, findAllWithCriteria: (c: { types: string[] }) => flat(base.children).filter((n) => c.types.includes(String(n.type))) };
+  const out = await ensurePageHeader(api, page, BUTTON_COPY);
+  ok(out.status === 'present' && base.children.filter((n) => n.type === 'INSTANCE').length === 0,
+    `1b: a detached header inside a Section counts as present; none is added (got ${out.status})`);
+  // A HIDDEN node far to the right does not widen the header.
+  const page2 = makePage('↳ Buttons', [{ name: 'Button', x: 0, y: 0, width: 1200, height: 800 }]);
+  page2.children.push({ type: 'FRAME', name: 'scratch', x: 5000, y: 0, width: 100, height: 100, visible: false });
+  const out2 = await ensurePageHeader(api, page2, BUTTON_COPY);
+  ok(out2.status === 'placed' && out2.width === 1200, `1b: a hidden node does not widen the header (width ${out2.status === 'placed' ? out2.width : '—'}, expected 1200)`);
+}
+
 console.log('2. a fresh page gets exactly one header');
 {
   const set = makeHeaderSet();
@@ -246,9 +269,9 @@ console.log('5. no _Section-header set in the file');
   ok(threw === null && out?.status === 'skipped' && out.reason === 'no-set', `5: no set: skipped, not thrown (${threw ?? JSON.stringify(out)})`);
   ok(page.children.length === 1, `5: nothing added to the page (got ${page.children.length} nodes)`);
   const note = out ? pageHeaderNote([out]) : '';
-  ok(note === '. no header on ↳ Buttons — this file has no _Section-header component; Set up file adds it', `5: the build result says why and what adds it (got ${JSON.stringify(note)})`);
+  ok(note === '. No header on ↳ Buttons: this file has no _Section-header component, and Set up file adds it', `5: the build result says why and what adds it (got ${JSON.stringify(note)})`);
   ok(pageHeaderNote([]) === '', '5: no header outcome, no clause');
-  ok(pageHeaderNote([{ page: '↳ Buttons', status: 'placed', x: 0, y: -200, width: 1500, written: ['Title', 'Description'], fontMisses: [] }]) === '. header added to ↳ Buttons', '5: a placed header is named in the result');
+  ok(pageHeaderNote([{ page: '↳ Buttons', status: 'placed', x: 0, y: -200, width: 1500, written: ['Title', 'Description'], fontMisses: [] }]) === '. Header added to ↳ Buttons', '5: a placed header is named in the result');
 }
 
 console.log(failures === 0 ? '\npage-header: all assertions pass' : `\npage-header: ${failures} FAILED`);
