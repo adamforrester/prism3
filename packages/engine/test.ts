@@ -544,6 +544,15 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
   // the contract's four standard numerics, so the default theme misses NOTHING the baseline guarantees.
   ok(guaranteed.length > 400 && missing.length === 0,
     `#1296/#1718 prism3 emits every guaranteed contract path (${guaranteed.length - missing.length}/${guaranteed.length}; missing ${missing.join(', ') || 'none'})`);
+  // #1726 net — every GUARANTEED numeric weight survives a brand that remaps EVERY role off it. The expected
+  // set is read from the committed baseline (`core.font.weight.*`), never from `CONTRACT_WEIGHTS`, so trimming
+  // that literal to any subset fails here by name (prism3 alone only exercised 700: its roles supply the rest).
+  const guaranteedWeights = guaranteed.filter((p) => /^core\.font\.weight\.\d+$/.test(p));
+  const remapped = brandTheme({ ...(exampleBrands()['aurora'] as BrandInput), typography: { ...(exampleBrands()['aurora'] as BrandInput).typography, weightRoles: { subtle: 200, default: 450, emphasis: 550, strong: 650, max: 850 } } } as BrandInput);
+  const remappedPaths = pathsOf(remapped);
+  const lostWeights = guaranteedWeights.filter((p) => !remappedPaths.has(p));
+  ok(guaranteedWeights.length === 4 && lostWeights.length === 0,
+    `#1726 a brand remapping every weight role still emits each guaranteed weight (${guaranteedWeights.length - lostWeights.length}/${guaranteedWeights.length}; lost ${lostWeights.join(', ') || 'none'})`);
   const tree = buildTree(p3).tree as any;
   const data = tree[Object.keys(tree)[0]];
   const typeRefs = previewTokenRefs().filter((r) => r.startsWith('type.'));
