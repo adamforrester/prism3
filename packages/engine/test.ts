@@ -4750,9 +4750,10 @@ for (const b of brands) {
 // Written from the decisions, not read back from the def: static (no states), one component switched by a
 // `genre` prop with the literal values status | count | dot, an `emphasis` prop subtle | bold that only the
 // status label carries both of, both accessibility contracts stated, and NO interactive binding — every color
-// ref is in the literal family list below. The paint table is literal too: each member's fill, ink and edge,
-// pinned against the def and then measured in every example brand and mode, so the measurement reads the
-// decision and the pin reads the def.
+// ref is in the literal family list below. The paint table is literal too: each member's fill, ink and edge
+// is pinned against it. The contrast arms then measure what the DEF binds, member by member from that table,
+// against literal floors in every example brand and mode — so a rebinding fails the pin AND the floor it
+// breaks, by name, and a member dropped from the def reads as unbound rather than vanishing from the loop.
 {
   const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
   ok(!!badgeDef, 'badge: the def is registered');
@@ -4864,35 +4865,38 @@ for (const b of brands) {
     return { measured, low };
   };
   // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing genre: 15 members (status subtle 5,
-  // status bold 5, count bold 5), each in 20 cells. Read from the literal table, so a def rebound to a pair
-  // that happens to pass still fails the pin above.
-  const TEXT_MEMBERS = Object.entries(PAINT).filter(([, p]) => p.label);
+  // status bold 5, count bold 5), each in 20 cells.
+  const TEXT_MEMBERS = Object.keys(PAINT).filter((m) => PAINT[m].label);
   ok(TEXT_MEMBERS.length === 15, `badge contrast covers 15 text-bearing members (got ${TEXT_MEMBERS.length})`);
-  for (const [m, p] of TEXT_MEMBERS) {
-    const { measured, low } = measure(p.label!, p.fill, 4.5);
+  for (const m of TEXT_MEMBERS) {
+    const ink = bound(`${m}.label`) ?? '(unbound)';
+    const fill = bound(`${m}.fill`) ?? '(unbound)';
+    const { measured, low } = measure(ink, fill, 4.5);
     ok(measured === CELLS && low.length === 0,
-      `badge contrast (${m}): ${p.label} on ${p.fill} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+      `badge contrast (${m}): ${ink} on ${fill} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
   // THE SUBTLE EDGE AGAINST THE PAGE, 3:1 (#1735, owner decision 2026-09-28). The subtle tints measure
   // 1.06–1.40:1 against the page (the neutral 1.00:1 in both high-contrast modes), so the EDGE is what gives
   // the pill its shape, and it is the thing held to 3:1 — the tint is not. For a status label the text carries
   // the meaning, so this is the def's stated design intent rather than an SC 1.4.11 requirement.
-  const SUBTLE = Object.entries(PAINT).filter(([, p]) => p.border);
+  const SUBTLE = Object.keys(PAINT).filter((m) => m.endsWith('.subtle'));
   ok(SUBTLE.length === 5, `badge subtle edge covers the 5 subtle status members (got ${SUBTLE.length})`);
-  for (const [m, p] of SUBTLE) {
-    const { measured, low } = measure(p.border!, 'background.primary', 3);
+  for (const m of SUBTLE) {
+    const edge = bound(`${m}.border`) ?? '(unbound)';
+    const { measured, low } = measure(edge, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
-      `badge subtle edge separates from the page (${m}): ${p.border} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+      `badge subtle edge separates from the page (${m}): ${edge} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
   // THE BOLD FILL AGAINST THE PAGE, 3:1, for status, count and dot: 15 members. A bold member has no edge, so
   // its fill is its boundary. For the dot this is SC 1.4.11 in the strict sense — it has no text, so the
   // colored circle is the information; for the status label and count it is design intent.
-  const BOLD = Object.entries(PAINT).filter(([m]) => m.endsWith('.bold'));
+  const BOLD = Object.keys(PAINT).filter((m) => m.endsWith('.bold'));
   ok(BOLD.length === 15, `badge bold fill covers 15 bold members (got ${BOLD.length})`);
-  for (const [m, p] of BOLD) {
-    const { measured, low } = measure(p.fill, 'background.primary', 3);
+  for (const m of BOLD) {
+    const fill = bound(`${m}.fill`) ?? '(unbound)';
+    const { measured, low } = measure(fill, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
-      `badge bold fill separates from the page (${m}): ${p.fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+      `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
 }
 
