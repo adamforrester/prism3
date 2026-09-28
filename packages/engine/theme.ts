@@ -1293,15 +1293,15 @@ export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
 };
 /**
  * #1639 (owner-decided 2026-09-26) — the weight roles a category can NEVER drop, each with the reason.
- * `button` binds `type.label.{sm,md,lg}.emphasis` BY NAME (not through a weight intent, the way
- * `field-label` does since #1602), so a label set without `emphasis` would leave the button with no
- * text style. `buildComposites` refuses such a set. Every other single-role default (eyebrow, code)
+ * `tag` and `badge` bind `type.label.*.emphasis` BY NAME (not through a weight intent, the way
+ * `field-label` does since #1602), and so does `button` unless `buttonLabelWeight` is 'default' (#1752),
+ * so a label set without `emphasis` would leave them with no text style. `buildComposites` refuses such a set. Every other single-role default (eyebrow, code)
  * may be swapped, as long as the category keeps a weight: see the empty-set refusal there.
  * #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default` on the same footing —
  * the form controls bind those composites by name. A brand may still ADD weights to either.
  */
 export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
-  label: { role: 'emphasis', why: 'the button binds type.label.*.emphasis by name' },
+  label: { role: 'emphasis', why: 'the tag and badge bind type.label.*.emphasis by name, and so does the button unless buttonLabelWeight is \'default\'' },
   body: { role: 'default', why: 'the text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
   caption: { role: 'default', why: 'the textarea and field message bind type.caption.md.default by name' },
 };
@@ -2791,7 +2791,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // see it: the button's rebound label style then names a style the brand emits.
   const typography = buildTypography(withButtonLabelWeight(input.typography, input.buttonLabelWeight));
   if (input.buttonLabelWeight === 'default')
-    notes.push('button label weight: default — buttons bind type.label.*.default, so the label category ships the default role beside emphasis; other label styles keep emphasis.');
+    notes.push('button label weight: default — buttons bind type.label.*.default, so the label category ships the default role beside emphasis; tags and badges keep emphasis.');
   // Per-mode typography levers (Phase D): a customizable mode may override the font FAMILY per
   // category and/or the font WEIGHT per weight-role. Re-derive the affected PRIMITIVES via the
   // SAME helpers buildTypography uses — family stacks by merging the mode's stacks over the base

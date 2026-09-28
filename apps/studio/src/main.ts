@@ -4631,7 +4631,7 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
     { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Boxed is sharp; hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
     // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
     // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
-    { title: 'Buttons', sub: 'Button icon placement, minimum width, the medium label and icon size, and the label weight. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
+    { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
@@ -7414,7 +7414,8 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
   const mult = Number(getPath(brandState, 'buttonMinWidthMultiplier') ?? DEFAULT_MIN_WIDTH_MULTIPLIER);
   // #1752 — the label's weight is the brand's number for the role "Button label weight" picks, in the mode in view.
   const labelRole = (getPath(brandState, 'buttonLabelWeight') ?? 'emphasis') === 'default' ? 'default' : 'emphasis';
-  const labelWeight = (theme.typography.weightRolesByMode?.[currentMode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)?.value ?? 600;
+  // Both lists carry every weight role (the engine maps `WEIGHT_ROLE_ORDER`), so the role is always found.
+  const labelWeight = (theme.typography.weightRolesByMode?.[currentMode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)!.value;
   const sizes = theme.dims.sizesByMode?.[currentMode] ?? theme.dims.sizes;
   const radius = rp.dims['radius.md'] ?? 4;
   const list = el('div', 'btnl-list');

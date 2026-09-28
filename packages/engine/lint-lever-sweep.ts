@@ -49,8 +49,9 @@
  *     (off the raw input, as the plugin reads it), then `applyWeightIntent` and `applyOutlineInteraction`
  *     (off the resolved theme), then `applyButtonLayout` (#1667 and #1752's label weight, off the raw input and the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
  *     `materializeForBrand` performs. It is restated here, not imported, because the engine must not
- *     depend on a surface. The plugin's own `test-write-components.ts` pins that function; this gate pins
- *     the three engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
+ *     depend on a surface. The plugin's own `test-write-components.ts` pins that function's weight-intent
+ *     (#1605), outline-hover (#1608) and button-setting (#1667, #1752) reads; its `controlShape` read has no
+ *     plugin-side arm. This gate pins the four engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
  *     (`figmaArtifacts`, the in-memory form of the `out/figma/<brand>/*.json` files Apply writes): its
  *     variable tails, its text styles and its effect styles, checked separately by `planBindingErrors`.
  *     No allowlist: a component that binds a thing its brand does not emit is always a miss on paste.
