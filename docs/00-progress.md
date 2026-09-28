@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-09-28) — Switch: a light off track in every brand, and the thumb glyph is a `State icon` boolean (#1354)
+
+**The defect the owner saw.** In the NB master theme the switch's off and on tracks looked the same. `switch-control` bound the off track to `interactive.neutral.fill.rest`, the neutral BUTTON fill. `neutralEmphasis: 'strong'` darkens that fill to a near-black button (#2D2C2C). The master's action palette is brand-neutral, so the on track (`primary.fill.selected`) is #34383D. The two tracks measured 1.18:1 apart. In the default prism3 brand the off track is #CECECF, so only strong neutral emphasis shows the problem.
+
+**Owner decisions (2026-09-28), as built.**
+- The off track reads `background.tertiary`, a surface step no interactive lever moves (NB master #DCDBDB, prism3 #DBDBDC). It keeps its hairline in `interactive.neutral.border.rest`.
+- The off thumb turns dark: `interactive.neutral.border.rest`, the border's own ink. This is Material 3's unselected shape, where the handle and the track outline share one `outline` role. It also matches Prism 2 (#C6C6C6 track, #6A6A6A handle). The old `neutral.on-fill` thumb flips WHITE under strong emphasis, so it could not stay.
+- The X's ink is `background.tertiary`, the off-track color. The "glyph ink = its selection's track fill" invariant still holds.
+- The on arm is unchanged.
+- The glyph is ONE Figma BOOLEAN, `State icon`, default true, over both glyph parts. `showStateLabel` defaults to `true` on switch-control and switch-row. The name is kept, so this is a default change and not a rename.
+
+**The mechanism change that made one boolean drive two glyphs.** `figmaProperties.booleans` mapped a prop to ONE part and refused any boolean on a `presentWhen`-gated part (#1331). The check (`selection=on`) and the X (`selection=off`) are gated parts that never coexist, so two changes were needed:
+- `part` now accepts a list (`booleanPartsOf`).
+- `figmaPropertyErrors` admits gated parts only when the boolean targets two or more parts, all gated on ONE shared variant axis whose values they cover between them. Every member then builds exactly one node for the boolean to toggle. A single gated part, an uncovered value, a mixed gated/ungated list, a `state` gate and `when` all stay refused.
+- `present()` lets a boolean part fall through to its variant gate. It also keeps an `optional` boolean part once the gate passes; that `optional` fallback was what dropped both glyphs on the first run.
+- The set stays at 24 members, and `planSetProperties` declares `State icon` once.
+
+**Measured** (token-contract corpus + prism3 + the NB master, every mode, from resolved hexes):
+
+| Pair | Range | NB master light | prism3 light |
+|---|---|---|---|
+| Off border vs page | 15.98–21:1 | | |
+| Off thumb vs off track (also X vs thumb) | 12.36–21:1 | 14.05:1 | 14.04:1 |
+| Off track vs on track | 5.70–18.21:1 | 8.54:1 | 10.90:1 |
+| On track vs page | 6.91–18.21:1 | | |
+
+High-contrast modes flatten every `background.*` step to the page, so the off track is page-colored there and the border and thumb carry it.
+
+**Found, not fixed (filed).**
+- **#1763.** The ON thumb (`primary.on-fill` on `primary.fill.selected`) measures 2.32–2.62:1 in every `dark` mode but aurora's. `on-fill` is gated against `fill.rest`, not the lighter selected step. The checkbox checked mark has the same pair. The header's old "6.85–9.96:1" was light-only.
+- **#1764.** At `disabled` the glyph and the thumb both bind `color.disabled.on-fill`, so the glyph is invisible. This predates the lane, but the default-on glyph now shows it.
+- Checkbox and radio do not bind the neutral fill (their off state is `field.border.*`), so strong emphasis leaves them alone. Nothing to file there.
+
+**Held for the owner: off hover/pressed.** The old `off.fill.hover`/`.pressed` keys are dropped, so both states fall through to the rest fill. The tier has no surface step darker than `tertiary`. The overlay wash is not an option either: it REPLACES a box's single `fills` paint (`paintSlots` precedence) rather than layering on it, and a 10% wash over white (#E6E6E6) reads LIGHTER than `tertiary`. So the off track follows checkbox/radio's unchecked pattern, where the fill does not step. The border keys stay, but `interactive.neutral.border.*` collapses onto rest, so in Figma the off hover/pressed members look like rest. A visible step needs a new surface role. That means minting a token, a CONTRACT MINOR, and it was not done.
+
+**Tests and mutations.** Each mutation was committed first and restored from HEAD.
+- `off.fill` back to `interactive.neutral.fill.rest` fails:
+  - `NB master light: the off track is the light #dcdbdb…`
+  - `off track vs on track is 8.54:1 (got 1.18:1)`
+  - the prism3 literal
+  - both `'off.fill' does not move with neutralEmphasis`
+  - the corpus contrast sweep
+  - the existing glyph-ink invariant
+- The glyph's `visibleProp` stripped in the projector fails `declares exactly one property, the BOOLEAN 'State icon'…` and `both glyph nodes … carry visibleProp 'State icon'`.
+- The def's boolean narrowed to `['onGlyph']` fails the structural-validity arms and the refusal pin `the authored State icon boolean … is NOT refused`.
+- The default flipped to false fails `showStateLabel defaults to true in code…`.
+- The off thumb left on `neutral.on-fill` fails `the off thumb is the dark #0e0d0d`, `off thumb vs off track is 14.05:1 (got 1.38:1)`, the X arm and both `'off.indicator' does not move with neutralEmphasis`.
+- Disabling the presentWhen refusal fails the three `MUTATION:` refusal arms plus #1331's own `a boolean on a presentWhen-gated part is refused BY NAME`.
+
+**What moved.**
+- `schema/component-surface.json`, re-accepted. switch-control's plans changed. switch-row changed only because its `codeOnly` prose rides in the plan payload. Both stay at 24 and 2 members.
+- `schema/paint-census.json`, re-accepted: switch-control, still 86 assignments, repointed.
+- Paste size: switch-control single-shot 66,791 → 67,438 B, chunks 41,033/40,689/39,950 → 41,132/40,854/40,333 B, under the 42,000 budget. The largest chunk in the registry is unchanged (button-destructive, 41,961 B).
+- ENGINE 0.194.0 → 0.195.0. CONTRACT stands at 13.1.0: every binding is an existing role, and no emitted token name moves.
+
+**Trap.** The NB master's brand input is copied into `test.ts` as a literal `BrandInput`. It is a fixture, so it will not follow the owner's file if that file changes.
+
 ## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)
 
 **The diagnosis.** Two defects in one function, and they hid each other. `sizingMode` in `anatomy-figma.ts` mapped `'fill'` to AUTO, so every declared fill hugged (the #989 note called this deliberate: the projector had no parent-side supplier to pair it with). It also wrote `sizing.x` to `primaryAxisSizingMode` and `sizing.y` to `counterAxisSizingMode` whatever the direction, which is only right for a row. A column declared `x:'fill', y:'hug'` came out FIXED down and AUTO across, the exact reverse. Most columns hug both ways, so the swap only showed where the two axes differ. The textarea message row made both visible at once: the row hugged, so the counter could not reach the right edge, and the message could not wrap because nothing bounded its width.

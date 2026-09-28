@@ -2926,6 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.195.0 — #1354 (owner-decided 2026-09-28): the switch's off track is a light surface step in every brand,
+ * and its thumb glyph is a Figma BOOLEAN. `switch-control`'s `off.fill` / `off.icon` move from the neutral
+ * button fill (`interactive.neutral.fill.*`, which `neutralEmphasis: 'strong'` darkens — the NB master theme
+ * drew #2D2C2C off beside #34383D on) to `background.tertiary`; `off.indicator` moves from `neutral.on-fill`
+ * to the dark `interactive.neutral.border.rest`; the off `.hover`/`.pressed` fills are dropped and fall
+ * through to rest. The check and the X ride one `State icon` BOOLEAN (default true) via #1331's
+ * node-visibility mechanism, so the set stays at 24 members; `figmaProperties.booleans` gains a list form
+ * (`part: [...]`) and `figmaPropertyErrors` admits `presentWhen`-gated parts only when they share one axis
+ * and cover its values. `showStateLabel` defaults to `true` on switch-control and switch-row (a prop
+ * DEFAULT change, not a rename). Projected members move (`schema/component-surface.json`, the paint
+ * census) → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no emitted token name moves — the def binds existing
+ * roles.
+ *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read
  * backwards. Both executors (the plugin's `write-components.ts` and the paste twin) now map sizing by
@@ -4062,7 +4075,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.194.0';
+export const ENGINE_VERSION = '0.195.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

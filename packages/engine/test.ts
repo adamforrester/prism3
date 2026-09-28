@@ -22178,6 +22178,122 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
 }
 
+// ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `State icon` BOOLEAN ------------------------
+//
+// The owner saw the NB master theme's switch draw its off and on tracks as the same near-black: the off
+// track borrowed the neutral BUTTON fill, which `neutralEmphasis: 'strong'` darkens (#2D2C2C), beside a
+// brand-neutral on track (#34383D). Decided: the off track reads a light surface step the lever does not
+// move, keeps its dark hairline, and its thumb turns dark; and the thumb glyph becomes ONE Figma BOOLEAN,
+// `State icon`, default on, over both glyph parts. Every expectation below is a LITERAL (hexes and ratios
+// measured once and written down) or a relation computed from RESOLVED hexes — never read back off the def
+// the check is about, so a rebind fails by name rather than agreeing with itself (docs/34).
+{
+  const sc = switchControl;
+  // The NB master theme's brand input, COPIED here as literal values (the owner's file, 2026-09-28) — a
+  // fixture, not a path, so the test does not move when that file does.
+  const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+  const role = (key: string) => { const ref = sc.tokens[key]; ok(!!ref && ref.startsWith('color.'), `#1354 switch-control binds '${key}' to a color role (got ${ref})`); return (ref ?? '').replace(/^color\./, ''); };
+  const hexAt = (theme: Theme, mode: string, key: string): string => resolveAllModes(theme).find((m) => m.mode === mode)!.roles[role(key)]?.hex ?? '(missing)';
+  const ratio = (a: string, b: string) => Number(contrast(hexToRgb(a), hexToRgb(b)).toFixed(2));
+  const master = brandTheme(NB_MASTER);
+  const prism3 = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input);
+
+  // (1) THE OWNER'S DEFECT, as literals. NB master light: the off track is the light #DCDBDB, the on track
+  // the brand-neutral #34383D, and they sit 8.54:1 apart. prism3 light is the control: #DBDBDC / #0B008C,
+  // 10.90:1. Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
+  // #2D2C2C, 1.18:1 from the on track, and fails the first arm by name.
+  const mOff = hexAt(master, 'light', 'off.fill'), mOn = hexAt(master, 'light', 'on.fill');
+  ok(mOff === '#dcdbdb' && mOn === '#34383d' && mOff !== mOn,
+    `#1354 NB master light: the off track is the light #dcdbdb and the on track #34383d — two different tracks (off=${mOff}, on=${mOn})`);
+  ok(ratio(mOff, mOn) === 8.54, `#1354 NB master light: off track vs on track is 8.54:1 (got ${ratio(mOff, mOn)}:1)`);
+  const pOff = hexAt(prism3, 'light', 'off.fill'), pOn = hexAt(prism3, 'light', 'on.fill');
+  ok(pOff === '#dbdbdc' && pOn === '#0b008c' && ratio(pOff, pOn) === 10.9,
+    `#1354 prism3 light: off track #dbdbdc vs on track #0b008c at 10.90:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
+
+  // (2) THE LEVER DOES NOT REACH THE OFF TRACK. The same brand at `neutralEmphasis` subtle and strong
+  // resolves the off track, its border and its thumb to the SAME hexes — while the neutral BUTTON fill
+  // (the old binding) moves, which is what proves the lever was really exercised.
+  for (const [id, input] of [['NB master', NB_MASTER], ['prism3', parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input]] as const) {
+    const subtle = brandTheme({ ...input, neutralEmphasis: 'subtle' } as BrandInput), strong = brandTheme({ ...input, neutralEmphasis: 'strong' } as BrandInput);
+    const button = (t: Theme) => resolveAllModes(t).find((m) => m.mode === 'light')!.roles['interactive.neutral.fill.rest'].hex;
+    ok(button(subtle) !== button(strong), `#1354 ${id}: the neutralEmphasis lever moves the neutral button fill (${button(subtle)} → ${button(strong)}) — the probe is live`);
+    for (const key of ['off.fill', 'off.border', 'off.indicator', 'off.icon'])
+      ok(hexAt(subtle, 'light', key) === hexAt(strong, 'light', key),
+        `#1354 ${id}: '${key}' does not move with neutralEmphasis (subtle ${hexAt(subtle, 'light', key)} vs strong ${hexAt(strong, 'light', key)})`);
+  }
+
+  // (3) THE OFF THUMB IS DARK AND ITS GLYPH INK IS LIGHT, in the NB master theme — the brand where the old
+  // thumb ink (`neutral.on-fill`) turned WHITE. Literals: thumb #0e0d0d on track #dcdbdb at 14.05:1, and the
+  // X in the track's own light ink. Leaving the thumb on `neutral.on-fill` paints it #ffffff and fails here.
+  const mThumb = hexAt(master, 'light', 'off.indicator'), mGlyph = hexAt(master, 'light', 'off.icon');
+  ok(mThumb === '#0e0d0d' && luminance(hexToRgb(mThumb)) < luminance(hexToRgb(mOff)),
+    `#1354 NB master light: the off thumb is the dark #0e0d0d, darker than its track (thumb=${mThumb}, track=${mOff})`);
+  ok(ratio(mThumb, mOff) === 14.05, `#1354 NB master light: off thumb vs off track is 14.05:1 (got ${ratio(mThumb, mOff)}:1)`);
+  ok(mGlyph === '#dcdbdb' && luminance(hexToRgb(mGlyph)) > luminance(hexToRgb(mThumb)) && ratio(mGlyph, mThumb) === 14.05,
+    `#1354 NB master light: the off glyph (the X) is the light #dcdbdb on the dark thumb, 14.05:1 (glyph=${mGlyph}, thumb=${mThumb})`);
+  ok(hexAt(prism3, 'light', 'off.indicator') === '#0d0d0e' && ratio(hexAt(prism3, 'light', 'off.indicator'), pOff) === 14.04,
+    `#1354 prism3 light: off thumb #0d0d0e on the off track at 14.04:1 (got ${hexAt(prism3, 'light', 'off.indicator')}, ${ratio(hexAt(prism3, 'light', 'off.indicator'), pOff)}:1)`);
+
+  // (4) THE CONTRAST CONTRACTS, every mode of every corpus brand + prism3 + the NB master, recomputed from
+  // resolved hexes. The on-thumb pair is held in every mode but `dark`, where `on-fill` (gated against
+  // `fill.rest`) measures 2.32–2.62:1 on `fill.selected` — the on arm is unchanged by owner decision and
+  // the gap is filed as #1763; the count of exempted rows is printed in the message so it cannot grow quietly.
+  const misses: string[] = [];
+  let rows = 0, darkOnGap = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
+    for (const m of resolveAllModes(theme)) {
+      rows++;
+      const h = (key: string) => m.roles[role(key)]?.hex ?? '#808080';
+      const page = m.roles['background.primary'].hex;
+      const need = (label: string, r: number) => { if (r < 3) misses.push(`${id} ${m.mode} ${label} ${r.toFixed(2)}:1`); };
+      need('off border vs page', ratio(h('off.border'), page));
+      need('off thumb vs off track', ratio(h('off.indicator'), h('off.fill')));
+      need('off glyph vs off thumb', ratio(h('off.icon'), h('off.indicator')));
+      need('on track vs page', ratio(h('on.fill'), page));
+      if (m.mode === 'dark') { if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++; }
+      else { need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill'))); need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator'))); }
+    }
+  ok(rows >= 40 && misses.length === 0,
+    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`; ${darkOnGap} dark rows under 3:1, #1763) — misses: ${misses.join('; ') || 'none'}`);
+
+  // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
+  // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
+  const set = figmaAnatomySet(sc);
+  const props = planSetProperties(set);
+  ok(set.length === 24, `#1354 switch-control still projects 24 members — the State icon boolean does not multiply the set (got ${set.length})`);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'State icon', type: 'BOOLEAN', default: true }]),
+    `#1354 switch-control's set declares exactly one property, the BOOLEAN 'State icon' defaulting to true (got ${JSON.stringify(props)})`);
+  type GNode = { name: string; visibleProp?: string; visible?: boolean; children: GNode[] };
+  const glyphNodes = (n: GNode): GNode[] => [...(n.name === 'onGlyph' || n.name === 'offGlyph' ? [n] : []), ...n.children.flatMap(glyphNodes)];
+  const glyphs = set.flatMap((p) => glyphNodes(p.root as unknown as GNode));
+  const byName = (nm: string) => glyphs.filter((g) => g.name === nm);
+  ok(byName('onGlyph').length === 12 && byName('offGlyph').length === 12
+    && glyphs.every((g) => g.visibleProp === 'State icon' && (g.visible ?? true) === true),
+    `#1354 both glyph nodes (12 checks, 12 X's — one per member) carry visibleProp 'State icon', built visible (on=${byName('onGlyph').length}, off=${byName('offGlyph').length}, props=[${[...new Set(glyphs.map((g) => `${g.visibleProp}/${g.visible ?? true}`))].join(', ')}])`);
+
+  // (6) THE CODE DEFAULT matches the Figma default: `showStateLabel` is `true` on the atom AND on the Row
+  // that exposes it. A literal `true` — the owner's decision, not the boolean's `default` read back.
+  const codeDefault = (d: ComponentDef) => d.props?.find((p) => p.name === 'showStateLabel')?.default;
+  ok(codeDefault(sc) === true && codeDefault(switchRow) === true,
+    `#1354 showStateLabel defaults to true in code on switch-control and switch-row (atom=${codeDefault(sc)}, row=${codeDefault(switchRow)})`);
+
+  // (7) THE LOOSENED REFUSAL, PINNED (docs/34). `figmaPropertyErrors` used to refuse ANY boolean on a
+  // `presentWhen`-gated part; it now admits a boolean over two or more parts gated on one shared axis whose
+  // values they cover. The oracle is the refusal's own message; each arm drives the check over a patched def.
+  const PRESENCE_REFUSAL = /also declares? presentWhen/;
+  const withBool = (part: string | readonly string[], parts?: Record<string, unknown>): ComponentDef =>
+    ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts, ...(parts ?? {}) } },
+      figmaProperties: { ...sc.figmaProperties!, booleans: { showStateLabel: { part, default: true, figmaName: 'State icon' } } } } as ComponentDef);
+  ok(!figmaPropertyErrors(sc).some((e) => PRESENCE_REFUSAL.test(e)),
+    `#1354 the authored State icon boolean over the check and the X is NOT refused (errors: ${figmaPropertyErrors(sc).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
+  ok(figmaPropertyErrors(withBool('onGlyph')).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: a boolean over ONE presentWhen-gated glyph is still refused — some members would have nothing to toggle');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on'] } } })).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: two gated glyphs that leave `selection=off` uncovered are refused — coverage is checked, not assumed');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: undefined } })).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: a gated glyph mixed with an ungated one is refused — the narrowing admits only all-gated parts');
+}
+
 // ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----
 //
 // The radio split into `radio-control` (the painted circle/dot + focus ring, carrying selection+size+state)
