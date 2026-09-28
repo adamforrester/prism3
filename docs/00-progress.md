@@ -32,6 +32,12 @@
 - M4, `from-right` removed from the axis: `#1318 veil: … 30 members` fails, and so do the schema (`gradient.angles names 'from-right'`), `lint-axis-values` and `lint-component-surface` (24 vs 30). The first run of M4 crashed the suite at the projector's refusal instead of failing by name; the direction loop now catches and names it.
 - M5, `veil.light.clear` aliased to `transparent` (regen'd): `veil: every brand emits … 0% WHITE` fails in every brand.
 
+**Review follow-ups (independent review of #1766).** Three new checks could be disabled with nothing failing:
+- The `gradientFill` read-back met only correctly built veils. `test-roundtrip.ts` now damages one built member after the write, two ways: it drops the far stop's binding, and it reverses the stops. The reader must name each (`stop 1 NOT BOUND`; `stop 0 at 1` with `stop 0→…/veil/light/clear`).
+- Both executors' "gradient set, not retained" read-back. `test.ts`'s host stand-in gains a taught accept-and-discard (`gradientDiscard`: the host drops the gradient, or strips its stop bindings). Each executor must report `wash.fills -> DISCARDED (gradient set, not retained)` on all 24 directional members, and neither may report it on a clean host.
+
+Nits: the veil prose no longer says the rest of the photo stays unmuted, which was true only at the far edge. `docs/20` gains a dated forward note that the veil is now eight roles.
+
 **Not decided here, and held:** radial or corner directions, and how a veil sits on an inverse band (the existing structural reason covers the clear ends as the same wash at 0%, and no new decision was made). TokenPress and the exporter gate read the token tier only; the clear roles are ordinary color variables there.
 
 ---

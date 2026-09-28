@@ -4273,7 +4273,7 @@
             "from-left",
             "from-right"
           ],
-          "description": "Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge, so the rest of the photo stays unmuted. The intensity applies at the named edge only, so verify contrast where the text actually sits."
+          "description": "Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge. The intensity applies at the named edge only, so verify contrast where the text actually sits."
         }
       ],
       "states": [],
@@ -4318,7 +4318,7 @@
         "labelPattern": "A veil carries no text of its own — it is a wash behind other content. Where its variants are named in a UI, name the polarity and the magnitude plainly: \"Dark, medium\" rather than a WCAG floor, because the rung is a magnitude and not a contrast promise."
       },
       "docs": {
-        "usage": "Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge and clear at the opposite one, so the rest of the photo stays unmuted. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.",
+        "usage": "Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge, fading to clear at the opposite edge. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.",
         "do": [
           "Pick the polarity from the image — a dark wash under light text, a light wash under dark text",
           "Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom",

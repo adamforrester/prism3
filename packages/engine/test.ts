@@ -14279,7 +14279,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -14768,6 +14768,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
                 const was = (prev?.[i] as { boundVariables?: { color?: { id: string } } } | undefined)?.boundVariables?.color?.id;
                 return was === id || (paint.opacity ?? 1) === 1 ? paint : { ...paint, opacity: 1 };
               });
+              // #1318 — ACCEPT-AND-DISCARD, TAUGHT FOR A GRADIENT (`opts.gradientDiscard`). Off by default. A
+              // host that takes a gradient fill and keeps nothing (`paint`) or keeps the gradient without its
+              // stop bindings (`bindings`) — the two ways "gradient set, not retained" can be true. Modelled so
+              // both executors' gradient read-back has a case where it MUST speak.
+              if (key === 'fills' && opts.gradientDiscard && backing.some((p) => /^GRADIENT_/.test(String((p as { type?: string })?.type))))
+                backing = opts.gradientDiscard === 'paint'
+                  ? backing.filter((p) => !/^GRADIENT_/.test(String((p as { type?: string })?.type)))
+                  : backing.map((p) => {
+                    const g = p as { type?: string; gradientStops?: { position: number; color: unknown }[] };
+                    return /^GRADIENT_/.test(String(g.type)) ? { ...g, gradientStops: (g.gradientStops ?? []).map(({ position, color }) => ({ position, color })) } : p;
+                  });
             },
           });
         }
@@ -17040,6 +17051,20 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           const missSet = (m: string[]) => JSON.stringify([...new Set(m)].sort());
           ok(missSet(sPlugged.misses) === missSet(sPasted.misses) && sPlugged.misses.some((m) => m === 'wash.fills -> color/veil/light/clear'),
             `#1318 parity: both executors report the missing clear end with the same miss — plugin ${missSet(sPlugged.misses).slice(0, 200)} vs paste ${missSet(sPasted.misses).slice(0, 200)}`);
+          // PROOF OF LIFE for both executors' "gradient set, not retained" read-back. Every name resolves and
+          // both executors write correctly; the HOST then keeps nothing (`paint`) or keeps the gradient with its
+          // stop bindings stripped (`bindings`). Each executor must report the member's wash as DISCARDED, by
+          // name, on all 24 directional members — and a clean host (the runs above) must report none.
+          const DISCARD = 'wash.fills -> DISCARDED (gradient set, not retained)';
+          for (const mode of ['paint', 'bindings'] as const) {
+            const pd = await runPayload(planSetToPluginJs(veilSet), { ...veilOpts, page: { children: [] }, gradientDiscard: mode });
+            const gd = await plugRun(veilSet, { ...veilOpts, page: { children: [] }, gradientDiscard: mode });
+            for (const [label, r] of [['paste', pd], ['plugin', gd]] as const)
+              ok(r.misses.filter((m) => m === DISCARD).length === 24,
+                `#1318 ${label}: a host that ${mode === 'paint' ? 'drops the gradient' : 'strips its stop bindings'} after the write is reported '${DISCARD}' on all 24 directional members (${r.misses.filter((m) => m === DISCARD).length}; ${JSON.stringify(r.misses.filter((m) => m !== DISCARD).slice(0, 2))})`);
+          }
+          ok(!vPlugged.misses.includes(DISCARD) && !vPasted.misses.includes(DISCARD),
+            '#1318 a host that keeps the gradient reports no DISCARDED on either path — the read-back does not cry wolf');
         }
 
         // #1514/#1567 — THE STYLE SURVIVES BOTH PATHS, EACH FOR ITS OWN REASON, AND THEY STILL AGREE.

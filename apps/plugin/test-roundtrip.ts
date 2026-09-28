@@ -635,6 +635,49 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1318: THE GRADIENT FILL READ-BACK, AND ITS NEGATIVE CONTROLS ─────────────────────────────────
+//
+// `gradientFill`'s predicate reads the host's `fills[0]` — a linear gradient, its matrix, and each stop's
+// position and bound variable IN ORDER. Over the corpus it only ever meets correctly built veils, so a
+// predicate that returned `null` for everything would leave this gate ALL PASS. These controls damage one
+// built member AFTER the write, two ways, and require the reader to name each: a stop that lost its binding,
+// and the stops reversed (a wash strongest at the wrong edge). Expected strings authored here.
+{
+  const def = componentDefs.find((d) => d.id === 'veil');
+  ok(!!def, '#1318 reachable: the veil def is registered and projects');
+  if (def) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    const varById = new Map(vars.map((v) => [v.id, v.name] as const));
+    const ports: ReadPorts = { varName: (id) => varById.get(id) ?? null, styleName: () => null };
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const MEMBER = 'value=light, intensity=strong, direction=from-top';
+    const target = members.find((m) => m.name === MEMBER) as unknown as { fills: { gradientStops?: { position: number; boundVariables?: Record<string, unknown> }[] }[] } | undefined;
+    const gradDiffs = () => diffAnatomy(plans, members, planComponentName, ports, {}).filter((d) => d.field === 'gradientFill' && d.member === MEMBER);
+
+    // POSITIVE — the member exists, carries a two-stop gradient, and reads back with no gradient divergence.
+    ok(!!target && target.fills[0]?.gradientStops?.length === 2 && gradDiffs().length === 0,
+      `#1318 the built ${MEMBER} reads back its gradient with no divergence (${gradDiffs().map((d) => d.actual).join('; ') || 'none'})`);
+    if (target) {
+      const original = target.fills;
+      // NEGATIVE 1 — the far stop's binding dropped by the host.
+      const [g] = original;
+      target.fills = [{ ...g, gradientStops: [g.gradientStops![0], { position: 1 }] }];
+      ok(gradDiffs().some((d) => /stop 1 NOT BOUND/.test(d.actual ?? '')),
+        `#1318 mutation: a gradient stop that lost its binding is reported \`stop 1 NOT BOUND\` by name (${gradDiffs().map((d) => d.actual).join('; ') || 'NOT REPORTED — the check went silent'})`);
+      // NEGATIVE 2 — the stops reversed: the clear end at position 0, the wash at position 1.
+      target.fills = [{ ...g, gradientStops: [...g.gradientStops!].reverse() }];
+      ok(gradDiffs().some((d) => /stop 0 at 1/.test(d.actual ?? '') && /stop 0→.*veil\/light\/clear/.test(d.actual ?? '')),
+        `#1318 mutation: reversed stops are reported by position and by variable (\`stop 0 at 1\`, \`stop 0→…/veil/light/clear\`) (${gradDiffs().map((d) => d.actual).join('; ') || 'NOT REPORTED — the check went silent'})`);
+      target.fills = original;
+    }
+  }
+}
+
 // ── #1430: EVERY EMITTED SET CARRIES ITS VARIANT-SET FRAME — HOST-TRUTH ─────────────────────────
 //
 // THE DIAGNOSIS (progress log 2026-09-16): the emitted sets ARE real `ComponentSetNode`s —
