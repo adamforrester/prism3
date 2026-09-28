@@ -30,6 +30,7 @@ The owner's decisions, 2026-09-27/28, recorded on #259. These are closed.
 6. **Cell components live on `↳ File Components`** (Sandbox), built by Set up file next to `_Section-header` and `_Headings`, on the owner's existing cell design (§3). A file that already has these sets **anywhere**, in any case, adopts them in place. The owner's test file keeps them on "Style Guide Components". They are never moved or rebuilt.
 7. **Sample text is "Abc 123".** Changeable (`SAMPLE_TEXT` in `style-guide-cells.ts`).
 8. **UI.** A "Style guide" step after Apply theme. Per-type options fold away under *Customize*. The display style is chosen automatically from the token's role, with the owner's dropdown values kept as overrides. An agent-link command drives it live.
+9. **Superseded tables are deleted when unedited** (2026-09-28: "Yes, delete superseded tables if unedited"). A table the generator wrote that a rerun no longer draws is deleted, with its header and cells, when nothing has changed since the generator last wrote it. A table a designer touched is left in place and reported as edited. A frame without the generator's marker is never deleted, whatever its name. The mechanism is in §6.
 
 **Defects of the owner's earlier plugin, fixed rather than copied:**
 - Every specimen was drawn on white, so inverse text (#F7F7F7) and white `on-*` icons were invisible. Each specimen is now drawn on its intended ground, the same variable the contrast column measures against.
@@ -96,7 +97,14 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
   - The tracks are read back after they are set. A grid that did not keep them is named in the verdict.
 - **Contrast.** The contract comes from the brand saved in the file (`restoreInput` → `resolveAllModes(brandTheme(input))`). With no saved brand the column reads "—" and the verdict says Apply theme saves one (**proposed, owner to confirm**). The ratio is floored to two places, so 4.499 never reads "4.50" beside a 4.5 floor.
 - **Placement.** A new table goes 160px below the page's lowest content, left-aligned to it (**proposed**). Where the generator put each table is recorded in its plugin data (`prism3-style-guide-at`). After every run, the generator's tables on each page it drew on are re-stacked in their order, 160px apart, so a table that grew pushes the rest down. On the owner's rerun, "Primary — nbds" grew to y ≈ 10,400 while "Neutral — nbds" still started at 3,585. A table whose position differs from its record has been moved by a designer: it stays where they put it and is left out of the stack. A table from before the record (an earlier build's) is re-flowed while it keeps the stack's x, and is taken as moved when it does not (**proposed**).
-- **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection ID>|<group's full path>` (`color|VariableCollectionId:…|pds3/color/text`). The key uses the ID so a renamed collection keeps its tables. It uses the full path so a sibling group added to a collection, which shortens the shared prefix, does not move it. The grid is rebuilt each run; the wrapper and header are kept. The frame name and the header's title and description are rewritten only while they still read what a run wrote, which is recorded in plugin data, so a designer's edit survives (**proposed**). A table whose group has gone is reported stale and **left in place**, never deleted (**proposed**). A table whose key is an ancestor of a planned key is reported **replaced** and left in place: an earlier build drew one table per root where the collection holds two (**proposed**; deleting them is the owner's call). Only tables the run could have drawn are candidates: its types, and its collections when filtered.
+- **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection ID>|<group's full path>` (`color|VariableCollectionId:…|pds3/color/text`). The key uses the ID so a renamed collection keeps its tables. It uses the full path so a sibling group added to a collection, which shortens the shared prefix, does not move it. The grid is rebuilt each run; the wrapper and header are kept. The frame name and the header's title and description are rewritten only while they still read what a run wrote, which is recorded in plugin data, so a designer's edit survives (**proposed**). A table whose group has gone is **stale**. A table whose key is an ancestor of a planned key is **replaced**: an earlier build drew one table per root where the collection holds two. Both are **superseded**. Only tables the run could have drawn are candidates: its types, and its collections when filtered.
+- **Deleting a superseded table (decision 9).** Every time the generator writes a table, it records two things in the frame's plugin data:
+  - `prism3-style-guide-print`, a fingerprint: a hash over every node in the frame, in order, with its type, name, visibility, size, text, fills and strokes, and pinned modes. A bound paint counts by its variable's ID, never its color, so a changed value is not an edit.
+  - `prism3-style-guide-mark`, the frame's own node ID. Plugin data travels with a duplicate and the ID does not, so this tells the generator's frame from a designer's copy of it.
+
+  Position is the existing `prism3-style-guide-at` record. It is left out of the fingerprint, so the re-stack moving a table is not an edit. A superseded table is deleted only when every check passes, in this order: it has a fingerprint; its mark is its own ID; it sits where the record puts it; its fingerprint still matches. Otherwise it is kept and reported with the reason: edited, moved, a copy, or no record. The check runs before the re-stack, so the stack closes over a deleted table, a top one included.
+  - **A table from before the fingerprint is kept on every run, not only the next.** A superseded table is never rewritten, so it never gains a fingerprint. The report names it and says why it survives ("it predates the edit record, so the generator cannot tell whether it was edited; delete it by hand if no longer needed"). The owner's test file's per-root tables are this case. No earlier record is as strong: the rows snapshot, the title record and the position record say nothing about a cell's text or paint (**proposed**, §8).
+  - **The fingerprint is over-sensitive by design.** A renamed layer, or an edit to a cell component that reaches every instance, reads as an edit, and the table is kept. That is the safe direction (**proposed**).
 - **The rerun report.** Rows are compared by variable ID, so a renamed variable reads "renamed", not added and removed. Values are compared as the token holds them (the alias and the resolved RGBA), so switching Hex to RGBA changes no row.
 - **Header description.** It states only what the plan checked. A primitive table counts its steps a semantic role references ("20 primitive colors in core, 19 referenced by a semantic role"). A semantic table counts its roles with a measured contrast. A count of zero drops the clause.
 - **An unknown mode.** A file mode the brand does not contract ("L (HC)") has no floors, so its contrast reads "—" and the verdict names the mode.
@@ -115,6 +123,7 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - a two-root file: titles, keys and same-root grounds;
 - column widths and heights, against the shim's own text metric (7px a character, 20px a line, words broken where they do not fit): no cell's content wider than its column, every header on one line, the swatch columns at 80, 80, 88 and 81, the description text wrapped at 360 − 16 − 16 = 328, and a grid that drops its tracks named;
 - the re-stack: a table grown by 10 rows pushes the next one down 720px, a designer-moved table stays put, and an earlier build's tables without a record are re-flowed;
+- superseded tables: an unedited stale table and an unedited replaced one are deleted, header and cells with them, and the stack closes over the gap. A replaced table with one value cell retyped by hand (the same length, so no size moves), a moved table, a table with no fingerprint and an in-place duplicate of a table are kept and reported. A frame named like a table without the generator's key is never touched;
 - the in-place rerun and its diff, and the header rewrite over an earlier run's titles;
 - adoption whatever the page or case;
 - every skip.
@@ -124,7 +133,9 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 **Host-unverified:**
 - GRID layout rendering, FIXED tracks with FIXED-width cells, a HEIGHT-resizing text keeping its set width, and HUG applied to an adopted instance's layers;
 - the icon diamond's rotated geometry (its box is computed offline from the typings' transform, `rotation = atan2(-m10, m00)` about the top-left corner, and asserted at 8.44–39.56 on both axes; the host is the check that Figma applies it that way);
-- that an instance inside a mode-pinned ground frame renders in the pinned mode.
+- that an instance inside a mode-pinned ground frame renders in the pinned mode;
+- that a table's fingerprint, read on the next run with nothing touched, matches the one recorded when it was written. If the host lays a table out differently on a later read, nothing is ever deleted: the safe direction;
+- that a paint bound to a variable since deleted still reads its variable's ID. If the host drops it, a stale table reads as edited and is kept.
 
 A live run on the owner's test file is the check.
 
@@ -136,14 +147,15 @@ A live run on the owner's test file is the check.
 - The hairline on the default swatch.
 - Column headers: Token · <mode> · Value · Contrast · Description.
 - Contrast wording: `3.27:1 — below the 7:1 floor` / `on background/primary`.
-- Stale tables left in place and reported.
+- The superseded-table report wording: "2 superseded tables deleted: …", "… edited — left in place: … (moved)", and the no-record clause (§6).
+- What the fingerprint covers, including that an edit to a cell component reads as an edit to every table (§6).
+- A table from before the fingerprint kept on every run and named for deletion by hand (§6). The alternative is to record a fingerprint on it now and delete it on the next unedited run, which takes any edit made before today as the generator's own.
 - Placement 160px below the page's content.
 - The grid rebuilt each run; the frame name and header rewritten only while they read what a run wrote.
 - Palette rows named by their step alone, with the full path dropped (§6).
 - The description column capped at 360px including padding; every other text column sized to its widest cell (§6).
 - A swatch column widened to its mode header rather than the header wrapping (§6).
 - The re-stack after every run, and an earlier build's unrecorded tables re-flowed while they keep the stack's x (§6).
-- The live run's one-per-root tables reported as replaced and left in place, not deleted (§6).
 - The multi-root title forms "Text — nbds" and "Core — nbds base".
 - The owner's "add a title cell to rows" option, deferred: each table's header carries the title.
 - No contrast column on primitive tables.

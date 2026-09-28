@@ -26,6 +26,8 @@
  *      description prose. No contracted ground reads "—".
  *   5. RERUN updates in place — a table is found by its plugin data, never duplicated — and reports tokens
  *      added, removed and changed.
+ *   6. A SUPERSEDED table (its group gone, or now drawn as narrower tables) is deleted when the generator made
+ *      it and nothing has changed since it last wrote it; one a designer touched is left in place and reported.
  *
  * TWO DEFECTS OF THE OWNER'S EARLIER PLUGIN, FIXED HERE: every specimen was drawn on white, so inverse text
  * and white `on-*` icons were invisible — here each specimen sits on its intended ground, the same variable
@@ -537,6 +539,9 @@ export interface StyleGuideApi {
   };
 }
 
+/** Why a superseded table is left in place rather than deleted. */
+export type KeepReason = 'edited' | 'moved' | 'copied' | 'unrecorded';
+
 /** One table's outcome. */
 export type TableOutcome =
   | { key: string; title: string; page: string; status: 'created'; rows: number }
@@ -545,11 +550,18 @@ export type TableOutcome =
 
 export interface StyleGuideResult {
   tables: TableOutcome[];
-  /** Tables a previous run wrote whose group no longer exists — left in place, never deleted. */
+  /** SUPERSEDED tables — a previous run wrote them and this run does not draw them — whose group no longer
+   *  exists. Each is either deleted or kept; `deleted` and `kept` say which. */
   stale: string[];
-  /** Tables a previous run wrote for a group this run splits into narrower ones (one per root and family, where
-   *  an earlier build drew one per root) — left in place, never deleted, and named apart from `stale`. */
+  /** Superseded tables for a group this run splits into narrower ones (one per root and family, where an earlier
+   *  build drew one per root), named apart from `stale`. Deleted or kept, as `stale`. */
   replaced: string[];
+  /** Superseded tables deleted: the generator made them and nothing has changed since it last wrote them. */
+  deleted: string[];
+  /** Superseded tables left in place, and why: `edited` (its content or size differs from what the generator
+   *  last wrote), `moved`, `copied` (a duplicate carries the generator's plugin data but is not the frame it
+   *  wrote), or `unrecorded` (written before the generator recorded a fingerprint, so an edit cannot be ruled out). */
+  kept: { name: string; reason: KeepReason }[];
   /** Swatches drawn with nothing bound: the member has no node that carries a fill (or, for border, a stroke). */
   unbound: number;
   notes: string[];
@@ -578,6 +590,12 @@ const TITLE_KEY = 'prism3-style-guide-title';
 const DESC_KEY = 'prism3-style-guide-description';
 /** Where the generator last put a table, `x,y` — a table no longer there was moved by a designer. */
 const AT_KEY = 'prism3-style-guide-at';
+/** What a table held when the generator last wrote it (`fingerprintOf`) — a superseded table that still matches
+ *  is deleted, one that does not was edited by hand and is kept. */
+const PRINT_KEY = 'prism3-style-guide-print';
+/** The id of the frame the generator wrote. Plugin data travels with a duplicate and the id does not, so this is
+ *  what tells the generator's own frame from a designer's copy of it. */
+const MARK_KEY = 'prism3-style-guide-mark';
 /** The widest a description column grows, in px, padding included — the only text that wraps. */
 export const DESC_WRAP = 360;
 
@@ -588,6 +606,57 @@ const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
 };
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
+/**
+ * FNV-1a, 32 bits, twice: forward and over the reversed string. The same construction as the engine's
+ * `planStamp` (`anatomy-figma.ts`, which holds the reasoning), written here because that helper is not exported
+ * and this runs in the Figma sandbox, where `node:crypto` does not exist.
+ */
+const fnv = (s: string, reverse: boolean): string => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(reverse ? s.length - 1 - i : i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+};
+
+/** A paint list as the fingerprint reads it. A BOUND paint is its variable's id and never its color: a variable's
+ *  value moving repaints the swatch, and that is not a designer's edit to the table. */
+const paintsKey = (ps: unknown): string => {
+  if (!Array.isArray(ps)) return ps === undefined ? '' : 'mixed';
+  return ps.map((p) => {
+    const q = (p ?? {}) as { type?: unknown; visible?: unknown; opacity?: unknown; color?: { r?: unknown; g?: unknown; b?: unknown }; boundVariables?: { color?: { id?: unknown } } };
+    const bound = q.boundVariables?.color?.id;
+    const body = typeof bound === 'string' ? `@${bound}`
+      : q.color ? [q.color.r, q.color.g, q.color.b].map((x) => Math.round(Number(x) * 1e4)).join(',')
+      : JSON.stringify(p);
+    return `${String(q.type)}:${q.visible === false ? 0 : 1}:${Math.round(Number(q.opacity ?? 1) * 1e4)}:${body}`;
+  }).join(';');
+};
+
+/**
+ * THE FINGERPRINT of a table: what a designer would change, read off the frame. Every node in it, in order (its
+ * children and their order), each with its type, name, visibility, size, text, fills, strokes (bindings by
+ * variable id) and pinned modes. The frame's own position is NOT in it: that is `AT_KEY`, which the re-stack moves
+ * along with the frame, so a re-stacked table keeps its fingerprint.
+ *
+ * Over-sensitive by design: a change the eye cannot see (a layer renamed, a size moved by a pixel) reads as an
+ * edit, and the table is kept. That is the safe direction, since the other one deletes a designer's work.
+ */
+const fingerprintOf = (wrap: SgNode): string => {
+  const parts: string[] = [];
+  const walk = (n: SgNode, depth: number): void => {
+    const modes = n.explicitVariableModes && typeof n.explicitVariableModes === 'object'
+      ? Object.entries(n.explicitVariableModes as Record<string, unknown>).map(([k, v]) => `${k}=${String(v)}`).sort().join(',') : '';
+    parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', Math.round(n.width ?? 0), Math.round(n.height ?? 0),
+      typeof n.characters === 'string' ? n.characters : '', paintsKey(n.fills), paintsKey(n.strokes), modes].join('\u241f'));
+    for (const c of (n.children ?? []) as SgNode[]) walk(c, depth + 1);
+  };
+  walk(wrap, 0);
+  const s = parts.join('\n');
+  return `${fnv(s, false)}${fnv(s, true)}`;
+};
+
 /** Give a cell its column's width, keeping its height hugging its content. */
 const setWidth = (n: SgNode, w: number): void => {
   sizing(n, 'FIXED');
@@ -609,7 +678,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const textCells = sets[TEXT_CELL_SET] as SgNode | undefined;
   if (!swatches || !textCells) {
     for (const t of plan.tables) skip(t, 'no-cells');
-    return { tables: out, stale: [], replaced: [], unbound: 0, notes: plan.notes, misses };
+    return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses };
   }
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
@@ -847,6 +916,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const after = snapshotOf(t);
     const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));
+    // Stamped last, once the table holds everything this run writes: the frame it was written on, and what it holds.
+    wrap.setPluginData?.(MARK_KEY, String(wrap.id));
+    wrap.setPluginData?.(PRINT_KEY, fingerprintOf(wrap));
     out.push(created
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
       : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(before, after) });
@@ -854,16 +926,62 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     drawnOn.add(page);
   }
 
-  // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
-  // "Neutral — nbds", still at 3,585). The generator's own tables on each page it drew on are re-flowed in their
-  // order down the page, TABLE_GAP apart, from the topmost. A table is where the generator left it while it sits at
-  // the position recorded then; one that does not was moved by a designer and is left alone. A table from before the
-  // record has none, and is taken as the generator's while it keeps the stack's x.
   const recordOf = (n: SgNode): { x: number; y: number } | null => {
     const s = n.getPluginData?.(AT_KEY) || '';
     const [x, y] = s.split(',').map(Number);
     return s && Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
   };
+
+  // SUPERSEDED TABLES (owner decision, 2026-09-28: "delete superseded tables if unedited"). A table an earlier run
+  // wrote that this run does not draw — its group is gone (stale), or it is now drawn as narrower tables (replaced).
+  // Only tables this run could have drawn are candidates: its types, and its collections (by ID, the key's second
+  // field) when filtered. Checked before the re-stack, so the stack closes over a deleted table.
+  const planned = new Set(plan.tables.map((t) => t.key));
+  const types = new Set((options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase()));
+  const wantIds = options.collections ? new Set(catalog.collections.filter((c) => options.collections!.some((w) => w.toLowerCase() === c.name.toLowerCase())).map((c) => c.id)) : null;
+  const stale: string[] = [];
+  const replaced: string[] = [];
+  const deleted: string[] = [];
+  const kept: { name: string; reason: KeepReason }[] = [];
+  const freed = new Map<SgPage, { x: number; y: number }[]>();
+  // Deleted only when every check passes, in this order: a fingerprint exists (a table from before it was
+  // recorded may have been edited, and nothing can tell); this is the frame the generator wrote, not a duplicate
+  // that carries its plugin data; it sits where the generator put it; and it still holds what was written.
+  const verdictOf = (f: SgNode): KeepReason | 'unedited' => {
+    const print = f.getPluginData?.(PRINT_KEY) || '';
+    if (!print) return 'unrecorded';
+    if (f.getPluginData?.(MARK_KEY) !== String(f.id)) return 'copied';
+    const at = recordOf(f);
+    if (!at || !near(num(f.x), at.x) || !near(num(f.y), at.y)) return 'moved';
+    return fingerprintOf(f) === print ? 'unedited' : 'edited';
+  };
+  for (const p of api.root.children) for (const f of framesOn(p)) {
+    // The generator's key is what makes a frame a candidate at all: a frame without it is never touched,
+    // whatever it is named. (The type check below would also refuse one, since its type reads ''; this line is
+    // the stated rule, and removing it alone turns nothing red.)
+    const k = f.getPluginData?.(TABLE_KEY);
+    if (!k || planned.has(k)) continue;
+    const [type, colId] = k.split('|');
+    if (!types.has(type) || (wantIds && !wantIds.has(colId))) continue;
+    // A key that is an ANCESTOR of a planned one is a table this run now draws as narrower tables — an earlier
+    // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
+    if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
+    else stale.push(String(f.name));
+    const v = verdictOf(f);
+    if (v === 'unedited' && f.remove) {
+      if (!freed.has(p)) freed.set(p, []);
+      freed.get(p)!.push({ x: num(f.x), y: num(f.y) });
+      f.remove();
+      deleted.push(String(f.name));
+    } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'edited' : v });
+  }
+
+  // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
+  // "Neutral — nbds", still at 3,585). The generator's own tables on each page it drew on are re-flowed in their
+  // order down the page, TABLE_GAP apart, from the topmost. A table is where the generator left it while it sits at
+  // the position recorded then; one that does not was moved by a designer and is left alone. A table from before the
+  // record has none, and is taken as the generator's while it keeps the stack's x. A deleted table's place counts
+  // as the top when it was higher, so deleting the first table does not leave a gap above the rest.
   const byY = (a: SgNode, b: SgNode): number => num(a.y) - num(b.y);
   for (const p of drawnOn) {
     const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
@@ -875,6 +993,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const stack = [...left, ...unrecorded.filter((n) => near(num(n.x), x))].sort(byY);
     if (!stack.length) continue;
     let y = num(stack[0].y);
+    for (const d of freed.get(p) ?? []) if (near(d.x, x)) y = Math.min(y, d.y);
     for (const n of stack) {
       n.x = x;
       n.y = y;
@@ -883,26 +1002,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     }
   }
 
-  // A table from an earlier run whose group is gone: named, never deleted. Only tables this run could have
-  // drawn are candidates — its types, and its collections (by ID, the key's second field) when filtered.
-  const planned = new Set(plan.tables.map((t) => t.key));
-  const types = new Set((options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase()));
-  const wantIds = options.collections ? new Set(catalog.collections.filter((c) => options.collections!.some((w) => w.toLowerCase() === c.name.toLowerCase())).map((c) => c.id)) : null;
-  const stale: string[] = [];
-  const replaced: string[] = [];
-  for (const p of api.root.children) for (const f of framesOn(p)) {
-    const k = f.getPluginData?.(TABLE_KEY);
-    if (!k || planned.has(k)) continue;
-    const [type, colId] = k.split('|');
-    if (!types.has(type) || (wantIds && !wantIds.has(colId))) continue;
-    // A key that is an ANCESTOR of a planned one is a table this run now draws as narrower tables — an earlier
-    // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
-    if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
-    else stale.push(String(f.name));
-  }
   const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
-  return { tables: out, stale, replaced, unbound, notes: plan.notes, misses };
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes: plan.notes, misses };
 };
 
 /**
@@ -944,8 +1046,18 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
   for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p} page, and Set up file adds it`);
-  if (r.stale.length) parts.push(`${r.stale.length} earlier tables match no tokens and were left in place (${r.stale.slice(0, 3).join(', ')})`);
-  if (r.replaced.length) parts.push(`${r.replaced.length} earlier tables are now drawn as one table per family and were left in place (${r.replaced.slice(0, 3).join(', ')}${r.replaced.length > 3 ? '…' : ''})`);
+  // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones apart, and a table
+  // from before the fingerprint apart again, with the reason it survives.
+  const superseded = (n: number): string => `${n} superseded table${n === 1 ? '' : 's'}`;
+  if (r.deleted.length) parts.push(`${superseded(r.deleted.length)} deleted: ${r.deleted.join(', ')}`);
+  const edited = r.kept.filter((k) => k.reason !== 'unrecorded');
+  const why: Record<KeepReason, string> = { edited: '', moved: ' (moved)', copied: ' (a copy)', unrecorded: '' };
+  if (edited.length) parts.push(`${superseded(edited.length)} edited — left in place: ${edited.map((k) => `${k.name}${why[k.reason]}`).join(', ')}`);
+  const unrecorded = r.kept.filter((k) => k.reason === 'unrecorded');
+  if (unrecorded.length) {
+    const one = unrecorded.length === 1;
+    parts.push(`${superseded(unrecorded.length)} left in place — ${one ? 'it predates' : 'they predate'} the edit record, so the generator cannot tell whether ${one ? 'it was' : 'they were'} edited; delete ${one ? 'it' : 'them'} by hand if no longer needed: ${unrecorded.map((k) => k.name).join(', ')}`);
+  }
   parts.push(...r.notes, ...r.misses);
   const drawn = made.length + upd.length;
   // A partial run is not a pass: a skipped table is a page the designer expected and does not have, and an

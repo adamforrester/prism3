@@ -16,8 +16,8 @@
  *   5. the EXECUTOR — every mode column's swatch pins its mode and is bound to its variable, each specimen
  *      is drawn on its contracted ground (inverse text on the inverse ground, not white), the contrast cell's
  *      words, the header instance;
- *   6. a RERUN updates in place — no second table — and reports tokens added, removed and changed, and an
- *      emptied group as stale;
+ *   6. a RERUN updates in place — no second table — and reports tokens added, removed and changed; an emptied
+ *      group's table, unedited, is deleted;
  *   7. a missing page, missing cell sets and a missing header set are skips, reported, never thrown;
  *   8. the table KEY (collection ID + full path) survives a sibling group and a renamed collection; the header
  *      descriptions state only what was checked; the rerun report keys rows by variable ID and compares raw
@@ -25,10 +25,14 @@
  *      a mixed-font cell loads every segment's font or names the miss;
  *   9. a TWO-ROOT file (`nbds/…` and `pds3/…` in the same collections, as the owner's test file holds them)
  *      groups within each root and names it in the title, grounds stay in their root, a rerun over the live
- *      run's tables rewrites old titles and reports the per-root tables as replaced; an unbound swatch is a ⚠
+ *      run's tables rewrites old titles and reports the per-root tables as replaced and kept; an unbound swatch is a ⚠
  *      with its count; named values lead a ramp;
  *  10. a RERUN RE-STACKS the generator's tables when one grows, leaving a designer-moved table alone. Column widths (sections 2 and 5) are read off the shim's own
- *      layout model — 7px a character — never off the plugin's arithmetic.
+ *      layout model — 7px a character — never off the plugin's arithmetic;
+ *  11. SUPERSEDED tables (owner decision, 2026-09-28): an unedited replaced or stale table is deleted, header and
+ *      cells with it, and the stack closes over it; one with a text cell retyped, one moved, one with no
+ *      fingerprint and a duplicate of one are kept and reported apart; a frame the generator did not make is
+ *      never touched, whatever its name. The edits are made to the shim's nodes here, never through the plugin.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -43,7 +47,8 @@
  *   - draw every specimen on white (`groundVariable` forced undefined) → "5: inverse/text/primary is drawn
  *     on inverse/background/primary" fails;
  *   - sort primitive rows lexically → "4: foreign ramp in numeric order" fails;
- *   - never find an existing table on rerun → "6: rerun: still 11 tables on the semantic page" fails;
+ *   - never find an existing table on rerun → "6: rerun: 10 tables on the semantic page — none duplicated…" fails
+ *     (it read "still 11 tables" before superseded tables were deleted);
  *   - build every cell set regardless of `findCellSets` → "2: the adopted swatch set is not duplicated" fails;
  *   - the diamond at x = 24, y = 8.44 → "1: the icon diamond's box is 8.44–39.56 on both axes…" fails;
  *   - measure the ink against the bare ground, not the composite → "3: text/primary over
@@ -79,7 +84,20 @@
  *   - skip the re-stack → "10: a table that grows by 10 rows pushes the next table down 720px" fails;
  *   - re-stack without reading the position record → "10: a table a designer moved stays where they put it" fails;
  *   - leave unrecorded tables out of the stack → "10: tables from before the position record are re-flowed too" fails;
- *   - drop the track read-back → "10: a grid that did not keep its column widths is named" fails.
+ *   - drop the track read-back → "10: a grid that did not keep its column widths is named" fails;
+ *   - the fingerprint compare ignored, so every candidate that reaches it is deleted → "11: a replaced table with one
+ *     text cell changed by hand is kept, reported as edited" fails;
+ *   - the edit check always true, so nothing is deleted → "6: an unedited stale table is deleted", "11: an unedited
+ *     replaced table is deleted…" fail;
+ *   - the generator-marker check removed → "11: a duplicate of a generator table is never deleted…" fails;
+ *   - the no-fingerprint check removed → "11: a table with no fingerprint is kept", "9: the per-root table has no
+ *     fingerprint, so it is left in place" fail (each table is still kept, since it has no mark either, but for the
+ *     wrong reason: "copied");
+ *   - text left out of the fingerprint → "11: a replaced table with one text cell changed by hand is kept…" fails
+ *     (the retyped value is the same length, so no size moves with it);
+ *   - the position check removed → "11: a moved table is kept" fails;
+ *   - the stack starts at the topmost table left, ignoring a deleted one above it → "11: the stack closes over the
+ *     deleted table…" fails.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -610,7 +628,7 @@ const main = async (): Promise<void> => {
     f.vars.push({ id: 'VariableID:color:new', name: 'pds3/color/text/quaternary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: 'New', valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } });
     for (let i = f.vars.length - 1; i >= 0; i--) if (f.vars[i].name.startsWith('pds3/color/scrim/')) f.vars.splice(i, 1);
     const again = await runStyleGuide(f.api, contract);
-    ok(tablesOn(f.sem).length === 11, '6: rerun: still 11 tables on the semantic page');
+    ok(tablesOn(f.sem).length === 10, '6: rerun: 10 tables on the semantic page — none duplicated, the emptied Scrim deleted');
     ok(tableFrame(f.sem, 'Text')?.id === wrapId, '6: the Text table is updated in place');
     ok(tableFrame(f.sem, 'Text')!.children.filter((c) => c.name === 'Table').length === 1 && tableFrame(f.sem, 'Text')!.children.filter((c) => c.mainComponent).length === 1, '6: one grid and one header after the rerun');
     const t = again.tables.find((x) => x.title === 'Text') as Extract<TableOutcome, { status: 'updated' }>;
@@ -618,10 +636,11 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(t?.diff) === JSON.stringify({ added: ['pds3/color/text/quaternary'], removed: ['pds3/color/text/tertiary'], changed: ['pds3/color/text/primary'], renamed: [] }), '6: reports text/quaternary added, text/tertiary removed, text/primary changed');
     const g = gridOf(tableFrame(f.sem, 'Text')!);
     ok(textIn(cellAt(g, rowOf(g, 'primary'), 3)) === '3.27:1 — below the 7:1 floor\non background/primary', '6: the refreshed contrast names the ratio and the floor it misses');
-    ok(again.stale.includes('Style guide — Scrim'), '6: the emptied Scrim table is reported stale, and left in place');
-    ok(!!tableFrame(f.sem, 'Scrim'), '6: the stale table is not deleted');
+    ok(JSON.stringify(again.stale) === JSON.stringify(['Style guide — Scrim']), '6: the emptied Scrim table is superseded: stale');
+    ok(!tableFrame(f.sem, 'Scrim') && JSON.stringify(again.deleted) === JSON.stringify(['Style guide — Scrim']) && again.kept.length === 0, '6: an unedited stale table is deleted');
     const s = styleGuideSummary(again);
     ok(s.summary.includes('Text: 1 added, 1 removed, 1 changed'), '6: the summary names the changes');
+    ok(s.summary.includes('1 superseded table deleted: Style guide — Scrim'), '6: the summary names the deleted table');
   }
 
   console.log('7. skips');
@@ -748,8 +767,9 @@ const main = async (): Promise<void> => {
     nTitle.characters = 'Grays';
     const again = await runStyleGuide(f9.api, contract);
     ok(tablesOn(f9.sem).length === 23 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
-    ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale, and left in place');
-    ok(styleGuideSummary(again).summary.includes('1 earlier tables are now drawn as one table per family and were left in place (Style guide — Nbds)'), '9: the summary names the replaced table');
+    ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale');
+    ok(old.parent === f9.sem && JSON.stringify(again.kept) === JSON.stringify([{ name: 'Style guide — Nbds', reason: 'unrecorded' }]), '9: the per-root table has no fingerprint, so it is left in place');
+    ok(styleGuideSummary(again).summary.includes('1 superseded table left in place — it predates the edit record, so the generator cannot tell whether it was edited; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
     ok(prim.name === 'Style guide — Primary — nbds' && pTitle.characters === 'Primary — nbds', `9: an earlier run's title is rewritten to name its root (${prim.name} / ${pTitle.characters})`);
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
@@ -807,6 +827,89 @@ const main = async (): Promise<void> => {
     };
     const qr = await runStyleGuide(q.api, contract, { collections: ['legacy'] });
     ok(qr.misses.includes('Legacy: the grid did not keep its column widths, so its cells may not line up'), '10: a grid that did not keep its column widths is named');
+  }
+
+  console.log('11. superseded tables: deleted when unedited, kept when a designer touched them');
+  {
+    // The legacy ramp split into two sub-palettes, same variables: its one table is now drawn as Light and Dark, so
+    // `legacy/ramp` is an ancestor of both planned keys — REPLACED.
+    const splitLegacy = (sh: Shim): void => {
+      for (const v of sh.vars) if (v.name.startsWith('legacy/ramp/')) { const step = v.name.split('/').pop()!; v.name = `legacy/ramp/${Number(step) < 100 ? 'light' : 'dark'}/${step}`; }
+    };
+    // Every legacy variable deleted: its table matches no group — STALE.
+    const dropLegacy = (sh: Shim): void => { for (let i = sh.vars.length - 1; i >= 0; i--) if (sh.vars[i].name.startsWith('legacy/')) sh.vars.splice(i, 1); };
+    const LEG = { collections: ['legacy'] };
+    const names = (p: N): string[] => tablesOn(p).map((n) => n.name);
+
+    const a = await fullFile();
+    await runStyleGuide(a.api, contract, LEG);
+    const legA = tableFrame(a.prim, 'Legacy')!;
+    const [ax, ay] = [legA.x, legA.y];
+    splitLegacy(a);
+    const ra = await runStyleGuide(a.api, contract, LEG);
+    ok(JSON.stringify(ra.replaced) === JSON.stringify(['Style guide — Legacy']) && JSON.stringify(ra.deleted) === JSON.stringify(['Style guide — Legacy']) && !legA.parent
+      && JSON.stringify(names(a.prim)) === JSON.stringify(['Style guide — Dark', 'Style guide — Light']), `11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light (${names(a.prim).join(', ')})`);
+    ok(a.prim.findAll((k) => k.pluginData['prism3-style-guide-part'] === 'header').length === 2, "11: the deleted table's header and cells go with it");
+    // Dark and Light were drawn below Legacy; with Legacy gone, the first of them takes its place.
+    const dark = tableFrame(a.prim, 'Dark')!;
+    ok(dark.x === ax && dark.y === ay && ay < 0 + 1 && tableFrame(a.prim, 'Light')!.y === dark.y + dark.height + 160, `11: the stack closes over the deleted table: Dark starts where Legacy stood, Light 160px below it (${dark.x},${dark.y} vs ${ax},${ay})`);
+    ok(styleGuideSummary(ra).summary.includes('1 superseded table deleted: Style guide — Legacy'), '11: the summary names the deleted table');
+
+    const b = await fullFile();
+    await runStyleGuide(b.api, contract, LEG);
+    const legB = tableFrame(b.prim, 'Legacy')!;
+    // One value cell retyped by hand, the same length, so only its words differ: #808080 → #7F7F7F.
+    const typed = cellAt(gridOf(legB), 1, 2)!.findOne((k) => k.type === 'TEXT')!;
+    ok(typed.characters === '#808080', `11: the cell to edit reads #808080 (${typed.characters})`);
+    typed.characters = '#7F7F7F';
+    splitLegacy(b);
+    const rb = await runStyleGuide(b.api, contract, LEG);
+    ok(legB.parent === b.prim && rb.deleted.length === 0 && JSON.stringify(rb.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'edited' }]), '11: a replaced table with one text cell changed by hand is kept, reported as edited');
+    ok(styleGuideSummary(rb).summary.includes('1 superseded table edited — left in place: Style guide — Legacy'), '11: the summary lists the edited table apart');
+
+    const c = await fullFile();
+    await runStyleGuide(c.api, contract, LEG);
+    const legC = tableFrame(c.prim, 'Legacy')!;
+    legC.x += 400;
+    dropLegacy(c);
+    const rc = await runStyleGuide(c.api, contract, LEG);
+    ok(legC.parent === c.prim && JSON.stringify(rc.stale) === JSON.stringify(['Style guide — Legacy']) && JSON.stringify(rc.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'moved' }]), '11: a moved table is kept');
+    ok(styleGuideSummary(rc).summary.includes('1 superseded table edited — left in place: Style guide — Legacy (moved)'), '11: the summary says it was moved');
+
+    const d = await fullFile();
+    await runStyleGuide(d.api, contract, LEG);
+    const legD = tableFrame(d.prim, 'Legacy')!;
+    // As a table from before this build: no fingerprint and no mark.
+    delete legD.pluginData['prism3-style-guide-print']; delete legD.pluginData['prism3-style-guide-mark'];
+    dropLegacy(d);
+    const rd = await runStyleGuide(d.api, contract, LEG);
+    ok(legD.parent === d.prim && JSON.stringify(rd.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'unrecorded' }]), '11: a table with no fingerprint is kept');
+    ok(styleGuideSummary(rd).summary.includes('1 superseded table left in place — it predates the edit record, so the generator cannot tell whether it was edited; delete it by hand if no longer needed: Style guide — Legacy'), '11: the summary says a table from before the fingerprint may have been edited');
+
+    // A frame the generator did not make, named like its table, and a DUPLICATE of the table — which carries every
+    // plugin-data key, sits where the original does and holds what it holds, but is not the frame the generator wrote.
+    const e = await fullFile();
+    await runStyleGuide(e.api, contract, LEG);
+    const legE = tableFrame(e.prim, 'Legacy')!;
+    const foreign = new N('FRAME'); foreign.name = 'Style guide — Legacy'; foreign.x = 3000; foreign.y = 0; e.prim.appendChild(foreign);
+    const dup = (src: N): N => {
+      const n = new N(src.type);
+      for (const [k, v] of Object.entries(src)) {
+        if (k === 'id' || k === 'parent' || k === 'children' || k === 'mainComponent') continue;
+        (n as Record<string, unknown>)[k] = v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v;
+      }
+      n.mainComponent = src.mainComponent;
+      for (const k of src.children) n.appendChild(dup(k));
+      return n;
+    };
+    const copy = dup(legE);
+    e.prim.appendChild(copy);
+    ok(copy.x === legE.x && copy.y === legE.y && copy.pluginData['prism3-style-guide-print'] === legE.pluginData['prism3-style-guide-print'], '11: the copy sits on the original and carries its fingerprint');
+    dropLegacy(e);
+    const re = await runStyleGuide(e.api, contract, LEG);
+    ok(foreign.parent === e.prim && foreign.x === 3000 && foreign.y === 0 && Object.keys(foreign.pluginData).length === 0, '11: a frame the generator did not make, named like its table, is never touched');
+    ok(!legE.parent && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify(['Style guide — Legacy']) && JSON.stringify(re.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
+    ok(styleGuideSummary(re).summary.includes('1 superseded table edited — left in place: Style guide — Legacy (a copy)'), '11: the summary says it is a copy');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
