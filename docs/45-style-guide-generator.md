@@ -89,7 +89,10 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - **Order.** Primitive rows use numeric order (`5, 50, 100, 900`). Semantic rows keep the file's order, which is the engine's emission order.
 - **Contrast.** The contract comes from the brand saved in the file (`restoreInput` → `resolveAllModes(brandTheme(input))`). With no saved brand the column reads "—" and the verdict says Apply theme saves one (**proposed, owner to confirm**). The ratio is floored to two places, so 4.499 never reads "4.50" beside a 4.5 floor.
 - **Placement.** A new table goes 160px below the page's lowest content, left-aligned to it (**proposed**). A table a designer has moved stays where they put it.
-- **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection>|<group>`. The grid is rebuilt each run; the wrapper and header are kept. The header text is written only when the table is created, so a designer's edit survives (**proposed**). A table whose group has gone is reported stale and **left in place**, never deleted (**proposed**).
+- **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection ID>|<group's full path>` (`color|VariableCollectionId:…|pds3/color/text`). The key uses the ID so a renamed collection keeps its tables. It uses the full path so a sibling group added to a collection, which shortens the shared prefix, does not move it. The grid is rebuilt each run; the wrapper and header are kept. The header text is written only when the table is created, so a designer's edit survives (**proposed**). A table whose group has gone is reported stale and **left in place**, never deleted (**proposed**). Only tables the run could have drawn are candidates: its types, and its collections when filtered.
+- **The rerun report.** Rows are compared by variable ID, so a renamed variable reads "renamed", not added and removed. Values are compared as the token holds them (the alias and the resolved RGBA), so switching Hex to RGBA changes no row.
+- **Header description.** It states only what the plan checked. A primitive table counts its steps a semantic role references ("20 primitive colors in core, 19 referenced by a semantic role"). A semantic table counts its roles with a measured contrast. A count of zero drops the clause.
+- **An unknown mode.** A file mode the brand does not contract ("L (HC)") has no floors, so its contrast reads "—" and the verdict names the mode.
 - **Verdict.** "✓ style guide: 22 tables" on a clean run. "⚠ 11 drawn, 11 skipped" when a page or the cells were missing, which is not a pass, so the detail opens. "✗ style guide skipped" when nothing was drawn.
 
 ## 7. What is and is not verified offline
@@ -109,7 +112,7 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 
 **Host-unverified:**
 - GRID layout rendering and HUG tracks;
-- the icon diamond's rotated geometry;
+- the icon diamond's rotated geometry (its box is computed offline from the typings' transform, `rotation = atan2(-m10, m00)` about the top-left corner, and asserted at 8.44–39.56 on both axes; the host is the check that Figma applies it that way);
 - that an instance inside a mode-pinned ground frame renders in the pinned mode.
 
 A live run on the owner's test file is the check.
@@ -133,3 +136,8 @@ A live run on the owner's test file is the check.
 - The Customize options held for the session, not saved with the brand.
 - The collections filter offered only on the agent command, not in the panel.
 - The sample text "Abc 123" (decision 7, flagged as changeable).
+- The title "<Collection> — base" for values at a collection's shared prefix.
+- The header description text (§6): the counts, and the wording of each clause.
+- The dark table header as the default (`header: 'light'` switches it).
+- The alpha format for a translucent value: `#000000 · 40%`.
+- The Style guide page's claim that "each swatch is drawn on the ground its contrast is measured against": built and tested offline, **unverified in the host** until the live run (§7).

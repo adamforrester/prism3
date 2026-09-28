@@ -53,6 +53,26 @@
 | lexical sort | "4: foreign ramp in numeric order" |
 | skip the plugin-data lookup | "6: rerun: still 11 tables on the semantic page" |
 | always build cells | "2: the adopted swatch set is not duplicated" |
+| diamond at x 24, y 8.44 | "1: the icon diamond's box is 8.44–39.56 on both axes…" |
+| ink on the bare ground | "3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1" |
+| `groundModeFor` → column mode | "3: foreground.brand on neutral/050, light: 6.44:1" |
+| key by name / by relative group | "8: a sibling group added to legacy…", "8: a renamed collection keeps its tables" |
+| stale ignores types | "8: a dimension-only run reports no color table stale" |
+| no font segments read / miss dropped | "8: a mixed-font cell loads every segment's font…" / "8: a cell whose fonts cannot be read is named…" |
+| header claims regardless | "8: Accent header…" / "8: Scrim header…" |
+| rows by name / printed value | "8: a renamed variable is a rename…" / "8: switching Hex to RGBA changes no row" |
+| uncontracted mode unnamed | "8: a file mode the engine does not contract is named" |
+
+**Review fixes (net review, same PR).**
+- **The diamond was off the swatch.** Figma turns a node counterclockwise about its top-left corner, which becomes the diamond's LEFT point, so `x = 24, y = 8.44` put its box at x 24–55, y −7–24. The fix is `x = 24 − 11√2 ≈ 8.44, y = 24`. The shim's `createInstance` drops `rotation`, so the test reads the set member itself and computes the box from the typings' transform. It asserts 8.44–39.56 on both axes. This blocked because adopted cell sets are never rebuilt: a wrong diamond would persist in every file it reached.
+- **Two of three contrast paths had no literal.** Now they do: `foreground.brand` on `neutral/050` (6.44:1, the ground in another collection, resolved in its own default mode) and the ink over the hover wash (15.42:1, 19.42 without the wash). The engine's `legibleFor` ink for the overlay is `text.primary`, which the test asserts. Before this, forcing `groundModeFor` to the column's mode turned 66 palette-contracted roles to "—" with nothing red.
+- **The key moved.** `color|<name>|<prefix-relative group>` changed when a sibling group shortened the shared prefix, or when the collection was renamed. Now it is `color|<collection ID>|<full path>`, and the stale filter maps names to IDs.
+- **Stale over-reported.** `{types:['dimension']}` called every color table stale. The check now covers only the run's types.
+- **Mixed fonts.** A `figma.mixed` `fontName` returned false with no miss. Now every segment's font is loaded; an unreadable one is named.
+- **Header claims.** "referenced by the semantic roles" printed on Accent, which nothing references, and "each measured" printed on Scrim and Veil. Each clause is now a count the plan checked, dropped at zero.
+- **Rerun report.** Keyed by variable ID with a `renamed` list, comparing raw values (alias + RGBA), so Hex→RGBA is no change. A mode the brand does not contract ("L (HC)") is named in the notes.
+- **Studio note** cut to one line, with no issue number.
+- **The trap:** a substitution that unbalances a parenthesis reads as a crash, not a failure. The first header mutation did exactly that and had to be split into two clean ones. Read the battery's output for a stack trace, not just for exit 1.
 
 **Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable). **Host-unverified:** GRID rendering and HUG tracks, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
 

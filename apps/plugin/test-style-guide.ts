@@ -18,10 +18,15 @@
  *      words, the header instance;
  *   6. a RERUN updates in place — no second table — and reports tokens added, removed and changed, and an
  *      emptied group as stale;
- *   7. a missing page, missing cell sets and a missing header set are skips, reported, never thrown.
+ *   7. a missing page, missing cell sets and a missing header set are skips, reported, never thrown;
+ *   8. the table KEY (collection ID + full path) survives a sibling group and a renamed collection; the header
+ *      descriptions state only what was checked; the rerun report keys rows by variable ID and compares raw
+ *      values; the stale report stays inside the run's types and collections; an uncontracted mode is named;
+ *      a mixed-font cell loads every segment's font or names the miss.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
- * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula) are the engine's own contract figures floored to two places, transcribed from a probe of
+ * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
+ * neutral/050) and 15.42 (text.primary over the 10% hover wash on background.primary; 19.42 on the bare ground) are the engine's own contract figures floored to two places, transcribed from a probe of
  * `resolveAllModes` / `contrast` — never read off `style-guide.ts`. Page names, set names, group titles and
  * variant names are typed here, not imported. The shim's case-insensitive set search is its own.
  *
@@ -33,7 +38,19 @@
  *     on inverse/background/primary" fails;
  *   - sort primitive rows lexically → "4: foreign ramp in numeric order" fails;
  *   - never find an existing table on rerun → "6: rerun: still 11 tables on the semantic page" fails;
- *   - build every cell set regardless of `findCellSets` → "2: the adopted swatch set is not duplicated" fails.
+ *   - build every cell set regardless of `findCellSets` → "2: the adopted swatch set is not duplicated" fails;
+ *   - the diamond at x = 24, y = 8.44 → "1: the icon diamond's box is 8.44–39.56 on both axes…" fails;
+ *   - measure the ink against the bare ground, not the composite → "3: text/primary over
+ *     interactive.primary.overlay.hover on background.primary, light: 15.42:1" fails;
+ *   - `groundModeFor` always the column's mode → "3: foreground.brand on neutral/050, light: 6.44:1" fails;
+ *   - key by collection name, or by the prefix-relative group → "8: a sibling group added to legacy…" fails;
+ *   - the stale check ignores the run's types → "8: a dimension-only run reports no color table stale" fails;
+ *   - read no font segments → "8: a mixed-font cell loads every segment's font and is written" fails;
+ *   - drop the unreadable-font miss → "8: a cell whose fonts cannot be read is named…" fails;
+ *   - claim every step referenced / every role measured → "8: Accent header…" / "8: Scrim header…" fail;
+ *   - snapshot rows by name → "8: a renamed variable is a rename, not an add and a remove" fails;
+ *   - snapshot the printed value → "8: switching Hex to RGBA changes no row" fails;
+ *   - never name an uncontracted mode → "8: a file mode the engine does not contract is named" fails.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -73,7 +90,9 @@ class N {
   fills: unknown = [];
   strokes: unknown = [];
   characters?: string;
-  fontName?: { family: string; style: string };
+  fontName?: unknown;
+  /** A mixed-font text node's segments, as `getStyledTextSegments(['fontName'])` returns them. */
+  segments?: { fontName: unknown }[];
   visible = true;
   mainComponent: N | null = null;
   componentProperties?: Record<string, { type: string; value: unknown }>;
@@ -113,6 +132,7 @@ class N {
   }
   findOne(pred: (n: N) => boolean): N | null { return this.findAll(pred)[0] ?? null; }
   findAllWithCriteria(c: { types: string[] }): N[] { return this.findAll((n) => c.types.includes(n.type)); }
+  getStyledTextSegments(): { fontName: unknown }[] { return this.segments ?? [{ fontName: this.fontName }]; }
   setPluginData(k: string, v: string): void { this.pluginData[k] = v; }
   getPluginData(k: string): string { return this.pluginData[k] ?? ''; }
   setExplicitVariableModeForCollection(collection: unknown, modeId: string): void {
@@ -126,7 +146,7 @@ class N {
   createInstance(): N {
     const clone = (n: N): N => {
       const c = new N(n === this ? 'INSTANCE' : n.type);
-      for (const k of ['name', 'width', 'height', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'visible', 'layoutMode']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
+      for (const k of ['name', 'width', 'height', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
       for (const k of n.children) c.appendChild(clone(k));
       return c;
     };
@@ -273,6 +293,14 @@ const main = async (): Promise<void> => {
     ok(sw?.parent === fc, '1: the swatch set sits on ↳ File Components');
     ok(JSON.stringify(sw?.children.map((c) => c.name)) === JSON.stringify(['type=default', 'type=text', 'type=icon', 'type=border', 'type=transparency', 'type=radius']), '1: six swatch types');
     ok(sw?.children.every((c) => !!c.findOne((k) => k.name === 'Specimen')), '1: every swatch has a Specimen node');
+    // The diamond's box from the typings' transform (`rotation = atan2(-m10, m00)`, about the top-left corner):
+    // a corner (px, py) lands at (x + px·cos θ + py·sin θ, y − px·sin θ + py·cos θ).
+    const dia = sw?.children.find((c) => c.name === 'type=icon')?.findOne((k) => k.name === 'Specimen');
+    const th = (Number(dia?.rotation) * Math.PI) / 180, dx = Number(dia?.x), dy = Number(dia?.y), dw = Number(dia?.width), dh = Number(dia?.height);
+    const corners = [[0, 0], [dw, 0], [0, dh], [dw, dh]].map(([px, py]) => [dx + px * Math.cos(th) + py * Math.sin(th), dy - px * Math.sin(th) + py * Math.cos(th)]);
+    const r2 = (v: number): number => Math.round(v * 100) / 100;
+    const bb = [Math.min(...corners.map((c) => c[0])), Math.max(...corners.map((c) => c[0])), Math.min(...corners.map((c) => c[1])), Math.max(...corners.map((c) => c[1]))].map(r2);
+    ok(dia?.rotation === 45 && dw === 22 && JSON.stringify(bb) === JSON.stringify([8.44, 39.56, 8.44, 39.56]), `1: the icon diamond's box is 8.44–39.56 on both axes, centered at 24 in the 48px swatch (got ${JSON.stringify(bb)})`);
     const tc = setsNamed(s.pages, '_style-guide-text-cells')[0];
     ok(tc?.children.length === 12, '1: twelve text cells');
     ok(tc?.children.some((c) => c.name === 'color=white, textAlign=left, type=value alias, padding=default'), '1: a value-alias cell');
@@ -339,6 +367,12 @@ const main = async (): Promise<void> => {
     ok(scrim.cells[0].value === '#000000 · 40%' && scrim.display === 'transparency', '3: a translucent role prints its alpha and draws the checkerboard');
     const iconOnBrand = byTitle('semantic', 'Icon')!.rows.find((r) => r.token === 'icon/on-brand')!;
     ok(contrastText(iconOnBrand.cells[0].contrast) === '7.82:1 — clears the 4.5:1 floor\non foreground/brand', '3: icon.on-brand measures against foreground/brand');
+    // A palette-step ground, in another collection: resolved in ITS default mode, not the column's (`groundModeFor`).
+    const fgBrand = byTitle('semantic', 'Foreground')!.rows.find((r) => r.token === 'foreground/brand')!;
+    ok(contrastText(fgBrand.cells[0].contrast) === '6.44:1 — clears the 3:1 floor\non pds3/core/palette/neutral/050', '3: foreground.brand on neutral/050, light: 6.44:1');
+    // An ink-on-wash role: the ink measured over the wash composited on the ground — 19.42 on the bare ground.
+    const hover = byTitle('semantic', 'Interactive')!.rows.find((r) => r.token === 'interactive/primary/overlay/hover')!;
+    ok(hover.cells[0].contrast?.ink === 'text/primary' && hover.cells[0].contrast?.ground === 'background/primary' && contrastText(hover.cells[0].contrast).startsWith('15.42:1 — clears the 4.5:1 floor'), '3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1');
     const noBrand = planStyleGuide(catalog, null);
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
     ok(planStyleGuide(catalog, contract, { types: ['dimension'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['dimension'] }).notes.includes('dimension: not in this phase — color only'), '3: a later-phase type is named, not drawn');
@@ -413,7 +447,7 @@ const main = async (): Promise<void> => {
     ok(tableFrame(f.sem, 'Text')!.children.filter((c) => c.name === 'Table').length === 1 && tableFrame(f.sem, 'Text')!.children.filter((c) => c.mainComponent).length === 1, '6: one grid and one header after the rerun');
     const t = again.tables.find((x) => x.title === 'Text') as Extract<TableOutcome, { status: 'updated' }>;
     ok(t?.status === 'updated', '6: reported as updated');
-    ok(JSON.stringify(t?.diff) === JSON.stringify({ added: ['pds3/color/text/quaternary'], removed: ['pds3/color/text/tertiary'], changed: ['pds3/color/text/primary'] }), '6: reports text/quaternary added, text/tertiary removed, text/primary changed');
+    ok(JSON.stringify(t?.diff) === JSON.stringify({ added: ['pds3/color/text/quaternary'], removed: ['pds3/color/text/tertiary'], changed: ['pds3/color/text/primary'], renamed: [] }), '6: reports text/quaternary added, text/tertiary removed, text/primary changed');
     const g = gridOf(tableFrame(f.sem, 'Text')!);
     ok(textIn(cellAt(g, rowOf(g, 'text/primary'), 3)) === '3.27:1 — below the 7:1 floor\non background/primary', '6: the refreshed contrast names the ratio and the floor it misses');
     ok(again.stale.includes('Style guide — Scrim'), '6: the emptied Scrim table is reported stale, and left in place');
@@ -455,6 +489,61 @@ const main = async (): Promise<void> => {
     s4.fontFails.add('Inter Regular');
     const r4 = await runStyleGuide(s4.api, contract, { collections: ['core'] });
     ok(r4.misses.includes('Inter Regular unavailable'), '7: an unloadable font is named, not thrown');
+  }
+
+  console.log('8. keys, headers, the rerun report and fonts');
+  {
+    ok(byTitle('primitive', 'Legacy')!.key === 'color|VariableCollectionId:legacy|legacy/ramp' && byTitle('semantic', 'Text')!.key === 'color|VariableCollectionId:color|pds3/color/text', '8: a table is keyed by collection ID and the group\'s full path');
+    ok(byTitle('semantic', 'Text')!.description === '23 text roles in color, per mode, each measured against the ground it is contracted for', '8: Text header: every role measured');
+    ok(byTitle('semantic', 'Scrim')!.description === '1 scrim role in color, per mode', '8: Scrim header: no role is measured, so it does not say so');
+    ok(byTitle('primitive', 'Legacy')!.description === '4 primitive colors in legacy', '8: Legacy header: nothing references it, so it does not say so');
+    ok(byTitle('primitive', 'Primary')!.description === '20 primitive colors in core, 19 referenced by a semantic role', '8: Primary header counts its referenced steps');
+    ok(byTitle('primitive', 'Accent')!.description === '20 primitive colors in core', '8: Accent header: no role references it, so it does not say so');
+    ok(byTitle('semantic', 'Foreground')!.description === '13 foreground roles in color, per mode, 5 measured against the ground they are contracted for', '8: Foreground header counts its measured roles');
+
+    const hc = { ...catalog, collections: catalog.collections.map((c) => c.name === 'color' ? { ...c, modes: [...c.modes, { modeId: 'color:9', name: 'L (HC)' }] } : c) };
+    ok(planStyleGuide(hc, contract).notes.includes('The L (HC) mode in color matches no mode the brand contracts (light, dark, hc-light, hc-dark), so its contrast reads "—"'), '8: a file mode the engine does not contract is named');
+    ok(!plan.notes.some((n) => n.includes('matches no mode')), '8: the four prism3 modes all match');
+
+    const g = await fullFile();
+    await runStyleGuide(g.api, contract);
+    const legacyKey = 'color|VariableCollectionId:legacy|legacy/ramp';
+    g.vars.push({ id: 'VariableID:legacy:9', name: 'legacy/other/1', variableCollectionId: 'VariableCollectionId:legacy', resolvedType: 'COLOR', description: '', valuesByMode: { 'legacy:0': { r: 1, g: 0, b: 0, a: 1 } } });
+    const sib = await runStyleGuide(g.api, contract);
+    ok(tablesOn(g.prim).filter((n) => n.pluginData['prism3-style-guide'] === legacyKey).length === 1 && tablesOn(g.prim).length === 12, '8: a sibling group added to legacy: the ramp table is kept, one new table, no duplicate');
+    ok(sib.tables.find((t) => t.key === legacyKey)?.status === 'updated' && sib.stale.length === 0, '8: the ramp table is updated in place, nothing stale');
+    g.cols[2].name = 'legacy renamed';
+    const ren = await runStyleGuide(g.api, contract);
+    ok(tablesOn(g.prim).length === 12 && ren.tables.filter((t) => t.status === 'created').length === 0, '8: a renamed collection keeps its tables');
+
+    g.vars.find((v) => v.name === 'pds3/color/text/primary')!.name = 'pds3/color/text/strong';
+    const rn = await runStyleGuide(g.api, contract);
+    const td = (rn.tables.find((t) => t.title === 'Text') as Extract<TableOutcome, { status: 'updated' }>).diff;
+    ok(JSON.stringify(td) === JSON.stringify({ added: [], removed: [], changed: [], renamed: ['pds3/color/text/primary → pds3/color/text/strong'] }), '8: a renamed variable is a rename, not an add and a remove');
+    const rgba = await runStyleGuide(g.api, contract, { valueFormat: 'rgba' });
+    ok(rgba.tables.every((t) => t.status === 'updated' && !t.diff.added.length && !t.diff.removed.length && !t.diff.changed.length && !t.diff.renamed.length), '8: switching Hex to RGBA changes no row');
+
+    const dim = await runStyleGuide(g.api, contract, { types: ['dimension'] });
+    ok(dim.tables.length === 0 && dim.stale.length === 0, '8: a dimension-only run reports no color table stale');
+    const one = await runStyleGuide(g.api, contract, { collections: ['core'] });
+    ok(one.stale.length === 0 && one.tables.length === 10, '8: a one-collection run reports no other collection\'s table stale');
+
+    // Mixed fonts: every text node in the cells set in two fonts, read as `figma.mixed`.
+    const MIXED = Symbol('mixed');
+    const m = await fullFile();
+    const cells = setsNamed(m.pages, '_style-guide-text-cells')[0];
+    const mix = (segments: { fontName: unknown }[]): void => { for (const t of cells.findAll((k) => k.type === 'TEXT')) { t.fontName = MIXED; t.segments = segments; } };
+    const legacyCell = (sh: Shim & { prim: N }): string => textIn(cellAt(gridOf(tableFrame(sh.prim, 'Legacy')!), 1, 0));
+    mix([{ fontName: { family: 'Inter', style: 'Regular' } }, { fontName: { family: 'Inter', style: 'Bold' } }]);
+    const mr = await runStyleGuide(m.api, contract, { collections: ['legacy'] });
+    ok(legacyCell(m) === '5' && mr.misses.length === 0, '8: a mixed-font cell loads every segment\'s font and is written');
+    m.fontFails.add('Inter Bold');
+    const mb = await runStyleGuide(m.api, contract, { collections: ['legacy'] });
+    ok(mb.misses.includes('Inter Bold unavailable'), '8: a mixed-font cell with an unloadable segment names the font');
+    mix([]);
+    m.fontFails.clear();
+    const mu = await runStyleGuide(m.api, contract, { collections: ['legacy'] });
+    ok(mu.misses.includes('Text: its fonts could not be read, so the cell keeps its sample text') && legacyCell(m) === 'Abc 123', '8: a cell whose fonts cannot be read is named, not left silently at "Abc 123"');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

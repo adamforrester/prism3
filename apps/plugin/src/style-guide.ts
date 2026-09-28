@@ -96,6 +96,9 @@ export interface SgCell {
   value: string;
   /** The first alias hop, as a token path, or null for a literal. */
   alias: string | null;
+  /** The value independent of the print format — the first alias hop's id and the resolved RGBA — so the
+   *  rerun report compares what the token holds, not how the table prints it. */
+  raw: string;
   /** The variable the specimen's ground frame is bound to, or null to draw it on the cell. */
   groundId: string | null;
   /** The measured contrast, or null where the role has no contracted ground. */
@@ -274,6 +277,9 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   const roleKeys = new Set<string>();
   for (const m of contract ?? []) for (const k of Object.keys(m.roles)) roleKeys.add(k);
   if (!contract) notes.push('No saved brand in this file, so the contrast column reads "—" — Apply theme saves one');
+  // Every variable some other variable aliases, in any mode — the fact a primitive table's header states.
+  const referenced = new Set<string>();
+  for (const v of catalog.variables) for (const val of Object.values(v.valuesByMode)) { const a = aliasId(val); if (a) referenced.add(a); }
 
   const tables: SgTable[] = [];
   for (const col of catalog.collections) {
@@ -283,6 +289,9 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
     const primitive = vars.every((v) => col.modes.every((m) => aliasId(v.valuesByMode[m.modeId]) === null));
     const prefix = commonPrefix(vars.map((v) => v.name.split('/').slice(0, -1)));
     const display = (v: SgVariable): string => v.name.split('/').slice(prefix.length).join('/');
+    // A file mode the engine does not contract ("L (HC)") has no floors to measure against: said by name.
+    if (!primitive && contract) for (const m of col.modes) if (!contractByMode.has(m.name.toLowerCase()))
+      notes.push(`The ${m.name} mode in ${col.name} matches no mode the brand contracts (${contract.map((c) => c.mode).join(', ')}), so its contrast reads "—"`);
 
     // Group: by parent path for a primitive scale, by family for semantic roles. A variable at the prefix
     // itself has no group segment and lands in the base group.
@@ -299,9 +308,6 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       // NUMERIC ORDER for a scale (the owner's plugin sorted 10, 11, 112, 12); file order for roles.
       if (primitive) members.sort((a, b) => naturalCompare(display(a), display(b)));
       const title = g === '' ? (groupNames.length === 1 ? sentence(col.name) : `${sentence(col.name)} — base`) : sentence(g.split('/').pop()!);
-      const description = primitive
-        ? `${members.length} primitive colors in ${col.name} — referenced by the semantic roles, not applied directly`
-        : `${members.length} ${g || col.name} roles in ${col.name}, per mode — each measured against the ground it is contracted for`;
 
       const rows: SgRow[] = members.map((v) => {
         const segs = v.name.split('/');
@@ -342,6 +348,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
             modeName: m.name,
             value: value ? formatColor(value, format) : '—',
             alias: aliasVar ? aliasVar.name : null,
+            raw: `${first ?? ''}|${value ? [value.r, value.g, value.b, value.a ?? 1].map((n) => Math.round(n * 1e6) / 1e6).join(',') : ''}`,
             groundId,
             contrast: c,
           };
@@ -358,9 +365,19 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
         };
       });
 
+      // The header states only what the plan checked: how many of the palette's steps a role references, and
+      // how many of the roles carry a measured contrast.
+      const n = members.length;
+      const k = primitive ? members.filter((v) => referenced.has(v.id)).length : rows.filter((r) => r.cells.some((c) => c.contrast)).length;
+      const description = primitive
+        ? `${n} primitive color${n === 1 ? '' : 's'} in ${col.name}${k === 0 ? '' : k === n ? ', each referenced by a semantic role' : `, ${k} referenced by a semantic role`}`
+        : `${n} ${g || col.name} role${n === 1 ? '' : 's'} in ${col.name}, per mode${k === 0 ? '' : k === n ? ', each measured against the ground it is contracted for' : `, ${k} measured against the ground they are contracted for`}`;
+
       const perMode = col.modes.flatMap((m) => (primitive ? [m.name, 'Value'] : [m.name, 'Value', 'Contrast']));
       tables.push({
-        key: `color|${col.name}|${g}`,
+        // Keyed by the collection's ID and the group's FULL path, so neither a renamed collection nor a sibling
+        // group that shortens the shared prefix moves the key and duplicates the table.
+        key: `color|${col.id}|${[...prefix, ...(g ? g.split('/') : [])].join('/')}`,
         kind: primitive ? 'primitive' : 'semantic',
         page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
         collectionId: col.id,
@@ -415,19 +432,25 @@ const tokenPath = (v: SgVariable, col: SgCollection, prefix: readonly string[]):
   v.variableCollectionId === col.id ? v.name.split('/').slice(prefix.length).join('/') : v.name;
 
 // ── The rerun report ───────────────────────────────────────────────────────────────────────────────
-/** What a table held when it was last written: token name → mode name → printed value. */
-export type RowsSnapshot = Record<string, Record<string, string>>;
+/** What a table held when it was last written: variable ID → its name and, per mode ID, the raw value. Keyed by
+ *  ID so a rename is a rename, not an add and a remove; raw so a new print format is not a change. */
+export type RowsSnapshot = Record<string, { name: string; values: Record<string, string> }>;
 
 export const snapshotOf = (t: SgTable): RowsSnapshot =>
-  Object.fromEntries(t.rows.map((r) => [r.name, Object.fromEntries(r.cells.map((c) => [c.modeName, c.value]))]));
+  Object.fromEntries(t.rows.map((r) => [r.variableId, { name: r.name, values: Object.fromEntries(r.cells.map((c) => [c.modeId, c.raw])) }]));
 
-export interface RowsDiff { added: string[]; removed: string[]; changed: string[] }
+export interface RowsDiff { added: string[]; removed: string[]; changed: string[]; renamed: string[] }
 
-export const diffRows = (before: RowsSnapshot, after: RowsSnapshot): RowsDiff => ({
-  added: Object.keys(after).filter((k) => !(k in before)),
-  removed: Object.keys(before).filter((k) => !(k in after)),
-  changed: Object.keys(after).filter((k) => k in before && JSON.stringify(before[k]) !== JSON.stringify(after[k])),
-});
+export const diffRows = (before: RowsSnapshot, after: RowsSnapshot): RowsDiff => {
+  const was = (id: string): { name: string; values: Record<string, string> } | undefined => (Object.prototype.hasOwnProperty.call(before, id) ? before[id] : undefined);
+  const ids = Object.keys(after);
+  return {
+    added: ids.filter((id) => !was(id)).map((id) => after[id].name),
+    removed: Object.keys(before).filter((id) => !Object.prototype.hasOwnProperty.call(after, id)).map((id) => before[id].name),
+    changed: ids.filter((id) => was(id) && JSON.stringify(was(id)!.values) !== JSON.stringify(after[id].values)).map((id) => after[id].name),
+    renamed: ids.filter((id) => was(id) && was(id)!.name !== after[id].name).map((id) => `${was(id)!.name} → ${after[id].name}`),
+  };
+};
 
 // ── The executor ───────────────────────────────────────────────────────────────────────────────────
 /** The node surface the executor writes: `CellNode` plus plugin data, grid placement, mode pinning and
@@ -447,6 +470,7 @@ export interface SgNode extends CellNode {
   getPluginData?(key: string): string;
   setExplicitVariableModeForCollection?(collection: unknown, modeId: string): void;
   setProperties?(props: Record<string, string | boolean>): void;
+  getStyledTextSegments?(fields: ['fontName']): readonly { fontName: unknown }[];
   remove?(): void;
 }
 
@@ -536,9 +560,19 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (!fonts.has(k)) fonts.set(k, api.loadFontAsync({ family: font.family, style: font.style }).then(() => true, () => { misses.push(`${k} unavailable`); return false; }));
     return fonts.get(k)!;
   };
+  // A text node set in more than one font reads `fontName` as `figma.mixed`: every segment's font is loaded, and
+  // one the host does not list is a named miss, never a cell left silently at its sample text.
   const writeText = async (n: SgNode | null | undefined, text: string): Promise<void> => {
     if (!n) return;
-    if (await ensureFont(n.fontName)) n.characters = text;
+    const one = n.fontName as { family?: unknown } | undefined;
+    const used = one && typeof one === 'object' && typeof one.family === 'string' ? [n.fontName] : (n.getStyledTextSegments?.(['fontName']) ?? []).map((seg) => seg.fontName);
+    if (!used.length) {
+      const note = `${String(n.name)}: its fonts could not be read, so the cell keeps its sample text`;
+      if (!misses.includes(note)) misses.push(note);
+      return;
+    }
+    const ready = await Promise.all(used.map(ensureFont));
+    if (ready.every(Boolean)) n.characters = text;
   };
   const textNodes = (n: SgNode): SgNode[] => (n.findAll?.((c) => c.type === 'TEXT') ?? []) as SgNode[];
   const byName = (n: SgNode, name: string): SgNode | null =>
@@ -681,12 +715,17 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (created) anchor(page).y += (wrap.height ?? 0) + TABLE_GAP;
   }
 
-  // A table from an earlier run whose group is gone: named, never deleted.
+  // A table from an earlier run whose group is gone: named, never deleted. Only tables this run could have
+  // drawn are candidates — its types, and its collections (by ID, the key's second field) when filtered.
   const planned = new Set(plan.tables.map((t) => t.key));
+  const types = new Set((options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase()));
+  const wantIds = options.collections ? new Set(catalog.collections.filter((c) => options.collections!.some((w) => w.toLowerCase() === c.name.toLowerCase())).map((c) => c.id)) : null;
   const stale: string[] = [];
   for (const p of api.root.children) for (const f of framesOn(p)) {
     const k = f.getPluginData?.(TABLE_KEY);
-    if (k && k.startsWith('color|') && !planned.has(k) && !(options.collections && !options.collections.some((c) => k.split('|')[1]?.toLowerCase() === c.toLowerCase()))) stale.push(String(f.name));
+    if (!k || planned.has(k)) continue;
+    const [type, colId] = k.split('|');
+    if (types.has(type) && (!wantIds || wantIds.has(colId))) stale.push(String(f.name));
   }
   return { tables: out, stale, notes: plan.notes, misses };
 };
@@ -715,7 +754,7 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   if (upd.length) {
     const changes = upd.flatMap((t) => {
       const d = t.diff;
-      const bits = [d.added.length && `${d.added.length} added`, d.removed.length && `${d.removed.length} removed`, d.changed.length && `${d.changed.length} changed`].filter(Boolean);
+      const bits = [d.added.length && `${d.added.length} added`, d.removed.length && `${d.removed.length} removed`, d.changed.length && `${d.changed.length} changed`, d.renamed.length && `${d.renamed.length} renamed`].filter(Boolean);
       return bits.length ? [`${t.title}: ${bits.join(', ')}`] : [];
     });
     parts.push(`${upd.length} tables updated in place — ${changes.length ? changes.join('; ') : 'no token changes'}`);

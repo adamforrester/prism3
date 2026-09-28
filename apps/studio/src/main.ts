@@ -5204,12 +5204,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
 
   const sec = palSection('Color tables', 'Draws or updates one table per palette and one per role family.');
   const note = el('p', 'cw-note');
-  note.append(document.createTextNode(
-    'Reads every color variable in this file. Tables already drawn are updated in place, and the verdict lists '
-    + 'the tokens added, removed or changed since the last run. It needs the cell components Set up file places '
-    + 'on File Components, and the Primitive tokens and Semantic tokens pages; a missing one is a skip, named in the verdict. '
-    + 'Dimension, type, shadow and motion tables are later phases (#259).',
-  ));
+  note.append(document.createTextNode('Needs the pages and cell components Set up file adds. A rerun updates each table in place.'));
   sec.append(note);
 
   // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.

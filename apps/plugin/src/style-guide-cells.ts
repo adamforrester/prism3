@@ -137,13 +137,15 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
     if (type === 'text') {
       specimen = makeText(api, { font: BOLD, size: 24, lineHeight: 32, letterSpacing: 0, color: INK, text: 'Aa' }, loaded, misses) as CellNode;
     } else if (type === 'icon') {
-      // A diamond: a square turned 45°, placed so its bounding box sits centered in the swatch.
+      // A diamond: a square turned 45°, placed so its bounding box sits centered in the swatch. Figma turns a
+      // node counterclockwise about its top-left corner, which becomes the diamond's LEFT point: the box spans
+      // x … x + side·√2 and y − side/√2 … y + side/√2, so x and y locate that left point, not the top.
       const side = 22;
       specimen = box(api, 'Specimen', side, side);
       specimen.fills = solid(INK);
       specimen.rotation = 45;
-      specimen.x = SWATCH_SIZE / 2;
-      specimen.y = (SWATCH_SIZE - side * Math.SQRT2) / 2;
+      specimen.x = SWATCH_SIZE / 2 - (side * Math.SQRT2) / 2;
+      specimen.y = SWATCH_SIZE / 2;
     } else {
       specimen = box(api, 'Specimen', SPECIMEN, SPECIMEN);
       specimen.cornerRadius = 4;
