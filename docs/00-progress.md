@@ -11,7 +11,7 @@
 
 **Owner-approved.** Forced-colors mode (Windows high contrast) removes background fills. A subtle status badge already survives it, because its edge is an inset outline (#1736: `outline: 1px solid; outline-offset: -1px`, never a border, so subtle and bold stay one size). A bold badge had no edge, so it read as bare text. The code guidance now gives every bold badge the same inset outline in `transparent`. It is invisible everywhere else, forced colors paints it in the system color, and it adds no size.
 
-**Code only.** Figma has no forced-colors mode, so the set, the surface digest and the paint census do not move. The one place this lives is `codeOnly`, so a literal `test.ts` arm (`badge forced colors`) holds both halves of the sentence. Mutation (committed first, restored from HEAD): drop "in transparent" from the guidance, and that arm fails by name.
+**Code only in effect.** Figma has no forced-colors mode, so no member's geometry or paint moves. The badge's surface digest does move and was re-accepted after the bump, because the projected plan carries the def's `codeOnly` text; the paint census does not move. The one place this lives is `codeOnly`, so a literal `test.ts` arm (`badge forced colors`) holds both halves of the sentence. Mutation (committed first, restored from HEAD): drop "in transparent" from the guidance, and that arm fails by name.
 
 ---
 

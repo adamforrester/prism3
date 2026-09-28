@@ -2928,7 +2928,7 @@
  *
  * 0.191.0 — #1747 (owner, 2026-09-28): a bold badge carries the subtle badge's inset outline in transparent,
  * so forced-colors mode, which drops background fills, still draws every badge's pill. Code guidance only
- * (`codeOnly`); the Figma set does not move. `out/components/badge.md` and `components.ai.json` move → ENGINE
+ * (`codeOnly`); no member's geometry or paint moves, though the surface digest (which carries the text) does. `out/components/badge.md` and `components.ai.json` move → ENGINE
  * bump. CONTRACT STANDS at 13.1.0.
  *
  * 0.190.0 — Badge follow-ups (owner decisions, 2026-09-27 and 2026-09-28), and a sparse variant grid.
