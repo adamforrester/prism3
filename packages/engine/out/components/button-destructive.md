@@ -22,6 +22,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 - Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button
 - Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button
 - On a brand whose `buttonContentSize` is `smaller` (One step smaller), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own
+- On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with One step smaller, a medium button takes `type.label.sm.default`
 - Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant
 - Place it beside a neutral escape ("Cancel" / "Keep"), never alone; on a delete confirmation the safe choice is often the filled button and the destructive action sits at a lower appearance beside it
 

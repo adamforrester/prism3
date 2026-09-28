@@ -243,8 +243,9 @@ The owner's disposition:
 - **Every category keeps at least one weight, for now.** Removing weights is never how a text-style
   category disappears. The engine refuses an empty set for any category, naming it
   (`typography.weights.<category>: … needs at least one weight role`).
-- **`label` keeps `emphasis`.** `button` binds `type.label.{sm,md,lg}.emphasis` by name, so the engine
-  refuses a label set without it and says why. `REQUIRED_WEIGHT_ROLES` in `theme.ts` holds the rule. A
+- **`label` keeps `emphasis`.** `tag` and `badge` bind `type.label.*.emphasis` by name, and so does
+  `button` unless `buttonLabelWeight` is `'default'` (#1752), so the engine refuses a label set without it
+  and says why. `REQUIRED_WEIGHT_ROLES` in `theme.ts` holds the rule. A
   label set may gain roles. Its three `emphasis` composites stay guaranteed.
 - **`eyebrow` and `code` may swap their single weight**, as long as each keeps one. So
   `type.eyebrow.{sm,md,lg}.emphasis` and `type.code.inline.default` are `brandDependent` now. The

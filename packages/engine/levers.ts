@@ -109,6 +109,10 @@ export const leverManifest: Lever[] = [
   { key: 'buttonContentSize', group: 'form', label: 'Button label & icon', control: 'enum', default: 'match',
     options: enumOpts(['match', 'Match button size'], ['smaller', 'One step smaller']),
     description: 'The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged.' },
+  // #1752 — label and option labels are the owner's exact words (2026-09-28). Buttons only.
+  { key: 'buttonLabelWeight', group: 'form', label: 'Button label weight', control: 'enum', default: 'emphasis',
+    options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
+    description: 'The weight role a button label binds: Emphasis (600 at the stock weight roles) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis.' },
   { key: 'buttonMinWidthMultiplier', group: 'form', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
     description: 'A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button.' },
   { key: 'baseMd', group: 'form', label: 'Radius anchor', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
