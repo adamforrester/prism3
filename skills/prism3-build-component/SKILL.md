@@ -358,6 +358,14 @@ boolean otherwise.** Verify which case a new component is in against the actual 
 value of each axis in declaration order, so "the Figma default matches the code default" is an axis-order
 fact (#1699). Put the code default first.
 
+**A sparse grid.** A variant set is the full cross product of its axes unless the def says otherwise. When
+one axis value has no meaning at a value of another (Badge's count and dot have no `subtle` emphasis), list
+the missing coordinates in `figmaProperties.excludeCoordinates` as partial coordinates —
+`[{ genre: ['count', 'dot'], emphasis: ['subtle'] }]` — instead of projecting members that cannot honor the
+value. The validator refuses an entry naming an axis or value the set does not have, an exclusion that
+empties the set or leaves a declared value on no member, and one that removes the first member or the code
+default. `packages/engine/components/badge.ts` is the worked example.
+
 ## 7. Verification — the gate lists, the whole run, and the mutation that names your gate
 
 **A new def joins these lists by hand.** Each is authored in its gate, never derived from the registry,

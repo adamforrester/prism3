@@ -51,7 +51,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -4746,70 +4746,97 @@ for (const b of brands) {
 // `$extensions.prism3.modes.<mode>` to the `motion.duration.<role>` / `duration-reduced.<role>` /
 // `stagger` PRIMITIVE; composite transitions inherit via the duration alias, so the transition SET is
 // untouched. Motion is DTCG + web only (not a Figma variable), so buildFigmaFont is unaffected.
-// ---- BADGE — the owner's decisions of 2026-09-27, held here with literal expectations -----------------------
+// ---- BADGE — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations --------
 // Written from the decisions, not read back from the def: static (no states), one component switched by a
-// `genre` prop with the literal values status | count | dot, both accessibility contracts stated, and NO
-// interactive binding — every color ref is in the literal family list below, and the surface paints no stroke.
-// The contrast arm measures the def's OWN label/fill pairs in every example brand and mode against 4.5:1,
-// because the neutral pair is not one the engine's own contract gates.
+// `genre` prop with the literal values status | count | dot, an `emphasis` prop subtle | bold that only the
+// status label carries both of, both accessibility contracts stated, and NO interactive binding — every color
+// ref is in the literal family list below. The paint table is literal too: each member's fill, ink and edge,
+// pinned against the def and then measured in every example brand and mode, so the measurement reads the
+// decision and the pin reads the def.
 {
   const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
   ok(!!badgeDef, 'badge: the def is registered');
   const TONES = ['neutral', 'info', 'success', 'warning', 'danger'];
+  const SEMANTIC = ['info', 'success', 'warning', 'danger'];
   const colorRefs = Object.entries(badgeDef.tokens).filter(([, r]) => r.startsWith('color.'));
   const interactive = Object.entries(badgeDef.tokens).filter(([, r]) => /(^|\.)interactive(\.|$)/.test(r));
-  // A surface role or a text role, on the page or on the inverse ground (the neutral fill, 2026-09-27). Never
-  // interactive. 25 = 5 tones x (status fill + label, count fill + label, dot fill).
-  const BADGE_COLOR_FAMILIES = ['color.foreground.', 'color.text.', 'color.inverse.foreground.', 'color.inverse.text.'];
+  // A surface role, a text role or a semantic border role, on the page or on the inverse ground. Never
+  // interactive. 40 = 5 tones x (subtle status fill + label + edge, bold status fill + label, count fill +
+  // label, dot fill).
+  const BADGE_COLOR_FAMILIES = ['color.foreground.', 'color.text.', 'color.border.', 'color.inverse.foreground.', 'color.inverse.text.'];
   const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)));
-  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 25,
-    `badge binds no interactive role: all ${colorRefs.length} of 25 color refs are foreground.* or text.*, or their inverse twins${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
-  // Each (tone, genre) fill is pinned to its role (#1730 net): the lint-paint provenance exceptions skip the
-  // subtle and neutral keys, so without this arm a fill rebound to another tone passes. Status paints the
-  // tone's subtle tint, count and dot its bold fill, and neutral the inverse surface in every genre.
-  const FILL_OF: Record<string, string> = {
-    'neutral.status': 'color.inverse.foreground.tertiary', 'info.status': 'color.foreground.info-subtle',
-    'success.status': 'color.foreground.success-subtle', 'warning.status': 'color.foreground.warning-subtle',
-    'danger.status': 'color.foreground.danger-subtle',
-    'neutral.count': 'color.inverse.foreground.tertiary', 'info.count': 'color.foreground.info',
-    'success.count': 'color.foreground.success', 'warning.count': 'color.foreground.warning', 'danger.count': 'color.foreground.danger',
-    'neutral.dot': 'color.inverse.foreground.tertiary', 'info.dot': 'color.foreground.info',
-    'success.dot': 'color.foreground.success', 'warning.dot': 'color.foreground.warning', 'danger.dot': 'color.foreground.danger',
+  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 40,
+    `badge binds no interactive role: all ${colorRefs.length} of 40 color refs are foreground.*, text.* or border.*, or their inverse twins${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+
+  // THE PAINT TABLE (owner decisions, 2026-09-28), member by member. SUBTLE status: the tone's tint under the
+  // tone's text ink, edged in the tone's border role; neutral is the second surface under the primary text,
+  // edged in the secondary border. BOLD status, count and dot: the solid tone fill under `text.on-<tone>`;
+  // bold neutral is the inverse surface under its ink. The count and dot have no subtle member.
+  type Paint = { fill: string; label?: string; border?: string };
+  const PAINT: Record<string, Paint> = {
+    'neutral.status.subtle': { fill: 'foreground.secondary', label: 'text.primary', border: 'border.secondary' },
+    'neutral.status.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
+    'neutral.count.bold': { fill: 'inverse.foreground.tertiary', label: 'inverse.text.primary' },
+    'neutral.dot.bold': { fill: 'inverse.foreground.tertiary' },
+    ...Object.fromEntries(SEMANTIC.flatMap((t) => [
+      [`${t}.status.subtle`, { fill: `foreground.${t}-subtle`, label: `text.${t}`, border: `border.${t}` }],
+      [`${t}.status.bold`, { fill: `foreground.${t}`, label: `text.on-${t}` }],
+      [`${t}.count.bold`, { fill: `foreground.${t}`, label: `text.on-${t}` }],
+      [`${t}.dot.bold`, { fill: `foreground.${t}` }],
+    ])),
   };
-  const wrongFill = Object.entries(FILL_OF).filter(([c, want]) => badgeDef.tokens[`${c}.fill`] !== want);
-  ok(wrongFill.length === 0,
-    `badge: each tone's fill is its own tone's role, in each genre${wrongFill.length ? ` — ${wrongFill.map(([c]) => `${c}.fill → ${badgeDef.tokens[`${c}.fill`]}`).join('; ')}` : ''}`);
+  const bound = (k: string): string | undefined => badgeDef.tokens[k]?.replace(/^color\./, '');
+  const wrongPaint = Object.entries(PAINT).flatMap(([m, want]) => (['fill', 'label', 'border'] as const)
+    .filter((slot) => bound(`${m}.${slot}`) !== want[slot]).map((slot) => `${m}.${slot} → ${bound(`${m}.${slot}`) ?? 'unbound'} (want ${want[slot] ?? 'unbound'})`));
+  ok(Object.keys(PAINT).length === 20 && wrongPaint.length === 0,
+    `badge: each of the 20 members paints its own fill, ink and edge, and a bold member binds no edge${wrongPaint.length ? ` — ${wrongPaint.join('; ')}` : ''}`);
+  const surfacePart: any = badgeDef.anatomy!.parts['surface'];
   const slots = Object.values(badgeDef.anatomy!.parts).flatMap((p: any) => p.paintSlots ?? []);
-  ok(JSON.stringify(slots) === JSON.stringify(['fill']),
-    `badge paints a fill and nothing else — no border or overlay pairing that reads as interactive (${JSON.stringify(slots)})`);
+  ok(JSON.stringify(slots) === JSON.stringify(['fill', 'border']) && badgeDef.tokens[surfacePart?.strokeWidth] === 'border-width.hairline',
+    `badge paints a fill and a 1px edge, and no overlay — the edge weight is the tier's 1px border width (${JSON.stringify(slots)}, ${surfacePart?.strokeWidth} → ${badgeDef.tokens[surfacePart?.strokeWidth]})`);
   ok(JSON.stringify(badgeDef.states) === '[]',
     `badge is static: no states (${JSON.stringify(badgeDef.states)})`);
   const genre = badgeDef.props.find((p) => p.name === 'genre');
   ok(JSON.stringify(genre?.values) === JSON.stringify(['status', 'count', 'dot']) && genre?.default === 'status',
     `badge genre: the values are status | count | dot, default status (${JSON.stringify(genre?.values)}, ${genre?.default})`);
+  const emphasis = badgeDef.props.find((p) => p.name === 'emphasis');
+  ok(JSON.stringify(emphasis?.values) === JSON.stringify(['subtle', 'bold']) && emphasis?.default === 'subtle'
+    && JSON.stringify(badgeDef.variants?.emphasis) === JSON.stringify(['subtle', 'bold']),
+    `badge emphasis: the values are subtle | bold, default subtle (${JSON.stringify(emphasis?.values)}, ${emphasis?.default})`);
   const aria = badgeDef.accessibility.aria;
   ok(/Status label: not aria-hidden/.test(aria) && /Count and dot: aria-hidden="true"/.test(aria) && /host composes the meaning into its accessible name/.test(aria),
     'badge aria: a status label announces itself; a count or dot is aria-hidden and its meaning is in the host name');
 
-  // THE GENRE AXIS IN FIGMA (owner-approved, 2026-09-27). Read off the PROJECTED members, not the def's own
-  // declarations: 15 members (3 genres x 5 tones), and each genre's member carries its own content — the
-  // status label reads "Status", the count reads a number and no label, and the dot carries no text and a
-  // fixed square. A genre dropped from `variantAxes`, or a presence gate lost, fails here by name.
+  // THE FIGMA SET (owner decisions, 2026-09-28). Read off the PROJECTED members, not the def's declarations:
+  // 20 members — the status label at both emphases (10), the count and the dot bold only (5 each) — and NO
+  // member at `genre=count|dot` with `emphasis=subtle`. Each genre's member carries its own content: the status
+  // label reads "Status", the count reads a number and no label, the dot carries no text and a fixed square.
+  // Every subtle member strokes and no bold member does, and the stroke weight is the bound 1px role.
   const badgeSet = figmaAnatomySet(badgeDef);
   const texts = (n: any): string[] => [...(n.characters !== undefined ? [String(n.characters)] : []), ...(n.children ?? []).flatMap(texts)];
   const partNames = (n: any): string[] => [n.name, ...(n.children ?? []).flatMap(partNames)];
-  const byGenre: Record<string, { texts: string[]; parts: string[] }[]> = {};
-  for (const m of badgeSet as any[]) {
-    const g = /genre=(\w+)/.exec(planComponentName(m))?.[1] ?? '(none)';
-    (byGenre[g] ??= []).push({ texts: texts(m.root ?? m), parts: partNames(m.root ?? m) });
-  }
-  const genreShape = (g: string, want: (x: { texts: string[]; parts: string[] }) => boolean): boolean =>
-    (byGenre[g]?.length ?? 0) === 5 && byGenre[g].every(want);
-  ok(badgeSet.length === 15
-    && genreShape('status', (x) => JSON.stringify(x.texts) === '["Status"]' && !x.parts.includes('count') && !x.parts.includes('dot'))
-    && genreShape('count', (x) => x.texts.length === 1 && /^[0-9]+\+?$/.test(x.texts[0]) && !x.parts.includes('text') && !x.parts.includes('dot'))
-    && genreShape('dot', (x) => x.texts.length === 0 && x.parts.includes('dot')),
-    `badge genre projects to Figma: 15 members, five per genre, each with its own content (${Object.entries(byGenre).map(([g, xs]) => `${g}: ${xs.length} [${[...new Set(xs.map((x) => x.texts.join('|') || '-'))].join(', ')}]`).join('; ')})`);
+  const members = (badgeSet as any[]).map((m) => {
+    const name = planComponentName(m);
+    return {
+      name, genre: /genre=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
+      texts: texts(m.root), parts: partNames(m.root), stroke: m.root.paints?.strokes as string | undefined, weight: m.root.bound?.strokeWeight as string | undefined,
+    };
+  });
+  const cell = (g: string, e: string) => members.filter((m) => m.genre === g && m.emphasis === e);
+  const badSubtle = members.filter((m) => (m.genre === 'count' || m.genre === 'dot') && m.emphasis === 'subtle');
+  ok(badgeSet.length === 20 && badSubtle.length === 0
+    && cell('status', 'subtle').length === 5 && cell('status', 'bold').length === 5
+    && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5,
+    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at genre=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
+  const wrongContent = members.filter((m) => !(
+    m.genre === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
+      : m.genre === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
+        : m.texts.length === 0 && m.parts.includes('dot')));
+  ok(wrongContent.length === 0,
+    `badge genre content: each member carries its genre's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
+  const wrongEdge = members.filter((m) => (m.emphasis === 'subtle') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
+  ok(wrongEdge.length === 0,
+    `badge edge: every subtle member strokes at border-width/hairline and no bold member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
   // The dot's size is its own fixed square, not the count's padding around nothing (the brief's ~6–12px dot).
   const dotPart: any = badgeDef.anatomy!.parts['dot'];
   ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"genre":["dot"]}',
@@ -4836,27 +4863,36 @@ for (const b of brands) {
     }
     return { measured, low };
   };
-  for (const tone of TONES) for (const g of ['status', 'count']) {
-    const ink = badgeDef.tokens[`${tone}.${g}.label`]?.replace(/^color\./, '') ?? '(unbound)';
-    const fill = badgeDef.tokens[`${tone}.${g}.fill`]?.replace(/^color\./, '') ?? '(unbound)';
-    const { measured, low } = measure(ink, fill, 4.5);
+  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing genre: 15 members (status subtle 5,
+  // status bold 5, count bold 5), each in 20 cells. Read from the literal table, so a def rebound to a pair
+  // that happens to pass still fails the pin above.
+  const TEXT_MEMBERS = Object.entries(PAINT).filter(([, p]) => p.label);
+  ok(TEXT_MEMBERS.length === 15, `badge contrast covers 15 text-bearing members (got ${TEXT_MEMBERS.length})`);
+  for (const [m, p] of TEXT_MEMBERS) {
+    const { measured, low } = measure(p.label!, p.fill, 4.5);
     ok(measured === CELLS && low.length === 0,
-      `badge contrast (${tone} ${g}): ${ink} on ${fill} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+      `badge contrast (${m}): ${p.label} on ${p.fill} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
-  // THE FILL AGAINST THE PAGE (owner-approved, 2026-09-27: a visible neutral). The badge paints no border, so
-  // its fill is the pill's ONLY boundary, and the floor is 3:1 — the non-text contrast floor, stated in the
-  // def as intent (SC 1.4.11) — rather than the 1.5:1 a fill with a second cue could live with. The neutral
-  // fill it replaced measured 1.00:1 in both high-contrast modes. The bold count and dot fills are held to the
-  // same floor, since a count or dot over a host has no text of its own to carry the shape. The four subtle
-  // tone tints of the status label are NOT held here: they measure 1.06–1.40:1, their text carries the
-  // meaning, and whether they should separate is the open question in the def's `notes.contested`.
-  const BADGE_FILL_FLOOR = 3;
-  const SEPARATED = ['neutral.status', 'neutral.count', 'neutral.dot', ...['info', 'success', 'warning', 'danger'].flatMap((t) => [`${t}.count`, `${t}.dot`])];
-  for (const c of SEPARATED) {
-    const fill = badgeDef.tokens[`${c}.fill`]?.replace(/^color\./, '') ?? '(unbound)';
-    const { measured, low } = measure(fill, 'background.primary', BADGE_FILL_FLOOR);
+  // THE SUBTLE EDGE AGAINST THE PAGE, 3:1 (#1735, owner decision 2026-09-28). The subtle tints measure
+  // 1.06–1.40:1 against the page (the neutral 1.00:1 in both high-contrast modes), so the EDGE is what gives
+  // the pill its shape, and it is the thing held to 3:1 — the tint is not. For a status label the text carries
+  // the meaning, so this is the def's stated design intent rather than an SC 1.4.11 requirement.
+  const SUBTLE = Object.entries(PAINT).filter(([, p]) => p.border);
+  ok(SUBTLE.length === 5, `badge subtle edge covers the 5 subtle status members (got ${SUBTLE.length})`);
+  for (const [m, p] of SUBTLE) {
+    const { measured, low } = measure(p.border!, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
-      `badge fill separates from the page (${c}): ${fill} against background.primary clears ${BADGE_FILL_FLOOR}:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+      `badge subtle edge separates from the page (${m}): ${p.border} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+  // THE BOLD FILL AGAINST THE PAGE, 3:1, for status, count and dot: 15 members. A bold member has no edge, so
+  // its fill is its boundary. For the dot this is SC 1.4.11 in the strict sense — it has no text, so the
+  // colored circle is the information; for the status label and count it is design intent.
+  const BOLD = Object.entries(PAINT).filter(([m]) => m.endsWith('.bold'));
+  ok(BOLD.length === 15, `badge bold fill covers 15 bold members (got ${BOLD.length})`);
+  for (const [m, p] of BOLD) {
+    const { measured, low } = measure(p.fill, 'background.primary', 3);
+    ok(measured === CELLS && low.length === 0,
+      `badge bold fill separates from the page (${m}): ${p.fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
 }
 
@@ -17958,6 +17994,48 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         'variant-product self-check: the clean 432-member set reports nothing');
     }
 
+    // THE SPARSE GRID, apart from Badge (`figmaProperties.excludeCoordinates`, 2026-09-28). A small synthetic
+    // def — the veil's 2 × 3 grid (value × intensity) with one coordinate removed — so the mechanism is held on
+    // its own terms and a change to Badge cannot be what keeps it green. Expectations are literals.
+    {
+      const veilDef = componentDefs.find((d) => d.id === 'veil')!;
+      const withEx = (excludeCoordinates: Record<string, string[]>[]): ComponentDef =>
+        ({ ...veilDef, figmaProperties: { ...veilDef.figmaProperties!, excludeCoordinates } }) as ComponentDef;
+      const one = withEx([{ value: ['light'], intensity: ['strong'] }]);
+      const oneNames = figmaAnatomySet(one).map(planComponentName);
+      ok(oneNames.length === 5 && !oneNames.includes('value=light, intensity=strong') && oneNames.includes('value=dark, intensity=strong') && oneNames.includes('value=light, intensity=medium'),
+        `sparse grid: one excluded coordinate leaves 5 of the 6 members, and only that one is gone (got ${oneNames.length}: ${oneNames.join(' | ')})`);
+      ok(figmaVariantCount(one) === 5 && variantSetErrors(one).length === 0 && validateComponentDef(one).errors.length === 0,
+        `sparse grid: the count is 6 − 1 = 5, #1355's integrity check agrees, and the def validates (count ${figmaVariantCount(one)}; ${[...variantSetErrors(one), ...validateComponentDef(one).errors].join('; ')})`);
+      // OVERLAPPING entries remove their union once: light×strong is named twice, light×medium once, so 2 go.
+      const overlap = withEx([{ value: ['light'], intensity: ['strong'] }, { intensity: ['medium', 'strong'], value: ['light'] }]);
+      ok(figmaAnatomySet(overlap).length === 4 && figmaVariantCount(overlap) === 4 && variantSetErrors(overlap).length === 0,
+        `sparse grid: two overlapping entries remove their union, counted once — 6 − 2 = 4 (projected ${figmaAnatomySet(overlap).length}, counted ${figmaVariantCount(overlap)})`);
+      // The projector REFUSES an excluded coordinate by name, so a grid walker that forgets the exclusion
+      // fails rather than planning a member the set does not have.
+      let refused = '';
+      try { figmaAnatomyPlan(one, undefined, { value: 'light', intensity: 'strong' } as never); } catch (err) { refused = String((err as Error).message); }
+      ok(/excluded by figmaProperties\.excludeCoordinates/.test(refused),
+        `sparse grid: figmaAnatomyPlan refuses an excluded coordinate by name (${refused || 'no refusal'})`);
+      // The EXCLUDED arm of #1355's check: a member at an excluded coordinate is named even when the count agrees.
+      const swapped = [...oneNames.filter((n) => n !== 'value=dark, intensity=subtle'), 'value=light, intensity=strong'];
+      ok(variantNameErrors(one, swapped).some((e) => /member 'value=light, intensity=strong' sits at a coordinate figmaProperties\.excludeCoordinates removes/.test(e)),
+        'sparse grid: a member at an excluded coordinate is reported by name even when the member count is right');
+      // VALIDATION — each refusal by name.
+      const refuses = (label: string, re: RegExp, ex: Record<string, string[]>[]) => {
+        const errs = validateComponentDef(withEx(ex)).errors;
+        ok(errs.some((e) => re.test(e)), `sparse grid refuses ${label} (${errs.join('; ') || 'no error'})`);
+      };
+      refuses('an axis the set does not project', /names axis 'tone', which is not a projected variant axis/, [{ tone: ['info'] }]);
+      refuses('a value the axis does not declare', /names 'grey', which is not a value of 'value'/, [{ value: ['grey'] }]);
+      refuses('an entry with no values', /\.value lists no values/, [{ value: [] }]);
+      refuses('an empty entry', /names no axis — an empty coordinate matches every member/, [{}]);
+      refuses('an exclusion that removes every member', /removes every member/, [{ value: ['dark', 'light'] }]);
+      refuses('an exclusion that leaves a declared value on no member', /leaves intensity=strong on no member/, [{ intensity: ['strong'] }]);
+      refuses("the set's first member (Figma's default)", /removes the set's first member \(value=dark, intensity=subtle\)/, [{ value: ['dark'], intensity: ['subtle'] }]);
+      refuses('the code default (each axis prop\'s default)', /removes the code default \(value=dark, intensity=medium\)/, [{ value: ['dark'], intensity: ['medium'] }]);
+    }
+
     // WHAT PROTECTS THE 189-VS-756 RULE NOW (#795). Until #795 this pair asserted that a fifth declared
     // variant axis THREW, because `figmaAnatomySet` enumerated `intent` and `appearance` from two
     // hardcoded loops (`PROJECTABLE_VARIANT_AXES`) and refused any other name. The rule behind the throw
@@ -20136,6 +20214,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
+      // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
+      // the gated axis — badge has no `genre=count, emphasis=subtle` — and the projector refuses a coordinate
+      // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
+      // other axes in declaration order from the pinned one. For every def without an exclusion that is the
+      // pinned coordinate itself, unchanged.
+      const others = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size' && a !== axis);
+      let pins: Record<string, string>[] = [{ ...rest }];
+      for (const [a, vs] of others) pins = pins.flatMap((c) => vs.map((x) => ({ ...c, [a]: x })));
+      const at = (v: string): Record<string, string> =>
+        ({ ...(pins.find((c) => !isExcludedCoordinate(def, { ...c, [axis]: v, ...(size === undefined ? {} : { size }) })) ?? rest), [axis]: v });
       const declared = onState ? statesOf(def) : def.variants?.[axis] ?? [];
       // A GATE NAMING A VALUE THE AXIS DOES NOT DECLARE IS `anatomyErrors`' ERROR, NOT THIS BLOCK'S, and
       // it has to be handed over rather than projected. `figmaAnatomyPlan` THROWS on an undeclared axis
@@ -20150,10 +20238,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         `#910 ${def.id}.${name} gates presence on ${axis}=[${undeclared.join(', ')}], which that axis does not declare — see the structural-validity failure above for the authored fix. Reported here rather than projected, because projecting an undeclared value throws and takes the whole summary with it`);
       if (undeclared.length) continue;
       for (const v of values)
-        ok(has({ ...rest, [axis]: v }),
+        ok(has(at(v)),
           `#910 ${def.id}: '${name}' IS in the tree at ${axis}=${v} — the gate's own positive case, and a part gated into permanent absence is a def with a dead branch`);
       for (const v of declared.filter((x) => !values.includes(x)))
-        ok(!has({ ...rest, [axis]: v }),
+        ok(!has(at(v)),
           `#910 ${def.id}: '${name}' is NOT in the tree at ${axis}=${v} — the values the gate excludes, which is the direction that makes it a gate rather than a comment`);
       // A STATE gate is the one exception, and deliberately: a state has a resting value, so an unsupplied
       // state reads as `rest` (the paint grammar's reading too) — present exactly when the gate names rest.
