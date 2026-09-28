@@ -792,7 +792,7 @@
           "A medium tag is 44px tall on comfortable density, a medium Button's height (owner decision 4). Whether a pill that tall still reads as a tag beside buttons of the same height is a visual question no gate asks."
         ],
         "evolution": [
-          "Badge's hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) An unselected tag is outlined and a selected one filled with a check mark; Badge is a borderless tone fill. (5) The remove control nests IconButton.Neutral. `test.ts` holds (1) and (4) against Badge's projected rest paint.",
+          "Badge's hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) An unselected tag is outlined and a selected one filled with a check mark; Badge is a tone fill, with a 1px tone edge when subtle, and binds no interactive role. (5) The remove control nests IconButton.Neutral. `test.ts` holds (1) and (4) against Badge's projected rest paint.",
           "The brief's `Token` alias is not carried as a bare alias: in this repo \"token\" means a design token, and an agent asked for one would land here. \"recipient token\" is kept as a trigger phrase.",
           "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
         ]

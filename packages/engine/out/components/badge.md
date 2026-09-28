@@ -72,8 +72,8 @@ None — not interactive.
 - **Role:** none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host's accessible name.
 - **WCAG:**
   - 1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)
-  - 1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, in every mode)
-  - 1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page)
+  - 1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands)
+  - 1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page in the same measurement)
   - 4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)
   - 4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)
 - **Keyboard:** None. A badge takes no focus and has no action. A count on an icon button is reached through the button.
