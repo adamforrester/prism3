@@ -2926,6 +2926,12 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.192.0 — Button and IconButton summaries stop claiming the brand color (owner, 2026-09-28). "Triggers an
+ * action in place, in the brand color" was untrue for a brand whose primary action is neutral (NB's is near-
+ * black). The summaries now describe the action, and the long descriptions say "the brand's primary action
+ * style". Shipped prose moves (`out/components/*.md`, `components.ai.json`, the plugin bundle and page headers)
+ * → ENGINE bump. CONTRACT STANDS at 13.1.0.
+ *
  * 0.191.0 — #1747 (owner, 2026-09-28): a bold badge carries the subtle badge's inset outline in transparent,
  * so forced-colors mode, which drops background fills, still draws every badge's edge. Code guidance only
  * (`codeOnly`): no member's geometry or paint moves. The def text reaches `schema/component-maintainer.json`
@@ -4031,7 +4037,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.191.0';
+export const ENGINE_VERSION = '0.192.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
