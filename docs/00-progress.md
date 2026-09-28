@@ -9,7 +9,7 @@
 
 ## (2026-09-28) — Style guide generator, phase 1: cell components and color tables (#259)
 
-**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.190.0 → **0.191.0**, a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
+**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.191.0 → **0.192.0** (renumbered at net after #1748 took 0.191.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
 
 **What it does.**
 - **Tables.** `apps/plugin/src/style-guide.ts` draws one table per color group from the file's own variables:
@@ -55,6 +55,14 @@
 | always build cells | "2: the adopted swatch set is not duplicated" |
 
 **Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable). **Host-unverified:** GRID rendering and HUG tracks, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
+
+---
+
+## (2026-09-28) — Badge: bold badges keep their shape in forced-colors mode (#1747)
+
+**Owner-approved.** ENGINE 0.190.0 → 0.191.0; CONTRACT stands at 13.1.0. Forced-colors mode (Windows high contrast) removes background fills. A subtle status badge already survives it, because its edge is an inset outline (#1736: `outline: 1px solid; outline-offset: -1px`, never a border, so subtle and bold stay one size). A bold badge had no edge, so it read as bare text. The code guidance now gives every bold badge the same inset outline in `transparent`. It is invisible everywhere else, forced colors paints it in the system color, and it adds no size.
+
+**Code only in effect.** Figma has no forced-colors mode, so no member's geometry or paint moves. The badge's surface digest does move and was re-accepted after the bump, because the projected plan carries the def's `codeOnly` text; the paint census does not move. The one place this lives is `codeOnly`, so a literal `test.ts` arm (`badge forced colors`) holds both halves of the sentence. Mutation (committed first, restored from HEAD): drop "in transparent" from the guidance, and that arm fails by name.
 
 ---
 
