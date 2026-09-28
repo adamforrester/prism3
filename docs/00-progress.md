@@ -37,10 +37,14 @@ High-contrast modes flatten every `background.*` step to the page, so the off tr
 
 **Found, not fixed (filed).**
 - **#1763.** The ON thumb (`primary.on-fill` on `primary.fill.selected`) measures 2.32–2.62:1 in every `dark` mode but aurora's. `on-fill` is gated against `fill.rest`, not the lighter selected step. The checkbox checked mark has the same pair. The header's old "6.85–9.96:1" was light-only.
-- **#1764.** At `disabled` the glyph and the thumb both bind `color.disabled.on-fill`, so the glyph is invisible. This predates the lane, but the default-on glyph now shows it.
 - Checkbox and radio do not bind the neutral fill (their off state is `field.border.*`), so strong emphasis leaves them alone. Nothing to file there.
 
-**Held for the owner: off hover/pressed.** The old `off.fill.hover`/`.pressed` keys are dropped, so both states fall through to the rest fill. The tier has no surface step darker than `tertiary`. The overlay wash is not an option either: it REPLACES a box's single `fills` paint (`paintSlots` precedence) rather than layering on it, and a 10% wash over white (#E6E6E6) reads LIGHTER than `tertiary`. So the off track follows checkbox/radio's unchecked pattern, where the fill does not step. The border keys stay, but `interactive.neutral.border.*` collapses onto rest, so in Figma the off hover/pressed members look like rest. A visible step needs a new surface role. That means minting a token, a CONTRACT MINOR, and it was not done.
+**Off hover/pressed: no visible change (owner-decided, 2026-09-28, on #1765).** This matches checkbox and radio at unchecked. The old `off.fill.hover`/`.pressed` keys are dropped, so both states fall through to the rest fill. The tier has no surface step darker than `tertiary`. The overlay wash is not an option either: it REPLACES a box's single `fills` paint (`paintSlots` precedence) rather than layering on it, and a 10% wash over white (#E6E6E6) reads LIGHTER than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound, but `interactive.neutral.border.*` resolves all three states to one value. The rejected alternative was a new darker surface role, which would mint a token and move CONTRACT a MINOR.
+
+**The disabled glyph (#1764, fixed here on the owner's direction).** At `disabled`, the glyph and the thumb both bound `color.disabled.on-fill`, so the glyph drew in its own thumb's color. That predates this lane, but the default-on glyph made it visible in every disabled member. `disabled.icon.on-fill` now binds `color.disabled.border`. That role equals the disabled TRACK (`disabled.fill`) in every corpus mode, so it repeats the rest-state "glyph = track" inversion in the muted disabled inks.
+- Glyph vs disabled thumb measures **3.04–5.49:1** over the token-contract corpus, prism3 and the NB master. NB master light is #c1c1c0 on #6a6868 at 3.07:1; prism3 light is #c0c1c2 on #67696b at 3.06:1.
+- `disabled.text` (and its twin `disabled.icon`) was measured and rejected at 1.21–1.79:1, since harbor light and hc-light sit at 1.21.
+- Disabled stays contrast-exempt (1.4.3). The test asserts > 1.5:1 as a visibility bar, not a legibility claim.
 
 **Tests and mutations.** Each mutation was committed first and restored from HEAD.
 - `off.fill` back to `interactive.neutral.fill.rest` fails:
@@ -53,6 +57,7 @@ High-contrast modes flatten every `background.*` step to the page, so the off tr
 - The glyph's `visibleProp` stripped in the projector fails `declares exactly one property, the BOOLEAN 'State icon'…` and `both glyph nodes … carry visibleProp 'State icon'`.
 - The def's boolean narrowed to `['onGlyph']` fails the structural-validity arms and the refusal pin `the authored State icon boolean … is NOT refused`.
 - The default flipped to false fails `showStateLabel defaults to true in code…`.
+- The disabled glyph ink back to `disabled.on-fill` fails `#1764 NB master light: the disabled glyph #c1c1c0…`, `#1764 prism3 light: the disabled glyph #c0c1c2…` and `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all 45 brand×mode rows`.
 - The off thumb left on `neutral.on-fill` fails `the off thumb is the dark #0e0d0d`, `off thumb vs off track is 14.05:1 (got 1.38:1)`, the X arm and both `'off.indicator' does not move with neutralEmphasis`.
 - Disabling the presentWhen refusal fails the three `MUTATION:` refusal arms plus #1331's own `a boolean on a presentWhen-gated part is refused BY NAME`.
 

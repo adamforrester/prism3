@@ -2935,7 +2935,9 @@
  * node-visibility mechanism, so the set stays at 24 members; `figmaProperties.booleans` gains a list form
  * (`part: [...]`) and `figmaPropertyErrors` admits `presentWhen`-gated parts only when they share one axis
  * and cover its values. `showStateLabel` defaults to `true` on switch-control and switch-row (a prop
- * DEFAULT change, not a rename). Projected members move (`schema/component-surface.json`, the paint
+ * DEFAULT change, not a rename). The disabled glyph (`disabled.icon.on-fill`) moves from `disabled.on-fill` —
+ * the disabled thumb's own ink, which hid it — to `disabled.border`, 3.04–5.49:1 on the thumb (#1764). Off
+ * hover/pressed show no visible change, owner-decided. Projected members move (`schema/component-surface.json`, the paint
  * census) → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no emitted token name moves — the def binds existing
  * roles.
  *

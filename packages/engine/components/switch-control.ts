@@ -101,11 +101,19 @@
  *   off border vs the page   15.98–21:1
  *
  * High-contrast modes flatten every background step to the page, so the off track is page-colored
- * there and the border and thumb carry it. HOVER AND PRESSED HOLD THE REST FILL: the tier has no surface
- * step darker than `tertiary`, and the overlay wash REPLACES a box's fill rather than layering on it (a
- * 10% wash over the page reads LIGHTER than `tertiary`), so the off track follows checkbox/radio's
- * unchecked pattern — the fill does not step, the border keys do (and in this tier the neutral border
- * collapses onto rest). Held for the owner in the #1354 lane's PR.
+ * there and the border and thumb carry it. OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox
+ * and radio at unchecked (owner-decided, 2026-09-28, on #1765). The fill holds its rest value: the tier
+ * has no surface step darker than `tertiary`, and the overlay wash REPLACES a box's fill rather than
+ * layering on it (a 10% wash over the page reads LIGHTER than `tertiary`). The `off.border.hover` /
+ * `.pressed` keys stay bound, but `interactive.neutral.border.*` resolves all three states to one value,
+ * so the off member reads the same at rest, hover and pressed.
+ *
+ * THE DISABLED GLYPH (#1764). At `disabled` the thumb is `disabled.on-fill` and the glyph is
+ * `disabled.border` — the disabled TRACK's own value in every corpus mode, so it repeats the rest-state
+ * "glyph = track" inversion in the muted disabled inks. Glyph vs thumb measures 3.04–5.49:1 across the
+ * token-contract corpus, prism3 and the NB master theme (NB master light 3.07:1, prism3 light 3.06:1).
+ * Disabled is contrast-exempt (1.4.3); the number is recorded so the glyph is shown to be visible, not
+ * promised to be legible. `disabled.text` was measured and rejected: 1.21–1.79:1 against the thumb.
  *
  * The two glyph inks. Each glyph sits ON the thumb, so its ink is the INVERSE of the thumb's: the off
  * thumb is the dark `neutral.border.rest`, so `off.icon` is the light `background.tertiary` (the
@@ -164,8 +172,9 @@ export const switchControl: ComponentDef = {
   tokens: {
     // ── THE OFF TRACK — a LIGHT SURFACE STEP, not the neutral button fill (owner, 2026-09-28; the
     // header). `background.tertiary` is a step the `neutralEmphasis` lever does not move, so the off
-    // track stays light in every brand. No `.hover`/`.pressed` fill: they fall through to this rest fill
-    // (checkbox/radio's unchecked pattern — see the header for why the overlay wash cannot serve). The
+    // track stays light in every brand. No `.hover`/`.pressed` fill: they fall through to this rest fill,
+    // so off hover and pressed show no visible change (checkbox/radio's unchecked pattern, owner-decided
+    // 2026-09-28 — see the header for why the overlay wash cannot serve). The
     // BORDER is load-bearing, not decorative — the track fill measures 1.00–1.38:1 against the page, and
     // this border clears 15.98–21:1 (WCAG 1.4.11).
     'off.fill': 'color.background.tertiary',
@@ -206,12 +215,14 @@ export const switchControl: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
-    // ── DISABLED SKIN (contrast-exempt, 1.4.3). The thumb and the glyph both sit ON the track's fill, so
-    // both take the `on-fill` disabled ink the tier gates rather than the page one.
+    // ── DISABLED SKIN (contrast-exempt, 1.4.3). The thumb sits ON the track's fill, so it takes the
+    // `on-fill` disabled ink. The GLYPH sits on the thumb, so it takes a DIFFERENT muted ink (#1764): it
+    // used to bind `disabled.on-fill` too and drew in its own thumb's color. `disabled.border` is the
+    // disabled track's value, so the glyph repeats the rest-state inversion — 3.04–5.49:1 against the thumb.
     'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
     'disabled.indicator.on-fill': 'color.disabled.on-fill',
-    'disabled.icon.on-fill': 'color.disabled.on-fill',
+    'disabled.icon.on-fill': 'color.disabled.border',
 
     // ── GEOMETRY. `radius.round` gives the pill (and the round thumb), resolving to `dimension.128` —
     // the same token radio uses for its circle: a pill and a circle are both "round as the shape allows".
@@ -416,10 +427,11 @@ export const switchControl: ComponentDef = {
       'THE THUMB IS AN `indicator` BOX THAT PARENTS A GLYPH, which #910\'s #864 rule refused until this def widened it. The widening is scoped to a `size`+`radius` disc (a deliberately-shaped filled mark), not a blanket permission — the #864 case was an SVG wrapper frame with no radius, where the fill was an incidental square. The rejected alternative was a transparent wrapper box inside the thumb to make the glyph an indirect child: it passes the literal check while reproducing the exact fill-behind-glyph #864 exists to prevent, which is a gate dodge the house discipline forbids (a false positive is narrowed with a reason, not worked around).',
       'THE STATE GLYPH IS ONE FIGMA BOOLEAN (`State icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331\'s refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.',
       'THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border\'s ink is Material 3\'s unselected shape and Prism 2\'s. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).',
+      'OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box\'s fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.',
+      'THE DISABLED GLYPH TAKES `disabled.border`, not the thumb\'s `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb\'s color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1.',
     ],
     unverified: [
       'THE GLYPH IN THE THUMB IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. The thumb is `control.size.*.thumb` = 0.75 × the track (Prism 2\'s 24-in-32, #1425), its own tier field rather than radio\'s `dot`. In every corpus brand the thumb is 18px at `small` and 24px at `medium`, so its ~71%-inset glyph is ~12.7px and ~17px. The smallest case is compact density `small`, a 16px track with a 12px thumb and a ~8.5px glyph. The affordance is most useful at `medium`, and the row, not the atom, is what reaches SC 2.5.8.',
-      'THE OFF TRACK\'S HOVER AND PRESSED DO NOT STEP ITS FILL. The tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box\'s fill (one `fills` array) rather than layering on it — a 10% wash over the page reads lighter than `tertiary`. So the off track holds its rest fill, the checkbox/radio unchecked pattern, and its border keys collapse onto rest in this tier. Whether off hover needs a visible step (and so a new surface role) is held for the owner.',
       'THE THUMB IS SELECTION-KEYED — the off thumb is the dark `interactive.neutral.border.rest`, the on thumb the light `primary.on-fill`; no single ink bounds both tracks. This def adopts Prism 2\'s TREATMENT — light filled off track, bordered off state, darker handle, glyph in thumb — through semantic tokens rather than its literal values.',
       'READ-ONLY AND PENDING BIND NOTHING here and are not even states of the atom — they are the Row\'s (a lock affordance; a spinner swap). Recorded so nobody reads their absence as an oversight.',
       'THE INHERITED FOCUS-RING BINDING is now two layers deep (#1280/#1290), the same as `checkbox-control`: the ring is nested inside the track and the track inside the row, so an inherited dimension binding would have to be cleared twice. The symptom to look for: a nested ring sitting at the md control height instead of hugging the track.',

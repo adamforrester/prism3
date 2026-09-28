@@ -22256,6 +22256,28 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(rows >= 40 && misses.length === 0,
     `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`; ${darkOnGap} dark rows under 3:1, #1763) — misses: ${misses.join('; ') || 'none'}`);
 
+  // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
+  // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every
+  // brand×mode row. Literals for the NB master theme (#c1c1c0 on #6a6868, 3.07:1) and prism3 light
+  // (#c0c1c2 on #67696b, 3.06:1). Rebinding `disabled.icon.on-fill` to the thumb's `disabled.on-fill`
+  // puts the glyph at 1.00:1 and fails every arm here by name.
+  const disThumb = (t: Theme, mode: string) => hexAt(t, mode, 'disabled.indicator.on-fill');
+  const disGlyph = (t: Theme, mode: string) => hexAt(t, mode, 'disabled.icon.on-fill');
+  ok(disGlyph(master, 'light') === '#c1c1c0' && disThumb(master, 'light') === '#6a6868' && ratio(disGlyph(master, 'light'), disThumb(master, 'light')) === 3.07,
+    `#1764 NB master light: the disabled glyph #c1c1c0 reads on the disabled thumb #6a6868 at 3.07:1 (glyph=${disGlyph(master, 'light')}, thumb=${disThumb(master, 'light')}, ${ratio(disGlyph(master, 'light'), disThumb(master, 'light'))}:1)`);
+  ok(disGlyph(prism3, 'light') === '#c0c1c2' && disThumb(prism3, 'light') === '#67696b' && ratio(disGlyph(prism3, 'light'), disThumb(prism3, 'light')) === 3.06,
+    `#1764 prism3 light: the disabled glyph #c0c1c2 reads on the disabled thumb #67696b at 3.06:1 (glyph=${disGlyph(prism3, 'light')}, thumb=${disThumb(prism3, 'light')}, ${ratio(disGlyph(prism3, 'light'), disThumb(prism3, 'light'))}:1)`);
+  const disMisses: string[] = [];
+  let disRows = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
+    for (const m of resolveAllModes(theme)) {
+      disRows++;
+      const r = ratio(m.roles[role('disabled.icon.on-fill')]?.hex ?? '#808080', m.roles[role('disabled.indicator.on-fill')]?.hex ?? '#808080');
+      if (!(r > 1.5)) disMisses.push(`${id} ${m.mode} ${r.toFixed(2)}:1`);
+    }
+  ok(disRows >= 40 && disMisses.length === 0,
+    `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all ${disRows} brand×mode rows — misses: ${disMisses.join('; ') || 'none'}`);
+
   // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
   // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
   const set = figmaAnatomySet(sc);
