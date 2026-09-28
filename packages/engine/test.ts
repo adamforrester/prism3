@@ -22237,9 +22237,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // (4) THE CONTRAST CONTRACTS, every mode of every corpus brand + prism3 + the NB master, recomputed from
   // resolved hexes. The on-thumb pair is held in every mode but `dark`, where `on-fill` (gated against
   // `fill.rest`) measures 2.32–2.62:1 on `fill.selected` — the on arm is unchanged by owner decision and
-  // the gap is filed as #1763; the count of exempted rows is printed in the message so it cannot grow quietly.
+  // the gap is filed as #1763. The exemption is PINNED, not silent: exactly 10 dark rows fall under 3:1
+  // (every corpus brand's dark mode but aurora's, plus prism3's), and aurora dark holds at 8.59:1.
   const misses: string[] = [];
-  let rows = 0, darkOnGap = 0;
+  let rows = 0, darkOnGap = 0, auroraDarkOn = 0;
   for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
     for (const m of resolveAllModes(theme)) {
       rows++;
@@ -22250,11 +22251,18 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       need('off thumb vs off track', ratio(h('off.indicator'), h('off.fill')));
       need('off glyph vs off thumb', ratio(h('off.icon'), h('off.indicator')));
       need('on track vs page', ratio(h('on.fill'), page));
-      if (m.mode === 'dark') { if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++; }
+      if (m.mode === 'dark') {
+        if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++;
+        if (id.startsWith('aurora')) auroraDarkOn = ratio(h('on.indicator'), h('on.fill'));
+      }
       else { need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill'))); need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator'))); }
     }
   ok(rows >= 40 && misses.length === 0,
-    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`; ${darkOnGap} dark rows under 3:1, #1763) — misses: ${misses.join('; ') || 'none'}`);
+    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`) — misses: ${misses.join('; ') || 'none'}`);
+  ok(darkOnGap === 10,
+    `#1763 the dark-mode on-thumb exemption covers exactly 10 rows under 3:1 — every corpus brand's dark mode but aurora's, plus prism3's (got ${darkOnGap}); a new row under 3:1 is a regression, one fewer means #1763 moved`);
+  ok(auroraDarkOn === 8.59,
+    `#1763 aurora dark keeps its on thumb at 8.59:1 against the on track — the one dark mode outside the exemption (got ${auroraDarkOn}:1)`);
 
   // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
   // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every
@@ -22314,6 +22322,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     '#1354 MUTATION: two gated glyphs that leave `selection=off` uncovered are refused — coverage is checked, not assumed');
   ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: undefined } })).some((e) => PRESENCE_REFUSAL.test(e)),
     '#1354 MUTATION: a gated glyph mixed with an ungated one is refused — the narrowing admits only all-gated parts');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on', 'off'] } } })).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: two gated glyphs that BOTH exist at `selection=on` are refused — the gates must partition the axis, so every member builds exactly one node');
+  // THE `when` REFUSAL. A `when`-gated part under a boolean is refused outright: `present()` returns early
+  // for a boolean part with no `presentWhen`, so without this refusal an absolute focus ring (or an
+  // overlay) would be built at EVERY member instead of only at its state.
+  const WHEN_REFUSAL = /→ part 'focusRing' also declares when/;
+  const ringBool = withBool('focusRing', { focusRing: { ...sc.anatomy!.parts.focusRing, optional: true } });
+  ok(figmaPropertyErrors(ringBool).some((e) => WHEN_REFUSAL.test(e)),
+    `#1354 a boolean over a \`when\`-gated part (the focus ring) is refused BY NAME — otherwise the ring would build at every member (errors: ${figmaPropertyErrors(ringBool).join('; ') || 'none'})`);
 }
 
 // ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----

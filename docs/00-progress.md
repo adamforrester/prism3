@@ -60,12 +60,23 @@ High-contrast modes flatten every `background.*` step to the page, so the off tr
 - The disabled glyph ink back to `disabled.on-fill` fails `#1764 NB master light: the disabled glyph #c1c1c0…`, `#1764 prism3 light: the disabled glyph #c0c1c2…` and `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all 45 brand×mode rows`.
 - The off thumb left on `neutral.on-fill` fails `the off thumb is the dark #0e0d0d`, `off thumb vs off track is 14.05:1 (got 1.38:1)`, the X arm and both `'off.indicator' does not move with neutralEmphasis`.
 - Disabling the presentWhen refusal fails the three `MUTATION:` refusal arms plus #1331's own `a boolean on a presentWhen-gated part is refused BY NAME`.
+- Dropping the partition clause (`named.length === covered.size`) fails "MUTATION: two gated glyphs that BOTH exist at selection=on are refused…".
+- Disabling the `when` refusal fails "a boolean over a when-gated part (the focus ring) is refused BY NAME".
+- Lowering the pinned dark-row count to 9 fails "#1763 the dark-mode on-thumb exemption covers exactly 10 rows…".
 
 **What moved.**
 - `schema/component-surface.json`, re-accepted. switch-control's plans changed. switch-row changed only because its `codeOnly` prose rides in the plan payload. Both stay at 24 and 2 members.
 - `schema/paint-census.json`, re-accepted: switch-control, still 86 assignments, repointed.
 - Paste size: switch-control single-shot 66,791 → 67,438 B, chunks 41,033/40,689/39,950 → 41,132/40,854/40,333 B, under the 42,000 budget. The largest chunk in the registry is unchanged (button-destructive, 41,961 B).
 - ENGINE 0.194.0 → 0.195.0. CONTRACT stands at 13.1.0: every binding is an existing role, and no emitted token name moves.
+
+### Review round (independent review of ea68a31e; no blocking findings)
+
+- **The #1763 exemption is pinned, not silent.** The first version's comment claimed the dark-row count was "printed in the message". It was not: `ok()` prints only failures, so every dark row was exempt with nothing watching. The test now asserts `darkOnGap === 10` (every corpus brand's dark mode but aurora's, plus prism3's) and that aurora dark stays at 8.59:1.
+- **The `when` refusal has a test.** Without it, `present()` returns early for a boolean part with no `presentWhen`, so a focus ring or overlay under a boolean would build at every member.
+- **The gates must partition, not just cover.** The first version accepted overlapping gates (`{on}` + `{on, off}`), which put two nodes at `on` while the prose said "exactly one". `figmaPropertyErrors` now also refuses a value named twice.
+- **Dropped the `axis !== STATE_GATE` and per-part single-axis clauses.** Neither could change the result: `state` is never a `variants` key, so its declared list is empty, and a two-axis part already puts two names in `axes`. The comment says so.
+- **Skill.** `skills/prism3-build-component/SKILL.md` documents the list form and the narrowed refusal.
 
 **Trap.** The NB master's brand input is copied into `test.ts` as a literal `BrandInput`. It is a fixture, so it will not follow the owner's file if that file changes.
 

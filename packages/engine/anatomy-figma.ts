@@ -1259,9 +1259,9 @@ export const figmaAnatomyPlan = (
     // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
     // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
     // a `when`-gated part, so no second presence mechanism contends here. The ONE composition it admits is
-    // a boolean over several `presentWhen`-gated parts that cover an axis between them (switch-control's
+    // a boolean over several `presentWhen`-gated parts that PARTITION an axis between them (switch-control's
     // check/X under `State icon`): such a part falls through to its variant gate below, and the boolean
-    // still has exactly one node to toggle at every member.
+    // still has exactly one node to toggle at every member (the partition is `figmaPropertyErrors`' check).
     if (booleanParts.has(name) && !a.parts[name]?.presentWhen) return true;
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply

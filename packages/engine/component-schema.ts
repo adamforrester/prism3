@@ -1061,8 +1061,8 @@ export type FigmaProperties = {
    *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
    *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
    *  dedupes by name). Such parts MAY be `presentWhen`-gated, but only on ONE shared variant axis whose
-   *  values they cover between them — so every member builds a node for the boolean to toggle. See the
-   *  refusal in `figmaPropertyErrors`.
+   *  values they PARTITION between them (cover every value, no value twice) — so every member builds
+   *  exactly one node for the boolean to toggle. See the refusal in `figmaPropertyErrors`.
    *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
@@ -1996,11 +1996,14 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // coordinates — leaving the boolean nothing to toggle there — so it is refused outright.
   //
   // `presentWhen` is refused on the same ground, with ONE narrowing (switch-control's `State icon`): a
-  // boolean whose parts are ALL gated on ONE shared variant axis, and whose gates COVER every value of that
-  // axis between them, has a node at every member — just not the same node. The check at `selection=on`
-  // and the X at `selection=off` are that shape. What stays refused is exactly the shape the old rule
-  // existed for: a single gated part (some members have nothing to toggle), gates that leave an axis value
-  // uncovered, gates spread over two axes or on `state`, and an ungated part mixed with gated ones.
+  // boolean whose parts are ALL gated on ONE shared variant axis, and whose gates PARTITION that axis's
+  // values (every value covered, none twice), has exactly one node at every member — just not the same
+  // node. The check at `selection=on` and the X at `selection=off` are that shape. What stays refused is
+  // exactly the shape the old rule existed for: a single gated part (some members have nothing to toggle),
+  // gates that leave an axis value uncovered or name one twice, gates spread over two axes, and an ungated
+  // part mixed with gated ones. A `state` gate needs no clause of its own: `state` is never a key of
+  // `variants` (`VARIANT_AXES` excludes it), so its declared list is empty and `composes` is false; a part
+  // gating two axes needs none either, since it puts two names in `axes`.
   for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
     const targeted = booleanPartsOf(v);
     for (const part of targeted) {
@@ -2014,12 +2017,12 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     const axes = [...new Set(gated.flatMap(axesOf))];
     const axis = axes[0];
     const declared = axis === undefined ? [] : [...((def.variants as Record<string, readonly string[] | undefined> | undefined)?.[axis] ?? [])];
-    const covered = new Set(gated.flatMap((part) => [...(parts[part]!.presentWhen![axis!] ?? [])]));
-    const composes = gated.length === targeted.length && gated.length > 1 && axes.length === 1 && axis !== STATE_GATE
-      && gated.every((part) => axesOf(part).length === 1)
-      && declared.length > 0 && declared.every((val) => covered.has(val));
+    const named = gated.flatMap((part) => [...(parts[part]!.presentWhen![axis!] ?? [])]);
+    const covered = new Set(named);
+    const composes = gated.length === targeted.length && gated.length > 1 && axes.length === 1
+      && declared.length > 0 && declared.every((val) => covered.has(val)) && named.length === covered.size;
     if (!composes)
-      e.push(`figmaProperties.booleans.${prop} → part${gated.length > 1 ? 's' : ''} '${gated.join("', '")}' also declare${gated.length > 1 ? '' : 's'} presentWhen — a boolean toggles visibility at every member, so a variant presence gate is a second presence mechanism it cannot compose with, UNLESS the boolean targets two or more parts, all gated on one shared variant axis whose values their gates cover between them (every member then builds exactly the node the boolean toggles)`);
+      e.push(`figmaProperties.booleans.${prop} → part${gated.length > 1 ? 's' : ''} '${gated.join("', '")}' also declare${gated.length > 1 ? '' : 's'} presentWhen — a boolean toggles visibility at every member, so a variant presence gate is a second presence mechanism it cannot compose with, UNLESS the boolean targets two or more parts, all gated on one shared variant axis whose values their gates partition between them — every value covered, none twice (every member then builds exactly one node for the boolean to toggle)`);
   }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
