@@ -332,13 +332,16 @@ export const textField: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular).',
+        // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
+        // control holds at 320, so a long name wraps at the field's width instead of running past it.
+        crossAxisFill: true,
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular). Fills the field\'s width, so a long name wraps.',
       },
       // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
-      // precedence overlay > fill — #1341/#1342); fills the column width and holds a fixed single-line height
-      // floored at 44px (#1437). `space-between` pins the trailing affix to the field's trailing edge
-      // independent of the value length (`content` fills in code but hugs in Figma — #989).
+      // precedence overlay > fill — #1341/#1342); holds the field's width (its 320 floor) and a fixed
+      // single-line height floored at 44px (#1437). `content` grows across it (#1751), so the trailing affix
+      // sits at the trailing edge at every value length.
       control: {
         kind: 'box',
         role: 'target',
@@ -346,14 +349,13 @@ export const textField: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
         // THE COMFORTABLE DEFAULT WIDTH (#1518, owner: parity with select) — a MIN-WIDTH not a fixed width,
-        // the `select` #1345 precedent adopted key-for-key. #1494/#1503 deferred a width floor for the field
-        // ("a follow-up if one is wanted"); the owner has now settled it at 320 (select parity), so a projected
-        // field reads at a comfortable width rather than hugging narrow. The engine cannot project a child that
-        // FILLs (`sizing: 'fill'` → AUTO, #989/#990), so the floor sits on the visible control, the one place
-        // projection can express it: the control renders at ≥320, the hugging column inherits that width, and
-        // the still-AUTO sizing lets the field grow above 320 rather than being pinned. A LITERAL, not a token —
-        // 320 is a projection default in 8px increments, not a semantic `field.width` role (#1343 owner
-        // decision) — so no emitted token NAME moves and `CONTRACT_VERSION` stands.
+        // the `select` #1345 precedent adopted key-for-key. The floor sits on the visible control, and the
+        // hugging column takes its width from it; since #1751 the label and message stretch across that column
+        // and `content` grows inside the control, so the whole field reads at 320. The control is the part
+        // that CARRIES the width, so it keeps hugging above its floor rather than filling. A long value does
+        // not widen it: it clips at `content`'s edge (#1758, below). A LITERAL, not a token — 320 is a
+        // projection default in 8px increments, not a semantic `field.width` role (#1343 owner decision) — so
+        // no emitted token NAME moves and `CONTRACT_VERSION` stands.
         minWidth: 320,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px field hairline, bound rather than left to the executors'
@@ -365,11 +367,15 @@ export const textField: ComponentDef = {
         gap: 'gap',
         children: ['content', 'trailingVisual', 'focusRing'],
       },
-      // THE VALUE ROW — leading glyph + value text. Fills the control in code; in Figma it hugs (#989) and
-      // the control's `space-between` pins the trailing affix to the trailing edge. Structure only.
+      // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
+      // and `layoutGrow` in Figma, `flex: 1` in code, so the trailing affix sits at the trailing edge.
       content: {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // A LONG VALUE CLIPS HERE (#1758, owner decision on #1757). The value keeps the native single-line
+        // behavior: in code the input scrolls with the caret, so the full text stays reachable, and in Figma
+        // it is cut at this frame's edge, with no ellipsis, rather than drawing over the trailing affix.
+        clipsContent: true,
         gap: 'gap',
         children: ['leadingVisual', 'entry'],
       },
@@ -412,13 +418,13 @@ export const textField: ComponentDef = {
         kind: 'text',
         type: 'type',
         presentWhen: { state: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
-        note: 'The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line, ellipsized in code.',
+        note: 'The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row\'s edge.',
       },
       value: {
         kind: 'text',
         type: 'type',
         presentWhen: { state: ['filled', 'read-only', 'pending'] },
-        note: 'The entered value, in the value ink. Shown on the filled and read-only field. One line, ellipsized in code.',
+        note: 'The entered value, in the value ink. Shown on the filled and read-only field. One line, never ellipsized (#1758): in code it scrolls with the caret, and in Figma a long value clips at the value row\'s edge.',
       },
       // THE TRAILING AFFIX — the clear-button / password-reveal edge control that select's chevron slot is
       // NOT. Modeled exactly as the leading glyph (an optional swap slot painted the `icon` ink, its presence
@@ -455,7 +461,10 @@ export const textField: ComponentDef = {
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         optional: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean hides the whole part where the field has nothing to say.',
+        // FILLS the field's width (#1757, owner: parity with select and textarea): the message stretches across
+        // the column the control holds at 320, so a long message wraps at the field's width.
+        crossAxisFill: true,
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean hides the whole part where the field has nothing to say. Fills the field\'s width, so a long message wraps.',
       },
     },
     codeOnly: [
@@ -585,8 +594,8 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
-      'The control now carries a `minWidth: 320` floor (#1518, owner: select parity), so the field reads at a comfortable 320 and flexes above it, exactly as select does (#1345). The nested label and message, however, are NOT yet set to FILL that width (`crossAxisFill` → `layoutAlign: STRETCH`, the #1503 capability select adopted): a `nest` cannot bind sizing (#1299), so they hug their content and sit narrower than the 320 control — the same pre-fill state select was in before #1503. Closing that (label/message `crossAxisFill`, mirroring select) is the remaining half of the width follow-up #1503 held for the owner; #1518 settled only the floor.',
-      'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
+      'The field\'s width (#1518, #1757): the control carries a `minWidth: 320` floor, the label and the message stretch across the column it holds (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So the field reads at 320, the label and message wrap at that width, and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
+      'A long value or placeholder CLIPS at `content`\'s edge in Figma (`clipsContent`, #1758), with no ellipsis — the native single-line input it stands for scrolls with the caret, so the full text stays reachable in code. The clip is modelled offline; the live host has not been checked.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],
     // KB text-field brief §13.

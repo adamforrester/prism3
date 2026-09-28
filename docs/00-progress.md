@@ -7,6 +7,87 @@
 
 ---
 
+## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)
+
+**The diagnosis.** Two defects in one function, and they hid each other. `sizingMode` in `anatomy-figma.ts` mapped `'fill'` to AUTO, so every declared fill hugged (the #989 note called this deliberate: the projector had no parent-side supplier to pair it with). It also wrote `sizing.x` to `primaryAxisSizingMode` and `sizing.y` to `counterAxisSizingMode` whatever the direction, which is only right for a row. A column declared `x:'fill', y:'hug'` came out FIXED down and AUTO across, the exact reverse. Most columns hug both ways, so the swap only showed where the two axes differ. The textarea message row made both visible at once: the row hugged, so the counter could not reach the right edge, and the message could not wrap because nothing bounded its width.
+
+**The approach.** Sizing maps by direction: primary is the node's own main axis, counter is the other one. A fill axis now actually fills. In Figma that takes two writes, the child's own mode FIXED on that axis plus a supplier from the parent: `layoutGrow 1` on the parent's main axis, `layoutAlign STRETCH` on its counter axis. `fillsAxis` decides when a fill is real. The part must be non-root and declare the fill. Then either its parent is bounded (fixed, a `minWidth` floor on x, or itself filling), or the axis is the parent's counter axis and some sibling is floored while this part is not. The last case is the carrier rule: a hug column as wide as its widest child can stretch the others to that width, but a fill cannot size its own parent. The root never fills. A nested instance cannot take its mode from its own plan node, because the neutralizer returns early on INSTANCE. So the plan carries `instanceSizing` (keyed by the nested root's direction), and both executors apply it after the append. The two executors change in lockstep: `apps/plugin/src/write-components.ts` and the paste twin.
+
+**Textarea (the owner's intent).** The row fills the field and is justified to its END. The message cell grows and its text wraps. The message nest stretches, and `field-message`'s text now declares `wrap: true`. The wrap validator accepts a root that fills its placement. The counter cell hugs.
+
+**The #536 budget.** The paste line is unguarded: `Object.assign(kid,c.instanceSizing)` on the same line as the `layoutAlign` write (`Object.assign` with `undefined` is a no-op). A guarded version on its own line cost 25 bytes and measured 42,018 B, over the 42,000 budget. The unguarded one measures 41,993 B, a **7 B margin** (base was 41,957). The budget was not raised. The next paste-side addition will likely have to raise it or shrink something, and that call belongs to whoever makes it.
+
+**Discarded.** The `layoutSizingHorizontal/Vertical = 'FILL'` shorthand: it flips a hug PARENT to FIXED as a side effect, which is the opposite of the carrier case. A guarded paste line: over budget, see above. Filling every declared fill unconditionally: a fill under an unbounded hug parent has nothing to fill from, so its width would come from nowhere the def states.
+
+**Tests.** `test:roundtrip` builds textarea on the layout-model shim and measures it:
+- with the counter on, the row is as wide as the control, the counter's right edge is the row's, and the message ends before it;
+- a 120-character message wraps to ≥2 caption lines, with the counter still at the edge;
+- with the message off, the counter is still at the edge;
+- the vertical `messageCell` reads AUTO primary and FIXED counter.
+
+The shim gained just enough of a layout model to measure this: stretch, grow sharing, justify-MAX, wrap lines and filled instances. `test.ts` adds a parity block: both executors leave identical sizing on every node of textarea and checkbox-group, with a floor that names the filled nodes. Mutations, each committed first and restored from HEAD:
+- `'fill'` → AUTO fails the row-spans, message-wraps and column arms plus `#1751 parity floor (textarea)`. "Counter alone" survives it by design, since justify-MAX keeps the counter at the edge either way.
+- Re-swapping the axes fails `#1751 column fill/hug`.
+- Dropping `instanceSizing` from the paste twin only fails `#1751 parity (textarea)` and `(checkbox-group)`.
+
+**What moved.** The surface was re-accepted for field-message, text-field, textarea, checkbox-group, radio-group and select (with their outline variants). Every change is "now fills or wraps as declared." `lint-paint` did not move. ENGINE 0.193.0 → 0.194.0 (renumbered at net after #1759 took 0.193.0); CONTRACT stands at 13.1.0.
+
+**Traps.**
+- A roundtrip arm that seeds the shim from `fullFor` gets catalogue STUBS for every nest target. A stub shadows the component the run builds, so the instance has no main and geometry reads nothing. Pass `comps: []` and prebuild the dependencies.
+- Real-host behavior for a hug parent with FIXED-stretched or grow children (the group rows, the message row inside the hug body) is shim-verified, not live-verified. Figma was not written to.
+
+### Review round (independent review, owner decisions on the PR)
+
+**The blocking finding, and why the first build missed it.** A `wrap` text writes `textAutoResize: HEIGHT` after its characters, so it FREEZES at the width of its default string. Field-message's root fills its placement and has no parent in its own def, so it went on hugging, and its caption froze at the width of "This is a status message." (~150px). A longer message then wrapped to three lines inside a 320 field, where before the PR it sat on one. Text-field did not stretch the nest, so it showed there. The shim hid it: it measured a `HEIGHT` text at its characters' natural width every time it was read, which is exactly the width a frozen box does not have.
+
+**The fix, in three parts.**
+- **A root build width.** A new `PartDef.placementWidth` builds a filling root at a literal width (320, the field floor). The root's x mode projects FIXED, and both executors resize the frame to it inside the `layoutMode` branch, before the modes are written. The paste twin splices that line in only for a payload that carries it, so the #536 probe grid still measures 41,993 B. A host that stretches the instance overrides the width. Prism 2's helper message is built the same way (`width: 320`, FIXED, its text FILL). Field-message and field-label both carry it.
+  - **Why not a `minWidth`:** every instance inherits a floor, and textarea's message sits beside the counter in a cell narrower than the field.
+  - **Why not text `WIDTH_AND_HEIGHT` when unstretched:** the host would have to reach into the nested instance's text node, in both executors, and a bare message would then never wrap at all. The def declares that it wraps.
+- **Stretched nests (owner decisions 1 and 2).** Text-field's message stretches like select's and textarea's. Field-label's name now wraps (`wrap: true`, root `fill` + `placementWidth`), and every field-label host stretches it: select (already), text-field, textarea, checkbox-group and radio-group.
+- **The shim.** Under `layoutModel`, a `HEIGHT` text keeps the width it was set at, and a FIXED auto-layout frame keeps its last resize (100, Figma's `createFrame` default, until one). Only a parent that fills it moves it. A resize on an auto-layout frame sets the FIXED axis and leaves a hug axis hugging.
+
+**Long values (owner decision 3, #1758).** Select's value and placeholder wrap. Its control hugs its height above the `min-height` floor (`minHeight` in place of a fixed `height`, Prism 2's `minHeight: 44` HUG input). A one-line value measures what it did: block padding × 2 plus the body line box is 40, below 44, in every emitted brand. Text-field's `content` clips (`clipsContent`), with no ellipsis, and never draws over the trailing slot.
+
+**#1755, closed here.** The wrap and grow validators now accept a parent that FILLS from a bounded ancestor, through `boundsX`. That is a second derivation of `fillsAxis` on purpose, since the validator must not ask the projector. It is narrower than `fillsAxis`: it does not take the carrier rule, so a wrap that relies on a floored sibling is refused rather than trusted. A root counts only with a `placementWidth`. `positionWhen` and the bound-width rule still refuse `'fill'`, deliberately: a filled length is the placement's, not a length the def states. The prose that said `'fill'` projects to AUTO is gone from the schema, and from the def comments that shipped it (select, text-field, checkbox-group).
+
+**Tests.**
+- `test:roundtrip` `#1757`:
+  - the label and message of text-field and select are as wide as the control at 320 AND when it is widened to 400, and a 70-character string is two lines;
+  - a bare field-message and field-label are 320 wide, and the same string is two lines, not three;
+  - a 50-character select value wraps, the control grows taller, and the value ends before the chevron;
+  - a 50-character text-field value runs past `content`, which holds its width, clips, and ends before the trailing slot.
+- `test.ts`:
+  - the `#1751 parity floor` arms gain select and text-field (carrier-filled label and message), plus field-message and field-label (a member root 320 wide on both hosts);
+  - `#1757` validator arms cover `placementWidth` and the filled-parent bound.
+- Two existing `test-write-components` seeds read the old shim and were reworked, not loosened.
+  - **#1611**'s footprint cohort needs a box whose width follows its text, and field-label no longer is one. The fixture restores field-label's hugging shape and keeps everything else the shipped def's.
+  - **Textarea's grip seed** relied on a long value WIDENING the control. It now sizes a value that exactly fills the text box, measured with the grip off. Re-mutated: the grip left in the flow fails `textarea grip footprint` by name.
+
+**Mutations (WIP-committed first, restored from HEAD), each failing by name:**
+
+| mutation | fails |
+|---|---|
+| text-field `message` loses `crossAxisFill` | `#1757 text-field message wraps at the field's width`, `#1751 parity floor (text-field)` |
+| field-message loses `placementWidth` | `#1757 bare field-message …`, `#1757 field-message builds its root at 320 and validates`, `#1751 parity floor (field-message)` |
+| the shim's set-width model removed | `#1757 bare field-message`, `bare field-label`, `select long value wraps`, `text-field long value clips`, and 4 `message-row` arms |
+| select `value` loses `wrap` | `#1757 select long value wraps` |
+| select control back to a fixed height | `#1757 select long value wraps`, `#1751 parity floor (select)` |
+| text-field `content` loses `clipsContent` | `#1757 text-field long value clips` |
+| field-label `text` loses `wrap` | `#1757 text-field label …`, `select label …`, `bare field-label …`, `#1751 parity floor (field-label)` |
+| nests stop filling through a floored sibling (the reviewer's) | `#1751 parity floor (select)`, `(text-field)`, `(textarea)` |
+| the paste twin drops the resize | `#1751 parity floor` and `parity` for field-message and field-label |
+| the plugin executor drops the resize | the corpus round-trip, both `bare` arms, both parity pairs, `#1575 field-message runs CLEAN` |
+
+**What moved.** The surface was re-accepted for field-message, field-label (with its body variants), text-field, textarea, checkbox-group, radio-group and select (with the outline variants). ENGINE stays at this PR's number (0.194.0 after the net renumber), since this round lands before the version ships. CONTRACT stands.
+
+**Held.**
+- **Where the required marker sits (#1762).** Once `wrap` gives the name `layoutGrow: 1`, its box always fills the 320 row, so with `required` on the marker trails at the row's end rather than after the last word — for a one-word, one-line label too, not only a wrapped one. The default (`required` off) is unaffected.
+- **The native `<select>`.** It draws its value on one line, so the code-side half of "the value wraps" needs #1758's audit.
+- **Not verified live.** The resize-then-FIXED order, the frozen `HEIGHT` width, and the clip are modelled offline.
+
+---
+
 ## (2026-09-28) — Lever: Button label weight (Default / Emphasis), buttons only (#1752)
 
 **Owner-decided.** A fourth button lever, `buttonLabelWeight`, labeled "Button label weight" with the options Default and Emphasis. Emphasis is the default and today's binding, so every existing brand's token tree moves by the version stamp only. ENGINE 0.192.0 → 0.193.0; CONTRACT stands at 13.1.0. Scope is `button`, `button-destructive` and `button-neutral`; Tag and Badge keep their label styles.

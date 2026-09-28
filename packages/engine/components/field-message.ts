@@ -164,6 +164,13 @@ export const fieldMessage: ComponentDef = {
         // `baseline` would too — but `baseline` on a wrapped text node is the last line's in some
         // engines. `start` is the reading that survives wrapping.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // BUILT AT THE FIELD'S WIDTH (#1757). The root fills its placement, and a root has none inside its own
+        // def — so a hugging root froze the wrapping caption at the width of its default string ("This is a
+        // status message.", ~150px), and a longer message wrapped to three lines inside a 320 field. The
+        // component is built 320 wide instead (the field floor, and Prism 2's helper message:
+        // `width: 320`, FIXED, its text FILL). A host that stretches the instance overrides it — select,
+        // text-field and textarea all do — so there the caption wraps at the host's width.
+        placementWidth: 320,
         gap: 'gap',
         // THE ROW RESERVES THE GLYPH'S HEIGHT IN EVERY STATUS, the default included (owner decision, option
         // (a), 2026-09-25). A brand whose caption line box is shorter than the glyph (`nb-redesign`: 12px at
@@ -252,6 +259,10 @@ export const fieldMessage: ComponentDef = {
         // since #795 means its member names carry no `size=` (see the header). A `{size}` placeholder here would need a size axis
         // to expand over and `anatomyErrors` rejects that combination outright.
         type: 'type',
+        // WRAPS (#1751) — the header's promise, made real: the caption grows across the row and reflows inside
+        // it, at the host's width where a field stretches the instance and at the root's 320 build width where
+        // nothing does (#1757).
+        wrap: true,
         note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the status\'s text role.',
       },
     },

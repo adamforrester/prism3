@@ -46,6 +46,9 @@ import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
+import { materializeForBrand } from './src/brand-def';
+import { prebuildDependencies } from './src/build-deps';
+import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
 
 const INVENTORY = process.argv.includes('--inventory');
@@ -1331,6 +1334,213 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       `#1670 ${c.name}: the track keeps its 20% layer opacity through the build and the arc draws at full strength (track ${track?.opacity}, arc ${arc?.opacity ?? 'unset'}, ${vs.length} vectors)`);
     ok(!!inkOf(track) && inkOf(track) === inkOf(arc),
       `#1670 ${c.name}: the track and the arc bind the same color variable (${inkOf(track) ?? 'unbound'} / ${inkOf(arc) ?? 'unbound'})`);
+  }
+}
+
+// ── #1751: 'fill' FILLS — the textarea message row, built and measured on the host shim ────────────────
+// The owner's intent, checked on GEOMETRY the shim's layout model computes from what the executor left on
+// the nodes: the message row spans the field, the message cell grows and its text wraps, the counter cell
+// hugs and sits at the row's right edge — with the message on, long, or off. Expected values are the
+// control's measured width and the caption's line box, never read off the def or the plan.
+{
+  const CAPTION = 'caption/md/default';
+  const LINE = 16;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(all), comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: LINE } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  const textarea = componentDefs.find((d) => d.id === 'textarea')!;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  await prebuildDependencies(textarea, { defs: componentDefs, project, host: shim as any, build });
+  const r = await build(textarea);
+  const set = page.children.find((c) => c.name === 'textarea' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children as Node[] | undefined) ?? [];
+  ok(members.length > 0 && r.misses.length === 0, `#1751 seed: textarea builds on the layout-model shim with 0 misses (${members.length} members; ${r.misses[0] ?? 'none'})`);
+  const find = (n: Node | undefined, name: string): Node | undefined => {
+    if (!n) return undefined;
+    if (n.name === name) return n;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = find(c, name); if (f) return f; }
+    return undefined;
+  };
+  const W = (n: Node | undefined) => (n?.width as number) ?? NaN;
+  const X = (n: Node | undefined) => (n?.x as number) ?? NaN;
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  const LONG = 'The message under a field can run long, and when it does it wraps inside its cell beside the counter.'.padEnd(120, '.');
+  const span: string[] = [], wrap: string[] = [], alone: string[] = [];
+  for (const m of members) {
+    const ctl = find(m, 'control'), row = find(m, 'messageRow'), mc = find(m, 'messageCell'), cc = find(m, 'counterCell');
+    const msg = find(m, 'message') as (Node & { _main?: Node }) | undefined;
+    const text = find(msg?._main ?? msg, 'text');
+    if (!ctl || !row || !mc || !cc || !text) { const why = `${m.name}: incomplete (${[ctl, row, mc, cc, text].map((n) => (n ? 1 : 0)).join("")}; message ${msg?.type}, main ${msg?._main?.type}:${JSON.stringify(((msg?._main?.children as Node[] | undefined) ?? []).map((c) => c.name))})`; span.push(why); wrap.push(why); alone.push(why); continue; }
+    cc.visible = true;
+    const edge = () => `row ${W(row)} / field ${W(ctl)}; counter ${X(cc)}+${W(cc)}; message ${X(mc)}+${W(mc)}`;
+    if (!(near(W(row), W(ctl)) && near(X(cc) + W(cc), W(row)) && X(mc) + W(mc) <= X(cc) + 1e-6)) span.push(`${m.name}: ${edge()}`);
+    const was = text.characters;
+    text.characters = LONG;
+    const h = (msg!.height as number) ?? 0;
+    if (!(h >= 2 * LINE && near(X(cc) + W(cc), W(row)) && near(W(row), W(ctl)))) wrap.push(`${m.name}: message ${h} tall; ${edge()}`);
+    text.characters = was;
+    mc.visible = false;
+    if (!near(X(cc) + W(cc), W(row))) alone.push(`${m.name}: ${edge()}`);
+    mc.visible = true;
+    cc.visible = false;
+  }
+  ok(members.length > 0 && span.length === 0,
+    `#1751 textarea row spans the field: with the counter on, on every member the message row is as wide as the control, the counter's right edge is the row's right edge, and the message ends before the counter starts (${span.length} off — ${span[0] ?? 'none'})`);
+  ok(members.length > 0 && wrap.length === 0,
+    `#1751 textarea message wraps: a ${LONG.length}-character message wraps to ≥2 caption lines (≥${2 * LINE}px) through the nested field-message, and the counter stays at the right edge (${wrap.length} off — ${wrap[0] ?? 'none'})`);
+  ok(members.length > 0 && alone.length === 0,
+    `#1751 textarea counter alone: with the message off, the counter still sits at the row's right edge (${alone.length} off — ${alone[0] ?? 'none'})`);
+  // A COLUMN that fills across and hugs down: the messageCell (direction column, x:'fill', y:'hug'). Its
+  // primary axis is y, so it must read AUTO primary / FIXED counter — the swap reads FIXED primary.
+  const cols = members.map((m) => find(m, 'messageCell'));
+  ok(members.length > 0 && cols.every((c) => c && c.layoutMode === 'VERTICAL' && c.primaryAxisSizingMode === 'AUTO' && c.counterAxisSizingMode === 'FIXED'),
+    `#1751 column fill/hug: the vertical messageCell (x:'fill', y:'hug') reads back hug on its primary (y) axis and FIXED on its counter (x) axis, on every member (${cols.map((c) => `${c?.layoutMode} p:${c?.primaryAxisSizingMode} c:${c?.counterAxisSizingMode}`)[0]})`);
+}
+
+// ── #1757: WHERE TEXT WRAPS, AND WHAT A LONG VALUE DOES — the field family, built and measured ───────────
+// The independent review's findings and the owner's three decisions, each checked on GEOMETRY the shim's
+// layout model computes from what the executor left on the nodes:
+//   · the label and the message wrap at the FIELD's width — they track it when it is wider than its 320
+//     floor, so a stretch that went missing cannot pass on the build width alone;
+//   · a bare field-message and field-label wrap at their own 320 build width, not at the ~150px their
+//     default string left a hugging root (the review's blocking finding);
+//   · select's value wraps and the control grows taller, never drawing over the chevron;
+//   · text-field's value clips inside `content` and never draws over the trailing slot.
+// Expected numbers are the control's measured width, a line box the case chooses, and 6px per character
+// (the shim's advance); none is read off a def or a plan. The line box is 40 so two lines (80) clear any
+// glyph floor the shim can bind (≤ 32), and a 70-character string (420px) is two lines at any width from
+// 210 to 419 and three at 150 — the two readings this block tells apart.
+{
+  const LINE = 40;
+  const WIDER = 400;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const lineBox = Object.fromEntries([...new Set(all.flatMap((p) => planTextStyles(p.root)))].map((s) => [s, LINE]));
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, textLineBox: lineBox });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  const built = new Set<string>();
+  const setOf = async (id: string): Promise<Node[]> => {
+    const d = componentDefs.find((x) => x.id === id)!;
+    if (!built.has(id)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+      await prebuildDependencies(d, { defs: componentDefs, project, host: shim as any, build });
+      const r = await build(d);
+      ok(r.misses.length === 0, `#1757 seed: ${id} builds on the layout-model shim with 0 misses (${r.misses[0] ?? 'none'})`);
+      built.add(id);
+      for (const c of page.children) if (c.type === 'COMPONENT_SET') built.add(String(c.name));
+    }
+    const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+    return (set?.children as Node[] | undefined) ?? [];
+  };
+  const find = (n: Node | undefined, name: string): Node | undefined => {
+    if (!n) return undefined;
+    if (n.name === name) return n;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = find(c, name); if (f) return f; }
+    return undefined;
+  };
+  const W = (n: Node | undefined) => (n?.width as number) ?? NaN;
+  const H = (n: Node | undefined) => (n?.height as number) ?? NaN;
+  const X = (n: Node | undefined) => (n?.x as number) ?? NaN;
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  const LONG = 'x'.repeat(70);
+  const mainOf = (n: Node | undefined) => (n as (Node & { _main?: Node }) | undefined)?._main;
+
+  // ---- the nested label and message track the FIELD's width, and wrap at it ----
+  // Each host's control is measured at its own 320 floor and again widened to 400 (a designer's resize);
+  // the nested instance must be as wide as the control both times. The long string goes on the nested
+  // component's own text, so the instance's height is the text reflowed at the instance's width.
+  const nestedWraps = async (host: string, part: string, textName: string) => {
+    const members = await setOf(host);
+    const off: string[] = [];
+    for (const m of members) {
+      const ctl = find(m, 'control');
+      const inst = find(m, part);
+      const text = find(mainOf(inst), textName);
+      if (!ctl || !inst || !text) { off.push(`${m.name}: incomplete`); continue; }
+      const was = text.characters;
+      const floor = ctl.minWidth;
+      text.characters = LONG;
+      const at320 = [W(ctl), W(inst), H(inst)];
+      ctl.minWidth = WIDER;
+      const at400 = [W(ctl), W(inst)];
+      ctl.minWidth = floor;
+      text.characters = was;
+      if (!(near(at320[0], 320) && near(at320[1], at320[0]) && near(at320[2], 2 * LINE) && near(at400[0], WIDER) && near(at400[1], WIDER)))
+        off.push(`${m.name}: at 320 the control is ${at320[0]}, the ${part} ${at320[1]} wide and ${at320[2]} tall; widened, ${at400[0]} and ${at400[1]}`);
+    }
+    ok(members.length > 0 && off.length === 0,
+      `#1757 ${host} ${part} wraps at the field's width: on every member the ${part} is as wide as the control (320, and 400 when widened) and a ${LONG.length}-character ${part} is two ${LINE}px lines (${off.length} off — ${off[0] ?? 'none'})`);
+  };
+  await nestedWraps('text-field', 'message', 'text');
+  await nestedWraps('text-field', 'label', 'text');
+  await nestedWraps('select', 'label', 'text');
+  await nestedWraps('select', 'message', 'text');
+
+  // ---- a BARE field-message / field-label wraps at its 320 build width, not at its default string's ----
+  const bareWraps = async (id: string) => {
+    const members = await setOf(id);
+    const off: string[] = [];
+    for (const m of members) {
+      const text = find(m, 'text');
+      if (!text) { off.push(`${m.name}: no text`); continue; }
+      const was = text.characters;
+      text.characters = LONG;
+      const got = [W(m), W(text), H(m)];
+      text.characters = was;
+      if (!(near(got[0], 320) && got[1] > 210 && near(got[2], 2 * LINE))) off.push(`${m.name}: ${got[0]} wide, text ${got[1]} wide, ${got[2]} tall`);
+    }
+    ok(members.length > 0 && off.length === 0,
+      `#1757 bare ${id} does not wrap at its default string's width: on every member the component is 320 wide, the text is over 210 of it, and a ${LONG.length}-character string is two ${LINE}px lines, not three at ~150px (${off.length} off — ${off[0] ?? 'none'})`);
+  };
+  await bareWraps('field-message');
+  await bareWraps('field-label');
+
+  // ---- a LONG VALUE: select wraps and grows, text-field clips; neither draws over its trailing glyph ----
+  const VALUE50 = 'x'.repeat(50);
+  {
+    const members = await setOf('select');
+    const off: string[] = [];
+    for (const m of members) {
+      const ctl = find(m, 'control'), content = find(m, 'content'), chevron = find(m, 'chevron');
+      const text = find(content, 'value') ?? find(content, 'placeholder');
+      if (!ctl || !content || !chevron || !text) { off.push(`${m.name}: incomplete`); continue; }
+      const was = text.characters;
+      const oneLine = H(ctl);
+      text.characters = VALUE50;
+      const right = X(content) + X(text) + W(text);
+      const got = { ctl: W(ctl), h: H(ctl), right, chevron: X(chevron), lines: H(text) / LINE };
+      text.characters = was;
+      if (!(near(got.ctl, 320) && got.h > oneLine && got.lines >= 2 && got.right <= got.chevron + 1e-6))
+        off.push(`${m.name}: control ${got.ctl} wide, ${oneLine} → ${got.h} tall; the value is ${got.lines} lines and ends at ${got.right}, the chevron starts at ${got.chevron}`);
+    }
+    ok(members.length > 0 && off.length === 0,
+      `#1757 select long value wraps: on every member a ${VALUE50.length}-character value wraps to ≥2 lines, the control stays 320 wide and grows taller, and the value ends before the chevron starts (${off.length} off — ${off[0] ?? 'none'})`);
+  }
+  {
+    const members = await setOf('text-field');
+    const off: string[] = [];
+    for (const m of members) {
+      const ctl = find(m, 'control'), content = find(m, 'content'), entry = find(m, 'entry'), trailing = find(m, 'trailingVisual');
+      const text = find(entry, 'value') ?? find(entry, 'placeholder');
+      if (!ctl || !content || !entry || !trailing || !text) { off.push(`${m.name}: incomplete`); continue; }
+      const was = [text.characters, trailing.visible];
+      text.characters = VALUE50;
+      trailing.visible = true;
+      const got = { ctl: W(ctl), clips: content.clipsContent, edge: X(content) + W(content), entry: W(entry), content: W(content), trailing: X(trailing) };
+      text.characters = was[0];
+      trailing.visible = was[1];
+      // The value's run is WIDER than `content` (so something has to give), `content` holds its width
+      // and ends before the trailing slot, and it clips what runs past it.
+      if (!(near(got.ctl, 320) && got.clips === true && got.entry > got.content && got.edge <= got.trailing + 1e-6))
+        off.push(`${m.name}: control ${got.ctl}; content ${got.content} wide (clips ${String(got.clips)}), ends at ${got.edge}; the value runs ${got.entry}; trailing slot at ${got.trailing}`);
+    }
+    ok(members.length > 0 && off.length === 0,
+      `#1757 text-field long value clips: on every member a ${VALUE50.length}-character value runs past \`content\`, which holds its width, clips it, and ends before the trailing slot; the control stays 320 wide (${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 

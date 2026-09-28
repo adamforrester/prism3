@@ -165,7 +165,8 @@ export const radioGroup: ComponentDef = {
       // `radio-button-group.json` is a FIXED 320px root with each `radioButtonRow` set to FILL (byte-for-byte
       // `checkbox-group.json`); this realizes it with the container floored at `minWidth: 320` and each row
       // `crossAxisFill` (→ `layoutAlign: STRETCH`, the #1503 capability). A `minWidth` floor rather than a
-      // bound width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent.
+      // bound width keeps the group responsive (reads at 320, a designer can widen it), the `select` #1345
+      // precedent.
       // 320 is the owner-cited Prism 2 literal, not a semantic role, so `CONTRACT_VERSION` stands. Whatever
       // `checkbox-group` settles is copied here — building a DIFFERENT width model is the one outcome that
       // guarantees the two never match (#1475).
@@ -188,7 +189,10 @@ export const radioGroup: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
-        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
+        // FILLS the group's width (#1757), `checkbox-group`'s label copied (#1475): a long heading wraps at the
+        // group's width instead of running past it.
+        crossAxisFill: true,
+        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width, so a long heading wraps. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `radio-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:
