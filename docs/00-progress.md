@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Component: Tag — the interactive token, one component switched by `interaction`, outlined or filled from the interactive family
 
-**STATUS: PR open from `lane/component-tag`, labeled DO NOT MERGE.** New def `components/tag.ts` from the KB brief `components/tag.md`, built to the owner's six decisions of 2026-09-27 and against Badge's `notes.contested` hook. ENGINE 0.187.0 → **0.188.0** (MINOR, a new projected def; the orchestrator renumbers); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 170 → **171** (`out/components/tag.md`), moved in `verify.ts` and both `ci.yml` literals.
+**STATUS: merged (owner go, 2026-09-28).** New def `components/tag.ts` from the KB brief `components/tag.md`, built to the owner's six decisions of 2026-09-27 and against Badge's `notes.contested` hook. ENGINE 0.188.0 → **0.189.0** (MINOR, a new projected def; renumbered at net after #1742 took 0.188.0); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 170 → **171** (`out/components/tag.md`), moved in `verify.ts` and both `ci.yml` literals.
 
 **What it is.** One component switched by an `interaction` prop (`clickable | selectable | removable`, default `clickable`), named for what the user can do to the tag. The Figma set is `selection` (`unselected | selected`) × `size` (small / medium / large) × five states (rest, hover, pressed, focus-visible, disabled) = 30 members; `read-only` is a code state admitted out of the state axis. The leading icon and the remove button are node-visibility booleans (`leading icon`, `remove button`). The remove button is a nested `icon-button-neutral` (small, circular, ghost), `nest-exposed` on `state`, so it is a real control with its own name ("Remove <label>").
 
@@ -41,6 +41,20 @@
 - Not found: a mutation only the cross-component arm catches. Every defect it sees, a literal arm on one side sees too; it is the arm that states the owner's comparison, not the only one standing on it.
 
 **Held for owner** (in the PR body): Tag group as a def or code-only (recommendation: code-only now, a `tag-group` def in its own PR once the selection model and overflow are decided — filed); the `[unselected, selected]` spelling; tone and fill variants not built; the visual choices (outlined/filled, pill radius, selected in primary); dual-action tags; the three-rung size ladder; the 1:1 glyph rung vs Button's offset; the remove button fixed at the small rung; `generationPriority: 3`; the taxonomy page; `Token` not carried as an alias.
+
+---
+
+## (2026-09-27) — Plugin: a page header is never narrower than the header itself
+
+**Found live, not offline.** The first agent-link build in the owner's master file after #1711/#1733 placed headers on two pages that had none. Both were sized to their content: 250px on Field Label, and **80px on Spinner**, where the four spinner sizes span 80px. The Spinner header came out 860px tall, with its title broken one letter per line. The shim test covered 600–1500px content and never went narrower than the header's text.
+
+**The fix is a floor, and in real files the floor usually wins.** The width is the content's, floored at the width the file itself authors the Medium variant at. Set up file authors every `_Section-header` variant at 2517px (`SECTION_WIDTH`, `file-components.ts`), so in practice **every page whose content is narrower than 2517 gets a 2517 header**, not only the degenerate ones. That is close to the owner's hand-placed Buttons header (2129 over 1128px of set), so it reads as the file's own design rather than a new one. The shim authors its variants at 1000, below the arms' 1200/1500 content, so the test exercises both sides of the floor; a real file mostly sits on one. The floor reads the **variant**, not the fresh instance: in the shim those two widths differ on purpose (1000 against 2517), so a floor read off the instance would fail the new arm.
+
+**Held for the owner:** (1) that nearly every header now sits at 2517 rather than its content's width; (2) whether a page wider than 2517 should keep growing the header, as it does now, or cap it.
+
+**Mutation (committed first, restored from HEAD):** `Math.max(right - left, variant.width ?? 0)` → `right - left` fails `2: 80px content gets a header at the variant's own width` and `2: offset content — … floored to the variant's 1000` by name.
+
+**Master file, repaired by hand under the owner's authorization:** the two headers placed before this fix (Spinner, Field Label) were resized to 2517 and re-seated 80px above their content.
 
 ---
 

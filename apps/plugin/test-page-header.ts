@@ -9,7 +9,8 @@
  *   1. the header COPY for a page — the family title and the primary def's summary, read off the REAL
  *      `componentDefs` registry and compared with literals copied from the def files;
  *   2. a FRESH page gets exactly one header: Size=Medium, the title and summary text, the Description
- *      boolean on, FIXED width / HUG height at the content's width, x on the content's left edge and its
+ *      boolean on, FIXED width / HUG height at the content's width (floored at the variant's own width, so
+ *      80px of spinners does not squeeze the header into a column), x on the content's left edge and its
  *      bottom 80px above the content's top;
  *   3. a SECOND build adds no second header, fills text that still reads the placeholder, and leaves a
  *      user-edited description alone;
@@ -81,7 +82,9 @@ const textNode = (name: string, characters: string, style: string): ShimNode => 
 const makeHeaderSet = (id = 'set:hdr', name = '_Section-header'): ShimNode => {
   const set: ShimNode = { id, type: 'COMPONENT_SET', name, children: [], parent: null };
   const variant = (size: string): ShimNode => {
-    const v: ShimNode = { id: `v:${size}`, type: 'COMPONENT', name: `Size=${size}`, children: [], parent: set };
+    // Every variant authored 1000 wide — the shim's own number, below the 1200/1500 content the arms place
+    // over, and distinct from an instance's starting 2517, so the floor reads the VARIANT.
+    const v: ShimNode = { id: `v:${size}`, type: 'COMPONENT', name: `Size=${size}`, width: 1000, children: [], parent: set };
     const text: ShimNode = { type: 'FRAME', name: 'Text', children: [textNode('Title', 'Section header', 'Bold'), textNode('Description', 'Descriptive Text', 'Regular')], parent: v };
     v.children.push(text);
     v.findOne = (p) => findIn(v, p);
@@ -219,7 +222,13 @@ console.log('2. a fresh page gets exactly one header');
   const page2 = makePage('↳ Veil', [{ name: 'Veil', x: 40, y: 100, width: 600, height: 300 }]);
   await ensurePageHeader(api, page2, { title: 'Veil', description: 'x', primary: 'veil' });
   const [h2] = await headersOn(page2);
-  ok(h2?.x === 40 && h2?.y === -100 && h2?.width === 600, `2: offset content — x 40, y -100, width 600 (got x ${h2?.x}, y ${h2?.y}, width ${h2?.width})`);
+  ok(h2?.x === 40 && h2?.y === -100 && h2?.width === 1000, `2: offset content — x 40, y -100, and 600px content floored to the variant's 1000 (got x ${h2?.x}, y ${h2?.y}, width ${h2?.width})`);
+
+  // Narrow content, measured live: the Spinner page's four sizes span 80px, and the header took that width.
+  const page3 = makePage('↳ Spinner', [{ name: 'spinner/x-small', x: 0, y: 0, width: 16, height: 16 }, { name: 'spinner/large', x: 48, y: 48, width: 32, height: 32 }]);
+  const out3 = await ensurePageHeader(api, page3, { title: 'Spinner', description: 'x', primary: 'spinner' });
+  const [h3] = await headersOn(page3);
+  ok(out3.status === 'placed' && out3.width === 1000 && h3?.width === 1000, `2: 80px content gets a header at the variant's own width, 1000, never 80 (reported ${out3.status === 'placed' ? out3.width : '—'}, got ${h3?.width})`);
 }
 
 // ── 3. A second build ────────────────────────────────────────────────────────────────────────────────
