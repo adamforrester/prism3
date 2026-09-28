@@ -291,6 +291,10 @@ const BUTTON_SURFACE_CONFIGS: { id: string; layout: ButtonLayout }[] = [
   { id: 'button-default', layout: DEFAULT_BUTTON_LAYOUT },
   { id: 'button-edges', layout: { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' } },
   { id: 'button-smaller', layout: { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' } },
+  // #1752 — "Button label weight: Default", alone and composed with "One step smaller" (the medium label
+  // then binds `type.label.sm.default`). The default, Emphasis, is `button-default` above, unchanged.
+  { id: 'button-label-default', layout: { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' } },
+  { id: 'button-smaller-label-default', layout: { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller', labelWeight: 'default' } },
 ];
 
 const liveDefs = (): Record<string, Surface> => {

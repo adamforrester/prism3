@@ -265,6 +265,24 @@
       "description": "The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged."
     },
     {
+      "key": "buttonLabelWeight",
+      "group": "form",
+      "label": "Button label weight",
+      "control": "enum",
+      "default": "emphasis",
+      "options": [
+        {
+          "value": "default",
+          "label": "Default"
+        },
+        {
+          "value": "emphasis",
+          "label": "Emphasis"
+        }
+      ],
+      "description": "The weight role a button label binds: Emphasis (600 at the stock weight roles) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis."
+    },
+    {
       "key": "buttonMinWidthMultiplier",
       "group": "form",
       "label": "Button minimum width",

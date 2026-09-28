@@ -4631,7 +4631,7 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
     { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Boxed is sharp; hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
     // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
     // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
-    { title: 'Buttons', sub: 'Button icon placement, minimum width, and the medium label and icon size. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
+    { title: 'Buttons', sub: 'Button icon placement, minimum width, the medium label and icon size, and the label weight. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
@@ -7399,7 +7399,8 @@ const paintControlShapePreview = (into: HTMLElement): void => {
  *  multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under "Locked to edges"
  *  each icon absolutely positioned at the visual padding with its side padded by that padding + icon + gap,
  *  so the button still hugs a longer label. Under "One step
- *  smaller" the medium size takes small's label size and icon. Geometry only, in the page ink — the
+ *  smaller" the medium size takes small's label size and icon, and every label takes the weight "Button label
+ *  weight" picks (#1752). Geometry and weight only, in the page ink — the
  *  colors are the Colors page's job. Mode-aware like `paintSizePreview`. */
 const BUTTON_SIZES: { size: string; step: string; icon: string; label: string }[] = [
   { size: 'Small', step: 'sm', icon: 'xs', label: 'sm' },
@@ -7411,6 +7412,9 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
   const edges = (getPath(brandState, 'buttonIcons') ?? 'attached') === 'edges';
   const smaller = (getPath(brandState, 'buttonContentSize') ?? 'match') === 'smaller';
   const mult = Number(getPath(brandState, 'buttonMinWidthMultiplier') ?? DEFAULT_MIN_WIDTH_MULTIPLIER);
+  // #1752 — the label's weight is the brand's number for the role "Button label weight" picks, in the mode in view.
+  const labelRole = (getPath(brandState, 'buttonLabelWeight') ?? 'emphasis') === 'default' ? 'default' : 'emphasis';
+  const labelWeight = (theme.typography.weightRolesByMode?.[currentMode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)?.value ?? 600;
   const sizes = theme.dims.sizesByMode?.[currentMode] ?? theme.dims.sizes;
   const radius = rp.dims['radius.md'] ?? 4;
   const list = el('div', 'btnl-list');
@@ -7440,6 +7444,7 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
       };
       const label = el('span', 'btnl-label', text);
       label.style.fontSize = `${labelPx}px`;
+      label.style.fontWeight = String(labelWeight);
       if (lead) btn.append(glyph('left'));
       btn.append(label);
       if (trail) btn.append(glyph('right'));

@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000 } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -614,6 +614,12 @@ export type BrandInput = {
   buttonIcons?: ButtonIcons;
   buttonContentSize?: ButtonContentSize;
   buttonMinWidthMultiplier?: number;
+  /** #1752 — the button label's weight role: 'emphasis' (default, `type.label.*.emphasis`) | 'default'
+   *  (`type.label.*.default`). Materialized by `applyButtonLayout` like the three above, and composes with
+   *  `buttonContentSize: 'smaller'` (a medium button then binds `type.label.sm.default`). Unlike them it can
+   *  ADD token paths: under 'default' the label category ships the `default` role (unioned into
+   *  `typography.weights.label` in `brandTheme`), so the binding always names a style the brand emits. */
+  buttonLabelWeight?: ButtonLabelWeight;
 };
 
 /**
@@ -1298,6 +1304,23 @@ export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRole
   label: { role: 'emphasis', why: 'the button binds type.label.*.emphasis by name' },
   body: { role: 'default', why: 'the text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
   caption: { role: 'default', why: 'the textarea and field message bind type.caption.md.default by name' },
+};
+/**
+ * #1752 — the weight role `buttonLabelWeight: 'default'` makes the button label bind, and the category it
+ * lives in. `applyButtonLayout` rebinds the button family's `type.label.*.emphasis` to this role by name,
+ * so the brand must SHIP it: `withButtonLabelWeight` unions it into the label category's weight set before the
+ * composites are built. A brand whose label set already carries `default` is unchanged (same array back),
+ * and 'emphasis' (the lever's default) never reaches the union, so every existing brand is byte-identical.
+ * The union keeps `WEIGHT_ROLE_ORDER` (lightest first), the order every default set is written in.
+ */
+export const BUTTON_LABEL_DEFAULT_ROLE: WeightRoleName = 'default';
+const withButtonLabelWeight = (t: TypographyInput | undefined, w: ButtonLabelWeight | undefined): TypographyInput | undefined => {
+  if (w !== 'default') return t;
+  const roles = t?.weights?.label ?? TYPE_WEIGHTS_DEFAULT.label;
+  // A malformed set is `buildComposites`' to refuse, by name; the union does not repair or mask it.
+  if (!Array.isArray(roles) || roles.includes(BUTTON_LABEL_DEFAULT_ROLE)) return t;
+  const label = [...roles, BUTTON_LABEL_DEFAULT_ROLE].sort((a, b) => WEIGHT_ROLE_ORDER.indexOf(a) - WEIGHT_ROLE_ORDER.indexOf(b));
+  return { ...t, weights: { ...t?.weights, label } };
 };
 /**
  * #1602 — the weight roles a brand ACTUALLY EMITS per category, derived from the composites it
@@ -2405,6 +2428,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'controlShape', value: input.controlShape, options: ['rounded', 'pill', 'boxed', 'hairline'] },
     { path: 'buttonIcons', value: input.buttonIcons, options: ['attached', 'edges'] },
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
+    { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
@@ -2762,7 +2786,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   const layout = buildLayout(input.layout);
   notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${b.px}`).join(', ')}); grid base ${layout.baseColumns} cols (ladder ${layout.grid.map((g) => g.columns).join('/')}); gutter/margin alias the spacing scale (${layout.grid.map((g) => g.gutterPx).join('/')} · ${layout.grid.map((g) => g.marginPx).join('/')}); container max ${layout.containerMax}px + narrow ${layout.containerNarrow}px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.`);
-  const typography = buildTypography(input.typography);
+  // #1752 — `buttonLabelWeight: 'default'` puts the `default` role in the label category (the identity
+  // otherwise). Before the build, so the composites, the Figma text styles and `weightAvailability` all
+  // see it: the button's rebound label style then names a style the brand emits.
+  const typography = buildTypography(withButtonLabelWeight(input.typography, input.buttonLabelWeight));
+  if (input.buttonLabelWeight === 'default')
+    notes.push('button label weight: default — buttons bind type.label.*.default, so the label category ships the default role beside emphasis; other label styles keep emphasis.');
   // Per-mode typography levers (Phase D): a customizable mode may override the font FAMILY per
   // category and/or the font WEIGHT per weight-role. Re-derive the affected PRIMITIVES via the
   // SAME helpers buildTypography uses — family stacks by merging the mode's stacks over the base

@@ -24,12 +24,12 @@
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
 import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, ButtonIcons, ButtonContentSize } from './scale';
+import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
-import { WEIGHT_ROLE_ORDER, TYPE_WEIGHTS_DEFAULT } from './theme';
+import { WEIGHT_ROLE_ORDER, TYPE_WEIGHTS_DEFAULT, BUTTON_LABEL_DEFAULT_ROLE } from './theme';
 import type { TypeGroup, WeightRoleName, Theme } from './theme';
 // `outlineFillRole` (#1608) — the ONE method → family mapping, reused by `applyOutlineInteraction`
 // rather than re-derived. `modes.ts` does not import this file, so there is no cycle.
@@ -1843,9 +1843,9 @@ export const MIN_WIDTH_DERIVATION = 'min-width';
 /** True when `def` is in the button family the #1667 levers reach — it declares the `min-width` derivation. */
 export const isButtonFamily = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[MIN_WIDTH_DERIVATION];
 
-/** The three settings, as `materializeForBrand` reads them off a brand. */
-export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number };
-export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER };
+/** The button settings, as `materializeForBrand` reads them off a brand: #1667's three and #1752's label weight. */
+export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight };
+export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis' };
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -1854,8 +1854,12 @@ export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content:
  *  (the spinner reads the icon key too, so it shrinks with the icon it stands in for). */
 export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'icon'] } as const;
 
+/** "Button label weight" (#1752): the per-size key whose ref names the label's text style. Its ref is
+ *  `type.label.<rung>.<role>`, and under `labelWeight: 'default'` the role tail becomes `default`. */
+export const LABEL_TYPE_KEY = 'type';
+
 /**
- * Materialize a button-family def for a brand's three button settings (#1667). Identity for any def outside
+ * Materialize a button-family def for a brand's button settings (#1667, #1752). Identity for any def outside
  * the family. For a button:
  *
  *   1. MINIMUM WIDTH, in BOTH icon placements. The root's floor becomes a per-size map, each entry
@@ -1875,6 +1879,11 @@ export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'i
  *      (`CONTENT_OFFSET`). Height, padding, gap and the other two sizes are untouched, and no token moves —
  *      this is a button-only rebinding, never a change to the shared type or icon ladders. With "Locked to
  *      edges" the reserve reads the icon AFTER this rebinding, so it holds the smaller icon.
+ *   4. "Button label weight" (`labelWeight: 'default'`, #1752). Every size's label type binds the
+ *      `default` role of its label rung (`type.label.md.emphasis` → `type.label.md.default`), after step 3,
+ *      so a medium button at "One step smaller" binds `type.label.sm.default`. Button family only — `tag`
+ *      and `badge` bind the same label styles and are outside the set. `brandTheme` makes the brand ship
+ *      the role (`BUTTON_LABEL_DEFAULT_ROLE`). `emphasis`, the default, is today's binding.
  *
  * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
@@ -1898,6 +1907,20 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   }
 
   const sizes = def.variants?.size ?? [];
+  // 4. "Button label weight" (#1752). AFTER the medium offset, so the two compose: a medium button at "One
+  //    step smaller" already holds small's label ref here, and its role tail moves with the others.
+  if (layout.labelWeight === 'default') {
+    tokens = { ...tokens };
+    for (const v of sizes) {
+      const key = `size.${v}.${LABEL_TYPE_KEY}`;
+      const segs = tokens[key]?.split('.') ?? [];
+      if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
+        throw new Error(`${def.id}: "Button label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
+      // The role `brandTheme` unions into the label category for this setting, so the style is emitted.
+      segs[3] = BUTTON_LABEL_DEFAULT_ROLE;
+      tokens[key] = segs.join('.');
+    }
+  }
   // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
   const at = (key: string, v: string, what: string): number => {
     const ref = tokens[key.replace('{size}', v)];

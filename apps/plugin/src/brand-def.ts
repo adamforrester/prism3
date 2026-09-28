@@ -52,16 +52,17 @@ const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; out
 /** The weight roles a brand ships per type category, or the defaults when there is no usable brand. */
 export const brandWeightAvailability = (input: BrandInput | null): WeightAvailability => brandLevers(input).avail;
 
-/** The brand's three button settings (#1667), off the raw input like `controlShape`, defaults filled in. */
+/** The brand's button settings (#1667, and #1752's label weight), off the raw input like `controlShape`, defaults filled in. */
 export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
   icons: input?.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
   content: input?.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
   minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
+  labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
 });
 
 /** `def` resolved against the brand: corner shape, then weight intent (#1605's owner-locked order), then
  *  the outline hover family (#1608 — independent of the other two: it touches only `color.*` refs), then
- *  the button layout (#1667 — independent too: it touches the button family's geometry and its two
+ *  the button layout (#1667 — independent too: it touches the button family's geometry, its label type refs (#1752) and its two
  *  medium content refs, none of which the earlier three read or write). */
 export const materializeForBrand = (def: ComponentDef, input: BrandInput | null): ComponentDef => {
   const { avail, outline, sizes } = brandLevers(input);

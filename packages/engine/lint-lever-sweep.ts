@@ -47,7 +47,7 @@
  *
  * (b) COMPONENTS. SUBJECT = every def's projection after brand materialization — `applyControlShape`
  *     (off the raw input, as the plugin reads it), then `applyWeightIntent` and `applyOutlineInteraction`
- *     (off the resolved theme), then `applyButtonLayout` (#1667, off the raw input and the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
+ *     (off the resolved theme), then `applyButtonLayout` (#1667 and #1752's label weight, off the raw input and the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
  *     `materializeForBrand` performs. It is restated here, not imported, because the engine must not
  *     depend on a surface. The plugin's own `test-write-components.ts` pins that function; this gate pins
  *     the three engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
@@ -176,6 +176,7 @@ const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): Compon
       icons: input.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
       content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
       minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
+      labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
     },
     sizeRefPx(theme.dims.sizes));
 

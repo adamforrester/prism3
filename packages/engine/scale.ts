@@ -77,6 +77,10 @@ export type ControlShape = 'rounded' | 'pill' | 'boxed' | 'hairline';
  *  default); `smaller` gives the MEDIUM size the small size's label and icon, height and padding unchanged. */
 export type ButtonIcons = 'attached' | 'edges';
 export type ButtonContentSize = 'match' | 'smaller';
+/** #1752 (owner-decided 2026-09-28) — the weight role a button LABEL binds. `emphasis` (the default) is the
+ *  label tier's own weight, `type.label.*.emphasis`, and today's binding; `default` binds `type.label.*.default`.
+ *  Button family only: every other def binding a label style keeps its own. See `applyButtonLayout`. */
+export type ButtonLabelWeight = 'default' | 'emphasis';
 /** The default `buttonMinWidthMultiplier`: Adobe Spectrum's `button-minimum-width-multiplier`, where a
  *  button's `min-inline-size` is `calc(height × multiplier)` (docs/28 §2.2, "derived, not authored"). */
 export const DEFAULT_MIN_WIDTH_MULTIPLIER = 2.25;

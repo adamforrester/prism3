@@ -59,7 +59,7 @@ import type { ControlShape } from './scale';
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
-import type { AnatomyPlan } from './anatomy-figma';
+import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // The component registry (#742, `docs/38` Arc 3). `componentDefs` is the set — the per-def loop below
 // iterates it instead of restating its members, so a sixth def is covered by that loop the moment it
 // is registered. The named bindings come from the same module and are for the assertions that are
@@ -11550,6 +11550,109 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           `#1667 smaller: ${def.id}@medium binds small's label style and icon (${small.label}, ${small.icon}) — got ${JSON.stringify(grab(med))}`);
         ok(JSON.stringify(med.bound) === JSON.stringify(matchMed.bound) && med.minWidth === matchMed.minWidth,
           `#1667 smaller: ${def.id}@medium keeps medium's height, padding, gap and floor — only the content moves`);
+      }
+    }
+  }
+
+  // #1752 — "BUTTON LABEL WEIGHT" (Default | Emphasis, default Emphasis; owner-decided 2026-09-28). Buttons
+  // only. Every expectation below is a LITERAL written here, never derived from `applyButtonLayout`,
+  // `LABEL_TYPE_KEY` or the union in `brandTheme` (the subjects, docs/34). The emitted side is read off the
+  // brand's own DTCG tree (`pathsOf`) and Figma text styles (`figmaArtifacts`), which the union feeds and
+  // the binding does not read. Mutations are recorded in docs/00-progress.md.
+  {
+    const brief = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const LW_INPUTS: [string, BrandInput][] = [
+      ['minimal', MINIMAL_BRAND],
+      ['prism3', brief('prism3.design.md')],
+      ['aurora', brief('aurora.design.md')],
+      ['harbor', brief('harbor.design.md')],
+      ['wendys', standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input],
+      ['nb-redesign', brief('nb-redesign.design.md')],
+    ];
+    const FAMILY = [button, buttonDestructive, buttonNeutral];
+    const SIZES = ['small', 'medium', 'large'];
+    const heightOf = (t: Theme) => (ref: string): number | undefined => t.dims.sizes.find((z) => `size.${z.name}.height` === ref)?.height;
+    const labelStyle = (def: ComponentDef, size: string): string[] =>
+      planTextStyles(figmaAnatomyPlan(def, size, { leading: false, trailing: true, swapTarget: 'FPO-default-icon', appearance: 'filled', state: 'rest' }).root);
+    // The literal table: [content, labelWeight] → the label type path per size (small / medium / large).
+    const WANT: [ButtonLayout['content'], ButtonLayout['labelWeight'], string[]][] = [
+      ['match', 'emphasis', ['type.label.sm.emphasis', 'type.label.md.emphasis', 'type.label.lg.emphasis']],
+      ['match', 'default', ['type.label.sm.default', 'type.label.md.default', 'type.label.lg.default']],
+      ['smaller', 'emphasis', ['type.label.sm.emphasis', 'type.label.sm.emphasis', 'type.label.lg.emphasis']],
+      ['smaller', 'default', ['type.label.sm.default', 'type.label.sm.default', 'type.label.lg.default']],
+    ];
+
+    // (1) THE BINDING — every family def × size × setting, composed with "One step smaller": the def's
+    // `size.<size>.type` ref AND the text style the projected plan names, both against the literal.
+    {
+      const t = brandTheme({ ...MINIMAL_BRAND, buttonLabelWeight: 'default' } as BrandInput);
+      for (const def of FAMILY) for (const [content, labelWeight, paths] of WANT) {
+        const m = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content, labelWeight }, heightOf(t));
+        SIZES.forEach((size, i) => {
+          const style = paths[i].split('.').slice(1).join('/');   // type.label.sm.default → label/sm/default
+          const got = [m.tokens[`size.${size}.type`], labelStyle(m, size).join()];
+          ok(got[0] === paths[i] && got[1] === style,
+            `#1752 label weight binding: ${def.id}@${size} at ${content} + ${labelWeight} binds ${paths[i]} (text style ${style}) — got ${got.join(' / ')}`);
+        });
+      }
+    }
+
+    // (2) THE ROLE SHIPS. A brand whose label category ships `emphasis` only still emits `type.label.*.default`
+    // (tree and Figma text style) under Default, and every button binding resolves against that emission.
+    // The base build is asserted emphasis-only first, so the paths are the lever's doing.
+    for (const [bid, input] of LW_INPUTS) {
+      const emphasisOnly = { ...input, typography: { ...input.typography, weights: { ...input.typography?.weights, label: ['emphasis'] } } } as BrandInput;
+      const base = pathsOf(brandTheme(emphasisOnly));
+      const on = brandTheme({ ...emphasisOnly, buttonLabelWeight: 'default' });
+      const paths = pathsOf(on);
+      const figma = figmaArtifacts(on).artifacts.filter((a) => a.path.endsWith('.json')).map((a) => ({ path: a.path, j: JSON.parse(a.content) }));
+      const styles = new Set(figma.filter((a) => !a.path.startsWith('shadow')).flatMap((a) => (a.j.styles ?? []).map((s: { name: string }) => s.name)));
+      const effects = new Set(figma.filter((a) => a.path.startsWith('shadow')).flatMap((a) => (a.j.styles ?? []).map((s: { name: string }) => s.name)));
+      const vars = new Set(figma.flatMap((a) => (a.j.variables ?? []).map((v: { name: string }) => tailOf(v.name))));
+      const want = ['sm', 'md', 'lg'];
+      ok(want.every((r) => !base.has(`type.label.${r}.default`) && base.has(`type.label.${r}.emphasis`)),
+        `#1752 role ships: ${bid} with label: [emphasis] emits no type.label.*.default at Emphasis (the precondition)`);
+      ok(want.every((r) => paths.get(`type.label.${r}.default`) === 'typography' && paths.has(`type.label.${r}.emphasis`) && styles.has(`label/${r}/default`)),
+        `#1752 role ships: ${bid} with label: [emphasis] emits type.label.{sm,md,lg}.default (tree and text style) at Default, and keeps emphasis — got ${want.map((r) => `${r}:${paths.get(`type.label.${r}.default`) ?? '-'}/${styles.has(`label/${r}/default`)}`).join(' ')}`);
+      const misses = FAMILY.flatMap((def) => figmaAnatomySet(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, sizeRefPx(on.dims.sizes)))
+        .flatMap((p) => planBindingErrors(p, vars, styles, effects)));
+      ok(misses.length === 0, `#1752 role ships: ${bid} — every button label style at Default is one the brand emits (${misses.length} miss(es): ${misses.slice(0, 2).join('; ')})`);
+    }
+
+    // (3) EMPHASIS IS THE IDENTITY. Setting it explicitly builds the byte-identical tree and Figma emission
+    // for every brand-input corpus brand (unset is what `out/**` commits, and `regen --check` holds that),
+    // and the materialized button family binds exactly what the def authors.
+    for (const [bid, input] of LW_INPUTS) {
+      const a = brandTheme(input), b = brandTheme({ ...input, buttonLabelWeight: 'emphasis' });
+      ok(JSON.stringify(buildTree(a)) === JSON.stringify(buildTree(b)),
+        `#1752 identity: ${bid} builds a byte-identical DTCG tree with buttonLabelWeight unset and 'emphasis'`);
+      ok(JSON.stringify(figmaArtifacts(a).artifacts) === JSON.stringify(figmaArtifacts(b).artifacts),
+        `#1752 identity: ${bid} builds a byte-identical Figma emission with buttonLabelWeight unset and 'emphasis'`);
+    }
+    for (const def of FAMILY) {
+      const m = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
+      ok(SIZES.every((s, i) => m.tokens[`size.${s}.type`] === ['type.label.sm.emphasis', 'type.label.md.emphasis', 'type.label.lg.emphasis'][i]),
+        `#1752 identity: ${def.id} at Emphasis binds type.label.{sm,md,lg}.emphasis, as authored`);
+    }
+
+    // (4) SCOPE: buttons only. Tag, badge and select bind label and body styles too, and none moves: each is
+    // the same object back from the materializer, and its type refs are the literal authored ones.
+    {
+      const badge = componentDefs.find((d) => d.id === 'badge')!;
+      const OTHERS: [ComponentDef, [string, string][]][] = [
+        [tag, [['size.small.type', 'type.label.sm.emphasis'], ['size.medium.type', 'type.label.md.emphasis'], ['size.large.type', 'type.label.lg.emphasis']]],
+        [badge, [['type', 'type.label.sm.emphasis']]],
+        [select, Object.entries(select.tokens).filter(([, r]) => r.startsWith('type.'))],
+      ];
+      const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))
+        !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
+      ok(moved === 'button,button-destructive,button-neutral',
+        `#1752 scope: across all ${componentDefs.length} defs, Default moves exactly button, button-destructive and button-neutral (got ${moved})`);
+      ok(OTHERS.every(([, refs]) => refs.length > 0), '#1752 scope: tag, badge and select each bind at least one type ref (a scope over nothing is not a pass)');
+      for (const [def, refs] of OTHERS) for (const content of ['match', 'smaller'] as const) {
+        const m = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content, labelWeight: 'default' }, () => 44);
+        ok(m === def && refs.every(([k, r]) => m.tokens[k] === r),
+          `#1752 scope: ${def.id} is untouched by Button label weight: Default (${content}) — got ${refs.map(([k]) => `${k}=${m.tokens[k]}`).join(', ')}`);
       }
     }
   }
