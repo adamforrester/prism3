@@ -4807,6 +4807,12 @@ for (const b of brands) {
   const aria = badgeDef.accessibility.aria;
   ok(/Status label: not aria-hidden/.test(aria) && /Count and dot: aria-hidden="true"/.test(aria) && /host composes the meaning into its accessible name/.test(aria),
     'badge aria: a status label announces itself; a count or dot is aria-hidden and its meaning is in the host name');
+  // FORCED COLORS (owner, 2026-09-28, #1747): the browser drops background fills there, so a fill-only bold badge
+  // would read as bare text. Every emphasis carries the inset outline; bold's is transparent, which forced colors
+  // paints. The code guidance is the only place this lives (Figma has no forced-colors mode), so it is held here.
+  const forcedLine = badgeDef.anatomy?.codeOnly?.find((l) => /forced-colors mode/.test(l)) ?? '';
+  ok(/outline-offset: -1px/.test(forcedLine) && /bold badge \(status, count or dot\) carries the same inset outline in transparent/.test(forcedLine),
+    `badge forced colors: the subtle edge is an inset outline and a bold badge carries it transparent (#1747) (${forcedLine.slice(0, 120) || 'no forced-colors line'})`);
 
   // THE FIGMA SET (owner decisions, 2026-09-28). Read off the PROJECTED members, not the def's declarations:
   // 20 members — the status label at both emphases (10), the count and the dot bold only (5 each) — and NO

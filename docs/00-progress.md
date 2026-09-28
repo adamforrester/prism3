@@ -7,6 +7,14 @@
 
 ---
 
+## (2026-09-28) — Badge: bold badges keep their shape in forced-colors mode (#1747)
+
+**Owner-approved.** Forced-colors mode (Windows high contrast) removes background fills. A subtle status badge already survives it, because its edge is an inset outline (#1736: `outline: 1px solid; outline-offset: -1px`, never a border, so subtle and bold stay one size). A bold badge had no edge, so it read as bare text. The code guidance now gives every bold badge the same inset outline in `transparent`. It is invisible everywhere else, forced colors paints it in the system color, and it adds no size.
+
+**Code only.** Figma has no forced-colors mode, so the set, the surface digest and the paint census do not move. The one place this lives is `codeOnly`, so a literal `test.ts` arm (`badge forced colors`) holds both halves of the sentence. Mutation (committed first, restored from HEAD): drop "in transparent" from the guidance, and that arm fails by name.
+
+---
+
 ## (2026-09-28) — Badge: `genre` and `emphasis` in Figma, a sparse variant grid, and the subtle tints separate by their edge
 
 **STATUS: PR #1736 open from `lane/badge-genre-neutral`, labeled DO NOT MERGE.** The owner-approved follow-ups to Badge (#1730), reworked to the owner's decisions of 2026-09-28, which replace the first version's "inverse neutral for every status badge". ENGINE 0.189.0 → **0.190.0** (MINOR: the projected surface moves 5 → 20 members and `out/components/**` moves; renumbered twice in the net, after #1742 and #1738). CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. Resolves #1735.

@@ -2926,6 +2926,11 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.191.0 — #1747 (owner, 2026-09-28): a bold badge carries the subtle badge's inset outline in transparent,
+ * so forced-colors mode, which drops background fills, still draws every badge's pill. Code guidance only
+ * (`codeOnly`); the Figma set does not move. `out/components/badge.md` and `components.ai.json` move → ENGINE
+ * bump. CONTRACT STANDS at 13.1.0.
+ *
  * 0.190.0 — Badge follow-ups (owner decisions, 2026-09-27 and 2026-09-28), and a sparse variant grid.
  * (1) `genre` joins `VARIANT_AXES` as the nineteenth axis name, and Badge projects it (status, count, dot).
  * (2) Badge takes the existing `emphasis` axis name with `subtle | bold`; only the status label has both,
@@ -4026,7 +4031,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.190.0';
+export const ENGINE_VERSION = '0.191.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
