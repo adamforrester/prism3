@@ -2944,6 +2944,11 @@
  * GATES: `lint-hit-target` measures targets inside a control and fails on an unlisted nested interactive
  * control (#1741). Projected members move for tag and badge → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no token
  * name is added or removed (`border-width.thick` and `radius.sm` already exist).
+ *   Review round: a new `PartDef.innerTarget` marks a target inside a control (Tag's × slot), and
+ *   `lint-hit-target` compares the marks against its `INNER_TARGETS` in both directions, so neither can be
+ *   dropped silently. Tag's prose no longer says selecting never reflows: the label keeps its width, and the
+ *   check mark adds a cell. `figmaPropertyErrors` refuses a boolean whose variant gate lands only on excluded
+ *   coordinates. Badge's contested note says `type`. Emitted prose moves; no projected member does. Same version.
  *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read

@@ -39,8 +39,8 @@
  *      and `codeOnly` states both options without picking one.
  *   D. MINIMUM WIDTH = THE TAG'S HEIGHT, per size, bound (`minWidthKey` → `size.{size}.height`), so it follows
  *      the density the height follows.
- *   E. SELECTED = A SUBTLE TINT + A BOLD OUTLINE, the label weight CONSTANT (no bold on select, so nothing
- *      reflows). The outline is `interactive.primary.border.*` at `border-width.thick` (2px), drawn INSIDE the
+ *   E. SELECTED = A SUBTLE TINT + A BOLD OUTLINE, the label weight CONSTANT (no bold on select, so the label
+ *      keeps its width; the check mark, when shown, still adds a cell — `test.ts` pins that). The outline is `interactive.primary.border.*` at `border-width.thick` (2px), drawn INSIDE the
  *      box, so a selected member's box equals its unselected twin's where the check is off. Recorded as the
  *      system's SELECTION PATTERN in `skills/prism3-build-component` (segmented control, selectable cards and
  *      list options reuse it). The unselected look stays as it was: outlined in `interactive.neutral`.
@@ -79,7 +79,7 @@ export const tag: ComponentDef = {
   status: 'draft',
   summary: 'An interactive token a user toggles or removes. A static label is a badge.',
   description:
-    'A compact, interactive token of one of two types. A select tag toggles on and off, such as a filter; while selected it takes a tint, a 2px outline and, by default, a check mark after the label, and the label keeps its weight so nothing reflows. A dismissible tag carries a remove control, a × in a square slot at its trailing end, named "Remove" followed by the tag\'s label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline.',
+    'A compact, interactive token of one of two types. A select tag toggles on and off, such as a filter; while selected it takes a tint, a 2px outline and, by default, a check mark after the label. The label keeps its weight, so its own width does not change; the check mark, when shown, adds its width and one gap. A dismissible tag carries a remove control, a × in a square slot at its trailing end, named "Remove" followed by the tag\'s label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tag text. One word where possible, two or three for a specific entity such as a name or an email address. A long label wraps; it is never cut off.' },
@@ -237,7 +237,7 @@ export const tag: ComponentDef = {
       label: {
         kind: 'text',
         type: 'size.{size}.type',
-        note: 'The tag text, at the same weight whether or not the tag is selected, so selecting it never reflows the row. In code a long label wraps; Figma holds one line.',
+        note: 'The tag text, at the same weight whether or not the tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a cell after it. In code a long label wraps; Figma holds one line.',
       },
       check: {
         kind: 'vector',
@@ -256,6 +256,9 @@ export const tag: ComponentDef = {
         // A SQUARE the tag's height: 44 at medium on comfortable density (owner decision C). Present only on a
         // dismissible tag. Unpainted: the glyph inside it carries the ink.
         size: 'size.{size}.height',
+        // A second pointer target inside the tag, or part of a whole-tag one (the owner's open call). Marked so
+        // `lint-hit-target.ts` finds it from the def and measures it; the gate's INNER_TARGETS must list it.
+        innerTarget: true,
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { type: ['dismissible'] },
         children: ['dismissGlyph'],

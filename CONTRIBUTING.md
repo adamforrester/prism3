@@ -878,6 +878,8 @@ npx tsx packages/engine/lint-hit-target.ts          # every interactive control 
                                                     # INNER_TARGETS part (Tag's × slot) is measured at
                                                     # the floor through its own `size` binding, and a
                                                     # nested interactive control not listed there fails.
+                                                    # The def marks such a part `innerTarget`, and the
+                                                    # marks and the list are compared both ways.
 npx tsx packages/engine/lint-lever-sweep.ts         # no lever setting silently deletes a guaranteed
                                                     # path or a component binding (#957). Sweeps every
                                                     # toggle + enum option, ONE AT A TIME, over minimal +

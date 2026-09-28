@@ -4968,6 +4968,15 @@ for (const b of brands) {
     && tagParts.dismissGlyph?.kind === 'vector' && tagParts.dismissGlyph?.glyph === 'close'
     && JSON.stringify(tagParts.dismiss?.children) === '["dismissGlyph"]',
     `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.dismissGlyph?.kind}/${tagParts.dismissGlyph?.glyph})`);
+  // THE × SLOT IS MARKED AS A TARGET INSIDE THE TAG (#1741), which `lint-hit-target.ts` reads; and the marker is
+  // validated: on the role target, or on a part with no bound side, it is refused by name.
+  const withPart = (name: string, patch: Record<string, unknown>) => ({ ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagParts, [name]: { ...tagParts[name], ...patch } } } }) as ComponentDef;
+  const onTarget = validateComponentDef(withPart('container', { innerTarget: true })).errors;
+  const unsized = validateComponentDef(withPart('content', { innerTarget: true })).errors;
+  ok(tagParts.dismiss?.innerTarget === true && validateComponentDef(tagDef).errors.length === 0
+    && onTarget.some((e) => /'container' claims role 'target' and innerTarget/.test(e))
+    && unsized.some((e) => /'content' declares innerTarget but binds neither 'size' nor 'height'/.test(e)),
+    `tag innerTarget: the × slot carries the marker, and the marker is refused on the role target and on a part with no bound side (${[...onTarget, ...unsized].join('; ') || 'no refusal'})`);
   const aria = tagDef.accessibility.aria;
   ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
     'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
@@ -5017,6 +5026,15 @@ for (const b of brands) {
   const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('dismissGlyph')));
   ok(selectWithX.length === 0 && dismissWithoutX.length === 0,
     `tag: no select member carries the × slot, and every dismissible member does${selectWithX.length ? ` — select with ×: ${selectWithX.map((m) => m.name).join(' | ')}` : ''}${dismissWithoutX.length ? ` — dismissible without ×: ${dismissWithoutX.map((m) => m.name).join(' | ')}` : ''}`);
+  // THE × IS TRAILING (owner decision C): on every dismissible member the × slot is the LAST flow cell of the pill,
+  // right after the label row. The focus ring is drawn outside the flow and takes no cell, so it is skipped.
+  const dismissibles = tagMembers.filter((m) => m.type === 'dismissible');
+  const xWrong = dismissibles.filter((m) => {
+    const flow = ((m.plan.root.children ?? []) as any[]).filter((c) => !c.absoluteInset && !c.absoluteCenter).map((c) => c.name as string);
+    return !(flow[flow.length - 1] === 'dismiss' && flow.indexOf('content') === flow.length - 2);
+  });
+  ok(dismissibles.length === 15 && xWrong.length === 0,
+    `tag × slot: on all 15 dismissible members it is the last cell of the pill, after the label row${xWrong.length ? ` — wrong: ${xWrong.slice(0, 4).map((m) => `${m.name} [${((m.plan.root.children ?? []) as any[]).map((c) => c.name).join(', ')}]`).join(' | ')}` : ''} (${dismissibles.length} dismissible members)`);
   // THE CHECK IS TRAILING AND OPTIONAL (owner decision B): on every selected member it is the LAST cell of the
   // label row, after the label (never beside the leading icon), and it carries the `check mark` switch, which
   // defaults ON; no unselected member has it.
@@ -5063,7 +5081,45 @@ for (const b of brands) {
     }
     const a = findNode(restOf('select', 'unselected', size).plan.root, 'label')?.textStyle;
     const b = findNode(restOf('select', 'selected', size).plan.root, 'label')?.textStyle;
-    ok(!!a && a === b, `tag label weight is constant (${size}): the selected label's text style equals the unselected one's, so selecting never reflows the row (${a} / ${b})`);
+    ok(!!a && a === b, `tag label weight is constant (${size}): the selected label's text style equals the unselected one's, so the label keeps its width when selected (${a} / ${b})`);
+  }
+  // THE SELECTED TAG'S WIDTH, as built (the shipped prose says the label keeps its width and the check mark adds
+  // a cell; whether the unselected tag reserves that cell is held for the owner). An independent model of Figma's
+  // hugging row over the PLAN — the flow children only (a hidden or absolutely placed node takes no cell), plus
+  // the padding, one gap between cells and the root's bound minWidth; the strokes are drawn inside and take no
+  // width — with each variable's px read from the brand's built tree and a label of a fixed 30px. EXPECTED is a
+  // literal: the check mark is a 24px glyph plus an 8px gap, 32px at medium in every corpus brand, and with the
+  // `check mark` switch off the two members are one width. If the owner chooses to reserve the check's width,
+  // the first half flips here, deliberately.
+  {
+    const LABEL_W = 30;
+    const CHECK_PLUS_GAP_MD = 32;
+    const widthBrands: [string, any][] = [['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any])];
+    for (const [b, th] of widthBrands) {
+      const built = buildTree(th).tree;
+      const root = Object.keys(built)[0];
+      const px = (v: string | undefined): number => {
+        if (!v) return 0;
+        let n: any = built[root];
+        for (const seg of v.split('/')) n = n?.[seg];
+        const x = n?.$extensions?.prism3?.px;
+        return typeof x === 'number' ? x : NaN;
+      };
+      const widthOf = (n: any): number => {
+        if (n.type === 'TEXT') return LABEL_W;
+        if (n.bound?.width) return px(n.bound.width);
+        const flow = (n.children ?? []).filter((c: any) => c.visible !== false && !c.absoluteInset && !c.absoluteCenter);
+        const content = flow.reduce((acc: number, c: any) => acc + widthOf(c), 0) + Math.max(0, flow.length - 1) * px(n.bound?.itemSpacing);
+        return Math.max(n.bound?.minWidth ? px(n.bound.minWidth) : 0, px(n.bound?.paddingLeft) + content + px(n.bound?.paddingRight));
+      };
+      const hideCheck = (n: any): any => ({ ...n, ...(n.name === 'check' ? { visible: false } : {}), children: (n.children ?? []).map(hideCheck) });
+      const un = widthOf(restOf('select', 'unselected', 'medium').plan.root);
+      const selRoot = restOf('select', 'selected', 'medium').plan.root;
+      const sel = widthOf(selRoot);
+      const selOff = widthOf(hideCheck(selRoot));
+      ok(sel - un === CHECK_PLUS_GAP_MD && selOff === un,
+        `tag selected width (${b}, medium): with the check mark on, a selected tag is ${CHECK_PLUS_GAP_MD}px wider than its unselected twin (a 24px glyph and an 8px gap), and with it off the two are one width (unselected ${un}, selected ${sel}, check off ${selOff})`);
+    }
   }
   // THE TINT THE OWNER NAMED, where it exists: on a solid-tint brand the lever repoints the wash to exactly
   // `interactive.primary.subtle-fill.selected` (held for the owner: it exists nowhere else in the corpus).
@@ -12470,6 +12526,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const boolAndState = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { state: ['hover'] } } } } };
     ok(validateComponentDef(boolAndState as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /presentWhen on 'state'/.test(e)),
       '#1331 a boolean on a STATE-gated part is refused BY NAME — a boolean composes with a variant presence gate only');
+    //       And a VARIANT gate that lands only on coordinates `excludeCoordinates` removes is refused: Tag's check
+    //       mark gated to `type=dismissible, selection=selected`, the one pair the set excludes, would declare a
+    //       `check mark` switch on the set wired to a node on no member. Tag as shipped validates clean.
+    const tagForGate = componentDefs.find((d) => d.id === 'tag')!;
+    const tagParts = tagForGate.anatomy!.parts;
+    const checkOnExcluded = { ...tagForGate, anatomy: { ...tagForGate.anatomy!, parts: { ...tagParts, check: { ...tagParts.check, presentWhen: { type: ['dismissible'], selection: ['selected'] } } } } };
+    const excludedErrs = validateComponentDef(checkOnExcluded as never).errors;
+    ok(validateComponentDef(tagForGate).errors.length === 0
+      && excludedErrs.some((e) => /booleans\.showCheck/.test(e) && /excludeCoordinates removes every such member/.test(e)),
+      `#1743 a boolean whose VARIANT gate lands only on excluded coordinates is refused BY NAME — the switch would toggle a node on no member (${excludedErrs.join('; ') || 'no refusal'})`);
     //   (c) requireOptional — a boolean toggling a NON-optional part is refused (the anatomy must allow the
     //       part to be hidden). Pinned on select's own required `chevron` node (its text layers are
     //       state-gated since Option C, which a boolean is refused on for a different reason, above).

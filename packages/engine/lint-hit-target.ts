@@ -20,7 +20,7 @@
  *
  * TARGETS INSIDE A CONTROL (#1741). The gate used to read each control's own box and nothing inside it, so
  * Tag's remove button — a nested small IconButton, 36px on comfortable inside a 44px medium tag — was neither
- * exception above and was not passed by this gate so much as unseen by it. Two arms close that:
+ * exception above and was not passed by this gate so much as unseen by it. Three arms close that:
  *
  *   · INNER_TARGETS — a part inside an interactive control that is, or may be, a target of its own. Tag's ×
  *     slot is the one today (owner, 2026-09-28): a square the tag's height, whose status as THE target or a
@@ -29,6 +29,11 @@
  *   · UNSEEN NESTS — every `nest` part of an INTERACTIVE control that nests another INTERACTIVE control must be
  *     listed in INNER_TARGETS, or the gate fails. A nested button inside a control is a second target by
  *     construction, and the next one cannot pass unseen the way #1741's did.
+ *   · MARKED PARTS — a target that is not a nested control (Tag's × slot is a `box`) is marked in the def
+ *     (`PartDef.innerTarget`), and the list and the marks are compared in BOTH directions: a marked part
+ *     INNER_TARGETS does not list fails, an entry naming an unmarked part fails, and a mark on a def this gate
+ *     does not measure fails. Before the marker, the × slot was found by the hand-written entry alone, and
+ *     deleting the entry left every gate green — the list was its own only witness (docs/34 shape 1).
  *
  * `select` binds `size.md.min-height` = `max(size.md.height, 44)` (#1426/#1437); the field/row family
  * otherwise binds the size rung directly, which is 44px at the comfortable `md` and 56px at the spacious
@@ -143,7 +148,9 @@ const INTERACTIVE: Record<string, Binding> = {
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
 // Authored here, not read off the def: the arm below asserts the part's own `size` binding expands to this key,
 // so a slot rebound to a smaller rung fails as "the binding moved" before it is measured, and one left bound
-// to a smaller rung under the same key fails the floor.
+// to a smaller rung under the same key fails the floor. WHICH parts are targets is stated twice, here and by
+// the def's `innerTarget` marker, and the two are compared both ways below — so deleting this entry, or the
+// marker, fails by name.
 const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string }> = {
   'tag.dismiss': { key: (s) => `size.${s}.height`, why: "the dismissible tag's × slot, a square the tag's height (owner, 2026-09-28) — the target itself or a part of a whole-tag target, the owner's open call; it clears the floor either way" },
 };
@@ -272,12 +279,20 @@ for (const def of componentDefs) {
   if (bad) failures.push(`${def.id}/${size} (${binding.why}, ${tokenPath}) ${bad} on a ${measured.find((m) => m.px === minPx)!.density} brand — a control's default tap target must meet the floor on comfortable and spacious.`);
 }
 
-// ── TARGETS INSIDE A CONTROL (#1741): unseen nests fail; each listed inner target clears the floor ─────────
+// ── TARGETS INSIDE A CONTROL (#1741): unseen nests and unlisted marked parts fail; each listed inner target
+// is a marked part, and clears the floor ─────────────────────────────────────────────────────────────────────
 for (const def of componentDefs) {
-  if (!(def.id in INTERACTIVE)) continue;
-  for (const [name, part] of Object.entries(def.anatomy?.parts ?? {}))
+  if (!(def.id in INTERACTIVE)) {
+    for (const [name, part] of Object.entries(def.anatomy?.parts ?? {}))
+      if (part.innerTarget) failures.push(`${def.id}.${name}: the def marks it innerTarget, but '${def.id}' is not an INTERACTIVE control here — a target inside a control this gate does not measure is measured by nothing. Classify the def, or drop the marker.`);
+    continue;
+  }
+  for (const [name, part] of Object.entries(def.anatomy?.parts ?? {})) {
     if (part.kind === 'nest' && part.nests && part.nests in INTERACTIVE && !(`${def.id}.${name}` in INNER_TARGETS))
       failures.push(`${def.id}.${name}: nests the interactive control '${part.nests}', a second target inside '${def.id}', and INNER_TARGETS does not list it — a nested target this gate cannot see is #1741's defect. Measure it here, or change the anatomy.`);
+    if (part.innerTarget && !(`${def.id}.${name}` in INNER_TARGETS))
+      failures.push(`${def.id}.${name}: the def marks it innerTarget, a second target inside '${def.id}', and INNER_TARGETS does not list it — a marked target this gate does not measure is #1741's defect. Add it to INNER_TARGETS with the key of its side.`);
+  }
 }
 for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const [defId, partName] = id.split('.');
@@ -285,6 +300,10 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const part = def?.anatomy?.parts[partName];
   if (!def || !part) { failures.push(`INNER_TARGETS names '${id}', which is not a part of a registered def — a stale entry measures nothing.`); continue; }
   if (!(defId in INTERACTIVE)) { failures.push(`INNER_TARGETS names '${id}', whose def is not an INTERACTIVE control.`); continue; }
+  // The entry's other direction: the def must say the part is a target. A nested interactive control says so
+  // by what it nests; any other part says so with the `innerTarget` marker.
+  const nestsControl = part.kind === 'nest' && !!part.nests && part.nests in INTERACTIVE;
+  if (!part.innerTarget && !nestsControl) { failures.push(`INNER_TARGETS names '${id}', and the def does not mark that part innerTarget (nor does it nest an interactive control) — the entry and the def disagree about whether it is a target. Mark the part, or drop the entry.`); continue; }
   const size = defaultSizeOf(def);
   if (!size) { failures.push(`${id}: its def has no default size to measure the inner target at.`); continue; }
   const want = inner.key(size);

@@ -203,6 +203,27 @@ export type PartDef = {
    *  two concepts were never the same one. Do not delete it as unused on the strength of the
    *  projector no longer reading it; the a11y tier is downstream of here. */
   role?: 'target' | 'presentation';
+  /** A SECOND pointer target inside an interactive control (#1741): a part that is, or may be, pressed on its
+   *  own, apart from the one `role: 'target'` node. Tag's × slot is the first — a square the tag's height,
+   *  whose status as THE target or a part of a whole-tag target is the owner's open call, so it is marked
+   *  here either way.
+   *
+   *  WHY A MARKER ON THE PART, and not the gate's list alone. `lint-hit-target.ts` measures inner targets
+   *  from its authored `INNER_TARGETS`, and before this field it discovered them only through `nest` parts —
+   *  so the × slot, a `box`, was measured by the hand-written entry and nothing else, and deleting the entry
+   *  left every gate green. The def now says which of its parts is a target, and the gate compares the two
+   *  sides in both directions: a marked part of an interactive def that `INNER_TARGETS` does not list fails,
+   *  and an entry naming an unmarked part fails. Neither side is derived from the other (docs/34).
+   *
+   *  NOT `role`. `role: 'target'` is the single node a materializer attaches the interactive role, the
+   *  accessible name and the focus ring to, and the schema requires exactly one; an inner target is a
+   *  second place the pointer lands, which may or may not carry a role of its own in code.
+   *
+   *  Nothing in the projector reads it. Refused on the `role: 'target'` part (that one is measured as the
+   *  control itself), on the anatomy root, on an `absolute` part (outside the flow it owns no hit area —
+   *  `role`'s own rule) and on a part binding neither `size` nor `height` (a target with no bound dimension
+   *  cannot be measured against the floor). */
+  innerTarget?: true;
   /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
   children?: string[];
   layout?: LayoutDef;
@@ -2010,6 +2031,22 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
     else if (p?.presentWhen && STATE_GATE in p.presentWhen)
       e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares presentWhen on '${STATE_GATE}' — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
+    // THE GATE MUST LAND ON A MEMBER THE SET KEEPS. A variant gate whose every coordinate `excludeCoordinates`
+    // removes validates clean on each field alone, and projects a switch declared on the set and wired to a node
+    // on no member. Enumerated here from the declaration, with its own matcher, like the exclusion refusals
+    // above; a gate naming an axis the set does not project is left to the `presentWhen` refusals.
+    else if (p?.presentWhen && fp.excludeCoordinates?.length) {
+      const axes = fp.variantAxes ?? [];
+      const gate = Object.entries(p.presentWhen);
+      if (gate.every(([a]) => axes.includes(a))) {
+        const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+        let grid: Record<string, string>[] = [{}];
+        for (const a of axes) grid = grid.flatMap((c) => values(a).map((v) => ({ ...c, [a]: v })));
+        const kept = grid.filter((c) => !fp.excludeCoordinates!.some((entry) => Object.keys(entry).every((a) => entry[a].includes(c[a]))));
+        if (!kept.some((c) => gate.every(([a, vs]) => vs.includes(c[a]))))
+          e.push(`figmaProperties.booleans.${prop} → part '${part}' is gated to ${gate.map(([a, vs]) => `${a}=${vs.join('|')}`).join(', ')}, and excludeCoordinates removes every such member — the switch would be declared on the set and toggle a node on no member`);
+      }
+    }
   }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
@@ -3200,6 +3237,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // materializer has no single node to attach the a11y role and focus ring to.
   const targets = names.filter((n) => parts[n].role === 'target');
   if (targets.length !== 1) e.push(`anatomy: exactly one part must have role 'target' (found ${targets.length}${targets.length ? `: ${targets.join(', ')}` : ''})`);
+  // AN INNER TARGET (#1741) is a second place the pointer lands, measured by `lint-hit-target.ts` through its
+  // own bound side. Each way the marker would validate and then measure nothing is refused by name.
+  for (const n of names) {
+    const p = parts[n];
+    if (p.innerTarget === undefined) continue;
+    if ((p.innerTarget as unknown) !== true)
+      e.push(`anatomy part '${n}' declares innerTarget ${JSON.stringify(p.innerTarget)} — the marker is 'true' or absent`);
+    if (p.role === 'target')
+      e.push(`anatomy part '${n}' claims role 'target' and innerTarget — the role target is the control itself, measured as the control; an inner target is a SECOND target inside it`);
+    if (n === a.root)
+      e.push(`anatomy part '${n}' is the anatomy ROOT and declares innerTarget — the root is the control, not a target inside it`);
+    if (p.kind === 'absolute')
+      e.push(`anatomy part '${n}' is kind 'absolute' and declares innerTarget — a part outside the layout flow owns no hit area`);
+    if (p.size === undefined && p.height === undefined)
+      e.push(`anatomy part '${n}' declares innerTarget but binds neither 'size' nor 'height' — a target with no bound dimension cannot be measured against the hit-target floor`);
+  }
 
   // NO TWO BOXES MAY CLAIM THE SAME SLOT (#933). `paintOf` dispatches on the slot alone and is blind to
   // which part asked, so two boxes naming `fill` do not divide the fill between them — they both take

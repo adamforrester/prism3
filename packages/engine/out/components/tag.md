@@ -2,7 +2,7 @@
 
 > An interactive token a user toggles or removes. A static label is a badge.
 
-A compact, interactive token of one of two types. A select tag toggles on and off, such as a filter; while selected it takes a tint, a 2px outline and, by default, a check mark after the label, and the label keeps its weight so nothing reflows. A dismissible tag carries a remove control, a × in a square slot at its trailing end, named "Remove" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline.
+A compact, interactive token of one of two types. A select tag toggles on and off, such as a filter; while selected it takes a tint, a 2px outline and, by default, a check mark after the label. The label keeps its weight, so its own width does not change; the check mark, when shown, adds its width and one gap. A dismissible tag carries a remove control, a × in a square slot at its trailing end, named "Remove" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline.
 
 - **ID:** `tag`
 - **Category:** foundations

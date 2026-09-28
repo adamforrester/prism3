@@ -60,6 +60,29 @@
 
 **Held for owner** (in the PR body): the tint role (above); the selected label/check ink staying neutral; selected hover/pressed (the tint holds, the edge steps); whether an unselected select tag reserves the check's width (today it does not, so a toggle reflows the group, against decision E's "nothing reflows"); the dismissible hit target (open by decision); the × glyph size (the tag's icon rung, 24 at medium); the full trailing inset before the × slot; a dismissible tag keeping the optional leading icon; code-side vertical alignment of glyphs on a wrapped label; the `check mark` / `showCheck` names.
 
+**Review round (same PR, same version 0.195.0).** An independent review found one blocking defect and five smaller ones. All six are fixed here.
+- **B1: the × slot's hit-target entry could be deleted with every gate green.** `lint-hit-target`'s unseen-nest arm reads `kind === 'nest'` parts only, and the × slot is a `box` with `role: 'presentation'`, so the hand-written `INNER_TARGETS['tag.dismiss']` was its own only witness. That is docs/34 shape 1, inside the fix for #1741. **The fix is a new `PartDef.innerTarget: true` marker**, and the gate now compares the marks and the list in both directions:
+  - a marked part of an interactive def that `INNER_TARGETS` does not list fails;
+  - an entry naming a part that is neither marked nor a nested interactive control fails;
+  - a mark on a def the gate does not measure fails.
+
+  It is a new field and not a `role` value, because `role: 'target'` is the single a11y node and the schema requires exactly one. `component-schema.ts` refuses the marker on the role target, on the root, on an `absolute` part, on a part binding neither `size` nor `height`, and with any value other than `true`. Nothing in the projector reads it, so no baseline moves.
+- **S1: false shipped prose.** Four places said selecting a tag never reflows: the description, the label note, the skill's §5 selection pattern ("so the two members are one size"), and their emitted copies. With the check on, which is the default, a selected tag is one glyph plus one gap wider. The prose now states what is built: the label keeps its weight, so its own width does not change, and the check mark, when shown, adds its width and one gap. The skill adds that a check present only while selected makes a row reflow unless the component reserves the width, and that this is open for Tag. **The behavior is unchanged; reserving the width stays an owner question.** `test.ts` pins it with `tag selected width (nb|aurora|harbor|prism3, medium)`. It uses its own model of Figma's hugging row over the plan, with px from each brand's tree and a fixed 30px label. EXPECTED is the literal 32 (a 24px glyph plus an 8px gap), and with the switch off the two members are one width. If the owner reserves the width, this arm flips deliberately.
+- **S2: the × was never held on the trailing side.** A new arm, `tag × slot`, asserts that on all 15 dismissible members the slot is the last flow cell of the pill, right after the label row.
+- **N1: the shim's bound-floor code was never exercised.** Its synthetic `varValue` puts `size/md/height` at 8px, below any content. The shim gains a `varPx` option: per-name px carried into a bound dimension. A new `test-write-components.ts` block builds a one-letter tag at NB's medium px and asserts `tag min width`: 44 × 44 over a 38px label row. **Found on the way, and filed as #1769:** the shim's hugging row leaves `itemSpacing` out of its width, so a shim-side "glyph plus gap" assertion could not be written. That is why S1's arm lives in `test.ts`.
+- **N2:**
+  - Badge's `notes.contested` said "`genre` defaults to `status`". It now says `type`.
+  - `figmaPropertyErrors` now refuses a boolean whose variant `presentWhen` lands only on coordinates `excludeCoordinates` removes. Before, that validated clean and projected a Figma switch wired to no node. It is pinned as `#1743 a boolean whose VARIANT gate lands only on excluded coordinates`.
+- **Baselines.** None re-accepted. `lint-component-surface` and `lint-paint` pass unchanged: the marker projects nothing, and only prose moved. `out/components/tag.md`, `components.ai.json` and `schema/component-maintainer.json` move with the prose.
+- **Mutations this round** (each committed first, restored from HEAD, diff asserted non-empty):
+  - R1: the `tag.dismiss` line deleted from `INNER_TARGETS` → `lint-hit-target` **`tag.dismiss: the def marks it innerTarget, … INNER_TARGETS does not list it`**.
+  - R2: `innerTarget` removed from the × slot → `lint-hit-target` **`INNER_TARGETS names 'tag.dismiss', and the def does not mark that part innerTarget`**, and `test.ts` **`tag innerTarget`**.
+  - R3: the role-target refusal for the marker disabled → **`tag innerTarget`**.
+  - R4: the check mark present at both selections (the width reserved) → **`tag selected width (nb|aurora|harbor|prism3, medium)`**, measured 94 = 94. The `tag check mark` and `tag rest (unselected, …)` arms fire too, and `tag innerTarget` fires because the def stops validating (`footprintVaries: selection` gates nothing).
+  - R5: `dismiss` moved before `content` → **`tag × slot`**.
+  - R6: the shim's `boundFloor` zeroed → plugin **`tag min width`**, measured 38 × 44.
+  - R7: the excluded-gate refusal disabled → **`#1743 a boolean whose VARIANT gate lands only on excluded coordinates`**.
+
 ---
 
 ## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)
