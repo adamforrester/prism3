@@ -2,7 +2,7 @@
 
 > An interactive token a user clicks, toggles or removes. A static label is a badge.
 
-A compact, interactive token in one of three interactions. A clickable tag runs an action in place, such as a suggested reply. A selectable tag toggles on and off, such as a filter, and shows a check mark while selected. A removable tag carries its own remove button, named "Remove" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline or an interactive fill, so it never reads as a static badge.
+A compact, interactive token in one of three interactions. A clickable tag runs an action in place, such as a suggested reply. A selectable tag toggles on and off, such as a filter, and shows a check mark while selected. A removable tag carries its own remove button, named "Remove" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline or an interactive fill.
 
 - **ID:** `tag`
 - **Category:** foundations

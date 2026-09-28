@@ -15,7 +15,8 @@
  *   3. VISUALLY DISTINCT FROM BADGE, GATED. Every color binding is `color.interactive.*` (or the cross-cutting
  *      `color.disabled.*` and the focus ring). At rest an unselected tag is OUTLINED — a 1px
  *      `interactive.neutral.border` stroke on no fill — and a selected tag is FILLED from
- *      `interactive.primary.fill.rest` with a check mark. Badge is a borderless tone fill with no glyph.
+ *      `interactive.primary.fill.rest` with a check mark. Badge is a tone fill with no glyph (a subtle badge
+ *      adds a 1px tone edge), and binds no interactive role.
  *      `test.ts` holds the difference as a cross-component arm against literals.
  *   4. TOUCH TARGET 44 BY DEFAULT. The container binds `size.{size}.height`, Button's rung, so medium is 44px
  *      on comfortable, 56px on spacious and 36px at compact. `lint-hit-target.ts` measures it in `INTERACTIVE`;
@@ -51,7 +52,7 @@ export const tag: ComponentDef = {
   status: 'draft',
   summary: 'An interactive token a user clicks, toggles or removes. A static label is a badge.',
   description:
-    'A compact, interactive token in one of three interactions. A clickable tag runs an action in place, such as a suggested reply. A selectable tag toggles on and off, such as a filter, and shows a check mark while selected. A removable tag carries its own remove button, named "Remove" followed by the tag\'s label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline or an interactive fill, so it never reads as a static badge.',
+    'A compact, interactive token in one of three interactions. A clickable tag runs an action in place, such as a suggested reply. A selectable tag toggles on and off, such as a filter, and shows a check mark while selected. A removable tag carries its own remove button, named "Remove" followed by the tag\'s label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline or an interactive fill.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tag text. One word where possible, two or three for a specific entity such as a name or an email address.' },
@@ -331,7 +332,7 @@ export const tag: ComponentDef = {
       'A medium tag is 44px tall on comfortable density, a medium Button\'s height (owner decision 4). Whether a pill that tall still reads as a tag beside buttons of the same height is a visual question no gate asks.',
     ],
     evolution: [
-      'Badge\'s hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) An unselected tag is outlined and a selected one filled with a check mark; Badge is a borderless tone fill. (5) The remove control nests IconButton.Neutral. `test.ts` holds (1) and (4) against Badge\'s projected rest paint.',
+      'Badge\'s hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) An unselected tag is outlined and a selected one filled with a check mark; Badge is a tone fill, with a 1px tone edge when subtle, and binds no interactive role. (5) The remove control nests IconButton.Neutral. `test.ts` holds (1) and (4) against Badge\'s projected rest paint.',
       'The brief\'s `Token` alias is not carried as a bare alias: in this repo "token" means a design token, and an agent asked for one would land here. "recipient token" is kept as a trigger phrase.',
       'A leading icon rung one smaller than the control rung (Button\'s #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held.',
     ],

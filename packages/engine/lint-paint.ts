@@ -317,23 +317,57 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
-  // `badge`'s tone fills are the SUBTLE tint of the tone (the lane's call, HELD for the owner on #1730: subtle vs bold): the role is
-  // `foreground.<tone>-subtle`, whose segment carries the tone as a prefix, not as a whole segment, so arm 1
-  // reads it as absent. The tone labels (`text.<tone>`) satisfy arm 1 and take no exception. `neutral` is the
-  // default badge, and the token tier has no role named `neutral` in either family: its pill is the second
-  // surface and its ink the primary text — the preview's neutral pairing, measured at 4.5:1 in `test.ts`.
-  'badge|neutral.fill':
-    'tone `neutral` maps to the second surface `foreground.secondary` — the token tier has no `foreground.neutral`',
-  'badge|neutral.label':
-    'tone `neutral` maps to the primary text role `text.primary` — the token tier has no `text.neutral`',
-  'badge|info.fill':
+  // `badge` keys its paint `{tone}.{genre}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
+  // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
+  // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the
+  // tone as a whole segment.
+  //   · SUBTLE status fills are the tone's tint (`foreground.<tone>-subtle`): the tone is a prefix of the
+  //     segment, not the segment, so arm 1 reads it as absent.
+  //   · BOLD labels, status and count, are the ink on the bold fill (`text.on-<tone>`), the same prefix shape.
+  //   · NEUTRAL, in every member, has no role named `neutral` in any family: the subtle label is the second
+  //     surface, the primary text and the secondary border (owner decision, 2026-09-28), and the bold one is
+  //     the inverse surface and its ink, where `inverse` sits in the family position.
+  // The fills, labels and edges are each measured against their floors in `test.ts`.
+  'badge|neutral.status.subtle.fill':
+    'tone `neutral` maps to the second surface `foreground.secondary` — the token tier has no `foreground.neutral`, and the 1px edge gives the pill its shape',
+  'badge|neutral.status.subtle.label':
+    'tone `neutral` maps to the primary text role `text.primary` on the second surface — the token tier has no `text.neutral`',
+  'badge|neutral.status.subtle.border':
+    'tone `neutral` maps to the secondary border role `border.secondary`, at least 3.20:1 against the page — the token tier has no `border.neutral`',
+  'badge|neutral.status.bold.fill':
+    'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the engine\'s bold neutral — no page surface separates from the page in the high-contrast modes',
+  'badge|neutral.status.bold.label':
+    'tone `neutral` maps to the inverse ink `inverse.text.primary`, the ink contracted on the inverse surface — the token tier has no `text.on-neutral`',
+  'badge|neutral.count.bold.fill':
+    'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the status label\'s bold neutral — the token tier has no `foreground.neutral`',
+  'badge|neutral.count.bold.label':
+    'tone `neutral` maps to the inverse ink `inverse.text.primary` on the inverse surface — the token tier has no `text.on-neutral`',
+  'badge|neutral.dot.bold.fill':
+    'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the count\'s fill — the token tier has no `foreground.neutral`',
+  'badge|info.status.subtle.fill':
     'tone `info` paints its subtle tint `foreground.info-subtle`, the surface `text.info` is contracted against',
-  'badge|success.fill':
+  'badge|success.status.subtle.fill':
     'tone `success` paints its subtle tint `foreground.success-subtle`, the surface `text.success` is contracted against',
-  'badge|warning.fill':
+  'badge|warning.status.subtle.fill':
     'tone `warning` paints its subtle tint `foreground.warning-subtle`, the surface `text.warning` is contracted against',
-  'badge|danger.fill':
+  'badge|danger.status.subtle.fill':
     'tone `danger` paints its subtle tint `foreground.danger-subtle`, the surface `text.danger` is contracted against',
+  'badge|info.status.bold.label':
+    'tone `info` inks its bold status label with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
+  'badge|success.status.bold.label':
+    'tone `success` inks its bold status label with `text.on-success`, the ink contracted on the bold `foreground.success` fill',
+  'badge|warning.status.bold.label':
+    'tone `warning` inks its bold status label with `text.on-warning`, the ink contracted on the bold `foreground.warning` fill',
+  'badge|danger.status.bold.label':
+    'tone `danger` inks its bold status label with `text.on-danger`, the ink contracted on the bold `foreground.danger` fill',
+  'badge|info.count.bold.label':
+    'tone `info` inks its count with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
+  'badge|success.count.bold.label':
+    'tone `success` inks its count with `text.on-success`, the ink contracted on the bold `foreground.success` fill',
+  'badge|warning.count.bold.label':
+    'tone `warning` inks its count with `text.on-warning`, the ink contracted on the bold `foreground.warning` fill',
+  'badge|danger.count.bold.label':
+    'tone `danger` inks its count with `text.on-danger`, the ink contracted on the bold `foreground.danger` fill',
 };
 
 /**
@@ -435,6 +469,20 @@ const setCensus = (def: ComponentDef): Tally | null => {
 };
 
 /**
+ * A coordinate the def's Figma set does not have — `figmaProperties.excludeCoordinates`, the sparse grid
+ * (2026-09-28). Every grid walk in this file skips it, and must: `figmaAnatomyPlan` refuses an excluded
+ * coordinate by name, and a member the set does not have has no paint to census or reach.
+ *
+ * ITS OWN ONE-LINE MATCHER, not the projector's `isExcludedCoordinate`, and that is deliberate: this file's
+ * grid is the independent side of the census (see the header), so it reads the declaration itself. If the
+ * projector's predicate drifted, the grid and the set would disagree here instead of drifting together.
+ */
+const excludedFromSet = (def: ComponentDef, size: string | undefined, c: Record<string, string>): boolean => {
+  const at: Record<string, string | undefined> = { ...c, size };
+  return (def.figmaProperties?.excludeCoordinates ?? []).some((entry) => Object.keys(entry).every((a) => entry[a].includes(at[a] as string)));
+};
+
+/**
  * Every coordinate the def DECLARES — the cross product of `variants` (size × each other axis) with
  * rest plus each non-rest state.
  *
@@ -456,6 +504,7 @@ const gridCensus = (def: ComponentDef): Tally => {
   const rows: string[] = [];
   let members = 0;
   for (const size of sizes) for (const c of combos) for (const st of states) {
+    if (excludedFromSet(def, size, c)) continue;
     const plan = figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading: true, trailing: true, swapTarget: 'FPO-default-icon' } as never);
     members++;
     const coord = `${size === undefined ? '' : `size=${size}`}${Object.entries(c).map(([k, v]) => `,${k}=${v}`).join('')},state=${st ?? 'rest'}`;
@@ -661,7 +710,7 @@ const reachability = (): { covered: { id: string; reached: number; total: number
       for (const c of n.children) walk(c);
     };
     for (const size of sizes) for (const c of combos) for (const st of states)
-      for (const leading of [false, true]) for (const trailing of [false, true])
+      if (!excludedFromSet(def, size, c)) for (const leading of [false, true]) for (const trailing of [false, true])
         walk(figmaAnatomyPlan(probed, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
 
     // A sentinel that came back but maps to no key would mean the substitution missed something — a
@@ -755,7 +804,7 @@ const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; 
     for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
     const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
     for (const size of sizes) for (const c of combos) for (const st of states)
-      for (const leading of [false, true]) for (const trailing of [false, true])
+      if (!excludedFromSet(def, size, c)) for (const leading of [false, true]) for (const trailing of [false, true])
         walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root, '', false);
   }
 

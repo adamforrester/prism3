@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.189.0",
+  "engineVersion": "0.190.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -4601,6 +4601,17 @@
           "description": "Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name."
         },
         {
+          "name": "emphasis",
+          "type": "enum: 'subtle' | 'bold'",
+          "default": "subtle",
+          "required": false,
+          "values": [
+            "subtle",
+            "bold"
+          ],
+          "description": "How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold."
+        },
+        {
           "name": "tone",
           "type": "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'",
           "default": "neutral",
@@ -4654,6 +4665,21 @@
       ],
       "states": [],
       "variants": {
+        "genre": {
+          "values": [
+            "status",
+            "count",
+            "dot"
+          ],
+          "kind": "authoring"
+        },
+        "emphasis": {
+          "values": [
+            "subtle",
+            "bold"
+          ],
+          "kind": "runtime"
+        },
         "tone": {
           "values": [
             "neutral",
@@ -4669,7 +4695,8 @@
         "role": "none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host's accessible name.",
         "wcag": [
           "1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)",
-          "1.4.3 Contrast (the label ink clears 4.5:1 on its own tone fill, in every mode)",
+          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands)",
+          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page in the same measurement)",
           "4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)",
           "4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)"
         ],
@@ -4681,7 +4708,7 @@
         "labelPattern": "Status label: one or two words, in the same casing everywhere (\"In review\", \"Failed\", \"PDF 262 KB\"). Count: a number, capped (\"99+\"). Dot: no text on screen. The host names what it means (\"3 unread messages\", \"Online\")."
       },
       "docs": {
-        "usage": "Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.",
+        "usage": "Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.",
         "do": [
           "Put the meaning of a count or dot in the host's accessible name",
           "Cap a count, as in \"99+\", and hide it at zero unless zero matters",
@@ -4694,7 +4721,7 @@
           "Rely on the tone or a dot alone to carry meaning",
           "Put more than one count or dot on one host"
         ],
-        "contentGuidelines": "Name the state, not the color: \"Failed\", not \"Red\". Use the same word for the same state everywhere, and keep it short enough to read at a glance. For a count or dot, write the host's accessible name so it says what the badge shows (\"Notifications, 5 new\"), since the badge itself is not read."
+        "contentGuidelines": "Name the state, not the color: \"Failed\", not \"Red\". Use the same word for the same state everywhere, and keep it short enough to read at a glance. For a count, show the number up to the cap and the cap followed by a plus sign above it (\"99+\"). For a count or dot, write the host's accessible name so it says what the badge shows (\"Notifications, 5 new\"), since the badge itself is not read."
       },
       "ai": {
         "primaryPurpose": "Mark a status, count or presence with a small static badge that nobody clicks.",
@@ -4763,7 +4790,7 @@
       "category": "foundations",
       "status": "draft",
       "summary": "An interactive token a user clicks, toggles or removes. A static label is a badge.",
-      "description": "A compact, interactive token in one of three interactions. A clickable tag runs an action in place, such as a suggested reply. A selectable tag toggles on and off, such as a filter, and shows a check mark while selected. A removable tag carries its own remove button, named \"Remove\" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline or an interactive fill, so it never reads as a static badge.",
+      "description": "A compact, interactive token in one of three interactions. A clickable tag runs an action in place, such as a suggested reply. A selectable tag toggles on and off, such as a filter, and shows a check mark while selected. A removable tag carries its own remove button, named \"Remove\" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline or an interactive fill.",
       "props": [
         {
           "name": "label",

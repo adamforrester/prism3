@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.190.0 — Badge follow-ups (owner decisions, 2026-09-27 and 2026-09-28), and a sparse variant grid.
+ * (1) `genre` joins `VARIANT_AXES` as the nineteenth axis name, and Badge projects it (status, count, dot).
+ * (2) Badge takes the existing `emphasis` axis name with `subtle | bold`; only the status label has both,
+ * the count and dot are bold-only. SUBTLE: the tone's tint under its text ink with a 1px inside edge in
+ * `border.<tone>` (neutral: `foreground.secondary`, `text.primary`, `border.secondary`). BOLD: the solid tone
+ * fill under `text.on-<tone>` (neutral: the inverse surface and its ink). Paint keys become
+ * `{tone}.{genre}.{emphasis}.{slot}`. (3) The schema gains `figmaProperties.excludeCoordinates`, a list of
+ * partial coordinates a set does not have: `figmaAnatomySet` skips them, `figmaAnatomyPlan` refuses them,
+ * `figmaVariantCount` subtracts them by inclusion–exclusion, and `figmaPropertyErrors` refuses an unknown
+ * axis or value, an empty entry, an exclusion that empties the set or strands a declared value, and one
+ * that removes the first member or the code default. Badge's set is 20 members (30 less the 10 count and
+ * dot members at `subtle`). A moved projected surface and moved `out/components/**` docs → ENGINE MINOR.
+ * CONTRACT STANDS at 13.1.0: no token name moves, and the def binds existing roles only.
+ *
  * 0.189.0 — a new component def, `tag` (owner decisions, 2026-09-27): the interactive token a user clicks,
  * toggles or removes, one component switched by an `interaction` prop (clickable | selectable | removable).
  * Its Figma set is selection (unselected | selected) × size × five states = 30 members, with the leading icon
@@ -4012,7 +4026,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.189.0';
+export const ENGINE_VERSION = '0.190.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

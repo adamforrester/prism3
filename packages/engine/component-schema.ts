@@ -943,6 +943,37 @@ export type FigmaProperties = {
    *  available rather than whichever axis sorts last. Validated against the def's own axis names, so
    *  a `gridAxis` naming an axis this def does not project is an error rather than a silent fallback. */
   gridAxis?: string;
+  /** COORDINATES THE SET DOES NOT HAVE — a sparse variant grid (owner decision, 2026-09-28, first used by
+   *  `badge`). Every other field here multiplies: the set is the full cross product of its axes. This is
+   *  the one field that subtracts, for a def where one axis value has no meaning at some value of another —
+   *  badge's `emphasis=subtle` exists for the status label and not for the count or dot, which are
+   *  bold-only.
+   *
+   *  THE SHAPE: a list of PARTIAL coordinates. Each entry maps a projected variant axis to the values it
+   *  excludes, and a member is excluded when EVERY axis the entry names holds one of that entry's values
+   *  (an AND across the entry's axes, an OR across its values). Entries OR together. So
+   *  `[{ genre: ['count', 'dot'], emphasis: ['subtle'] }]` removes the ten count and dot members at
+   *  `emphasis=subtle` and nothing else. An axis the entry does not name is unconstrained.
+   *
+   *  WHY NOT THE ALTERNATIVES. Duplicating the members (count and dot painted bold at `emphasis=subtle`
+   *  as well) offers a value the member cannot honor, which `icon`'s `codeOnly` names as the worse outcome:
+   *  "a duplicate member that lies is worse than an absent one". Folding the two emphases into `genre`
+   *  would spend the axis vocabulary on a coincidence of this def. And an axis value that is simply not
+   *  there at some coordinates is what Figma itself supports: a variant set need not be a full grid.
+   *
+   *  WHO READS IT. `figmaAnatomySet` skips an excluded coordinate and `figmaAnatomyPlan` REFUSES one by
+   *  name, so a walker that enumerates the declared grid on its own (`lint-paint.ts`,
+   *  `lint-paint-placement.ts`) must skip the same coordinates or throw — it cannot silently plan a member
+   *  the set does not have. `figmaVariantCount` counts the exclusion its own way (inclusion–exclusion over
+   *  the entries, never the projector's filter), so #1355's count check stays a comparison of two
+   *  derivations.
+   *
+   *  VALIDATED (`figmaPropertyErrors`): an entry must name only projected variant axes (not the state axis
+   *  or a slot axis, which have their own presence mechanisms), only values those axes declare, and at
+   *  least one value per axis; and the exclusions together must leave at least one member, keep every
+   *  declared value of every projected axis on some member, and never remove a DEFAULT coordinate — the
+   *  set's first member (Figma's default variant) or the code default (each axis prop's `default`). */
+  excludeCoordinates?: Record<string, string[]>[];
   /** Axes on which this def's member BOX legitimately moves — the footprint cohort's exemption list
    *  (#1010), and the only way a def can opt out of "swapping a variant must not resize the member".
    *
@@ -1672,15 +1703,49 @@ export const gridColumnAxis = (
   return varying.reduce((best, v) => (v.values > best.values ? v : best), varying[0]).name;
 };
 
-/** How many variants the declared surface projects — the product of every axis's cardinality.
- *  Slot axes are boolean, so each doubles. Derived rather than restated, so adding an axis moves
- *  this number without anyone remembering to. */
+/** How many variants the declared surface projects — the product of every axis's cardinality, less the
+ *  coordinates `excludeCoordinates` removes. Slot axes are boolean, so each doubles. Derived rather than
+ *  restated, so adding an axis moves this number without anyone remembering to.
+ *
+ *  THE EXCLUSION IS COUNTED BY ARITHMETIC, NEVER BY FILTERING (docs/34 shape 2). `figmaAnatomySet`
+ *  enumerates coordinates and drops the excluded ones with `isExcludedCoordinate`; this function MULTIPLIES.
+ *  Each entry is a box in the grid (its listed values on the axes it names, every value elsewhere), so the
+ *  excluded total is the size of a union of boxes, taken by inclusion–exclusion over the entries: add each
+ *  box, subtract each pairwise intersection, and so on. The intersection of two boxes is a box (the value
+ *  lists intersect per axis), so every term is a product. Were this to call the projector's predicate over
+ *  an enumeration instead, #1355's count check (`variantNameErrors`) would compare the filter with itself
+ *  and could never fail. Values an entry names that the axis does not declare count for nothing here;
+ *  `figmaPropertyErrors` refuses them. */
 export const figmaVariantCount = (def: ComponentDef): number => {
   const fp = def.figmaProperties;
   if (!fp) return 0;
-  const variants = (fp.variantAxes ?? []).reduce((n, a) => n * ((variantsOf(def)[a]?.length) ?? 1), 1);
-  return variants * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
+  const axes = fp.variantAxes ?? [];
+  const declared = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+  const variants = axes.reduce((n, a) => n * ((variantsOf(def)[a]?.length) ?? 1), 1);
+  const entries = fp.excludeCoordinates ?? [];
+  // The size of the box where every entry in `subset` holds at once.
+  const boxSize = (subset: Record<string, string[]>[]): number =>
+    axes.reduce((n, a) => {
+      let vals = declared(a);
+      for (const entry of subset) if (a in entry) vals = vals.filter((v) => entry[a].includes(v));
+      return n * vals.length;
+    }, 1);
+  let excluded = 0;
+  for (let mask = 1; mask < 2 ** entries.length; mask++) {
+    const subset = entries.filter((_, i) => mask & (1 << i));
+    excluded += (subset.length % 2 ? 1 : -1) * boxSize(subset);
+  }
+  return (variants - excluded) * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
 };
+
+/** Is this variant coordinate one the def's `excludeCoordinates` removes? The PROJECTOR's predicate —
+ *  `figmaAnatomySet` skips on it and `figmaAnatomyPlan` refuses on it. A coordinate that leaves an axis an
+ *  entry names unsupplied is never excluded by that entry: a structure-only or partial plan is not a
+ *  member. Gates that must stay independent of the projector (`figmaVariantCount`, `variantNameErrors`,
+ *  `lint-paint.ts`) deliberately do not call this. */
+export const isExcludedCoordinate = (def: ComponentDef, coord: Record<string, unknown>): boolean =>
+  (def.figmaProperties?.excludeCoordinates ?? []).some((entry) =>
+    Object.entries(entry).every(([axis, values]) => typeof coord[axis] === 'string' && values.includes(coord[axis] as string)));
 
 export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   const fp = def.figmaProperties;
@@ -1802,6 +1867,51 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       e.push(`figmaProperties.footprintVaries: '${axis}' is not an axis this def projects [${names.join(', ')}] — an exempted axis Figma does not carry cannot be recovered from the member name`);
     else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {}) || p.aspectRatio === axis))
       e.push(`figmaProperties.footprintVaries: '${axis}' neither gates a part (\`presentWhen\`) nor drives a box's aspect-ratio lock (\`aspectRatio\`) — nothing about the box varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
+  }
+
+  // ---- the excluded coordinates (a sparse grid, 2026-09-28) ----
+  //
+  // Five refusals, each a way an exclusion goes wrong silently. (1) An axis the set does not project or a
+  // value the axis does not declare matches nothing, so the entry reads as a decision and removes no member.
+  // (2) An empty value list, or an empty entry, is the same nothing, or (for `{}`) everything. (3) A set
+  // with no members left. (4) A declared value with no member left: the def says the axis has it and Figma
+  // would not offer it. (5) A DEFAULT removed: the set's first member is Figma's default variant, and a
+  // prop's `default` is the member code starts at, so either one excluded leaves a default pointing at a
+  // member that does not exist. The grid is enumerated here from the declaration, with its own matcher,
+  // rather than through `isExcludedCoordinate`.
+  if (fp.excludeCoordinates !== undefined) {
+    const axes = fp.variantAxes ?? [];
+    const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+    let wellFormed = true;
+    fp.excludeCoordinates.forEach((entry, i) => {
+      const at = `figmaProperties.excludeCoordinates[${i}]`;
+      if (!Object.keys(entry).length) { e.push(`${at} names no axis — an empty coordinate matches every member, so it would exclude the whole set`); wellFormed = false; }
+      for (const [axis, vs] of Object.entries(entry)) {
+        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the state and slot axes have their own presence mechanisms)`); wellFormed = false; continue; }
+        if (!Array.isArray(vs) || !vs.length) { e.push(`${at}.${axis} lists no values — an entry that matches nothing reads as a decision and removes no member`); wellFormed = false; continue; }
+        for (const v of vs) if (!values(axis).includes(v)) { e.push(`${at}.${axis} names '${v}', which is not a value of '${axis}' [${values(axis).join(', ')}] — it matches no member, so the exclusion would remove nothing`); wellFormed = false; }
+      }
+    });
+    if (wellFormed) {
+      const excluded = (c: Record<string, string>): boolean =>
+        fp.excludeCoordinates!.some((entry) => Object.keys(entry).every((a) => entry[a].includes(c[a])));
+      let grid: Record<string, string>[] = [{}];
+      for (const a of axes) grid = grid.flatMap((c) => values(a).map((v) => ({ ...c, [a]: v })));
+      const kept = grid.filter((c) => !excluded(c));
+      if (!kept.length) e.push('figmaProperties.excludeCoordinates removes every member — a set with no members is not a sparse grid');
+      else for (const a of axes) for (const v of values(a))
+        if (!kept.some((c) => c[a] === v)) e.push(`figmaProperties.excludeCoordinates leaves ${a}=${v} on no member — the def declares the value and Figma would not offer it`);
+      const first = Object.fromEntries(axes.map((a) => [a, values(a)[0]]));
+      if (excluded(first))
+        e.push(`figmaProperties.excludeCoordinates removes the set's first member (${axes.map((a) => `${a}=${first[a]}`).join(', ')}) — Figma's default variant is the first member, so the default would point at a member that does not exist`);
+      const codeDefault: Record<string, string> = {};
+      for (const a of axes) {
+        const d = (def.props ?? []).find((p) => p.name === a)?.default;
+        codeDefault[a] = d !== undefined && values(a).includes(String(d)) ? String(d) : values(a)[0];
+      }
+      if (excluded(codeDefault))
+        e.push(`figmaProperties.excludeCoordinates removes the code default (${axes.map((a) => `${a}=${codeDefault[a]}`).join(', ')}) — each axis prop's default names that member, so code would start at a coordinate Figma does not have`);
+    }
   }
 
   // ---- the part-targeting maps ----
@@ -2505,7 +2615,12 @@ export type State = (typeof STATES)[number];
  * sense (the reading that made this a `subset` before the split), and `weight` is how HEAVY the type is
  * (`field-label` carries that separately). Emphasis is how prominent the label reads relative to the
  * field it names — a de-emphasized label for a dense or read-only form — which is a distinct question
- * from either. `lint-axis-values.ts` carries `['primary', 'secondary']` as a `sole` set on `field-label`.
+ * from either. `lint-axis-values.ts` carries field-label's set as the axis's `canonical` set.
+ *
+ * `badge` REUSES the name (owner decision, 2026-09-28) with `subtle | bold`: how strongly a status label
+ * reads — a tint with an edge, or a solid fill. The same question, prominence relative to what is around it,
+ * so the same name rather than a twentieth one; the value sets share no member, which the register records
+ * as `disjoint`, because a text-role choice and a paint treatment have no value in common.
  *
  * WHAT THIS REOPENING COST, once more. #756 closed the list; #1248, #1030 and #1316 reopened it holding
  * the bar. This reopening is unusual in that it also RETIRES a name's overloaded uses rather than only
@@ -2534,12 +2649,32 @@ export type State = (typeof STATES)[number];
  * one set. They compose — under a non-`rounded` brand the lever repoints the `square` shape's rounded rung
  * to the shape's rung (capsule/none/hairline) and leaves the `circular` shape's intrinsic round rung, the
  * same rule it applies to switch/radio.
+ *
+ * ── `genre`: THE NINETEENTH NAME, FOR THE BADGE'S THREE KINDS (owner-approved, 2026-09-27) ──────────
+ *
+ * `genre` (`status | count | dot`) is WHICH KIND of badge a member is — a status label in the flow of
+ * text, a number over a host, or a contentless mark over a host. The owner chose one Badge switched by
+ * props over the brief's three sibling components, and a designer picking a count member or a dot member
+ * in Figma needs that switch as a variant axis. It clears this list's bar the way `shape` did: a distinct
+ * kind of distinction no existing name expresses, with the nearest defeated. `appearance` is an EMPHASIS
+ * ladder over one treatment of fixed content (filled/outline/text); `style` is a stroke treatment; `shape`
+ * is a corner silhouette over identical content. A genre changes three things together that none of those
+ * touches — the CONTENT model (text, a number, nothing), the PLACEMENT (in flow, or over a host) and the
+ * ACCESSIBILITY contract (announced, or aria-hidden with the meaning in the host's name). Naming it
+ * `appearance` would claim a count is a louder status label; naming it `shape` would claim the dot is the
+ * same content with other corners. Neither is true, and the a11y difference is the one a consumer most
+ * needs the name to carry.
+ *
+ * THE NAME IS THE BRIEF'S OWN WORD for the split (its §1 calls them "genres") and the owner's, and its
+ * values are self-describing (`status`, not `default`). It is an AUTHORING axis in `axisKinds` — chosen when
+ * the badge is placed, never moved on screen — so the three genres may differ in size, where the runtime
+ * `tone` beside it may not. `lint-axis-values.ts` carries `['status', 'count', 'dot']` as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape',
+  'status', 'emphasis', 'shape', 'genre',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

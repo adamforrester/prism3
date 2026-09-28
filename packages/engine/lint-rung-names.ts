@@ -244,7 +244,7 @@ const expectedDefaultRung = (defId: string, family: string): string =>
  * fails too. Silent skipping is how a gate's scope shrinks without a decision.
  */
 const NO_SIZE_AXIS: Record<string, string> = {
-  'badge': 'a status label takes one type role and one padding pair — its axis is `tone`, and a size ladder is recorded in `notes.evolution` for when a host needs more than one',
+  'badge': 'one type role, and one padding pair PER GENRE rather than per size — its axes are `genre` and `tone`, and the dot binds a single fixed rung (`control.size.sm.dot`) under a non-`size.*` key, so there is no ladder here to compare. A size ladder is recorded in `notes.evolution` for when a host needs more than one',
   'focus-ring': 'a ring is sized by the control it surrounds, not by its own axis — its offset and width are bound, never enumerated',
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
