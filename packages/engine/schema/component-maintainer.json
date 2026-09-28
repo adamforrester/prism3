@@ -738,7 +738,7 @@
         "the overlay placement — a count or dot is positioned against its host from a wrapper that owns the stacking context, so a host with overflow hidden does not clip it. Inset uses inset-inline-end so it mirrors in right-to-left layouts. circular overlap pulls the badge in by about 14.6% of the host size, onto the curve.",
         "the accessible-name wiring — for a count or dot the badge is aria-hidden and the host composes the meaning into its own name (\"Inbox, 3 unread messages\"). A count that changes after render is announced through one shared polite live region, debounced, never one region per badge. None of this has a Figma expression.",
         "number formatting — the count and its cap render through Intl.NumberFormat, so a locale with different digits or grouping reads correctly.",
-        "forced colors — in forced-colors mode the browser removes background fills, and a border is what keeps the badge's shape. The subtle status label keeps its 1px edge there, in the system border color. Whether a bold badge should also carry a transparent 1px border in code, for the same reason, is held for the owner."
+        "The edge sits inside the box — subtle and bold badges are one size. In Figma it is an inside stroke; in code an inset outline (outline: 1px solid; outline-offset: -1px), never a border, which would make a subtle badge 2px larger than its bold twin. An outline also survives forced-colors mode, where the browser removes background fills, so a subtle status label keeps its shape there in the system border color."
       ],
       "notes": {
         "contested": [
