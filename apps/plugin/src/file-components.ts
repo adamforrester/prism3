@@ -107,20 +107,20 @@ export interface FileComponentsResult {
 }
 
 const INTER = 'Inter';
-const REGULAR = { family: INTER, style: 'Regular' };
-const BOLD = { family: INTER, style: 'Bold' };
-const SEMIBOLD = { family: INTER, style: 'Semi Bold' };
+export const REGULAR = { family: INTER, style: 'Regular' };
+export const BOLD = { family: INTER, style: 'Bold' };
+export const SEMIBOLD = { family: INTER, style: 'Semi Bold' };
 
 const rgb = (hex: string): { r: number; g: number; b: number } => {
   const n = parseInt(hex.replace('#', ''), 16);
   return { r: ((n >> 16) & 0xff) / 255, g: ((n >> 8) & 0xff) / 255, b: (n & 0xff) / 255 };
 };
-const solid = (hex: string): unknown[] => [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: rgb(hex) }];
-const px = (value: number): { value: number; unit: 'PIXELS' } => ({ value, unit: 'PIXELS' });
-const fontKey = (f: { family: string; style: string }): string => `${f.family} ${f.style}`;
+export const solid = (hex: string): unknown[] => [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: rgb(hex) }];
+export const px = (value: number): { value: number; unit: 'PIXELS' } => ({ value, unit: 'PIXELS' });
+export const fontKey = (f: { family: string; style: string }): string => `${f.family} ${f.style}`;
 
 /** A typography spec for one text node. */
-interface TypeSpec {
+export interface TypeSpec {
   font: { family: string; style: string };
   size: number;
   /** Line height in px. */
@@ -138,7 +138,7 @@ interface TypeSpec {
  * Never throws on a missing face — Figma requires the node's current font loaded before `characters` is
  * set, so an unloadable requested face falls back to whatever loaded, and the miss says which.
  */
-const makeText = (
+export const makeText = (
   api: FileComponentsApi,
   spec: TypeSpec,
   loaded: Set<string>,
@@ -165,7 +165,7 @@ const makeText = (
   return t;
 };
 
-const autoLayout = (
+export const autoLayout = (
   node: FNode,
   o: {
     dir: 'HORIZONTAL' | 'VERTICAL';
@@ -214,7 +214,7 @@ const setFixedWidthHugHeight = (node: FNode, width: number): void => {
  */
 const SET_ITEM_SPACING = 80;
 const SET_PADDING = 40;
-const stackVariants = (set: FNode, members: readonly FNode[]): void => {
+export const stackVariants = (set: FNode, members: readonly FNode[]): void => {
   autoLayout(set, { dir: 'VERTICAL', itemSpacing: SET_ITEM_SPACING, padding: SET_PADDING });
   for (const m of members) m.layoutPositioning = 'AUTO';
 };

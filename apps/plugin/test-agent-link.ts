@@ -183,6 +183,7 @@ const CASES: Case[] = [
   { cmd: 'apply-theme', args: { input: brand }, ui: { type: 'apply-theme', input: brand }, entry: 'applyTheme', verdictType: 'apply-result' },
   { cmd: 'build-components', args: { def: 'no-such-def' }, ui: { type: 'build-components', def: 'no-such-def' }, entry: 'buildComponents', verdictType: 'component-result' },
   { cmd: 'file-setup', args: {}, ui: { type: 'file-setup' }, entry: 'fileSetup', verdictType: 'file-setup-result' },
+  { cmd: 'style-guide', args: { collections: ['color'] }, ui: { type: 'style-guide', options: { collections: ['color'] } }, entry: 'styleGuide', verdictType: 'style-guide-result' },
   { cmd: 'prune', args: { input: brand, confirm: false }, ui: { type: 'prune', input: brand, confirm: false }, entry: 'prune', verdictType: 'prune-result' },
   { cmd: 'readback', args: {}, ui: { type: 'ui-ready' }, entry: 'seedFromFile', verdictType: 'seed-info' },
 ];
@@ -295,6 +296,17 @@ section('failures — answered, never silent');
   await tick();
   const rp = (await read(p.id)) as AgentResult;
   ok(rp.ok === false && rp.error?.code === 'bad-args' && calls.length === 0, 'prune without confirm → bad-args, and prune is not run');
+
+  calls.length = 0;
+  const sg = await send('style-guide', { collections: 'color' });
+  await tick();
+  const rs = (await read(sg.id)) as AgentResult;
+  ok(rs.ok === false && rs.error?.code === 'bad-args' && calls.length === 0, 'style-guide with a string for collections → bad-args, and the style guide is not run');
+  calls.length = 0;
+  const sf = await send('style-guide', { valueFormat: 'cmyk' });
+  await tick();
+  const rf = (await read(sf.id)) as AgentResult;
+  ok(rf.ok === false && rf.error?.code === 'bad-args' && calls.length === 0, 'style-guide with valueFormat cmyk → bad-args');
 
   // An entry with no usable id cannot be answered by id — it is reported on the link record instead.
   const q = JSON.parse(root.getSharedPluginData(MAILBOX.ns, MAILBOX.inbox));

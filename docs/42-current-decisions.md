@@ -87,6 +87,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent | 2026-09-24 | `docs/30-versioning-and-compatibility.md` | #1632 |
 | every type category keeps a weight, label keeps `emphasis`, and eyebrow and code may swap theirs | 2026-09-26 | `docs/30-versioning-and-compatibility.md` | #1639 |
 | body and caption keep `default`, the same way label keeps `emphasis` | 2026-09-26 | `docs/30-versioning-and-compatibility.md` | #1681 |
+| the style guide documents every color collection — primitives on Primitive tokens, roles on Semantic tokens — with modes side by side, a bound swatch drawn on its ground, a contrast column from the engine's contract, in-place reruns, and cell components built or adopted on File Components | 2026-09-28 | `docs/45-style-guide-generator.md` §2 | #259 |
 
 ## Known gaps, named rather than silent
 

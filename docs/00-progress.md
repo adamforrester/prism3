@@ -7,6 +7,57 @@
 
 ---
 
+## (2026-09-28) — Style guide generator, phase 1: cell components and color tables (#259)
+
+**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.190.0 → **0.191.0**, a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
+
+**What it does.**
+- **Tables.** `apps/plugin/src/style-guide.ts` draws one table per color group from the file's own variables:
+  - each primitive palette as a numerically ordered scale on `↳ Primitive tokens`;
+  - each semantic family on `↳ Semantic tokens`.
+- **Columns:** Token · [specimen · value + alias chip · contrast] per mode · Description.
+- **Specimens.** Every specimen is an instance of `_style-guide-swatches`, with its paint bound to the variable and the collection's mode pinned per column. It sits in a ground frame bound to the role's contracted ground, pinned to the same mode.
+- **Contrast.** The column reads `resolveAllModes(brandTheme(restoreInput(root)))`, never prose: `19.42:1 — clears the 7:1 floor` / `on background/primary`. An ink-on-wash role measures its `legibleFor` ink over the composite.
+- **Headers and reruns.** Each table opens with a `_Section-header` Size=Medium. A rerun finds a table by its plugin-data key, rebuilds the grid in place and diffs the rows it last wrote: added, removed, changed.
+- **Cell sets.** `style-guide-cells.ts` builds the three cell sets on `↳ File Components` during Set up file, or adopts ones the file already has, anywhere and in any case, with nothing moved or rebuilt.
+- **Controls.** Panel: a Figma-only **Style guide** rail step with a folded *Customize* (value format, header, display style defaulting to the token's role, aliases, description). Agent link: `style-guide {collections?, types?, …}`.
+
+**The two defects of the owner's earlier plugin that shaped the design.**
+- Its white-drawn specimens made inverse text and white `on-*` icons invisible. The fix is one decision: the specimen's ground IS the contrast column's ground, the same variable, so what the table measures is what it shows.
+- Its rows sorted as text. `naturalCompare` sorts `5, 50, 100, 900`.
+
+**Traps for whoever works here next.**
+- **`{ node: … }` in plugin main-thread code fails the build.** `build.mjs` rejects the `node:` substring as a builtin import. `pickVariant` returns `{ member, exact }` for that reason, the same trap `file-setup.ts` records.
+- **The panel posts asynchronously.** `test-build-verdict.mjs` waits on the captured `style-guide` message rather than reading it on the click's tick.
+- **A partial run is not a pass.** "⚠ 11 drawn, 11 skipped" is ok:false, so the detail opens. An earlier draft called it ✓ and hid the missing page.
+
+**Tests, literal and offline.**
+- `apps/plugin/test-style-guide.ts`, in the plugin `test` chain, checks:
+  - the tables per page and the explicit mode per column;
+  - bound swatches and the specimen's ground;
+  - literal ratios (text.primary 19.42 / 18.13 / 21.00 / 21.00 across the four modes);
+  - numeric order;
+  - the in-place rerun and its diff (`3.27:1 — below the 7:1 floor`);
+  - adoption of the owner's `_Style-Guide-Swatches` on "Style Guide Components";
+  - every skip.
+- `test-agent-link.ts` covers the new command and its bad-args.
+- `test:verdict` covers the page, the fold, the options crossing the bridge and the verdict on the row.
+
+**Mutations,** each after a `wip:` commit, restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| drop the explicit mode | "5: every text/primary swatch pins its column's mode" |
+| unbind the swatch | "5: every text/primary swatch is bound to text/primary" |
+| ground forced to white | "5: inverse/text/primary is drawn on inverse/background/primary" |
+| lexical sort | "4: foreign ramp in numeric order" |
+| skip the plugin-data lookup | "6: rerun: still 11 tables on the semantic page" |
+| always build cells | "2: the adopted swatch set is not duplicated" |
+
+**Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable). **Host-unverified:** GRID rendering and HUG tracks, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
+
+---
+
 ## (2026-09-28) — Badge: `genre` and `emphasis` in Figma, a sparse variant grid, and the subtle tints separate by their edge
 
 **STATUS: PR #1736 open from `lane/badge-genre-neutral`, labeled DO NOT MERGE.** The owner-approved follow-ups to Badge (#1730), reworked to the owner's decisions of 2026-09-28, which replace the first version's "inverse neutral for every status badge". ENGINE 0.189.0 → **0.190.0** (MINOR: the projected surface moves 5 → 20 members and `out/components/**` moves; renumbered twice in the net, after #1742 and #1738). CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. Resolves #1735.
