@@ -82,7 +82,7 @@ The shim gained just enough of a layout model to measure this: stretch, grow sha
 **What moved.** The surface was re-accepted for field-message, field-label (with its body variants), text-field, textarea, checkbox-group, radio-group and select (with the outline variants). ENGINE stays 0.193.0, since this round lands before the version ships. CONTRACT stands.
 
 **Held.**
-- **Where the required marker sits once the name wraps (#1762).** In Figma the name's box is as wide as the row, so the marker trails at the row's end rather than after the last word.
+- **Where the required marker sits (#1762).** Once `wrap` gives the name `layoutGrow: 1`, its box always fills the 320 row, so with `required` on the marker trails at the row's end rather than after the last word — for a one-word, one-line label too, not only a wrapped one. The default (`required` off) is unaffected.
 - **The native `<select>`.** It draws its value on one line, so the code-side half of "the value wraps" needs #1758's audit.
 - **Not verified live.** The resize-then-FIXED order, the frozen `HEIGHT` width, and the clip are modelled offline.
 

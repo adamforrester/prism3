@@ -16580,6 +16580,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         const FLOORS = new Map<ComponentDef, RegExp[]>([
           [textarea, [/\/messageRow HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/messageCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/message undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
           [checkboxGroup, [/\/row1 undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
+          // radio-group is checkbox-group's twin (#1475), so its row and label stretch the same way (#1757 re-review).
+          [radioGroup, [/\/row1 undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
           [select, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
             /\/control HORIZONTAL p:AUTO c:AUTO /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/]],
           [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /]],
