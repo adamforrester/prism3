@@ -86,14 +86,18 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 
 - **Primitive or semantic.** A collection is primitive when no variable in it aliases another in any mode (**proposed, owner to confirm**). It carries no contrast column, since a primitive has no contracted ground.
 - **Grouping.** Primitive: by parent path, one table per palette, titled by the palette ("Primary", "Black alpha"). A value at the collection's shared prefix goes into "<Collection> — base". A single-group collection takes the collection's name. Semantic: by family, the first segment after the shared prefix ("Text", "Inverse").
-- **Order.** Primitive rows use numeric order (`5, 50, 100, 900`). Semantic rows keep the file's order, which is the engine's emission order.
+- **More than one root.** A collection can hold the same tree under two roots (the owner's test file: `nbds/color/…` and `pds3/color/…` in one `color` collection). Nothing is shared across the roots, but a prefix is shared below each root's first segment. Such a collection groups within each root, and every title names its root: "Text — nbds", "Primary — nbds", "Core — nbds base". A one-root collection's titles name no root. A role's ground is looked up in its own root first.
+- **Row names.** A palette row is its step alone ("025"): the title already names the palette and root, and the bound swatch reveals the variable, so the full path is not repeated (**proposed, owner to confirm**). A role is named inside its family ("primary" in Text, "text/primary" in Inverse).
+- **Order.** Primitive rows use ramp order: named values (`white`, `black`, `transparent`) first, in the file's order, then numeric steps ascending (`5, 50, 100, 900`; `025` before `050`). Semantic rows keep the file's order, which is the engine's emission order.
+- **Column widths.** Each text cell hugs its words, with truncation off. An adopted cell is re-sized the same way, so the owner's fixed 120px cells no longer clip. A description wraps at 360px (**proposed**). Each column is then fixed at its widest cell, and every cell fills it, so the rules line up. A swatch column is the specimen: the 48px swatch plus 16px ground padding each side, 80px. Its header wraps to fit rather than widening the column.
 - **Contrast.** The contract comes from the brand saved in the file (`restoreInput` → `resolveAllModes(brandTheme(input))`). With no saved brand the column reads "—" and the verdict says Apply theme saves one (**proposed, owner to confirm**). The ratio is floored to two places, so 4.499 never reads "4.50" beside a 4.5 floor.
 - **Placement.** A new table goes 160px below the page's lowest content, left-aligned to it (**proposed**). A table a designer has moved stays where they put it.
-- **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection ID>|<group's full path>` (`color|VariableCollectionId:…|pds3/color/text`). The key uses the ID so a renamed collection keeps its tables. It uses the full path so a sibling group added to a collection, which shortens the shared prefix, does not move it. The grid is rebuilt each run; the wrapper and header are kept. The header text is written only when the table is created, so a designer's edit survives (**proposed**). A table whose group has gone is reported stale and **left in place**, never deleted (**proposed**). Only tables the run could have drawn are candidates: its types, and its collections when filtered.
+- **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection ID>|<group's full path>` (`color|VariableCollectionId:…|pds3/color/text`). The key uses the ID so a renamed collection keeps its tables. It uses the full path so a sibling group added to a collection, which shortens the shared prefix, does not move it. The grid is rebuilt each run; the wrapper and header are kept. The frame name and the header's title and description are rewritten only while they still read what a run wrote, which is recorded in plugin data, so a designer's edit survives (**proposed**). A table whose group has gone is reported stale and **left in place**, never deleted (**proposed**). A table whose key is an ancestor of a planned key is reported **replaced** and left in place: an earlier build drew one table per root where the collection holds two (**proposed**; deleting them is the owner's call). Only tables the run could have drawn are candidates: its types, and its collections when filtered.
 - **The rerun report.** Rows are compared by variable ID, so a renamed variable reads "renamed", not added and removed. Values are compared as the token holds them (the alias and the resolved RGBA), so switching Hex to RGBA changes no row.
 - **Header description.** It states only what the plan checked. A primitive table counts its steps a semantic role references ("20 primitive colors in core, 19 referenced by a semantic role"). A semantic table counts its roles with a measured contrast. A count of zero drops the clause.
 - **An unknown mode.** A file mode the brand does not contract ("L (HC)") has no floors, so its contrast reads "—" and the verdict names the mode.
-- **Verdict.** "✓ style guide: 22 tables" on a clean run. "⚠ 11 drawn, 11 skipped" when a page or the cells were missing, which is not a pass, so the detail opens. "✗ style guide skipped" when nothing was drawn.
+- **Verdict.** "✓ style guide: 22 tables" on a clean run. "⚠ 11 drawn, 11 skipped" when a page or the cells were missing, which is not a pass, so the detail opens. "⚠ 368 swatches unbound" when a swatch member has no layer that takes a fill, counted per variant in the detail. "✗ style guide skipped" when nothing was drawn.
+- **Binding an adopted swatch.** In order: a layer named `Specimen`; a layer found by type (the first text layer, stroked layer or filled layer); and last, the instance itself, where the member paints its own fill or stroke or has no layers (the owner's `type=default`).
 
 ## 7. What is and is not verified offline
 
@@ -103,15 +107,17 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - bound swatches;
 - literal ratios (prism3 `text.primary` on `background.primary`: 19.42:1 light);
 - the specimen's ground;
-- numeric order;
-- the in-place rerun and its diff;
+- numeric order, and named values first;
+- a two-root file: titles, keys and same-root grounds;
+- column widths, against the shim's own text metric (7px a character): no cell's content wider than its column, the swatch column at 80, and a wrapped description;
+- the in-place rerun and its diff, and the header rewrite over an earlier run's titles;
 - adoption whatever the page or case;
 - every skip.
 
 `test-build-verdict.mjs` drives the built panel: the Style guide page, the Customize fold, the options crossing the bridge, and the verdict on the row.
 
 **Host-unverified:**
-- GRID layout rendering and HUG tracks;
+- GRID layout rendering, FIXED tracks with FILL cells, and HUG applied to an adopted instance's layers;
 - the icon diamond's rotated geometry (its box is computed offline from the typings' transform, `rotation = atan2(-m10, m00)` about the top-left corner, and asserted at 8.44–39.56 on both axes; the host is the check that Figma applies it that way);
 - that an instance inside a mode-pinned ground frame renders in the pinned mode.
 
@@ -127,7 +133,11 @@ A live run on the owner's test file is the check.
 - Contrast wording: `3.27:1 — below the 7:1 floor` / `on background/primary`.
 - Stale tables left in place and reported.
 - Placement 160px below the page's content.
-- The grid rebuilt each run; the header written only on creation.
+- The grid rebuilt each run; the frame name and header rewritten only while they read what a run wrote.
+- Palette rows named by their step alone, with the full path dropped (§6).
+- The description wrap at 360px; every other text column sized to its widest cell (§6).
+- The live run's one-per-root tables reported as replaced and left in place, not deleted (§6).
+- The multi-root title forms "Text — nbds" and "Core — nbds base".
 - The owner's "add a title cell to rows" option, deferred: each table's header carries the title.
 - No contrast column on primitive tables.
 - The contract read from the brand saved in the file.

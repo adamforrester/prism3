@@ -74,7 +74,33 @@
 - **Studio note** cut to one line, with no issue number.
 - **The trap:** a substitution that unbalances a parenthesis reads as a crash, not a failure. The first header mutation did exactly that and had to be split into two clean ones. Read the battery's output for a stack trace, not just for exit 1.
 
-**Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable). **Host-unverified:** GRID rendering and HUG tracks, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
+**Live-run fixes (the owner's test file, plugin built from `9a151d54`).** The shim passed; the file did not. The file holds two roots, `nbds/…` and `pds3/…`, in the same collections, and its adopted cells are not shaped like ours.
+- **368 swatches unbound.** The owner's `type=default` member has no layers; its fill sits on the component. `bindTarget` searched descendants only. Now it falls back to the instance itself when the member paints its own fill (or stroke, for border) or has no layers inside.
+- **The verdict hid it.** "✓ style guide: 21 tables" sat over 368 per-token misses. Now the misses are a count, per variant. The result carries `unbound`, and any unbound swatch makes the pill `⚠ 368 swatches unbound`, not ok. The owner's example "⚠ 21 tables, 368 swatches unbound" is 33 characters against a 24-character pill, so the table count is dropped from the headline.
+- **One 28,627px table per root.** The `color` collection has no shared prefix across `nbds/color/*` and `pds3/color/*`, so the family was taken to be the root. A collection with no shared prefix but a shared one *below* its first segment is now multi-root. It groups within each root, and its titles name the root ("Text — nbds", "Primary — nbds", "Core — nbds base"). A one-root collection's titles are unchanged. Grounds prefer the role's own root (`nearest`, by shared leading segments). Before this, the nbds text would have been drawn on, and measured against, the pds3 background. Keys are still collection ID + full path, so the live run's primitive keys are unchanged.
+- **Clipped text.** The owner's text cells are a fixed 120px wide. Every text cell now hugs its words: truncation off, `WIDTH_AND_HEIGHT`, and every auto-layout frame set to HUG from the inside out. A description wraps at 360px. Each column is then FIXED at its widest cell and every cell FILLs it, so the rules line up. A swatch column hugs the specimen, 48 + 16 + 16 = 80. Its header wraps to that width rather than widening it: "hc-light" would make it 88.
+- **Rows lead with their name inside the group.** A palette row is its step ("025"), in ramp order: named values first, in file order, then numeric steps ascending. A role is relative to its family ("primary" in Text). The full path is dropped from primitive tables (proposed). The title already names the palette and root, and the bound swatch reveals the variable.
+- **Rerun over the live run's tables.** The frame name and header title are rewritten while they still read what a run wrote. What was written is recorded in plugin data. A table from before that record counts its title as ours while the frame is still named after it. A designer's edit is kept. A table whose key is an ancestor of a planned key is reported as `replaced`, not `stale`, and left in place: the live run's one-per-root semantic tables (`…|nbds` → `…|nbds/color/text`). Deleting them is the owner's call.
+- **The shim now models width.** A text is 7px per character. HUG sums in-flow children plus padding. FILL takes a FIXED grid track. The layout setters throw where the host does. `clipped()` reads content width off that model, never off the plugin's arithmetic. The owner's clipping cell is reproduced in `ownerSet`: fixed 120, label FILL, truncating. The "cell root never hugs" mutation below shows the model catches it: 242px of words in a 120px column.
+
+| Mutation | Fails |
+|---|---|
+| `bindTarget` descendants only | "2: a type=default swatch with no layers binds the instance's own fill" |
+| unbound not in ok/headline | "9: unbound swatches are not a pass…" |
+| multi-root detection off | "9: a two-root color collection groups by family within each root…", "9: the two Primary palettes are told apart…" |
+| ground affinity off | "9: each root's text is drawn on its own root's background" |
+| tracks from the header row only | "2: no text in the owner's cells is wider than its column", "5: no cell in any table is wider than its column" |
+| the cell root never hugs | "2: no text in the owner's cells is wider than its column" |
+| the swatch column measures its header | "5: every swatch column is the swatch plus its padding: 80", "5: the "hc-light" header wraps…" |
+| description not wrapped | "5: a long description wraps at 360px rather than clipping" |
+| primitive row shows its full path | "5: a palette table leads with the step alone…", "9: rows are named inside their group…" |
+| steps without named-first | "9: named values lead, in file order, then steps ascending" |
+| semantic row keeps its family | "2: the adopted type=Text swatch is used for a text role" |
+| header rewrite off | "9: an earlier run's title is rewritten to name its root" |
+| rewrite ignores designer edits | "9: a title the designer typed is kept" |
+| replaced folded into stale | "9: the per-root table is reported as replaced…" |
+
+**Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable), and three new ones from the live run: the full path dropped from palette tables, the live run's per-root tables left in place, and the 360px description wrap. **Host-unverified:** GRID rendering and FIXED tracks with FILL cells, HUG on an adopted instance's layers, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
 
 ---
 

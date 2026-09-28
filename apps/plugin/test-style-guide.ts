@@ -22,7 +22,12 @@
  *   8. the table KEY (collection ID + full path) survives a sibling group and a renamed collection; the header
  *      descriptions state only what was checked; the rerun report keys rows by variable ID and compares raw
  *      values; the stale report stays inside the run's types and collections; an uncontracted mode is named;
- *      a mixed-font cell loads every segment's font or names the miss.
+ *      a mixed-font cell loads every segment's font or names the miss;
+ *   9. a TWO-ROOT file (`nbds/…` and `pds3/…` in the same collections, as the owner's test file holds them)
+ *      groups within each root and names it in the title, grounds stay in their root, a rerun over the live
+ *      run's tables rewrites old titles and reports the per-root tables as replaced; an unbound swatch is a ⚠
+ *      with its count; named values lead a ramp. Column widths (sections 2 and 5) are read off the shim's own
+ *      layout model — 7px a character — never off the plugin's arithmetic.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -50,7 +55,22 @@
  *   - claim every step referenced / every role measured → "8: Accent header…" / "8: Scrim header…" fail;
  *   - snapshot rows by name → "8: a renamed variable is a rename, not an add and a remove" fails;
  *   - snapshot the printed value → "8: switching Hex to RGBA changes no row" fails;
- *   - never name an uncontracted mode → "8: a file mode the engine does not contract is named" fails.
+ *   - never name an uncontracted mode → "8: a file mode the engine does not contract is named" fails;
+ *   - `bindTarget` searches descendants only → "2: a type=default swatch with no layers binds the instance's
+ *     own fill" fails;
+ *   - leave `unbound` out of ok/headline → "9: unbound swatches are not a pass…" fails;
+ *   - multi-root detection off → "9: a two-root color collection groups by family within each root…" fails;
+ *   - ground affinity off → "9: each root's text is drawn on its own root's background" fails;
+ *   - size tracks from the header row only / never hug the cell root → "2: no text in the owner's cells is wider
+ *     than its column" fails;
+ *   - the swatch column measures its header → "5: every swatch column is the swatch plus its padding: 80" fails;
+ *   - no description wrap → "5: a long description wraps at 360px rather than clipping" fails;
+ *   - a palette row shows its full path → "5: a palette table leads with the step alone…" fails;
+ *   - steps sorted without named-first → "9: named values lead, in file order, then steps ascending" fails;
+ *   - a role keeps its family in its name → "2: the adopted type=Text swatch is used for a text role" fails;
+ *   - no header rewrite / rewrite over an edit → "9: an earlier run's title is rewritten…" / "9: a title the
+ *     designer typed is kept" fail;
+ *   - replaced folded into stale → "9: the per-root table is reported as replaced…" fails.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -78,12 +98,21 @@ const readJson = (f: string) => JSON.parse(readFileSync(join(OUT, f), 'utf8')) a
 
 // ── The shim ─────────────────────────────────────────────────────────────────────────────────────────
 let nextId = 1;
+/** The shim's text metric: every character 7px wide, lines split at "\n". Its own figure, not the plugin's. */
+const CHAR_W = 7;
+const isAuto = (n: N | null | undefined): boolean => n?.layoutMode === 'HORIZONTAL' || n?.layoutMode === 'VERTICAL';
+const padX = (n: N): number => Number(n.paddingLeft ?? 0) + Number(n.paddingRight ?? 0);
+/** A text node's width set on one line. */
+const naturalOf = (t: N): number => Math.max(0, ...String(t.characters ?? '').split('\n').map((l) => l.length)) * CHAR_W;
 class N {
   id = `node:${nextId++}`;
   name = '';
   children: N[] = [];
   parent: N | null = null;
-  width = 0;
+  /** The stored width — what `resize` sets. `width` reads it unless the node's sizing computes one. */
+  w = 0;
+  /** `layoutSizingHorizontal`, behind a setter that refuses what the host refuses. */
+  lsh?: string;
   height = 0;
   x = 0;
   y = 0;
@@ -100,12 +129,38 @@ class N {
   pluginData: Record<string, string> = {};
   gridRow?: number;
   gridCol?: number;
-  gridColumnSizes: { type: string }[] = [];
-  gridRowSizes: { type: string }[] = [];
+  gridColumnSizes: { type: string; value?: number }[] = [];
+  gridRowSizes: { type: string; value?: number }[] = [];
   private _cols = 0;
   private _rows = 0;
   [k: string]: unknown;
   constructor(public type: string) {}
+  // THE LAYOUT MODEL. A WIDTH_AND_HEIGHT text is its words' width; a FILL child in a grid is its column's FIXED
+  // width, in an auto-layout frame the frame's width less its padding; a hugging auto-layout frame is its padding
+  // plus its in-flow children (summed across a row, the widest down a column); anything else is its stored width.
+  get width(): number {
+    if (this.type === 'TEXT' && this.textAutoResize === 'WIDTH_AND_HEIGHT') return naturalOf(this);
+    const p = this.parent;
+    if (this.lsh === 'FILL' && p) {
+      if (p.layoutMode === 'GRID' && this.gridCol !== undefined) { const s = p.gridColumnSizes[this.gridCol]; if (s?.type === 'FIXED') return Number(s.value); }
+      if (isAuto(p)) return p.width - padX(p);
+    }
+    const hug = this.lsh === 'HUG' || (this.lsh === undefined && ((this.layoutMode === 'HORIZONTAL' && this.primaryAxisSizingMode === 'AUTO') || (this.layoutMode === 'VERTICAL' && this.counterAxisSizingMode === 'AUTO')));
+    if (hug && isAuto(this)) {
+      const ws = this.children.filter((k) => k.visible !== false && k.lsh !== 'FILL').map((k) => k.width);
+      const inner = this.layoutMode === 'HORIZONTAL' ? ws.reduce((a, b) => a + b, 0) + Number(this.itemSpacing ?? 0) * Math.max(0, ws.length - 1) : Math.max(0, ...ws);
+      return padX(this) + inner;
+    }
+    return this.w;
+  }
+  set width(v: number) { this.w = v; }
+  get layoutSizingHorizontal(): string | undefined { return this.lsh; }
+  set layoutSizingHorizontal(v: string | undefined) {
+    if (v === 'HUG' && this.type !== 'TEXT' && !isAuto(this) && this.layoutMode !== 'GRID') throw new Error('HUG needs an auto-layout frame');
+    if (v === 'FILL' && !(isAuto(this.parent) || this.parent?.layoutMode === 'GRID')) throw new Error('FILL needs an auto-layout or grid parent');
+    if (this.type === 'TEXT' && v === 'HUG') this.textAutoResize = 'WIDTH_AND_HEIGHT';
+    this.lsh = v;
+  }
   get gridColumnCount(): number { return this._cols; }
   set gridColumnCount(n: number) { this._cols = n; this.gridColumnSizes = Array.from({ length: n }, () => ({ type: 'FLEX' })); }
   get gridRowCount(): number { return this._rows; }
@@ -123,7 +178,7 @@ class N {
     c.gridRow = r; c.gridCol = col;
   }
   remove(): void { if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); this.parent = null; }
-  resize(w: number, h: number): void { this.width = w; this.height = h; }
+  resize(w: number, h: number): void { this.w = w; this.height = h; }
   findAll(pred: (n: N) => boolean): N[] {
     const out: N[] = [];
     const walk = (n: N) => { for (const c of n.children) { if (pred(c)) out.push(c); walk(c); } };
@@ -146,7 +201,8 @@ class N {
   createInstance(): N {
     const clone = (n: N): N => {
       const c = new N(n === this ? 'INSTANCE' : n.type);
-      for (const k of ['name', 'width', 'height', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
+      for (const k of ['name', 'w', 'lsh', 'height', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode',
+        'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'primaryAxisSizingMode', 'counterAxisSizingMode', 'textAutoResize', 'textTruncation']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
       for (const k of n.children) c.appendChild(clone(k));
       return c;
     };
@@ -167,10 +223,18 @@ const ownerSet = (name: string, variants: string[], withSpecimen: boolean): N =>
   for (const v of variants) {
     const m = new N('COMPONENT');
     m.name = v;
-    // The owner's node names, not ours: a text swatch holds a TEXT node named "Aa", a fill swatch a "Rectangle 12".
+    // The owner's node names, not ours: a text swatch holds a TEXT node named "Aa", a fill swatch a "Rectangle 12",
+    // and `type=default` has NO layers — its fill sits on the component itself (live, 2026-09-28).
+    if (withSpecimen) m.resize(48, 48);
     if (withSpecimen && /text/i.test(v)) { const t = new N('TEXT'); t.name = 'Aa'; t.characters = 'Aa'; t.fills = [{ type: 'SOLID' }]; m.appendChild(t); }
+    else if (withSpecimen && /default/i.test(v)) m.fills = [{ type: 'SOLID' }];
     else if (withSpecimen) { const s = new N('FRAME'); s.name = 'Rectangle 12'; s.fills = [{ type: 'SOLID' }]; m.appendChild(s); }
-    else { const t = new N('TEXT'); t.name = 'Label'; t.characters = 'Abc 123'; t.fontName = { family: 'Inter', style: 'Regular' }; m.appendChild(t); }
+    else {
+      // A text cell a fixed 120px wide, its label filling it and clipping what does not fit — the owner's cells.
+      m.layoutMode = 'HORIZONTAL'; m.primaryAxisSizingMode = 'FIXED'; m.paddingLeft = 16; m.paddingRight = 16; m.lsh = 'FIXED'; m.resize(120, 44);
+      const t = new N('TEXT'); t.name = 'Label'; t.characters = 'Abc 123'; t.fontName = { family: 'Inter', style: 'Regular' };
+      t.textAutoResize = 'TRUNCATE'; t.textTruncation = 'ENDING'; m.appendChild(t); t.lsh = 'FILL';
+    }
     set.appendChild(m);
   }
   return set;
@@ -210,12 +274,13 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[]): Shim => {
     loadFontAsync: async (f: { family: string; style: string }) => { if (fontFails.has(`${f.family} ${f.style}`)) throw new Error('no font'); },
     createFrame: () => new N('FRAME'),
     createComponent: () => new N('COMPONENT'),
-    createText: () => new N('TEXT'),
+    // The host's default for a new text node: it sizes to its words.
+    createText: () => { const t = new N('TEXT'); t.textAutoResize = 'WIDTH_AND_HEIGHT'; return t; },
     combineAsVariants: (nodes: N[], parent: N) => {
       const set = new N('COMPONENT_SET');
       for (const n of nodes) set.appendChild(n);
       parent.appendChild(set);
-      set.width = 400; set.height = 400;
+      set.w = 400; set.height = 400;
       (set as unknown as { addComponentProperty: () => string }).addComponentProperty = () => 'Description#9:0';
       return set;
     },
@@ -263,10 +328,28 @@ const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
 
-const fullFile = async (): Promise<Shim & { fc: N; prim: N; sem: N }> => {
+/** The owner's test file: TWO roots in the same collections — `nbds/…` written first, then `pds3/…` — as a
+ *  copy of the prism3 variables under `nbds/`, with new ids and every alias pointed at the nbds copy. */
+const twoRootVariables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
+  const { cols, vars } = prism3Variables();
+  const pds = vars.filter((v) => v.name.startsWith('pds3/'));
+  const nbId = new Map(pds.map((v) => [v.id, v.id.replace('VariableID:', 'VariableID:nb-')]));
+  const nb = pds.map((v) => ({
+    ...v,
+    id: nbId.get(v.id)!,
+    name: v.name.replace(/^pds3\//, 'nbds/'),
+    valuesByMode: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => {
+      const a = x as { type?: string; id?: string };
+      return [m, a.type === 'VARIABLE_ALIAS' ? { type: 'VARIABLE_ALIAS', id: nbId.get(a.id!) } : x];
+    })),
+  }));
+  return { cols, vars: [...nb, ...vars] };
+};
+
+const fullFile = async (variables = prism3Variables()): Promise<Shim & { fc: N; prim: N; sem: N }> => {
   const fc = page(FC), prim = page(PRIM), sem = page(SEM);
   fc.appendChild(headerSet());
-  const { cols, vars } = prism3Variables();
+  const { cols, vars } = variables;
   const s = makeShim([page('Cover'), prim, sem, fc], cols, vars);
   await ensureStyleGuideCells(s.api, fc);
   return { ...s, fc, prim, sem };
@@ -280,6 +363,21 @@ const cellAt = (grid: N, r: number, c: number): N | undefined => grid.children.f
 const textIn = (n: N | undefined): string => (n?.findAll((k) => k.type === 'TEXT') ?? []).map((t) => t.characters).join(' | ');
 const rowOf = (grid: N, token: string): number => grid.children.find((k) => k.gridCol === 0 && textIn(k) === token)?.gridRow ?? -1;
 const boundId = (paints: unknown): string | undefined => (paints as { boundVariables?: { color?: { id: string } } }[] | undefined)?.[0]?.boundVariables?.color?.id;
+/** The width a node's content needs, read off the shim's own metric — never the plugin's arithmetic. A wrapped
+ *  text needs only its box; any other text needs its words on one line. */
+const need = (n: N): number => {
+  if (n.type === 'TEXT') return n.textAutoResize === 'HEIGHT' ? n.width : naturalOf(n);
+  const kids = n.children.filter((k) => k.visible !== false);
+  if (n.layoutMode === 'HORIZONTAL') return padX(n) + kids.reduce((a, k) => a + need(k), 0) + Number(n.itemSpacing ?? 0) * Math.max(0, kids.length - 1);
+  if (n.layoutMode === 'VERTICAL') return padX(n) + Math.max(0, ...kids.map(need));
+  return Math.max(n.w, ...kids.map((k) => Number(k.x) + need(k)));
+};
+/** Every cell of a table whose content is wider than its column, or whose text truncates — "row,col: need > track". */
+const clipped = (grid: N): string[] => grid.children.flatMap((cell) => {
+  const track = grid.gridColumnSizes[cell.gridCol!];
+  const cut = cell.findAll((k) => k.type === 'TEXT' && (k.textTruncation === 'ENDING' || k.textAutoResize === 'TRUNCATE')).length > 0;
+  return track?.type !== 'FIXED' || need(cell) > Number(track.value) || cut ? [`${cell.gridRow},${cell.gridCol}: ${need(cell)} > ${track?.type} ${track?.value}${cut ? ' (truncated)' : ''}`] : [];
+});
 
 const main = async (): Promise<void> => {
   console.log('1. cell sets on a fresh file');
@@ -332,11 +430,21 @@ const main = async (): Promise<void> => {
     const text = tableFrame(sem, 'Text');
     ok(!!text, '2: tables draw from adopted sets');
     const g = text ? gridOf(text) : undefined;
-    const r1 = g ? rowOf(g, 'text/primary') : -1;
+    const r1 = g ? rowOf(g, 'primary') : -1;
     const sw = g ? cellAt(g, r1, 1)?.children[0] : undefined;
     ok(sw?.mainComponent?.name === 'type=Text', '2: the adopted type=Text swatch is used for a text role');
     ok(boundId(sw?.findOne((k) => k.name === 'Aa')?.fills) === vars.find((v) => v.name === 'pds3/color/text/primary')!.id, '2: the owner-named node is bound');
     ok(run.misses.includes('_style-guide-text-cells has no type=value alias, color=white variant'), '2: a variant the adopted set lacks is reported by name');
+    // The owner's type=default carries its fill on the component itself, with no layers inside (live: 368 misses).
+    const bgT = tableFrame(sem, 'Background');
+    const bgG = bgT ? gridOf(bgT) : undefined;
+    const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1)?.children[0] : undefined;
+    ok(bgSw?.mainComponent?.name === 'type=Default' && boundId(bgSw?.fills) === vars.find((v) => v.name === 'pds3/color/background/primary')!.id, "2: a type=default swatch with no layers binds the instance's own fill");
+    ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 11 tables', '2: nothing unbound — headline "✓ style guide: 11 tables"');
+    // The owner's cells are a fixed 120px and clip; drawn, each hugs its words and no column cuts one off.
+    const off = g ? clipped(g) : ['no grid'];
+    ok(off.length === 0, `2: no text in the owner's cells is wider than its column (${off.slice(0, 3).join('; ')})`);
+    ok(g?.gridColumnSizes[1].value === 80, `2: the owner's swatch column is the 48px swatch plus 16 + 16 padding: 80 (got ${g?.gridColumnSizes[1].value})`);
   }
 
   console.log('3. the plan');
@@ -355,23 +463,23 @@ const main = async (): Promise<void> => {
     const text = byTitle('semantic', 'Text')!;
     ok(JSON.stringify(text.columns) === JSON.stringify(['Token', 'light', 'Value', 'Contrast', 'dark', 'Value', 'Contrast', 'hc-light', 'Value', 'Contrast', 'hc-dark', 'Value', 'Contrast', 'Description']), '3: a specimen, value and contrast column per mode');
     ok(JSON.stringify(byTitle('primitive', 'Neutral')!.columns) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), '3: a primitive table has no contrast column');
-    const tp = text.rows.find((r) => r.token === 'text/primary')!;
+    const tp = text.rows.find((r) => r.token === 'primary')!;
     ok(JSON.stringify(tp.cells.map((c) => contrastText(c.contrast).split('\n')[0])) === JSON.stringify(['19.42:1 — clears the 7:1 floor', '18.13:1 — clears the 7:1 floor', '21.00:1 — clears the 15:1 floor', '21.00:1 — clears the 15:1 floor']), '3: text.primary on background.primary: 19.42, 18.13, 21, 21');
     ok(tp.cells.every((c) => c.contrast?.ground === 'background/primary'), '3: text.primary measures against background/primary');
     ok(tp.cells[0].value === '#0D0D0E' && tp.cells[0].alias === 'pds3/core/palette/neutral/950', '3: text.primary light is #0D0D0E, an alias of neutral/950');
     ok(tp.display === 'text', '3: a text role draws the text swatch');
-    const bg = byTitle('semantic', 'Background')!.rows.find((r) => r.token === 'background/primary')!;
+    const bg = byTitle('semantic', 'Background')!.rows.find((r) => r.token === 'primary')!;
     ok(bg.cells.every((c) => c.contrast === null), '3: background.primary has no contracted ground — its contrast reads "—"');
     ok(contrastText(null) === '—', '3: no contract reads "—"');
     const scrim = byTitle('semantic', 'Scrim')!.rows[0];
     ok(scrim.cells[0].value === '#000000 · 40%' && scrim.display === 'transparency', '3: a translucent role prints its alpha and draws the checkerboard');
-    const iconOnBrand = byTitle('semantic', 'Icon')!.rows.find((r) => r.token === 'icon/on-brand')!;
+    const iconOnBrand = byTitle('semantic', 'Icon')!.rows.find((r) => r.token === 'on-brand')!;
     ok(contrastText(iconOnBrand.cells[0].contrast) === '7.82:1 — clears the 4.5:1 floor\non foreground/brand', '3: icon.on-brand measures against foreground/brand');
     // A palette-step ground, in another collection: resolved in ITS default mode, not the column's (`groundModeFor`).
-    const fgBrand = byTitle('semantic', 'Foreground')!.rows.find((r) => r.token === 'foreground/brand')!;
+    const fgBrand = byTitle('semantic', 'Foreground')!.rows.find((r) => r.token === 'brand')!;
     ok(contrastText(fgBrand.cells[0].contrast) === '6.44:1 — clears the 3:1 floor\non pds3/core/palette/neutral/050', '3: foreground.brand on neutral/050, light: 6.44:1');
     // An ink-on-wash role: the ink measured over the wash composited on the ground — 19.42 on the bare ground.
-    const hover = byTitle('semantic', 'Interactive')!.rows.find((r) => r.token === 'interactive/primary/overlay/hover')!;
+    const hover = byTitle('semantic', 'Interactive')!.rows.find((r) => r.token === 'primary/overlay/hover')!;
     ok(hover.cells[0].contrast?.ink === 'text/primary' && hover.cells[0].contrast?.ground === 'background/primary' && contrastText(hover.cells[0].contrast).startsWith('15.42:1 — clears the 4.5:1 floor'), '3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1');
     const noBrand = planStyleGuide(catalog, null);
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
@@ -398,11 +506,11 @@ const main = async (): Promise<void> => {
     ok(header?.componentProperties?.['Description#1:0']?.value === true, '5: the header shows its description');
     const g = gridOf(text);
     ok(g.layoutMode === 'GRID' && g.gridColumnCount === 14 && g.gridRowCount === 24, '5: a 14 × 24 grid (23 text roles + the header row)');
-    ok(g.gridColumnSizes.every((s) => s.type === 'HUG'), '5: grid columns hug their cells');
+    ok(g.gridColumnSizes.every((s) => s.type === 'FIXED' && Number(s.value) > 0), '5: grid columns are fixed to their widest cell');
     ok(textIn(cellAt(g, 0, 1)) === 'light' && textIn(cellAt(g, 0, 13)) === 'Description', '5: header row names the columns');
     ok(cellAt(g, 0, 0)?.mainComponent?.name === 'color=dark, textAlign=left, type=header, padding=default', '5: a dark header by default');
-    const r = rowOf(g, 'text/primary');
-    ok(r === 1, '5: text/primary is the first row');
+    const r = rowOf(g, 'primary');
+    ok(r === 1, '5: text/primary is the first row, named "primary" in the Text table');
     const specimens = [1, 4, 7, 10].map((c) => cellAt(g, r, c)!);
     const colorId = 'VariableCollectionId:color';
     ok(specimens.every((s, i) => s.children[0]?.explicitVariableModes[colorId] === `color:${i}`), "5: every text/primary swatch pins its column's mode");
@@ -416,17 +524,25 @@ const main = async (): Promise<void> => {
 
     const inv = tableFrame(f.sem, 'Inverse')!;
     const ig = gridOf(inv);
-    const ir = rowOf(ig, 'inverse/text/primary');
+    const ir = rowOf(ig, 'text/primary');
     ok(ir > 0 && [1, 4, 7, 10].every((c) => boundId(cellAt(ig, ir, c)?.fills) === idOf('pds3/color/inverse/background/primary')), '5: inverse/text/primary is drawn on inverse/background/primary');
     const icon = gridOf(tableFrame(f.sem, 'Icon')!);
-    ok(boundId(cellAt(icon, rowOf(icon, 'icon/on-brand'), 1)?.fills) === idOf('pds3/color/foreground/brand'), '5: icon/on-brand is drawn on foreground/brand');
+    ok(boundId(cellAt(icon, rowOf(icon, 'on-brand'), 1)?.fills) === idOf('pds3/color/foreground/brand'), '5: icon/on-brand is drawn on foreground/brand');
     const neutral = gridOf(tableFrame(f.prim, 'Neutral')!);
-    const nr = rowOf(neutral, 'neutral/050');
+    const nr = rowOf(neutral, '050');
     ok(boundId(cellAt(neutral, nr, 1)?.children[0]?.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/core/palette/neutral/050'), '5: a primitive swatch is bound to its step');
     ok(cellAt(neutral, nr, 1)?.children[0]?.explicitVariableModes['VariableCollectionId:core'] === 'core:0', '5: a primitive swatch pins its one mode');
     const border = gridOf(tableFrame(f.sem, 'Border')!);
     const bs = cellAt(border, 1, 1)?.children[0];
     ok(bs?.mainComponent?.name === 'type=border' && boundId(bs?.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(f.vars.filter((v) => v.name.startsWith('pds3/color/border/'))[0].name), '5: a border role binds the stroke');
+    ok([1, 4, 7, 10].every((c) => g.gridColumnSizes[c].value === 80), `5: every swatch column is the swatch plus its padding: 80 (got ${[1, 4, 7, 10].map((c) => g.gridColumnSizes[c].value).join(', ')})`);
+    ok(cellAt(g, 0, 7)?.findOne((k) => k.type === 'TEXT')?.textAutoResize === 'HEIGHT', '5: the "hc-light" header wraps to its swatch column rather than widening it');
+    const long = cellAt(g, rowOf(g, 'success-subtle'), 13)?.findOne((k) => k.type === 'TEXT');
+    ok(long?.textAutoResize === 'HEIGHT' && long.width === 360 && naturalOf(long) > 360, `5: a long description wraps at 360px rather than clipping (${long?.textAutoResize}, ${long?.width})`);
+    ok(g.gridColumnSizes[13].value === 392, `5: the description column is the 360px wrap plus 16 + 16 padding: 392 (got ${g.gridColumnSizes[13].value})`);
+    const off = [...tablesOn(f.sem), ...tablesOn(f.prim)].flatMap((w) => clipped(gridOf(w)).map((x) => `${w.name} ${x}`));
+    ok(off.length === 0, `5: no cell in any table is wider than its column (${off.slice(0, 3).join('; ')})`);
+    ok(JSON.stringify(neutral.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn).slice(0, 4)) === JSON.stringify(['025', '050', '100', '150']), '5: a palette table leads with the step alone: 025, 050, 100, 150 …');
     const sum = styleGuideSummary(first);
     ok(sum.ok && sum.headline === '✓ style guide: 22 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 22 tables"');
   }
@@ -449,7 +565,7 @@ const main = async (): Promise<void> => {
     ok(t?.status === 'updated', '6: reported as updated');
     ok(JSON.stringify(t?.diff) === JSON.stringify({ added: ['pds3/color/text/quaternary'], removed: ['pds3/color/text/tertiary'], changed: ['pds3/color/text/primary'], renamed: [] }), '6: reports text/quaternary added, text/tertiary removed, text/primary changed');
     const g = gridOf(tableFrame(f.sem, 'Text')!);
-    ok(textIn(cellAt(g, rowOf(g, 'text/primary'), 3)) === '3.27:1 — below the 7:1 floor\non background/primary', '6: the refreshed contrast names the ratio and the floor it misses');
+    ok(textIn(cellAt(g, rowOf(g, 'primary'), 3)) === '3.27:1 — below the 7:1 floor\non background/primary', '6: the refreshed contrast names the ratio and the floor it misses');
     ok(again.stale.includes('Style guide — Scrim'), '6: the emptied Scrim table is reported stale, and left in place');
     ok(!!tableFrame(f.sem, 'Scrim'), '6: the stale table is not deleted');
     const s = styleGuideSummary(again);
@@ -544,6 +660,61 @@ const main = async (): Promise<void> => {
     m.fontFails.clear();
     const mu = await runStyleGuide(m.api, contract, { collections: ['legacy'] });
     ok(mu.misses.includes('Text: its fonts could not be read, so the cell keeps its sample text') && legacyCell(m) === 'Abc 123', '8: a cell whose fonts cannot be read is named, not left silently at "Abc 123"');
+  }
+
+  console.log('9. two roots in one collection, unbound swatches, step order');
+  {
+    const two = twoRootVariables();
+    const p2 = planStyleGuide({ collections: two.cols, variables: two.vars }, contract);
+    const fams = ['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', 'Inverse'];
+    ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'semantic').map((t) => t.title)) === JSON.stringify([...fams.map((x) => `${x} — nbds`), ...fams.map((x) => `${x} — pds3`)]), '9: a two-root color collection groups by family within each root, the root named in the title');
+    const pal = ['Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'];
+    ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'primitive').map((t) => t.title)) === JSON.stringify(['Core — nbds base', ...pal.map((x) => `${x} — nbds`), 'Core — pds3 base', ...pal.map((x) => `${x} — pds3`), 'Legacy']), '9: the two Primary palettes are told apart by their root; a one-root collection names none');
+    const t9 = (title: string): SgTable => p2.tables.find((t) => t.title === title)!;
+    ok(t9('Text — nbds').key === 'color|VariableCollectionId:color|nbds/color/text' && t9('Primary — nbds').key === 'color|VariableCollectionId:core|nbds/core/palette/primary', '9: keys stay collection ID + full path');
+    ok(t9('Text — nbds').rows[0].token === 'primary' && t9('Primary — nbds').rows[0].token === '025', '9: rows are named inside their group — "primary", "025"');
+    const nbBrand = t9('Foreground — nbds').rows.find((r) => r.token === 'brand')!;
+    ok(contrastText(nbBrand.cells[0].contrast) === '6.44:1 — clears the 3:1 floor\non nbds/core/palette/neutral/050', "9: an nbds role measures against nbds's own palette step");
+
+    const f9 = await fullFile(two);
+    const id9 = (name: string): string => f9.vars.find((v) => v.name === name)!.id;
+    const r9 = await runStyleGuide(f9.api, contract);
+    ok(tablesOn(f9.sem).length === 22 && tablesOn(f9.prim).length === 21, '9: 22 semantic and 21 primitive tables');
+    const ground = (root: string): string | undefined => { const g = gridOf(tableFrame(f9.sem, `Text — ${root}`)!); return boundId(cellAt(g, rowOf(g, 'primary'), 1)?.fills); };
+    ok(ground('nbds') === id9('nbds/color/background/primary') && ground('pds3') === id9('pds3/color/background/primary'), "9: each root's text is drawn on its own root's background");
+    ok(styleGuideSummary(r9).headline === '✓ style guide: 43 tables', `9: headline "✓ style guide: 43 tables" (got "${styleGuideSummary(r9).headline}")`);
+
+    // A RERUN over the live run's tables: one per root for a semantic collection, keyed at the root, and primitive
+    // tables titled without their root. Planted as that build left them.
+    const old = new N('FRAME'); old.name = 'Style guide — Nbds'; old.pluginData['prism3-style-guide'] = 'color|VariableCollectionId:color|nbds'; f9.sem.appendChild(old);
+    const prim = tableFrame(f9.prim, 'Primary — nbds')!;
+    const pTitle = prim.children[0].findOne((k) => k.name === 'Title')!;
+    prim.name = 'Style guide — Primary'; pTitle.characters = 'Primary';
+    delete prim.pluginData['prism3-style-guide-title']; delete prim.pluginData['prism3-style-guide-description'];
+    const neu = tableFrame(f9.prim, 'Neutral — nbds')!;
+    const nTitle = neu.children[0].findOne((k) => k.name === 'Title')!;
+    nTitle.characters = 'Grays';
+    const again = await runStyleGuide(f9.api, contract);
+    ok(tablesOn(f9.sem).length === 23 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
+    ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale, and left in place');
+    ok(styleGuideSummary(again).summary.includes('1 earlier tables are now drawn as one table per family and were left in place (Style guide — Nbds)'), '9: the summary names the replaced table');
+    ok(prim.name === 'Style guide — Primary — nbds' && pTitle.characters === 'Primary — nbds', `9: an earlier run's title is rewritten to name its root (${prim.name} / ${pTitle.characters})`);
+    ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
+
+    // A swatch member with layers and no paint anywhere: nothing binds, and the verdict says how many — 74
+    // prism3 roles draw the plain swatch, in four modes: 296.
+    const fc = page(FC), sgc = page('Style Guide Components'), sem = page(SEM);
+    const sw = ownerSet('_style-guide-swatches', ['type=Default', 'type=Text'], true);
+    const def = sw.children[0]; def.fills = []; const grp = new N('GROUP'); grp.name = 'Group'; def.appendChild(grp);
+    sgc.appendChild(sw); sgc.appendChild(ownerSet('_style-guide-text-cells', ['color=dark, textAlign=left, type=header, padding=default', 'color=white, textAlign=left, type=default, padding=default'], false));
+    const u = await runStyleGuide(makeShim([fc, sgc, sem], prism3Variables().cols, prism3Variables().vars).api, contract, { collections: ['color'] });
+    const us = styleGuideSummary(u);
+    ok(u.unbound === 296 && !us.ok && us.headline === '⚠ 296 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
+    ok(us.summary.includes('296 swatches in type=Default have no layer that takes a fill'), '9: the summary counts them per variant');
+
+    // Named values first in the file's order, then the numeric steps ascending.
+    const named = { collections: cols, variables: [...vars, ...['white', 'black'].map((n, i) => ({ id: `VariableID:legacy:n${i}`, name: `legacy/ramp/${n}`, variableCollectionId: 'VariableCollectionId:legacy', resolvedType: 'COLOR', description: '', valuesByMode: { 'legacy:0': { r: 1, g: 1, b: 1, a: 1 } } }))] };
+    ok(JSON.stringify(planStyleGuide(named, contract).tables.find((t) => t.title === 'Legacy')!.rows.map((r) => r.token)) === JSON.stringify(['white', 'black', '5', '50', '100', '900']), '9: named values lead, in file order, then steps ascending');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

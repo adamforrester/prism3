@@ -151,6 +151,22 @@ export const naturalCompare = (a: string, b: string): number => {
   return as.length - bs.length;
 };
 
+/** Ramp order for a palette's steps: named values (`white`, `black`, `transparent`) first in the file's order,
+ *  then numeric steps ascending (`5, 10, 025, 050, 100 … 950`). */
+export const stepCompare = (a: string, b: string): number => {
+  const an = /^\d+$/.test(a), bn = /^\d+$/.test(b);
+  if (an !== bn) return an ? 1 : -1;
+  return an ? Number(a) - Number(b) || a.length - b.length : 0;
+};
+
+/** How many leading path segments two names share — the tie-break that keeps a role's ground in its own root. */
+const affinity = (a: string, b: string): number => {
+  const x = a.split('/'), y = b.split('/');
+  let i = 0;
+  while (i < x.length && i < y.length && x[i] === y[i]) i++;
+  return i;
+};
+
 const commonPrefix = (paths: readonly string[][]): string[] => {
   if (!paths.length) return [];
   const out: string[] = [];
@@ -287,27 +303,44 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
     const vars = catalog.variables.filter((v) => v.variableCollectionId === col.id && v.resolvedType === 'COLOR');
     if (!vars.length) continue;
     const primitive = vars.every((v) => col.modes.every((m) => aliasId(v.valuesByMode[m.modeId]) === null));
-    const prefix = commonPrefix(vars.map((v) => v.name.split('/').slice(0, -1)));
-    const display = (v: SgVariable): string => v.name.split('/').slice(prefix.length).join('/');
+    // ROOTS. A collection can hold the same tree under more than one root (`nbds/color/…` and `pds3/color/…`):
+    // no prefix is shared, but one is shared BELOW the first segment. Each root is then grouped on its own,
+    // and a title names its root. A collection with no such shared sub-prefix is one tree, as before.
+    const whole = commonPrefix(vars.map((v) => v.name.split('/').slice(0, -1)));
+    const firsts = [...new Set(vars.map((v) => v.name.split('/')[0]))];
+    const shared = whole.length === 0 && firsts.length > 1 ? commonPrefix(vars.map((v) => v.name.split('/').slice(1, -1))) : [];
+    const multiRoot = shared.length > 0;
+    const prefixOf = (name: string): string[] => (multiRoot ? [name.split('/')[0], ...shared] : whole);
     // A file mode the engine does not contract ("L (HC)") has no floors to measure against: said by name.
     if (!primitive && contract) for (const m of col.modes) if (!contractByMode.has(m.name.toLowerCase()))
       notes.push(`The ${m.name} mode in ${col.name} matches no mode the brand contracts (${contract.map((c) => c.mode).join(', ')}), so its contrast reads "—"`);
 
-    // Group: by parent path for a primitive scale, by family for semantic roles. A variable at the prefix
-    // itself has no group segment and lands in the base group.
-    const groups = new Map<string, SgVariable[]>();
+    // Group: by parent path for a primitive scale, by family for semantic roles, within each root. A variable
+    // at the prefix itself has no group segment and lands in the base group. Keyed by the group's full path.
+    const groups = new Map<string, { root: string; prefix: string[]; g: string; members: SgVariable[] }>();
     for (const v of vars) {
       const segs = v.name.split('/');
+      const prefix = prefixOf(v.name);
       const g = primitive ? segs.slice(prefix.length, -1).join('/') : segs.length - prefix.length > 1 ? segs[prefix.length] : '';
-      if (!groups.has(g)) groups.set(g, []);
-      groups.get(g)!.push(v);
+      const path = [...prefix, ...(g ? g.split('/') : [])].join('/');
+      if (!groups.has(path)) groups.set(path, { root: segs[0], prefix, g, members: [] });
+      groups.get(path)!.members.push(v);
     }
-    const groupNames = [...groups.keys()];
-    for (const g of groupNames) {
-      const members = groups.get(g)!;
-      // NUMERIC ORDER for a scale (the owner's plugin sorted 10, 11, 112, 12); file order for roles.
-      if (primitive) members.sort((a, b) => naturalCompare(display(a), display(b)));
-      const title = g === '' ? (groupNames.length === 1 ? sentence(col.name) : `${sentence(col.name)} — base`) : sentence(g.split('/').pop()!);
+    const groupsInRoot = (root: string): number => [...groups.values()].filter((x) => !multiRoot || x.root === root).length;
+    for (const [path, { root, prefix, g, members }] of groups) {
+      // The row's first column: a primitive's STEP alone ("025"; the title already names the palette and root),
+      // a role relative to its family ("primary" in Text).
+      const display = (v: SgVariable): string => {
+        const segs = v.name.split('/');
+        return primitive ? segs[segs.length - 1] : segs.slice(prefix.length + (g ? 1 : 0)).join('/');
+      };
+      // RAMP ORDER for a scale (the owner's plugin sorted 10, 11, 112, 12); file order for roles.
+      if (primitive) members.sort((a, b) => stepCompare(display(a), display(b)));
+      // A collection holding more than one root names the root in every title ("Text — nbds", "Core — nbds base"),
+      // since both roots draw the same families onto the same page.
+      const title = g !== '' ? `${sentence(g.split('/').pop()!)}${multiRoot ? ` — ${root}` : ''}`
+        : groupsInRoot(root) === 1 ? `${sentence(col.name)}${multiRoot ? ` — ${root}` : ''}`
+        : `${sentence(col.name)} — ${multiRoot ? `${root} base` : 'base'}`;
 
       const rows: SgRow[] = members.map((v) => {
         const segs = v.name.split('/');
@@ -322,8 +355,8 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
           if (!primitive) {
             const roles = contractByMode.get(m.name.toLowerCase());
             const role = key && roles ? roles[key] : undefined;
-            const ground = role && role.against !== 'self' ? groundVar(catalog, col, role.against, roleKeys) : null;
-            groundId = ground?.id ?? fallbackGround(catalog, col, tailSegs, roleKeys)?.id ?? null;
+            const ground = role && role.against !== 'self' ? groundVar(catalog, col, role.against, roleKeys, v.name) : null;
+            groundId = ground?.id ?? fallbackGround(catalog, col, tailSegs, roleKeys, v.name)?.id ?? null;
             if (role && ground && role.min > 0 && value) {
               const gv = resolveColor(ix, ground, groundModeFor(ix, col, ground, m.modeId));
               if (gv) {
@@ -331,15 +364,15 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
                 let ratio: number;
                 let ink: string | undefined;
                 if (role.model === 'ink-on-composite' && role.legibleFor) {
-                  const inkVar = groundVar(catalog, col, role.legibleFor, roleKeys);
+                  const inkVar = groundVar(catalog, col, role.legibleFor, roleKeys, v.name);
                   const iv = inkVar ? resolveColor(ix, inkVar, groundModeFor(ix, col, inkVar, m.modeId)) : null;
                   ratio = iv ? contrast(to255(iv), composite(g255, to255(value), alphaOf(value))) : NaN;
-                  ink = inkVar ? display(inkVar) : role.legibleFor;
+                  ink = inkVar ? tokenPath(inkVar, col, prefixOf(inkVar.name)) : role.legibleFor;
                 } else {
                   const fg = alphaOf(value) < 1 ? composite(g255, to255(value), alphaOf(value)) : to255(value);
                   ratio = contrast(fg, g255);
                 }
-                if (Number.isFinite(ratio)) c = { ratio, min: role.min, pass: ratio >= role.min, ground: tokenPath(ground, col, prefix), ...(ink ? { ink } : {}) };
+                if (Number.isFinite(ratio)) c = { ratio, min: role.min, pass: ratio >= role.min, ground: tokenPath(ground, col, prefixOf(ground.name)), ...(ink ? { ink } : {}) };
               }
             }
           }
@@ -377,7 +410,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       tables.push({
         // Keyed by the collection's ID and the group's FULL path, so neither a renamed collection nor a sibling
         // group that shortens the shared prefix moves the key and duplicates the table.
-        key: `color|${col.id}|${[...prefix, ...(g ? g.split('/') : [])].join('/')}`,
+        key: `color|${col.id}|${path}`,
         kind: primitive ? 'primitive' : 'semantic',
         page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
         collectionId: col.id,
@@ -394,34 +427,39 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
 
 /** A ground or ink the contract names — a role key (`background.primary`) in this collection first, then a
  *  palette step (`neutral.050`) anywhere, by trailing path, the shortest name winning. */
-const groundVar = (catalog: SgCatalog, col: SgCollection, key: string, roleKeys: ReadonlySet<string>): SgVariable | null => {
-  const same = catalog.variables.find((v) => v.variableCollectionId === col.id && roleKeyOf(v.name, roleKeys) === key);
+const groundVar = (catalog: SgCatalog, col: SgCollection, key: string, roleKeys: ReadonlySet<string>, near: string): SgVariable | null => {
+  // In a two-root collection both roots carry the key; the one sharing the role's root wins.
+  const same = nearest(catalog.variables.filter((v) => v.variableCollectionId === col.id && roleKeyOf(v.name, roleKeys) === key), near);
   if (same) return same;
   const tail = key.split('.');
   const hits = catalog.variables.filter((v) => {
     const segs = v.name.split('/');
     return segs.length >= tail.length && tail.every((t, i) => segs[segs.length - tail.length + i] === t);
   });
-  hits.sort((a, b) => a.name.length - b.name.length);
+  hits.sort((a, b) => affinity(b.name, near) - affinity(a.name, near) || a.name.length - b.name.length);
   return hits[0] ?? null;
 };
+
+/** The candidate sharing the most leading segments with `near`, the first on a tie. */
+const nearest = (vs: readonly SgVariable[], near: string): SgVariable | null =>
+  vs.reduce<SgVariable | null>((best, v) => (!best || affinity(v.name, near) > affinity(best.name, near) ? v : best), null);
 
 /**
  * The ground a role with NO contracted ground is drawn on — proposed, owner to confirm (`docs/45`): the page
  * surface, `background.primary`, or `inverse.background.primary` for an inverse role, so inverse ink is
  * never drawn on white. Found by role key when a contract is present, by trailing path otherwise.
  */
-const fallbackGround = (catalog: SgCatalog, col: SgCollection, tail: readonly string[], roleKeys: ReadonlySet<string>): SgVariable | null => {
+const fallbackGround = (catalog: SgCatalog, col: SgCollection, tail: readonly string[], roleKeys: ReadonlySet<string>, near: string): SgVariable | null => {
   const want = tail[0] === 'inverse' ? ['inverse', 'background', 'primary'] : ['background', 'primary'];
   const inCol = catalog.variables.filter((v) => v.variableCollectionId === col.id);
-  const byKey = inCol.find((v) => roleKeyOf(v.name, roleKeys) === want.join('.'));
+  const byKey = nearest(inCol.filter((v) => roleKeyOf(v.name, roleKeys) === want.join('.')), near);
   if (byKey) return byKey;
-  return inCol.find((v) => {
+  return nearest(inCol.filter((v) => {
     const segs = v.name.split('/');
     const tailHere = segs.slice(segs.length - want.length);
     // `background/primary` must not match `inverse/background/primary`.
     return want.every((w, i) => tailHere[i] === w) && (want[0] === 'inverse' || segs[segs.length - want.length - 1] !== 'inverse');
-  }) ?? null;
+  }), near);
 };
 
 /** The mode a ground resolves in: this mode when it shares the collection, its own default otherwise. */
@@ -457,6 +495,8 @@ export const diffRows = (before: RowsSnapshot, after: RowsSnapshot): RowsDiff =>
  *  removal — members a real `FrameNode`/`InstanceNode` has. */
 export interface SgNode extends CellNode {
   characters?: unknown;
+  textAutoResize?: unknown;
+  textTruncation?: unknown;
   explicitVariableModes?: unknown;
   gridRowCount?: unknown;
   gridColumnCount?: unknown;
@@ -507,6 +547,11 @@ export interface StyleGuideResult {
   tables: TableOutcome[];
   /** Tables a previous run wrote whose group no longer exists — left in place, never deleted. */
   stale: string[];
+  /** Tables a previous run wrote for a group this run splits into narrower ones (one per root and family, where
+   *  an earlier build drew one per root) — left in place, never deleted, and named apart from `stale`. */
+  replaced: string[];
+  /** Swatches drawn with nothing bound: the member has no node that carries a fill (or, for border, a stroke). */
+  unbound: number;
   notes: string[];
   /** Named, recoverable misses: fonts, a header set, a variant approximated, a node with nothing to bind. */
   misses: string[];
@@ -528,6 +573,18 @@ const PLACEHOLDER_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode:
 const WHITE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }];
 const TABLE_GAP = 160;
 const PART_KEY = 'prism3-style-guide-part';
+/** The header text a run wrote, so the next run can tell its own words from a designer's. */
+const TITLE_KEY = 'prism3-style-guide-title';
+const DESC_KEY = 'prism3-style-guide-description';
+/** The width a description wraps at, in px — the only text that wraps; every other cell hugs its words. */
+export const DESC_WRAP = 360;
+
+const AUTO_LAYOUT = new Set(['HORIZONTAL', 'VERTICAL']);
+/** Set a node's horizontal sizing where the host allows it: HUG and FILL throw on a node outside auto layout. */
+const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
+  try { n.layoutSizingHorizontal = v; return true; } catch { return false; }
+};
+const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 
 /** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's. */
 export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}): Promise<StyleGuideResult> => {
@@ -543,7 +600,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const textCells = sets[TEXT_CELL_SET] as SgNode | undefined;
   if (!swatches || !textCells) {
     for (const t of plan.tables) skip(t, 'no-cells');
-    return { tables: out, stale: [], notes: plan.notes, misses };
+    return { tables: out, stale: [], replaced: [], unbound: 0, notes: plan.notes, misses };
   }
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
@@ -588,7 +645,31 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     return hit.member as SgNode;
   };
 
-  const textCell = async (type: 'default' | 'header' | 'value alias', color: string, text: string, alias?: string | null): Promise<SgNode | null> => {
+  // A text cell HUGS its words, never clips them (live, 2026-09-28: the owner's cells are a fixed 120px, and
+  // "nbds/core/palette/primary/02" was cut off inside it). Every text node sizes to its words with truncation
+  // off; every auto-layout frame from the inside out hugs; a root outside auto layout is widened to its content.
+  // Only a description wraps, at `DESC_WRAP`. The column is then fixed to its widest cell (see the grid below).
+  const fit = (inst: SgNode, wrapAt?: number): void => {
+    for (const t of textNodes(inst)) {
+      t.textTruncation = 'DISABLED';
+      t.textAutoResize = 'WIDTH_AND_HEIGHT';
+      sizing(t, 'HUG');
+      if (wrapAt && (t.width ?? 0) > wrapAt) wrapTo(t, wrapAt);
+    }
+    const frames = ((inst.findAll?.((c) => c.type !== 'TEXT' && AUTO_LAYOUT.has(String(c.layoutMode))) ?? []) as SgNode[]).reverse();
+    for (const f of [...frames, inst]) if (AUTO_LAYOUT.has(String(f.layoutMode))) sizing(f, 'HUG');
+    if (!AUTO_LAYOUT.has(String(inst.layoutMode))) {
+      const kids = (inst.children ?? []) as SgNode[];
+      if (kids.length) inst.resize?.(Math.max(...kids.map((k) => num(k.x) * 2 + (k.width ?? 0))), inst.height ?? 0);
+    }
+  };
+  const wrapTo = (t: SgNode, w: number): void => {
+    sizing(t, 'FIXED');
+    t.textAutoResize = 'HEIGHT';
+    t.resize?.(w, t.height ?? 20);
+  };
+
+  const textCell = async (type: 'default' | 'header' | 'value alias', color: string, text: string, alias?: string | null, wrapAt?: number): Promise<SgNode | null> => {
     const v = variantOf(textCells, { type, color, textalign: 'left', padding: 'default' }, `type=${type}, color=${color}`);
     if (!v?.createInstance) return null;
     const inst = v.createInstance() as SgNode;
@@ -596,11 +677,13 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const main = byName(inst, 'Text') ?? texts[0];
     await writeText(main, text);
     if (type === 'value alias') await writeText(byName(inst, 'Alias') ?? texts.filter((t) => t !== main).pop(), alias ?? '');
+    fit(inst, wrapAt);
     return inst;
   };
 
   // The specimen: a ground frame bound to the ground variable (or plain white), the swatch inside it bound to
   // the token, and BOTH pinned to the column's mode so the binding resolves in that mode, live.
+  const unboundIn = new Map<string, number>();
   const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
     const ground = api.createFrame();
     ground.name = 'Ground';
@@ -620,7 +703,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
         if (row.display === 'border') target.strokes = [paint];
         else target.fills = [paint];
-      } else misses.push(`${row.token}: the ${String(v.name)} swatch has no node to bind`);
+      } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
       inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
       ground.appendChild?.(inst);
     }
@@ -650,7 +733,23 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
 
     let wrap = framesOn(page).find((n) => n.getPluginData?.(TABLE_KEY) === t.key) ?? null;
     const created = !wrap;
-    if (!wrap) {
+    if (wrap) {
+      // A RERUN refreshes the words this build wrote — the frame name and the header's title and description —
+      // and only while they still read what it wrote, so a designer's edit survives. A table from before the
+      // written text was recorded counts its title as ours when the frame is still named after it.
+      const header = ((wrap.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'header');
+      const titleNode = header ? byName(header, 'Title') : null;
+      const descNode = header ? byName(header, 'Description') : null;
+      const wroteTitle = wrap.getPluginData?.(TITLE_KEY) || (titleNode && wrap.name === `Style guide — ${String(titleNode.characters)}` ? String(titleNode.characters) : '');
+      const wroteDesc = wrap.getPluginData?.(DESC_KEY) || '';
+      if (wroteTitle && wrap.name === `Style guide — ${wroteTitle}`) wrap.name = `Style guide — ${t.title}`;
+      if (titleNode && wroteTitle && titleNode.characters === wroteTitle) await writeText(titleNode, t.title);
+      if (descNode && wroteDesc && descNode.characters === wroteDesc) await writeText(descNode, t.description);
+      // Recorded only when the header now reads this run's words; an edited header keeps the old record, so it
+      // stays unmatched and is never overwritten.
+      if (titleNode?.characters === t.title) wrap.setPluginData?.(TITLE_KEY, t.title);
+      if (descNode?.characters === t.description) wrap.setPluginData?.(DESC_KEY, t.description);
+    } else {
       wrap = api.createFrame();
       wrap.name = `Style guide — ${t.title}`;
       wrap.layoutMode = 'VERTICAL';
@@ -669,6 +768,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         if (descKey) h.setProperties?.({ [descKey]: true });
         await writeText(byName(h, 'Title'), t.title);
         await writeText(byName(h, 'Description'), t.description);
+        if (byName(h, 'Title')?.characters === t.title) wrap.setPluginData?.(TITLE_KEY, t.title);
+        if (byName(h, 'Description')?.characters === t.description) wrap.setPluginData?.(DESC_KEY, t.description);
         h.setPluginData?.(PART_KEY, 'header');
         wrap.appendChild?.(h);
       }
@@ -691,20 +792,34 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     grid.layoutSizingVertical = 'HUG';
     wrap.appendChild?.(grid);
 
-    const place = (n: SgNode | null, r: number, c: number): void => { if (n) grid.appendChildAt?.(n, r, c); };
+    const placed: { n: SgNode; r: number; c: number }[] = [];
+    const swatchCols = new Set<number>();
+    const place = (n: SgNode | null, r: number, c: number): void => { if (n) { grid.appendChildAt?.(n, r, c); placed.push({ n, r, c }); } };
     for (let c = 0; c < t.columns.length; c++) place(await textCell('header', headerColor, t.columns[c]), 0, c);
     for (let r = 0; r < t.rows.length; r++) {
       const row = t.rows[r];
       let c = 0;
       place(await textCell('default', 'white', row.token), r + 1, c++);
       for (const cell of row.cells) {
+        swatchCols.add(c);
         place(specimen(row, cell, collection), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);
       }
-      if (options.description !== false) place(await textCell('default', 'white', row.description || '—'), r + 1, c++);
+      if (options.description !== false) place(await textCell('default', 'white', row.description || '—', null, DESC_WRAP), r + 1, c++);
     }
+    // COLUMNS SIZED TO CONTENT, THEN FIXED, so every cell in a column fills it and the rules line up. A text
+    // column is as wide as its widest cell. A SWATCH column hugs the specimen — the swatch plus its ground's
+    // padding — and its header wraps to that width rather than widening it (a mode named "hc-light").
+    const widths = t.columns.map(() => 0);
+    for (const p of placed) if (p.r > 0 || !swatchCols.has(p.c)) widths[p.c] = Math.max(widths[p.c], p.n.width ?? 0);
+    for (const p of placed) if (p.r === 0 && swatchCols.has(p.c) && (p.n.width ?? 0) > widths[p.c]) {
+      const inset = num(p.n.paddingLeft) + num(p.n.paddingRight);
+      for (const tx of textNodes(p.n)) wrapTo(tx, Math.max(1, widths[p.c] - inset));
+    }
+    (grid.gridColumnSizes ?? []).forEach((s, c) => { s.type = 'FIXED'; s.value = widths[c]; });
+    for (const p of placed) sizing(p.n, 'FILL');
 
     const after = snapshotOf(t);
     const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
@@ -721,18 +836,26 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const types = new Set((options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase()));
   const wantIds = options.collections ? new Set(catalog.collections.filter((c) => options.collections!.some((w) => w.toLowerCase() === c.name.toLowerCase())).map((c) => c.id)) : null;
   const stale: string[] = [];
+  const replaced: string[] = [];
   for (const p of api.root.children) for (const f of framesOn(p)) {
     const k = f.getPluginData?.(TABLE_KEY);
     if (!k || planned.has(k)) continue;
     const [type, colId] = k.split('|');
-    if (types.has(type) && (!wantIds || wantIds.has(colId))) stale.push(String(f.name));
+    if (!types.has(type) || (wantIds && !wantIds.has(colId))) continue;
+    // A key that is an ANCESTOR of a planned one is a table this run now draws as narrower tables — an earlier
+    // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
+    if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
+    else stale.push(String(f.name));
   }
-  return { tables: out, stale, notes: plan.notes, misses };
+  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0);
+  for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
+  return { tables: out, stale, replaced, unbound, notes: plan.notes, misses };
 };
 
 /**
  * The node a swatch instance binds — `Specimen` by name, in any case; otherwise, for an adopted set with its
- * own names, the first text node (text), the first stroked node (border) or the first filled node (the rest).
+ * own names, the first text node (text), the first stroked node (border) or the first filled node (the rest);
+ * and last, the instance itself, where the member paints its own fill (or stroke) or has no layers inside.
  */
 export const bindTarget = (inst: SgNode, display: SwatchType): SgNode | null => {
   const named = inst.findOne?.((n) => typeof n.name === 'string' && n.name.toLowerCase() === 'specimen') as SgNode | null | undefined;
@@ -741,7 +864,12 @@ export const bindTarget = (inst: SgNode, display: SwatchType): SgNode | null => 
   const pred = display === 'text' ? (n: CellNode) => n.type === 'TEXT'
     : display === 'border' ? (n: CellNode) => n.type !== 'TEXT' && has(n.strokes)
     : (n: CellNode) => n.type !== 'TEXT' && n.name !== 'Checker' && n.name !== 'Check' && has(n.fills);
-  return (inst.findOne?.(pred) as SgNode | null | undefined) ?? null;
+  const hit = (inst.findOne?.(pred) as SgNode | null | undefined) ?? null;
+  if (hit) return hit;
+  // A member that carries its paint on ITSELF — the owner's `type=default` has no child layers at all (live,
+  // 2026-09-28: 368 swatches unbound) — binds the instance's own fill, or stroke for border.
+  const own = display === 'border' ? inst.strokes : inst.fills;
+  return has(own) || !(inst.children ?? []).length ? inst : null;
 };
 
 /** The verdict line for the panel and the agent result. */
@@ -764,12 +892,15 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
   for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p} page, and Set up file adds it`);
   if (r.stale.length) parts.push(`${r.stale.length} earlier tables match no tokens and were left in place (${r.stale.slice(0, 3).join(', ')})`);
+  if (r.replaced.length) parts.push(`${r.replaced.length} earlier tables are now drawn as one table per family and were left in place (${r.replaced.slice(0, 3).join(', ')}${r.replaced.length > 3 ? '…' : ''})`);
   parts.push(...r.notes, ...r.misses);
   const drawn = made.length + upd.length;
-  // A partial run is not a pass: a skipped table is a page the designer expected and does not have, so the
-  // pill says so and the detail opens on it. Every form fits the 24-char pill at any count below 1000.
-  const ok = skipped.length === 0;
+  // A partial run is not a pass: a skipped table is a page the designer expected and does not have, and an
+  // unbound swatch is a specimen that does not show its token, so the pill says so and the detail opens on it.
+  // Every form fits the 24-char pill at any count below 1000.
+  const ok = skipped.length === 0 && r.unbound === 0;
   const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : '✓ style guide: 0 tables')
-    : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped` : `✓ style guide: ${drawn} tables`;
+    : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped`
+    : r.unbound ? `⚠ ${r.unbound} swatches unbound` : `✓ style guide: ${drawn} tables`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'No color variables in this file' };
 };
