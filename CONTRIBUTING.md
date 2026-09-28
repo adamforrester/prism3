@@ -863,7 +863,7 @@ npx tsx packages/engine/lint-nesting.ts             # the component NESTING grap
 npx tsx packages/engine/lint-hit-target.ts          # every interactive control presents a >=44px hit
                                                     # target (WCAG 2.5.5, #1443) at its DEFAULT size on
                                                     # the COMFORTABLE + SPACIOUS densities, or is one of
-                                                    # two named PERMANENT exceptions: small button, and
+                                                    # two named PERMANENT exceptions: small button or tag, and
                                                     # compact density (a deliberate dense mode, owner-
                                                     # decided). EXPECTED is 44 as a LITERAL, not scale.ts's
                                                     # AAA_TARGET_PX (which the emitter uses — that would be

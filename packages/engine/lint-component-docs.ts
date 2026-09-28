@@ -77,7 +77,7 @@ const MANIFEST_PATH = resolve(here, 'schema', 'payload-manifest.json');
 const MAINTAINER_MANIFEST_PATTERN = 'schema/component-maintainer.json';
 
 /** The registry held 24 defs when this gate landed. Raise it as the catalogue grows; lower it only with a reason. */
-const DEF_FLOOR = 25;
+const DEF_FLOOR = 26;
 const PRISM2 = /prism\s*2/i;
 
 /** The def's documentation fields — everything a Figma builder or code author reads. Paint and Figma-plan

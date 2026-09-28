@@ -38,7 +38,7 @@ Use to reinforce meaning, speed scanning, or anchor an action alongside text. Fe
 - **Purpose:** Render a set glyph at a grid size, routed correctly into or out of the accessibility tree.
 - **Use when:** Beside a label to reinforce meaning, or standalone with a `label` when the glyph itself carries the meaning.
 - **Avoid when:** As an interactive element. An icon-only action is a Button (or IconButton) with an accessible name and a hit target of at least 24×24 (44×44 on touch), containing an unnamed glyph — reaching for Icon there puts the affordance on a node with no focus management, no keyboard listeners and no touch target. Also avoid it as an illustration (larger, narrative, its own component), a logo, or a thumbnail; and avoid naming a glyph that sits beside its own text.
-- **Often used with:** `button`, `icon-button`, `text-field`, `field-message`, `select`
+- **Often used with:** `button`, `icon-button`, `text-field`, `field-message`, `select`, `tag`
 
 ## Props
 
@@ -79,7 +79,7 @@ None — not interactive.
 
 ## Composition
 
-- **Planned:** `link`, `menu`, `illustration`, `logo`, `thumbnail`, `emoji`, `avatar`, `tag`
+- **Planned:** `link`, `menu`, `illustration`, `logo`, `thumbnail`, `emoji`, `avatar`
 - **Replaces:**
   - legacy icon fonts
   - ad-hoc inline SVGs outside the set

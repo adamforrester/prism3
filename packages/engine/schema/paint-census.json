@@ -300,6 +300,18 @@
         "assignments": 10,
         "sha256": "0657b9d9cf5130ef59ec9db23b422ea1881bbd319cc62694d2d5cbc94fc97895"
       }
+    },
+    "tag": {
+      "set": {
+        "members": 30,
+        "assignments": 111,
+        "sha256": "1c951023909d81d048261fe5cc9de85ce945b7c1603b3c57caf79a70a9bd4c3c"
+      },
+      "grid": {
+        "members": 36,
+        "assignments": 132,
+        "sha256": "5549a210eef8abb8b92819709dc9f2246aff5e280f3eb9c9addc9411848396f0"
+      }
     }
   }
 }
