@@ -116,23 +116,32 @@ const placements = (def: ComponentDef): { byPart: Map<string, Set<Prop>>; coords
     for (const c of n.children) walk(c);
   };
 
+  // A SPARSE GRID's missing members are skipped (`figmaProperties.excludeCoordinates`, 2026-09-28): the
+  // projector refuses to plan one, and a coordinate the set does not have carries no placement to check.
+  // Read from the declaration with this file's own matcher, like the rest of this enumeration.
+  const excluded = (size: string | undefined, c: Record<string, string>): boolean => {
+    const at: Record<string, string | undefined> = { ...c, size };
+    return (def.figmaProperties?.excludeCoordinates ?? []).some((entry) => Object.keys(entry).every((a) => entry[a].includes(at[a] as string)));
+  };
+
   let coords = 0;
   for (const size of sizes)
     for (const c of combos)
-      for (const st of states)
-        for (const leading of [false, true])
-          for (const trailing of [false, true]) {
-            try {
-              walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
-              coords++;
-            } catch (err) {
-              // A THROW IS NOT A NAMED FAILURE. Reported as one and the enumeration continues, because a
-              // gate that dies on coordinate three has silently stopped checking the rest of the grid
-              // while its exit status still says "something went wrong somewhere".
-              fails.push(`${def.id}: projection threw at size=${size ?? '-'} ${JSON.stringify(c)} state=${st ?? '-'} — ${(err as Error).message}`);
-              return null;
+      if (!excluded(size, c))
+        for (const st of states)
+          for (const leading of [false, true])
+            for (const trailing of [false, true]) {
+              try {
+                walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
+                coords++;
+              } catch (err) {
+                // A THROW IS NOT A NAMED FAILURE. Reported as one and the enumeration continues, because a
+                // gate that dies on coordinate three has silently stopped checking the rest of the grid
+                // while its exit status still says "something went wrong somewhere".
+                fails.push(`${def.id}: projection threw at size=${size ?? '-'} ${JSON.stringify(c)} state=${st ?? '-'} — ${(err as Error).message}`);
+                return null;
+              }
             }
-          }
   return { byPart, coords };
 };
 

@@ -71,7 +71,7 @@ import {
   figmaAnatomyPlan,
   type FigmaNodePlan,
 } from '../../packages/engine/anatomy-figma';
-import type { ComponentDef } from '../../packages/engine/component-schema';
+import { isExcludedCoordinate, type ComponentDef } from '../../packages/engine/component-schema';
 import {
   type SlotKind,
   type SlotBinding,
@@ -158,8 +158,9 @@ const gridPlans = (def: ComponentDef): FigmaNodePlan[] => {
   for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
   const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
   const roots: FigmaNodePlan[] = [];
+  // A sparse grid's missing members (`excludeCoordinates`) are skipped: the projector refuses to plan them.
   for (const size of sizes) for (const c of combos) for (const st of states)
-    for (const leading of [false, true]) for (const trailing of [false, true])
+    if (!isExcludedCoordinate(def, { ...c, ...(size === undefined ? {} : { size }) })) for (const leading of [false, true]) for (const trailing of [false, true])
       roots.push(figmaAnatomyPlan(def, size as never, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
   return roots;
 };

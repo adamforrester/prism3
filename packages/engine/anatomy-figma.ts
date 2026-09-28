@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
-import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
+import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
@@ -892,6 +892,12 @@ export const figmaAnatomyPlan = (
   // Through `statesOf` (#821): `state` is a caller-supplied string and this is the check that decides
   // whether it is a declared one, so reading it as a `State` would be assuming the answer.
   if (state && !statesOf(def).includes(state)) throw new Error(`${def.id}: '${state}' is not a declared state`);
+  // A COORDINATE THE SET DOES NOT HAVE IS REFUSED, NOT PLANNED (`excludeCoordinates`, 2026-09-28). A
+  // walker that enumerates the declared grid by itself would otherwise plan a member Figma never gets, and
+  // report on it as though it existed. Refusing here makes every such walker skip the exclusion or fail
+  // by name. Only a coordinate that supplies every axis an entry names can match it.
+  if (isExcludedCoordinate(def, { ...(size === undefined ? {} : { size }), ...Object.fromEntries(Object.keys(def.variants ?? {}).map((a) => [a, axisValue(a)])) }))
+    throw new Error(`${def.id}: this coordinate is excluded by figmaProperties.excludeCoordinates — the set has no such member, so it has no plan`);
   // WHERE THE PLAN SITS IN THE GRID. Only axes the caller actually supplied, so a structure-only plan
   // has an EMPTY coord — a load-bearing invariant with its own assertion, because it is what lets a
   // gate tell "legitimately unpainted" from "dropped the paints". `size` is deliberately NOT folded in
@@ -2179,18 +2185,25 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   );
 
   const plans: AnatomyPlan[] = [];
+  // A SPARSE GRID skips the coordinates `excludeCoordinates` removes (2026-09-28). The full product above is
+  // still what is enumerated; the exclusion is applied member by member, so the order of what survives is
+  // the order it had in the full grid. `figmaVariantCount` counts the same removal by arithmetic, which is
+  // what keeps #1355's count check a comparison rather than this filter checked against itself.
+  const excludedAt = (combo: (string | undefined)[], size: string | undefined): boolean =>
+    isExcludedCoordinate(def, { ...(size === undefined ? {} : { size }), ...Object.fromEntries(gridAxes.map((a, i) => [a, combo[i]])) });
   for (const combo of coords)
     for (const size of sizes)
-      for (const state of states)
-        for (const leading of bools('leading'))
-          for (const trailing of bools('trailing'))
-            plans.push(figmaAnatomyPlan(def, size, {
-              leading,
-              trailing,
-              ...(opts.swapTarget ? { swapTarget: opts.swapTarget } : {}),
-              ...Object.fromEntries(gridAxes.flatMap((a, i) => (combo[i] === undefined ? [] : [[a, combo[i]]]))),
-              ...(state ? { state } : {}),
-            }));
+      if (!excludedAt(combo, size))
+        for (const state of states)
+          for (const leading of bools('leading'))
+            for (const trailing of bools('trailing'))
+              plans.push(figmaAnatomyPlan(def, size, {
+                leading,
+                trailing,
+                ...(opts.swapTarget ? { swapTarget: opts.swapTarget } : {}),
+                ...Object.fromEntries(gridAxes.flatMap((a, i) => (combo[i] === undefined ? [] : [[a, combo[i]]]))),
+                ...(state ? { state } : {}),
+              }));
 
   // A DEF THAT DECLARES AXES AND PROJECTS NO COORDINATE IS A FAILURE, NOT AN EMPTY ANSWER (#795, #802's
   // class: every layer accepted and nothing read the count).
@@ -2453,8 +2466,9 @@ export const planComponentName = (plan: AnatomyPlan): string =>
 
 /**
  * VARIANT-SET INTEGRITY (#1355) — every projected member accounts for exactly the declared axes, at a
- * declared value, and the member COUNT equals the product of the declared axis cardinalities. Two
- * independent statements against the SAME emitter, and neither derives its expectation FROM that emitter:
+ * declared value, and the member COUNT equals the product of the declared axis cardinalities, less any
+ * `excludeCoordinates`. Two independent statements (and a third for the exclusion) against the SAME
+ * emitter, and neither derives its expectation FROM that emitter:
  *
  *   COUNT  `figmaVariantCount(def)` MULTIPLIES the declared cardinalities; the subject ENUMERATES them
  *          (`figmaAnatomySet` → `planComponentName`). A projector that emitted an extra, dropped or
@@ -2466,6 +2480,10 @@ export const planComponentName = (plan: AnatomyPlan): string =>
  *          the arm the count alone cannot cover: a garbage value that REPLACES a legitimate one keeps the
  *          count at 432 while `trailing icon=ΩΩ` sits in the set, and only a domain check sees it. `ΩΩ` is
  *          Figma's placeholder for an empty/collided variant value, so it is the literal shape #1355 named.
+ *   EXCLUDED  no member sits at a coordinate `excludeCoordinates` removes (2026-09-28). The count arm
+ *          already covers a filter that stopped applying, because `figmaVariantCount` subtracts the
+ *          exclusion by inclusion–exclusion rather than by calling the projector's predicate; this arm
+ *          names WHICH member is wrong, and holds where an extra member and a dropped one cancel out.
  *
  * `lint-component-surface.ts` pins each member count against a COMMITTED baseline, so a *persistent*
  * out-of-product count is simply recorded and never flagged — the baseline has no independent notion of
@@ -2498,11 +2516,18 @@ export const variantNameErrors = (def: ComponentDef, memberNames: string[]): str
   for (const name of memberNames) {
     if (seen.has(name)) errs.push(`${def.id}: duplicate member coordinate '${name}'`);
     seen.add(name);
+    const coord: Record<string, string> = {};
     for (const kv of name.split(', ')) {
       const [k, v] = kv.split('=');
+      coord[k] = v;
       if (!declared.has(k)) errs.push(`${def.id}: member '${name}' carries undeclared axis '${k}'`);
       else if (!domain[k].has(v)) errs.push(`${def.id}: axis '${k}=${v}' in member '${name}' is outside its declared values {${[...domain[k]].join(', ')}}`);
     }
+    // EXCLUDED — a member at a coordinate `excludeCoordinates` removes (2026-09-28). Matched here from the
+    // member NAME against the entries, with its own one-line matcher rather than `isExcludedCoordinate`,
+    // so a projector whose filter stopped applying is caught even where the count happens to agree.
+    if ((fp.excludeCoordinates ?? []).some((entry) => Object.keys(entry).every((a) => entry[a].includes(coord[a]))))
+      errs.push(`${def.id}: member '${name}' sits at a coordinate figmaProperties.excludeCoordinates removes`);
   }
   return errs;
 };

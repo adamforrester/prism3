@@ -208,7 +208,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'emphasis',
     values: ['secondary', 'primary'],
     defs: ['field-label'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       '`secondary` FIRST since #1699 (owner-delegated): the first value is the set\'s first member, which '
       + 'Figma takes as the default variant, and every field host nests the secondary label, so the Figma '
@@ -216,10 +216,26 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'The de-emphasized label (#872; Prism 2 calls the control "color"). RENAMED from `tone` to '
       + '`emphasis` in #1334, which split the overloaded `tone` name — this was recorded here as a SUBSET '
       + 'of `icon`\'s `tone` ink vocabulary, and the owner\'s split makes label prominence its own axis '
-      + 'rather than a shortened spelling of icon\'s ink. `sole` now: `field-label` is the only def with an '
-      + '`emphasis` axis. Two values and not more: a label below `secondary` stops reading as a field\'s '
+      + 'rather than a shortened spelling of icon\'s ink. CANONICAL since badge took the axis name (2026-09-28): '
+      + 'this is the set the badge\'s `subtle | bold` is described against. Two values and not more: a label below `secondary` stops reading as a field\'s '
       + 'name, and a status-colored one would be the validation signal `field-message` already owns via '
       + 'its `status` axis.',
+  },
+  {
+    axis: 'emphasis',
+    values: ['subtle', 'bold'],
+    defs: ['badge'],
+    relation: 'disjoint',
+    reason:
+      'How strongly a badge reads (owner decision, 2026-09-28): the tone\'s tint with a 1px edge in the tone\'s '
+      + 'border role, or the solid tone fill. It REUSES the `emphasis` name rather than a new one because it is '
+      + 'the same question field-label\'s axis answers — how prominent the thing reads relative to what is '
+      + 'around it — and a second name for one question is the #756 failure. DISJOINT from canonical on '
+      + 'purpose, the loud kind of divergence: `primary | secondary` names two TEXT roles a label chooses '
+      + 'between, while `subtle | bold` names two paint treatments of a filled pill, and no value would mean '
+      + 'the same thing on both defs, so none is shared. `subtle` LEADS because it is the code default and so '
+      + 'Figma\'s default member. Only the status genre carries both; the count and dot are bold-only through '
+      + '`figmaProperties.excludeCoordinates`, which leaves this value set unchanged.',
   },
   {
     axis: 'genre',

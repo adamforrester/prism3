@@ -15,10 +15,10 @@
  *      contracts are in `accessibility.aria`: a count or dot is aria-hidden and its meaning is in the
  *      HOST's accessible name; a status label announces its own text.
  *   3. VISUALLY DISTINCT FROM INTERACTIVE COMPONENTS. Every color binding is a surface role
- *      (`color.foreground.*`, or its inverse twin) or a text role (`color.text.*`, or its inverse twin) —
- *      never `color.interactive.*`, and the surface paints no border, so there is no fill-and-stroke
- *      pairing that reads as a button. `test.ts` holds this by name against a literal family list.
- *      `notes.contested` names what Tag must differ on.
+ *      (`color.foreground.*`, or its inverse twin), a text role (`color.text.*`, or its inverse twin) or,
+ *      for the subtle status label's edge, a semantic border role (`color.border.<tone>`) — never
+ *      `color.interactive.*`. `test.ts` holds this by name against a literal family list. `notes.contested`
+ *      names what Tag must differ on.
  *   4. NO TOUCH TARGET. Not interactive, so `lint-hit-target.ts` lists it in `EXCLUDED` with that reason;
  *      a count on an icon button relies on the icon button's target.
  *
@@ -44,27 +44,40 @@
  * Two text parts rather than one, for the reason text-field has two (#1567): a bound TEXT node shows its
  * set's ONE default, so one node cannot read "Status" on some members and "3" on others.
  *
+ * ── THE EMPHASIS AXIS (owner decisions, 2026-09-28) ───────────────────────────────────────────────────
+ *
+ * `emphasis` (`subtle | bold`, default `subtle`) REUSES the `VARIANT_AXES` name `field-label` already
+ * carries (`primary | secondary`): both answer "how prominent does this read", and `lint-axis-values.ts`
+ * records the two value sets as `canonical` and `disjoint`. Only the STATUS label has both emphases. The
+ * count and dot are bold-only, so the Figma set is 20 members, not 30: `figmaProperties.excludeCoordinates`
+ * removes the count and dot at `emphasis=subtle` (the schema's sparse-grid field, whose first user this is).
+ * It is a RUNTIME axis in `axisKinds`, the strict default, so the footprint cohort holds a subtle status
+ * label and its bold twin to one box — which the inside stroke below makes true.
+ *
  * ── THE PAINT ─────────────────────────────────────────────────────────────────────────────────────────
  *
- * ONE GRAMMAR, `{tone}.{genre}.{slot}`, with no fallback template: every (tone, genre) pair names its own
- * fill and label, so a missing key is a hole `lint-paint` arm 3 reports rather than a coordinate that
- * silently paints another genre's colors.
+ * ONE GRAMMAR, `{tone}.{genre}.{emphasis}.{slot}`, with no fallback template: every member names its own
+ * fill, label and edge, so a missing key is a hole `lint-paint` reports rather than a coordinate that
+ * silently paints another member's colors.
  *
- * STATUS: a tone label is `text.<tone>` on `foreground.<tone>-subtle` — the pair `modes.ts` already
- * contracts at 4.5:1 in every mode, and the pair `preview.ts`'s `info-subtle` badge binds.
- * COUNT and DOT: the bold tone fill `foreground.<tone>`, with `text.on-<tone>` on the count — the pair the
- * engine contracts for a bold fill. Both clear 3:1 against the page in every example brand and mode.
+ * SUBTLE (status only): the tone's subtle tint `foreground.<tone>-subtle` under `text.<tone>` — the pair
+ * `modes.ts` contracts at 4.5:1 in every mode — with a 1px edge in the tone's border role `border.<tone>`.
+ * Neutral is `foreground.secondary` under `text.primary`, edged in `border.secondary`. The tints measure
+ * 1.06–1.40:1 against `background.primary` (the neutral 1.00:1 in both high-contrast modes), so the tint
+ * alone gives the pill no shape; the edge does: `border.<tone>` measures at least 3.75:1 against the page
+ * and `border.secondary` at least 3.20:1, in all five example brands (#1735). The edge is `border-width.hairline`
+ * on the surface's own stroke, and both executors draw a stroke INSIDE the node's bounds, so a subtle member
+ * is exactly the size of its bold twin.
  *
- * NEUTRAL, IN EVERY GENRE: `inverse.foreground.tertiary` with `inverse.text.primary`. The first binding,
- * `foreground.secondary`, measured 1.00:1 against `background.primary` in both high-contrast modes and
- * 1.21–1.38:1 elsewhere, so the pill had no shape (owner-approved fix: a darker neutral fill). The search
- * that chose this pair is worth knowing before anyone "simplifies" it: no neutral surface role clears even
- * 1.5:1 against the page in all 20 brand × mode cells, because the high-contrast modes flatten every
- * `foreground.*`/`background.*` surface onto the page; the mid grays that do separate there
- * (`border.secondary`) drop `text.primary` on them to about 2.1:1. So a visible neutral needs an inverse
- * ink, and the inverse surface is the engine's own bold neutral ("the opposite-polarity fill"), whose ink
- * is `inverse.text.primary`. Its least dark tier is used. `test.ts` gates it at 3:1 against the page — the
- * fill is the pill's only boundary — and the label at 4.5:1, in all five example brands.
+ * BOLD (status, count and dot): the solid tone fill `foreground.<tone>` under `text.on-<tone>` — the pair
+ * the engine contracts for a bold fill — and no edge. Bold neutral is the inverse surface
+ * `inverse.foreground.tertiary` under `inverse.text.primary`: no neutral page surface separates from the page
+ * in the high-contrast modes, so a visible bold neutral needs an inverse ink. Every bold fill clears 3:1
+ * against the page in every example brand and mode (lowest 3.46:1, `foreground.danger`).
+ *
+ * `test.ts` gates all of it with literals: text on its fill at 4.5:1 for every emphasis × tone × text-bearing
+ * genre, the subtle edge against the page at 3:1, and every bold fill against the page at 3:1, in 20 brand ×
+ * mode cells each.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -80,6 +93,7 @@ export const badge: ComponentDef = {
 
   props: [
     { name: 'genre', type: "enum: 'status' | 'count' | 'dot'", values: ['status', 'count', 'dot'], default: 'status', required: false, description: 'Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name.' },
+    { name: 'emphasis', type: "enum: 'subtle' | 'bold'", values: ['subtle', 'bold'], default: 'subtle', required: false, description: 'How strongly a status label reads. subtle = the tone\'s tint with a 1px edge in the tone\'s border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold.' },
     { name: 'tone', type: "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'", values: ['neutral', 'info', 'success', 'warning', 'danger'], default: 'neutral', required: false, description: 'Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it.' },
     { name: 'label', type: 'string', required: false, description: 'The status text, for genre status. One or two words, in consistent casing across the product.' },
     { name: 'value', type: 'number', required: false, description: 'The count, for genre count. Above max it shows as max followed by a plus sign, formatted for the locale.' },
@@ -90,18 +104,22 @@ export const badge: ComponentDef = {
 
   states: [],
   // `genre` first, `status` first within it: Figma's default member is the set's first child, so the
-  // Figma default is the code default (#1699). `tone` keeps `neutral` first for the same reason.
+  // Figma default is the code default (#1699). `emphasis` keeps `subtle` first and `tone` keeps `neutral`
+  // first for the same reason.
   variants: {
     genre: ['status', 'count', 'dot'],
+    emphasis: ['subtle', 'bold'],
     tone: ['neutral', 'info', 'success', 'warning', 'danger'],
   },
   // WHEN each axis changes (#1611): a status label's tone moves live (a build going from running to
   // failed), so `tone` is runtime, and the box must not move when it does — the text and padding are
   // the same in every tone. `genre` is chosen when the badge is placed and never changes on screen, so it
-  // is authoring, and the three genres may differ in size.
-  axisKinds: { genre: 'authoring', tone: 'runtime' },
+  // is authoring, and the three genres may differ in size. `emphasis` is RUNTIME, the strict default: a
+  // subtle status label and its bold twin share one footprint cohort, so the build reports any difference
+  // in box size between them. The inside stroke keeps them equal.
+  axisKinds: { genre: 'authoring', emphasis: 'runtime', tone: 'runtime' },
 
-  paintKeys: ['{tone}.{genre}.{slot}'],
+  paintKeys: ['{tone}.{genre}.{emphasis}.{slot}'],
 
   tokens: {
     'type': 'type.label.sm.emphasis',
@@ -118,36 +136,57 @@ export const badge: ComponentDef = {
     // The dot's diameter: the tier's small dot rung, 8px at comfortable density and 6px at compact.
     'dot-size': 'control.size.sm.dot',
 
-    // ── STATUS: the subtle tint and the tone's text ink; neutral is the inverse surface and its ink.
-    'neutral.status.fill': 'color.inverse.foreground.tertiary',
-    'neutral.status.label': 'color.inverse.text.primary',
-    'info.status.fill': 'color.foreground.info-subtle',
-    'info.status.label': 'color.text.info',
-    'success.status.fill': 'color.foreground.success-subtle',
-    'success.status.label': 'color.text.success',
-    'warning.status.fill': 'color.foreground.warning-subtle',
-    'warning.status.label': 'color.text.warning',
-    'danger.status.fill': 'color.foreground.danger-subtle',
-    'danger.status.label': 'color.text.danger',
+    // The subtle status label's edge: the tier's 1px border width, drawn inside the pill.
+    'border-width': 'border-width.hairline',
 
-    // ── COUNT: the bold tone fill and the ink the engine contracts on it.
-    'neutral.count.fill': 'color.inverse.foreground.tertiary',
-    'neutral.count.label': 'color.inverse.text.primary',
-    'info.count.fill': 'color.foreground.info',
-    'info.count.label': 'color.text.on-info',
-    'success.count.fill': 'color.foreground.success',
-    'success.count.label': 'color.text.on-success',
-    'warning.count.fill': 'color.foreground.warning',
-    'warning.count.label': 'color.text.on-warning',
-    'danger.count.fill': 'color.foreground.danger',
-    'danger.count.label': 'color.text.on-danger',
+    // ── STATUS, SUBTLE: the tone's tint, the tone's text ink, and a 1px edge in the tone's border role.
+    'neutral.status.subtle.fill': 'color.foreground.secondary',
+    'neutral.status.subtle.label': 'color.text.primary',
+    'neutral.status.subtle.border': 'color.border.secondary',
+    'info.status.subtle.fill': 'color.foreground.info-subtle',
+    'info.status.subtle.label': 'color.text.info',
+    'info.status.subtle.border': 'color.border.info',
+    'success.status.subtle.fill': 'color.foreground.success-subtle',
+    'success.status.subtle.label': 'color.text.success',
+    'success.status.subtle.border': 'color.border.success',
+    'warning.status.subtle.fill': 'color.foreground.warning-subtle',
+    'warning.status.subtle.label': 'color.text.warning',
+    'warning.status.subtle.border': 'color.border.warning',
+    'danger.status.subtle.fill': 'color.foreground.danger-subtle',
+    'danger.status.subtle.label': 'color.text.danger',
+    'danger.status.subtle.border': 'color.border.danger',
 
-    // ── DOT: the count's fill, and no text.
-    'neutral.dot.fill': 'color.inverse.foreground.tertiary',
-    'info.dot.fill': 'color.foreground.info',
-    'success.dot.fill': 'color.foreground.success',
-    'warning.dot.fill': 'color.foreground.warning',
-    'danger.dot.fill': 'color.foreground.danger',
+    // ── STATUS, BOLD: the solid tone fill and the ink the engine contracts on it; neutral is the inverse
+    // surface and its ink. No edge.
+    'neutral.status.bold.fill': 'color.inverse.foreground.tertiary',
+    'neutral.status.bold.label': 'color.inverse.text.primary',
+    'info.status.bold.fill': 'color.foreground.info',
+    'info.status.bold.label': 'color.text.on-info',
+    'success.status.bold.fill': 'color.foreground.success',
+    'success.status.bold.label': 'color.text.on-success',
+    'warning.status.bold.fill': 'color.foreground.warning',
+    'warning.status.bold.label': 'color.text.on-warning',
+    'danger.status.bold.fill': 'color.foreground.danger',
+    'danger.status.bold.label': 'color.text.on-danger',
+
+    // ── COUNT, BOLD ONLY: the status label's bold pair.
+    'neutral.count.bold.fill': 'color.inverse.foreground.tertiary',
+    'neutral.count.bold.label': 'color.inverse.text.primary',
+    'info.count.bold.fill': 'color.foreground.info',
+    'info.count.bold.label': 'color.text.on-info',
+    'success.count.bold.fill': 'color.foreground.success',
+    'success.count.bold.label': 'color.text.on-success',
+    'warning.count.bold.fill': 'color.foreground.warning',
+    'warning.count.bold.label': 'color.text.on-warning',
+    'danger.count.bold.fill': 'color.foreground.danger',
+    'danger.count.bold.label': 'color.text.on-danger',
+
+    // ── DOT, BOLD ONLY: the count's fill, and no text.
+    'neutral.dot.bold.fill': 'color.inverse.foreground.tertiary',
+    'info.dot.bold.fill': 'color.foreground.info',
+    'success.dot.bold.fill': 'color.foreground.success',
+    'warning.dot.bold.fill': 'color.foreground.warning',
+    'danger.dot.bold.fill': 'color.foreground.danger',
   },
 
   anatomy: {
@@ -156,12 +195,13 @@ export const badge: ComponentDef = {
       surface: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['fill'],
+        paintSlots: ['fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         padding: { block: '{genre}.pad-y', inlineLabel: '{genre}.pad-x' },
         radius: 'radius',
+        strokeWidth: 'border-width',
         children: ['text', 'count', 'dot'],
-        note: 'The pill: a tone fill, fully rounded, sized by what it holds. A pill around a status label, a circle around one digit that grows into a pill, or the dot itself. It paints no border, so it never reads as a button or a field.',
+        note: 'The pill: fully rounded, sized by what it holds. A pill around a status label, a circle around one digit that grows into a pill, or the dot itself. A subtle status label is the tone\'s tint with a 1px edge in the tone\'s border color, drawn inside the pill so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.',
       },
       text: {
         kind: 'text',
@@ -185,15 +225,19 @@ export const badge: ComponentDef = {
       },
     },
     codeOnly: [
-      'the overlay rules for a count or dot — a count hides at zero unless showZero, caps as max followed by a plus sign, and sets min-inline-size equal to its block size so one digit is an exact circle (Figma has no width-equals-height floor, so the member approximates it with padding). Over a host, both carry a stroke in the canvas color that separates them from the host; the Figma members stay fill-only, since that stroke exists only against a host.',
+      'the overlay rules for a count or dot — a count hides at zero unless showZero, caps as max followed by a plus sign, and sets min-inline-size equal to its block size so one digit is an exact circle (Figma has no width-equals-height floor, so the member approximates it with padding). Over a host, both carry a stroke in the canvas color that separates them from the host; the Figma count and dot members carry no stroke, since that one exists only against a host.',
       'the overlay placement — a count or dot is positioned against its host from a wrapper that owns the stacking context, so a host with overflow hidden does not clip it. Inset uses inset-inline-end so it mirrors in right-to-left layouts. circular overlap pulls the badge in by about 14.6% of the host size, onto the curve.',
       'the accessible-name wiring — for a count or dot the badge is aria-hidden and the host composes the meaning into its own name ("Inbox, 3 unread messages"). A count that changes after render is announced through one shared polite live region, debounced, never one region per badge. None of this has a Figma expression.',
       'number formatting — the count and its cap render through Intl.NumberFormat, so a locale with different digits or grouping reads correctly.',
+      'forced colors — in forced-colors mode the browser removes background fills, and a border is what keeps the badge\'s shape. The subtle status label keeps its 1px edge there, in the system border color. Whether a bold badge should also carry a transparent 1px border in code, for the same reason, is held for the owner.',
     ],
   },
 
   figmaProperties: {
-    variantAxes: ['genre', 'tone'],
+    variantAxes: ['genre', 'emphasis', 'tone'],
+    // The count and dot are bold-only (owner decision, 2026-09-28): 3 × 2 × 5 = 30 coordinates, less the 10
+    // count and dot members at `subtle`, is 20.
+    excludeCoordinates: [{ genre: ['count', 'dot'], emphasis: ['subtle'] }],
     texts: {
       label: {
         part: 'text',
@@ -213,7 +257,7 @@ export const badge: ComponentDef = {
     wcag: [
       '1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)',
       '1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, in every mode)',
-      '1.4.11 Non-text Contrast (targets 3:1 between the fill and the page for the neutral status label and every count and dot, since the fill is the badge\'s only boundary)',
+      '1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label\'s 1px edge and every bold fill clear 3:1 against the page)',
       '4.1.2 Name, Role, Value (a count or dot joins its host\'s accessible name, so the host says what it means)',
       '4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)',
     ],
@@ -227,7 +271,7 @@ export const badge: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.',
+    usage: 'Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.',
     do: [
       'Put the meaning of a count or dot in the host\'s accessible name',
       'Cap a count, as in "99+", and hide it at zero unless zero matters',
@@ -268,11 +312,9 @@ export const badge: ComponentDef = {
   notes: {
     contested: [
       'One component or three. The brief\'s practice default is three siblings (count badge, dot, status label: Fluent, Primer); the owner chose one component switched by `genre` (2026-09-27), which is the brief\'s contested alternative (MUI, Ant). The cost the brief names is real: the accessibility contract differs by genre (hidden overlay vs announced label), so `accessibility.aria` states both, and a consumer must pick the genre deliberately rather than inherit a default. `genre` defaults to `status` because that is the only genre that needs no host.',
-      'THE HOOK FOR THE TAG LANE: what Tag must differ on, so the two never read alike at rest. (1) Tag binds the `color.interactive.*` family; Badge never does, and `test.ts` holds that. (2) Tag has states (hover, pressed, focus-visible, disabled, and selected where it toggles); Badge has none. (3) Tag carries a 44px touch target; Badge is excluded from `lint-hit-target.ts`. (4) Tag shows an affordance at rest — a boundary stroke, a remove control, or both — where Badge is a borderless tone fill; which at-rest cue Tag uses is the Tag lane\'s design call, and the one thing it may not do is look like this pill. (5) Tag stands on Icon Button for its remove control; Badge nests nothing.',
+      'THE HOOK FOR THE TAG LANE: what Tag must differ on, so the two never read alike at rest. (1) Tag binds the `color.interactive.*` family; Badge never does, and `test.ts` holds that. (2) Tag has states (hover, pressed, focus-visible, disabled, and selected where it toggles); Badge has none. (3) Tag carries a 44px touch target; Badge is excluded from `lint-hit-target.ts`. (4) Tag shows an affordance at rest — a boundary stroke, a remove control, or both — where Badge is always FILLED: a tone tint with a 1px edge in the tone\'s border color (subtle), or a solid tone fill (bold), and never an interactive color. Which at-rest cue Tag uses is the Tag lane\'s design call, and the one thing it may not do is look like this pill. (5) Tag stands on Icon Button for its remove control; Badge nests nothing.',
       'Whether the status label belongs here or in Tag. The brief records the field split: MUI, Ant and Carbon fold the status label into Chip or Tag; Fluent, Primer and Polaris ship it as its own badge or label. The owner put it here (static means Badge), and the Badge-or-Tag test is interactivity: if it has an action, a remove control or a selected state, it is a Tag.',
       'Hide at zero by default (`showZero: false`), per the brief; some systems show "0" for a count the user has just cleared. Kept as the brief states it.',
-      'The neutral status label is now the loudest status label: a bold inverse fill beside four subtle tone tints (held for the owner, 2026-09-27). The alternatives measured were a mid gray from existing roles (`text.secondary` under `inverse.text.primary`, 5.0:1 against the page and 5.0:1 for the label at the weakest cell) and a new neutral surface role with its own high-contrast treatment, which would be a new token name and a CONTRACT change.',
-      'The four subtle tone tints themselves measure 1.06–1.40:1 against the page, lowest in dark mode, so the tone pills have little shape either. Their text carries the meaning, so nothing requires the shape; whether they should separate the way neutral now does is open.',
     ],
     unverified: [
       'The circular-overlap inset of about 14.6%, from the brief, derived from a circle\'s geometry (1 − 1/√2, halved). Not measured against any shipping system here.',
@@ -280,9 +322,10 @@ export const badge: ComponentDef = {
       'The dot binds `control.size.sm.dot`, the small selection control\'s dot rung, because it is the tier\'s density-scaled 8px dot. It borrows a control token for a non-control; a badge-specific rung would be a new token name.',
     ],
     evolution: [
-      'The `genre` variant axis (owner-approved, 2026-09-27): the count and dot project to Figma beside the status label, fifteen members in all. Before it, the count and dot existed in code only.',
-      'Bold tone fills for the count and dot (owner-approved with the genre axis): `foreground.<tone>` under `text.on-<tone>`, where the status label keeps the subtle tint.',
-      'The neutral fill (owner-approved, 2026-09-27): `foreground.secondary` measured 1.00:1 against the page in high-contrast modes, so it moved to the inverse surface, gated at 3:1 against the page.',
+      'The `genre` variant axis (owner-approved, 2026-09-27): the count and dot project to Figma beside the status label, fifteen members at the time. Before it, the count and dot existed in code only.',
+      'Bold tone fills for the count and dot (owner-approved with the genre axis): `foreground.<tone>` under `text.on-<tone>`, with the bold neutral on the inverse surface `inverse.foreground.tertiary` under `inverse.text.primary`.',
+      'The `emphasis` axis (owner decisions, 2026-09-28): the status label comes in `subtle` and `bold`, and the count and dot stay bold-only, so the Figma set is twenty members through `figmaProperties.excludeCoordinates`. This replaces the first fix for the invisible neutral, which painted every neutral status label with the bold inverse fill and made it the loudest status label on the page.',
+      'The subtle tints separate by their edge (#1735, owner decision 2026-09-28). The tone tints measure 1.06–1.40:1 against the page and the neutral tint 1.00:1 in both high-contrast modes, so the tint alone gave the pill no shape. The subtle status label now carries a 1px edge in the tone\'s border role, at least 3.75:1 against the page (`border.secondary` for neutral, at least 3.20:1), and the tint is no longer held to 3:1.',
       'A leading icon on the status label, as the brief allows, painted from the tone\'s icon role.',
       'A size axis (small, medium, large) for the count and status label, once a host needs more than one.',
     ],
