@@ -7,6 +7,20 @@
 
 ---
 
+## (2026-09-27) — Plugin: a page header is never narrower than the header itself
+
+**Found live, not offline.** The first agent-link build in the owner's master file after #1711/#1733 placed headers on two pages that had none. Both were sized to their content: 250px on Field Label, and **80px on Spinner**, where the four spinner sizes span 80px. The Spinner header came out 860px tall, with its title broken one letter per line. The shim test covered 600–1500px content and never went narrower than the header's text.
+
+**The fix is a floor, and in real files the floor usually wins.** The width is the content's, floored at the width the file itself authors the Medium variant at. Set up file authors every `_Section-header` variant at 2517px (`SECTION_WIDTH`, `file-components.ts`), so in practice **every page whose content is narrower than 2517 gets a 2517 header**, not only the degenerate ones. That is close to the owner's hand-placed Buttons header (2129 over 1128px of set), so it reads as the file's own design rather than a new one. The shim authors its variants at 1000, below the arms' 1200/1500 content, so the test exercises both sides of the floor; a real file mostly sits on one. The floor reads the **variant**, not the fresh instance: in the shim those two widths differ on purpose (1000 against 2517), so a floor read off the instance would fail the new arm.
+
+**Held for the owner:** (1) that nearly every header now sits at 2517 rather than its content's width; (2) whether a page wider than 2517 should keep growing the header, as it does now, or cap it.
+
+**Mutation (committed first, restored from HEAD):** `Math.max(right - left, variant.width ?? 0)` → `right - left` fails `2: 80px content gets a header at the variant's own width` and `2: offset content — … floored to the variant's 1000` by name.
+
+**Master file, repaired by hand under the owner's authorization:** the two headers placed before this fix (Spinner, Field Label) were resized to 2517 and re-seated 80px above their content.
+
+---
+
 ## (2026-09-27) — Component: Badge — a static status label, count or dot, with no states and no interactive binding
 
 **STATUS: PR open from `lane/component-badge`, labeled DO NOT MERGE.** New def `components/badge.ts` from the KB brief `components/badge.md`, built to the owner's four decisions of 2026-09-27. ENGINE 0.186.0 → **0.187.0** (MINOR, a new projected def; renumbered in the net after #1733, #1731 and #1726); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 169 → **170** (`out/components/badge.md`), moved in `verify.ts` and both `ci.yml` literals.
