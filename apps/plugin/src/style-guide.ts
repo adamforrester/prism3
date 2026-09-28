@@ -512,11 +512,13 @@ export interface SgNode extends CellNode {
   getPluginData?(key: string): string;
   setExplicitVariableModeForCollection?(collection: unknown, modeId: string): void;
   setProperties?(props: Record<string, string | boolean>): void;
-  getStyledTextSegments?(fields: ['fontName']): readonly { fontName: unknown }[];
+  getStyledTextSegments?(fields: ('fontName' | 'fontSize' | 'fontWeight' | 'textStyleId')[]): readonly { fontName: unknown }[];
+  getMainComponentAsync?(): Promise<unknown>;
   remove?(): void;
 }
 
 export interface SgPage {
+  readonly id?: string;
   readonly name: string;
   readonly type?: string;
   readonly children: readonly unknown[];
@@ -539,8 +541,10 @@ export interface StyleGuideApi {
   };
 }
 
-/** Why a superseded table is left in place rather than deleted. */
-export type KeepReason = 'edited' | 'moved' | 'copied' | 'unrecorded';
+/** Why a superseded table is left in place rather than deleted. `moved` covers a table put inside another frame
+ *  or onto another page; `no-collection` and `nothing-drawn` are the run's own guards (its variables may have
+ *  moved to a library); `not-removable` is an unedited table the host would not let the generator remove. */
+export type KeepReason = 'edited' | 'moved' | 'copied' | 'unrecorded' | 'no-collection' | 'nothing-drawn' | 'not-removable';
 
 /** One table's outcome. */
 export type TableOutcome =
@@ -593,8 +597,9 @@ const AT_KEY = 'prism3-style-guide-at';
 /** What a table held when the generator last wrote it (`fingerprintOf`) — a superseded table that still matches
  *  is deleted, one that does not was edited by hand and is kept. */
 const PRINT_KEY = 'prism3-style-guide-print';
-/** The id of the frame the generator wrote. Plugin data travels with a duplicate and the id does not, so this is
- *  what tells the generator's own frame from a designer's copy of it. */
+/** `<page id>|<frame id>`: where the generator wrote the table, and the frame it wrote. Plugin data travels with a
+ *  duplicate and the id does not, so the frame id tells the generator's own frame from a designer's copy of it; the
+ *  page id tells a table left on its page from one moved to another page at the same x and y. */
 const MARK_KEY = 'prism3-style-guide-mark';
 /** The widest a description column grows, in px, padding included — the only text that wraps. */
 export const DESC_WRAP = 360;
@@ -620,39 +625,85 @@ const fnv = (s: string, reverse: boolean): string => {
   return (h >>> 0).toString(16).padStart(8, '0');
 };
 
-/** A paint list as the fingerprint reads it. A BOUND paint is its variable's id and never its color: a variable's
- *  value moving repaints the swatch, and that is not a designer's edit to the table. */
+/** A value as the fingerprint reads it: `figma.mixed` (a symbol) is "mixed", numbers to 4 places, objects with
+ *  their keys sorted so the host's key order cannot move it. */
+const stable = (v: unknown): string => {
+  if (typeof v === 'symbol') return 'mixed';
+  if (v === undefined) return '';
+  if (typeof v === 'number') return String(Math.round(v * 1e4) / 1e4);
+  if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
+  if (v && typeof v === 'object') return `{${Object.keys(v).sort().map((k) => `${k}:${stable((v as Record<string, unknown>)[k])}`).join(',')}}`;
+  return JSON.stringify(v);
+};
+
+/** A paint list as the fingerprint reads it. A BOUND paint is its variable's id, never its color or its opacity:
+ *  the host carries a color variable's alpha in the paint's `opacity`, so a variable's value moving repaints the
+ *  swatch on both, and that is not a designer's edit to the table. */
 const paintsKey = (ps: unknown): string => {
   if (!Array.isArray(ps)) return ps === undefined ? '' : 'mixed';
   return ps.map((p) => {
-    const q = (p ?? {}) as { type?: unknown; visible?: unknown; opacity?: unknown; color?: { r?: unknown; g?: unknown; b?: unknown }; boundVariables?: { color?: { id?: unknown } } };
+    const q = (p ?? {}) as { type?: unknown; visible?: unknown; opacity?: unknown; blendMode?: unknown; color?: { r?: unknown; g?: unknown; b?: unknown }; boundVariables?: { color?: { id?: unknown } } };
     const bound = q.boundVariables?.color?.id;
     const body = typeof bound === 'string' ? `@${bound}`
-      : q.color ? [q.color.r, q.color.g, q.color.b].map((x) => Math.round(Number(x) * 1e4)).join(',')
-      : JSON.stringify(p);
-    return `${String(q.type)}:${q.visible === false ? 0 : 1}:${Math.round(Number(q.opacity ?? 1) * 1e4)}:${body}`;
+      : q.color ? `${[q.color.r, q.color.g, q.color.b].map((x) => Math.round(Number(x) * 1e4)).join(',')}:${Math.round(Number(q.opacity ?? 1) * 1e4)}`
+      : stable(p);
+    return `${String(q.type)}:${q.visible === false ? 0 : 1}:${String(q.blendMode ?? '')}:${body}`;
   }).join(';');
 };
 
+/** Read a property the host may refuse (a getter that throws under dynamic-page, or on the wrong node type). */
+const read = (n: SgNode, k: string): unknown => { try { return (n as Record<string, unknown>)[k]; } catch { return undefined; } };
+
+/** The node properties a designer changes by hand, beyond size, text, paint and pinned modes. Each is keyed as the
+ *  host returns it; `figma.mixed` reads "mixed", except the text font, which reads its segments (below). */
+const FINGERPRINT_FIELDS = [
+  // corners
+  'cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius',
+  // effects
+  'effects', 'effectStyleId',
+  // stroke geometry
+  'strokeWeight', 'strokeAlign',
+  // layer
+  'opacity', 'blendMode',
+  // styles
+  'fillStyleId', 'strokeStyleId',
+  // auto layout
+  'layoutMode', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing',
+] as const;
+const FONT_FIELDS = ['fontName', 'fontSize', 'fontWeight', 'textStyleId'] as const;
+
 /**
  * THE FINGERPRINT of a table: what a designer would change, read off the frame. Every node in it, in order (its
- * children and their order), each with its type, name, visibility, size, text, fills, strokes (bindings by
- * variable id) and pinned modes. The frame's own position is NOT in it: that is `AT_KEY`, which the re-stack moves
- * along with the frame, so a re-stacked table keeps its fingerprint.
+ * children and their order), each with its type, name, visibility, size, text, fills and strokes (a bound paint by
+ * its variable's id), pinned modes, `FINGERPRINT_FIELDS`, its text font, and for an instance its main component and
+ * component properties. The frame's own position is NOT in it: that is `AT_KEY`, which the re-stack moves along
+ * with the frame, so a re-stacked table keeps its fingerprint.
  *
- * Over-sensitive by design: a change the eye cannot see (a layer renamed, a size moved by a pixel) reads as an
- * edit, and the table is kept. That is the safe direction, since the other one deletes a designer's work.
+ * Over-sensitive by design: a change the eye cannot see (a layer renamed, a size moved by a pixel, an edit to the
+ * cell component that reaches every instance) reads as an edit, and the table is kept. That is the safe direction,
+ * since the other one deletes a designer's work. Async because an instance's main component is read with
+ * `getMainComponentAsync` under dynamic-page.
  */
-const fingerprintOf = (wrap: SgNode): string => {
+const fingerprintOf = async (wrap: SgNode): Promise<string> => {
   const parts: string[] = [];
-  const walk = (n: SgNode, depth: number): void => {
+  const walk = async (n: SgNode, depth: number): Promise<void> => {
     const modes = n.explicitVariableModes && typeof n.explicitVariableModes === 'object'
       ? Object.entries(n.explicitVariableModes as Record<string, unknown>).map(([k, v]) => `${k}=${String(v)}`).sort().join(',') : '';
+    const fields = FINGERPRINT_FIELDS.map((k) => stable(read(n, k)));
+    // A text set in more than one font reads `figma.mixed` on these; its segments carry each run's font instead.
+    const font = FONT_FIELDS.map((k) => read(n, k));
+    const fontKey = font.some((v) => typeof v === 'symbol')
+      ? stable(n.getStyledTextSegments?.([...FONT_FIELDS]) ?? 'mixed') : stable(font);
+    let main = '';
+    if (n.type === 'INSTANCE') {
+      const m = (n.getMainComponentAsync ? await n.getMainComponentAsync().catch(() => null) : read(n, 'mainComponent')) as { id?: unknown } | null | undefined;
+      main = `${String(m?.id ?? '')}:${stable(read(n, 'componentProperties'))}`;
+    }
     parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', Math.round(n.width ?? 0), Math.round(n.height ?? 0),
-      typeof n.characters === 'string' ? n.characters : '', paintsKey(n.fills), paintsKey(n.strokes), modes].join('\u241f'));
-    for (const c of (n.children ?? []) as SgNode[]) walk(c, depth + 1);
+      typeof n.characters === 'string' ? n.characters : '', paintsKey(n.fills), paintsKey(n.strokes), modes, ...fields, fontKey, main].join('\u241f'));
+    for (const c of (n.children ?? []) as SgNode[]) await walk(c, depth + 1);
   };
-  walk(wrap, 0);
+  await walk(wrap, 0);
   const s = parts.join('\n');
   return `${fnv(s, false)}${fnv(s, true)}`;
 };
@@ -917,8 +968,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));
     // Stamped last, once the table holds everything this run writes: the frame it was written on, and what it holds.
-    wrap.setPluginData?.(MARK_KEY, String(wrap.id));
-    wrap.setPluginData?.(PRINT_KEY, fingerprintOf(wrap));
+    wrap.setPluginData?.(MARK_KEY, `${String(page.id)}|${String(wrap.id)}`);
+    wrap.setPluginData?.(PRINT_KEY, await fingerprintOf(wrap));
     out.push(created
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
       : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(before, after) });
@@ -944,16 +995,27 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const deleted: string[] = [];
   const kept: { name: string; reason: KeepReason }[] = [];
   const freed = new Map<SgPage, { x: number; y: number }[]>();
-  // Deleted only when every check passes, in this order: a fingerprint exists (a table from before it was
-  // recorded may have been edited, and nothing can tell); this is the frame the generator wrote, not a duplicate
-  // that carries its plugin data; it sits where the generator put it; and it still holds what was written.
-  const verdictOf = (f: SgNode): KeepReason | 'unedited' => {
+  // Deleted only when every check passes, in this order. The run's own guards first: the table's collection is
+  // still in this file, and this run drew something — a file whose variables moved to a library reads an empty
+  // catalog, and every table would otherwise read as stale. Then: a fingerprint exists (a table from before it was
+  // recorded is never deleted — owner decision, 2026-09-28); this is the frame the generator wrote, not a duplicate
+  // that carries its plugin data; it sits directly on the page the generator wrote it to, where the generator put
+  // it; and it still holds what was written.
+  const collectionIds = new Set(catalog.collections.map((c) => c.id));
+  const verdictOf = async (f: SgNode, p: SgPage, colId: string): Promise<KeepReason | 'unedited'> => {
+    if (!collectionIds.has(colId)) return 'no-collection';
+    if (!plan.tables.length) return 'nothing-drawn';
     const print = f.getPluginData?.(PRINT_KEY) || '';
     if (!print) return 'unrecorded';
-    if (f.getPluginData?.(MARK_KEY) !== String(f.id)) return 'copied';
+    const mark = f.getPluginData?.(MARK_KEY) || '';
+    const bar = mark.lastIndexOf('|');
+    if (mark.slice(bar + 1) !== String(f.id)) return 'copied';
+    const parent = f.parent as { id?: unknown } | null | undefined;
+    if (!parent || (parent !== p && (p.id === undefined || parent.id !== p.id))) return 'moved';
+    if (bar < 0 || mark.slice(0, bar) !== String(p.id)) return 'moved';
     const at = recordOf(f);
     if (!at || !near(num(f.x), at.x) || !near(num(f.y), at.y)) return 'moved';
-    return fingerprintOf(f) === print ? 'unedited' : 'edited';
+    return (await fingerprintOf(f)) === print ? 'unedited' : 'edited';
   };
   for (const p of api.root.children) for (const f of framesOn(p)) {
     // The generator's key is what makes a frame a candidate at all: a frame without it is never touched,
@@ -967,13 +1029,13 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
     if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
     else stale.push(String(f.name));
-    const v = verdictOf(f);
+    const v = await verdictOf(f, p, colId);
     if (v === 'unedited' && f.remove) {
       if (!freed.has(p)) freed.set(p, []);
       freed.get(p)!.push({ x: num(f.x), y: num(f.y) });
       f.remove();
       deleted.push(String(f.name));
-    } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'edited' : v });
+    } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
   }
 
   // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
@@ -1046,17 +1108,25 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
   for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p} page, and Set up file adds it`);
-  // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones apart, and a table
-  // from before the fingerprint apart again, with the reason it survives.
-  const superseded = (n: number): string => `${n} superseded table${n === 1 ? '' : 's'}`;
-  if (r.deleted.length) parts.push(`${superseded(r.deleted.length)} deleted: ${r.deleted.join(', ')}`);
-  const edited = r.kept.filter((k) => k.reason !== 'unrecorded');
-  const why: Record<KeepReason, string> = { edited: '', moved: ' (moved)', copied: ' (a copy)', unrecorded: '' };
-  if (edited.length) parts.push(`${superseded(edited.length)} edited — left in place: ${edited.map((k) => `${k.name}${why[k.reason]}`).join(', ')}`);
-  const unrecorded = r.kept.filter((k) => k.reason === 'unrecorded');
+  // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones grouped by the
+  // reason each was kept; a table from before the fingerprint apart, with what to do about it. Wording proposed,
+  // owner to confirm (docs/45 §8).
+  const list = (xs: readonly string[]): string => (xs.length > 3 ? `${xs.slice(0, 3).join(', ')} and ${xs.length - 3} more` : xs.join(', '));
+  const noLonger = (n: number): string => `${n} table${n === 1 ? '' : 's'} the generator no longer draws ${n === 1 ? 'was' : 'were'}`;
+  if (r.deleted.length) parts.push(`${noLonger(r.deleted.length)} deleted, unedited: ${list(r.deleted)}`);
+  const REASON: Record<Exclude<KeepReason, 'unrecorded'>, string> = {
+    edited: 'edited', moved: 'moved', copied: 'a copy', 'no-collection': 'its collection is not in this file',
+    'nothing-drawn': 'nothing was drawn this run', 'not-removable': 'could not be deleted',
+  };
+  const left = r.kept.filter((k) => k.reason !== 'unrecorded');
+  if (left.length) {
+    const groups = (Object.keys(REASON) as (keyof typeof REASON)[]).map((why) => [why, left.filter((k) => k.reason === why).map((k) => k.name)] as const).filter(([, ns]) => ns.length);
+    parts.push(`${noLonger(left.length)} left in place — ${groups.map(([why, ns]) => `${REASON[why]}: ${list(ns)}`).join('; ')}`);
+  }
+  const unrecorded = r.kept.filter((k) => k.reason === 'unrecorded').map((k) => k.name);
   if (unrecorded.length) {
     const one = unrecorded.length === 1;
-    parts.push(`${superseded(unrecorded.length)} left in place — ${one ? 'it predates' : 'they predate'} the edit record, so the generator cannot tell whether ${one ? 'it was' : 'they were'} edited; delete ${one ? 'it' : 'them'} by hand if no longer needed: ${unrecorded.map((k) => k.name).join(', ')}`);
+    parts.push(`${noLonger(unrecorded.length)} left in place — drawn before edits were tracked, so the generator never deletes ${one ? 'it' : 'them'}; delete ${one ? 'it' : 'them'} by hand if no longer needed: ${list(unrecorded)}`);
   }
   parts.push(...r.notes, ...r.misses);
   const drawn = made.length + upd.length;
@@ -1066,6 +1136,7 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const ok = skipped.length === 0 && r.unbound === 0;
   const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : '✓ style guide: 0 tables')
     : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped`
-    : r.unbound ? `⚠ ${r.unbound} swatches unbound` : `✓ style guide: ${drawn} tables`;
+    : r.unbound ? `⚠ ${r.unbound} swatches unbound`
+    : r.deleted.length ? `✓ ${drawn} tables, ${r.deleted.length} deleted` : `✓ style guide: ${drawn} tables`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'No color variables in this file' };
 };

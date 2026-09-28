@@ -97,7 +97,19 @@
  *     (the retyped value is the same length, so no size moves with it);
  *   - the position check removed → "11: a moved table is kept" fails;
  *   - the stack starts at the topmost table left, ignoring a deleted one above it → "11: the stack closes over the
- *     deleted table…" fails.
+ *     deleted table…" fails;
+ *   - (review round) each fingerprint group dropped — fills/strokes, size, pinned modes, corners, effects, stroke
+ *     geometry, layer opacity/blend, style IDs, auto layout, text font, instance main component/properties — fails
+ *     its own "11: a replaced table with … by hand is kept, reported as edited" arm; y dropped from the moved check
+ *     → "11: a table moved straight down is kept…"; a bound paint keyed by color, or keeping its opacity → "11: a
+ *     table whose bound variable's value (and alpha) changed between runs is still deleted"; the parent-is-page and
+ *     page-ID checks → "11: a table put inside a designer's frame…" / "11: a table moved to another page…"; the
+ *     collection and empty-plan guards → "11: a table whose collection is no longer in the file is kept…" / "11: a
+ *     run that draws nothing deletes nothing…". Full table: docs/00-progress.md (2026-09-28).
+ *
+ * THE SHIM DOES NOT REPAINT: a bound paint keeps the placeholder color `setBoundVariableForPaint` stamped. The
+ * value-change arm replays the host's repaint (color, and alpha as the paint's opacity) onto the drawn nodes itself,
+ * and asserts at least one paint moved; without that, keying bound paints by color survives every test.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -105,7 +117,7 @@ import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
 import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText } from './src/style-guide';
-import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome } from './src/style-guide';
+import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
 import { resolveAllModes } from '@prism3/engine/modes';
@@ -640,7 +652,7 @@ const main = async (): Promise<void> => {
     ok(!tableFrame(f.sem, 'Scrim') && JSON.stringify(again.deleted) === JSON.stringify(['Style guide — Scrim']) && again.kept.length === 0, '6: an unedited stale table is deleted');
     const s = styleGuideSummary(again);
     ok(s.summary.includes('Text: 1 added, 1 removed, 1 changed'), '6: the summary names the changes');
-    ok(s.summary.includes('1 superseded table deleted: Style guide — Scrim'), '6: the summary names the deleted table');
+    ok(s.summary.includes('1 table the generator no longer draws was deleted, unedited: Style guide — Scrim'), '6: the summary names the deleted table');
   }
 
   console.log('7. skips');
@@ -769,7 +781,7 @@ const main = async (): Promise<void> => {
     ok(tablesOn(f9.sem).length === 23 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
     ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale');
     ok(old.parent === f9.sem && JSON.stringify(again.kept) === JSON.stringify([{ name: 'Style guide — Nbds', reason: 'unrecorded' }]), '9: the per-root table has no fingerprint, so it is left in place');
-    ok(styleGuideSummary(again).summary.includes('1 superseded table left in place — it predates the edit record, so the generator cannot tell whether it was edited; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
+    ok(styleGuideSummary(again).summary.includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
     ok(prim.name === 'Style guide — Primary — nbds' && pTitle.characters === 'Primary — nbds', `9: an earlier run's title is rewritten to name its root (${prim.name} / ${pTitle.characters})`);
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
@@ -831,67 +843,125 @@ const main = async (): Promise<void> => {
 
   console.log('11. superseded tables: deleted when unedited, kept when a designer touched them');
   {
-    // The legacy ramp split into two sub-palettes, same variables: its one table is now drawn as Light and Dark, so
+    // The legacy ramp split into two sub-palettes, same variables: its one table is now drawn as Dark and Light, so
     // `legacy/ramp` is an ancestor of both planned keys — REPLACED.
     const splitLegacy = (sh: Shim): void => {
       for (const v of sh.vars) if (v.name.startsWith('legacy/ramp/')) { const step = v.name.split('/').pop()!; v.name = `legacy/ramp/${Number(step) < 100 ? 'light' : 'dark'}/${step}`; }
     };
-    // Every legacy variable deleted: its table matches no group — STALE.
+    // Every legacy variable deleted: its table matches no group — STALE. Run with `core` in scope too, so the run
+    // still draws something and the empty-plan guard does not apply.
     const dropLegacy = (sh: Shim): void => { for (let i = sh.vars.length - 1; i >= 0; i--) if (sh.vars[i].name.startsWith('legacy/')) sh.vars.splice(i, 1); };
     const LEG = { collections: ['legacy'] };
+    const WITH_CORE = { collections: ['core', 'legacy'] };
+    const LEGACY = 'Style guide — Legacy';
     const names = (p: N): string[] => tablesOn(p).map((n) => n.name);
+    const keptAs = (r: StyleGuideResult, reason: string): boolean => r.deleted.length === 0 && JSON.stringify(r.kept) === JSON.stringify([{ name: LEGACY, reason }]);
+    const summaryOf = (r: StyleGuideResult): string => styleGuideSummary(r).summary;
+    /** A file with the Legacy table drawn, `edit` applied to it by hand, then the ramp split so the table is replaced. */
+    const afterEdit = async (edit: (t: N, sh: Shim & { prim: N }) => void): Promise<{ r: StyleGuideResult; t: N; sh: Shim & { prim: N } }> => {
+      const sh = await fullFile();
+      await runStyleGuide(sh.api, contract, LEG);
+      const t = tableFrame(sh.prim, 'Legacy')!;
+      edit(t, sh);
+      splitLegacy(sh);
+      return { r: await runStyleGuide(sh.api, contract, LEG), t, sh };
+    };
+    const valueCell = (t: N): N => cellAt(gridOf(t), 1, 2)!;
+    const valueText = (t: N): N => valueCell(t).findOne((k) => k.type === 'TEXT')!;
+    const ground = (t: N): N => cellAt(gridOf(t), 1, 1)!;
+    const swatch = (t: N): N => ground(t).children[0];
 
-    const a = await fullFile();
-    await runStyleGuide(a.api, contract, LEG);
-    const legA = tableFrame(a.prim, 'Legacy')!;
-    const [ax, ay] = [legA.x, legA.y];
-    splitLegacy(a);
-    const ra = await runStyleGuide(a.api, contract, LEG);
-    ok(JSON.stringify(ra.replaced) === JSON.stringify(['Style guide — Legacy']) && JSON.stringify(ra.deleted) === JSON.stringify(['Style guide — Legacy']) && !legA.parent
-      && JSON.stringify(names(a.prim)) === JSON.stringify(['Style guide — Dark', 'Style guide — Light']), `11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light (${names(a.prim).join(', ')})`);
-    ok(a.prim.findAll((k) => k.pluginData['prism3-style-guide-part'] === 'header').length === 2, "11: the deleted table's header and cells go with it");
+    // THE CONTROL: the same run with nothing touched deletes the table, so every "kept" below is the edit's doing.
+    const a = await afterEdit(() => {});
+    const legA = a.t;
+    ok(JSON.stringify(a.r.replaced) === JSON.stringify([LEGACY]) && JSON.stringify(a.r.deleted) === JSON.stringify([LEGACY]) && !legA.parent
+      && JSON.stringify(names(a.sh.prim)) === JSON.stringify(['Style guide — Dark', 'Style guide — Light']), `11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light (${names(a.sh.prim).join(', ')})`);
+    ok(a.sh.prim.findAll((k) => k.pluginData['prism3-style-guide-part'] === 'header').length === 2, "11: the deleted table's header and cells go with it");
     // Dark and Light were drawn below Legacy; with Legacy gone, the first of them takes its place.
-    const dark = tableFrame(a.prim, 'Dark')!;
-    ok(dark.x === ax && dark.y === ay && ay < 0 + 1 && tableFrame(a.prim, 'Light')!.y === dark.y + dark.height + 160, `11: the stack closes over the deleted table: Dark starts where Legacy stood, Light 160px below it (${dark.x},${dark.y} vs ${ax},${ay})`);
-    ok(styleGuideSummary(ra).summary.includes('1 superseded table deleted: Style guide — Legacy'), '11: the summary names the deleted table');
+    const dark = tableFrame(a.sh.prim, 'Dark')!;
+    ok(dark.x === legA.x && dark.y === legA.y && tableFrame(a.sh.prim, 'Light')!.y === dark.y + dark.height + 160, `11: the stack closes over the deleted table: Dark starts where Legacy stood, Light 160px below it (${dark.x},${dark.y} vs ${legA.x},${legA.y})`);
+    ok(summaryOf(a.r).includes('1 table the generator no longer draws was deleted, unedited: Style guide — Legacy'), '11: the summary names the deleted table');
+    ok(styleGuideSummary(a.r).headline === '✓ 2 tables, 1 deleted', `11: the headline counts the deletion: "✓ 2 tables, 1 deleted" (got "${styleGuideSummary(a.r).headline}")`);
 
-    const b = await fullFile();
-    await runStyleGuide(b.api, contract, LEG);
-    const legB = tableFrame(b.prim, 'Legacy')!;
-    // One value cell retyped by hand, the same length, so only its words differ: #808080 → #7F7F7F.
-    const typed = cellAt(gridOf(legB), 1, 2)!.findOne((k) => k.type === 'TEXT')!;
-    ok(typed.characters === '#808080', `11: the cell to edit reads #808080 (${typed.characters})`);
-    typed.characters = '#7F7F7F';
-    splitLegacy(b);
-    const rb = await runStyleGuide(b.api, contract, LEG);
-    ok(legB.parent === b.prim && rb.deleted.length === 0 && JSON.stringify(rb.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'edited' }]), '11: a replaced table with one text cell changed by hand is kept, reported as edited');
-    ok(styleGuideSummary(rb).summary.includes('1 superseded table edited — left in place: Style guide — Legacy'), '11: the summary lists the edited table apart');
+    // A VARIABLE'S VALUE MOVING is not an edit. The host repaints a bound paint's color, and carries a color
+    // variable's alpha in the paint's opacity; both are replayed onto the drawn nodes here, as the host would.
+    let repainted = 0;
+    const e1 = await afterEdit((t, sh) => {
+      const v = sh.vars.find((x) => x.name === 'legacy/ramp/100')!;
+      const next = { r: 0.2, g: 0.4, b: 0.6, a: 0.4 };
+      v.valuesByMode['legacy:0'] = next;
+      const repaint = (ps: unknown): unknown => (Array.isArray(ps) ? ps.map((p) => {
+        if ((p as { boundVariables?: { color?: { id?: string } } }).boundVariables?.color?.id !== v.id) return p;
+        repainted++;
+        return { ...(p as object), color: { r: next.r, g: next.g, b: next.b }, opacity: next.a };
+      }) : ps);
+      for (const n of [t, ...t.findAll(() => true)]) { n.fills = repaint(n.fills); n.strokes = repaint(n.strokes); }
+    });
+    ok(repainted > 0 && JSON.stringify(e1.r.deleted) === JSON.stringify([LEGACY]), `11: a table whose bound variable's value (and alpha) changed between runs is still deleted (${repainted} paint repainted)`);
 
-    const c = await fullFile();
-    await runStyleGuide(c.api, contract, LEG);
-    const legC = tableFrame(c.prim, 'Legacy')!;
-    legC.x += 400;
-    dropLegacy(c);
-    const rc = await runStyleGuide(c.api, contract, LEG);
-    ok(legC.parent === c.prim && JSON.stringify(rc.stale) === JSON.stringify(['Style guide — Legacy']) && JSON.stringify(rc.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'moved' }]), '11: a moved table is kept');
-    ok(styleGuideSummary(rc).summary.includes('1 superseded table edited — left in place: Style guide — Legacy (moved)'), '11: the summary says it was moved');
+    // EACH KIND OF HAND EDIT keeps the table: the same size throughout unless size is the edit.
+    const edits: [string, (t: N, sh: Shim & { prim: N }) => void][] = [
+      ['one text cell retyped (#808080 → #7F7F7F, the same length)', (t) => { const x = valueText(t); if (x.characters !== '#808080') throw new Error(`value cell reads ${x.characters}`); x.characters = '#7F7F7F'; }],
+      ["a cell's fill repainted", (t) => { ground(t).fills = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 0, b: 0 } }]; }],
+      ['a stroke added to a cell', (t) => { valueCell(t).strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0, b: 0 } }]; }],
+      ['a cell widened by 40px, nothing else', (t) => { const c = valueCell(t); c.resize(c.w + 40, c.h); }],
+      ["a swatch's pinned mode changed", (t) => { swatch(t).explicitVariableModes['VariableCollectionId:legacy'] = 'legacy:9'; }],
+      ['8px corners on a cell', (t) => { const g = ground(t); g.cornerRadius = 8; g.topLeftRadius = 8; g.topRightRadius = 8; g.bottomLeftRadius = 8; g.bottomRightRadius = 8; }],
+      ['a drop shadow on the table', (t) => { t.effects = [{ type: 'DROP_SHADOW', visible: true, blendMode: 'NORMAL', color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 4 }, radius: 8, spread: 0 }]; }],
+      ['a stroke weight and alignment changed', (t) => { const g = ground(t); g.strokeWeight = 2; g.strokeAlign = 'OUTSIDE'; }],
+      ["a cell's layer opacity and blend mode changed", (t) => { const c = valueCell(t); c.opacity = 0.5; c.blendMode = 'MULTIPLY'; }],
+      ['one cell made bold', (t) => { valueText(t).fontName = { family: 'Inter', style: 'Bold' }; }],
+      ['a fill style applied to a cell', (t) => { ground(t).fillStyleId = 'S:brand-surface,1:2'; }],
+      ["a cell's auto-layout padding changed", (t) => { const c = valueCell(t); c.paddingLeft = Number(c.paddingLeft ?? 0) + 8; }],
+      ["a swatch swapped to another component", (t) => { const sw = swatch(t); const other = sw.mainComponent!.parent!.children.find((m) => m !== sw.mainComponent)!; sw.mainComponent = other; }],
+      ["a header's component property toggled", (t) => { const h = t.children[0]; h.componentProperties!['Description#1:0'].value = false; }],
+      ["the reviewer's example: a shadow, 8px corners and one cell made bold", (t) => { t.effects = [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 4 }, radius: 8 }]; t.cornerRadius = 8; valueText(t).fontName = { family: 'Inter', style: 'Bold' }; }],
+    ];
+    for (const [what, edit] of edits) {
+      const { r, t } = await afterEdit(edit);
+      ok(keptAs(r, 'edited') && t.parent !== null, `11: a replaced table with ${what} by hand is kept, reported as edited`);
+    }
+    const b = await afterEdit((t) => { valueText(t).characters = '#7F7F7F'; });
+    ok(summaryOf(b.r).includes('1 table the generator no longer draws was left in place — edited: Style guide — Legacy'), '11: the summary names the edited table and its reason');
 
+    // MOVED: across, down, into a designer's frame, onto another page at the same x and y.
+    const across = await afterEdit((t) => { t.x += 400; });
+    ok(keptAs(across.r, 'moved'), '11: a table moved across is kept, reported as moved');
+    ok(summaryOf(across.r).includes('1 table the generator no longer draws was left in place — moved: Style guide — Legacy'), '11: the summary says it was moved, not edited');
+    const down = await afterEdit((t) => { t.y += 300; });
+    ok(keptAs(down.r, 'moved'), '11: a table moved straight down is kept, reported as moved');
+    const nested = await afterEdit((t, sh) => {
+      const sel = new N('FRAME'); sel.name = 'Frame selection'; sh.prim.appendChild(sel);
+      const [x, y] = [t.x, t.y];
+      sel.appendChild(t); t.x = x; t.y = y;
+    });
+    ok(keptAs(nested.r, 'moved') && nested.t.parent?.name === 'Frame selection', "11: a table put inside a designer's frame, at the same x and y, is kept");
+    const archived = await afterEdit((t, sh) => { const arc = page('Archive'); sh.pages.push(arc); arc.appendChild(t); });
+    ok(keptAs(archived.r, 'moved') && archived.t.parent?.name === 'Archive', '11: a table moved to another page at the same x and y is kept');
+
+    // STALE, with no fingerprint: a table from before this build.
     const d = await fullFile();
-    await runStyleGuide(d.api, contract, LEG);
+    await runStyleGuide(d.api, contract, WITH_CORE);
     const legD = tableFrame(d.prim, 'Legacy')!;
-    // As a table from before this build: no fingerprint and no mark.
     delete legD.pluginData['prism3-style-guide-print']; delete legD.pluginData['prism3-style-guide-mark'];
     dropLegacy(d);
-    const rd = await runStyleGuide(d.api, contract, LEG);
-    ok(legD.parent === d.prim && JSON.stringify(rd.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'unrecorded' }]), '11: a table with no fingerprint is kept');
-    ok(styleGuideSummary(rd).summary.includes('1 superseded table left in place — it predates the edit record, so the generator cannot tell whether it was edited; delete it by hand if no longer needed: Style guide — Legacy'), '11: the summary says a table from before the fingerprint may have been edited');
+    const rd = await runStyleGuide(d.api, contract, WITH_CORE);
+    ok(legD.parent === d.prim && JSON.stringify(rd.stale) === JSON.stringify([LEGACY]) && keptAs(rd, 'unrecorded'), '11: a table with no fingerprint is kept');
+    ok(summaryOf(rd).includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Legacy'), '11: the summary says a table from before the fingerprint is never deleted, and to delete it by hand');
+
+    // STALE and unedited, while the run still draws core: deleted.
+    const st = await fullFile();
+    await runStyleGuide(st.api, contract, WITH_CORE);
+    dropLegacy(st);
+    const rst = await runStyleGuide(st.api, contract, WITH_CORE);
+    ok(JSON.stringify(rst.stale) === JSON.stringify([LEGACY]) && JSON.stringify(rst.deleted) === JSON.stringify([LEGACY]) && !tableFrame(st.prim, 'Legacy'), '11: an unedited stale table is deleted while the run still draws core');
 
     // A frame the generator did not make, named like its table, and a DUPLICATE of the table — which carries every
     // plugin-data key, sits where the original does and holds what it holds, but is not the frame the generator wrote.
     const e = await fullFile();
-    await runStyleGuide(e.api, contract, LEG);
+    await runStyleGuide(e.api, contract, WITH_CORE);
     const legE = tableFrame(e.prim, 'Legacy')!;
-    const foreign = new N('FRAME'); foreign.name = 'Style guide — Legacy'; foreign.x = 3000; foreign.y = 0; e.prim.appendChild(foreign);
+    const foreign = new N('FRAME'); foreign.name = LEGACY; foreign.x = 3000; foreign.y = 0; e.prim.appendChild(foreign);
     const dup = (src: N): N => {
       const n = new N(src.type);
       for (const [k, v] of Object.entries(src)) {
@@ -906,10 +976,43 @@ const main = async (): Promise<void> => {
     e.prim.appendChild(copy);
     ok(copy.x === legE.x && copy.y === legE.y && copy.pluginData['prism3-style-guide-print'] === legE.pluginData['prism3-style-guide-print'], '11: the copy sits on the original and carries its fingerprint');
     dropLegacy(e);
-    const re = await runStyleGuide(e.api, contract, LEG);
+    const re = await runStyleGuide(e.api, contract, WITH_CORE);
     ok(foreign.parent === e.prim && foreign.x === 3000 && foreign.y === 0 && Object.keys(foreign.pluginData).length === 0, '11: a frame the generator did not make, named like its table, is never touched');
-    ok(!legE.parent && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify(['Style guide — Legacy']) && JSON.stringify(re.kept) === JSON.stringify([{ name: 'Style guide — Legacy', reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
-    ok(styleGuideSummary(re).summary.includes('1 superseded table edited — left in place: Style guide — Legacy (a copy)'), '11: the summary says it is a copy');
+    ok(!legE.parent && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify([LEGACY]) && JSON.stringify(re.kept) === JSON.stringify([{ name: LEGACY, reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
+    ok(summaryOf(re).includes('1 table the generator no longer draws was left in place — a copy: Style guide — Legacy'), '11: the summary says it is a copy');
+
+    // An unedited table the host will not remove is named as such, not as edited.
+    const nr = await afterEdit((t) => { (t as unknown as { remove: undefined }).remove = undefined; });
+    ok(keptAs(nr.r, 'not-removable') && summaryOf(nr.r).includes('left in place — could not be deleted: Style guide — Legacy'), '11: an unedited table that cannot be removed is reported as "could not be deleted"');
+
+    // THE RUN'S OWN GUARDS. Every variable deleted, collections kept: the run draws nothing, so nothing is deleted.
+    const g0 = await fullFile();
+    await runStyleGuide(g0.api, contract);
+    g0.vars.splice(0);
+    const r0 = await runStyleGuide(g0.api, contract);
+    ok(r0.deleted.length === 0 && r0.kept.length === 22 && r0.kept.every((k) => k.reason === 'nothing-drawn') && tablesOn(g0.prim).length + tablesOn(g0.sem).length === 22, `11: a run that draws nothing deletes nothing: 22 tables kept (${r0.deleted.length} deleted)`);
+    ok(summaryOf(r0).includes('22 tables the generator no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 19 more'), '11: the summary gives the reason and caps the list at three names');
+    // The variables moved to a library: no local collection, no local variable. Every table's collection is gone.
+    const lib = await fullFile();
+    await runStyleGuide(lib.api, contract);
+    lib.cols.splice(0); lib.vars.splice(0);
+    const rl = await runStyleGuide(lib.api, contract);
+    ok(rl.deleted.length === 0 && rl.kept.length === 22 && rl.kept.every((k) => k.reason === 'no-collection'), '11: variables moved to a library: every table kept, its collection not in this file');
+    // One collection gone while the rest still draw: the plan is not empty, and only the collection check keeps it.
+    const g1 = await fullFile();
+    await runStyleGuide(g1.api, contract);
+    g1.cols.splice(g1.cols.findIndex((c) => c.name === 'legacy'), 1);
+    dropLegacy(g1);
+    const r1 = await runStyleGuide(g1.api, contract);
+    ok(!!tableFrame(g1.prim, 'Legacy') && keptAs(r1, 'no-collection'), "11: a table whose collection is no longer in the file is kept while the rest are drawn");
+    ok(summaryOf(r1).includes('left in place — its collection is not in this file: Style guide — Legacy'), '11: the summary says its collection is not in this file');
+
+    // More than three deleted: the list is capped and the headline counts them.
+    const many = await fullFile();
+    await runStyleGuide(many.api, contract, { collections: ['color'] });
+    for (let i = many.vars.length - 1; i >= 0; i--) if (/^pds3\/color\/(scrim|veil|field|disabled)\//.test(many.vars[i].name)) many.vars.splice(i, 1);
+    const rm = await runStyleGuide(many.api, contract, { collections: ['color'] });
+    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 7 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 7 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
