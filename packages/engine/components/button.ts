@@ -641,13 +641,16 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
       'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       // THE BRAND'S BUTTON SETTINGS (#1667), stated for the agent that builds this component in code: the
-      // def is brand-agnostic, so the three settings travel as brand input (`buttonIcons`,
-      // `buttonMinWidthMultiplier`, `buttonContentSize`) and these lines say what each one builds.
+      // def is brand-agnostic, so the settings travel as brand input (`buttonIcons`,
+      // `buttonMinWidthMultiplier`, `buttonContentSize`, and #1752's `buttonLabelWeight`) and these lines
+      // say what each one builds.
       // #1697 — split from one ~400-character line: one item per setting value.
       'Place the icons the way the brand\'s `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered',
       'Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button',
       'Give every size a minimum width of its height × the brand\'s `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button',
       'On a brand whose `buttonContentSize` is `smaller` (One step smaller), give a medium button the small size\'s label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own',
+      // #1752 — the fourth setting. Same shape as the line above: the setting, its option label, what it binds.
+      'On a brand whose `buttonLabelWeight` is `default` (Default), set every size\'s label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with One step smaller, a medium button takes `type.label.sm.default`',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant',
       ...sibling.do,
     ],

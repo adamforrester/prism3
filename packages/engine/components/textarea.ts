@@ -303,7 +303,9 @@ export const textarea: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the textarea. Starts at the field default (small / secondary / regular).',
+        // FILLS the field's width (#1757, select's label): a long name wraps at the field's width.
+        crossAxisFill: true,
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the textarea. Starts at the field default (small / secondary / regular). Fills the field\'s width, so a long name wraps.',
       },
       // THE BODY — the control and the message row in a GAP-0 column. The stack gap between them is carried
       // by the message and counter CELLS instead (their `paddingTop`), so it hides with them: a column gap
@@ -388,22 +390,25 @@ export const textarea: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
         note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke.',
       },
-      // THE MESSAGE ROW — the message cell at the start and the counter cell growing to the end, stretched to
-      // the field's width. Structure only, always present, and never switched: each cell is. With both cells
-      // off it is empty and measures nothing; its height is otherwise the taller cell's.
+      // THE MESSAGE ROW — the message cell growing from the start and the counter cell hugging its caption at
+      // the end, stretched to the field's width. Justified to the END, so with the message off the counter
+      // still trails. Structure only, always present, and never switched: each cell is. With both cells off
+      // it is empty and measures nothing; its height is otherwise the taller cell's.
       messageRow: {
         kind: 'box',
-        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        layout: { direction: 'row', align: 'start', justify: 'end', sizing: { x: 'fill', y: 'hug' } },
         gap: 'root-gap',
         crossAxisFill: true,
         children: ['messageCell', 'counterCell'],
       },
-      // THE MESSAGE CELL — the nested message with the stack gap above it. The `message` boolean toggles this
-      // cell, so the gap hides with the message.
+      // THE MESSAGE CELL — the nested message with the stack gap above it, GROWING across the row beside the
+      // counter so a long message wraps inside it rather than running under the caption. The `message`
+      // boolean toggles this cell, so the gap hides with the message.
       messageCell: {
         kind: 'box',
-        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         paddingTop: 'root-gap',
+        grow: true,
         optional: true,
         children: ['message'],
       },
@@ -412,16 +417,15 @@ export const textarea: ComponentDef = {
         kind: 'nest',
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
+        crossAxisFill: true,
         note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Shown by default; the `message` boolean hides it, with the space above it.',
       },
-      // THE COUNTER CELL — the stack gap above the counter, GROWING across the rest of the row and justifying
-      // the caption to its end, so the counter trails whether or not the message is shown. The `character
-      // count` boolean toggles this cell.
+      // THE COUNTER CELL — the stack gap above the counter, HUGGING the caption at the end of the row, so the
+      // counter trails whether or not the message is shown. The `character count` boolean toggles this cell.
       counterCell: {
         kind: 'box',
-        layout: { direction: 'row', align: 'start', justify: 'end', sizing: { x: 'fill', y: 'hug' } },
+        layout: { direction: 'row', align: 'start', justify: 'end', sizing: { x: 'hug', y: 'hug' } },
         paddingTop: 'root-gap',
-        grow: true,
         optional: true,
         children: ['counter'],
       },

@@ -495,6 +495,83 @@ export const makeShim = (opts: ShimOpts = {}) => {
     return false;
   };
 
+  // ── FILL, under `layoutModel` (#1751) ────────────────────────────────────────────────────────────────
+  // What the host does and this shim did not: a child FILLS an axis when its parent supplies the space
+  // (`layoutAlign: 'STRETCH'` across a column, `layoutGrow: 1` along a row) AND its own mode on that axis is
+  // FIXED. Either half alone is a hug, which is the #1751 defect this has to be able to witness — a
+  // STRETCHed row left at AUTO measures its content, not its parent. Width only: every fill this projects
+  // is a width, and a HEIGHT-wrapping text node reflows from the width it is given (`lines` below).
+  const lit = (n: Node, k: string): number => (typeof n[k] === 'number' ? n[k] as number : 0);
+  const padX = (n: Node): number => {
+    const bv = n.boundVariables as Record<string, { value?: number }>;
+    return (bv.paddingLeft?.value ?? lit(n, 'paddingLeft')) + (bv.paddingRight?.value ?? lit(n, 'paddingRight'));
+  };
+  const strokeX = (n: Node): number =>
+    (n.strokes as unknown[]).length > 0 && n.strokesIncludedInLayout !== false ? 2 * (n.strokeWeight as number) : 0;
+  const flowOf = (n: Node): Node[] =>
+    ((n.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));
+  /** Is this node's OWN width fixed — a frame's mode on its x axis, an instance's on its main's, a text
+   *  node's `textAutoResize` (HEIGHT / NONE hold the width)? */
+  const fixedOnX = (n: Node): boolean => {
+    if (n.type === 'TEXT') return n.textAutoResize === 'HEIGHT' || n.textAutoResize === 'NONE';
+    const lm = n.type === 'INSTANCE' ? (n._main as Node | undefined)?.layoutMode : n.layoutMode;
+    return (lm === 'VERTICAL' ? n.counterAxisSizingMode : n.primaryAxisSizingMode) === 'FIXED';
+  };
+  /** A flow child whose width its PARENT decides — and so is left out of that parent's hug (a column) or
+   *  counted at its natural width there (a row), or the two getters would ask each other forever. */
+  const fillsX = (n: Node): boolean => {
+    const p = n.parent as Node | null;
+    if (!opts.layoutModel || !p || !p.layoutMode || n.layoutPositioning === 'ABSOLUTE' || !fixedOnX(n)) return false;
+    return p.layoutMode === 'VERTICAL' ? n.layoutAlign === 'STRETCH' : n.layoutGrow === 1;
+  };
+  const innerX = (p: Node): number => (p.width as number) - padX(p) - strokeX(p);
+  const gapOf = (p: Node): number => (p.boundVariables as Record<string, { value?: number }>).itemSpacing?.value ?? 0;
+  const fillWidth = (n: Node): number | undefined => {
+    if (!fillsX(n)) return undefined;
+    const p = n.parent as Node;
+    if (p.layoutMode === 'VERTICAL') return Math.max(0, innerX(p));
+    // ALONG A ROW the growers share what the rest of the row leaves. In a FIXED row (its own mode, or an
+    // instance's main laid out at the instance's width) that can be LESS than their content — a row too
+    // narrow shrinks them, which is how a long message comes to wrap. A HUGGING row is at least as wide as
+    // its content, so a grower keeps its natural width and takes a share of any floor's slack on top.
+    const kids = flowOf(p);
+    const growers = kids.filter(fillsX);
+    const rest = kids.filter((c) => !growers.includes(c)).reduce((a, c) => a + ((c.width as number) || 0), 0);
+    const room = innerX(p) - rest - Math.max(0, kids.length - 1) * gapOf(p);
+    if (fixedOnX(p) || typeof p._forcedWidth === 'number') return Math.max(0, room / growers.length);
+    const natural = growers.reduce((a, c) => a + naturalWidth(c), 0);
+    return naturalWidth(n) + Math.max(0, room - natural) / growers.length;
+  };
+  const textNatural = (n: Node): number =>
+    ((n.characters as string) || '').length * 6 + (opts.textAdvance?.[String(n._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
+  /** What the node measures on its own — the width it HUGS to, before any parent fills it. */
+  const naturalWidth = (node: Node): number => {
+    if (node._main) return (node._main as Node).width as number;
+    if (typeof node._forcedWidth === 'number') return node._forcedWidth;
+    const bv = node.boundVariables as Record<string, { value?: number }>;
+    if (bv.width) return bv.width.value ?? 0;
+    // A NODE WHOSE OWN WIDTH IS FIXED MEASURES THE WIDTH IT WAS SET AT, not its content (#1757, `layoutModel`
+    // only): a `HEIGHT` text keeps the width it froze at (the `textAutoResize` setter below), and a FIXED
+    // auto-layout frame keeps its last resize — Figma's `createFrame` default of 100 until one. Only a
+    // parent that fills it (`fillWidth`) moves either. Measuring content here instead is what let a grow
+    // child in a hugging row, and a FIXED value row with a long value in it, read as if they tracked their text.
+    if (opts.layoutModel && fixedOnX(node) && node.type !== 'INSTANCE')
+      return typeof node._setW === 'number' ? node._setW : node.type === 'TEXT' ? textNatural(node) : 100;
+    if (node.type === 'TEXT') return textNatural(node);
+    // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
+    // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
+    const kids = flowOf(node);
+    const column = opts.layoutModel && node.layoutMode === 'VERTICAL';
+    // A child its parent fills: out of a column's hug, at its natural width in a row's (see `fillsX`).
+    const w = (c: Node): number => (fillsX(c) ? (column ? 0 : naturalWidth(c)) : (c.width as number) || 0);
+    // A COLUMN's cross axis is its width: the widest child, not the sum (`layoutModel` only).
+    const hug = column ? kids.reduce((a, c) => Math.max(a, w(c)), 0) : kids.reduce((a, c) => a + w(c), 0);
+    // THE LITERAL WIDTH FLOOR (`minWidth`, #1343a), under `layoutModel`: a 320 control holds the field's
+    // column at 320 on the host, so a wider-or-narrower nested message does not move the field's width.
+    const floor = opts.layoutModel && typeof node.minWidth === 'number' ? node.minWidth : 0;
+    return Math.max(floor, padX(node) + hug + strokeX(node));
+  };
+
   const mkNode = (type: string): Node => {
     const node: Node = {
       type, name: '', boundVariables: {} as Record<string, unknown>,
@@ -578,6 +655,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const gap = bv.itemSpacing?.value ?? 0;
         // A LITERAL padding (#1667's reserve beside a pinned icon) counts when the side is not bound.
         let at = bv.paddingLeft?.value ?? (typeof p.paddingLeft === 'number' ? p.paddingLeft : 0);
+        // JUSTIFIED TO THE END (#1751, `layoutModel` only): a row's flow starts where its content, packed
+        // right, leaves off — the slack its own width has over the children's.
+        if (opts.layoutModel && p.layoutMode === 'HORIZONTAL' && p.primaryAxisAlignItems === 'MAX') {
+          const kids = flowOf(p);
+          const used = kids.reduce((a, c) => a + ((c.width as number) || 0), 0) + Math.max(0, kids.length - 1) * gap;
+          at += Math.max(0, innerX(p) - used);
+        }
         for (const c of ((p.children as Node[]) ?? [])) {
           if (c === node) return at;
           if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
@@ -602,25 +686,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // a stroke silently — the #503 finding restated as a model). ABSOLUTE children are excluded from
       // the hug, as they are live: a ring that grew its own target would be circular.
       get width() {
-        const bv = node.boundVariables as Record<string, { value?: number }>;
-        const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
-        if (bv.width) return bv.width.value ?? 0;
-        if (node.type === 'TEXT')
-          return ((node.characters as string) || '').length * 6 + (opts.textAdvance?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
-        // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
-        const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
-        const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
-        // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
-        // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
-        const kids = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));
-        // A COLUMN's cross axis is its width: the widest child, not the sum (`layoutModel` only).
-        const hug = opts.layoutModel && node.layoutMode === 'VERTICAL'
-          ? kids.reduce((a, c) => Math.max(a, (c.width as number) || 0), 0)
-          : kids.reduce((a, c) => a + ((c.width as number) || 0), 0);
-        // THE LITERAL WIDTH FLOOR (`minWidth`, #1343a), under `layoutModel`: a 320 control holds the field's
-        // column at 320 on the host, so a wider-or-narrower nested message does not move the field's width.
-        const floor = opts.layoutModel && typeof node.minWidth === 'number' ? node.minWidth : 0;
-        return Math.max(floor, pad + hug + (stroked ? 2 * (node.strokeWeight as number) : 0));
+        // FILLED by its parent (#1751, `layoutModel` only), else what it hugs to — see `naturalWidth`.
+        return fillWidth(node) ?? naturalWidth(node);
       },
       // BOTH axes, because a claim about only one is half-unfalsifiable: with `height` a plain 0, a ring
       // resized to `(node.width + off*2, off*2)` — its height ignoring its target entirely — passes the
@@ -632,8 +699,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // A LITERAL `minHeight` (the reserved-lines floor, textarea's `rows`) holds the node at least that tall,
         // as the host does — a TEXT node's box is then max(floor, its own line box).
         const litFloor = typeof node.minHeight === 'number' ? node.minHeight : 0;
-        if (opts.layoutModel && node.type === 'TEXT')
-          return Math.max(litFloor, opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
+        // A WRAPPING text node (#1751) is as many line boxes tall as its content takes at the width it was
+        // given — one, unless a parent filled it narrower than its natural run.
+        if (opts.layoutModel && node.type === 'TEXT') {
+          const w = node.width as number;
+          const lines = node.textAutoResize === 'HEIGHT' && w > 0 ? Math.max(1, Math.ceil(textNatural(node) / w)) : 1;
+          return Math.max(litFloor, lines * (opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0));
+        }
         const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
         const flow = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));
         // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child. A COLUMN (under
@@ -736,6 +808,19 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // order the executors use; the ring clears its bindings before it resizes.
       resize(w: number, h: number) {
         const bv = node.boundVariables as Record<string, { value?: number }>;
+        // AN AUTO-LAYOUT FRAME, under `layoutModel` (#1757): the resize sets the width a FIXED axis holds, and a
+        // HUG axis goes on hugging its children — so a root built at its `placementWidth` is 320 across and as
+        // tall as its content. Decided at READ time, because the executors resize before writing `layoutMode`.
+        node._setW = w;
+        node._setH = h;
+        const hugH = Object.getOwnPropertyDescriptor(node, 'height')?.get;
+        const autoLayout = (): boolean => !!opts.layoutModel && !!node.layoutMode && node.type !== 'INSTANCE' && node.type !== 'TEXT';
+        const fixedOnY = (): boolean => (node.layoutMode === 'VERTICAL' ? node.primaryAxisSizingMode : node.counterAxisSizingMode) === 'FIXED';
+        if (opts.layoutModel && node.type !== 'INSTANCE' && node.type !== 'TEXT') {
+          Object.defineProperty(node, 'width', { configurable: true, get: () => (autoLayout() ? fillWidth(node) ?? naturalWidth(node) : bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; node._setW = v; } });
+          Object.defineProperty(node, 'height', { configurable: true, get: () => (autoLayout() && !fixedOnY() && hugH ? hugH.call(node) : bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; node._setH = v; } });
+          return;
+        }
         Object.defineProperty(node, 'width', { configurable: true, get: () => (bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; } });
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
       },
@@ -816,6 +901,26 @@ export const makeShim = (opts: ShimOpts = {}) => {
         get() { return undefined; },
         set(_v: string | undefined) {
           throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+        },
+      });
+    }
+    // A FIXED-WIDTH TEXT NODE KEEPS THE WIDTH IT WAS SET AT (#1757, `layoutModel` only). Switching a text from
+    // auto width to `HEIGHT` (or `NONE`) freezes its width where its content left it, and nothing but a resize
+    // or a parent that FILLS it moves that width again — new characters reflow inside it. The executors write
+    // `HEIGHT` after the characters, so a wrapping caption freezes at the width of its DEFAULT string. This
+    // shim used to measure such a node at its characters' natural width every time it was read, which is
+    // exactly the value a frozen box does not have: a longer override then looked one line long instead of
+    // wrapping at ~150px, and the field-message defect the independent review found passed here.
+    if (type === 'TEXT') {
+      let tar: unknown;
+      Object.defineProperty(node, 'textAutoResize', {
+        configurable: true,
+        enumerable: true,
+        get() { return tar; },
+        set(v: unknown) {
+          const fixed = (m: unknown) => m === 'HEIGHT' || m === 'NONE';
+          if (opts.layoutModel && fixed(v) && !fixed(tar)) node._setW = textNatural(node);
+          tar = v;
         },
       });
     }
@@ -1071,9 +1176,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
+            // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
+            // laid out at that width — so a message that wraps in a narrower field reads taller here too.
             if (main && opts.layoutModel) {
-              Object.defineProperty(inst, 'width', { configurable: true, get: () => main.width });
-              Object.defineProperty(inst, 'height', { configurable: true, get: () => main.height });
+              inst._main = main;
+              Object.defineProperty(inst, 'width', { configurable: true, get: () => fillWidth(inst) ?? main.width });
+              Object.defineProperty(inst, 'height', {
+                configurable: true,
+                get: () => {
+                  const w = fillWidth(inst);
+                  if (w === undefined) return main.height;
+                  main._forcedWidth = w;
+                  try { return main.height; } finally { delete main._forcedWidth; }
+                },
+              });
             }
             // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
             // into them and can collide (see `nestedInstanceParts`). Each refuses a reference write: it is

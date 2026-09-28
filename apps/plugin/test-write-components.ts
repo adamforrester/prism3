@@ -3278,6 +3278,49 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #1667 / #1752 — THE PLUGIN READS THE BUTTON SETTINGS OFF THE BRAND
+// =============================================================================================
+// `materializeForBrand` reads the four button settings off the raw input (`brandButtonLayout`), and until
+// here nothing on the plugin side ran it with any of them set: `lint-lever-sweep.ts` restates the
+// composition rather than importing it, so hard-coding a setting in `brand-def.ts` left every gate green
+// (found in review of #1759). Each setting below goes through `materializeForBrand` on nb-redesign, and the
+// medium member of the materialized button is compared to HAND-WRITTEN literals (docs/34): its label type
+// ref and text style, its icon ref, its floor and its pinned icons. nb-redesign's medium button is 44px high
+// with a 12px visual padding, so the floor is 104 at the default 2.25 and 176 at 4. Mutation: hard-code
+// any one setting in `brandButtonLayout` to its default, and that setting's line below fails by name.
+{
+  const nbInput = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  const medium = (extra: Partial<BrandInput>) => {
+    const def = materializeForBrand(button, { ...nbInput, ...extra } as BrandInput);
+    const root = figmaAnatomyPlan(def, 'medium', { leading: true, trailing: true, swapTarget: SWAP, appearance: 'filled', state: 'rest' }).root;
+    return {
+      type: def.tokens['size.medium.type'], icon: def.tokens['size.medium.icon'], style: planTextStyles(root).join(),
+      floor: root.minWidth, pins: root.children.filter((c) => c.pin).map((c) => `${c.name}:${c.pin!.edge}:${c.pin!.inset}`).join(),
+    };
+  };
+  const base = medium({});
+  ok(base.type === 'type.label.md.emphasis' && base.style === 'label/md/emphasis' && base.icon === 'icon.size.sm' && base.floor === 104 && base.pins === '',
+    `#1667 plugin button settings: nb-redesign unset builds the medium label at type.label.md.emphasis (label/md/emphasis), icon.size.sm, a 104px floor and no pinned icons (got ${JSON.stringify(base)})`);
+  const weight = medium({ buttonLabelWeight: 'default' });
+  ok(weight.type === 'type.label.md.default' && weight.style === 'label/md/default',
+    `#1752 plugin button settings: buttonLabelWeight 'default' builds the medium label at type.label.md.default (label/md/default) (got ${weight.type} / ${weight.style})`);
+  ok(buildFigmaTextStyles(brandTheme({ ...nbInput, buttonLabelWeight: 'default' } as BrandInput)).styles.some((st) => st.name === 'label/md/default'),
+    `#1752 plugin button settings: the nb-redesign host holds label/md/default under buttonLabelWeight 'default', so the medium label resolves`);
+  const smaller = medium({ buttonContentSize: 'smaller' });
+  ok(smaller.type === 'type.label.sm.emphasis' && smaller.icon === 'icon.size.xs',
+    `#1667 plugin button settings: buttonContentSize 'smaller' builds the medium label at type.label.sm.emphasis with icon.size.xs (got ${smaller.type}, ${smaller.icon})`);
+  const both = medium({ buttonContentSize: 'smaller', buttonLabelWeight: 'default' });
+  ok(both.type === 'type.label.sm.default' && both.style === 'label/sm/default',
+    `#1752 plugin button settings: 'smaller' + 'default' builds the medium label at type.label.sm.default (label/sm/default) (got ${both.type} / ${both.style})`);
+  const edges = medium({ buttonIcons: 'edges' });
+  ok(edges.pins === 'leadingVisual:MIN:12,trailingVisual:MAX:12',
+    `#1667 plugin button settings: buttonIcons 'edges' pins the medium icons at 12px (leading MIN, trailing MAX) (got '${edges.pins}')`);
+  const wide = medium({ buttonMinWidthMultiplier: 4 });
+  ok(wide.floor === 176,
+    `#1667 plugin button settings: buttonMinWidthMultiplier 4 gives the medium button a 176px floor, 44 × 4 (got ${wide.floor})`);
+}
+
+// =============================================================================================
 // #1633 — NESTED COMPONENTS BUILD FIRST
 // =============================================================================================
 // The owner built `button` into a fresh Aurora file and got 72 `focusRing.nestTarget -> focus-ring (not in
@@ -3436,8 +3479,25 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const BOLD = 'emphasis=primary, weight=bold, size=small, state=rest';
   const REG = 'emphasis=primary, weight=regular, size=small, state=rest';
 
-  // (a) field-label AS SHIPPED — `weight` is authoring, so the cohort holds it and a wider bold is no miss.
-  const shipped = await measure(labelPlans);
+  // THE SEED IS FIELD-LABEL'S HUGGING SHAPE, as it shipped until #1757. Field-label is now built at a fixed
+  // 320 with a wrapping name (`placementWidth`), so a wider cut no longer moves its box at all; the cohort
+  // rule this block gates is not field-label's, and it needs a box whose width follows its text. So the
+  // fixture restores the hug — root `sizing.x: 'hug'`, no build width, a name that does not wrap — and
+  // everything else, the `weight` axis and its classification included, is the shipped def's.
+  const la = fieldLabel.anatomy!;
+  const hugLabel: ComponentDef = {
+    ...fieldLabel,
+    anatomy: {
+      ...la,
+      parts: {
+        ...la.parts,
+        [la.root]: { ...la.parts[la.root], layout: { ...la.parts[la.root].layout!, sizing: { ...la.parts[la.root].layout!.sizing, x: 'hug' } }, placementWidth: undefined },
+        text: { ...la.parts.text, wrap: undefined },
+      },
+    },
+  };
+  // (a) field-label's axes AS SHIPPED — `weight` is authoring, so the cohort holds it and a wider bold is no miss.
+  const shipped = await measure(figmaAnatomySet(hugLabel, { swapTarget: SWAP }));
   // THE GUARD FIRST: the bold member must actually measure wider under this seed, or (a) passes against a
   // cohort that compares weight too and (b) below has nothing to catch.
   ok(!!shipped.box.get(BOLD) && !!shipped.box.get(REG) && shipped.box.get(BOLD) !== shipped.box.get(REG),
@@ -3447,7 +3507,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (b) THE BOLD-WHEN-SELECTED SHAPE — the same def with `weight` classified runtime, which is what a label
   // that goes bold on selection is. A runtime change that widens the text is a layout jump, and it is caught.
-  const toggleLabel: ComponentDef = { ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'runtime' } };
+  const toggleLabel: ComponentDef = { ...hugLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'runtime' } };
   const togglePlans = figmaAnatomySet(toggleLabel, { swapTarget: SWAP });
   const jump = await measure(togglePlans);
   ok(jump.foot.some((m) => m === `footprint -> ${BOLD} measures ${jump.box.get(BOLD)} but ${REG} measures ${jump.box.get(REG)} (same size=small, emphasis=primary)`),
@@ -3656,9 +3716,22 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const CAPTION = 'caption/md/default';
   ok(styles.includes(VALUE) && styles.includes(CAPTION),
     `textarea grip/counter seed: the set sets its value in ${VALUE} and a caption in ${CAPTION} (${styles.join(', ')})`);
-  // Wider than the control's 320 floor at the shim's 6px per character, so the control's width FOLLOWS its
-  // flow content and a glyph in the flow would show in it. At the 11-character placeholder the floor hides it.
-  const LONG = 'x'.repeat(80);
+  // A value that EXACTLY FILLS the text box at the point where it starts to grow the control, at the shim's
+  // 6px per character (#1757). The text wraps (`HEIGHT`) inside the control's 320 floor, so a long value
+  // never widens the control; past the reserved rows it grows it taller. A glyph left in the flow narrows
+  // the text by its own width, so a value that exactly fills k lines wraps to k+1 — which is how an in-flow
+  // glyph shows in the control's box. Found per member by MEASURING the built control (the smallest k whose
+  // one-character overflow grows it), never read off the def or the plan.
+  const fitting = (text: Node, ctl: Node): string => {
+    for (let k = 1; k <= 12; k++) {
+      const f = 'x'.repeat(Math.floor((k * (text.width as number)) / 6));
+      text.characters = f + 'x';
+      const over = ctl.height as number;
+      text.characters = f;
+      if (over > (ctl.height as number)) return f;
+    }
+    return '';
+  };
   const find = (n: Node | undefined, name: string): Node | undefined => {
     if (!n) return undefined;
     if (n.name === name) return n;
@@ -3715,8 +3788,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `textarea grip corner: on all 24 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
 
   // ---- the grip moves no box: the control and the member measure alike with it on and off ----
-  // With the LONG value the control's width follows its flow content (the floor is checked, so this arm
-  // cannot pass by the 320 floor absorbing a glyph in the flow).
+  // With a value that exactly fills the text's line, ONE more character of width wraps it (the seed checks
+  // that per member), so this arm cannot pass by the 320 floor absorbing a glyph in the flow: the glyph
+  // would narrow the text and show in the control's height.
   const gripFoot: string[] = [];
   let contentDriven = 0;
   for (const m of b.members) {
@@ -3724,16 +3798,19 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const ctl = find(m, 'control');
     const text = find(ctl, 'placeholder') ?? find(ctl, 'value');   // the layer this member's state shows (Option C)
     if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }
-    text.characters = LONG;
-    if ((ctl.width as number) > 320) contentDriven++;
-    const on = [box(ctl), box(m)];
+    // Sized with the grip OFF, so the text is at the width it has without any glyph: a grip that then took
+    // a cell would narrow it below that and wrap the fitted value.
     g.visible = false;
+    const fit = fitting(text, ctl);
+    text.characters = fit;
+    if (fit.length > 0) contentDriven++;
     const off = [box(ctl), box(m)];
     g.visible = true;
+    const on = [box(ctl), box(m)];
     if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
   }
   ok(b.members.length === 24 && contentDriven === 24,
-    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/24)`);
+    `textarea grip footprint seed: on every member a value that exactly fills the text box wraps with one more character and grows the control taller, so a glyph in the flow would show in its height (${contentDriven}/24)`);
   ok(b.members.length === 24 && gripFoot.length === 0,
     `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 24 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
@@ -3760,9 +3837,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
     `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 24 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
-  ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && (r.children as Node[]).at(-1) === countLayers[i]
-      && countLayers[i]!.layoutGrow === 1 && countLayers[i]!.primaryAxisAlignItems === 'MAX'),
-    `textarea counter row: on all 24 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
+  // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
+  // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
+  ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && r.primaryAxisSizingMode === 'FIXED' && r.primaryAxisAlignItems === 'MAX'
+      && (r.children as Node[]).at(-1) === countLayers[i]
+      && countLayers[i]!.layoutGrow === 0 && countLayers[i]!.primaryAxisSizingMode === 'AUTO' && msgLayers[i]!.layoutGrow === 1),
+    `textarea counter row: on all 24 members the counter's layer is the LAST child of the stretched, FIXED-width message row justified to its end (MAX), the counter's layer hugs (layoutGrow 0, AUTO) and the message's grows (layoutGrow 1), so the counter trails with the message on or off`);
   ok(counters.every((c) => c && c.characters === '0 / 200'),
     `textarea counter text: the counter reads "0 / 200", the def's counter format (${counters[0]?.characters})`);
 

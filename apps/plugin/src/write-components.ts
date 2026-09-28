@@ -1645,6 +1645,14 @@ const writeComponentSet = async (
       else await node.setEffectStyleIdAsync?.(ef.id);
     }
     if (n.layoutMode) {
+      // THE ROOT'S BUILD WIDTH (#1757, `FigmaNodePlan.placementWidth`): a root whose `fill` has no placement
+      // in its own def is built at this width, so a wrapping text inside it reflows at it rather than
+      // freezing at its default string's. BEFORE the modes below, because Figma switches a resized axis to
+      // FIXED — the plan's modes are written after it and stand. Read back. Lockstep with the paste executor.
+      if (n.placementWidth) {
+        node.resize?.(n.placementWidth, node.height as number);
+        if (node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+      }
       node.layoutMode = n.layoutMode;
       node.primaryAxisAlignItems = n.primaryAxisAlignItems;
       node.counterAxisAlignItems = n.counterAxisAlignItems;
@@ -1810,6 +1818,9 @@ const writeComponentSet = async (
       // design override, and the `nest` rows / label / message are exactly the children that must STRETCH.
       // Written only when the plan carries it (a `crossAxisFill` part); every other child keeps `INHERIT`.
       if (c.layoutAlign) kid.layoutAlign = c.layoutAlign;
+      // A FILLING NEST'S OWN MODE (#1751): the stretch above is only the supplier — an instance whose root
+      // hugs goes on hugging until its own mode on that axis is FIXED. Lockstep with the paste executor.
+      if (c.instanceSizing) Object.assign(kid, c.instanceSizing);
       // THE RESERVED LINES (textarea's `rows`). Applied by the PARENT after the append, like `layoutAlign`:
       // a minimum size is a property of an auto-layout CHILD. The plan carries the COUNT; the line height is
       // the host's, read off the node its style was applied to — `PIXELS` as is, `PERCENT` of the font size.

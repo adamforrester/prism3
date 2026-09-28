@@ -262,7 +262,8 @@ export type PartDef = {
    *  the children run along" and the projector reads it against `layout.direction` — which is also why a
    *  part binding it must declare `sizing.x: 'fixed'`: a hugging main axis is decided by the children and
    *  the binding would be silently overridden. That is the same trap `size`'s two sizing rules catch, and
-   *  the same one #989 records for `'fill'`.
+   *  `'fill'` falls into it as well: a filled length is the parent's, so the binding would be overridden
+   *  by the placement (#1751).
    *
    *  It is ALSO the precondition for `positionWhen` — see that field. A part cannot travel along an axis
    *  whose length its parent does not fix, because a parent hugging one child is exactly as long as the
@@ -328,10 +329,13 @@ export type PartDef = {
    *  with `WIDTH_AND_HEIGHT` still hugs, and an auto-height box with no fixed width has nothing to wrap to.
    *
    *  ITS PRECONDITION, asserted by `anatomyErrors` rather than trusted: the parent must BOUND its main-axis
-   *  width — a `minWidth` floor or `sizing.x: 'fixed'` — because `layoutGrow` fills REMAINING space, and a
-   *  hugging parent is exactly as wide as its children, leaving none. That is the #989 silent no-op (a
-   *  `'fill'`/`'hug'` main axis projects to AUTO), so a `wrap` label under a floorless row is refused, which
-   *  is what makes the row's `minWidth` load-bearing rather than decorative. `boolean`; absent means hug. */
+   *  width — a `minWidth` floor, `sizing.x: 'fixed'`, a width it FILLS from a bounded ancestor (#1757, select's
+   *  `content`), or, on a root, a `placementWidth` — because `layoutGrow` fills REMAINING space, and a
+   *  hugging parent is exactly as wide as its children, leaving none. The text then keeps the width it was
+   *  set at — the default string's (#1757, measured: field-message's caption froze at ~150px and a longer
+   *  message wrapped to three lines inside a 320 field). So a `wrap` label under an unbounded row is
+   *  refused, which is what makes the row's floor load-bearing rather than decorative. `boolean`; absent
+   *  means hug. */
   wrap?: boolean;
   /** For a `text` part: the text box is at least this many LINES of its own type's line height tall —
    *  a multi-line field's visible rows (textarea). NAMED AS A PROP, never a count: the value is the
@@ -380,16 +384,17 @@ export type PartDef = {
    *  `absolute` (out of the flow). `boolean`; absent means the child keeps its own cross-axis sizing. */
   crossAxisFill?: boolean;
   /** For a non-root `box`: FILL the parent's MAIN axis (`layoutGrow: 1`) — `wrap`'s main-axis fill, for a box
-   *  rather than a text. Textarea's counter cell is the case: it grows across the message row and justifies
-   *  its caption to the end, so the counter trails whether or not the message beside it is shown. A
-   *  `space-between` row cannot do that: with its first child hidden it puts the one left at the START.
+   *  rather than a text. Textarea's message cell is the case (#1751): it grows across the message row beside
+   *  the hugging counter cell, and the row is justified to its end, so the counter trails whether or not the
+   *  message is shown.
    *
    *  Projects the same `layoutGrow: 1` a wrapping label does, and both executors already write it on every
    *  created node (`claimDefaults` claims `0` everywhere else), so no executor changes. Carried onto the plan
    *  ONLY when set. Refused on the root and on every kind but `box` (a nested instance's child-side writes are
    *  the parent's, and only `layoutAlign` is threaded there). ITS PRECONDITION is `wrap`'s: the parent must
-   *  BOUND its main axis, or the grow fills nothing (#989). A row is bounded by a `minWidth` floor, a fixed
-   *  main axis, or a `crossAxisFill` stretch across a COLUMN parent (it is then as wide as that column). */
+   *  BOUND its main axis, or the grow fills nothing. A row is bounded by a `minWidth` floor, a fixed main
+   *  axis, a width it fills from a bounded ancestor (#1757), or a `crossAxisFill` stretch across a COLUMN
+   *  parent (it is then as wide as that column). */
   grow?: boolean;
   /** For a `box` with `layout`: the binding key for its TOP padding only, the other three sides zero. The
    *  space ABOVE a part that a boolean hides, so the space hides with it. Textarea's message and counter cells
@@ -445,13 +450,13 @@ export type PartDef = {
    *  variable, and it does not touch the guaranteed token-NAME surface: `CONTRACT_VERSION` does not move.
    *
    *  WHY A MIN-WIDTH AND NOT A BOUND `width`. Prism 2's select is `root width 320 · HUG` with its inner
-   *  containers `FILL`ing that width (`reference/Prism2/component-specs/select.json`). The engine cannot
-   *  project a child that FILLs — `sizing: 'fill'` maps to AUTO (#989/#990), so a `fill` control HUGS its
-   *  content rather than stretching to a floored parent. A `minWidth` on the visible `control` reproduces
-   *  Prism 2's rendered geometry the one way projection allows: the control renders at ≥320, the hugging
-   *  column inherits that width, and — because the sizing is still AUTO, not FIXED — the field FLEXES above
-   *  the floor rather than being pinned to a hard size (the responsive half, #1345). A bound `width` would
-   *  instead need `sizing.x: 'fixed'` (the row-oriented width rule), pinning the field and losing the flex.
+   *  containers `FILL`ing that width (`reference/Prism2/component-specs/select.json`). The floor sits on the
+   *  visible `control`, and the field's column hugs to it. Since #1751 a `fill` part fills (see
+   *  `anatomy-figma.ts`'s `fillsAxis`), and the floored control is what its siblings fill FROM: the label and
+   *  message stretch to the column the control holds at 320, and the value row inside the control grows
+   *  across it. The control itself keeps hugging above its floor — it is the part that carries the width, so
+   *  it cannot also take its width from the column. A bound `width` would need `sizing.x: 'fixed'` (the
+   *  row-oriented width rule) and pin the field.
    *
    *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
    *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
@@ -462,6 +467,25 @@ export type PartDef = {
    *  that map — `applyButtonLayout` writes it before projection, from the brand's resolved heights, which is
    *  why the def stays brand-agnostic. The map must name exactly the def's `size` values. */
   minWidth?: number | Record<string, number>;
+  /** For the ROOT `box` of a def whose root declares `sizing.x: 'fill'`: the LITERAL width in px the Figma
+   *  component is BUILT at, standing in for the placement it fills in use (#1757). A root has no parent in
+   *  its own def, so its `fill` has nothing to fill from until a host places it — and a root that hugs
+   *  instead freezes any wrapping text inside it at the width of the DEFAULT string. Measured on field-message:
+   *  its caption froze at ~150px ("This is a status message."), so a longer message wrapped to three lines
+   *  inside a 320 field, where before #1751 it sat on one line.
+   *
+   *  PROJECTS the root's own x mode as FIXED, and each executor resizes the frame to this width before its
+   *  layout is written. A host that STRETCHES the nested instance (`crossAxisFill`, with the instance's own
+   *  FIXED mode) overrides the width, so the text wraps at the host's width; a bare instance wraps at this
+   *  one. Prism 2's helper message is built the same way (`reference/Prism2/component-specs/
+   *  helper-message.json`: `width: 320`, `primaryAxisSizingMode: FIXED`, its text `FILL`). A projection
+   *  default in the `minWidth` posture — a literal, not a token — so `CONTRACT_VERSION` does not move.
+   *
+   *  NOT a `minWidth`: a floor is inherited by every instance, and textarea's message sits beside the counter
+   *  in a cell narrower than the field, where a 320 floor would overflow it. Refused off the root, on a
+   *  non-`box`, on a box with no `layout`, on a root whose `sizing.x` is not `'fill'` (a hugging root sizes
+   *  to its content and a fixed one binds its width), and when not a positive number. */
+  placementWidth?: number;
   /** For a `slot`: take the node OUT OF FLOW and PIN it to one inline edge of its parent row (#1667, the
    *  button's "Locked to edges"). Figma: `layoutPositioning: 'ABSOLUTE'`, `x` at `inset` px from that edge,
    *  vertically centered, and `constraints.horizontal` `MIN` (start) or `MAX` (end), so the node stays on its
@@ -635,8 +659,10 @@ export type PartDef = {
    *  TWO PRECONDITIONS, both ASSERTED by `anatomyErrors` rather than trusted:
    *  1. the parent's MAIN-AXIS sizing must be `'fixed'`. A hugging parent is exactly as long as its
    *     child, so `MIN`, `CENTER` and `MAX` all land in the same place and the field is a silent no-op.
-   *     This is the #989 shape — `'hug'` and `'fill'` both project to AUTO — and the reason the moving
-   *     part's parent must bind `width` (a track states its length; the thumb travels inside it).
+   *     `'fill'` is refused too, though since #1751 a filling parent is FIXED on the filled axis: its
+   *     length is then its placement's, not a length the def states, so the travel would depend on where
+   *     the component is placed. That is the reason the moving part's parent must bind `width` (a track
+   *     states its length; the thumb travels inside it).
    *  2. the part must be its parent's ONLY flow child. `primaryAxisAlignItems` distributes the whole
    *     row, so a second sibling means the alignment moves the GROUP and this part's position is a
    *     side effect of where its neighbours are.
@@ -3222,6 +3248,23 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (claimed.has(c)) e.push(`anatomy part '${c}' is claimed as a child twice ('${claimed.get(c)}' and '${n}')`);
       else claimed.set(c, n);
     }
+  // IS THIS BOX'S WIDTH BOUNDED — something a `layoutGrow` inside it can fill (#1755)? A `minWidth` floor, a
+  // fixed width, a root's `placementWidth`, or a width it FILLS from a bounded parent: `sizing.x: 'fill'`
+  // (or `grow` along a row, `crossAxisFill` across a column) under a parent that is itself bounded. A SECOND
+  // DERIVATION of the projector's `fillsAxis`, on purpose (docs/34): the validator is what refuses a def the
+  // projector would build unbounded, so it must not ask the projector. It is also narrower: `fillsAxis`
+  // lets a part fill from a floored SIBLING, and a wrap relying on that is refused here rather than trusted.
+  const boundsX = (name: string, depth = 0): boolean => {
+    const q = parts[name];
+    if (!q?.layout || depth > names.length) return false;
+    if (q.minWidth !== undefined || q.layout.sizing.x === 'fixed') return true;
+    if (name === a.root) return q.placementWidth !== undefined;
+    const up = claimed.get(name);
+    const uq = up ? parts[up] : undefined;
+    if (!up || !uq?.layout) return false;
+    const fills = q.layout.sizing.x === 'fill' || (uq.layout.direction === 'row' ? !!q.grow : !!q.crossAxisFill);
+    return fills && boundsX(up, depth + 1);
+  };
   // Overlays sit outside the child tree by construction (they take another part's position
   // rather than their own cell), so reachability is measured against the parts that aren't overlays.
   const seen = new Set<string>();
@@ -3434,10 +3477,12 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' declares 'positionWhen' but its parent '${parent}' carries no layout — the position is projected as that parent's 'primaryAxisAlignItems', which only exists on an auto-layout frame`);
       // PRECONDITION 1: the parent's main axis must be FIXED. A hugging parent is exactly as long as its
       // child, so MIN, CENTER and MAX all land in the same place — the field validates, projects a real
-      // value, and the part does not move. `sizingMode` maps BOTH 'hug' and 'fill' to AUTO (#989), so
-      // 'fill' is refused here too: it reads like a fixed-length track and projects like a hugging one.
+      // value, and the part does not move. 'fill' is refused too, deliberately (#1755): since #1751 a
+      // parent that fills is FIXED on that axis, but only where `fillsAxis` finds something to fill from,
+      // and its length is then the placement's rather than a track length the def states — so where the
+      // part lands would depend on where the component is placed. A track binds its length.
       if (pp?.layout && pp.layout.sizing.x !== 'fixed')
-        e.push(`anatomy part '${n}' declares 'positionWhen' but its parent '${parent}' has main-axis sizing '${pp.layout.sizing.x}' — a parent that is not FIXED along that axis is exactly as long as its children, so 'start', 'center' and 'end' are the same place and the travel is a silent no-op. Bind the parent's 'width' and declare sizing.x 'fixed' ('fill' projects to AUTO as well, #989)`);
+        e.push(`anatomy part '${n}' declares 'positionWhen' but its parent '${parent}' has main-axis sizing '${pp.layout.sizing.x}' — a hugging parent is exactly as long as its children, so 'start', 'center' and 'end' are the same place and the travel is a silent no-op, and a filling parent's length is its placement's, not the track's. Bind the parent's 'width' and declare sizing.x 'fixed'`);
       // PRECONDITION 2: sole flow child. `primaryAxisAlignItems` distributes the WHOLE row, so with a
       // sibling present the alignment moves the group and this part's position is a side effect of where
       // its neighbours happen to be — which is a position that changes when an unrelated part is added.
@@ -3496,7 +3541,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // decide the length and the binding is overridden. This is also the precondition `positionWhen` checks
     // from the child's side; stated here too, because a track may bind a width for its own sake.
     if (p.kind === 'box' && p.width && p.layout && p.layout.sizing.x !== 'fixed')
-      e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed', or the content decides the length and the binding is overridden ('fill' projects to AUTO as well, #989)`);
+      e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed': with 'hug' the content decides the length, and with 'fill' the parent does, so either way the binding is overridden`);
     if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
     // ---- THE WRAPPING LABEL (#1424) ----
@@ -3504,18 +3549,35 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // is a TEXT-only capability — a box sizes with `sizing`, a slot/vector by its artboard.
     if (p.wrap !== undefined && p.kind !== 'text')
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'wrap' — only a 'text' part fills its row and reflows; a box sizes with 'sizing' and a slot/vector by its artboard`);
-    // ITS PRECONDITION, asserted rather than trusted (the #990/#989 shape from the child's side): the parent
-    // must BOUND its main-axis width — a `minWidth` floor or `sizing.x: 'fixed'` — because `layoutGrow` fills
-    // REMAINING main-axis space and a hugging parent (sizing.x 'hug'/'fill' → AUTO, #989) is exactly as wide
-    // as its children, leaving none. A `wrap` label under a floorless row validates, projects a real
-    // `layoutGrow`, and STILL hugs its glyphs and overflows — the silent no-op this catches. It is also what
-    // makes the row's `minWidth` load-bearing: remove it and this fires by name.
+    // ITS PRECONDITION, asserted rather than trusted (the #990 shape from the child's side): the parent must
+    // BOUND its main-axis width (`boundsX`) — because `layoutGrow` fills REMAINING main-axis space, and a
+    // hugging parent is exactly as wide as its children, leaving none. A `wrap` label under an unbounded row
+    // validates, projects a real `layoutGrow`, and keeps the width its text was SET at: the default string's.
+    // A longer string then wraps at that width (#1757, measured on field-message: ~150px inside a 320 field).
+    // It is what makes the row's floor load-bearing: remove it and this fires by name. A ROOT parent counts
+    // only with a `placementWidth` (#1757): its `fill` has nothing to fill from until a host places it, and a
+    // bare instance would freeze the text exactly as above. And a parent that FILLS from a bounded ancestor
+    // counts (#1755, select's `content` inside its floored control).
     if (p.wrap) {
       const parent = claimed.get(n);
       const pp = parent ? parts[parent] : undefined;
-      const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed');
-      if (!boundedMain)
-        e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow ('fill'/'hug' project to AUTO, #989). Give the parent a 'minWidth' floor or a fixed main axis`);
+      if (!parent || !boundsX(parent))
+        e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}'${parent === a.root ? `, placementWidth ${pp?.placementWidth ?? 'unset'}` : ''}) — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the text keeps the width of its default string and a longer one wraps there. Give the parent a 'minWidth' floor or a fixed width, fill it from a bounded parent, or give a root a 'placementWidth'`);
+    }
+    // ---- THE ROOT'S BUILD WIDTH (`placementWidth`, #1757) ----
+    // A literal the executors resize the root to, so every rule is about where a resize means something: a
+    // box with layout (the resize precedes the layout write), the ROOT (a child takes its width from its
+    // parent), and a root that FILLS (a hugging root sizes to its content and a fixed one binds its width —
+    // either would overwrite the resize).
+    if (p.placementWidth !== undefined) {
+      if (n !== a.root)
+        e.push(`anatomy part '${n}' declares 'placementWidth' but is not the anatomy ROOT — a child takes its width from its parent; only the root has no placement inside its own def to take one from`);
+      if (p.kind !== 'box' || !p.layout)
+        e.push(`anatomy part '${n}' declares 'placementWidth' but is not a 'box' with a 'layout' — the width is written to the root's auto-layout frame, which no other kind has`);
+      else if (p.layout.sizing.x !== 'fill')
+        e.push(`anatomy part '${n}' declares 'placementWidth' but its sizing.x is '${p.layout.sizing.x}' — a build width stands in for a placement the root FILLS; a hugging root sizes to its content and a fixed one binds its width, and either would overwrite it`);
+      if (!(typeof p.placementWidth === 'number' && p.placementWidth > 0))
+        e.push(`anatomy part '${n}' declares a 'placementWidth' that is not a positive number of px`);
     }
     // ---- THE RESERVED LINES (textarea's `rows`) ----
     // `lines` names a numeric PROP whose default is the line count the text box reserves. A TEXT-only
@@ -3539,7 +3601,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // overlay/absolute sits OUTSIDE the flow (it takes another part's cell or is placed against the parent's
     // bounds), so `layoutAlign` reaches none of them and a declaration would validate, project nothing, and
     // leave an author believing the part fills. No width precondition, unlike `wrap`: STRETCH is meaningful
-    // even against a hugging parent (it fills to the widest sibling), so it is never the #989 silent no-op.
+    // even against a hugging parent (it fills to the widest sibling), so it is never a silent no-op.
     if (p.crossAxisFill !== undefined) {
       if (n === a.root)
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'crossAxisFill' — cross-axis fill is a CHILD-side property (layoutAlign: STRETCH) and the root has no parent whose cross axis it could fill`);
@@ -3548,8 +3610,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     }
     // ---- MAIN-AXIS BOX GROW (`grow`) ----
     // `wrap`'s `layoutGrow: 1` for a box. The kind and root rules are `crossAxisFill`'s; the precondition is
-    // `wrap`'s (a bounded parent main axis), widened by one case `wrap` never needed: a row stretched across a
-    // COLUMN parent is as wide as that column, so a grow inside it has real space to fill.
+    // `wrap`'s (a bounded parent main axis, `boundsX` for a row), widened by one case `wrap` never needed: a
+    // row stretched across a COLUMN parent is as wide as that column, so a grow inside it has real space.
     if (p.grow !== undefined) {
       const parent = claimed.get(n);
       const pp = parent ? parts[parent] : undefined;
@@ -3557,14 +3619,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const gpp = gp ? parts[gp] : undefined;
       const row = pp?.layout?.direction === 'row';
       const boundedMain = !!pp?.layout && (row
-        ? pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'column')
+        ? boundsX(parent!) || (!!pp.crossAxisFill && gpp?.layout?.direction === 'column')
         : pp.layout.sizing.y === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'row'));
       if (n === a.root)
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'grow' — main-axis grow is a CHILD-side property (layoutGrow) and the root has no parent to fill`);
       else if (p.kind !== 'box')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' grows along its parent's main axis ('wrap' is the text twin); a nested instance's child-side writes are its parent's, and only 'crossAxisFill' is threaded there`);
       else if (!boundedMain)
-        e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none (#989)`);
+        e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, a width it fills from a bounded parent, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none`);
     }
     // ---- TOP-ONLY PADDING (`paddingTop`) ----
     if (p.paddingTop !== undefined) {
