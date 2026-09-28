@@ -2926,6 +2926,25 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.195.0 — Tag: Select and Dismissible types; Badge: a smaller radius for status labels (owner decisions,
+ * 2026-09-28; closes #1741 and #1743). TAG: a `type` variant axis (`select | dismissible`) and code prop
+ * replace `interaction`; the plain clickable tag is dropped. Select carries an
+ * optional leading icon and a TRAILING check mark behind a `check mark` boolean (on by default), present only at
+ * `selection=selected`, and no dismiss. Dismissible has no selection (`excludeCoordinates` removes dismissible ×
+ * selected, so the set is 45 members, up from 30) and a plain `close` glyph in a square trailing slot the tag's
+ * height, replacing the nested IconButton.Neutral. The minimum width is the height, bound (`minWidthKey`, a new
+ * `PartDef` field, the width twin of `minHeight`). Selected is a tint (`interactive.primary.overlay.selected`,
+ * which the outline-interaction lever repoints to `subtle-fill.selected` on a solid-tint brand) and a 2px primary
+ * outline (`border-width.thick`) at a constant label weight. The label wraps in code (#1758). SCHEMA: a boolean now
+ * composes with a VARIANT `presentWhen` gate on its part (#1743 option (a)); a state gate is still refused.
+ * BADGE: the status label's corner binds `radius.sm` (`{type}.radius`); count and dot keep `radius.round`. And the
+ * owner's scope addition the same day: Badge's `genre` axis is renamed `type`, so Badge and Tag use one name.
+ * `VARIANT_AXES` loses `genre` and gains `type`, so its count is unchanged; the values (`status | count | dot`),
+ * the prop, the paint and geometry keys and the Figma variant property move with it. No token name carries it.
+ * GATES: `lint-hit-target` measures targets inside a control and fails on an unlisted nested interactive
+ * control (#1741). Projected members move for tag and badge → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no token
+ * name is added or removed (`border-width.thick` and `radius.sm` already exist).
+ *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read
  * backwards. Both executors (the plugin's `write-components.ts` and the paste twin) now map sizing by
@@ -4062,7 +4081,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.194.0';
+export const ENGINE_VERSION = '0.195.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

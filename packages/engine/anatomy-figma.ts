@@ -1257,9 +1257,19 @@ export const figmaAnatomyPlan = (
     // A NODE-VISIBILITY BOOLEAN part (#1331) is EMITTED at every member — the boolean flips its `visible`
     // in place, so the node has to exist for there to be anything to toggle. This leads `present()` because
     // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
-    // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
-    // a `presentWhen`/`when`-gated part, so no second presence mechanism contends here.
-    if (booleanParts.has(name)) return true;
+    // both of which the lines below would otherwise DROP it on.
+    //
+    // A VARIANT gate composes with it (#1743): the gate decides which members carry the node, and the boolean
+    // toggles it where it is. AND across axes, and an axis the caller did not supply reads as ABSENT — the
+    // same rule the variant-gated branch below applies. `figmaPropertyErrors` refuses a boolean on a STATE
+    // gate (`when`, or `presentWhen`'s `state` key), so none reaches this line.
+    if (booleanParts.has(name)) {
+      for (const [axis, values] of Object.entries(a.parts[name]?.presentWhen ?? {})) {
+        const v = axisValue(axis);
+        if (v === undefined || !values.includes(v)) return false;
+      }
+      return true;
+    }
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
     // has a spinner where the leading visual would otherwise be.
@@ -1441,6 +1451,8 @@ export const figmaAnatomyPlan = (
       if (p.height) bound.height = varOf(p.height);
       // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
       if (p.minHeight) bound.minHeight = varOf(p.minHeight);
+      // A token-bound width FLOOR (`minWidthKey`): the row still hugs, and measures max(floor, content).
+      if (p.minWidthKey) bound.minWidth = varOf(p.minWidthKey);
       // A SQUARE box binds one key to both axes (IconButton's control). The same two-axes-one-variable
       // shape a slot's artboard uses, and legal for the same reason — the executor unlocks the node's
       // aspect ratio before binding, so the second write does not displace the first. Mutually exclusive

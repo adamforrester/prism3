@@ -4748,7 +4748,7 @@ for (const b of brands) {
 // untouched. Motion is DTCG + web only (not a Figma variable), so buildFigmaFont is unaffected.
 // ---- BADGE — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations --------
 // Written from the decisions, not read back from the def: static (no states), one component switched by a
-// `genre` prop with the literal values status | count | dot, an `emphasis` prop subtle | bold that only the
+// `type` prop (renamed from `genre`, owner 2026-09-28) with the literal values status | count | dot, an `emphasis` prop subtle | bold that only the
 // status label carries both of, both accessibility contracts stated, and NO interactive binding — every color
 // ref is in the literal family list below. The paint table is literal too: each member's fill, ink and edge
 // is pinned against it. The contrast arms then measure what the DEF binds, member by member from that table,
@@ -4797,9 +4797,10 @@ for (const b of brands) {
     `badge paints a fill and a 1px edge, and no overlay — the edge weight is the tier's 1px border width (${JSON.stringify(slots)}, ${surfacePart?.strokeWidth} → ${badgeDef.tokens[surfacePart?.strokeWidth]})`);
   ok(JSON.stringify(badgeDef.states) === '[]',
     `badge is static: no states (${JSON.stringify(badgeDef.states)})`);
-  const genre = badgeDef.props.find((p) => p.name === 'genre');
-  ok(JSON.stringify(genre?.values) === JSON.stringify(['status', 'count', 'dot']) && genre?.default === 'status',
-    `badge genre: the values are status | count | dot, default status (${JSON.stringify(genre?.values)}, ${genre?.default})`);
+  const kind = badgeDef.props.find((p) => p.name === 'type');
+  ok(JSON.stringify(kind?.values) === JSON.stringify(['status', 'count', 'dot']) && kind?.default === 'status'
+    && JSON.stringify(badgeDef.variants?.type) === JSON.stringify(['status', 'count', 'dot']) && !badgeDef.props.some((p) => p.name === 'genre'),
+    `badge type: the prop and the axis are status | count | dot, default status, and no genre prop remains (${JSON.stringify(kind?.values)}, ${kind?.default})`);
   const emphasis = badgeDef.props.find((p) => p.name === 'emphasis');
   ok(JSON.stringify(emphasis?.values) === JSON.stringify(['subtle', 'bold']) && emphasis?.default === 'subtle'
     && JSON.stringify(badgeDef.variants?.emphasis) === JSON.stringify(['subtle', 'bold']),
@@ -4816,7 +4817,7 @@ for (const b of brands) {
 
   // THE FIGMA SET (owner decisions, 2026-09-28). Read off the PROJECTED members, not the def's declarations:
   // 20 members — the status label at both emphases (10), the count and the dot bold only (5 each) — and NO
-  // member at `genre=count|dot` with `emphasis=subtle`. Each genre's member carries its own content: the status
+  // member at `type=count|dot` with `emphasis=subtle`. Each type's member carries its own content: the status
   // label reads "Status", the count reads a number and no label, the dot carries no text and a fixed square.
   // Every subtle member strokes and no bold member does, and the stroke weight is the bound 1px role.
   const badgeSet = figmaAnatomySet(badgeDef);
@@ -4825,29 +4826,50 @@ for (const b of brands) {
   const members = (badgeSet as any[]).map((m) => {
     const name = planComponentName(m);
     return {
-      name, genre: /genre=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
+      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
       texts: texts(m.root), parts: partNames(m.root), stroke: m.root.paints?.strokes as string | undefined, weight: m.root.bound?.strokeWeight as string | undefined,
     };
   });
-  const cell = (g: string, e: string) => members.filter((m) => m.genre === g && m.emphasis === e);
-  const badSubtle = members.filter((m) => (m.genre === 'count' || m.genre === 'dot') && m.emphasis === 'subtle');
+  const cell = (g: string, e: string) => members.filter((m) => m.type === g && m.emphasis === e);
+  const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && m.emphasis === 'subtle');
   ok(badgeSet.length === 20 && badSubtle.length === 0
     && cell('status', 'subtle').length === 5 && cell('status', 'bold').length === 5
     && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5,
-    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at genre=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
+    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at type=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
   const wrongContent = members.filter((m) => !(
-    m.genre === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
-      : m.genre === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
+    m.type === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
+      : m.type === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
         : m.texts.length === 0 && m.parts.includes('dot')));
   ok(wrongContent.length === 0,
-    `badge genre content: each member carries its genre's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
+    `badge type content: each member carries its type's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
   const wrongEdge = members.filter((m) => (m.emphasis === 'subtle') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
   ok(wrongEdge.length === 0,
     `badge edge: every subtle member strokes at border-width/hairline and no bold member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
+  // THE RENAME (owner, 2026-09-28): the Figma variant property is `type`, the name Tag's axis carries, and no member
+  // is still keyed `genre=`. Read off the projected member names, which are what a designer's panel shows.
+  const stillGenre = members.filter((m) => /genre=/.test(m.name) || !/(^|, )type=(status|count|dot)(,|$)/.test(m.name));
+  ok(stillGenre.length === 0,
+    `badge type rename: every member is keyed type=status|count|dot and none genre= (the name Tag uses)${stillGenre.length ? ` — ${stillGenre.slice(0, 3).map((m) => m.name).join(' | ')}` : ''}`);
+  // THE CORNER PER TYPE (owner decision, 2026-09-28): the status label takes the small radius, which scales per
+  // brand; the count and the dot stay fully round. Read off every projected member's bound corner.
+  const CORNER: Record<string, string> = { status: 'radius/sm', count: 'radius/round', dot: 'radius/round' };
+  const wrongCorner = (badgeSet as any[]).filter((m) => {
+    const g = /type=(\w+)/.exec(planComponentName(m))?.[1] ?? '(none)';
+    return ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => m.root.bound?.[c] !== CORNER[g]);
+  });
+  ok(wrongCorner.length === 0,
+    `badge corner: every status member binds radius/sm and every count and dot member radius/round${wrongCorner.length ? ` — wrong: ${wrongCorner.map((m) => `${planComponentName(m)} ${m.root.bound?.topLeftRadius}`).join('; ')}` : ''}`);
+  // The token behind radius/sm scales per brand: 2px in nb and prism3, 4px in aurora (the owner's figures).
+  const smPx = (['nb', 'prism3', 'aurora'] as const).map((b) => {
+    const built = buildTree(b === 'nb' ? nbTheme() : brandTheme(exampleBrands()[b] as BrandInput)).tree;
+    return [b, (built as any)[Object.keys(built)[0]]?.radius?.sm?.$extensions?.prism3?.px] as [string, number | undefined];
+  });
+  ok(JSON.stringify(smPx) === JSON.stringify([['nb', 2], ['prism3', 2], ['aurora', 4]]),
+    `badge corner: radius.sm is 2px in nb and prism3 and 4px in aurora (got ${JSON.stringify(smPx)})`);
   // The dot's size is its own fixed square, not the count's padding around nothing (the brief's ~6–12px dot).
   const dotPart: any = badgeDef.anatomy!.parts['dot'];
-  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"genre":["dot"]}',
-    `badge dot: a fixed square bound to control.size.sm.dot, present only at genre dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"type":["dot"]}',
+    `badge dot: a fixed square bound to control.size.sm.dot, present only at type dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
 
   const themes: [string, any][] = [
     ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
@@ -4870,7 +4892,7 @@ for (const b of brands) {
     }
     return { measured, low };
   };
-  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing genre: 15 members (status subtle 5,
+  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing type: 15 members (status subtle 5,
   // status bold 5, count bold 5), each in 20 cells.
   const TEXT_MEMBERS = Object.keys(PAINT).filter((m) => PAINT[m].label);
   ok(TEXT_MEMBERS.length === 15, `badge contrast covers 15 text-bearing members (got ${TEXT_MEMBERS.length})`);
@@ -4906,11 +4928,13 @@ for (const b of brands) {
   }
 }
 
-// ---- TAG — the owner's decisions of 2026-09-27, held here with literal expectations --------------------------
-// Written from the decisions, not read back from the def: interactive only (the five projected states), one
-// component switched by an `interaction` prop with the literal values clickable | selectable | removable, the
-// remove control a nested IconButton.Neutral named "Remove <label>", the group spacing bound to `space.100` and
-// measured at >= 8px, and every color ref in the interactive family (plus disabled and the focus ring).
+// ---- TAG — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations ---------
+// Written from the decisions, not read back from the def: interactive only (the five projected states), two
+// types on a `type` axis and prop with the literal values select | dismissible, no nested remove button (the ×
+// is a `close` glyph in a square slot the tag's height), a trailing and switchable check mark on a selected
+// select tag, a minimum width equal to the height, a selected tint + 2px primary outline at a constant label
+// weight, the group spacing bound to `space.100` and measured at >= 8px, and every color ref in the interactive
+// family (plus disabled and the focus ring).
 {
   const tagDef = componentDefs.find((d) => d.id === 'tag')!;
   ok(!!tagDef, 'tag: the def is registered');
@@ -4922,25 +4946,40 @@ for (const b of brands) {
   const projected = tagDef.figmaProperties?.stateAxis?.values ?? [];
   ok(['rest', 'hover', 'pressed', 'focus-visible', 'disabled'].every((st) => projected.includes(st)),
     `tag is interactive: the projected state axis carries rest, hover, pressed, focus-visible and disabled (${JSON.stringify(projected)})`);
-  const interaction = tagDef.props.find((p) => p.name === 'interaction');
-  ok(JSON.stringify(interaction?.values) === JSON.stringify(['clickable', 'selectable', 'removable']) && interaction?.default === 'clickable',
-    `tag interaction: the values are clickable | selectable | removable, default clickable (${JSON.stringify(interaction?.values)}, ${interaction?.default})`);
+  // TWO TYPES (owner, 2026-09-28): the `type` prop and the `type` axis, the same two literal values, `select`
+  // first; the three-interaction prop is gone.
+  const typeProp = tagDef.props.find((p) => p.name === 'type');
+  ok(JSON.stringify(typeProp?.values) === JSON.stringify(['select', 'dismissible']) && typeProp?.default === 'select'
+    && JSON.stringify(tagDef.variants?.type) === JSON.stringify(['select', 'dismissible'])
+    && !tagDef.props.some((p) => p.name === 'interaction'),
+    `tag type: the prop and the axis are select | dismissible, default select, and no interaction prop remains (prop ${JSON.stringify(typeProp?.values)}/${typeProp?.default}, axis ${JSON.stringify(tagDef.variants?.type)})`);
+  // The HTML `type` collision is named in the code guidance (owner: "a component prop, not the element's type attribute").
+  ok((tagDef.anatomy?.codeOnly ?? []).some((l) => /NOT the HTML type attribute/.test(l) && /never forwarded to the element/.test(l)),
+    'tag type: the code guidance says the prop is the component\'s own, NOT the HTML type attribute, and never forwarded to the element');
   const words = [...tagDef.aliases, ...tagDef.ai.triggerKeywords];
-  const missingWords = ['chip', 'filter tag', 'input tag', 'removable tag'].filter((w) => !words.includes(w));
+  const missingWords = ['chip', 'filter tag', 'input tag', 'removable tag', 'dismissible tag'].filter((w) => !words.includes(w));
   ok(tagDef.name === 'Tag' && tagDef.aliases[0] === 'chip' && missingWords.length === 0,
-    `tag naming: named Tag with chip as its first alias, and "filter tag", "input tag", "removable tag" carried${missingWords.length ? ` — missing ${missingWords.join(', ')}` : ''}`);
-  const remove = tagDef.anatomy!.parts.remove;
-  ok(remove?.kind === 'nest' && remove.nests === 'icon-button-neutral',
-    `tag: the remove control nests IconButton.Neutral, a button of its own (${remove?.kind} → ${remove?.nests})`);
-  // THE NESTED COORDINATE, literal (#1738 net): a ghost/filled swap on the remove button moved no named check
-  // before this, only the surface hash that the next `--accept` absorbs. The small circular ghost at rest.
-  const REMOVE_AT = { appearance: 'ghost', size: 'small', shape: 'circular', surface: 'default', state: 'rest' };
-  const removeAt = (remove?.nesting as { variant?: Record<string, string> } | undefined)?.variant ?? {};
-  ok(Object.keys(REMOVE_AT).length === Object.keys(removeAt).length && Object.entries(REMOVE_AT).every(([k, v]) => removeAt[k] === v),
-    `tag: the remove button nests IconButton.Neutral at ${JSON.stringify(REMOVE_AT)} (got ${JSON.stringify(removeAt)})`);
+    `tag naming: named Tag with chip as its first alias, and "filter tag", "input tag", "removable tag", "dismissible tag" carried${missingWords.length ? ` — missing ${missingWords.join(', ')}` : ''}`);
+  // THE × IS A GLYPH, NOT A NESTED BUTTON (owner, 2026-09-28; #1741): no `nest` part anywhere, the only
+  // composed component is the focus ring, and the × is the `close` vector inside the `dismiss` slot.
+  const tagParts = tagDef.anatomy!.parts;
+  const nests = Object.entries(tagParts).filter(([, p]) => p.kind === 'nest').map(([n]) => n);
+  ok(nests.length === 0 && JSON.stringify(tagDef.composition.composesWith) === '["focus-ring"]'
+    && tagParts.dismissGlyph?.kind === 'vector' && tagParts.dismissGlyph?.glyph === 'close'
+    && JSON.stringify(tagParts.dismiss?.children) === '["dismissGlyph"]',
+    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.dismissGlyph?.kind}/${tagParts.dismissGlyph?.glyph})`);
   const aria = tagDef.accessibility.aria;
-  ok(/Name the remove button "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
-    'tag aria: the remove button is named "Remove" followed by the label, never a bare "Remove" or "×"');
+  ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
+    'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
+  // THE HIT TARGET IS OPEN (owner decision C): the code guidance states both options and picks neither.
+  const hitLine = (tagDef.anatomy?.codeOnly ?? []).find((l) => /hit target is not decided yet/.test(l)) ?? '';
+  ok(/\(1\) The whole tag is one <button>/.test(hitLine) && /\(2\) Only the × slot is the button/.test(hitLine),
+    `tag dismissible hit target: the code guidance states both options, the whole tag and the × slot alone (${hitLine.slice(0, 80) || 'no line'})`);
+  // NO TRUNCATION (#1758): the code guidance wraps, and names neither an ellipsis nor a title as the fallback.
+  const expansion = (tagDef.anatomy?.codeOnly ?? []).find((l) => l.startsWith('text expansion')) ?? '';
+  ok(/never truncates/.test(expansion) && /WRAPS/.test(expansion) && !/truncates with an ellipsis/.test(expansion)
+    && !JSON.stringify(tagDef.docs).includes('Truncate a long label'),
+    `tag text expansion: a long label wraps and is never truncated (#1758) (${expansion.slice(0, 90) || 'no line'})`);
   // THE GROUP SPACING (owner decision 5): at least 8px, bound to a spacing token. Measured, not read: every
   // corpus brand at its own density, and harbor at all three densities, since the space scale moves with it.
   ok(tagDef.tokens['group-gap'] === 'space.100',
@@ -4961,9 +5000,81 @@ for (const b of brands) {
   ok(gapPx.length === 7 && narrow.length === 0,
     `tag group spacing is at least 8px in all ${gapPx.length} builds${narrow.length ? ` — ${narrow.map(([b, px]) => `${b} ${px ?? 'unresolved'}`).join('; ')}` : ''}`);
 
-  // THE CROSS-COMPONENT ARM (owner decision 3): at rest, for every Badge tone against every Tag selection, the
-  // two paint differently on the stated properties. Both sides are read from the PROJECTED rest members — what
-  // a designer sees — and each is held to its own literal table first, so neither side is the other's oracle.
+  // THE FIGMA SET, read off the PROJECTED members. 2 types × 2 selections × 3 sizes × 5 states = 60, less the
+  // 15 dismissible × selected members = 45, and none of those 15 exists.
+  const tagSet = figmaAnatomySet(tagDef, { swapTarget: 'FPO-default-icon' });
+  const findNode = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findNode(c, name)).find(Boolean));
+  const tagMembers = (tagSet as any[]).map((m) => {
+    const name = planComponentName(m);
+    return { plan: m, name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', selection: /selection=(\w+)/.exec(name)?.[1] ?? '(none)', size: m.size as string, state: /state=([\w-]+)/.exec(name)?.[1] ?? '(none)', parts: planPartNames(m.root) };
+  });
+  const dismissSelected = tagMembers.filter((m) => m.type === 'dismissible' && m.selection === 'selected');
+  const countOf = (t: string, s: string) => tagMembers.filter((m) => m.type === t && m.selection === s).length;
+  ok(tagSet.length === 45 && dismissSelected.length === 0 && countOf('select', 'unselected') === 15 && countOf('select', 'selected') === 15 && countOf('dismissible', 'unselected') === 15,
+    `tag projects to Figma: exactly 45 members — select unselected and selected, dismissible unselected only — and none at type=dismissible, selection=selected (got ${tagSet.length}: select/unselected ${countOf('select', 'unselected')}, select/selected ${countOf('select', 'selected')}, dismissible/unselected ${countOf('dismissible', 'unselected')}${dismissSelected.length ? `; excluded members present: ${dismissSelected.map((m) => m.name).join(' | ')}` : ''})`);
+  // SELECT HAS NO × IN ANY MEMBER, and every dismissible member has it (owner decisions B and C).
+  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('dismissGlyph')));
+  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('dismissGlyph')));
+  ok(selectWithX.length === 0 && dismissWithoutX.length === 0,
+    `tag: no select member carries the × slot, and every dismissible member does${selectWithX.length ? ` — select with ×: ${selectWithX.map((m) => m.name).join(' | ')}` : ''}${dismissWithoutX.length ? ` — dismissible without ×: ${dismissWithoutX.map((m) => m.name).join(' | ')}` : ''}`);
+  // THE CHECK IS TRAILING AND OPTIONAL (owner decision B): on every selected member it is the LAST cell of the
+  // label row, after the label (never beside the leading icon), and it carries the `check mark` switch, which
+  // defaults ON; no unselected member has it.
+  const checkWrong = tagMembers.filter((m) => {
+    const content = findNode(m.plan.root, 'content');
+    const order = (content?.children ?? []).map((c: any) => c.name);
+    const check = findNode(m.plan.root, 'check');
+    if (m.selection === 'unselected') return !!check;
+    return !(order[order.length - 1] === 'check' && order.indexOf('label') === order.length - 2 && check?.visibleProp === 'check mark' && check?.visible !== false);
+  });
+  const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'check mark');
+  ok(checkWrong.length === 0 && checkProp?.type === 'BOOLEAN' && checkProp?.default === true,
+    `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'check mark' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
+  // THE × SLOT IS SQUARE AT THE TAG'S HEIGHT, AND THE MINIMUM WIDTH IS THE HEIGHT (owner decisions C and D), per
+  // size, as the literal variable names the tier emits.
+  const HEIGHT_VAR: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
+  const geomWrong = tagMembers.filter((m) => {
+    const root = m.plan.root;
+    const want = HEIGHT_VAR[m.size];
+    if (root.bound?.height !== want || root.bound?.minWidth !== want) return true;
+    if (m.type !== 'dismissible') return false;
+    const slot = findNode(root, 'dismiss');
+    return !(slot?.bound?.width === want && slot?.bound?.height === want);
+  });
+  ok(geomWrong.length === 0,
+    `tag geometry: every member binds its height and its minimum width to ${JSON.stringify(HEIGHT_VAR)}, and every dismissible member's × slot binds both sides to the same height${geomWrong.length ? ` — wrong: ${geomWrong.slice(0, 4).map((m) => `${m.name} (height ${m.plan.root.bound?.height}, minWidth ${m.plan.root.bound?.minWidth}, slot ${JSON.stringify(findNode(m.plan.root, 'dismiss')?.bound ?? {})})`).join(' | ')}` : ''}`);
+
+  // THE SELECTED LOOK (owner decision E): a tint + a 2px primary outline, and the label weight CONSTANT. Each side
+  // held to its own literal row at rest, per size, on the projected members.
+  const TAG_REST: Record<string, { fill?: string; stroke: string; weight: string; label: string; check: boolean }> = {
+    unselected: { stroke: 'color/interactive/neutral/border/rest', weight: 'border-width/hairline', label: 'color/interactive/neutral/text/rest', check: false },
+    selected: { fill: 'color/interactive/primary/overlay/selected', stroke: 'color/interactive/primary/border/rest', weight: 'border-width/thick', label: 'color/interactive/neutral/text/rest', check: true },
+  };
+  const LABEL_STYLE: Record<string, string> = { small: 'type.label.sm.emphasis', medium: 'type.label.md.emphasis', large: 'type.label.lg.emphasis' };
+  const restOf = (type: string, selection: string, size: string) => tagMembers.find((m) => m.type === type && m.selection === selection && m.size === size && m.state === 'rest')!;
+  for (const size of ['small', 'medium', 'large']) {
+    for (const [sel, want] of Object.entries(TAG_REST)) {
+      const m = restOf('select', sel, size);
+      const root = m.plan.root;
+      const label = findNode(root, 'label');
+      ok(root.paints?.fills === want.fill && root.paints?.strokes === want.stroke && root.bound?.strokeWeight === want.weight
+        && label?.paints?.fills === want.label && label?.textStyle === figmaTextStyleName(LABEL_STYLE[size]) && m.parts.includes('check') === want.check,
+        `tag rest (${sel}, ${size}): fill ${want.fill ?? 'none'}, edge ${want.stroke} at ${want.weight}, label ${want.label} in ${LABEL_STYLE[size]}, check mark ${want.check ? 'shown' : 'absent'} (got fill ${root.paints?.fills ?? 'none'}, edge ${root.paints?.strokes} at ${root.bound?.strokeWeight}, label ${label?.paints?.fills} in ${label?.textStyle}, check ${m.parts.includes('check')})`);
+    }
+    const a = findNode(restOf('select', 'unselected', size).plan.root, 'label')?.textStyle;
+    const b = findNode(restOf('select', 'selected', size).plan.root, 'label')?.textStyle;
+    ok(!!a && a === b, `tag label weight is constant (${size}): the selected label's text style equals the unselected one's, so selecting never reflows the row (${a} / ${b})`);
+  }
+  // THE TINT THE OWNER NAMED, where it exists: on a solid-tint brand the lever repoints the wash to exactly
+  // `interactive.primary.subtle-fill.selected` (held for the owner: it exists nowhere else in the corpus).
+  ok(applyOutlineInteraction(tagDef, 'solid-tint').tokens['selected.overlay'] === 'color.interactive.primary.subtle-fill.selected',
+    `tag selected tint: on a solid-tint brand it binds interactive.primary.subtle-fill.selected (got ${applyOutlineInteraction(tagDef, 'solid-tint').tokens['selected.overlay']})`);
+
+  // THE CROSS-COMPONENT ARM (owner decision 3, restated 2026-09-28): at rest, every status Badge against every Tag
+  // type × selection differs on three stated properties. SHAPE — the tag is a pill (`radius/round`) and the status
+  // badge takes the small radius (`radius/sm`). FAMILY — the tag paints only the interactive family and the badge
+  // none of it. CUE — the tag shows an edge, a check mark or the × slot, and the badge has a non-interactive fill
+  // and no check mark. Both sides read from the PROJECTED rest members, each first held to its own literal table.
   const paintsOf = (plan: AnatomyPlan) => {
     const refs: string[] = [];
     const walk = (n: any) => {
@@ -4971,17 +5082,8 @@ for (const b of brands) {
       for (const c of n.children ?? []) walk(c);
     };
     walk(plan.root);
-    return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, refs, names: planPartNames(plan.root) };
+    return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, radius: plan.root.bound?.topLeftRadius, refs, names: planPartNames(plan.root) };
   };
-  const TAG_REST: Record<string, { fill?: string; stroke?: string; label: string; check: boolean }> = {
-    unselected: { stroke: 'color/interactive/neutral/border/rest', label: 'color/interactive/neutral/text/rest', check: false },
-    selected: { fill: 'color/interactive/primary/fill/rest', label: 'color/interactive/primary/on-fill', check: true },
-  };
-  // THE BADGE SIDE, per emphasis (Badge #1736, owner decisions 2026-09-28): the status label at rest is either
-  // SUBTLE — a tone tint with a 1px edge in the tone's border role — or BOLD — the solid tone fill, no edge.
-  // So "the badge shows no edge" no longer holds and is not the owner's rule; what holds is the rule itself:
-  // the tag paints only the interactive family, and the badge paints NO interactive role and always has a
-  // non-interactive fill (a tint or a bold fill), never the tag's fill, and no check mark.
   const BADGE_REST: Record<string, { fill: string; stroke?: string }> = {
     'subtle.neutral': { fill: 'color/foreground/secondary', stroke: 'color/border/secondary' },
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`subtle.${t}`, { fill: `color/foreground/${t}-subtle`, stroke: `color/border/${t}` }])),
@@ -4989,59 +5091,89 @@ for (const b of brands) {
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`bold.${t}`, { fill: `color/foreground/${t}` }])),
   };
   const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
-  const tagAt = (selection: string) => paintsOf(figmaAnatomyPlan(tagDef, 'medium', { selection, state: 'rest' } as never));
-  const badgeAt = (emphasis: string, tone: string) => paintsOf(figmaAnatomyPlan(badgeDef, undefined, { genre: 'status', emphasis, tone } as never));
-  for (const [sel, want] of Object.entries(TAG_REST)) {
-    const got = tagAt(sel);
-    const label = figmaAnatomyPlan(tagDef, 'medium', { selection: sel, state: 'rest' } as never).root.children?.find((c: any) => c.name === 'label')?.paints?.fills;
-    ok(got.fill === want.fill && got.stroke === want.stroke && label === want.label && got.names.includes('check') === want.check,
-      `tag rest (${sel}): fill ${want.fill ?? 'none'}, edge ${want.stroke ?? 'none'}, label ${want.label}, check mark ${want.check ? 'shown' : 'absent'} (got fill ${got.fill ?? 'none'}, edge ${got.stroke ?? 'none'}, label ${label}, check ${got.names.includes('check')})`);
+  const TAG_RADIUS = 'radius/round';
+  const BADGE_STATUS_RADIUS = 'radius/sm';
+  // Caught, not thrown: a badge whose axis is no longer `type` (the 2026-09-28 rename reverted) makes the projector
+  // refuse this coordinate, and a throw here would end the suite with no summary instead of failing the arms below.
+  const badgeAt = (emphasis: string, tone: string) => {
+    try { return paintsOf(figmaAnatomyPlan(badgeDef, undefined, { type: 'status', emphasis, tone } as never)); }
+    catch (e) { return { fill: `(refused: ${(e as Error).message.slice(0, 80)})`, stroke: undefined, radius: undefined, refs: [] as string[], names: [] as string[] }; }
+  };
+  const TAG_KINDS: [string, string][] = [['select', 'unselected'], ['select', 'selected'], ['dismissible', 'unselected']];
+  for (const [type, sel] of TAG_KINDS) {
+    const t = paintsOf(restOf(type, sel, 'medium').plan);
+    ok(t.radius === TAG_RADIUS, `tag shape (${type} ${sel}): the pill, ${TAG_RADIUS} (got ${t.radius})`);
   }
   for (const [key, want] of Object.entries(BADGE_REST)) {
     const [emphasis, tone] = key.split('.');
     const b = badgeAt(emphasis, tone);
-    ok(b.fill === want.fill && b.stroke === want.stroke,
-      `badge rest (${emphasis} ${tone}): fill ${want.fill}, edge ${want.stroke ?? 'none'} (got fill ${b.fill}, edge ${b.stroke ?? 'none'})`);
-    for (const sel of Object.keys(TAG_REST)) {
-      const t = tagAt(sel);
+    ok(b.fill === want.fill && b.stroke === want.stroke && b.radius === BADGE_STATUS_RADIUS,
+      `badge rest (${emphasis} ${tone}): fill ${want.fill}, edge ${want.stroke ?? 'none'}, corner ${BADGE_STATUS_RADIUS} (got fill ${b.fill}, edge ${b.stroke ?? 'none'}, corner ${b.radius})`);
+    for (const [type, sel] of TAG_KINDS) {
+      const t = paintsOf(restOf(type, sel, 'medium').plan);
       const tagInteractive = t.refs.length > 0 && t.refs.every((r) => r.startsWith('color/interactive/'));
       const badgeInteractive = b.refs.some((r) => r.startsWith('color/interactive/'));
-      const tagCue = t.stroke !== undefined || t.names.includes('check');
+      const tagCue = t.stroke !== undefined || t.names.includes('check') || t.names.includes('dismiss');
       const badgeFilled = b.fill !== undefined && !b.fill.startsWith('color/interactive/');
-      ok(tagInteractive && !badgeInteractive && tagCue && badgeFilled && !b.names.includes('check') && t.fill !== b.fill,
-        `tag vs badge at rest (${sel} tag, ${emphasis} ${tone} badge): the tag paints only the interactive family and shows an edge or a check mark; the badge paints no interactive role, has a tint or bold fill, and no check mark (tag ${JSON.stringify(t.refs)}, cue ${tagCue}; badge ${JSON.stringify(b.refs)})`);
+      ok(t.radius !== b.radius && tagInteractive && !badgeInteractive && tagCue && badgeFilled && !b.names.includes('check') && t.fill !== b.fill,
+        `tag vs badge at rest (${type} ${sel} tag, ${emphasis} ${tone} badge): a pill against a small-radius label, the tag paints only the interactive family and shows an edge, a check mark or the × slot; the badge paints no interactive role, has a tint or bold fill, and no check mark (tag ${t.radius} ${JSON.stringify(t.refs)}, cue ${tagCue}; badge ${b.radius} ${JSON.stringify(b.refs)})`);
     }
   }
 
-  // CONTRAST, measured on the def's own pairs in every corpus brand and mode: the selected label on its fill
-  // (text, 4.5:1), and the unselected label and edge on the page (4.5:1 and 3:1).
-  const themes: [string, any][] = [
-    ['nb', nbTheme()],
-    ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
-    ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
-    ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
-  ];
-  const TAG_CELLS = 16;
-  const PAIRS: [string, string, string, number][] = [
-    ['selected label on its fill', 'selected.label', 'selected.fill', 4.5],
-    ['unselected label on the page', 'unselected.label', 'page', 4.5],
-    ['unselected edge on the page', 'unselected.border', 'page', 3],
-  ];
-  for (const [what, inkKey, groundKey, floor] of PAIRS) {
-    const ink = tagDef.tokens[inkKey]?.replace(/^color\./, '') ?? `(unbound ${inkKey})`;
-    const ground = groundKey === 'page' ? 'background.primary' : tagDef.tokens[groundKey]?.replace(/^color\./, '') ?? `(unbound ${groundKey})`;
+  // CONTRAST, measured on the def's own pairs in every corpus brand and mode against LITERAL floors (owner,
+  // 2026-09-28): 5 brands × 4 modes = 20 cells each, a literal, so a brand or mode dropping out fails the count.
+  // A translucent ground (the selected tint, the hover and pressed washes) is composited over the page first,
+  // which is what a person sees. The tint is also measured on the solid-tint lever, where it is the role the
+  // owner named, with the brands rebuilt on that lever.
+  const wendysInput = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const tagThemes = (lever?: string): [string, any][] => {
+    const on = (i: any) => brandTheme({ ...i, ...(lever ? { outlineInteraction: lever } : {}) } as BrandInput);
+    return [
+      ['nb', lever ? { ...nbTheme(), outlineInteraction: lever } : nbTheme()],
+      ['aurora', on(exampleBrands()['aurora'])], ['harbor', on(exampleBrands()['harbor'])],
+      ['prism3', on(exampleBrands()['prism3'])], ['wendys', on(wendysInput)],
+    ];
+  };
+  const TAG_CELLS = 20;
+  const ref = (key: string) => tagDef.tokens[key]?.replace(/^color\./, '') ?? `(unbound ${key})`;
+  const colorOf = (roles: any, name: string, under: RGB): RGB | undefined => {
+    const r = roles[name];
+    if (!r?.hex) return undefined;
+    return r.alpha !== undefined && r.alpha < 1 ? composite(under, hexToRgb(r.hex), r.alpha) : hexToRgb(r.hex);
+  };
+  const measureTag = (what: string, ink: string, grounds: string[], floor: number, lever?: string) => {
     const low: string[] = [];
     let measured = 0;
-    for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
-      const a = m.roles[ink], g = m.roles[ground];
-      if (!a?.hex || !g?.hex) { low.push(`${brand}/${m.mode}: missing ${!a?.hex ? ink : ground}`); continue; }
-      const r = contrast(hexToRgb(a.hex), hexToRgb(g.hex));
+    let min = Infinity;
+    for (const [brand, th] of tagThemes(lever)) for (const m of resolveAllModes(th)) {
+      const page = m.roles['background.primary']?.hex ? hexToRgb(m.roles['background.primary'].hex) : undefined;
+      let g: RGB | undefined = page;
+      for (const name of grounds) g = g && colorOf(m.roles, name, g);
+      const x = g && colorOf(m.roles, ink, g);
+      if (!x || !g) { low.push(`${brand}/${m.mode}: missing ${!x ? ink : grounds.join(' over ')}`); continue; }
+      const r = contrast(x, g);
       measured++;
+      min = Math.min(min, r);
       if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
     }
     ok(measured === TAG_CELLS && low.length === 0,
-      `tag contrast (${what}): ${ink} on ${ground} clears ${floor}:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
-  }
+      `tag contrast (${what}): ${ink} on ${grounds.length ? grounds.join(' over the page, ') + ' over the page' : 'the page'}${lever ? ` [${lever}]` : ''} clears ${floor}:1 in all ${measured} of ${TAG_CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+  };
+  const tint = ref('selected.overlay');
+  measureTag('selected label on the tint', ref('selected.label'), [tint], 4.5);
+  measureTag('selected label on the tint', ref('selected.label'), ['interactive.primary.subtle-fill.selected'], 4.5, 'solid-tint');
+  measureTag('check mark on the tint', ref('selected.icon'), [tint], 3);
+  measureTag('check mark on the tint', ref('selected.icon'), ['interactive.primary.subtle-fill.selected'], 3, 'solid-tint');
+  for (const st of ['', '.hover', '.pressed']) measureTag(`selected outline against the page${st}`, ref(`selected.border${st}`), [], 3);
+  // THE × IN EVERY PROJECTED STATE, on its own ground: the page at rest and focus-visible (no key of its own, so
+  // the rest ink), the page under the hover and pressed washes, and the disabled glyph ink on the page.
+  measureTag('× glyph at rest and focus-visible', ref('unselected.icon'), [], 3);
+  measureTag('× glyph at hover', ref('unselected.icon.hover'), [ref('unselected.overlay.hover')], 3);
+  measureTag('× glyph at pressed', ref('unselected.icon.pressed'), [ref('unselected.overlay.pressed')], 3);
+  measureTag('× glyph at disabled', ref('disabled.icon'), [], 3);
+  // UNSELECTED, as before: the label and the 1px edge on the page.
+  measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
+  measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
 }
 
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
@@ -12323,10 +12455,21 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     //       (visible and mainComponent are different Figma fields).
     ok(validateComponentDef(select).errors.length === 0,
       `#1331 a swap + a boolean on ONE node (select's leading glyph) validates clean (${validateComponentDef(select).errors.join('; ')})`);
-    //   (b) NEW REFUSAL — a boolean on a `presentWhen`-gated part is refused (two presence mechanisms).
+    //   (b) THE COMPOSITION (#1743, 2026-09-28) — a boolean on a VARIANT-gated part is ADMITTED and composes:
+    //       the gate decides which members carry the node, the boolean toggles it there. Measured on the
+    //       projection, not on the validator alone: the node exists at status=error only, with its switch, and
+    //       at no other status. A boolean on a STATE gate is still refused, by name.
     const boolAndGate = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { status: ['error'] } } } } };
-    ok(validateComponentDef(boolAndGate as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /also declares presentWhen/.test(e)),
-      '#1331 a boolean on a presentWhen-gated part is refused BY NAME — the boolean is the sole presence mechanism, a variant gate would drop the node it toggles');
+    const gatedSet = figmaAnatomySet(boolAndGate as never, { swapTarget: 'FPO-default-icon' });
+    const gatedWrong = gatedSet.filter((p) => {
+      const lv = findLV(p.root);
+      return p.coord.status === 'error' ? !(lv && lv.visibleProp === 'leading icon') : !!lv;
+    });
+    ok(validateComponentDef(boolAndGate as never).errors.length === 0 && gatedWrong.length === 0,
+      `#1743 a boolean on a VARIANT-gated part composes: it validates, and the node exists only at the gated members, carrying its switch there (${validateComponentDef(boolAndGate as never).errors.join('; ')}${gatedWrong.length ? ` — wrong at ${gatedWrong.map((p) => planComponentName(p)).join(' | ')}` : ''})`);
+    const boolAndState = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { state: ['hover'] } } } } };
+    ok(validateComponentDef(boolAndState as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /presentWhen on 'state'/.test(e)),
+      '#1331 a boolean on a STATE-gated part is refused BY NAME — a boolean composes with a variant presence gate only');
     //   (c) requireOptional — a boolean toggling a NON-optional part is refused (the anatomy must allow the
     //       part to be hidden). Pinned on select's own required `chevron` node (its text layers are
     //       state-gated since Option C, which a boolean is refused on for a different reason, above).
@@ -20568,7 +20711,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
-      // the gated axis — badge has no `genre=count, emphasis=subtle` — and the projector refuses a coordinate
+      // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
       // other axes in declaration order from the pinned one. For every def without an exclusion that is the
       // pinned coordinate itself, unchanged.
@@ -20602,9 +20745,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         ok(has(rest) === values.includes('rest'),
           `#910 ${def.id}: '${name}' is ${values.includes('rest') ? 'present' : 'absent'} when 'state' is not supplied — an unsupplied state reads as rest, and this gate ${values.includes('rest') ? 'names' : 'does not name'} rest`);
       else {
-        // ABSENT, OR REFUSED BY NAME (badge, 2026-09-27). `badge` is the first def whose gated axis (`genre`)
-        // also keys its GEOMETRY (`{genre}.pad-x`) and shares a paint template with another axis
-        // (`{tone}.{genre}.{slot}`), so the projector refuses a coordinate without it — a deliberate guard
+        // ABSENT, OR REFUSED BY NAME (badge, 2026-09-27). `badge` is the first def whose gated axis (`type`, first named `genre`)
+        // also keys its GEOMETRY (`{type}.pad-x`) and shares a paint template with another axis
+        // (`{tone}.{type}.{slot}`), so the projector refuses a coordinate without it — a deliberate guard
         // (#1248's unfillable-key throw, the partial-paint-coordinate throw) rather than a part asserted on
         // no evidence. A refusal is the conservative answer too, so it passes here only when its message
         // NAMES the gated axis AS THE MISSING ONE — read from the refusal's own missing list, not from anywhere
@@ -21949,15 +22092,23 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // host's own caret placement. The fixed control height is the mechanical half of the same fact.
     'text-field.entry':
       "text-field's entry row shows the single-line placeholder or value ellipsized to one line, so it does not wrap — the first line IS the block, and the caret, one line box tall, centred against it sits where a native caret sits. The control's fixed single-line height is the mechanical half of the same fact (as select.content).",
-    // `badge`'s surface (the genre axis, 2026-09-27) lists a text part and the sized `dot` box as children,
-    // but `presentWhen` on `genre` puts exactly one of them in any member: no member pairs the dot with a
+    // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
+    // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
     // count a capped number, so neither wraps either.
     'badge.surface':
-      "the dot and the two text parts are gated on genre and never present together, so no member pairs a sized box with a label; and the status label (one or two words) and the capped count do not wrap, so the first line IS the block.",
-    // `tag` (2026-09-27) pairs its check mark, leading icon and remove button with the label.
+      "the dot and the two text parts are gated on type and never present together, so no member pairs a sized box with a label; and the status label (one or two words) and the capped count do not wrap, so the first line IS the block.",
+    // `tag` (2026-09-28): the container pairs the label row with the dismissible tag's square × slot, and the
+    // label row pairs the leading icon and the trailing check mark with the label. Since #1758 the label WRAPS
+    // in code, so "it never wraps" is no longer the reason. The reason is the Figma projection, which is what
+    // this arm reads: the tag's height is FIXED at one line and its label is one line of placeholder text, so
+    // in every member the first line IS the block. In code a wrapped label centers the glyphs and the × slot on
+    // the label block, and whether they should sit on the first line instead is held for the owner (`tag.ts`
+    // `notes.contested`).
     'tag.container':
-      "a tag's label is one line, truncated with an ellipsis past its maximum width, so it does not wrap — the first line IS the block and centring the check mark, icon and remove button against it cannot float them mid-paragraph. The tag's fixed height is the mechanical half of the same fact (as button.container).",
+      "the tag's height is fixed at one line in Figma and its label is one line there, so the × slot centers against the only line; in code a wrapped label centers the slot on the label block, which is held for the owner (tag.ts notes.contested).",
+    'tag.content':
+      "the tag's height is fixed at one line in Figma and its label is one line there, so the leading icon and the check mark center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
   let pairedRows = 0;
   const centred: string[] = [];

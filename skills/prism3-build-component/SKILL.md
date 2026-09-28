@@ -292,6 +292,19 @@ whose actual value comes from the host, not from the plan.
   Button and compact density — so in shipped prose, SC 2.5.5 is stated as intent, not as a
   guarantee for every size. See `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
+- **Selection → a tint and a 2px outline, at a constant label weight (the system pattern, owner decision
+  2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a segmented
+  control, a selectable card or a list option next — shows its selected state as a subtle tint plus a bold
+  outline, and nothing else about its box moves. Bind the tint to `color.interactive.primary.overlay.selected`
+  in the `overlay` paint slot: the `outlineInteraction` lever repoints it to the primary subtle fill at its
+  selected step on a solid-tint brand, the only setting that emits that role (no example brand sets it).
+  Bind the outline to `color.interactive.primary.border.*` at `border-width.thick` (2px), through a
+  `{selection}`-keyed `strokeWidth`, so the unselected member keeps `border-width.hairline`; both executors draw
+  the stroke inside the box, so the two members are one size. Keep the label's type binding the same at both
+  selection values — no bold on select, so selecting never reflows a row — and keep its ink the unselected
+  neutral one: the primary ink misses 4.5:1 on the tint (lowest 2.70:1). Add a check mark only where the
+  component's brief calls for one, and never let the tint be the only cue. See
+  `packages/engine/components/tag.ts`.
 - **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
   `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
   never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps
@@ -361,7 +374,7 @@ fact (#1699). Put the code default first.
 **A sparse grid.** A variant set is the full cross product of its axes unless the def says otherwise. When
 one axis value has no meaning at a value of another (Badge's count and dot have no `subtle` emphasis), list
 the missing coordinates in `figmaProperties.excludeCoordinates` as partial coordinates —
-`[{ genre: ['count', 'dot'], emphasis: ['subtle'] }]` — instead of projecting members that cannot honor the
+`[{ type: ['count', 'dot'], emphasis: ['subtle'] }]` — instead of projecting members that cannot honor the
 value. The validator refuses an entry naming an axis or value the set does not have, an exclusion that
 empties the set or leaves a declared value on no member, and one that removes the first member or the code
 default. `packages/engine/components/badge.ts` is the worked example.
@@ -373,7 +386,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 
 | Gate | What to add |
 |---|---|
-| `lint-hit-target` | an interactive control in `INTERACTIVE` with the key of its hit-target binding; anything else in `EXCLUDED` with its reason. A def in neither fails. |
+| `lint-hit-target` | an interactive control in `INTERACTIVE` with the key of its hit-target binding; anything else in `EXCLUDED` with its reason. A def in neither fails. A part inside the control that is, or may be, a target of its own (Tag's × slot) goes in `INNER_TARGETS`, and a nested interactive control not listed there fails. |
 | `lint-rung-names` | a def with a size axis in `MUST_COVER`. No size axis → `NO_SIZE_AXIS` with the reason (it fails until admitted); a ladder in `props` only → `LADDER_STATED_ONCE`; size reaching only nested parts → `SIZE_BY_FOLLOW_ONLY`. A default that is not the `md` rung is an owner exception (`HOST_DEFAULT_DEFS`, `ICON_OFFSET_DEFS`), not yours to add. |
 | `lint-axis-values` | each (def, axis) pair in `AXIS_VALUE_SETS`: join a set's `defs`, or declare a new set with its `relation` to the canonical one and a reason. Order counts. |
 | `lint-standalone-floor` | a def that projects a Figma set in `MUST_PROJECT`. |

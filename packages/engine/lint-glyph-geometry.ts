@@ -127,7 +127,7 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'spinner.ring', 'tag.check'];
+const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'spinner.ring', 'tag.check', 'tag.dismissGlyph'];
 
 /**
  * COMPOSED GLYPHS (#1670) — a vector part whose glyph is not in the icon set and draws several filled
@@ -259,7 +259,14 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   'tag.check': {
     glyph: 'check',
     at: { selection: ['selected'] },
-    why: "the selected indicator before a selectable tag's label — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the fill color alone. Present only at `selection=selected` (`presentWhen`); there is no glyph for `unselected`",
+    why: "the selected indicator AFTER a select tag's label (owner, 2026-09-28: trailing, and switchable by the `check mark` boolean) — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the tint alone. Present only at `selection=selected` (`presentWhen`), which only a select tag reaches — `dismissible × selected` is excluded; there is no glyph for `unselected`",
+  },
+  // TAG'S × (owner, 2026-09-28) — a plain glyph in the dismissible tag's square trailing slot, replacing the
+  // nested IconButton.Neutral that showed the file's placeholder icon (a nest cannot set the nested swap).
+  'tag.dismissGlyph': {
+    glyph: 'close',
+    at: { type: ['dismissible'] },
+    why: "the × of a dismissible tag, a plain `close` glyph centered in the square remove slot (owner, 2026-09-28: NOT a nested IconButton). Present only at `type=dismissible` (`presentWhen`, the same gate its slot carries); a select tag has no ×. Fixed rather than templated: the shape is what \"remove\" looks like, not a coordinate a designer picks",
   },
   'textarea.grip': {
     glyph: 'resize-grip',

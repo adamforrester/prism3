@@ -515,6 +515,19 @@ export type PartDef = {
    *  auto-layout frame — the `minWidth` rule), and alongside `height`/`size` (a bound height already fixes
    *  the axis, so a floor under it states the height twice). */
   minHeight?: string;
+  /** For `box` parts: the binding key giving the frame's MINIMUM WIDTH — Figma's auto-layout `minWidth`,
+   *  BOUND to a variable. The token-bound twin of the literal `minWidth` above, and the width-axis twin of
+   *  `minHeight`, for `minHeight`'s reason: the floor it states IS a token's value. Tag's floor is its own
+   *  height (owner, 2026-09-28: "minimum width = the tag's height, per size"), so it binds `size.{size}.height`
+   *  and follows the density the height follows — a literal would be 44 on a compact brand whose medium tag is
+   *  36 tall. Code reads it as `min-inline-size`.
+   *
+   *  NOT the literal `minWidth`: that is a projection floor a def states in px (#1343's "not a semantic
+   *  value"), and a map a brand-aware step writes (#1667). This one is a token relationship the def states.
+   *
+   *  Refused on a non-`box` kind, on a `box` with no `layout`, beside the literal `minWidth` (two floors on one
+   *  axis), and beside a bound `width` or `size` (a bound width already fixes the axis). */
+  minWidthKey?: string;
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -978,12 +991,12 @@ export type FigmaProperties = {
    *  THE SHAPE: a list of PARTIAL coordinates. Each entry maps a projected variant axis to the values it
    *  excludes, and a member is excluded when EVERY axis the entry names holds one of that entry's values
    *  (an AND across the entry's axes, an OR across its values). Entries OR together. So
-   *  `[{ genre: ['count', 'dot'], emphasis: ['subtle'] }]` removes the ten count and dot members at
+   *  `[{ type: ['count', 'dot'], emphasis: ['subtle'] }]` removes the ten count and dot members at
    *  `emphasis=subtle` and nothing else. An axis the entry does not name is unconstrained.
    *
    *  WHY NOT THE ALTERNATIVES. Duplicating the members (count and dot painted bold at `emphasis=subtle`
    *  as well) offers a value the member cannot honor, which `icon`'s `codeOnly` names as the worse outcome:
-   *  "a duplicate member that lies is worse than an absent one". Folding the two emphases into `genre`
+   *  "a duplicate member that lies is worse than an absent one". Folding the two emphases into `type`
    *  would spend the axis vocabulary on a coincidence of this def. And an axis value that is simply not
    *  there at some coordinates is what Figma itself supports: a variant set need not be a full grid.
    *
@@ -1978,17 +1991,25 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // `requireOptional`, because the anatomy must allow the part to be hidden.
   checkMap('booleans', Object.fromEntries(Object.entries(fp.booleans ?? {}).map(([p, v]) => [p, booleanPart(v)])), 'visible', undefined, true);
 
-  // A BOOLEAN is the SOLE presence mechanism on its part (#1331): the part is emitted at every member and
-  // its `visible` is toggled in place. A part that is ALSO `presentWhen`-gated (a variant it multiplies
-  // over) or `when`-gated (an overlay/absolute state) has a SECOND, conflicting presence mechanism that
-  // would DROP the node at some coordinates — leaving the boolean nothing to toggle there — so the
-  // combination is refused rather than given an undefined composition. The clean cases the mechanism is
-  // for (select's leading glyph, field-label's marker) gate presence on neither.
+  // A BOOLEAN toggles its part's `visible` in place (#1331). Until #1743 it was the SOLE presence mechanism
+  // on its part, and a `presentWhen` on the same part was refused. It now COMPOSES with a VARIANT gate, and
+  // the composition is defined, not left open: the variant gate decides WHICH members carry the node at all,
+  // and at those members the boolean toggles it. A member the gate excludes has no node and nothing to toggle,
+  // which Figma allows — a component property is declared once on the set, and a variant with no node bound to
+  // it simply ignores it. Tag's trailing check mark is the first user: present only at `selection=selected`,
+  // and switchable there (owner, 2026-09-28: "optional, on by default when selected").
+  //
+  // STILL REFUSED, and for the old reason: a STATE gate (`when`, or `presentWhen`'s reserved `state` key). A
+  // state is not a variant the designer picks between members; it is the projected state axis, and a node that
+  // exists only at `focus-visible` behind a boolean would be a switch whose effect depends on a state the
+  // panel does not show beside it. No def needs it, so no composition is defined for it.
   for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
     const part = booleanPart(v);
     const p = parts[part];
-    if (p && (p.presentWhen || p.when))
-      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares ${p.presentWhen ? 'presentWhen' : 'when'} — a boolean toggles the part's visibility at every member, so a variant/state presence gate on the same part is a second presence mechanism the boolean cannot compose with`);
+    if (p?.when)
+      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
+    else if (p?.presentWhen && STATE_GATE in p.presentWhen)
+      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares presentWhen on '${STATE_GATE}' — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
   }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
@@ -2676,31 +2697,46 @@ export type State = (typeof STATES)[number];
  * to the shape's rung (capsule/none/hairline) and leaves the `circular` shape's intrinsic round rung, the
  * same rule it applies to switch/radio.
  *
- * ── `genre`: THE NINETEENTH NAME, FOR THE BADGE'S THREE KINDS (owner-approved, 2026-09-27) ──────────
+ * ── `type`: THE NINETEENTH NAME — WHICH KIND OF THE COMPONENT A MEMBER IS (Badge 2026-09-27, Tag 2026-09-28) ──
  *
- * `genre` (`status | count | dot`) is WHICH KIND of badge a member is — a status label in the flow of
- * text, a number over a host, or a contentless mark over a host. The owner chose one Badge switched by
- * props over the brief's three sibling components, and a designer picking a count member or a dot member
- * in Figma needs that switch as a variant axis. It clears this list's bar the way `shape` did: a distinct
- * kind of distinction no existing name expresses, with the nearest defeated. `appearance` is an EMPHASIS
- * ladder over one treatment of fixed content (filled/outline/text); `style` is a stroke treatment; `shape`
- * is a corner silhouette over identical content. A genre changes three things together that none of those
- * touches — the CONTENT model (text, a number, nothing), the PLACEMENT (in flow, or over a host) and the
- * ACCESSIBILITY contract (announced, or aria-hidden with the meaning in the host's name). Naming it
- * `appearance` would claim a count is a louder status label; naming it `shape` would claim the dot is the
- * same content with other corners. Neither is true, and the a11y difference is the one a consumer most
- * needs the name to carry.
+ * `type` names WHICH KIND of a component a member is, where the kinds differ in content, role or placement
+ * together — not in one treatment of fixed content. Two defs carry it, each with its own values:
  *
- * THE NAME IS THE BRIEF'S OWN WORD for the split (its §1 calls them "genres") and the owner's, and its
- * values are self-describing (`status`, not `default`). It is an AUTHORING axis in `axisKinds` — chosen when
- * the badge is placed, never moved on screen — so the three genres may differ in size, where the runtime
- * `tone` beside it may not. `lint-axis-values.ts` carries `['status', 'count', 'dot']` as a `sole` set.
+ *   · BADGE, `status | count | dot`: a status label in the flow of text, a number over a host, or a contentless
+ *     mark over a host. The owner chose one Badge switched by props over the brief's three sibling components,
+ *     and a designer picking a count or dot member in Figma needs that switch as a variant axis. A badge type
+ *     changes the CONTENT model (text, a number, nothing), the PLACEMENT (in flow, or over a host) and the
+ *     ACCESSIBILITY contract (announced, or aria-hidden with the meaning in the host's name).
+ *   · TAG, `select | dismissible`: one the user toggles on and off, or one the user removes. A tag type changes
+ *     the ROLE (a toggle button, or a row with a remove control), the KEYBOARD model and the TRAILING part (a
+ *     check mark, or the × slot), while the label is the same.
+ *
+ * It clears this list's bar the way `shape` did — a distinct kind of distinction no existing name expresses —
+ * with the nearest defeated. `appearance` is an EMPHASIS ladder over one treatment of fixed content (filled/
+ * outline/text); `style` is a stroke treatment; `shape` is a corner silhouette over identical content; and
+ * `selection` is the STATE a selectable control shows, which a select tag moves through and a dismissible tag
+ * never has — the `type` axis is what makes `dismissible × selected` a coordinate to exclude rather than a value
+ * to invent. Naming the badge's kinds `appearance` would claim a count is a louder status label; naming the
+ * tag's `selection` would claim a dismissible tag is a selection value.
+ *
+ * ONE NAME FOR BOTH, and the history is the argument (owner, 2026-09-28). Badge carried this axis as `genre` —
+ * the brief's own word, owner-approved 2026-09-27 — for one day. When Tag needed the same question answered
+ * the owner named Tag's axis `type` and renamed Badge's to match, so the list gains Tag's name and loses
+ * `genre`, and the count is unchanged. Two names for one question is the #756 failure this list exists to
+ * prevent. The two value sets share no member, which `lint-axis-values.ts` records: Badge's is `canonical` and
+ * Tag's is `disjoint`, because a content kind and an interaction kind have no value in common.
+ *
+ * THE NAME COLLIDES WITH HTML's `type` ATTRIBUTE in code, and that is the owner's accepted cost: each
+ * component's `type` prop is the component's own, never forwarded to the element, and the defs' code guidance
+ * says so where it matters (Tag, which renders a <button>). Each def's first value LEADS because it is the code
+ * default and Figma's default member (`status`, `select`). It is an AUTHORING axis in both — a member's type is
+ * chosen when it is placed and never moves on screen — so the box may differ across types.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'genre',
+  'status', 'emphasis', 'shape', 'type',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3221,7 +3257,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -3904,6 +3940,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' declares 'minHeight' but binds no 'layout' — Figma applies a minimum height only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
     if (p.minHeight !== undefined && (p.height !== undefined || p.size !== undefined))
       e.push(`anatomy part '${n}' declares 'minHeight' alongside a bound '${p.height !== undefined ? 'height' : 'size'}' — a bound height already fixes the axis, so the floor states the height twice`);
+    // ---- `minWidthKey`, the BOX kind's token-bound auto-layout width FLOOR (2026-09-28) ----
+    // `minHeight`'s three rules on the other axis, plus the one only this axis has: the literal `minWidth`
+    // is a second floor on the same axis, and two floors on one axis means one of them is not the floor.
+    if (p.minWidthKey !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidthKey' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
+    if (p.minWidthKey !== undefined && p.kind === 'box' && !p.layout)
+      e.push(`anatomy part '${n}' declares 'minWidthKey' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    if (p.minWidthKey !== undefined && p.minWidth !== undefined)
+      e.push(`anatomy part '${n}' declares both 'minWidthKey' and a literal 'minWidth' — two floors on one axis, so one of them is not the floor`);
+    if (p.minWidthKey !== undefined && (p.width !== undefined || p.size !== undefined))
+      e.push(`anatomy part '${n}' declares 'minWidthKey' alongside a bound '${p.width !== undefined ? 'width' : 'size'}' — a bound width already fixes the axis, so the floor states the width twice`);
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the

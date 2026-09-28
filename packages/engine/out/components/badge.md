@@ -2,7 +2,7 @@
 
 > A static status label, count or dot. Nothing to click, and color is never the only signal.
 
-A small, static marker in one of three genres. A status label is short text in the flow of content, such as a lifecycle state, a keyword or a file size, and it announces its own text. A count is a number over a host, such as unread messages on an icon button, capped at a maximum. A dot is a contentless mark over a host for presence or unread state. A count or dot is hidden from assistive technology, and its meaning goes in the host's accessible name. A badge has no hover, focus or pressed state. Anything a user can click, toggle or remove is a tag.
+A small, static marker of one of three types. A status label is short text in the flow of content, such as a lifecycle state, a keyword or a file size, and it announces its own text. A count is a number over a host, such as unread messages on an icon button, capped at a maximum. A dot is a contentless mark over a host for presence or unread state. A count or dot is hidden from assistive technology, and its meaning goes in the host's accessible name. A badge has no hover, focus or pressed state. Anything a user can click, toggle or remove is a tag.
 
 - **ID:** `badge`
 - **Category:** foundations
@@ -46,13 +46,13 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `genre` | enum: 'status' \| 'count' \| 'dot' | `status` | no | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
+| `type` | enum: 'status' \| 'count' \| 'dot' | `status` | no | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
 | `emphasis` | enum: 'subtle' \| 'bold' | `subtle` | no | How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold. |
 | `tone` | enum: 'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger' | `neutral` | no | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
-| `label` | string | — | no | The status text, for genre status. One or two words, in consistent casing across the product. |
-| `value` | number | — | no | The count, for genre count. Above max it shows as max followed by a plus sign, formatted for the locale. |
-| `max` | number | `99` | no | The largest count shown in full, for genre count. A larger value shows as "99+". |
-| `showZero` | boolean | `false` | no | Whether a count of zero still shows, for genre count. Hidden by default, since zero is usually nothing to act on. |
+| `label` | string | — | no | The status text, for type status. One or two words, in consistent casing across the product. |
+| `value` | number | — | no | The count, for type count. Above max it shows as max followed by a plus sign, formatted for the locale. |
+| `max` | number | `99` | no | The largest count shown in full, for type count. A larger value shows as "99+". |
+| `showZero` | boolean | `false` | no | Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on. |
 | `overlap` | enum: 'rectangular' \| 'circular' | `rectangular` | no | The host shape a count or dot sits over. circular pulls the badge in toward the curve so it stays on the host's edge, such as an avatar. |
 
 ## States
@@ -63,7 +63,7 @@ None — not interactive.
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `genre` | `status`, `count`, `dot` | once, when authored |
+| `type` | `status`, `count`, `dot` | once, when authored |
 | `emphasis` | `subtle`, `bold` | at runtime |
 | `tone` | `neutral`, `info`, `success`, `warning`, `danger` | at runtime |
 

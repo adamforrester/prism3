@@ -569,7 +569,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // THE LITERAL WIDTH FLOOR (`minWidth`, #1343a), under `layoutModel`: a 320 control holds the field's
     // column at 320 on the host, so a wider-or-narrower nested message does not move the field's width.
     const floor = opts.layoutModel && typeof node.minWidth === 'number' ? node.minWidth : 0;
-    return Math.max(floor, padX(node) + hug + strokeX(node));
+    // THE BOUND WIDTH FLOOR (`minWidthKey`, 2026-09-28): a `minWidth` bound to a variable holds the frame at
+    // least that wide, as the host does — Tag's floor is its own height rung, so a one-letter tag is square.
+    const bvW = (node.boundVariables as Record<string, { value?: number }>).minWidth?.value;
+    const boundFloor = opts.layoutModel && typeof bvW === 'number' ? bvW : 0;
+    return Math.max(floor, boundFloor, padX(node) + hug + strokeX(node));
   };
 
   const mkNode = (type: string): Node => {

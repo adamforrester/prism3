@@ -874,6 +874,10 @@ npx tsx packages/engine/lint-hit-target.ts          # every interactive control 
                                                     # spacious regression) and both exceptions asserted
                                                     # actually below the floor (a lift fails by name).
                                                     # Every def is represented (measured or excluded).
+                                                    # Targets INSIDE a control too (#1741): each
+                                                    # INNER_TARGETS part (Tag's × slot) is measured at
+                                                    # the floor through its own `size` binding, and a
+                                                    # nested interactive control not listed there fails.
 npx tsx packages/engine/lint-lever-sweep.ts         # no lever setting silently deletes a guaranteed
                                                     # path or a component binding (#957). Sweeps every
                                                     # toggle + enum option, ONE AT A TIME, over minimal +
