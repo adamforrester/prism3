@@ -1056,10 +1056,18 @@ export type FigmaProperties = {
    *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
    *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
    *
+   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `State icon`). `part` may be a LIST when one toggle
+   *  governs two nodes that never coexist — the switch thumb's check (at `selection=on`) and X (at
+   *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
+   *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
+   *  dedupes by name). Such parts MAY be `presentWhen`-gated, but only on ONE shared variant axis whose
+   *  values they PARTITION between them (cover every value, no value twice) — so every member builds
+   *  exactly one node for the boolean to toggle. See the refusal in `figmaPropertyErrors`.
+   *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
    *  are none. */
-  booleans?: Record<string, string | { part: string; default?: boolean; figmaName?: string }>;
+  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1688,15 +1696,17 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
-/** The part whose `visible` a `booleans` entry drives — bare string or `{ part }` object (#1331). */
-export const booleanPart = (v: string | { part: string; default?: boolean; figmaName?: string }): string =>
-  typeof v === 'string' ? v : v.part;
+type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string };
+/** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
+ *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
+export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
+  typeof v === 'string' ? [v] : typeof v.part === 'string' ? [v.part] : v.part;
 /** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
-export const booleanFigmaName = (prop: string, v: string | { part: string; default?: boolean; figmaName?: string }): string =>
+export const booleanFigmaName = (prop: string, v: BooleanEntry): string =>
   typeof v === 'string' ? prop : v.figmaName ?? prop;
 /** A `booleans` entry's BUILT visibility (#1331) — the value the part is created with AND the boolean's own
  *  default. Bare string defaults VISIBLE (Figma's own default for a built node); the object states otherwise. */
-export const booleanDefault = (v: string | { part: string; default?: boolean; figmaName?: string }): boolean =>
+export const booleanDefault = (v: BooleanEntry): boolean =>
   typeof v === 'string' ? true : v.default ?? true;
 
 /**
@@ -1976,19 +1986,43 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'mainComponent', 'slot');
   // `booleans` normalizes the same way (#1331). No `kind` — a `visible` toggle sits on any node type — and
   // `requireOptional`, because the anatomy must allow the part to be hidden.
-  checkMap('booleans', Object.fromEntries(Object.entries(fp.booleans ?? {}).map(([p, v]) => [p, booleanPart(v)])), 'visible', undefined, true);
+  // One `checkMap` call per targeted part: the list form (`part: [...]`) names several nodes for one prop,
+  // and a `prop → part` record can hold only one of them.
+  for (const [p, v] of Object.entries(fp.booleans ?? {}))
+    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true);
 
-  // A BOOLEAN is the SOLE presence mechanism on its part (#1331): the part is emitted at every member and
-  // its `visible` is toggled in place. A part that is ALSO `presentWhen`-gated (a variant it multiplies
-  // over) or `when`-gated (an overlay/absolute state) has a SECOND, conflicting presence mechanism that
-  // would DROP the node at some coordinates — leaving the boolean nothing to toggle there — so the
-  // combination is refused rather than given an undefined composition. The clean cases the mechanism is
-  // for (select's leading glyph, field-label's marker) gate presence on neither.
+  // A BOOLEAN must have a node to toggle at EVERY member (#1331): the part is emitted and its `visible` is
+  // toggled in place. A `when`-gated part (an overlay/absolute state) would DROP the node at some
+  // coordinates — leaving the boolean nothing to toggle there — so it is refused outright.
+  //
+  // `presentWhen` is refused on the same ground, with ONE narrowing (switch-control's `State icon`): a
+  // boolean whose parts are ALL gated on ONE shared variant axis, and whose gates PARTITION that axis's
+  // values (every value covered, none twice), has exactly one node at every member — just not the same
+  // node. The check at `selection=on` and the X at `selection=off` are that shape. What stays refused is
+  // exactly the shape the old rule existed for: a single gated part (some members have nothing to toggle),
+  // gates that leave an axis value uncovered or name one twice, gates spread over two axes, and an ungated
+  // part mixed with gated ones. A `state` gate needs no clause of its own: `state` is never a key of
+  // `variants` (`VARIANT_AXES` excludes it), so its declared list is empty and `composes` is false; a part
+  // gating two axes needs none either, since it puts two names in `axes`.
   for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
-    const part = booleanPart(v);
-    const p = parts[part];
-    if (p && (p.presentWhen || p.when))
-      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares ${p.presentWhen ? 'presentWhen' : 'when'} — a boolean toggles the part's visibility at every member, so a variant/state presence gate on the same part is a second presence mechanism the boolean cannot compose with`);
+    const targeted = booleanPartsOf(v);
+    for (const part of targeted) {
+      const p = parts[part];
+      if (p?.when)
+        e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean toggles the part's visibility at every member, so a state presence gate on the same part is a second presence mechanism the boolean cannot compose with`);
+    }
+    const gated = targeted.filter((part) => parts[part]?.presentWhen);
+    if (!gated.length) continue;
+    const axesOf = (part: string) => Object.keys(parts[part]!.presentWhen!);
+    const axes = [...new Set(gated.flatMap(axesOf))];
+    const axis = axes[0];
+    const declared = axis === undefined ? [] : [...((def.variants as Record<string, readonly string[] | undefined> | undefined)?.[axis] ?? [])];
+    const named = gated.flatMap((part) => [...(parts[part]!.presentWhen![axis!] ?? [])]);
+    const covered = new Set(named);
+    const composes = gated.length === targeted.length && gated.length > 1 && axes.length === 1
+      && declared.length > 0 && declared.every((val) => covered.has(val)) && named.length === covered.size;
+    if (!composes)
+      e.push(`figmaProperties.booleans.${prop} → part${gated.length > 1 ? 's' : ''} '${gated.join("', '")}' also declare${gated.length > 1 ? '' : 's'} presentWhen — a boolean toggles visibility at every member, so a variant presence gate is a second presence mechanism it cannot compose with, UNLESS the boolean targets two or more parts, all gated on one shared variant axis whose values their gates partition between them — every value covered, none twice (every member then builds exactly one node for the boolean to toggle)`);
   }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the

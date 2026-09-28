@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
-import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
+import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
@@ -944,7 +944,7 @@ export const figmaAnatomyPlan = (
   // rather than a variant/slot axis dropping the node — so `present()` has to know which parts these are.
   const booleanParts = new Map<string, { prop: string; visible: boolean }>();
   for (const [prop, v] of Object.entries(def.figmaProperties?.booleans ?? {}))
-    booleanParts.set(booleanPart(v), { prop: booleanFigmaName(prop, v), visible: booleanDefault(v) });
+    for (const part of booleanPartsOf(v)) booleanParts.set(part, { prop: booleanFigmaName(prop, v), visible: booleanDefault(v) });
   // An axis coordinate read off `slots` is a string or it is absent — `leading`/`trailing` share the
   // index signature but are not coordinates, and a def is free to declare an axis named either.
   const axisValue = (axis: string): string | undefined => {
@@ -1258,8 +1258,11 @@ export const figmaAnatomyPlan = (
     // in place, so the node has to exist for there to be anything to toggle. This leads `present()` because
     // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
     // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
-    // a `presentWhen`/`when`-gated part, so no second presence mechanism contends here.
-    if (booleanParts.has(name)) return true;
+    // a `when`-gated part, so no second presence mechanism contends here. The ONE composition it admits is
+    // a boolean over several `presentWhen`-gated parts that PARTITION an axis between them (switch-control's
+    // check/X under `State icon`): such a part falls through to its variant gate below, and the boolean
+    // still has exactly one node to toggle at every member (the partition is `figmaPropertyErrors`' check).
+    if (booleanParts.has(name) && !a.parts[name]?.presentWhen) return true;
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
     // has a spinner where the leading visual would otherwise be.
@@ -1288,7 +1291,9 @@ export const figmaAnatomyPlan = (
     // measured symptom: `state=focus-visible` emitted a plan byte-identical to `rest` in all 108 rows,
     // because the ring was not a part at all and nothing else distinguishes focus.
     if (p?.kind === 'absolute') return !!p.when && p.when === state;
-    return !p?.optional;
+    // A boolean part that passed its variant gate is BUILT even though it is `optional` (the boolean
+    // requires that) — its visibility is the boolean's, not this function's.
+    return !p?.optional || booleanParts.has(name);
   };
 
   /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
