@@ -26,7 +26,8 @@
  *   9. a TWO-ROOT file (`nbds/…` and `pds3/…` in the same collections, as the owner's test file holds them)
  *      groups within each root and names it in the title, grounds stay in their root, a rerun over the live
  *      run's tables rewrites old titles and reports the per-root tables as replaced; an unbound swatch is a ⚠
- *      with its count; named values lead a ramp. Column widths (sections 2 and 5) are read off the shim's own
+ *      with its count; named values lead a ramp;
+ *  10. a RERUN RE-STACKS the generator's tables when one grows, leaving a designer-moved table alone. Column widths (sections 2 and 5) are read off the shim's own
  *      layout model — 7px a character — never off the plugin's arithmetic.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
@@ -70,7 +71,15 @@
  *   - a role keeps its family in its name → "2: the adopted type=Text swatch is used for a text role" fails;
  *   - no header rewrite / rewrite over an edit → "9: an earlier run's title is rewritten…" / "9: a title the
  *     designer typed is kept" fail;
- *   - replaced folded into stale → "9: the per-root table is reported as replaced…" fails.
+ *   - replaced folded into stale → "9: the per-root table is reported as replaced…" fails;
+ *   - wrap a description in `fit`, before the columns are sized → "5: a long description wraps to its column
+ *     less the cell's padding: 360 − 16 − 16 = 328" fails;
+ *   - wrap a mode header to the specimen before the columns are sized → "5: a swatch column is the wider of the
+ *     specimen and its mode header…", "5: every header in every table sits on one line" fail;
+ *   - skip the re-stack → "10: a table that grows by 10 rows pushes the next table down 720px" fails;
+ *   - re-stack without reading the position record → "10: a table a designer moved stays where they put it" fails;
+ *   - leave unrecorded tables out of the stack → "10: tables from before the position record are re-flowed too" fails;
+ *   - drop the track read-back → "10: a grid that did not keep its column widths is named" fails.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -104,6 +113,21 @@ const isAuto = (n: N | null | undefined): boolean => n?.layoutMode === 'HORIZONT
 const padX = (n: N): number => Number(n.paddingLeft ?? 0) + Number(n.paddingRight ?? 0);
 /** A text node's width set on one line. */
 const naturalOf = (t: N): number => Math.max(0, ...String(t.characters ?? '').split('\n').map((l) => l.length)) * CHAR_W;
+/** The lines a text sets in: one per "\n" while it hugs; a HEIGHT text breaks at spaces to its box, and a word
+ *  wider than the box breaks inside it, as the host does ("Default" in 30px is two lines). 20px a line. */
+const linesOf = (t: N): number => String(t.characters ?? '').split('\n').reduce((n, para) => {
+  if (t.textAutoResize !== 'HEIGHT') return n + 1;
+  const box = Math.max(CHAR_W, t.w);
+  let lines = 1, run = -CHAR_W;
+  for (const word of para.split(' ')) {
+    const w = word.length * CHAR_W;
+    if (run >= 0 && run + CHAR_W + w > box) { lines++; run = w; } else run += CHAR_W + w;
+    if (w > box) { lines += Math.ceil(w / box) - 1; run = w % box || box; }
+  }
+  return n + lines;
+}, 0);
+const LINE_H = 20;
+const padY = (n: N): number => Number(n.paddingTop ?? 0) + Number(n.paddingBottom ?? 0);
 class N {
   id = `node:${nextId++}`;
   name = '';
@@ -113,7 +137,8 @@ class N {
   w = 0;
   /** `layoutSizingHorizontal`, behind a setter that refuses what the host refuses. */
   lsh?: string;
-  height = 0;
+  /** The stored height — what `resize` sets. `height` reads it unless the node's layout computes one. */
+  h = 0;
   x = 0;
   y = 0;
   fills: unknown = [];
@@ -154,6 +179,24 @@ class N {
     return this.w;
   }
   set width(v: number) { this.w = v; }
+  // Heights: a text is its lines; a grid is its rows, each as tall as its tallest cell; an auto-layout frame that
+  // hugs vertically is its padding plus its children (summed down a column, the tallest across a row).
+  get height(): number {
+    if (this.type === 'TEXT') return linesOf(this) * LINE_H;
+    if (this.layoutMode === 'GRID') {
+      const rows = new Map<number, number>();
+      for (const k of this.children) rows.set(k.gridRow ?? 0, Math.max(rows.get(k.gridRow ?? 0) ?? 0, k.height));
+      return [...rows.values()].reduce((a, b) => a + b, 0);
+    }
+    const lsv = this.layoutSizingVertical as string | undefined;
+    const hug = lsv === 'HUG' || (lsv === undefined && ((this.layoutMode === 'VERTICAL' && this.primaryAxisSizingMode === 'AUTO') || (this.layoutMode === 'HORIZONTAL' && this.counterAxisSizingMode === 'AUTO')));
+    if (hug && isAuto(this)) {
+      const hs = this.children.filter((k) => k.visible !== false).map((k) => k.height);
+      return padY(this) + (this.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(this.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
+    }
+    return this.h;
+  }
+  set height(v: number) { this.h = v; }
   get layoutSizingHorizontal(): string | undefined { return this.lsh; }
   set layoutSizingHorizontal(v: string | undefined) {
     if (v === 'HUG' && this.type !== 'TEXT' && !isAuto(this) && this.layoutMode !== 'GRID') throw new Error('HUG needs an auto-layout frame');
@@ -178,7 +221,7 @@ class N {
     c.gridRow = r; c.gridCol = col;
   }
   remove(): void { if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); this.parent = null; }
-  resize(w: number, h: number): void { this.w = w; this.height = h; }
+  resize(w: number, h: number): void { this.w = w; this.h = h; }
   findAll(pred: (n: N) => boolean): N[] {
     const out: N[] = [];
     const walk = (n: N) => { for (const c of n.children) { if (pred(c)) out.push(c); walk(c); } };
@@ -201,7 +244,7 @@ class N {
   createInstance(): N {
     const clone = (n: N): N => {
       const c = new N(n === this ? 'INSTANCE' : n.type);
-      for (const k of ['name', 'w', 'lsh', 'height', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode',
+      for (const k of ['name', 'w', 'lsh', 'h', 'layoutSizingVertical', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode',
         'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'primaryAxisSizingMode', 'counterAxisSizingMode', 'textAutoResize', 'textTruncation']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
       for (const k of n.children) c.appendChild(clone(k));
       return c;
@@ -211,7 +254,6 @@ class N {
     if (this.parent?.componentProperties) inst.componentProperties = JSON.parse(JSON.stringify(this.parent.componentProperties));
     return inst;
   }
-  get height_(): number { return this.height; }
 }
 
 const page = (name: string): N => { const p = new N('PAGE'); p.name = name; return p; };
@@ -535,11 +577,21 @@ const main = async (): Promise<void> => {
     const border = gridOf(tableFrame(f.sem, 'Border')!);
     const bs = cellAt(border, 1, 1)?.children[0];
     ok(bs?.mainComponent?.name === 'type=border' && boundId(bs?.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(f.vars.filter((v) => v.name.startsWith('pds3/color/border/'))[0].name), '5: a border role binds the stroke');
-    ok([1, 4, 7, 10].every((c) => g.gridColumnSizes[c].value === 80), `5: every swatch column is the swatch plus its padding: 80 (got ${[1, 4, 7, 10].map((c) => g.gridColumnSizes[c].value).join(', ')})`);
-    ok(cellAt(g, 0, 7)?.findOne((k) => k.type === 'TEXT')?.textAutoResize === 'HEIGHT', '5: the "hc-light" header wraps to its swatch column rather than widening it');
+    // A swatch column is the wider of the specimen (48 + 16 + 16) and its header (7px a character + 16 + 16):
+    // light 67 and dark 60 → 80; hc-light 88; hc-dark 81.
+    const sw = [1, 4, 7, 10].map((c) => g.gridColumnSizes[c].value);
+    ok(JSON.stringify(sw) === JSON.stringify([80, 80, 88, 81]), `5: a swatch column is the wider of the specimen and its mode header: 80, 80, 88, 81 (got ${sw.join(', ')})`);
+    const neutralT = tableFrame(f.prim, 'Neutral')!;
+    const dflt = cellAt(gridOf(neutralT), 0, 1)?.findOne((k) => k.type === 'TEXT');
+    ok(gridOf(neutralT).gridColumnSizes[1].value === 81 && dflt?.characters === 'Default' && linesOf(dflt) === 1, `5: the "Default" header sits on one line in its 81px column (got ${gridOf(neutralT).gridColumnSizes[1].value}, ${dflt ? linesOf(dflt) : '?'} lines)`);
+    const headers = [...tablesOn(f.sem), ...tablesOn(f.prim)].flatMap((w) => gridOf(w).children.filter((k) => k.gridRow === 0).flatMap((k) => k.findAll((x) => x.type === 'TEXT')));
+    ok(headers.length > 0 && headers.every((x) => linesOf(x) === 1), `5: every header in every table sits on one line (${headers.filter((x) => linesOf(x) !== 1).map((x) => x.characters).slice(0, 3).join(', ')})`);
     const long = cellAt(g, rowOf(g, 'success-subtle'), 13)?.findOne((k) => k.type === 'TEXT');
-    ok(long?.textAutoResize === 'HEIGHT' && long.width === 360 && naturalOf(long) > 360, `5: a long description wraps at 360px rather than clipping (${long?.textAutoResize}, ${long?.width})`);
-    ok(g.gridColumnSizes[13].value === 392, `5: the description column is the 360px wrap plus 16 + 16 padding: 392 (got ${g.gridColumnSizes[13].value})`);
+    ok(long?.textAutoResize === 'HEIGHT' && long.width === 328 && linesOf(long) > 1, `5: a long description wraps to its column less the cell's padding: 360 − 16 − 16 = 328 (${long?.textAutoResize}, ${long?.width})`);
+    ok(g.gridColumnSizes[13].value === 360, `5: the description column stops at 360 (got ${g.gridColumnSizes[13].value})`);
+    const descs = g.children.filter((k) => k.gridCol === 13 && k.gridRow! > 0).map((k) => k.findOne((x) => x.type === 'TEXT')!);
+    const fits = descs.filter((x) => naturalOf(x) <= 328);
+    ok(fits.length > 0 && fits.every((x) => x.textAutoResize === 'WIDTH_AND_HEIGHT' && linesOf(x) === 1), `5: a description that fits its column stays on one line (${fits.length} of ${descs.length})`);
     const off = [...tablesOn(f.sem), ...tablesOn(f.prim)].flatMap((w) => clipped(gridOf(w)).map((x) => `${w.name} ${x}`));
     ok(off.length === 0, `5: no cell in any table is wider than its column (${off.slice(0, 3).join('; ')})`);
     ok(JSON.stringify(neutral.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn).slice(0, 4)) === JSON.stringify(['025', '050', '100', '150']), '5: a palette table leads with the step alone: 025, 050, 100, 150 …');
@@ -715,6 +767,46 @@ const main = async (): Promise<void> => {
     // Named values first in the file's order, then the numeric steps ascending.
     const named = { collections: cols, variables: [...vars, ...['white', 'black'].map((n, i) => ({ id: `VariableID:legacy:n${i}`, name: `legacy/ramp/${n}`, variableCollectionId: 'VariableCollectionId:legacy', resolvedType: 'COLOR', description: '', valuesByMode: { 'legacy:0': { r: 1, g: 1, b: 1, a: 1 } } }))] };
     ok(JSON.stringify(planStyleGuide(named, contract).tables.find((t) => t.title === 'Legacy')!.rows.map((r) => r.token)) === JSON.stringify(['white', 'black', '5', '50', '100', '900']), '9: named values lead, in file order, then steps ascending');
+  }
+
+  console.log('10. a rerun re-stacks the generator\'s tables');
+  {
+    const r = await fullFile();
+    await runStyleGuide(r.api, contract, { collections: ['color'] });
+    const order = (): N[] => r.sem.children.filter((n) => !!n.pluginData['prism3-style-guide']).sort((a, b) => a.y - b.y);
+    const gaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.y - (ns[i].y + ns[i].height));
+    ok(order().length === 11 && gaps(order()).every((d) => d === 160), `10: a first run stacks its tables 160px apart (${gaps(order()).join(', ')})`);
+    const text = tableFrame(r.sem, 'Text')!, icon = tableFrame(r.sem, 'Icon')!, border = tableFrame(r.sem, 'Border')!;
+    border.y += 5000;
+    const [bx, by, iconY, textH] = [border.x, border.y, icon.y, text.height];
+    const grow = (n: number, tag: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: 'New', valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
+    // Ten new rows, each as tall as its specimen: 48 + 12 + 12 = 72.
+    grow(10, 'grow');
+    await runStyleGuide(r.api, contract, { collections: ['color'] });
+    ok(text.height - textH === 720 && icon.y - iconY === 720, `10: a table that grows by 10 rows pushes the next table down 720px (Text +${text.height - textH}, Icon +${icon.y - iconY})`);
+    ok(border.x === bx && border.y === by, '10: a table a designer moved stays where they put it');
+    ok(gaps(order().filter((n) => n !== border)).every((d) => d === 160), `10: the rest stay 160px apart (${gaps(order().filter((n) => n !== border)).join(', ')})`);
+    // Tables drawn before the position was recorded: re-flowed while they keep the stack's x.
+    for (const n of order()) delete n.pluginData['prism3-style-guide-at'];
+    const field = tableFrame(r.sem, 'Field')!;
+    field.x += 2000;
+    const [fx, fy, iconY2] = [field.x, field.y, icon.y];
+    grow(5, 'more');
+    await runStyleGuide(r.api, contract, { collections: ['color'] });
+    ok(icon.y - iconY2 === 360, `10: tables from before the position record are re-flowed too: Icon +360 (got +${icon.y - iconY2})`);
+    ok(field.x === fx && field.y === fy, "10: a table from before the record, off the stack's x, is taken as moved and left alone");
+
+    // A host that does not keep the grid's tracks is named, not drawn silently wrong.
+    const q = await fullFile();
+    const mk = q.api.createFrame.bind(q.api);
+    (q.api as unknown as { createFrame: () => N }).createFrame = () => {
+      const n = mk() as unknown as N;
+      let sizes: { type: string; value?: number }[] = [];
+      Object.defineProperty(n, 'gridColumnSizes', { get: () => sizes, set: (v: { type: string }[]) => { if (v.every((x) => x.type === 'FLEX')) sizes = v; } });
+      return n;
+    };
+    const qr = await runStyleGuide(q.api, contract, { collections: ['legacy'] });
+    ok(qr.misses.includes('Legacy: the grid did not keep its column widths, so its cells may not line up'), '10: a grid that did not keep its column widths is named');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

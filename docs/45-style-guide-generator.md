@@ -89,9 +89,13 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - **More than one root.** A collection can hold the same tree under two roots (the owner's test file: `nbds/color/…` and `pds3/color/…` in one `color` collection). Nothing is shared across the roots, but a prefix is shared below each root's first segment. Such a collection groups within each root, and every title names its root: "Text — nbds", "Primary — nbds", "Core — nbds base". A one-root collection's titles name no root. A role's ground is looked up in its own root first.
 - **Row names.** A palette row is its step alone ("025"): the title already names the palette and root, and the bound swatch reveals the variable, so the full path is not repeated (**proposed, owner to confirm**). A role is named inside its family ("primary" in Text, "text/primary" in Inverse).
 - **Order.** Primitive rows use ramp order: named values (`white`, `black`, `transparent`) first, in the file's order, then numeric steps ascending (`5, 50, 100, 900`; `025` before `050`). Semantic rows keep the file's order, which is the engine's emission order.
-- **Column widths.** Each text cell hugs its words, with truncation off. An adopted cell is re-sized the same way, so the owner's fixed 120px cells no longer clip. A description wraps at 360px (**proposed**). Each column is then fixed at its widest cell, and every cell fills it, so the rules line up. A swatch column is the specimen: the 48px swatch plus 16px ground padding each side, 80px. Its header wraps to fit rather than widening the column.
+- **Column widths.** The order is what makes this work, and the live rerun showed it. Every cell is first measured hugging its words, with truncation off and nothing wrapped. An adopted cell is re-sized the same way, so the owner's fixed 120px cells no longer clip. Each column is then FIXED at its widest cell. Only after that does any cell take its width: every cell is set to its column's width, and a text wraps only when its words don't fit, to the column less the cell's padding. Before this, a description was wrapped before its column had a width. On the owner's file it took ~29px (one word a line, 368px tall), and the Inverse tables ran to 51,000px. So:
+  - A header shorter than its column never wraps.
+  - A swatch column is the wider of the specimen (48 + 16 + 16 = 80) and its mode header: "hc-light" makes it 88. This reverses the last round's rule that a header wraps to the swatch, because "Default" wrapped to 30px (**proposed, owner to confirm**).
+  - The description column stops at 360px including padding, so its text wraps at 328 (**proposed**).
+  - The tracks are read back after they are set. A grid that did not keep them is named in the verdict.
 - **Contrast.** The contract comes from the brand saved in the file (`restoreInput` → `resolveAllModes(brandTheme(input))`). With no saved brand the column reads "—" and the verdict says Apply theme saves one (**proposed, owner to confirm**). The ratio is floored to two places, so 4.499 never reads "4.50" beside a 4.5 floor.
-- **Placement.** A new table goes 160px below the page's lowest content, left-aligned to it (**proposed**). A table a designer has moved stays where they put it.
+- **Placement.** A new table goes 160px below the page's lowest content, left-aligned to it (**proposed**). Where the generator put each table is recorded in its plugin data (`prism3-style-guide-at`). After every run, the generator's tables on each page it drew on are re-stacked in their order, 160px apart, so a table that grew pushes the rest down. On the owner's rerun, "Primary — nbds" grew to y ≈ 10,400 while "Neutral — nbds" still started at 3,585. A table whose position differs from its record has been moved by a designer: it stays where they put it and is left out of the stack. A table from before the record (an earlier build's) is re-flowed while it keeps the stack's x, and is taken as moved when it does not (**proposed**).
 - **Rerun.** The wrapper frame carries `prism3-style-guide = color|<collection ID>|<group's full path>` (`color|VariableCollectionId:…|pds3/color/text`). The key uses the ID so a renamed collection keeps its tables. It uses the full path so a sibling group added to a collection, which shortens the shared prefix, does not move it. The grid is rebuilt each run; the wrapper and header are kept. The frame name and the header's title and description are rewritten only while they still read what a run wrote, which is recorded in plugin data, so a designer's edit survives (**proposed**). A table whose group has gone is reported stale and **left in place**, never deleted (**proposed**). A table whose key is an ancestor of a planned key is reported **replaced** and left in place: an earlier build drew one table per root where the collection holds two (**proposed**; deleting them is the owner's call). Only tables the run could have drawn are candidates: its types, and its collections when filtered.
 - **The rerun report.** Rows are compared by variable ID, so a renamed variable reads "renamed", not added and removed. Values are compared as the token holds them (the alias and the resolved RGBA), so switching Hex to RGBA changes no row.
 - **Header description.** It states only what the plan checked. A primitive table counts its steps a semantic role references ("20 primitive colors in core, 19 referenced by a semantic role"). A semantic table counts its roles with a measured contrast. A count of zero drops the clause.
@@ -109,7 +113,8 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - the specimen's ground;
 - numeric order, and named values first;
 - a two-root file: titles, keys and same-root grounds;
-- column widths, against the shim's own text metric (7px a character): no cell's content wider than its column, the swatch column at 80, and a wrapped description;
+- column widths and heights, against the shim's own text metric (7px a character, 20px a line, words broken where they do not fit): no cell's content wider than its column, every header on one line, the swatch columns at 80, 80, 88 and 81, the description text wrapped at 360 − 16 − 16 = 328, and a grid that drops its tracks named;
+- the re-stack: a table grown by 10 rows pushes the next one down 720px, a designer-moved table stays put, and an earlier build's tables without a record are re-flowed;
 - the in-place rerun and its diff, and the header rewrite over an earlier run's titles;
 - adoption whatever the page or case;
 - every skip.
@@ -117,7 +122,7 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 `test-build-verdict.mjs` drives the built panel: the Style guide page, the Customize fold, the options crossing the bridge, and the verdict on the row.
 
 **Host-unverified:**
-- GRID layout rendering, FIXED tracks with FILL cells, and HUG applied to an adopted instance's layers;
+- GRID layout rendering, FIXED tracks with FIXED-width cells, a HEIGHT-resizing text keeping its set width, and HUG applied to an adopted instance's layers;
 - the icon diamond's rotated geometry (its box is computed offline from the typings' transform, `rotation = atan2(-m10, m00)` about the top-left corner, and asserted at 8.44–39.56 on both axes; the host is the check that Figma applies it that way);
 - that an instance inside a mode-pinned ground frame renders in the pinned mode.
 
@@ -135,7 +140,9 @@ A live run on the owner's test file is the check.
 - Placement 160px below the page's content.
 - The grid rebuilt each run; the frame name and header rewritten only while they read what a run wrote.
 - Palette rows named by their step alone, with the full path dropped (§6).
-- The description wrap at 360px; every other text column sized to its widest cell (§6).
+- The description column capped at 360px including padding; every other text column sized to its widest cell (§6).
+- A swatch column widened to its mode header rather than the header wrapping (§6).
+- The re-stack after every run, and an earlier build's unrecorded tables re-flowed while they keep the stack's x (§6).
 - The live run's one-per-root tables reported as replaced and left in place, not deleted (§6).
 - The multi-root title forms "Text — nbds" and "Core — nbds base".
 - The owner's "add a title cell to rows" option, deferred: each table's header carries the title.

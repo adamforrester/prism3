@@ -502,7 +502,7 @@ export interface SgNode extends CellNode {
   gridColumnCount?: unknown;
   gridRowGap?: unknown;
   gridColumnGap?: unknown;
-  readonly gridColumnSizes?: readonly { type: string; value?: number }[];
+  gridColumnSizes?: { type: string; value?: number }[];
   readonly gridRowSizes?: readonly { type: string; value?: number }[];
   readonly componentProperties?: Record<string, { type?: string; value?: unknown }>;
   appendChildAt?(node: unknown, row: number, column: number): void;
@@ -576,7 +576,9 @@ const PART_KEY = 'prism3-style-guide-part';
 /** The header text a run wrote, so the next run can tell its own words from a designer's. */
 const TITLE_KEY = 'prism3-style-guide-title';
 const DESC_KEY = 'prism3-style-guide-description';
-/** The width a description wraps at, in px — the only text that wraps; every other cell hugs its words. */
+/** Where the generator last put a table, `x,y` — a table no longer there was moved by a designer. */
+const AT_KEY = 'prism3-style-guide-at';
+/** The widest a description column grows, in px, padding included — the only text that wraps. */
 export const DESC_WRAP = 360;
 
 const AUTO_LAYOUT = new Set(['HORIZONTAL', 'VERTICAL']);
@@ -585,6 +587,13 @@ const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
   try { n.layoutSizingHorizontal = v; return true; } catch { return false; }
 };
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
+/** Give a cell its column's width, keeping its height hugging its content. */
+const setWidth = (n: SgNode, w: number): void => {
+  sizing(n, 'FIXED');
+  n.resize?.(w, n.height ?? 0);
+  try { n.layoutSizingVertical = 'HUG'; } catch { /* a root outside auto layout keeps its height */ }
+};
 
 /** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's. */
 export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}): Promise<StyleGuideResult> => {
@@ -648,13 +657,12 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // A text cell HUGS its words, never clips them (live, 2026-09-28: the owner's cells are a fixed 120px, and
   // "nbds/core/palette/primary/02" was cut off inside it). Every text node sizes to its words with truncation
   // off; every auto-layout frame from the inside out hugs; a root outside auto layout is widened to its content.
-  // Only a description wraps, at `DESC_WRAP`. The column is then fixed to its widest cell (see the grid below).
-  const fit = (inst: SgNode, wrapAt?: number): void => {
+  // Nothing wraps here: a width set before the grid's columns are sized is a guess (see the grid below).
+  const fit = (inst: SgNode): void => {
     for (const t of textNodes(inst)) {
       t.textTruncation = 'DISABLED';
       t.textAutoResize = 'WIDTH_AND_HEIGHT';
       sizing(t, 'HUG');
-      if (wrapAt && (t.width ?? 0) > wrapAt) wrapTo(t, wrapAt);
     }
     const frames = ((inst.findAll?.((c) => c.type !== 'TEXT' && AUTO_LAYOUT.has(String(c.layoutMode))) ?? []) as SgNode[]).reverse();
     for (const f of [...frames, inst]) if (AUTO_LAYOUT.has(String(f.layoutMode))) sizing(f, 'HUG');
@@ -669,7 +677,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     t.resize?.(w, t.height ?? 20);
   };
 
-  const textCell = async (type: 'default' | 'header' | 'value alias', color: string, text: string, alias?: string | null, wrapAt?: number): Promise<SgNode | null> => {
+  const textCell = async (type: 'default' | 'header' | 'value alias', color: string, text: string, alias?: string | null): Promise<SgNode | null> => {
     const v = variantOf(textCells, { type, color, textalign: 'left', padding: 'default' }, `type=${type}, color=${color}`);
     if (!v?.createInstance) return null;
     const inst = v.createInstance() as SgNode;
@@ -677,7 +685,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const main = byName(inst, 'Text') ?? texts[0];
     await writeText(main, text);
     if (type === 'value alias') await writeText(byName(inst, 'Alias') ?? texts.filter((t) => t !== main).pop(), alias ?? '');
-    fit(inst, wrapAt);
+    fit(inst);
     return inst;
   };
 
@@ -726,6 +734,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   };
 
   const headerColor = options.header === 'light' ? 'white' : 'dark';
+  const drawnOn = new Set<SgPage>();
   for (const t of plan.tables) {
     const page = pages.get(t.page);
     if (!page) { skip(t, 'no-page'); continue; }
@@ -758,10 +767,12 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       wrap.itemSpacing = 40;
       wrap.fills = [];
       wrap.setPluginData?.(TABLE_KEY, t.key);
-      page.appendChild(wrap);
+      // Measured BEFORE the new frame joins the page, so it does not count itself.
       const at = anchor(page);
+      page.appendChild(wrap);
       wrap.x = at.x;
       wrap.y = at.y;
+      wrap.setPluginData?.(AT_KEY, `${at.x},${at.y}`);
       if (headerVariant?.createInstance) {
         const h = headerVariant.createInstance() as SgNode;
         const descKey = Object.keys(h.componentProperties ?? {}).find((k) => k === 'Description' || k.startsWith('Description#'));
@@ -793,7 +804,6 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     wrap.appendChild?.(grid);
 
     const placed: { n: SgNode; r: number; c: number }[] = [];
-    const swatchCols = new Set<number>();
     const place = (n: SgNode | null, r: number, c: number): void => { if (n) { grid.appendChildAt?.(n, r, c); placed.push({ n, r, c }); } };
     for (let c = 0; c < t.columns.length; c++) place(await textCell('header', headerColor, t.columns[c]), 0, c);
     for (let r = 0; r < t.rows.length; r++) {
@@ -801,25 +811,38 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       let c = 0;
       place(await textCell('default', 'white', row.token), r + 1, c++);
       for (const cell of row.cells) {
-        swatchCols.add(c);
         place(specimen(row, cell, collection), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);
       }
-      if (options.description !== false) place(await textCell('default', 'white', row.description || '—', null, DESC_WRAP), r + 1, c++);
+      if (options.description !== false) place(await textCell('default', 'white', row.description || '—'), r + 1, c++);
     }
-    // COLUMNS SIZED TO CONTENT, THEN FIXED, so every cell in a column fills it and the rules line up. A text
-    // column is as wide as its widest cell. A SWATCH column hugs the specimen — the swatch plus its ground's
-    // padding — and its header wraps to that width rather than widening it (a mode named "hc-light").
+    // COLUMNS FROM CONTENT, THEN TEXT FROM COLUMNS (live, 2026-09-28: a text switched to HEIGHT before its column
+    // was sized kept a 29px width — one word a line, 430px rows — and a mode header wrapped inside a 115px cell).
+    // Every cell was measured hugging its words above; each column is fixed from those measures; only then is a
+    // cell given its column's width, and a text that does not fit wrapped to the column less whatever else its cell
+    // holds. A column is its widest cell — so a swatch column is the wider of the specimen and its header, and a
+    // mode name never wraps — and the description column stops at `DESC_WRAP`.
+    const natural = placed.map((p) => p.n.width ?? 0);
     const widths = t.columns.map(() => 0);
-    for (const p of placed) if (p.r > 0 || !swatchCols.has(p.c)) widths[p.c] = Math.max(widths[p.c], p.n.width ?? 0);
-    for (const p of placed) if (p.r === 0 && swatchCols.has(p.c) && (p.n.width ?? 0) > widths[p.c]) {
-      const inset = num(p.n.paddingLeft) + num(p.n.paddingRight);
-      for (const tx of textNodes(p.n)) wrapTo(tx, Math.max(1, widths[p.c] - inset));
+    placed.forEach((p, i) => { widths[p.c] = Math.max(widths[p.c], natural[i]); });
+    if (options.description !== false) widths[t.columns.length - 1] = Math.min(widths[t.columns.length - 1], DESC_WRAP);
+    try { grid.gridColumnSizes = widths.map((value) => ({ type: 'FIXED', value })); }
+    catch { (grid.gridColumnSizes ?? []).forEach((s, c) => { s.type = 'FIXED'; s.value = widths[c]; }); }
+    placed.forEach((p, i) => {
+      const col = widths[p.c];
+      setWidth(p.n, col);
+      if (natural[i] <= col) return;
+      const texts = textNodes(p.n);
+      const main = byName(p.n, 'Text') ?? texts[0];
+      if (main) wrapTo(main, Math.max(1, col - (natural[i] - (main.width ?? 0))));
+    });
+    // Read back: a grid that did not keep its tracks is named, so a live run shows it rather than a misdrawn table.
+    const kept = grid.gridColumnSizes ?? [];
+    if (kept.length !== widths.length || kept.some((s, c) => s.type !== 'FIXED' || !near(Number(s.value), widths[c]))) {
+      misses.push(`${t.title}: the grid did not keep its column widths, so its cells may not line up`);
     }
-    (grid.gridColumnSizes ?? []).forEach((s, c) => { s.type = 'FIXED'; s.value = widths[c]; });
-    for (const p of placed) sizing(p.n, 'FILL');
 
     const after = snapshotOf(t);
     const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
@@ -828,6 +851,36 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
       : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(before, after) });
     if (created) anchor(page).y += (wrap.height ?? 0) + TABLE_GAP;
+    drawnOn.add(page);
+  }
+
+  // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
+  // "Neutral — nbds", still at 3,585). The generator's own tables on each page it drew on are re-flowed in their
+  // order down the page, TABLE_GAP apart, from the topmost. A table is where the generator left it while it sits at
+  // the position recorded then; one that does not was moved by a designer and is left alone. A table from before the
+  // record has none, and is taken as the generator's while it keeps the stack's x.
+  const recordOf = (n: SgNode): { x: number; y: number } | null => {
+    const s = n.getPluginData?.(AT_KEY) || '';
+    const [x, y] = s.split(',').map(Number);
+    return s && Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+  };
+  const byY = (a: SgNode, b: SgNode): number => num(a.y) - num(b.y);
+  for (const p of drawnOn) {
+    const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+    const left = ours.filter((n) => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); });
+    const unrecorded = ours.filter((n) => !recordOf(n));
+    const lead = [...left].sort(byY)[0] ?? [...unrecorded].sort(byY)[0];
+    if (!lead) continue;
+    const x = num(lead.x);
+    const stack = [...left, ...unrecorded.filter((n) => near(num(n.x), x))].sort(byY);
+    if (!stack.length) continue;
+    let y = num(stack[0].y);
+    for (const n of stack) {
+      n.x = x;
+      n.y = y;
+      n.setPluginData?.(AT_KEY, `${x},${y}`);
+      y += (n.height ?? 0) + TABLE_GAP;
+    }
   }
 
   // A table from an earlier run whose group is gone: named, never deleted. Only tables this run could have

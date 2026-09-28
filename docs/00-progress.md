@@ -100,7 +100,27 @@
 | rewrite ignores designer edits | "9: a title the designer typed is kept" |
 | replaced folded into stale | "9: the per-root table is reported as replaced…" |
 
-**Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable), and three new ones from the live run: the full path dropped from palette tables, the live run's per-root tables left in place, and the 360px description wrap. **Host-unverified:** GRID rendering and FIXED tracks with FILL cells, HUG on an adopted instance's layers, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
+**Second live run (plugin at `5e53e6a5`).** "✓ 41 tables", 0 unbound, 19 tables updated in place, and the semantic tables drawn per family per root. Two bugs showed only in the host.
+- **Text wrapped to ~29px.** The description cells were 155px wide, but their text was HEIGHT-resizing at 29×368, one word a line, and "Default" was 30×32 inside a 115px cell. The Inverse tables were 51,000px tall. The cause was the order: a text was wrapped (set to HEIGHT at a width) before its column had a width. The first pass measured cells hugging their words and then squeezed them. The order is now:
+  - measure every cell unwrapped;
+  - fix each column at its widest cell, with a description column stopping at 360;
+  - set every cell to its column's width;
+  - wrap only a text whose words do not fit, to the column less the cell's padding.
+  A header is never narrower than its words, so a swatch column now widens to "hc-light" (88) rather than wrapping it. The tracks are read back, and a grid that did not keep them is named.
+- **Tables overlapped on a rerun.** A rerun rebuilt each grid in place, but nothing moved the tables below one that grew. After every run, the generator's tables on each page are now re-stacked in their order, 160px apart. Each table's position is recorded in plugin data (`prism3-style-guide-at`), and one that is not where the generator put it was moved by a designer, so it stays. A table from before the record is re-flowed while it keeps the stack's x.
+- **The shim now models height.** A text is 20px a line and wraps word by word, breaking a word wider than its box. A HEIGHT text keeps its set width. A grid is the sum of its rows' tallest cells, and a vertically hugging frame is its padding plus its children. The live bug reproduces offline: the "wrap before sizing" mutation gives a 360px description HEIGHT in a column it cannot fill.
+- **Trap for re-verifying.** The earlier shim had no height and no word breaks, so "Default" squeezed to 30px still counted as one line, and the first round's width assertions passed over exactly this bug. An assertion on the text's *line count* is what catches it, not one on the cell's width.
+
+| Mutation | Fails |
+|---|---|
+| wrap the description before the columns are sized | "5: a long description wraps to its column less the cell's padding: 360 − 16 − 16 = 328", "5: no cell in any table is wider than its column", "2: no text in the owner's cells is wider than its column" |
+| wrap a mode header to the specimen before sizing | "5: a swatch column is the wider of the specimen and its mode header: 80, 80, 88, 81", "5: the "Default" header sits on one line in its 81px column", "5: every header in every table sits on one line" |
+| skip the re-stack | "10: a table that grows by 10 rows pushes the next table down 720px", "10: the rest stay 160px apart", "10: tables from before the position record are re-flowed too" |
+| re-stack ignores the position record | "10: a table a designer moved stays where they put it" |
+| unrecorded tables left out of the stack | "10: tables from before the position record are re-flowed too: Icon +360" |
+| drop the track read-back | "10: a grid that did not keep its column widths is named" |
+
+**Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable), and three new ones from the live run: the full path dropped from palette tables, the live run's per-root tables left in place, and the 360px description column. The second live run adds two: a swatch column widening to its mode header, and the re-stack, including earlier builds' unrecorded tables. **Host-unverified:** GRID rendering and FIXED tracks with FIXED-width cells, a HEIGHT text keeping its set width, HUG on an adopted instance's layers, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
 
 ---
 
