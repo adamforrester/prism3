@@ -107,6 +107,14 @@
  *     collection and empty-plan guards → "11: a table whose collection is no longer in the file is kept…" / "11: a
  *     run that draws nothing deletes nothing…". Full table: docs/00-progress.md (2026-09-28).
  *
+ *   - (third live run) `wrapTo` reverted to FIXED + resize → "2: the owner's description text wraps to 360 − 24 − 40 =
+ *     296", "2: the owner's description row is not one word a line", "5: a long description wraps to its column less
+ *     the cell's padding…" fail; visibility or name dropped from the fingerprint → "11: … a swatch layer hidden …" /
+ *     "11: … a cell renamed in the layers panel …" fail.
+ *
+ * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
+ * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
+ *
  * THE SHIM DOES NOT REPAINT: a bound paint keeps the placeholder color `setBoundVariableForPaint` stamped. The
  * value-change arm replays the host's repaint (color, and alpha as the paint's opacity) onto the drawn nodes itself,
  * and asserts at least one paint moved; without that, keying bound paints by color survives every test.
@@ -147,7 +155,8 @@ const naturalOf = (t: N): number => Math.max(0, ...String(t.characters ?? '').sp
  *  wider than the box breaks inside it, as the host does ("Default" in 30px is two lines). 20px a line. */
 const linesOf = (t: N): number => String(t.characters ?? '').split('\n').reduce((n, para) => {
   if (t.textAutoResize !== 'HEIGHT') return n + 1;
-  const box = Math.max(CHAR_W, t.w);
+  // The box is the width the text lays out at: its stored width, or its parent's less padding when it FILLs.
+  const box = Math.max(CHAR_W, t.width);
   let lines = 1, run = -CHAR_W;
   for (const word of para.split(' ')) {
     const w = word.length * CHAR_W;
@@ -251,7 +260,14 @@ class N {
     c.gridRow = r; c.gridCol = col;
   }
   remove(): void { if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); this.parent = null; }
-  resize(w: number, h: number): void { this.w = w; this.h = h; }
+  // THE HOST'S QUIRK (live, 2026-09-28): a FIXED text inside an INSTANCE ignores `resize`'s width and keeps its main
+  // component's — the owner's 29px label stayed 29px under resize(296, h). Its height still moves.
+  resize(w: number, h: number): void {
+    let inInstance = false;
+    for (let p = this.parent; p; p = p.parent) if (p.type === 'INSTANCE') { inInstance = true; break; }
+    if (!(this.type === 'TEXT' && this.lsh === 'FIXED' && inInstance)) this.w = w;
+    this.h = h;
+  }
   findAll(pred: (n: N) => boolean): N[] {
     const out: N[] = [];
     const walk = (n: N) => { for (const c of n.children) { if (pred(c)) out.push(c); walk(c); } };
@@ -302,9 +318,10 @@ const ownerSet = (name: string, variants: string[], withSpecimen: boolean): N =>
     else if (withSpecimen && /default/i.test(v)) m.fills = [{ type: 'SOLID' }];
     else if (withSpecimen) { const s = new N('FRAME'); s.name = 'Rectangle 12'; s.fills = [{ type: 'SOLID' }]; m.appendChild(s); }
     else {
-      // A text cell a fixed 120px wide, its label filling it and clipping what does not fit — the owner's cells.
-      m.layoutMode = 'HORIZONTAL'; m.primaryAxisSizingMode = 'FIXED'; m.paddingLeft = 16; m.paddingRight = 16; m.lsh = 'FIXED'; m.resize(120, 44);
-      const t = new N('TEXT'); t.name = 'Label'; t.characters = 'Abc 123'; t.fontName = { family: 'Inter', style: 'Regular' };
+      // A text cell a fixed 120px wide, its label filling it and clipping what does not fit — the owner's cells, with
+      // their padding (24 left, 40 right) and their label, a 29px text named "100", as measured live.
+      m.layoutMode = 'HORIZONTAL'; m.primaryAxisSizingMode = 'FIXED'; m.paddingLeft = 24; m.paddingRight = 40; m.lsh = 'FIXED'; m.resize(120, 44);
+      const t = new N('TEXT'); t.name = '100'; t.characters = 'Abc 123'; t.fontName = { family: 'Inter', style: 'Regular' }; t.w = 29;
       t.textAutoResize = 'TRUNCATE'; t.textTruncation = 'ENDING'; m.appendChild(t); t.lsh = 'FILL';
     }
     set.appendChild(m);
@@ -516,7 +533,14 @@ const main = async (): Promise<void> => {
     // The owner's cells are a fixed 120px and clip; drawn, each hugs its words and no column cuts one off.
     const off = g ? clipped(g) : ['no grid'];
     ok(off.length === 0, `2: no text in the owner's cells is wider than its column (${off.slice(0, 3).join('; ')})`);
-    ok(g?.gridColumnSizes[1].value === 80, `2: the owner's swatch column is the 48px swatch plus 16 + 16 padding: 80 (got ${g?.gridColumnSizes[1].value})`);
+    ok(g?.gridColumnSizes[1].value === 99, `2: the owner's swatch column is the wider of the 80px specimen and its "light" header, 35 + 24 + 40 = 99 (got ${g?.gridColumnSizes[1].value})`);
+    // The owner's description cell wraps to its column less its own padding: 360 − 24 − 40 = 296, never to the
+    // label's 29px in the main component (live, 2026-09-28: one word a line).
+    const descCol = g ? g.gridColumnCount - 1 : -1;
+    const ownDesc = g ? cellAt(g, rowOf(g, 'success-subtle'), descCol)?.findOne((k) => k.type === 'TEXT') : undefined;
+    const words = String(ownDesc?.characters ?? '').split(/\s+/).length;
+    ok(g?.gridColumnSizes[descCol].value === 360 && ownDesc?.textAutoResize === 'HEIGHT' && ownDesc.width === 296, `2: the owner's description text wraps to 360 − 24 − 40 = 296 (got ${ownDesc?.width}, ${ownDesc?.textAutoResize})`);
+    ok(!!ownDesc && linesOf(ownDesc) > 1 && linesOf(ownDesc) < words / 2, `2: the owner's description row is not one word a line (${ownDesc ? linesOf(ownDesc) : '?'} lines for ${words} words)`);
   }
 
   console.log('3. the plan');
@@ -915,6 +939,9 @@ const main = async (): Promise<void> => {
       ["a cell's auto-layout padding changed", (t) => { const c = valueCell(t); c.paddingLeft = Number(c.paddingLeft ?? 0) + 8; }],
       ["a swatch swapped to another component", (t) => { const sw = swatch(t); const other = sw.mainComponent!.parent!.children.find((m) => m !== sw.mainComponent)!; sw.mainComponent = other; }],
       ["a header's component property toggled", (t) => { const h = t.children[0]; h.componentProperties!['Description#1:0'].value = false; }],
+      // The Specimen inside a swatch: its parent is not auto layout, so hiding it moves no size the fingerprint reads.
+      ['a swatch layer hidden, nothing else', (t) => { const sp = swatch(t).findOne((k) => k.name === 'Specimen')!; if (swatch(t).layoutMode) throw new Error('swatch is auto layout'); sp.visible = false; }],
+      ['a cell renamed in the layers panel', (t) => { const c = valueCell(t); c.name = `${c.name} (edited)`; }],
       ["the reviewer's example: a shadow, 8px corners and one cell made bold", (t) => { t.effects = [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 4 }, radius: 8 }]; t.cornerRadius = 8; valueText(t).fontName = { family: 'Inter', style: 'Bold' }; }],
     ];
     for (const [what, edit] of edits) {

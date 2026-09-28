@@ -791,7 +791,16 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       if (kids.length) inst.resize?.(Math.max(...kids.map((k) => num(k.x) * 2 + (k.width ?? 0))), inst.height ?? 0);
     }
   };
+  // Wrap a text to its cell. In an auto-layout cell: HEIGHT, then FILL, so the text takes the cell's width less its
+  // padding (live, 2026-09-28: on a TEXT inside an INSTANCE, FIXED + HEIGHT + `resize(296, h)` is ignored and the
+  // text keeps its main component's width, 29px in the owner's cell, one word a line; HEIGHT then FILL gives 296).
+  // FIXED + resize only where the parent is not auto layout, since FILL needs one.
   const wrapTo = (t: SgNode, w: number): void => {
+    const parent = t.parent as SgNode | null | undefined;
+    if (parent && AUTO_LAYOUT.has(String(parent.layoutMode))) {
+      t.textAutoResize = 'HEIGHT';
+      if (sizing(t, 'FILL')) return;
+    }
     sizing(t, 'FIXED');
     t.textAutoResize = 'HEIGHT';
     t.resize?.(w, t.height ?? 20);
