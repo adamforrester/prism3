@@ -7,6 +7,14 @@
 
 ---
 
+## (2026-09-28) — Button and IconButton: summaries describe the action, not the brand color
+
+**Owner-reported.** Button's summary read "Triggers an action in place, in the brand color. For navigation, use a link." IconButton's read "Icon-only action in the brand color." Neither is true for every brand: any brand can point its action palette at a neutral. `examples/nb-redesign.design.md` sets `actionPalette: neutral`, and the owner's NB master file stores `actionPalette: brand-neutral`, so its primary action is near-black. The committed NB fixture's red action is not the only NB there is. The summaries now say what the component does ("Triggers an action in place. For navigation, use a link." / "Icon-only action. Needs an accessible name."). The long descriptions say "in the brand's primary action style". The destructive and neutral siblings describe their role, not a brand color, so they are unchanged. ENGINE 0.191.0 → 0.192.0; CONTRACT stands at 13.1.0.
+
+The summary reaches the page header (#1711), so `apps/plugin/test-page-header.ts`'s `BUTTON_SUMMARY` literal moves with it. That literal is what fails if the two drift.
+
+---
+
 ## (2026-09-28) — Badge: bold badges keep their shape in forced-colors mode (#1747)
 
 **Owner-approved.** ENGINE 0.190.0 → 0.191.0; CONTRACT stands at 13.1.0. Forced-colors mode (Windows high contrast) removes background fills. A subtle status badge already survives it, because its edge is an inset outline (#1736: `outline: 1px solid; outline-offset: -1px`, never a border, so subtle and bold stay one size). A bold badge had no edge, so it read as bare text. The code guidance now gives every bold badge the same inset outline in `transparent`. It is invisible everywhere else, forced colors paints it in the system color, and it adds no size.

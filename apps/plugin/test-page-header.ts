@@ -150,7 +150,7 @@ const headersOn = async (page: { children: readonly HNode[] }): Promise<ShimNode
 const textOf = (n: HNode, name: string): string | undefined => n.findOne?.((x) => x.type === 'TEXT' && x.name === name)?.characters;
 
 // The literal copy — from `packages/engine/components/button.ts` and `checkbox-control.ts`.
-const BUTTON_SUMMARY = 'Triggers an action in place, in the brand color. For navigation, use a link.';
+const BUTTON_SUMMARY = 'Triggers an action in place. For navigation, use a link.';
 const CHECKBOX_ROW_SUMMARY = 'Labeled checkbox for a staged on/off choice. The whole row is the hit target.';
 const BUTTON_COPY: HeaderCopy = { title: 'Button', description: BUTTON_SUMMARY, primary: 'button' };
 
