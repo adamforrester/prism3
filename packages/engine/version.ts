@@ -2926,15 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.189.0 — Badge follow-ups (owner-approved, 2026-09-27). (1) `genre` joins `VARIANT_AXES` as the
- * nineteenth axis name, and Badge projects it: the Figma set goes from 5 status members to 15 (3 genres ×
- * 5 tones), with the count as a number in a near-circle that grows into a pill and the dot as a fixed
- * square bound to `control.size.sm.dot`; count and dot paint the bold tone fill under `text.on-<tone>`.
- * (2) Neutral paints `inverse.foreground.tertiary` under `inverse.text.primary` in every genre, replacing
- * `foreground.secondary`, which measured 1.00:1 against the page in the high-contrast modes; `test.ts` gates
- * it at 3:1 against the page in all five example brands. The paint keys become `{tone}.{genre}.{slot}`.
- * A moved projected surface and moved `out/components/**` docs → ENGINE MINOR. CONTRACT STANDS at 13.1.0:
- * no token name moves, and the def binds existing roles only.
+ * 0.189.0 — Badge follow-ups (owner decisions, 2026-09-27 and 2026-09-28), and a sparse variant grid.
+ * (1) `genre` joins `VARIANT_AXES` as the nineteenth axis name, and Badge projects it (status, count, dot).
+ * (2) Badge takes the existing `emphasis` axis name with `subtle | bold`; only the status label has both,
+ * the count and dot are bold-only. SUBTLE: the tone's tint under its text ink with a 1px inside edge in
+ * `border.<tone>` (neutral: `foreground.secondary`, `text.primary`, `border.secondary`). BOLD: the solid tone
+ * fill under `text.on-<tone>` (neutral: the inverse surface and its ink). Paint keys become
+ * `{tone}.{genre}.{emphasis}.{slot}`. (3) The schema gains `figmaProperties.excludeCoordinates`, a list of
+ * partial coordinates a set does not have: `figmaAnatomySet` skips them, `figmaAnatomyPlan` refuses them,
+ * `figmaVariantCount` subtracts them by inclusion–exclusion, and `figmaPropertyErrors` refuses an unknown
+ * axis or value, an empty entry, an exclusion that empties the set or strands a declared value, and one
+ * that removes the first member or the code default. Badge's set is 20 members (30 less the 10 count and
+ * dot members at `subtle`). A moved projected surface and moved `out/components/**` docs → ENGINE MINOR.
+ * CONTRACT STANDS at 13.1.0: no token name moves, and the def binds existing roles only.
  *
  * 0.188.0 — the page header is never narrower than its own Medium variant (live, 2026-09-27). A placed
  * `_Section-header` took the content's width alone, so the Spinner page (80px of content) got an 80px

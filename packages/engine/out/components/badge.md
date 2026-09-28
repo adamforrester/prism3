@@ -11,7 +11,7 @@ A small, static marker in one of three genres. A status label is short text in t
 
 ## Usage
 
-Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.
+Use a status label to show a state or attribute inline, such as a lifecycle state beside a title or a keyword on a card. Use a count over a host for an accumulation the user can act on, such as unread messages. Use a dot when the exact number is unknown or does not matter, such as presence on an avatar. A status label is subtle by default; use bold when the state has to stand out from the content around it, such as a failure in a list of passing builds. Keep it static. If it needs to be clicked, toggled or removed, it is a tag.
 
 ### Do
 
@@ -47,6 +47,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `genre` | enum: 'status' \| 'count' \| 'dot' | `status` | no | Which kind of badge. status = a short label in flow that announces its own text. count = a number over a host, hidden from assistive technology. dot = a contentless mark over a host, also hidden. For a count or dot, the host carries the meaning in its accessible name. |
+| `emphasis` | enum: 'subtle' \| 'bold' | `subtle` | no | How strongly a status label reads. subtle = the tone's tint with a 1px edge in the tone's border color, for a state that sits beside other content. bold = the solid tone fill, for a state that needs to stand out. A count and a dot are always bold. |
 | `tone` | enum: 'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger' | `neutral` | no | Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it. |
 | `label` | string | — | no | The status text, for genre status. One or two words, in consistent casing across the product. |
 | `value` | number | — | no | The count, for genre count. Above max it shows as max followed by a plus sign, formatted for the locale. |
@@ -63,6 +64,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `genre` | `status`, `count`, `dot` | once, when authored |
+| `emphasis` | `subtle`, `bold` | at runtime |
 | `tone` | `neutral`, `info`, `success`, `warning`, `danger` | at runtime |
 
 ## Accessibility
@@ -71,7 +73,7 @@ None — not interactive.
 - **WCAG:**
   - 1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)
   - 1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, in every mode)
-  - 1.4.11 Non-text Contrast (targets 3:1 between the fill and the page for the neutral status label and every count and dot, since the fill is the badge's only boundary)
+  - 1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page)
   - 4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)
   - 4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)
 - **Keyboard:** None. A badge takes no focus and has no action. A count on an icon button is reached through the button.
