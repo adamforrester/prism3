@@ -6,7 +6,8 @@
  * an INSTANCE of it on a component page after a build lands there, so a page opens on its title and its
  * one-line summary rather than on a bare set. The owner placed the first ones by hand on Buttons and Icons &
  * assets; this reproduces that placement: Size=Medium, x on the content's left edge, the header's bottom
- * `HEADER_GAP` above the content's top, and the content's width.
+ * `HEADER_GAP` above the content's top, and the content's width — floored at the Medium variant's own width,
+ * so a page of small content never squeezes the header's text into a column.
  *
  * ONE HEADER PER PAGE, NOT PER SET. A page holds a family (`button`, `button-destructive`, `button-neutral`
  * on Buttons), and the copy is the family's: the title is the primary def's name up to its first `.`
@@ -214,10 +215,13 @@ export const ensurePageHeader = async (
   const left = Math.min(...shown.map((n) => n.x ?? 0));
   const right = Math.max(...shown.map((n) => (n.x ?? 0) + (n.width ?? 0)));
   const topEdge = Math.min(...shown.map((n) => n.y ?? 0));
-  const width = right - left;
 
   const variant = set.children?.find((c) => c.name === HEADER_VARIANT);
   if (!variant?.createInstance) return { page: page.name, status: 'skipped', reason: 'no-variant' };
+  // NEVER NARROWER THAN THE HEADER ITSELF (live, 2026-09-27). The content's width alone put an 80px header
+  // over the Spinner page — the title broken one letter per line, 860px tall. So the content's width, but
+  // floored at the width the file's own Medium variant is authored at.
+  const width = Math.max(right - left, variant.width ?? 0);
   const inst = variant.createInstance();
   page.appendChild(inst);
 
