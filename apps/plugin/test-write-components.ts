@@ -3278,6 +3278,49 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #1667 / #1752 — THE PLUGIN READS THE BUTTON SETTINGS OFF THE BRAND
+// =============================================================================================
+// `materializeForBrand` reads the four button settings off the raw input (`brandButtonLayout`), and until
+// here nothing on the plugin side ran it with any of them set: `lint-lever-sweep.ts` restates the
+// composition rather than importing it, so hard-coding a setting in `brand-def.ts` left every gate green
+// (found in review of #1759). Each setting below goes through `materializeForBrand` on nb-redesign, and the
+// medium member of the materialized button is compared to HAND-WRITTEN literals (docs/34): its label type
+// ref and text style, its icon ref, its floor and its pinned icons. nb-redesign's medium button is 44px high
+// with a 12px visual padding, so the floor is 104 at the default 2.25 and 176 at 4. Mutation: hard-code
+// any one setting in `brandButtonLayout` to its default, and that setting's line below fails by name.
+{
+  const nbInput = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  const medium = (extra: Partial<BrandInput>) => {
+    const def = materializeForBrand(button, { ...nbInput, ...extra } as BrandInput);
+    const root = figmaAnatomyPlan(def, 'medium', { leading: true, trailing: true, swapTarget: SWAP, appearance: 'filled', state: 'rest' }).root;
+    return {
+      type: def.tokens['size.medium.type'], icon: def.tokens['size.medium.icon'], style: planTextStyles(root).join(),
+      floor: root.minWidth, pins: root.children.filter((c) => c.pin).map((c) => `${c.name}:${c.pin!.edge}:${c.pin!.inset}`).join(),
+    };
+  };
+  const base = medium({});
+  ok(base.type === 'type.label.md.emphasis' && base.style === 'label/md/emphasis' && base.icon === 'icon.size.sm' && base.floor === 104 && base.pins === '',
+    `#1667 plugin button settings: nb-redesign unset builds the medium label at type.label.md.emphasis (label/md/emphasis), icon.size.sm, a 104px floor and no pinned icons (got ${JSON.stringify(base)})`);
+  const weight = medium({ buttonLabelWeight: 'default' });
+  ok(weight.type === 'type.label.md.default' && weight.style === 'label/md/default',
+    `#1752 plugin button settings: buttonLabelWeight 'default' builds the medium label at type.label.md.default (label/md/default) (got ${weight.type} / ${weight.style})`);
+  ok(buildFigmaTextStyles(brandTheme({ ...nbInput, buttonLabelWeight: 'default' } as BrandInput)).styles.some((st) => st.name === 'label/md/default'),
+    `#1752 plugin button settings: the nb-redesign host holds label/md/default under buttonLabelWeight 'default', so the medium label resolves`);
+  const smaller = medium({ buttonContentSize: 'smaller' });
+  ok(smaller.type === 'type.label.sm.emphasis' && smaller.icon === 'icon.size.xs',
+    `#1667 plugin button settings: buttonContentSize 'smaller' builds the medium label at type.label.sm.emphasis with icon.size.xs (got ${smaller.type}, ${smaller.icon})`);
+  const both = medium({ buttonContentSize: 'smaller', buttonLabelWeight: 'default' });
+  ok(both.type === 'type.label.sm.default' && both.style === 'label/sm/default',
+    `#1752 plugin button settings: 'smaller' + 'default' builds the medium label at type.label.sm.default (label/sm/default) (got ${both.type} / ${both.style})`);
+  const edges = medium({ buttonIcons: 'edges' });
+  ok(edges.pins === 'leadingVisual:MIN:12,trailingVisual:MAX:12',
+    `#1667 plugin button settings: buttonIcons 'edges' pins the medium icons at 12px (leading MIN, trailing MAX) (got '${edges.pins}')`);
+  const wide = medium({ buttonMinWidthMultiplier: 4 });
+  ok(wide.floor === 176,
+    `#1667 plugin button settings: buttonMinWidthMultiplier 4 gives the medium button a 176px floor, 44 × 4 (got ${wide.floor})`);
+}
+
+// =============================================================================================
 // #1633 — NESTED COMPONENTS BUILD FIRST
 // =============================================================================================
 // The owner built `button` into a fresh Aurora file and got 72 `focusRing.nestTarget -> focus-ring (not in

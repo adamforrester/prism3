@@ -33,6 +33,14 @@
       "members": 432,
       "sha256": "3eea601cbcdc820b9c52e49c1997f6ca8c01f4d35ff42e84a35924a9c00d0dd6"
     },
+    "button@button-label-default": {
+      "members": 432,
+      "sha256": "dec7c67d486556d2a4ddb4cc534afa2150cfd8dac04f58acda595ce6f16eb945"
+    },
+    "button@button-smaller-label-default": {
+      "members": 432,
+      "sha256": "42b13e9a95e4fccc697bf22d386bc7933725347ba75bc25d2e24425145548cab"
+    },
     "button-destructive": {
       "members": 432,
       "sha256": "e80c58c6b24c6ab298110f619cc43455428546e89c37ce5d0ca49cc6763208b5"
@@ -57,6 +65,14 @@
       "members": 432,
       "sha256": "d218225ae8baf1c9f42366351c6aca36e3c23a451a1c59a03f5e5c65235b2f2c"
     },
+    "button-destructive@button-label-default": {
+      "members": 432,
+      "sha256": "a6e7979dd1d019c39005e4d58684ee8396037ebce4fc0a37a1c5e871f553d1b8"
+    },
+    "button-destructive@button-smaller-label-default": {
+      "members": 432,
+      "sha256": "069f2567fd0510792f648716e6dc95be1acb7e1aa22de4d1c5d9da8a933e7dbf"
+    },
     "button-neutral": {
       "members": 432,
       "sha256": "ee1f482dfb5b44ea13f3256a388c51e303fd5547b2d34e33c179e83e83fecf5c"
@@ -80,6 +96,14 @@
     "button-neutral@button-smaller": {
       "members": 432,
       "sha256": "ea720aaab7fe935ced663068abdd1d5266fde4298ef32de1b642622db7bc4418"
+    },
+    "button-neutral@button-label-default": {
+      "members": 432,
+      "sha256": "8ffc25c43a674b214f34af17a7421b0c09f321dceebaf8af0eabb25c20aeccce"
+    },
+    "button-neutral@button-smaller-label-default": {
+      "members": 432,
+      "sha256": "a3427794cfc2728c9dd602ad23a55c1f72dd705e46bd04f6cff965c303373c05"
     },
     "icon-button": {
       "members": 216,

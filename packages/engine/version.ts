@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.193.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
+ * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read
  * backwards. Both executors (the plugin's `write-components.ts` and the paste twin) now map sizing by
  * direction, and a fill axis actually fills: FIXED on that axis, plus STRETCH or layoutGrow from the parent.
@@ -2938,6 +2938,18 @@
  *   every field-label host stretch the nest; field-label's name wraps; select's value and placeholder wrap
  *   and its control hugs its height above the 44px floor; text-field's value row clips (#1758). Same
  *   version: the round lands before the first release of 0.193.0.
+ *
+ * 0.193.0 — #1752 (owner-decided 2026-09-28): a fourth button lever, `buttonLabelWeight` ("Button label
+ * weight": Default | Emphasis, default Emphasis), for button / button-destructive / button-neutral only.
+ * Under Default, `applyButtonLayout` rebinds each size's label type from `type.label.<rung>.emphasis` to
+ * `type.label.<rung>.default`, after the medium offset, so a medium button at "One step smaller" binds
+ * `type.label.sm.default`. `brandTheme` unions `default` into `typography.weights.label` for that setting, so
+ * the style the button binds is always emitted. Tag and badge keep emphasis. A new input field, a new lever
+ * and new projected-surface rows (`@button-label-default`, `@button-smaller-label-default`; every existing
+ * row is unchanged) → ENGINE MINOR. Emphasis is the identity: every brand's token tree moves by the stamp
+ * only, and `out/components` moves by button's one new docs line. CONTRACT STANDS at 13.1.0: no corpus
+ * brand sets the lever, so the guaranteed surface does not move, and the `type.label.*.default` paths it
+ * adds exist only on a brand that sets it.
  *
  * 0.192.0 — Button and IconButton summaries stop claiming the brand color (owner, 2026-09-28). "Triggers an
  * action in place, in the brand color" was untrue for a brand whose primary action is neutral (the
@@ -4050,7 +4062,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.193.0';
+export const ENGINE_VERSION = '0.194.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
