@@ -1,8 +1,8 @@
 # Veil
 
-> Wash over media so text stays legible. Intensity is a magnitude — verify contrast.
+> Wash over media so text stays legible, solid or fading from one edge. Verify contrast.
 
-A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.
+A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.
 
 - **ID:** `veil`
 - **Category:** foundations
@@ -11,11 +11,12 @@ A designer-selectable wash placed over a photograph or video so text set on top 
 
 ## Usage
 
-Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.
+Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge and clear at the opposite one, so the rest of the photo stays unmuted. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.
 
 ### Do
 
 - Pick the polarity from the image — a dark wash under light text, a light wash under dark text
+- Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom
 - Verify the text's contrast against the actual photo; the intensity is a magnitude, not a guaranteed ratio
 - Size the veil to its media container and keep the text and controls as siblings on top of it
 - Mark the veil aria-hidden — it is a presentational background layer
@@ -25,7 +26,7 @@ Place a veil between a photograph (or video) and the text set over it, so the te
 - Read the intensity as a contrast promise — a stronger wash mutes the image more, but whether text clears its floor depends on the photo
 - Reach for a veil as the modal backdrop — that is scrim.default, a separate mode-varying fill dialogs reference directly
 - Put the text inside the veil node — the text is a sibling on top, so assistive tech reads it directly and the wash stays decorative
-- Expect a gradient wash — the top/bottom/left/right gradients are not built yet; only solid washes exist today
+- Set text in the clear half of a directional wash — the intensity holds only at the named edge, so text away from it sits on the unmuted photo
 
 ### Content guidelines
 
@@ -38,8 +39,8 @@ The veil holds no copy. Where its variants surface in a UI, name the polarity an
 ## Choosing it
 
 - **Purpose:** Place a designer-selected wash over a photograph or video so text set on top of it stays legible, choosing the wash's polarity and magnitude per image.
-- **Use when:** Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, and verify contrast against the real photo.
-- **Avoid when:** The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).
+- **Use when:** Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, then the direction — full for text anywhere, or a fade from the edge the text sits on — and verify contrast against the real photo where the text sits.
+- **Avoid when:** The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or the text sits in the clear half of a directional wash (move it to the named edge or use full).
 - **Often used with:** `icon`, `button`, `image-placeholder`
 
 ## Props
@@ -48,6 +49,7 @@ The veil holds no copy. Where its variants surface in a UI, name the polarity an
 | --- | --- | --- | --- | --- |
 | `value` | enum: 'dark' \| 'light' | `dark` | no | The wash's polarity — a DARK wash to lift light text off the image, a LIGHT wash to lift dark text. The designer picks it per image from what the photo needs; there is no automatic choice, because which polarity a given photograph wants is a judgment about that image. |
 | `intensity` | enum: 'subtle' \| 'medium' \| 'strong' | `medium` | no | How much the wash mutes the image, weakest to strongest. A magnitude, not a contrast promise — a stronger wash darkens (or lightens) the photo more, and whether the text on top clears its floor depends on the image, so verify contrast against your own photo. subtle keeps the image most present; strong mutes it most. |
+| `direction` | enum: 'full' \| 'from-top' \| 'from-bottom' \| 'from-left' \| 'from-right' | `full` | no | Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge, so the rest of the photo stays unmuted. The intensity applies at the named edge only, so verify contrast where the text actually sits. |
 
 ## States
 
@@ -59,6 +61,7 @@ None — not interactive.
 | --- | --- | --- |
 | `value` | `dark`, `light` | once, when authored |
 | `intensity` | `subtle`, `medium`, `strong` | once, when authored |
+| `direction` | `full`, `from-top`, `from-bottom`, `from-left`, `from-right` | once, when authored |
 
 ## Accessibility
 

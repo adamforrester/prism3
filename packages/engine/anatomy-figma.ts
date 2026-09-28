@@ -42,6 +42,9 @@ import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-gl
 import { COMPONENT_GLYPHS } from './component-glyphs';
 // The catalogue, read only to name the member an overlay swaps in (`nestedSwapTarget`, #1670).
 import { componentDefs } from './components';
+// #1318 — the CSS angle → Figma matrix conversion the brand gradient Paint Styles already use (via
+// `write-plan.ts`), so a component gradient and a brand gradient read one angle the same way.
+import { gradientTransformFor, type GradientTransform } from './gradient-transform';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -128,6 +131,18 @@ export type FigmaNodePlan = {
    *  `textStyle` and `effectStyle` — one field per API shape, so the plan cannot imply a call that
    *  does not exist. */
   paints?: { fills?: string; strokes?: string };
+  /** A LINEAR GRADIENT fill (#1318) — a box's `fill` at a coordinate its `PartDef.gradient` names. A SIXTH
+   *  API shape, and its own field for the reason `paints` is: a gradient is a `GradientPaint` whose STOPS
+   *  carry the variable bindings (`ColorStop.boundVariables.color`, via `createVariableAlias`), and
+   *  `setBoundVariableForPaint` handles only a `SolidPaint` — so a gradient in `paints.fills` would imply a
+   *  call that cannot bind it. Present INSTEAD of `paints.fills` on that node, never beside it.
+   *
+   *  `gradientTransform` is Figma's own 2×3 matrix, computed from the def's CSS angle by the same
+   *  `gradientTransformFor` the brand gradient Paint Styles use; its first row maps a layer point to the
+   *  gradient's 0→1 parameter, so `[[0,1,0],…]` puts stop 0 at the top edge. Each stop's `variable` is a
+   *  variable NAME, brand-invariant like every other binding here; the executors bind it at paste. Carried
+   *  ONLY on a gradient member, so every other plan is byte-identical. */
+  gradientFill?: { gradientTransform: GradientTransform; stops: { position: number; variable: string }[] };
   /** The PLACEHOLDER copy for a `TEXT` node, from `figmaProperties.texts[*].default`.
    *
    *  On the node rather than looked up in the payload, because the payload builds nodes and knows
@@ -1531,6 +1546,7 @@ export const figmaAnatomyPlan = (
     // text; a slot takes ink on its VECTOR descendants; a box takes the slots it names in `paintSlots`.
     // Nothing here reads `role` — see below, and see the field's own note for why it still exists.
     const paints: { fills?: string; strokes?: string } = {};
+    let gradientFill: FigmaNodePlan['gradientFill'];
     let descendantFills: string | undefined;
     if (p.kind === 'box') {
       // THIS LINE USED TO READ `p.kind === 'box' && p.role === 'target'`, and that was #933: `role`
@@ -1565,7 +1581,19 @@ export const figmaAnatomyPlan = (
         if (fill) break;
       }
       const border = declared.includes('border') ? paintOf('border') : undefined;
-      if (fill) paints.fills = fill;
+      // THE GRADIENT FORM OF THE FILL (#1318). At a coordinate whose `gradient.axis` value has an angle, the
+      // fill the box would have painted becomes stop 0 and the `fadeTo` role stop 1 — the fill is REPLACED,
+      // never joined, so `paints.fills` is left unset there. Every other coordinate falls through to the
+      // solid fill below untouched. The far stop resolves through `resolveKey`, which throws on a miss: a
+      // gradient with one stop is the silent-loss shape.
+      const dir = p.gradient ? axisValue(p.gradient.axis) : undefined;
+      const angle = dir !== undefined ? p.gradient!.angles[dir] : undefined;
+      if (fill && angle !== undefined) {
+        // `+ 0` folds the `-0` a rotation by 180° or 270° leaves in the matrix into `0`, so the plan reads
+        // the same whichever way it is compared.
+        const t = gradientTransformFor('GRADIENT_LINEAR', angle).map((row) => row.map((v) => v + 0)) as GradientTransform;
+        gradientFill = { gradientTransform: t, stops: [{ position: 0, variable: fill }, { position: 1, variable: paintVarName(resolveKey(p.gradient!.fadeTo, 'gradient.fadeTo')) }] };
+      } else if (fill) paints.fills = fill;
       if (border) paints.strokes = border;
     } else if (p.kind === 'text') {
       // THE ONE PLACE A PART NAMES ITS OWN SLOT (#796), and the default is what keeps that from being a
@@ -1761,6 +1789,7 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
       ...(ownTarget ? { swapTarget: ownTarget } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
+      ...(gradientFill ? { gradientFill } : {}),
       ...(descendantFills ? { descendantFills } : {}),
       ...(p.layout
         ? {
@@ -2360,7 +2389,7 @@ export const planBoundVars = (n: FigmaNodePlan): string[] =>
 
 /** This node's own paint variables (not its children's). */
 const paintVarsOwn = (n: FigmaNodePlan): string[] =>
-  [n.paints?.fills, n.paints?.strokes, n.descendantFills].filter((x): x is string => !!x);
+  [n.paints?.fills, n.paints?.strokes, n.descendantFills, ...(n.gradientFill?.stops ?? []).map((s) => s.variable)].filter((x): x is string => !!x);
 
 /** Every variable name a plan REFERENCES without binding — the two geometry names Figma's `x`/`y`
  *  cannot bind but which the payload still resolves by name to read values from.
@@ -3203,14 +3232,40 @@ const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || 
 const PLACEMENT_SLOT = '__PLACEMENT__';
 const PAYLOAD_PLACEMENT = `    if(n.placementWidth){node.resize(n.placementWidth,node.height);if(node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');}`;
 const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.children.some(hasPlacement);
-/** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons and the corner pin spliced in
- *  where one of them needs it. */
+/**
+ * THE GRADIENT FILL (#1318, the veil's directional washes), spliced ONLY into a payload whose plans carry a
+ * `gradientFill` — the `MIN_LINES_SLOT` budget decision once more, and more pressing: the #536 probe grid has
+ * single-digit bytes of margin, so an unconditional line here would push Button into a second chunk. TWO
+ * splices. The write sits beside the solid fill: each stop is bound through `createVariableAlias` onto the
+ * stop itself (`setBoundVariableForPaint` takes only a solid), and a stop whose variable the file lacks is
+ * reported and leaves the node CLEAR rather than half a gradient — #1387's rule for an unresolvable fill.
+ * The read-back asks the host for a linear gradient whose every stop still carries its binding. The claim
+ * joins `claimDefaults`' fill test, so the default pass does not erase the gradient it cannot see as a fill.
+ * The stop colour is a placeholder the bound variable overrides, as the solid path's black is. Lockstep with
+ * the plugin executor (`write-components.ts`, which binds stops through `write-styles.ts`'s helper).
+ */
+const GRADIENT_SLOT = '__GRADIENT__';
+const PAYLOAD_GRADIENT = `  if(n.gradientFill){
+    const G=n.gradientFill,st=[];
+    for(const s of G.stops){const v=byName.get(s.variable);if(!v){misses.push(n.name+'.fills -> '+s.variable);continue;}st.push({position:s.position,color:{r:0,g:0,b:0,a:1},boundVariables:{color:figma.variables.createVariableAlias(v)}});}
+    const all=st.length===G.stops.length;
+    node.fills=all?[{type:'GRADIENT_LINEAR',gradientTransform:G.gradientTransform,gradientStops:st}]:[];
+    const f=(node.fills||[])[0];
+    if(all&&!(f&&f.type==='GRADIENT_LINEAR'&&(f.gradientStops||[]).length===st.length&&f.gradientStops.every(x=>x.boundVariables&&x.boundVariables.color)))misses.push(n.name+'.fills -> DISCARDED (gradient set, not retained)');
+  }`;
+const GRADIENT_CLAIM_SLOT = '__GRADIENT_CLAIM__';
+const PAYLOAD_GRADIENT_CLAIM = '&&!m.gradientFill';
+const hasGradient = (n: FigmaNodePlan): boolean => n.gradientFill !== undefined || n.children.some(hasGradient);
+/** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons, the corner pin, the root's
+ *  build width and the gradient fill spliced in where one of them needs it. */
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
   PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
-    .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '');
+    .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
+    .replace(GRADIENT_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT : '')
+    .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '');
 
 const PAYLOAD_BUILD = `const __expose=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -3259,7 +3314,7 @@ const claimDefaults=(node,n,mode,layerOp)=>{
     if(isSet){set('fills',[]);w('strokes',[{type:'SOLID',color:{r:S.r,g:S.g,b:S.b}}],[]);w('strokeWeight',S.weight,1);w('strokeAlign',S.align,'INSIDE');w('dashPattern',S.dash.slice(),[]);}
     else{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
-      if(!P.fills){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
+      if(!P.fills${GRADIENT_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
       // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
       if(!P.strokes){set('strokes',[]);if(!('strokeWeight' in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
       set('dashPattern',[]);
@@ -3468,6 +3523,7 @@ ${PLACEMENT_SLOT}
   // DECLARED BUT UNRESOLVABLE -> transparent, never Figma's opaque white (#1387, ported #1393). TEXT exempt:
   // \`[]\` is invisible text. Lockstep with the plugin executor's paints branch.
   else if(node.type!=='TEXT')node.fills=[];}
+${GRADIENT_SLOT}
   if(n.paints&&n.paints.strokes){
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
