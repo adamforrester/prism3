@@ -1,8 +1,8 @@
 # IconButton
 
-> Icon-only action in the brand color. Needs an accessible name.
+> Icon-only action. Needs an accessible name.
 
-A Button whose entire content is a single icon, with no visible text label, in the brand (primary) color. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.
+A Button whose entire content is a single icon, with no visible text label, in the brand's primary action style. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.
 
 - **ID:** `icon-button`
 - **Category:** form

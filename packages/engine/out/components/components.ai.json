@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.192.0",
+  "engineVersion": "0.193.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -382,8 +382,8 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Triggers an action in place, in the brand color. For navigation, use a link.",
-      "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand (primary) color, the expected look of a button. Not navigation (use link / link-button, even when it looks like a button), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
+      "summary": "Triggers an action in place. For navigation, use a link.",
+      "description": "In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use link / link-button, even when it looks like a button), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.",
       "props": [
         {
           "name": "label",
@@ -1152,8 +1152,8 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Icon-only action in the brand color. Needs an accessible name.",
-      "description": "A Button whose entire content is a single icon, with no visible text label, in the brand (primary) color. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.",
+      "summary": "Icon-only action. Needs an accessible name.",
+      "description": "A Button whose entire content is a single icon, with no visible text label, in the brand's primary action style. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.",
       "inherits": "button",
       "props": [
         {

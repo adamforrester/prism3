@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.192.0 — #259 phase 1: the style-guide generator, COLOR (owner decisions, 2026-09-27/28). A plugin
+ * 0.193.0 — #259 phase 1: the style-guide generator, COLOR (owner decisions, 2026-09-27/28). A plugin
  * feature: `apps/plugin/src/style-guide.ts` draws one table per color group onto `↳ Primitive tokens` /
  * `↳ Semantic tokens` from the file's own variables, with modes side by side (each swatch bound and
  * mode-pinned), each specimen on its contracted ground, and a contrast column from `resolveAllModes`.
@@ -2934,6 +2934,12 @@
  * step and `style-guide` agent command. A plugin behavior change (principle 5) → ENGINE bump; no engine
  * emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at
  * 13.1.0 (no token name moves). Design record: `docs/45-style-guide-generator.md`.
+ *
+ * 0.192.0 — Button and IconButton summaries stop claiming the brand color (owner, 2026-09-28). "Triggers an
+ * action in place, in the brand color" was untrue for a brand whose primary action is neutral (the
+ * nb-redesign example and the owner's NB master file point it at a neutral). The summaries now describe the action, and the long descriptions say "the brand's primary action
+ * style". Shipped prose moves (`out/components/*.md`, `components.ai.json`, the plugin bundle and page headers)
+ * → ENGINE bump. CONTRACT STANDS at 13.1.0.
  *
  * 0.191.0 — #1747 (owner, 2026-09-28): a bold badge carries the subtle badge's inset outline in transparent,
  * so forced-colors mode, which drops background fills, still draws every badge's edge. Code guidance only
@@ -4040,7 +4046,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.192.0';
+export const ENGINE_VERSION = '0.193.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

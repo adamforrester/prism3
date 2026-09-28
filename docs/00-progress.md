@@ -9,7 +9,7 @@
 
 ## (2026-09-28) — Style guide generator, phase 1: cell components and color tables (#259)
 
-**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.191.0 → **0.192.0** (renumbered at net after #1748 took 0.191.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
+**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.192.0 → **0.193.0** (renumbered at net after #1748 and #1753 took 0.191.0 and 0.192.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
 
 **What it does.**
 - **Tables.** `apps/plugin/src/style-guide.ts` draws one table per color group from the file's own variables:
@@ -101,6 +101,14 @@
 | replaced folded into stale | "9: the per-root table is reported as replaced…" |
 
 **Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable), and three new ones from the live run: the full path dropped from palette tables, the live run's per-root tables left in place, and the 360px description wrap. **Host-unverified:** GRID rendering and FIXED tracks with FILL cells, HUG on an adopted instance's layers, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
+
+---
+
+## (2026-09-28) — Button and IconButton: summaries describe the action, not the brand color
+
+**Owner-reported.** Button's summary read "Triggers an action in place, in the brand color. For navigation, use a link." IconButton's read "Icon-only action in the brand color." Neither is true for every brand: any brand can point its action palette at a neutral. `examples/nb-redesign.design.md` sets `actionPalette: neutral`, and the owner's NB master file stores `actionPalette: brand-neutral`, so its primary action is near-black. The committed NB fixture's red action is not the only NB there is. The summaries now say what the component does ("Triggers an action in place. For navigation, use a link." / "Icon-only action. Needs an accessible name."). The long descriptions say "in the brand's primary action style". The destructive and neutral siblings describe their role, not a brand color, so they are unchanged. ENGINE 0.191.0 → 0.192.0; CONTRACT stands at 13.1.0.
+
+The summary reaches the page header (#1711), so `apps/plugin/test-page-header.ts`'s `BUTTON_SUMMARY` literal moves with it. That literal is what fails if the two drift.
 
 ---
 
