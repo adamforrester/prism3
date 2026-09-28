@@ -442,6 +442,12 @@ export type FigmaNodePlan = {
    *  `crossAxisFill`, so every other node's plan is byte-identical — both executors read a plain `n.layoutAlign`
    *  and every unstretched node keeps Figma's `INHERIT`. Set from `PartDef.crossAxisFill`. */
   layoutAlign?: 'STRETCH';
+  /** A NESTED INSTANCE's own sizing mode on the axis it fills (#1751): `FIXED`, keyed by the nested root's
+   *  own axis name (a column's width is its COUNTER axis). A stretched instance whose root hugs goes on
+   *  hugging — the supplier (`layoutAlign`) is half of a fill, and this is the other half. Applied by the
+   *  PARENT after the append, beside `layoutAlign`, because the child neutralizer returns early on an
+   *  instance. Carried ONLY on a `nest` that fills (`fillsAxis`), so every other plan is byte-identical. */
+  instanceSizing?: { primaryAxisSizingMode?: 'FIXED'; counterAxisSizingMode?: 'FIXED' };
   /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
    *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
    *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
@@ -818,8 +824,64 @@ const JUSTIFY: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'> = {
 const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
   top: 'TOP', center: 'CENTER', bottom: 'BOTTOM',
 };
-// `hug` and `fill` both mean "don't pin a number" on the axis; only `fixed` is FIXED.
-const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED' : 'AUTO');
+// ── WHERE A `fill` AXIS ACTUALLY FILLS (#1751) ──────────────────────────────────────────────────
+//
+// Figma fills a child on an axis only when TWO things hold: the parent supplies the space (`layoutGrow: 1`
+// on its main axis, `layoutAlign: 'STRETCH'` on its cross axis) AND the child's own sizing mode on that
+// axis is FIXED. A stretched child left at AUTO hugs, which is the #1751 defect: textarea's `messageRow`
+// was STRETCHed across a 320px field and measured 131px, because `fill` projected as AUTO. So a filled
+// axis projects FIXED here, and the supplier beside it. The primitives rather than Figma's
+// `layoutSizing*: 'FILL'` shorthand: the shorthand flips a HUG parent to FIXED, and every field root here
+// hugs above a floor.
+//
+// NOT EVERY `fill` CAN FILL, and the exception is what keeps the fields working. A part that HOLDS its
+// parent's size on the axis (the control's 320 `minWidth` floor, or the body that contains it) cannot
+// also take its size from that parent, which is circular: made FIXED, a hugging root would size from its
+// label alone and the floor would overflow it. Such a part keeps hugging, exactly as it did before, and
+// the floor keeps sizing the field. A part fills when its parent is BOUNDED on the axis (a fixed size, a
+// `minWidth` floor, or a filled axis of its own), or when the axis is the parent's CROSS axis and a
+// sibling holds the floor the parent hugs to while this part holds none. The root is never filled: it
+// has no parent, and filling a consumer's container is the instance's placement, not the component's.
+type Axis = 'x' | 'y';
+const mainAxisOf = (direction: 'row' | 'column'): Axis => (direction === 'row' ? 'x' : 'y');
+const parentsOf = (def: ComponentDef): Map<string, string> =>
+  new Map(Object.entries(def.anatomy!.parts).flatMap(([n, p]) => (p.children ?? []).map((c) => [c, n] as [string, string])));
+/** Does this part hold a size floor on `axis` — a fixed size, a `minWidth`, or a descendant (through a
+ *  nested def's root, for a `nest`) that holds one? */
+const floored = (def: ComponentDef, name: string, axis: Axis): boolean => {
+  const p = def.anatomy!.parts[name];
+  if (!p) return false;
+  if (p.kind === 'nest' && p.nests) {
+    const nested = componentDefs.find((d) => d.id === p.nests);
+    return !!nested?.anatomy && floored(nested, nested.anatomy.root, axis);
+  }
+  if (p.kind !== 'box') return false;
+  if (p.layout?.sizing[axis] === 'fixed' || (axis === 'x' && p.minWidth !== undefined)) return true;
+  return (p.children ?? []).some((c) => floored(def, c, axis));
+};
+/** A filling nest's own FIXED mode, keyed by the axis name the nested ROOT gives the filled axis. */
+const nestSizingOf = (p: PartDef, axes: readonly Axis[]): NonNullable<FigmaNodePlan['instanceSizing']> => {
+  const root = componentDefs.find((d) => d.id === p.nests)?.anatomy;
+  const dir = root?.parts[root.root]?.layout?.direction;
+  if (!dir) throw new Error(`nest '${p.nests}' fills, but its root has no layout to size`);
+  return Object.fromEntries(axes.map((x) => [x === mainAxisOf(dir) ? 'primaryAxisSizingMode' : 'counterAxisSizingMode', 'FIXED']));
+};
+/** Does this part fill `axis` — does its projection write FIXED on it, with a supplier on the parent's side? */
+export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean => {
+  const a = def.anatomy!;
+  const parent = parentsOf(def).get(name);
+  const p = a.parts[name];
+  const pp = parent ? a.parts[parent] : undefined;
+  if (!p || name === a.root || !pp?.layout) return false;
+  const onMain = mainAxisOf(pp.layout.direction) === axis;
+  const declared = p.kind === 'box'
+    ? p.layout?.sizing[axis] === 'fill' || (!onMain && !!p.crossAxisFill) || (onMain && !!p.grow)
+    : p.kind === 'nest' && !onMain && !!p.crossAxisFill;
+  if (!declared) return false;
+  const bounded = pp.layout.sizing[axis] === 'fixed' || (axis === 'x' && pp.minWidth !== undefined) || fillsAxis(def, parent!, axis);
+  if (bounded) return true;
+  return !onMain && !floored(def, name, axis) && (pp.children ?? []).some((s) => s !== name && floored(def, s, axis));
+};
 
 /**
  * Project one component's anatomy into a materialization plan for a given size and slot fill.
@@ -1332,7 +1394,14 @@ export const figmaAnatomyPlan = (
     const pin = a.parts[from]?.pin;
     return pin ? { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: perSize(from, 'pin inset', pin.inset) } : undefined;
   };
+  const parentOf = parentsOf(def);
   const node = (name: string, p: PartDef): FigmaNodePlan => {
+    // WHERE THIS PART FILLS (#1751), and the parent-side supplier each axis takes — see `fillsAxis`.
+    const parentName = parentOf.get(name);
+    const parentLayout = parentName ? a.parts[parentName]?.layout : undefined;
+    const parentMain = parentLayout ? mainAxisOf(parentLayout.direction) : undefined;
+    const fillAxes = (['x', 'y'] as const).filter((a) => fillsAxis(def, name, a));
+    const ownMode = (a: Axis): 'AUTO' | 'FIXED' => (p.layout?.sizing[a] === 'fixed' || fillAxes.includes(a) ? 'FIXED' : 'AUTO');
     const bound: Record<string, string> = {};
     const paddingPx: NonNullable<FigmaNodePlan['paddingPx']> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
@@ -1628,6 +1697,13 @@ export const figmaAnatomyPlan = (
       // plan is byte-identical. `layoutAlign: 'STRETCH'` is Figma's per-child cross-axis stretch — the twin
       // of `wrap`'s main-axis `layoutGrow` above. `anatomyErrors` restricts the kinds and refuses the root.
       ...(p.crossAxisFill ? { layoutAlign: 'STRETCH' as const } : {}),
+      // A FILLED AXIS'S SUPPLIER (#1751) — see `fillsAxis`. The parent's main axis fills by `layoutGrow`,
+      // its cross axis by `layoutAlign`; the part's own FIXED mode is written with its layout below (or
+      // as `instanceSizing`, for a nest). Absent on every part that does not fill, so their plans are
+      // unchanged; on a part that already declared `grow`/`crossAxisFill` it restates the same value.
+      ...(fillAxes.some((a) => a === parentMain) ? { layoutGrow: 1 } : {}),
+      ...(fillAxes.some((a) => a !== parentMain) ? { layoutAlign: 'STRETCH' as const } : {}),
+      ...(p.kind === 'nest' && fillAxes.length ? { instanceSizing: nestSizingOf(p, fillAxes) } : {}),
       // The literal glyph size (#1340), carried ONLY when a vector sets it so every other glyph's plan is
       // byte-identical — a def-local literal the executor resizes the imported frame to (`PartDef.glyphPx`),
       // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
@@ -1680,8 +1756,10 @@ export const figmaAnatomyPlan = (
             // so every existing plan is byte-identical.
             primaryAxisAlignItems: JUSTIFY[positionOf(childNames) ?? p.layout.justify],
             counterAxisAlignItems: ALIGN[p.layout.align],
-            primaryAxisSizingMode: sizingMode(p.layout.sizing.x),
-            counterAxisSizingMode: sizingMode(p.layout.sizing.y),
+            // BY DIRECTION (#1751): a row's primary axis is its width and a column's is its height, so the
+            // modes are read off the axis each one names — not `x` then `y`, which swapped every column's.
+            primaryAxisSizingMode: ownMode(mainAxisOf(p.layout.direction)),
+            counterAxisSizingMode: ownMode(mainAxisOf(p.layout.direction) === 'x' ? 'y' : 'x'),
           }
         : {}),
       bound,
@@ -3411,7 +3489,11 @@ const build=async(n)=>{
     // \`layoutAlign\` is a CHILD's relationship to its parent's auto-layout, and applying it here reaches a
     // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
-    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;
+    //
+    // And a filling nest's own FIXED mode beside it (#1751): without it a stretched instance hugs — see the
+    // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because the
+    // #536 probe grid sits within bytes of its single-chunk budget, and a guard on a line of its own costs 25.
+    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;Object.assign(kid,c.instanceSizing);
 ${MIN_LINES_SLOT}
 ${PIN_LIFT_SLOT}
   }

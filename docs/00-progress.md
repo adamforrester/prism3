@@ -7,6 +7,37 @@
 
 ---
 
+## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)
+
+**The diagnosis.** Two defects in one function, and they hid each other. `sizingMode` in `anatomy-figma.ts` mapped `'fill'` to AUTO, so every declared fill hugged (the #989 note called this deliberate: the projector had no parent-side supplier to pair it with). It also wrote `sizing.x` to `primaryAxisSizingMode` and `sizing.y` to `counterAxisSizingMode` whatever the direction, which is only right for a row. A column declared `x:'fill', y:'hug'` came out FIXED down and AUTO across, the exact reverse. Most columns hug both ways, so the swap only showed where the two axes differ. The textarea message row made both visible at once: the row hugged, so the counter could not reach the right edge, and the message could not wrap because nothing bounded its width.
+
+**The approach.** Sizing maps by direction: primary is the node's own main axis, counter is the other one. A fill axis now actually fills. In Figma that takes two writes, the child's own mode FIXED on that axis plus a supplier from the parent: `layoutGrow 1` on the parent's main axis, `layoutAlign STRETCH` on its counter axis. `fillsAxis` decides when a fill is real. The part must be non-root and declare the fill. Then either its parent is bounded (fixed, a `minWidth` floor on x, or itself filling), or the axis is the parent's counter axis and some sibling is floored while this part is not. The last case is the carrier rule: a hug column as wide as its widest child can stretch the others to that width, but a fill cannot size its own parent. The root never fills. A nested instance cannot take its mode from its own plan node, because the neutralizer returns early on INSTANCE. So the plan carries `instanceSizing` (keyed by the nested root's direction), and both executors apply it after the append. The two executors change in lockstep: `apps/plugin/src/write-components.ts` and the paste twin.
+
+**Textarea (the owner's intent).** The row fills the field and is justified to its END. The message cell grows and its text wraps. The message nest stretches, and `field-message`'s text now declares `wrap: true`. The wrap validator accepts a root that fills its placement. The counter cell hugs.
+
+**The #536 budget.** The paste line is unguarded: `Object.assign(kid,c.instanceSizing)` on the same line as the `layoutAlign` write (`Object.assign` with `undefined` is a no-op). A guarded version on its own line cost 25 bytes and measured 42,018 B, over the 42,000 budget. The unguarded one measures 41,993 B, a **7 B margin** (base was 41,957). The budget was not raised. The next paste-side addition will likely have to raise it or shrink something, and that call belongs to whoever makes it.
+
+**Discarded.** The `layoutSizingHorizontal/Vertical = 'FILL'` shorthand: it flips a hug PARENT to FIXED as a side effect, which is the opposite of the carrier case. A guarded paste line: over budget, see above. Filling every declared fill unconditionally: a fill under an unbounded hug parent has nothing to fill from, so its width would come from nowhere the def states.
+
+**Tests.** `test:roundtrip` builds textarea on the layout-model shim and measures it:
+- with the counter on, the row is as wide as the control, the counter's right edge is the row's, and the message ends before it;
+- a 120-character message wraps to ≥2 caption lines, with the counter still at the edge;
+- with the message off, the counter is still at the edge;
+- the vertical `messageCell` reads AUTO primary and FIXED counter.
+
+The shim gained just enough of a layout model to measure this: stretch, grow sharing, justify-MAX, wrap lines and filled instances. `test.ts` adds a parity block: both executors leave identical sizing on every node of textarea and checkbox-group, with a floor that names the filled nodes. Mutations, each committed first and restored from HEAD:
+- `'fill'` → AUTO fails the row-spans, message-wraps and column arms plus `#1751 parity floor (textarea)`. "Counter alone" survives it by design, since justify-MAX keeps the counter at the edge either way.
+- Re-swapping the axes fails `#1751 column fill/hug`.
+- Dropping `instanceSizing` from the paste twin only fails `#1751 parity (textarea)` and `(checkbox-group)`.
+
+**What moved.** The surface was re-accepted for field-message, text-field, textarea, checkbox-group, radio-group and select (with their outline variants). Every change is "now fills or wraps as declared." `lint-paint` did not move. ENGINE 0.192.0 → 0.193.0; CONTRACT stands at 13.1.0.
+
+**Traps.**
+- A roundtrip arm that seeds the shim from `fullFor` gets catalogue STUBS for every nest target. A stub shadows the component the run builds, so the instance has no main and geometry reads nothing. Pass `comps: []` and prebuild the dependencies.
+- Real-host behavior for a hug parent with FIXED-stretched or grow children (the group rows, the message row inside the hug body) is shim-verified, not live-verified. Figma was not written to.
+
+---
+
 ## (2026-09-28) — Button and IconButton: summaries describe the action, not the brand color
 
 **Owner-reported.** Button's summary read "Triggers an action in place, in the brand color. For navigation, use a link." IconButton's read "Icon-only action in the brand color." Neither is true for every brand: any brand can point its action palette at a neutral. `examples/nb-redesign.design.md` sets `actionPalette: neutral`, and the owner's NB master file stores `actionPalette: brand-neutral`, so its primary action is near-black. The committed NB fixture's red action is not the only NB there is. The summaries now say what the component does ("Triggers an action in place. For navigation, use a link." / "Icon-only action. Needs an accessible name."). The long descriptions say "in the brand's primary action style". The destructive and neutral siblings describe their role, not a brand color, so they are unchanged. ENGINE 0.191.0 → 0.192.0; CONTRACT stands at 13.1.0.

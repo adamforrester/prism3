@@ -3760,9 +3760,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
     `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 24 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
-  ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && (r.children as Node[]).at(-1) === countLayers[i]
-      && countLayers[i]!.layoutGrow === 1 && countLayers[i]!.primaryAxisAlignItems === 'MAX'),
-    `textarea counter row: on all 24 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
+  // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
+  // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
+  ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && r.primaryAxisSizingMode === 'FIXED' && r.primaryAxisAlignItems === 'MAX'
+      && (r.children as Node[]).at(-1) === countLayers[i]
+      && countLayers[i]!.layoutGrow === 0 && countLayers[i]!.primaryAxisSizingMode === 'AUTO' && msgLayers[i]!.layoutGrow === 1),
+    `textarea counter row: on all 24 members the counter's layer is the LAST child of the stretched, FIXED-width message row justified to its end (MAX), the counter's layer hugs (layoutGrow 0, AUTO) and the message's grows (layoutGrow 1), so the counter trails with the message on or off`);
   ok(counters.every((c) => c && c.characters === '0 / 200'),
     `textarea counter text: the counter reads "0 / 200", the def's counter format (${counters[0]?.characters})`);
 

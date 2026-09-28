@@ -1810,6 +1810,9 @@ const writeComponentSet = async (
       // design override, and the `nest` rows / label / message are exactly the children that must STRETCH.
       // Written only when the plan carries it (a `crossAxisFill` part); every other child keeps `INHERIT`.
       if (c.layoutAlign) kid.layoutAlign = c.layoutAlign;
+      // A FILLING NEST'S OWN MODE (#1751): the stretch above is only the supplier — an instance whose root
+      // hugs goes on hugging until its own mode on that axis is FIXED. Lockstep with the paste executor.
+      if (c.instanceSizing) Object.assign(kid, c.instanceSizing);
       // THE RESERVED LINES (textarea's `rows`). Applied by the PARENT after the append, like `layoutAlign`:
       // a minimum size is a property of an auto-layout CHILD. The plan carries the COUNT; the line height is
       // the host's, read off the node its style was applied to — `PIXELS` as is, `PERCENT` of the font size.

@@ -3510,12 +3510,16 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // as its children, leaving none. A `wrap` label under a floorless row validates, projects a real
     // `layoutGrow`, and STILL hugs its glyphs and overflows — the silent no-op this catches. It is also what
     // makes the row's `minWidth` load-bearing: remove it and this fires by name.
+    // ONE MORE BOUND (#1751): a ROOT that declares `sizing.x: 'fill'`. A root has no parent inside its own
+    // def, so its fill is the PLACEMENT's — a nest that stretches it (`crossAxisFill`, now projected with
+    // the instance's own FIXED mode) hands it a width, and the label wraps inside that. A bare, unplaced
+    // instance hugs its label's natural width, which is the unwrapped reading. `field-message` is the case.
     if (p.wrap) {
       const parent = claimed.get(n);
       const pp = parent ? parts[parent] : undefined;
-      const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed');
+      const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed' || (parent === a.root && pp.layout.sizing.x === 'fill'));
       if (!boundedMain)
-        e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow ('fill'/'hug' project to AUTO, #989). Give the parent a 'minWidth' floor or a fixed main axis`);
+        e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow. Give the parent a 'minWidth' floor or a fixed main axis, or make it a root that fills its placement`);
     }
     // ---- THE RESERVED LINES (textarea's `rows`) ----
     // `lines` names a numeric PROP whose default is the line count the text box reserves. A TEXT-only

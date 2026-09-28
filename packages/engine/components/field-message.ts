@@ -252,6 +252,9 @@ export const fieldMessage: ComponentDef = {
         // since #795 means its member names carry no `size=` (see the header). A `{size}` placeholder here would need a size axis
         // to expand over and `anatomyErrors` rejects that combination outright.
         type: 'type',
+        // WRAPS (#1751) — the header's promise, made real: placed by a field that stretches the instance, the
+        // caption grows across the row and reflows inside the field's width instead of running past it.
+        wrap: true,
         note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the status\'s text role.',
       },
     },

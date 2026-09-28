@@ -46,6 +46,9 @@ import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
+import { materializeForBrand } from './src/brand-def';
+import { prebuildDependencies } from './src/build-deps';
+import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
 
 const INVENTORY = process.argv.includes('--inventory');
@@ -1332,6 +1335,69 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(!!inkOf(track) && inkOf(track) === inkOf(arc),
       `#1670 ${c.name}: the track and the arc bind the same color variable (${inkOf(track) ?? 'unbound'} / ${inkOf(arc) ?? 'unbound'})`);
   }
+}
+
+// ── #1751: 'fill' FILLS — the textarea message row, built and measured on the host shim ────────────────
+// The owner's intent, checked on GEOMETRY the shim's layout model computes from what the executor left on
+// the nodes: the message row spans the field, the message cell grows and its text wraps, the counter cell
+// hugs and sits at the row's right edge — with the message on, long, or off. Expected values are the
+// control's measured width and the caption's line box, never read off the def or the plan.
+{
+  const CAPTION = 'caption/md/default';
+  const LINE = 16;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(all), comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: LINE } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  const textarea = componentDefs.find((d) => d.id === 'textarea')!;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  await prebuildDependencies(textarea, { defs: componentDefs, project, host: shim as any, build });
+  const r = await build(textarea);
+  const set = page.children.find((c) => c.name === 'textarea' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children as Node[] | undefined) ?? [];
+  ok(members.length > 0 && r.misses.length === 0, `#1751 seed: textarea builds on the layout-model shim with 0 misses (${members.length} members; ${r.misses[0] ?? 'none'})`);
+  const find = (n: Node | undefined, name: string): Node | undefined => {
+    if (!n) return undefined;
+    if (n.name === name) return n;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = find(c, name); if (f) return f; }
+    return undefined;
+  };
+  const W = (n: Node | undefined) => (n?.width as number) ?? NaN;
+  const X = (n: Node | undefined) => (n?.x as number) ?? NaN;
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  const LONG = 'The message under a field can run long, and when it does it wraps inside its cell beside the counter.'.padEnd(120, '.');
+  const span: string[] = [], wrap: string[] = [], alone: string[] = [];
+  for (const m of members) {
+    const ctl = find(m, 'control'), row = find(m, 'messageRow'), mc = find(m, 'messageCell'), cc = find(m, 'counterCell');
+    const msg = find(m, 'message') as (Node & { _main?: Node }) | undefined;
+    const text = find(msg?._main ?? msg, 'text');
+    if (!ctl || !row || !mc || !cc || !text) { const why = `${m.name}: incomplete (${[ctl, row, mc, cc, text].map((n) => (n ? 1 : 0)).join("")}; message ${msg?.type}, main ${msg?._main?.type}:${JSON.stringify(((msg?._main?.children as Node[] | undefined) ?? []).map((c) => c.name))})`; span.push(why); wrap.push(why); alone.push(why); continue; }
+    cc.visible = true;
+    const edge = () => `row ${W(row)} / field ${W(ctl)}; counter ${X(cc)}+${W(cc)}; message ${X(mc)}+${W(mc)}`;
+    if (!(near(W(row), W(ctl)) && near(X(cc) + W(cc), W(row)) && X(mc) + W(mc) <= X(cc) + 1e-6)) span.push(`${m.name}: ${edge()}`);
+    const was = text.characters;
+    text.characters = LONG;
+    const h = (msg!.height as number) ?? 0;
+    if (!(h >= 2 * LINE && near(X(cc) + W(cc), W(row)) && near(W(row), W(ctl)))) wrap.push(`${m.name}: message ${h} tall; ${edge()}`);
+    text.characters = was;
+    mc.visible = false;
+    if (!near(X(cc) + W(cc), W(row))) alone.push(`${m.name}: ${edge()}`);
+    mc.visible = true;
+    cc.visible = false;
+  }
+  ok(members.length > 0 && span.length === 0,
+    `#1751 textarea row spans the field: with the counter on, on every member the message row is as wide as the control, the counter's right edge is the row's right edge, and the message ends before the counter starts (${span.length} off — ${span[0] ?? 'none'})`);
+  ok(members.length > 0 && wrap.length === 0,
+    `#1751 textarea message wraps: a ${LONG.length}-character message wraps to ≥2 caption lines (≥${2 * LINE}px) through the nested field-message, and the counter stays at the right edge (${wrap.length} off — ${wrap[0] ?? 'none'})`);
+  ok(members.length > 0 && alone.length === 0,
+    `#1751 textarea counter alone: with the message off, the counter still sits at the row's right edge (${alone.length} off — ${alone[0] ?? 'none'})`);
+  // A COLUMN that fills across and hugs down: the messageCell (direction column, x:'fill', y:'hug'). Its
+  // primary axis is y, so it must read AUTO primary / FIXED counter — the swap reads FIXED primary.
+  const cols = members.map((m) => find(m, 'messageCell'));
+  ok(members.length > 0 && cols.every((c) => c && c.layoutMode === 'VERTICAL' && c.primaryAxisSizingMode === 'AUTO' && c.counterAxisSizingMode === 'FIXED'),
+    `#1751 column fill/hug: the vertical messageCell (x:'fill', y:'hug') reads back hug on its primary (y) axis and FIXED on its counter (x) axis, on every member (${cols.map((c) => `${c?.layoutMode} p:${c?.primaryAxisSizingMode} c:${c?.counterAxisSizingMode}`)[0]})`);
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

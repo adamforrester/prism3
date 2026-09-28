@@ -12026,9 +12026,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const root = figmaAnatomySet(textarea, {})[0].root;
       const cc = findIn(root, 'counterCell');
       const mc = findIn(root, 'messageCell');
-      ok(cc?.layoutGrow === 1 && findIn(root, 'messageRow')?.layoutGrow === undefined && cc?.bound.paddingTop === 'space/100' && mc?.bound.paddingTop === 'space/100'
+      // #1751: the MESSAGE cell grows now, and the counter cell hugs its caption at the row's end.
+      ok(mc?.layoutGrow === 1 && cc?.layoutGrow === undefined && findIn(root, 'messageRow')?.layoutGrow === undefined && cc?.bound.paddingTop === 'space/100' && mc?.bound.paddingTop === 'space/100'
         && cc?.bound.paddingBottom === undefined && mc?.bound.paddingBottom === undefined,
-        `textarea grow/paddingTop: the counter cell grows (layoutGrow ${String(cc?.layoutGrow)}), the row does not, and both cells bind the stack gap ABOVE only (top ${String(cc?.bound.paddingTop)}/${String(mc?.bound.paddingTop)}, bottom ${String(cc?.bound.paddingBottom)}/${String(mc?.bound.paddingBottom)})`);
+        `textarea grow/paddingTop: the message cell grows (layoutGrow ${String(mc?.layoutGrow)}), the counter cell (${String(cc?.layoutGrow)}) and the row do not, and both cells bind the stack gap ABOVE only (top ${String(cc?.bound.paddingTop)}/${String(mc?.bound.paddingTop)}, bottom ${String(cc?.bound.paddingBottom)}/${String(mc?.bound.paddingBottom)})`);
       const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
       ok(refuses(withTa({ counter: { ...taParts.counter, grow: true } }), /declares 'grow'/, /only a 'box'/),
         "'grow' on a NON-box part is refused BY NAME");
@@ -16513,6 +16514,58 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,
           `#1428 paste-path: select's own \`value\` TEXT reference is wired despite the nested field-label/field-message \`text\` collision — 0 dropped (${textMisses.length ? textMisses.slice(0, 2).join(' | ') : 'none'})`);
+      }
+
+      // ---- #1751: BOTH EXECUTORS SIZE A FILL ALIKE --------------------------------------------------
+      // A `fill` axis is now three writes on two sides of a parent/child edge — the child's own FIXED mode
+      // (in its layout block, or `instanceSizing` on a nest, applied by the parent after the append), and
+      // the parent-side supplier (`layoutAlign`/`layoutGrow`). The paste half lives in a generated string
+      // no typechecker reads, so the two executors are driven over the SAME plans and every node's sizing
+      // is read back off the two hosts and compared as a set. Textarea (the #1751 row, a stretched nested
+      // message) and checkbox-group (stretched nested rows) between them carry every shape.
+      //
+      // The FLOOR is oracle-authored here, not read off a plan (docs/34): a stretched ROW's width is its
+      // PRIMARY axis and must read FIXED; a COLUMN's width is its COUNTER axis; a stretched instance of a
+      // row-rooted def reads a FIXED primary. Without it, two executors that both dropped the writes would
+      // agree. Mutation, by name: drop `Object.assign(kid,c.instanceSizing)` from the paste payload and the
+      // parity line below fails on every `message`/`row*` instance.
+      {
+        const sizingOf = (page: StubPage): string[] => {
+          const out: string[] = [];
+          const dive = (n: Record<string, unknown>, path: string): void => {
+            const here = `${path}/${String(n.name)}`;
+            if (n.type !== 'COMPONENT_SET')
+              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)}`);
+            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c, here);
+          };
+          for (const c of page.children as Record<string, unknown>[]) dive(c, '');
+          return out.sort();
+        };
+        for (const def of [textarea, checkboxGroup]) {
+          const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+          const collect = (n: AnatomyPlan['root']): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...n.children.flatMap(collect)];
+          const base = {
+            vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+            styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+            comps: [...new Set(plans.flatMap((p) => collect(p.root)))],
+          };
+          const pastePage: StubPage = { children: [] };
+          const plugPage: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(plans), { ...base, page: pastePage });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+          await applyComponentPlan(plans, makeFigmaStub({ ...base, page: plugPage }) as any);
+          const plug = sizingOf(plugPage);
+          const paste = sizingOf(pastePage);
+          const want = def === textarea
+            ? [/\/messageRow HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/messageCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/message undefined p:FIXED .*align:STRETCH /]
+            : [/\/row1 undefined p:FIXED .*align:STRETCH /];
+          const missing = want.filter((re) => !plug.some((l) => re.test(l)) || !paste.some((l) => re.test(l)));
+          ok(plug.length > 0 && missing.length === 0,
+            `#1751 parity floor (${def.id}): both executors build the filled nodes FIXED on the filled axis with their supplier — ${missing.length ? `MISSING ${missing.map(String).join(', ')}` : 'all present'} (${plug.length} nodes)`);
+          const diff = [...plug.filter((l) => !paste.includes(l)), ...paste.filter((l) => !plug.includes(l))];
+          ok(plug.length === paste.length && diff.length === 0,
+            `#1751 parity (${def.id}): the plugin and paste executors leave identical sizing on every node — plugin ${plug.length} vs paste ${paste.length}${diff.length ? `, disagree on: ${JSON.stringify(diff.slice(0, 4))}` : ''}`);
+        }
       }
 
       // ---- AXIS PARITY between the two write paths (#487 step 5) --------------------------------
