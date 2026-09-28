@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.189.0 — Badge follow-ups (owner decisions, 2026-09-27 and 2026-09-28), and a sparse variant grid.
+ * 0.190.0 — Badge follow-ups (owner decisions, 2026-09-27 and 2026-09-28), and a sparse variant grid.
  * (1) `genre` joins `VARIANT_AXES` as the nineteenth axis name, and Badge projects it (status, count, dot).
  * (2) Badge takes the existing `emphasis` axis name with `subtle | bold`; only the status label has both,
  * the count and dot are bold-only. SUBTLE: the tone's tint under its text ink with a 1px inside edge in
@@ -2939,6 +2939,15 @@
  * that removes the first member or the code default. Badge's set is 20 members (30 less the 10 count and
  * dot members at `subtle`). A moved projected surface and moved `out/components/**` docs → ENGINE MINOR.
  * CONTRACT STANDS at 13.1.0: no token name moves, and the def binds existing roles only.
+ *
+ * 0.189.0 — a new component def, `tag` (owner decisions, 2026-09-27): the interactive token a user clicks,
+ * toggles or removes, one component switched by an `interaction` prop (clickable | selectable | removable).
+ * Its Figma set is selection (unselected | selected) × size × five states = 30 members, with the leading icon
+ * and the nested IconButton.Neutral remove button as node-visibility booleans. It binds the interactive color
+ * family only. `badge`, `icon`, `button` and `checkbox-row` move their `composition`/`ai` lists (a planned
+ * `tag`/`chip` is built now), so their pages move too. A new def moves the projected surface and adds one
+ * payload artifact (`out/components/tag.md`) → ENGINE MINOR. CONTRACT STANDS at 13.1.0 (no token name
+ * moves; the def binds existing roles only).
  *
  * 0.188.0 — the page header is never narrower than its own Medium variant (live, 2026-09-27). A placed
  * `_Section-header` took the content's width alone, so the Spinner page (80px of content) got an 80px
@@ -4017,7 +4026,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.189.0';
+export const ENGINE_VERSION = '0.190.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

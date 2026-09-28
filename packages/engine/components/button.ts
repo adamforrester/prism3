@@ -678,7 +678,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row'],
-    planned: ['tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button', 'chip'],
+    planned: ['tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
 

@@ -446,7 +446,7 @@ export const checkboxRow: ComponentDef = {
     // pass here, which typed Switch and Combobox as `superseded-by`: they are sibling alternatives
     // chosen by intent and scale, not replacements. Carried so the corrected reading reaches the engine.
     supersededBy: [],
-    planned: ['form', 'toggle-button', 'combobox', 'listbox', 'chip'],
+    planned: ['form', 'toggle-button', 'combobox', 'listbox'],
   },
 
   // Brief §8. The Row draws no motion of its own; the glyph transition belongs to the nested control.

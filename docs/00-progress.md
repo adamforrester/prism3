@@ -36,6 +36,43 @@
 
 ---
 
+## (2026-09-27) — Component: Tag — the interactive token, one component switched by `interaction`, outlined or filled from the interactive family
+
+**STATUS: merged (owner go, 2026-09-28).** New def `components/tag.ts` from the KB brief `components/tag.md`, built to the owner's six decisions of 2026-09-27 and against Badge's `notes.contested` hook. ENGINE 0.188.0 → **0.189.0** (MINOR, a new projected def; renumbered at net after #1742 took 0.188.0); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 170 → **171** (`out/components/tag.md`), moved in `verify.ts` and both `ci.yml` literals.
+
+**What it is.** One component switched by an `interaction` prop (`clickable | selectable | removable`, default `clickable`), named for what the user can do to the tag. The Figma set is `selection` (`unselected | selected`) × `size` (small / medium / large) × five states (rest, hover, pressed, focus-visible, disabled) = 30 members; `read-only` is a code state admitted out of the state axis. The leading icon and the remove button are node-visibility booleans (`leading icon`, `remove button`). The remove button is a nested `icon-button-neutral` (small, circular, ghost), `nest-exposed` on `state`, so it is a real control with its own name ("Remove <label>").
+
+**The schema boundary held with no new names.** `STATES` has no `selected`; the `selection` axis the checkbox family already uses expresses it, and crosses the state axis (`{selection}.{slot}.{state}`), which a state could not. The archetype is a code prop for Badge's `genre` reason: no `VARIANT_AXES` name fits.
+
+**Bindings, and the diagnosis that moved one.** Unselected is outlined: `interactive.neutral.border` on no fill, neutral text ink, the neutral overlay wash on hover/pressed (Button's outline grammar, so the `outlineInteraction` lever reaches it and `test.ts` #1608 now lists `tag`). Selected is filled from `interactive.primary.fill.rest` with on-fill ink and a `check` vector gated `presentWhen: { selection: ['selected'] }`. **The first draft bound `fill.selected`, checkbox's `checked` role, and the new contrast arm failed it by name: on-fill on `fill.selected` measures 2.60:1 (nb dark) and 2.62:1 (harbor dark)**, because `fill.selected` is the pressed step and dark mode lightens it. A checkbox glyph survives that; a text label does not. `fill.rest` is the pair the engine contracts. The same finding in the rest of the corpus (checkbox's checked glyph at 2.60 < 3:1, filled Button hover/pressed labels) is #1626's, already open, and not fixed here. Geometry is Button's rungs (`size.{size}.height`, `padding-x`, `gap`, `type.label.*.emphasis`), `radius.round` so an outlined tag is not an outline Button.Neutral edge for edge, block padding `space.0` so the small-rung remove button (the same `size.sm.height` rung as a small tag, at every density) fits without overflowing.
+
+**The owner's decisions, and where each is gated.**
+- (1)/(3) `test.ts` TAG block: every color ref is `interactive.*`/`disabled.*` (+ the ring); the five projected states; `interaction` values literal; `chip` first alias and the four phrases carried; the remove part nests `icon-button-neutral`; the "Remove <label>" aria contract. **Cross-component arm:** each side's projected rest member is first held to its OWN literal table (Tag: unselected edge `interactive/neutral/border/rest`, selected fill `interactive/primary/fill/rest` + check; Badge: its five tone fills, no edge), then for 5 tones × 2 selections the tag paints only the interactive family and shows an edge or a check mark, and the badge neither. Contrast measured on nb/aurora/harbor × 4 modes: selected label on fill 4.5, unselected label on page 4.5, unselected edge on page 3.
+- (4) `lint-hit-target` INTERACTIVE `tag` → `size.medium.height` (44 comfortable, 56 spacious). `SMALL_BUTTON` became `SMALL_SIZE` and holds `tag` (small tag 36px on comfortable, asserted below the floor); compact stays the other exception. CONTRIBUTING's line moved with it.
+- (5) `group-gap` → `space.100`, measured ≥ 8px in `test.ts` over nb, aurora, harbor, prism3 and harbor at all three densities (8px in each). The group is code-only (`codeOnly`: selection model, grid pattern, `display: contents`, focus after removal, "+N more", Combobox Backspace).
+- (6) the nested IconButton.Neutral, named "Remove <label>".
+
+**Gate registrations.** `KB_BRIEF_CATEGORY` (`tag.md: foundations`), `GATED_EXPECTED`, `TYPE_GRID`, `CENTRE_OK` (`tag.container`, one-line label), #1608 binders, `lint-axis-values` (selection `[unselected, selected]` new `disjoint` set; size joins canonical), `lint-paint-placement` both lists, `lint-glyph-geometry` `MUST_COVER` + `FIXED_GLYPH` (`tag.check`), `lint-paint` `UNREACHED_EXPLAINED` (`tag|focus-ring`, the sixth ring nomination), `DEF_FLOOR` 25 → 26, taxonomy page Components → "Tag" after Badge. Baselines accepted for `tag` only (component-surface: no set → 30 members ×3 lever variants; paint census 36 coords / 132 assignments). Moved lists: `badge` planned `tag` → `alternativeTo`; `icon` planned `tag` → `ai.commonPartners`; `button` and `checkbox-row` drop the now-built `chip` from `planned`.
+
+**Traps.**
+- A boolean-toggled `nest` that is also `nest-exposed` is a first for the corpus (select toggles a nest; checkbox-row exposes one). The offline shim builds it; no real Figma host has.
+- The nested remove button shows the file's placeholder icon, not a ×: a nest cannot set the nested instance's swap. Recorded in `codeOnly` and `notes.unverified`.
+- Contrast "on the tag in every mode" is true at REST only; hover/pressed filled pairs fail in dark mode (#1626). The shipped WCAG line says "at rest".
+
+**Mutations, committed before each, restored from HEAD by a trap, diff asserted non-empty, each failing by name.**
+- `unselected.border` → `color.border.secondary` → `tag binds the interactive family`, `tag rest (unselected)`, and `tag vs badge at rest (unselected tag, <tone> badge)` ×5.
+- container `paintSlots` without `border` → `tag rest (unselected)` and `tag vs badge at rest` ×5.
+- `selected.fill` → `fill.selected` (the first draft) → `tag contrast (selected label on its fill)` (nb/dark 2.60; harbor/dark 2.62) and `tag rest (selected)`.
+- badge `neutral.fill` → `interactive.neutral.fill.rest` (the Badge side of the cross arm) → `tag vs badge at rest (<selection> tag, neutral badge)` ×2, beside Badge's own three arms.
+- `interaction` values `action|…` → `tag interaction`. Remove part nests `icon-button` → `tag: the remove control nests IconButton.Neutral` (+ component-refs ×2). `group-gap` → `space.075` → `tag group spacing binds space.100` and `…at least 8px in all 7 builds` (6px each). `hover` dropped from the state axis → `tag is interactive` (+ the validator). The "Remove Marketing" sentence cut → `tag aria`.
+- `size.medium.height` → `size.sm.height` → `lint-hit-target` `tag/medium … is 36px, below the 44px floor`.
+- `check` glyph → `close` → `lint-glyph-geometry` `tag.check: the def draws glyph 'close' and FIXED_GLYPH records 'check'`. Selection `unselected` → `unchecked` → `lint-axis-values` `1 axis value set(s) no register entry declares`. Taxonomy row removed → plugin `every registered def is mapped or excluded`.
+- Not found: a mutation only the cross-component arm catches. Every defect it sees, a literal arm on one side sees too; it is the arm that states the owner's comparison, not the only one standing on it.
+
+**Held for owner** (in the PR body): Tag group as a def or code-only (recommendation: code-only now, a `tag-group` def in its own PR once the selection model and overflow are decided — filed); the `[unselected, selected]` spelling; tone and fill variants not built; the visual choices (outlined/filled, pill radius, selected in primary); dual-action tags; the three-rung size ladder; the 1:1 glyph rung vs Button's offset; the remove button fixed at the small rung; `generationPriority: 3`; the taxonomy page; `Token` not carried as an alias.
+
+---
+
 ## (2026-09-27) — Plugin: a page header is never narrower than the header itself
 
 **Found live, not offline.** The first agent-link build in the owner's master file after #1711/#1733 placed headers on two pages that had none. Both were sized to their content: 250px on Field Label, and **80px on Spinner**, where the four spinner sizes span 80px. The Spinner header came out 860px tall, with its title broken one letter per line. The shim test covered 600–1500px content and never went narrower than the header's text.
