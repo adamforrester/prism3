@@ -1645,6 +1645,14 @@ const writeComponentSet = async (
       else await node.setEffectStyleIdAsync?.(ef.id);
     }
     if (n.layoutMode) {
+      // THE ROOT'S BUILD WIDTH (#1757, `FigmaNodePlan.placementWidth`): a root whose `fill` has no placement
+      // in its own def is built at this width, so a wrapping text inside it reflows at it rather than
+      // freezing at its default string's. BEFORE the modes below, because Figma switches a resized axis to
+      // FIXED — the plan's modes are written after it and stand. Read back. Lockstep with the paste executor.
+      if (n.placementWidth) {
+        node.resize?.(n.placementWidth, node.height as number);
+        if (node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+      }
       node.layoutMode = n.layoutMode;
       node.primaryAxisAlignItems = n.primaryAxisAlignItems;
       node.counterAxisAlignItems = n.counterAxisAlignItems;

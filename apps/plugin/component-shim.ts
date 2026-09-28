@@ -550,6 +550,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
     if (typeof node._forcedWidth === 'number') return node._forcedWidth;
     const bv = node.boundVariables as Record<string, { value?: number }>;
     if (bv.width) return bv.width.value ?? 0;
+    // A NODE WHOSE OWN WIDTH IS FIXED MEASURES THE WIDTH IT WAS SET AT, not its content (#1757, `layoutModel`
+    // only): a `HEIGHT` text keeps the width it froze at (the `textAutoResize` setter below), and a FIXED
+    // auto-layout frame keeps its last resize — Figma's `createFrame` default of 100 until one. Only a
+    // parent that fills it (`fillWidth`) moves either. Measuring content here instead is what let a grow
+    // child in a hugging row, and a FIXED value row with a long value in it, read as if they tracked their text.
+    if (opts.layoutModel && fixedOnX(node) && node.type !== 'INSTANCE')
+      return typeof node._setW === 'number' ? node._setW : node.type === 'TEXT' ? textNatural(node) : 100;
     if (node.type === 'TEXT') return textNatural(node);
     // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
     // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
@@ -801,6 +808,19 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // order the executors use; the ring clears its bindings before it resizes.
       resize(w: number, h: number) {
         const bv = node.boundVariables as Record<string, { value?: number }>;
+        // AN AUTO-LAYOUT FRAME, under `layoutModel` (#1757): the resize sets the width a FIXED axis holds, and a
+        // HUG axis goes on hugging its children — so a root built at its `placementWidth` is 320 across and as
+        // tall as its content. Decided at READ time, because the executors resize before writing `layoutMode`.
+        node._setW = w;
+        node._setH = h;
+        const hugH = Object.getOwnPropertyDescriptor(node, 'height')?.get;
+        const autoLayout = (): boolean => !!opts.layoutModel && !!node.layoutMode && node.type !== 'INSTANCE' && node.type !== 'TEXT';
+        const fixedOnY = (): boolean => (node.layoutMode === 'VERTICAL' ? node.primaryAxisSizingMode : node.counterAxisSizingMode) === 'FIXED';
+        if (opts.layoutModel && node.type !== 'INSTANCE' && node.type !== 'TEXT') {
+          Object.defineProperty(node, 'width', { configurable: true, get: () => (autoLayout() ? fillWidth(node) ?? naturalWidth(node) : bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; node._setW = v; } });
+          Object.defineProperty(node, 'height', { configurable: true, get: () => (autoLayout() && !fixedOnY() && hugH ? hugH.call(node) : bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; node._setH = v; } });
+          return;
+        }
         Object.defineProperty(node, 'width', { configurable: true, get: () => (bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; } });
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
       },
@@ -881,6 +901,26 @@ export const makeShim = (opts: ShimOpts = {}) => {
         get() { return undefined; },
         set(_v: string | undefined) {
           throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+        },
+      });
+    }
+    // A FIXED-WIDTH TEXT NODE KEEPS THE WIDTH IT WAS SET AT (#1757, `layoutModel` only). Switching a text from
+    // auto width to `HEIGHT` (or `NONE`) freezes its width where its content left it, and nothing but a resize
+    // or a parent that FILLS it moves that width again — new characters reflow inside it. The executors write
+    // `HEIGHT` after the characters, so a wrapping caption freezes at the width of its DEFAULT string. This
+    // shim used to measure such a node at its characters' natural width every time it was read, which is
+    // exactly the value a frozen box does not have: a longer override then looked one line long instead of
+    // wrapping at ~150px, and the field-message defect the independent review found passed here.
+    if (type === 'TEXT') {
+      let tar: unknown;
+      Object.defineProperty(node, 'textAutoResize', {
+        configurable: true,
+        enumerable: true,
+        get() { return tar; },
+        set(v: unknown) {
+          const fixed = (m: unknown) => m === 'HEIGHT' || m === 'NONE';
+          if (opts.layoutModel && fixed(v) && !fixed(tar)) node._setW = textNatural(node);
+          tar = v;
         },
       });
     }

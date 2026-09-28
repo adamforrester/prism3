@@ -146,12 +146,12 @@ export const checkboxGroup: ComponentDef = {
       // THE WIDTH FLOOR + ROW FILL (#1503, owner Option B: follow Prism 2). Prism 2's `checkbox-group` is a
       // FIXED 320px root with each `checkboxRow` set to `layoutSizingHorizontal: FILL`, so the rows span the
       // group rather than rendering ragged (each as wide as its own label). Until #1503 the projection could
-      // realize neither half — `sizing: 'fill'` maps to AUTO/hug (#989) and there was no cross-axis child FILL
-      // — so this def's own comment ("filling its width so the rows span it") described an intent the plan
+      // realize neither half — `sizing: 'fill'` projected as hug (#989, fixed by #1751) and there was no
+      // cross-axis child FILL — so this def's own comment ("filling its width so the rows span it") described an intent the plan
       // could not carry. It can now: the rows declare `crossAxisFill` (→ `layoutAlign: STRETCH`) and the
       // container floors at `minWidth: 320`. A `minWidth` floor rather than a bound `width` + `sizing: 'fixed'`
       // is Prism 2's 320 the RESPONSIVE way (`select`'s #1343/#1345 precedent): the group reads at 320 in
-      // Figma and FLEXES above it, rather than being pinned. 320 is a projection literal in 8px increments —
+      // Figma and a designer can widen it, rather than it being pinned; the rows stretch to whatever it is. 320 is a projection literal in 8px increments —
       // the owner-cited Prism 2 value, not a semantic `field.width` role — so no emitted token NAME moves and
       // `CONTRACT_VERSION` stands (the same posture `select.control`'s `minWidth` takes).
       container: {
@@ -173,7 +173,10 @@ export const checkboxGroup: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
-        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy.',
+        // FILLS the group's width (#1757, select's label): the heading stretches across the 320 container, so
+        // a long one wraps at the group's width instead of running past it.
+        crossAxisFill: true,
+        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width, so a long heading wraps.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `checkbox-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:

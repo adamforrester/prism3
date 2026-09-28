@@ -257,7 +257,13 @@ export const fieldLabel: ComponentDef = {
         // rather than a default: the marker sits beside running text and can differ in type step, so
         // centering would float it off the label's baseline. Figma's auto-layout carries baseline
         // alignment natively, so this projects.
-        layout: { direction: 'row', align: 'baseline', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        // FILLS ITS PLACEMENT, AND IS BUILT AT THE FIELD'S WIDTH (#1757, owner: the label wraps at field width
+        // rather than overflowing). Every host stretches the instance across its field, so the name wraps at
+        // the host's width; a bare instance is built 320 wide (the field floor, `field-message`'s reason) so
+        // its text never freezes at the width of the default "Label". It hugged before, and a long name ran
+        // past the field.
+        layout: { direction: 'row', align: 'baseline', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        placementWidth: 320,
         gap: 'gap',
         children: ['text', 'indicator'],
       },
@@ -266,7 +272,10 @@ export const fieldLabel: ComponentDef = {
         type: 'size.{size}.{weight}.text',
         // No `paintSlot` — the default IS `label`, and stating it would invite the reading that the
         // field is required on every text part.
-        note: 'The accessible name. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
+        // WRAPS (#1757) — grows across the row and reflows inside it. The required marker therefore sits at
+        // the row's trailing end in Figma, not after the last word as it does in code (held for the owner).
+        wrap: true,
+        note: 'The accessible name. Wraps at the field\'s width rather than running past it. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
       },
       indicator: {
         kind: 'text',

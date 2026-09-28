@@ -2933,6 +2933,11 @@
  * A nest carries its own mode as `instanceSizing`. The textarea message row fills the field and is justified
  * to its end: the message cell grows and its field-message text wraps, and the counter cell hugs. Projected
  * members move (`schema/component-surface.json`) → ENGINE bump. CONTRACT STANDS at 13.1.0.
+ *   Review round (#1757): a new `PartDef.placementWidth` builds field-message's and field-label's roots at
+ *   320, so their wrapping text no longer freezes at the default string's width; text-field's message and
+ *   every field-label host stretch the nest; field-label's name wraps; select's value and placeholder wrap
+ *   and its control hugs its height above the 44px floor; text-field's value row clips (#1758). Same
+ *   version: the round lands before the first release of 0.193.0.
  *
  * 0.192.0 — Button and IconButton summaries stop claiming the brand color (owner, 2026-09-28). "Triggers an
  * action in place, in the brand color" was untrue for a brand whose primary action is neutral (the

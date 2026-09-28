@@ -398,6 +398,13 @@ export type FigmaNodePlan = {
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
    *  gets a min-width and not a bound `width`. */
   minWidth?: number;
+  /** For a ROOT `box` whose `fill` has no placement inside its own def (#1757): the literal px width the
+   *  component is BUILT at. The root's x mode projects FIXED beside it, and each executor RESIZES the frame
+   *  to it inside the \`layoutMode\` branch, before the layout is written — Figma switches a resized axis to
+   *  FIXED, so the modes written after it are the ones that stand. A host that stretches the nested instance
+   *  overrides the width. Carried ONLY on such a root (`PartDef.placementWidth`), so every other plan is
+   *  byte-identical; the paste twin splices its line in only for a payload that carries it. */
+  placementWidth?: number;
   /** For a `box`: inline padding written as LITERAL px, replacing that side's binding (#1667). The side a
    *  PINNED child (below) sits on: the pinned node is out of flow, so the padding reserves its room — edge
    *  inset + icon + gap, a sum Figma cannot bind to one variable. Keyed by Figma's own property names so the
@@ -842,6 +849,8 @@ const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
 // `minWidth` floor, or a filled axis of its own), or when the axis is the parent's CROSS axis and a
 // sibling holds the floor the parent hugs to while this part holds none. The root is never filled: it
 // has no parent, and filling a consumer's container is the instance's placement, not the component's.
+// A root that must still hold a width until it is placed — because text inside it wraps — declares a
+// `placementWidth` and is BUILT at it (#1757); a host's stretch then overrides it.
 type Axis = 'x' | 'y';
 const mainAxisOf = (direction: 'row' | 'column'): Axis => (direction === 'row' ? 'x' : 'y');
 const parentsOf = (def: ComponentDef): Map<string, string> =>
@@ -1401,7 +1410,9 @@ export const figmaAnatomyPlan = (
     const parentLayout = parentName ? a.parts[parentName]?.layout : undefined;
     const parentMain = parentLayout ? mainAxisOf(parentLayout.direction) : undefined;
     const fillAxes = (['x', 'y'] as const).filter((a) => fillsAxis(def, name, a));
-    const ownMode = (a: Axis): 'AUTO' | 'FIXED' => (p.layout?.sizing[a] === 'fixed' || fillAxes.includes(a) ? 'FIXED' : 'AUTO');
+    // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is FIXED across as well — see `placementWidth`.
+    const ownMode = (ax: Axis): 'AUTO' | 'FIXED' =>
+      (p.layout?.sizing[ax] === 'fixed' || fillAxes.includes(ax) || (ax === 'x' && name === a.root && p.placementWidth !== undefined) ? 'FIXED' : 'AUTO');
     const bound: Record<string, string> = {};
     const paddingPx: NonNullable<FigmaNodePlan['paddingPx']> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
@@ -1663,6 +1674,8 @@ export const figmaAnatomyPlan = (
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
+      // THE ROOT'S BUILD WIDTH (#1757), carried ONLY on a root that declares it — see `placementWidth`.
+      ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
       ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
@@ -1675,7 +1688,8 @@ export const figmaAnatomyPlan = (
       // plan is byte-identical. `layoutGrow: 1` fills the row's main axis (fixing the width) and
       // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
-      // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
+      // width (a floor, a fixed or filled width, or a root's `placementWidth`), or the text keeps the width
+      // of its default string and wraps there (#1757).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
       // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
       // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
@@ -3156,13 +3170,24 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
   }
 `;
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
+/**
+ * THE ROOT'S BUILD WIDTH (#1757, `placementWidth`), spliced into the \`layoutMode\` branch ONLY for a payload
+ * whose plans carry one — the `MIN_LINES_SLOT` budget decision again, since Button's #536 probe grid sits
+ * within bytes of `SET_CHUNK_BYTES`. The resize comes BEFORE the five layout writes: Figma switches a resized
+ * axis to FIXED, so the modes the plan states are written after it and stand. Read back, like every write
+ * here. Lockstep with the plugin executor (`write-components.ts`).
+ */
+const PLACEMENT_SLOT = '__PLACEMENT__';
+const PAYLOAD_PLACEMENT = `    if(n.placementWidth){node.resize(n.placementWidth,node.height);if(node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');}`;
+const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.children.some(hasPlacement);
 /** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons and the corner pin spliced in
  *  where one of them needs it. */
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
   PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
-    .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '');
+    .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
+    .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '');
 
 const PAYLOAD_BUILD = `const __expose=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -3373,6 +3398,7 @@ const build=async(n)=>{
     else await node.setEffectStyleIdAsync(ef.id);
   }
   if(n.layoutMode){
+${PLACEMENT_SLOT}
     // The five, in this order — one loop for the chunk byte budget (#1667), \`layoutMode\` first.
     for(const k of['layoutMode','primaryAxisAlignItems','counterAxisAlignItems','primaryAxisSizingMode','counterAxisSizingMode'])node[k]=n[k];
     // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the \`layoutMode\` branch because Figma accepts a

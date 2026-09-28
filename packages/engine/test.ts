@@ -12017,6 +12017,33 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
     }
 
+    // ---- #1757: a ROOT's build width (`placementWidth`), and the wrap bounds it and a filled parent supply ----
+    // The review's blocking finding: field-message's caption wrapped under a root that HUGGED, so the text froze
+    // at its default string's width (~150px). The wrap validator took any `fill` root as bounded; it now takes a
+    // root only with a `placementWidth`, and a non-root parent only where it FILLS from a bounded ancestor.
+    // Each arm mutates the shipped def and requires the refusal by name (docs/34).
+    {
+      const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
+      const fmParts = fieldMessage.anatomy!.parts;
+      const withFm = (over: Record<string, unknown>) => ({ ...fieldMessage, anatomy: { ...fieldMessage.anatomy!, parts: { ...fmParts, ...over } } }) as ComponentDef;
+      ok(validateComponentDef(fieldMessage).errors.length === 0 && fmParts.message.placementWidth === 320,
+        `#1757 field-message builds its root at 320 and validates (${String(fmParts.message.placementWidth)}; ${validateComponentDef(fieldMessage).errors[0] ?? 'clean'})`);
+      ok(refuses(withFm({ message: { ...fmParts.message, placementWidth: undefined } }), /'text' declares 'wrap'/, /does not bound its main-axis width/, /placementWidth unset/),
+        "#1757 a 'wrap' caption under a FILL root with no build width is refused BY NAME — the root hugs until placed, so the text keeps its default string's width; removing field-message's placementWidth fires this");
+      ok(refuses(withFm({ iconError: { ...fmParts.iconError }, text: { ...fmParts.text, placementWidth: 320 } }), /'text' declares 'placementWidth' but is not the anatomy ROOT/),
+        "#1757 'placementWidth' off the root is refused BY NAME — a child takes its width from its parent");
+      ok(refuses(withFm({ message: { ...fmParts.message, layout: { ...fmParts.message.layout!, sizing: { x: 'hug', y: 'hug' } } } }), /declares 'placementWidth' but its sizing\.x is 'hug'/),
+        "#1757 'placementWidth' on a HUGGING root is refused BY NAME — the hug would overwrite the width it builds at");
+      ok(refuses(withFm({ message: { ...fmParts.message, placementWidth: 0 } }), /'placementWidth' that is not a positive number/),
+        "#1757 a non-positive 'placementWidth' is refused BY NAME");
+      // SELECT'S VALUE wraps under `content`, which is bounded only because it FILLS its floored control. Take
+      // the control's floor away and nothing bounds `content` — the refusal fires on the value text.
+      const sParts = select.anatomy!.parts;
+      const unfloored = { ...select, anatomy: { ...select.anatomy!, parts: { ...sParts, control: { ...sParts.control, minWidth: undefined } } } } as ComponentDef;
+      ok(validateComponentDef(select).errors.length === 0 && refuses(unfloored, /'value' declares 'wrap'/, /parent 'content' does not bound/),
+        "#1757 select's wrapping value is bounded THROUGH `content`, which fills the floored control — removing the control's 320 floor refuses the value BY NAME, so the filled parent is load-bearing");
+    }
+
     // ---- `grow` and `paddingTop` (textarea's independent message and counter, 2026-09-25): the plan carries
     //      each exactly where declared, and each refusal fires BY NAME (docs/34) ----
     {
@@ -16529,19 +16556,37 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // row-rooted def reads a FIXED primary. Without it, two executors that both dropped the writes would
       // agree. Mutation, by name: drop `Object.assign(kid,c.instanceSizing)` from the paste payload and the
       // parity line below fails on every `message`/`row*` instance.
+      //
+      // SELECT AND TEXT-FIELD JOIN (#1757, review finding). Their label and message fill by the CARRIER rule —
+      // the column hugs, and the control beside them holds the 320 floor — which neither textarea (a bounded
+      // cell) nor checkbox-group (a floored container) exercises. The reviewer's mutation stopped nests filling
+      // through a floored sibling and only a surface digest noticed. Their floors name those nests, the value
+      // row growing inside the control, select's wrapping value text and its control hugging its height. And
+      // FIELD-MESSAGE / FIELD-LABEL join for their build width: each member ROOT is 320 wide on both hosts,
+      // which reads the paste twin's spliced resize as well as the plugin's.
       {
+        const BUILD_W = 320;
         const sizingOf = (page: StubPage): string[] => {
           const out: string[] = [];
           const dive = (n: Record<string, unknown>, path: string): void => {
             const here = `${path}/${String(n.name)}`;
             if (n.type !== 'COMPONENT_SET')
-              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)}`);
+              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)}${n.type === 'COMPONENT' ? ` w:${String(n.width)}` : ''}`);
             for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c, here);
           };
           for (const c of page.children as Record<string, unknown>[]) dive(c, '');
           return out.sort();
         };
-        for (const def of [textarea, checkboxGroup]) {
+        const FLOORS = new Map<ComponentDef, RegExp[]>([
+          [textarea, [/\/messageRow HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/messageCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/message undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
+          [checkboxGroup, [/\/row1 undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
+          [select, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
+            /\/control HORIZONTAL p:AUTO c:AUTO /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/]],
+          [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /]],
+          [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
+          [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
+        ]);
+        for (const [def, want] of FLOORS) {
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
           const collect = (n: AnatomyPlan['root']): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...n.children.flatMap(collect)];
           const base = {
@@ -16556,12 +16601,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           await applyComponentPlan(plans, makeFigmaStub({ ...base, page: plugPage }) as any);
           const plug = sizingOf(plugPage);
           const paste = sizingOf(pastePage);
-          const want = def === textarea
-            ? [/\/messageRow HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/messageCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/message undefined p:FIXED .*align:STRETCH /]
-            : [/\/row1 undefined p:FIXED .*align:STRETCH /];
           const missing = want.filter((re) => !plug.some((l) => re.test(l)) || !paste.some((l) => re.test(l)));
           ok(plug.length > 0 && missing.length === 0,
-            `#1751 parity floor (${def.id}): both executors build the filled nodes FIXED on the filled axis with their supplier — ${missing.length ? `MISSING ${missing.map(String).join(', ')}` : 'all present'} (${plug.length} nodes)`);
+            `#1751 parity floor (${def.id}): both executors build the filled nodes FIXED on the filled axis with their supplier — ${missing.length ? `MISSING ${missing.map(String).join(', ')} — plugin reads ${JSON.stringify(plug.slice(0, 2))}, paste ${JSON.stringify(paste.slice(0, 2))}` : 'all present'} (${plug.length} nodes)`);
           const diff = [...plug.filter((l) => !paste.includes(l)), ...paste.filter((l) => !plug.includes(l))];
           ok(plug.length === paste.length && diff.length === 0,
             `#1751 parity (${def.id}): the plugin and paste executors leave identical sizing on every node — plugin ${plug.length} vs paste ${paste.length}${diff.length ? `, disagree on: ${JSON.stringify(diff.slice(0, 4))}` : ''}`);
@@ -17815,11 +17857,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // typings and both project a clean no-op if violated.
       //
       // (a) A parent that is not FIXED along its main axis is exactly as long as its children, so MIN,
-      // CENTER and MAX are the same coordinate. `sizingMode` maps 'hug' AND 'fill' to AUTO (#989), so
-      // 'fill' is refused too and the message says so.
+      // CENTER and MAX are the same coordinate. 'fill' is refused too (#1755): a filled length is the
+      // placement's, not a track length the def states.
       ibBroke('a parent that HUGS its main axis fails — start/center/end collide, so the travel is a no-op', /has main-axis sizing 'hug'/,
         swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } }, width: undefined }));
-      ibBroke("…and 'fill' fails the same way, BY NAME — it projects to AUTO as well (#989)", /has main-axis sizing 'fill'/,
+      ibBroke("…and 'fill' fails BY NAME too — a filled length is the placement's, not the track's (#1755)", /has main-axis sizing 'fill'/,
         swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'fill', y: 'fixed' } }, width: undefined }));
       // (b) `primaryAxisAlignItems` distributes the WHOLE group, so a part sharing the flow with a sibling
       // has its place decided by where the sibling sits. `absolute`/`overlay` are not flow children, which

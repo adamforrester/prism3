@@ -295,6 +295,13 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `minWidth ${String(p)}`,
     check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
   },
+  // ── a root's build width (#1757) ──────────────────────────────────────────────────────────────
+  // The width the executor resized the root to. Read off the built node's measured `width`, not off any
+  // field the executor wrote: a root that went on hugging measures its content, whatever it was told.
+  placementWidth: {
+    show: (p) => `width ${String(p)}`,
+    check: (p, n) => (n.width === p ? null : `width ${str(n.width)}`),
+  },
   // ── the reserved sides (#1667) ─────────────────────────────────────────────────────────────────
   // "Locked to edges": the side a pinned icon sits on holds a LITERAL padding (inset + icon + gap). The host
   // echoes a plain number, so this compares directly; an executor whose default pass zeroed the side (or

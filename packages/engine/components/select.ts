@@ -81,9 +81,9 @@
  * ── #1426 QA FIXES (2026-09-15, all four owner-decided) ──────────────────────────────────────────
  *
  * Four fixes from the plugin-import QA:
- *   1. CARET PINNED RIGHT. The trailing chevron pins to the field's RIGHT EDGE via the control's
- *      `space-between`, rather than tracking the value width (`content` fills in code but hugs in Figma,
- *      #989 — see the `control` part). No token move.
+ *   1. CARET PINNED RIGHT. The trailing chevron pins to the field's RIGHT EDGE rather than tracking the
+ *      value width — by the control's `space-between` then, and since #1751 also because `content` grows
+ *      across the control (see the `control` part). No token move.
  *   2. `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
  *      entirely (see `props`, the `message` part's `optional`, and `figmaProperties.booleans`). A component
  *      prop, not a token — no CONTRACT move.
@@ -110,13 +110,13 @@
  * ── DEFAULT WIDTH: A MIN-WIDTH FLOOR ON THE CONTROL, NOT A TOKEN (#1343a, #1345) ──────────────────
  *
  * The control carries `minWidth: 320` — a LITERAL, not a token. Prism 2's select is `root width 320 ·
- * HUG` with its inner containers FILLing that width (`reference/Prism2/component-specs/select.json`),
- * and the field should flex like Prism 2 rather than sit at a hard fixed size. The engine cannot project
- * a child that FILLs (`sizing: 'fill'` → AUTO, #989/#990), so the floor sits on the visible control, the
- * one place projection can express it: the control renders at ≥320, the hugging column inherits that
- * width, and the still-AUTO sizing lets the field grow above 320 rather than being pinned. 320 is a
- * comfortable projection default in 8px increments — the #1343 owner decision was explicit that it is
- * NOT a `field.width` semantic role — so no emitted token NAME moves and `CONTRACT_VERSION` holds; the
+ * HUG` with its inner containers FILLing that width (`reference/Prism2/component-specs/select.json`).
+ * The floor sits on the visible control and the hugging column takes its width from it; since #1751 the
+ * label and message stretch across that column and `content` grows inside the control, so the field
+ * reads at 320. A long value does not widen it: the value WRAPS and the control grows TALLER (#1758,
+ * owner decision on #1757), so the control hugs its height above a 44px floor rather than fixing it. 320
+ * is a comfortable projection default in 8px increments — the #1343 owner decision was explicit that it
+ * is NOT a `field.width` semantic role — so no emitted token NAME moves and `CONTRACT_VERSION` holds; the
  * projected plan changes, which is the `ENGINE_VERSION` trigger this def already carries.
  */
 import { ComponentDef } from '../component-schema';
@@ -212,7 +212,8 @@ export const select: ComponentDef = {
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
     'radius': 'radius.sm',
-    // The control's single-line height, bound as a fixed height (the value is one ellipsized line).
+    // The control's HEIGHT FLOOR (#1758): a one-line value measures exactly this, and a value that wraps
+    // grows the control past it (it was a fixed height while the value was one ellipsized line).
     // #1437 (owner, 2026-09-15): bound to `size.md.min-height` — the INTERACTIVE TARGET-SIZE FLOOR, not the
     // plain `size.md.height` rung — so the control meets the 44px WCAG 2.5.5 enhanced target at EVERY
     // density. `size.md.height` is 44 on a comfortable brand but 36 on a compact one (the QA symptom),
@@ -363,37 +364,43 @@ export const select: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
-        // #1503 — FILLS the field's width (`layoutAlign: STRETCH`), so the label spans the 320 control rather
-        // than hugging narrower above it (Prism 2's inner containers FILL). The `control` already spans via its
-        // `minWidth` floor + the hugging column; this and `message` are the two parts that hugged short.
+        // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
+        // #1751), so the label spans the 320 control rather than hugging narrower above it (Prism 2's inner
+        // containers FILL). Field-label's text wraps inside it (#1757, owner), so a long name wraps at the
+        // field's width instead of running past it.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503).',
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503), so a long name wraps.',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
-      // precedence overlay > fill — #1341/#1342); fills the column width and holds a fixed single-line height.
+      // precedence overlay > fill — #1341/#1342); holds the field's width (its 320 floor) and hugs its height
+      // above a 44px floor, so a wrapping value grows it taller (#1758).
       control: {
         kind: 'box',
         role: 'target',
         paintSlots: ['overlay', 'fill', 'border'],
         // `space-between` PINS THE TRAILING CHEVRON TO THE FIELD'S RIGHT EDGE (#1426), independent of the
-        // value string's length. `content` fills the control in CODE (flexbox `flex:1` pushes the chevron
-        // right), but the engine projects `sizing: 'fill'` to AUTO/HUG (#989), so in Figma `content` HUGS
-        // its text and a `justify: 'start'` control let the chevron track the value width — the QA symptom.
-        // `space-between` distributes the two flow children (`content`, the absolute `focusRing` takes no
-        // cell) to the control's ends, so the chevron sits at the right edge at every value length on BOTH
-        // surfaces. `positionWhen` does not override this here (no traveling child), so the projected
-        // `primaryAxisAlignItems` is `SPACE_BETWEEN` at every member.
-        layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
-        height: 'min-height',
+        // value string's length. It was the fix while `content` hugged its text in Figma (a `justify: 'start'`
+        // control let the chevron track the value width — the QA symptom). Since #1751 `content` grows across
+        // the control (FIXED + `layoutGrow`, flexbox `flex: 1` in code), which pins the chevron on its own;
+        // `space-between` is kept and changes nothing while `content` fills. `positionWhen` does not override
+        // it here (no traveling child), so the projected `primaryAxisAlignItems` is `SPACE_BETWEEN`.
+        //
+        // HUGS ITS HEIGHT ABOVE A FLOOR (#1758, owner decision on #1757: a long value wraps and the field
+        // grows). It was a FIXED height bound to the same key, which held a wrapped value inside one line's
+        // box. Now `minHeight` holds the one-line height at `min-height` and a wrapped value grows past it —
+        // Prism 2's input is the same (`minHeight: 44`, HUG vertically). One line measures what it did:
+        // block padding × 2 plus the body line box is below 44 in every emitted brand.
+        layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
+        minHeight: 'min-height',
         // THE COMFORTABLE DEFAULT WIDTH (#1343a, #1345), a MIN-WIDTH not a fixed width. Prism 2's select
-        // is `root width 320 · HUG` with its inner containers FILLing that width; the engine cannot
-        // project a child that FILLs (sizing 'fill' → AUTO, #989/#990), so the field is floored HERE, on
-        // the visible control, the one way projection allows. The column then hugs to the 320 control, so
-        // the field reads at 320 in Figma; and because the sizing stays 'fill' (AUTO, not FIXED) the field
-        // FLEXES above the floor rather than being pinned. A literal, not a token — 320 is a projection
-        // default in 8px increments, not a semantic value that earns a `field.width` role (#1343 owner
-        // decision). So no emitted token NAME moves and `CONTRACT_VERSION` stands.
+        // is `root width 320 · HUG` with its inner containers FILLing that width. The field is floored HERE,
+        // on the visible control, and the column hugs to it, so the field reads at 320 in Figma; the label,
+        // message and `content` fill from that width (#1751). The control CARRIES the width, so it keeps
+        // hugging above the floor rather than filling. A long value wraps rather than widening it (#1758). A
+        // literal, not a token — 320 is a projection default in 8px increments, not a semantic value that
+        // earns a `field.width` role (#1343 owner decision). So no emitted token NAME moves and
+        // `CONTRACT_VERSION` stands.
         minWidth: 320,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px, the field hairline, bound rather than left to the
@@ -406,8 +413,9 @@ export const select: ComponentDef = {
         gap: 'gap',
         children: ['content', 'chevron', 'focusRing'],
       },
-      // THE VALUE ROW — leading glyph + value text. Fills the control in code; in Figma it hugs (#989) and
-      // the control's `space-between` (#1426) is what pins the chevron to the right edge. Structure only.
+      // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
+      // and `layoutGrow` in Figma, `flex: 1` in code. The value and placeholder wrap inside it (#1758), and
+      // the row hugs their height, so a long value grows the control taller. Structure only.
       content: {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -432,17 +440,21 @@ export const select: ComponentDef = {
       // placeholder layer's states reach `label.rest` / `.hover` / `.focus-visible` and the disabled ink, and
       // the value layer's `filled` reaches the bare `label`. NO CARET here: a select takes no typed text (the
       // owner's open question on this PR, held rather than built).
+      // BOTH WRAP (#1758, owner decision on #1757: no truncation; a long value wraps and the field grows).
+      // Each grows across `content` and reflows inside it; the control hugs the height they take.
       placeholder: {
         kind: 'text',
         type: 'type',
         presentWhen: { state: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
-        note: 'The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. One line, ellipsized in code.',
+        wrap: true,
+        note: 'The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.',
       },
       value: {
         kind: 'text',
         type: 'type',
         presentWhen: { state: ['filled', 'read-only', 'pending'] },
-        note: 'The chosen option\'s label, in the value ink. Shown on the filled and read-only control. One line, ellipsized in code.',
+        wrap: true,
+        note: 'The chosen option\'s label, in the value ink. Shown on the filled and read-only control. Wraps rather than truncating (#1758), and the control grows taller.',
       },
       // THE TRAILING CHEVRON — a fixed `vector`, glyph `chevron-down` (the engine name; the Prism2 spec's
       // `arrow-down-s-line` is the source file's name, not ours). Its ink is the `icon` slot.
@@ -482,9 +494,10 @@ export const select: ComponentDef = {
         // leading glyph a slot); `present()` keeps any boolean-named part at every member regardless of
         // kind, so the nested instance is emitted and toggled in place rather than dropped.
         optional: true,
-        // #1503 — FILLS the field's width (`layoutAlign: STRETCH`), spanning the 320 control rather than
-        // hugging narrower below it (Prism 2's inner containers FILL). Coexists with `optional` (the
-        // node-visibility boolean toggles `visible`; this sets the child-side stretch) — different fields.
+        // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
+        // #1751), spanning the 320 control rather than hugging narrower below it (Prism 2's inner containers
+        // FILL), so a long message wraps at the field's width. Coexists with `optional` (the node-visibility
+        // boolean toggles `visible`; this sets the child-side stretch) — different fields.
         crossAxisFill: true,
         note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean (#1426) hides the whole part where the field has nothing to say. Fills the field\'s width (#1503).',
       },
@@ -625,8 +638,8 @@ export const select: ComponentDef = {
       'error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message.',
     ],
     unverified: [
-      'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The control is floored at 320 (`minWidth`) and the column hugs to it, so the field reads at 320 and the two nested parts stretch to match; `test:roundtrip` reads `layoutAlign: STRETCH` back off the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',
-      'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
+      'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The control is floored at 320 (`minWidth`) and the column hugs to it, so the field reads at 320 and the two nested parts stretch to match, each instance FIXED across (#1751) so its text wraps at that width (#1757); `test:roundtrip` measures the stretch and the wrap on the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',
+      'A long value or placeholder WRAPS and the control grows taller (#1758), with no ellipsis on the Figma member. Measured on the offline host. A NATIVE <select> draws its selected value on one line, so the code-side reading needs the #1758 audit\'s answer for the native element.',
       'The leading glyph is a node-visibility BOOLEAN (#1331): the node is built at every member with `visible:false` and shown by the `leading icon` switch. In Figma auto-layout a `visible:false` child is EXCLUDED from the flow — it takes no space or gap — so a hidden glyph should add no gap to `content`, exactly as the absent slot did. The offline shims gate the boolean property, the built `visible=false` and the `componentPropertyReferences.visible` wiring, but NOT auto-layout\'s exclusion of invisible children: whether a real host reflows `content` when the switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where the hidden glyph sits, or the field not tightening when leading is off.',
     ],
     // KB select brief §13, the three-phase through-line the brief adopts as its framing.

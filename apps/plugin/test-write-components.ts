@@ -3436,8 +3436,25 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const BOLD = 'emphasis=primary, weight=bold, size=small, state=rest';
   const REG = 'emphasis=primary, weight=regular, size=small, state=rest';
 
-  // (a) field-label AS SHIPPED — `weight` is authoring, so the cohort holds it and a wider bold is no miss.
-  const shipped = await measure(labelPlans);
+  // THE SEED IS FIELD-LABEL'S HUGGING SHAPE, as it shipped until #1757. Field-label is now built at a fixed
+  // 320 with a wrapping name (`placementWidth`), so a wider cut no longer moves its box at all; the cohort
+  // rule this block gates is not field-label's, and it needs a box whose width follows its text. So the
+  // fixture restores the hug — root `sizing.x: 'hug'`, no build width, a name that does not wrap — and
+  // everything else, the `weight` axis and its classification included, is the shipped def's.
+  const la = fieldLabel.anatomy!;
+  const hugLabel: ComponentDef = {
+    ...fieldLabel,
+    anatomy: {
+      ...la,
+      parts: {
+        ...la.parts,
+        [la.root]: { ...la.parts[la.root], layout: { ...la.parts[la.root].layout!, sizing: { ...la.parts[la.root].layout!.sizing, x: 'hug' } }, placementWidth: undefined },
+        text: { ...la.parts.text, wrap: undefined },
+      },
+    },
+  };
+  // (a) field-label's axes AS SHIPPED — `weight` is authoring, so the cohort holds it and a wider bold is no miss.
+  const shipped = await measure(figmaAnatomySet(hugLabel, { swapTarget: SWAP }));
   // THE GUARD FIRST: the bold member must actually measure wider under this seed, or (a) passes against a
   // cohort that compares weight too and (b) below has nothing to catch.
   ok(!!shipped.box.get(BOLD) && !!shipped.box.get(REG) && shipped.box.get(BOLD) !== shipped.box.get(REG),
@@ -3447,7 +3464,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (b) THE BOLD-WHEN-SELECTED SHAPE — the same def with `weight` classified runtime, which is what a label
   // that goes bold on selection is. A runtime change that widens the text is a layout jump, and it is caught.
-  const toggleLabel: ComponentDef = { ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'runtime' } };
+  const toggleLabel: ComponentDef = { ...hugLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'runtime' } };
   const togglePlans = figmaAnatomySet(toggleLabel, { swapTarget: SWAP });
   const jump = await measure(togglePlans);
   ok(jump.foot.some((m) => m === `footprint -> ${BOLD} measures ${jump.box.get(BOLD)} but ${REG} measures ${jump.box.get(REG)} (same size=small, emphasis=primary)`),
@@ -3656,9 +3673,22 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const CAPTION = 'caption/md/default';
   ok(styles.includes(VALUE) && styles.includes(CAPTION),
     `textarea grip/counter seed: the set sets its value in ${VALUE} and a caption in ${CAPTION} (${styles.join(', ')})`);
-  // Wider than the control's 320 floor at the shim's 6px per character, so the control's width FOLLOWS its
-  // flow content and a glyph in the flow would show in it. At the 11-character placeholder the floor hides it.
-  const LONG = 'x'.repeat(80);
+  // A value that EXACTLY FILLS the text box at the point where it starts to grow the control, at the shim's
+  // 6px per character (#1757). The text wraps (`HEIGHT`) inside the control's 320 floor, so a long value
+  // never widens the control; past the reserved rows it grows it taller. A glyph left in the flow narrows
+  // the text by its own width, so a value that exactly fills k lines wraps to k+1 — which is how an in-flow
+  // glyph shows in the control's box. Found per member by MEASURING the built control (the smallest k whose
+  // one-character overflow grows it), never read off the def or the plan.
+  const fitting = (text: Node, ctl: Node): string => {
+    for (let k = 1; k <= 12; k++) {
+      const f = 'x'.repeat(Math.floor((k * (text.width as number)) / 6));
+      text.characters = f + 'x';
+      const over = ctl.height as number;
+      text.characters = f;
+      if (over > (ctl.height as number)) return f;
+    }
+    return '';
+  };
   const find = (n: Node | undefined, name: string): Node | undefined => {
     if (!n) return undefined;
     if (n.name === name) return n;
@@ -3715,8 +3745,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `textarea grip corner: on all 24 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
 
   // ---- the grip moves no box: the control and the member measure alike with it on and off ----
-  // With the LONG value the control's width follows its flow content (the floor is checked, so this arm
-  // cannot pass by the 320 floor absorbing a glyph in the flow).
+  // With a value that exactly fills the text's line, ONE more character of width wraps it (the seed checks
+  // that per member), so this arm cannot pass by the 320 floor absorbing a glyph in the flow: the glyph
+  // would narrow the text and show in the control's height.
   const gripFoot: string[] = [];
   let contentDriven = 0;
   for (const m of b.members) {
@@ -3724,16 +3755,19 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const ctl = find(m, 'control');
     const text = find(ctl, 'placeholder') ?? find(ctl, 'value');   // the layer this member's state shows (Option C)
     if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }
-    text.characters = LONG;
-    if ((ctl.width as number) > 320) contentDriven++;
-    const on = [box(ctl), box(m)];
+    // Sized with the grip OFF, so the text is at the width it has without any glyph: a grip that then took
+    // a cell would narrow it below that and wrap the fitted value.
     g.visible = false;
+    const fit = fitting(text, ctl);
+    text.characters = fit;
+    if (fit.length > 0) contentDriven++;
     const off = [box(ctl), box(m)];
     g.visible = true;
+    const on = [box(ctl), box(m)];
     if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
   }
   ok(b.members.length === 24 && contentDriven === 24,
-    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/24)`);
+    `textarea grip footprint seed: on every member a value that exactly fills the text box wraps with one more character and grows the control taller, so a glyph in the flow would show in its height (${contentDriven}/24)`);
   ok(b.members.length === 24 && gripFoot.length === 0,
     `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 24 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
