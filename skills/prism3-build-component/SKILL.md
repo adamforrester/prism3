@@ -345,6 +345,13 @@ container's geometry?
   row rather than against the box edge. `select` and `text-field` use booleans for their icons (and
   text-field for `showMessage`) — see `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
+- **One boolean over several parts (the list form).** `part` takes a list when one toggle governs nodes
+  that never coexist: `switch-control`'s `State icon` is `{ part: ['onGlyph', 'offGlyph'], default: true,
+  figmaName: 'State icon' }`, the check at `selection=on` and the X at `selection=off`. A boolean part
+  normally carries no `presentWhen`; `figmaPropertyErrors` admits it only when the boolean targets two or
+  more parts, ALL gated on ONE shared variant axis, whose values their gates partition (every value
+  covered, none twice). A single gated part, an uncovered or doubled value, a mixed gated/ungated list and
+  any `when`-gated part are refused. See `packages/engine/components/switch-control.ts`.
 - **Variant axis (Button only).** Presence is a true/false variant axis (`figmaProperties.slotAxes`, with
   `booleans` stated-empty) only when it drives edge-hugging asymmetric padding. On Button the #326 slot-aware
   inset sets the container's `paddingLeft = leading ? inlineVisual : inlineLabel` per side, and a boolean's

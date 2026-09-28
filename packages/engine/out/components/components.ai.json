@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.195.0",
+  "engineVersion": "0.196.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -3685,9 +3685,9 @@
         {
           "name": "showStateLabel",
           "type": "boolean",
-          "default": false,
+          "default": true,
           "required": false,
-          "description": "The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. Off by default, since position already carries the state; add only where legibility genuinely demands it. The glyph is present in the Figma set at every member, and this prop gates it in the code projection. Not hardcoded \"On\"/\"Off\" text, which is rejected outright."
+          "description": "The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. The Figma set carries it as the `State icon` boolean, default on, so both surfaces start from the same default. Never the sole state signal — thumb position carries the state. Not hardcoded \"On\"/\"Off\" text, which is rejected outright."
         },
         {
           "name": "size",
@@ -3869,9 +3869,9 @@
         {
           "name": "showStateLabel",
           "type": "boolean",
-          "default": false,
+          "default": true,
           "required": false,
-          "description": "The on/off affordance — a checkmark in the thumb when on, an X when off, off by default since thumb position plus track color carries the state. Add only where state legibility genuinely demands it. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded \"On\"/\"Off\" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize."
+          "description": "The on/off affordance — a checkmark in the thumb when on, an X when off. On by default, matching the `State icon` boolean in the Figma set; turn it off where thumb position plus track color are enough. Never the sole state signal. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded \"On\"/\"Off\" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize."
         },
         {
           "name": "size",
