@@ -2927,8 +2927,8 @@
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
  * 0.192.0 — Button and IconButton summaries stop claiming the brand color (owner, 2026-09-28). "Triggers an
- * action in place, in the brand color" was untrue for a brand whose primary action is neutral (NB's is near-
- * black). The summaries now describe the action, and the long descriptions say "the brand's primary action
+ * action in place, in the brand color" was untrue for a brand whose primary action is neutral (the
+ * nb-redesign example and the owner's NB master file point it at a neutral). The summaries now describe the action, and the long descriptions say "the brand's primary action
  * style". Shipped prose moves (`out/components/*.md`, `components.ai.json`, the plugin bundle and page headers)
  * → ENGINE bump. CONTRACT STANDS at 13.1.0.
  *
