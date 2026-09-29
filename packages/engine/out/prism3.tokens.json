@@ -6149,9 +6149,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.success",
                   "min": 4.5
                 },
@@ -6243,9 +6243,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -7268,9 +7268,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.success",
                   "min": 4.5
                 },
@@ -7362,9 +7362,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.danger",
                   "min": 4.5
                 },

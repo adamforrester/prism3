@@ -619,30 +619,6 @@
             }
           }
         },
-        "on-success": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.black}",
-          "$description": "Text on a solid success fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "pds3.core.palette.black",
-              "contrast": 4.6,
-              "against": "foreground.success",
-              "min": 4.5
-            }
-          }
-        },
         "on-warning": {
           "$type": "color",
           "$value": "{pds3.core.palette.black}",
@@ -663,30 +639,6 @@
               "aliasOf": "pds3.core.palette.black",
               "contrast": 4.62,
               "against": "foreground.warning",
-              "min": 4.5
-            }
-          }
-        },
-        "on-danger": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.black}",
-          "$description": "Text on a solid danger fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "pds3.core.palette.black",
-              "contrast": 4.6,
-              "against": "foreground.danger",
               "min": 4.5
             }
           }
@@ -1175,30 +1127,6 @@
             }
           }
         },
-        "on-success": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.black}",
-          "$description": "Icon on a solid success fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "pds3.core.palette.black",
-              "contrast": 4.6,
-              "against": "foreground.success",
-              "min": 4.5
-            }
-          }
-        },
         "on-warning": {
           "$type": "color",
           "$value": "{pds3.core.palette.black}",
@@ -1219,30 +1147,6 @@
               "aliasOf": "pds3.core.palette.black",
               "contrast": 4.62,
               "against": "foreground.warning",
-              "min": 4.5
-            }
-          }
-        },
-        "on-danger": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.black}",
-          "$description": "Icon on a solid danger fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "pds3.core.palette.black",
-              "contrast": 4.6,
-              "against": "foreground.danger",
               "min": 4.5
             }
           }

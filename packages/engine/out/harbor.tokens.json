@@ -5801,9 +5801,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.black}",
-                  "aliasOf": "hds.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{hds.core.palette.white}",
+                  "aliasOf": "hds.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -5848,9 +5848,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.black}",
-                  "aliasOf": "hds.core.palette.black",
-                  "contrast": 4.61,
+                  "$value": "{hds.core.palette.white}",
+                  "aliasOf": "hds.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.info",
                   "min": 4.5
                 },
@@ -6920,9 +6920,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.black}",
-                  "aliasOf": "hds.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{hds.core.palette.white}",
+                  "aliasOf": "hds.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -6967,9 +6967,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.black}",
-                  "aliasOf": "hds.core.palette.black",
-                  "contrast": 4.61,
+                  "$value": "{hds.core.palette.white}",
+                  "aliasOf": "hds.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.info",
                   "min": 4.5
                 },

@@ -8592,7 +8592,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // Two groups, both consequences of the relaxed fills rather than independent decisions:
 //   1. `foreground/*` — the relaxed bold fills themselves.
 //   2. `text|icon/on-*` (dark) — the fill moved toward its anchor and got DARKER, so the winning ink
-//      side FLIPS from NB's dark 950 to a light 025 (or to black, now permitted on a fill).
+//      side FLIPS from NB's dark 950 to a light 025 (or to a pure extreme, now permitted on a fill).
+//      `on-info` is pure WHITE since the owner's dark-family tie rule reached the status inks (#1773,
+//      2026-09-29): on NB's info.500 `#317bb2` black led white by 0.048:1 (4.607 vs 4.559), inside the tie.
 //
 // `border/focus` USED TO BE A THIRD GROUP and is no longer, which is the useful direction to record it
 // in: through 0.67.0 the ring derived from `actionRest` and so diverged from NB in DARK (engine red/550
@@ -8637,12 +8639,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'dark', name: 'color/text/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/text/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/text/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
-  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/white' },
   { mode: 'dark', name: 'color/icon/on-brand', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
-  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/white' },
   // FIFTH group (#570): muted semantic ink in HC-LIGHT only. NB authored muted at a FIXED rung, so
   // its hc-light values are byte-identical to its light ones — the high-contrast mode did nothing for
   // the one ink family named for being low-emphasis (measured 3.85 in both, against a 4.5 HC bar).
@@ -22543,6 +22545,70 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       `#1773 tie rule: a near-tie in a LIGHT-family mode still takes the higher ratio (black 4.584 over white 4.581 on #3d68fc; got ${pureExtremeInk(tieFill, 'light', 4.5)})`);
     ok(ratio('#ffffff', '#7398f8') < 4.5 && pureExtremeInk(lightFill, 'dark', 4.5) === 'black',
       `#1773 tie rule: where white is under 4.5:1 (#7398f8, white ${ratio('#ffffff', '#7398f8')}:1) a dark-family mode still takes black (got ${pureExtremeInk(lightFill, 'dark', 4.5)})`);
+
+    // (d) THE TIE IS 0.05:1, NOT WIDER (review of #1773). `#767676` in a dark-family mode: both extremes clear
+    // 4.5:1 (white 4.54, black 4.62) but black leads by 0.08, above `EXTREME_TIE`, so the higher ratio wins.
+    // Widening the tie to 0.2 paints it white and fails here by name.
+    const nearMiss = hexToRgb('#767676');
+    const nmW = contrast(hexToRgb('#ffffff'), nearMiss), nmB = contrast(hexToRgb('#000000'), nearMiss);
+    ok(nmW >= 4.5 && nmB >= 4.5 && nmB - nmW > 0.05 && nmB - nmW < 0.1 && pureExtremeInk(nearMiss, 'dark', 4.5) === 'black',
+      `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio (#767676: white ${nmW.toFixed(3)}, black ${nmB.toFixed(3)}, gap ${(nmB - nmW).toFixed(3)}; got ${pureExtremeInk(nearMiss, 'dark', 4.5)})`);
+    // (e) THE BOTH-CLEAR GUARD. At the engine's 4.5:1 on-fill floor the guard cannot fire: two inks within
+    // 0.05:1 of each other sit at 4.558:1 or above (they meet at 4.583, the fill where white and black tie),
+    // so neither is under 4.5. It protects a RAISED floor, so the witness raises it: at 7:1 on `#3d68fc`
+    // neither extreme clears (white 4.581, black 4.584), and the rule must not trade the higher ratio for
+    // white. Dropping the guard paints it white and fails here by name.
+    ok(pureExtremeInk(tieFill, 'dark', 7) === 'black',
+      `#1773 tie rule: when an extreme misses the floor (7:1 on #3d68fc, white 4.581, black 4.584) a dark-family near-tie still takes the higher ratio (got ${pureExtremeInk(tieFill, 'dark', 7)})`);
+  }
+
+  // THE TIE RULE ON THE STATUS ON-COLORS (owner, 2026-09-29, extending #1773). `text.on-<status>` /
+  // `icon.on-<status>` on the solid status fill take white on a dark-family near-tie, like the interactive
+  // on-fill. One representative moved cell per corpus palette plus prism3, as LITERALS: the fill, white ink
+  // on it, and the ratio read off the resolved hexes (every one still clears 4.5:1). The rule off for the
+  // status caller paints each black and fails here by name. The full list of 42 moved cells is in the
+  // `docs/00-progress.md` entry.
+  {
+    const STATUS_TIE: Array<[string, string, string, number]> = [
+      ['nb', 'info', '#317bb2', 4.56], ['aurora', 'brand', '#7269ca', 4.58], ['harbor', 'danger', '#cd4840', 4.57],
+      ['wendys', 'info', '#317bb2', 4.56], ['minimal', 'danger', '#c94c44', 4.56], ['prism3', 'success', '#2e8554', 4.57],
+    ];
+    const byId = new Map<string, Theme>([...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]), ['prism3', prism3]]);
+    const statusWrong: string[] = [];
+    let statusSeen = 0;
+    for (const [id, status, fillHex, want] of STATUS_TIE) {
+      const dm = resolveAllModes(byId.get(id)!).find((m) => m.mode === 'dark')!;
+      const fill = dm.roles[`foreground.${status}`].hex;
+      for (const slot of ['text', 'icon']) {
+        statusSeen++;
+        const ink = dm.roles[`${slot}.on-${status}`].hex;
+        if (fill !== fillHex || ink !== '#ffffff' || ratio(ink, fill) !== want)
+          statusWrong.push(`${id} dark ${slot}.on-${status}: ${ink} on ${fill} ${ratio(ink, fill)}:1 (want #ffffff on ${fillHex} ${want}:1)`);
+      }
+    }
+    ok(statusSeen === 12 && statusWrong.length === 0,
+      `#1773 tie rule on the status on-colors: dark text.on-/icon.on- take white at the pinned literals (nb info 4.56, aurora brand 4.58, harbor danger 4.57, wendys info 4.56, minimal danger 4.56, prism3 success 4.57:1) — seen ${statusSeen}; wrong: ${statusWrong.join('; ') || 'none'}`);
+  }
+
+  // AN AUTHORED ANCHOR PIN THAT MISSES THE TERTIARY TIER IS REPORTED (review of #1773). A pin is `exact`
+  // (#331), so it skips the tertiary gate and ships as authored; the tier check reports its miss the way a
+  // missed override is reported: a `warnings` entry, here naming `background.tertiary` as its ground, and one
+  // failed mode check in `buildTree`'s stats. Literals: the minimal brand with `modeAnchors.dark.primary: 550`
+  // emits primary.550 `#3661b5` at 2.69:1 on tertiary (3.02:1 on the floor, which it clears). The same brand
+  // unpinned reports nothing. Removing the tier check fails here by name.
+  {
+    const pinned = brandTheme({ ...MINIMAL_BRAND, modeAnchors: { dark: { primary: 550 } } } as BrandInput);
+    const dm = resolveAllModes(pinned).find((m) => m.mode === 'dark')!;
+    const fill = dm.roles['interactive.primary.fill.rest'];
+    const tierWarn = (dm.warnings ?? []).filter((w) => w.role === 'interactive.primary.fill.rest' && w.against === 'background.tertiary');
+    const pinnedStats = buildTree(pinned).stats;
+    const plain = resolveAllModes(brandTheme(MINIMAL_BRAND));
+    const plainStats = buildTree(brandTheme(MINIMAL_BRAND)).stats;
+    ok(fill.hex === '#3661b5' && ratio(fill.hex, dm.roles['background.tertiary'].hex) === 2.69
+      && tierWarn.length === 1 && Number(tierWarn[0].ratio.toFixed(2)) === 2.69 && tierWarn[0].min === 3
+      && pinnedStats.modeChecks - pinnedStats.modePass === 1
+      && plain.every((m) => !(m.warnings ?? []).some((w) => w.against === 'background.tertiary')) && plainStats.modePass === plainStats.modeChecks,
+      `#1773 a pinned anchor that misses background.tertiary is reported: minimal dark primary pinned at 550 emits ${fill.hex} at ${ratio(fill.hex, dm.roles['background.tertiary'].hex)}:1 on tertiary, with ${tierWarn.length} tier warning(s) (${tierWarn.map((w) => `${w.ratio.toFixed(2)}:1 < ${w.min}`).join(', ') || 'none'}) and ${pinnedStats.modeChecks - pinnedStats.modePass} failed mode check(s); unpinned: ${plainStats.modePass}/${plainStats.modeChecks}`);
   }
 
   // THE SELECTED FILL ON EVERY PAGE TIER (#1773, owner, 2026-09-29). The radio's checked dot, the checkbox's
@@ -22692,6 +22758,31 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const twinsUnder = ['rest', 'focused', 'selected'].map((st) => `${st} ${fh(st)} ${ratio(inkHex, fh(st))}:1`).filter((x) => Number(x.split(' ')[2].slice(0, -2)) < ONFILL_FLOOR);
       ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#86a7f7' && twinsUnder.length === 0 && ratio(inkHex, fh('selected')) === 8.22,
         `#1626 a fill.rest override carries to focused and selected: prism3 dark rest → primary.300 puts all three on #86a7f7 and on-fill clears 8.22:1 on each (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}, on-fill ${inkHex} on selected ${ratio(inkHex, fh('selected'))}:1${twinsUnder.length ? `; under: ${twinsUnder.join(', ')}` : ''})`);
+    }
+    // AN EXPLICIT TWIN OVERRIDE BEATS THE CARRIED REST (review of #1773). Same brand and rest override, plus
+    // an explicit `fill.selected` → primary.600: rest and focused carry `#86a7f7`, selected stays on its own
+    // `#1e1eff`. Carrying the rest over an explicit twin fails here by name.
+    {
+      const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
+      const prev = ((pIn as any).overrides ?? {});
+      const pOv = brandTheme({ ...pIn, overrides: { ...prev, dark: { ...(prev.dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' }, 'interactive.primary.fill.selected': { palette: 'primary', step: '600' } } } } as BrandInput);
+      const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
+      const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
+      ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#1e1eff',
+        `#1626 an explicit fill.selected override beats the carried fill.rest override: prism3 dark rest → primary.300, selected → primary.600 (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}; want #86a7f7, #86a7f7, #1e1eff)`);
+    }
+    // THE PAGE `fill.selected` WORDING IS PAGE-ONLY (#1773). The owner's sentence ships on the page ground; the
+    // inverse band's selected fill still steps off rest (#1456), so it keeps the shared lead. Literals for both,
+    // from the live `.ai.json` of prism3. Dropping the `!inverse` scope gives the inverse role the page sentence
+    // and fails here by name.
+    {
+      const aiP3 = buildAiMetadata(prism3, buildTree(prism3).tree) as any;
+      const pageW: string = aiP3?.color?.['interactive.primary.fill.selected']?.when_to_use ?? '';
+      const invW: string = aiP3?.color?.['inverse.interactive.primary.fill.selected']?.when_to_use ?? '';
+      ok(pageW.startsWith('The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline.'),
+        `#1773 page interactive.primary.fill.selected carries the owner's wording in .ai.json (got ${JSON.stringify(pageW.slice(0, 120))})`);
+      ok(invW.startsWith('The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active.') && !invW.includes('same color as the rest fill'),
+        `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording (got ${JSON.stringify(invW.slice(0, 120))})`);
     }
   }
 

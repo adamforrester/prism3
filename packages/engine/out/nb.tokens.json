@@ -5457,9 +5457,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{nbds.core.palette.black}",
-                  "aliasOf": "nbds.core.palette.black",
-                  "contrast": 4.61,
+                  "$value": "{nbds.core.palette.white}",
+                  "aliasOf": "nbds.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.info",
                   "min": 4.5
                 },
@@ -6576,9 +6576,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{nbds.core.palette.black}",
-                  "aliasOf": "nbds.core.palette.black",
-                  "contrast": 4.61,
+                  "$value": "{nbds.core.palette.white}",
+                  "aliasOf": "nbds.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.info",
                   "min": 4.5
                 },

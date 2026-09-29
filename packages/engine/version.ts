@@ -2932,16 +2932,20 @@
  * that put the near-white label at 2.32–2.62:1 on the switch's on track and the checkbox's checked box). On the
  * inverse band, the brand `on-fill` (primary, destructive) is re-picked by `brandOnFill`'s own rule over all
  * five state fills — the most vivid step clearing 4.5:1 on every one — so it lands a deeper step at rest too
- * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision. Emitted
+ * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision.
  * A `fill.rest` override now carries to its page `focused` / `selected` twins (`withFillStateTwins`), so an
  * overridden rest cannot strand the twins on the derived step (review of #1773). Every page interactive
  * `fill.rest` (and so focused/selected) now also clears its floor against `background.tertiary` (owner,
- * 2026-09-29, the #1352 pattern): in `dark` nb, harbor, wendys and prism3 move one step lighter. The page
- * `fill.selected` `.ai.json` guidance says selection must show by other means. The interactive on-fill's
- * pure-extreme pick takes WHITE on a near-tie (both clear 4.5:1, within 0.05:1) in dark-family modes (owner,
- * `pureExtremeInk`): prism3, aurora, harbor and minimal dark labels move black → white. Emitted
- * values move in every brand, and the projected surface moves wherever a def binds a focused/selected fill
- * or the inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
+ * 2026-09-29, the #1352 pattern): in `dark` nb, harbor, wendys and prism3 move one step lighter. An authored
+ * anchor pin stays `exact` and skips that gate, so its tertiary miss is now reported: a `warnings` entry with
+ * `against: 'background.tertiary'` and a `tierChecks` entry that `tree.ts` counts into `modeChecks` /
+ * `modePass`, the way a missed override counts (review of #1773). The page `fill.selected` `.ai.json`
+ * guidance says selection must show by other means. `onColor`'s pure-extreme pick takes WHITE on a near-tie
+ * (both clear 4.5:1, within 0.05:1) in dark-family modes (owner, `pureExtremeInk`), for the interactive
+ * on-fill and, extended by the owner the same day, the `text.on-<status>` / `icon.on-<status>` inks: prism3,
+ * aurora, harbor and minimal dark on-fill labels and 42 dark status cells move black → white. Emitted values
+ * move in every brand, and the projected surface moves wherever a def binds a focused/selected fill or the
+ * inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
  *
  * 0.196.0 — #1318 (owner decisions, 2026-09-28): the veil's DIRECTIONAL GRADIENT washes, Prism 2's
  * `Gradient from top/bottom/left/right` scrim variants. A new variant axis `direction` (`full | from-top |

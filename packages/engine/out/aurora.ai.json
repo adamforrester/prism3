@@ -4168,7 +4168,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{ads.core.palette.white}",
-        "dark": "{ads.core.palette.black}",
+        "dark": "{ads.core.palette.white}",
         "hc-light": "{ads.core.palette.white}",
         "hc-dark": "{ads.core.palette.black}"
       },
@@ -4237,7 +4237,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{ads.core.palette.white}",
-        "dark": "{ads.core.palette.black}",
+        "dark": "{ads.core.palette.white}",
         "hc-light": "{ads.core.palette.white}",
         "hc-dark": "{ads.core.palette.black}"
       },
@@ -4260,7 +4260,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{ads.core.palette.white}",
-        "dark": "{ads.core.palette.black}",
+        "dark": "{ads.core.palette.white}",
         "hc-light": "{ads.core.palette.white}",
         "hc-dark": "{ads.core.palette.black}"
       },
@@ -4840,7 +4840,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{ads.core.palette.white}",
-        "dark": "{ads.core.palette.black}",
+        "dark": "{ads.core.palette.white}",
         "hc-light": "{ads.core.palette.white}",
         "hc-dark": "{ads.core.palette.black}"
       },
@@ -4909,7 +4909,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{ads.core.palette.white}",
-        "dark": "{ads.core.palette.black}",
+        "dark": "{ads.core.palette.white}",
         "hc-light": "{ads.core.palette.white}",
         "hc-dark": "{ads.core.palette.black}"
       },
@@ -4932,7 +4932,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{ads.core.palette.white}",
-        "dark": "{ads.core.palette.black}",
+        "dark": "{ads.core.palette.white}",
         "hc-light": "{ads.core.palette.white}",
         "hc-dark": "{ads.core.palette.black}"
       },

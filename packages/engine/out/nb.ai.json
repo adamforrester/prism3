@@ -4272,7 +4272,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.black}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -4935,7 +4935,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.black}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },

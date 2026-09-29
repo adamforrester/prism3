@@ -6087,9 +6087,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.black}",
-                  "aliasOf": "ads.core.palette.black",
-                  "contrast": 4.59,
+                  "$value": "{ads.core.palette.white}",
+                  "aliasOf": "ads.core.palette.white",
+                  "contrast": 4.58,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
@@ -6228,9 +6228,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.black}",
-                  "aliasOf": "ads.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{ads.core.palette.white}",
+                  "aliasOf": "ads.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -6275,9 +6275,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.black}",
-                  "aliasOf": "ads.core.palette.black",
-                  "contrast": 4.61,
+                  "$value": "{ads.core.palette.white}",
+                  "aliasOf": "ads.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.info",
                   "min": 4.5
                 },
@@ -7206,9 +7206,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.black}",
-                  "aliasOf": "ads.core.palette.black",
-                  "contrast": 4.59,
+                  "$value": "{ads.core.palette.white}",
+                  "aliasOf": "ads.core.palette.white",
+                  "contrast": 4.58,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
@@ -7347,9 +7347,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.black}",
-                  "aliasOf": "ads.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{ads.core.palette.white}",
+                  "aliasOf": "ads.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -7394,9 +7394,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{ads.core.palette.black}",
-                  "aliasOf": "ads.core.palette.black",
-                  "contrast": 4.61,
+                  "$value": "{ads.core.palette.white}",
+                  "aliasOf": "ads.core.palette.white",
+                  "contrast": 4.56,
                   "against": "foreground.info",
                   "min": 4.5
                 },

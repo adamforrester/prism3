@@ -548,14 +548,14 @@
       ],
       "description": "Text on a solid brand fill — 4.5:1 on foreground/brand",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/black"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -602,14 +602,14 @@
       ],
       "description": "Text on a solid danger fill — 4.5:1 on foreground/danger",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/black"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -620,14 +620,14 @@
       ],
       "description": "Text on a solid info fill — 4.5:1 on foreground/info",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/black"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -990,14 +990,14 @@
       ],
       "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/black"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -1050,14 +1050,14 @@
       ],
       "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/black"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -1070,14 +1070,14 @@
       ],
       "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/black"
+        "name": "ads/core/palette/white"
       }
     },
     {

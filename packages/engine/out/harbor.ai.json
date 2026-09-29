@@ -4237,7 +4237,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{hds.core.palette.white}",
-        "dark": "{hds.core.palette.black}",
+        "dark": "{hds.core.palette.white}",
         "hc-light": "{hds.core.palette.white}",
         "hc-dark": "{hds.core.palette.black}"
       },
@@ -4260,7 +4260,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{hds.core.palette.white}",
-        "dark": "{hds.core.palette.black}",
+        "dark": "{hds.core.palette.white}",
         "hc-light": "{hds.core.palette.white}",
         "hc-dark": "{hds.core.palette.black}"
       },
@@ -4888,7 +4888,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{hds.core.palette.white}",
-        "dark": "{hds.core.palette.black}",
+        "dark": "{hds.core.palette.white}",
         "hc-light": "{hds.core.palette.white}",
         "hc-dark": "{hds.core.palette.black}"
       },
@@ -4911,7 +4911,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{hds.core.palette.white}",
-        "dark": "{hds.core.palette.black}",
+        "dark": "{hds.core.palette.white}",
         "hc-light": "{hds.core.palette.white}",
         "hc-dark": "{hds.core.palette.black}"
       },

@@ -619,30 +619,6 @@
             }
           }
         },
-        "on-info": {
-          "$type": "color",
-          "$value": "{wds.core.palette.black}",
-          "$description": "Text on a solid info fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "wds.core.palette.black",
-              "contrast": 4.61,
-              "against": "foreground.info",
-              "min": 4.5
-            }
-          }
-        },
         "link": {
           "default": {
             "$type": "color",
@@ -1123,30 +1099,6 @@
               "aliasOf": "wds.core.palette.black",
               "contrast": 4.61,
               "against": "foreground.success",
-              "min": 4.5
-            }
-          }
-        },
-        "on-info": {
-          "$type": "color",
-          "$value": "{wds.core.palette.black}",
-          "$description": "Icon on a solid info fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "wds.core.palette.black",
-              "contrast": 4.61,
-              "against": "foreground.info",
               "min": 4.5
             }
           }

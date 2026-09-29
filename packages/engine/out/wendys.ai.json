@@ -4273,7 +4273,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{wds.core.palette.white}",
-        "dark": "{wds.core.palette.black}",
+        "dark": "{wds.core.palette.white}",
         "hc-light": "{wds.core.palette.white}",
         "hc-dark": "{wds.core.palette.black}"
       },
@@ -4937,7 +4937,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{wds.core.palette.white}",
-        "dark": "{wds.core.palette.black}",
+        "dark": "{wds.core.palette.white}",
         "hc-light": "{wds.core.palette.white}",
         "hc-dark": "{wds.core.palette.black}"
       },

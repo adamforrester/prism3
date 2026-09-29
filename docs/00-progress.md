@@ -89,7 +89,7 @@
 
 **Owner decision on the prism3 dark label (2026-09-29): prefer white on a near-tie in dark-family modes.** `modes.ts` `pureExtremeInk`: when pure white and pure black both clear 4.5:1 on the fill and sit within 0.05:1 of each other (`EXTREME_TIE`), `dark` and `hc-dark` take white; otherwise the higher ratio wins, as before, and light-family modes are unchanged.
 
-It is scoped to the interactive `on-fill`, page and inverse (`onColor(…, true)` at those call sites and in `brandOnFill`'s HC and empty-ramp fallbacks). Applied to every `onColor` caller, it would also move 42 semantic `text.on-<status>` / `icon.on-<status>` cells black → white in `dark` (on-brand, on-danger, on-info, on-success, every corpus brand and prism3). That goes beyond the decision as worded, so the semantic caller keeps the higher-ratio rule. Whether to extend it is the owner's call.
+It was first scoped to the interactive `on-fill`, page and inverse. Applied to every `onColor` caller, it also moves 42 semantic `text.on-<status>` / `icon.on-<status>` cells black → white in `dark`, which went beyond the decision as worded, so it went back to the owner. The owner extended it the same day; see below.
 
 Cells that moved, all in `dark`, black → white:
 
@@ -102,6 +102,51 @@ Cells that moved, all in `dark`, black → white:
 | minimal (all six fixtures) | page destructive on-fill | 4.601 | 4.564 |
 
 No other cell moved. The #1763 aurora dark literal moved 4.60 → 4.56. `test.ts` pins the prism3 dark label as white at 4.58:1 on `#3d68fc`. It holds a light-mode near-tie on the same fill taking black, the higher ratio, and a fill where white is under 4.5:1 (`#7398f8`) taking black in a dark-family mode. The "softened unless…" pin's comment now names the tie rule; its assertion was already color-agnostic.
+
+**Owner decision (2026-09-29): the tie rule reaches the status on-colors.** `onColor` now applies `pureExtremeInk`'s dark-family tie rule for every caller, so the semantic `text.on-<status>` / `icon.on-<status>` inks on the solid status fills follow the interactive `on-fill`. The `tieToWhite` switch is gone from `onColor` and `pureExtremeInk`, since no caller opts out. Exactly 42 cells move, all in `dark`, all black → white, all still at or above 4.5:1. Each row is `text.on-*` and `icon.on-*`; the six minimal fixtures share one palette and each moves the same four cells:
+
+| brand | status fill | black (before) | white (after) |
+|---|---|---|---|
+| nb | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| aurora | on-brand on primary.500 `#7269ca` | 4.589 | 4.576 |
+| aurora | on-danger on danger.500 `#c94c44` | 4.601 | 4.564 |
+| aurora | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| harbor | on-danger on danger.500 `#cd4840` | 4.597 | 4.568 |
+| harbor | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| wendys | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| minimal (×6 fixtures) | on-danger on danger.500 `#c94c44` | 4.601 | 4.564 |
+| minimal (×6 fixtures) | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| prism3 | on-success on success.500 `#2e8554` | 4.599 | 4.566 |
+| prism3 | on-danger on danger.500 `#d24241` | 4.596 | 4.569 |
+
+That is 2 (nb) + 6 (aurora) + 4 (harbor) + 2 (wendys) + 24 (minimal) + 4 (prism3) = 42. No other role moved: measured role by role over the corpus, prism3, the NB master theme and every example brief, before and after. `on-warning` is served by the same picker and did not move in any brand, since none of its fills sits in the tie. No `text.*`, `icon.*` or `border.*` value outside `text.on-*` / `icon.on-*` moved, so #1367's pairs are untouched. The NB fixture's recorded divergence for dark `text|icon/on-info` moves from `palette/black` to `palette/white` in `test.ts` (NB authored `neutral/950`, so it stays a divergence).
+
+**Re-review follow-ups (independent re-review of 18287261..faafdf10).**
+- **S1: a pinned anchor skipped the tertiary gate silently.** An authored anchor is `exact` (#331), so `pickBrand` returns it without reading `alsoClear`. Repro: the minimal brand with `modeAnchors.dark.primary: 550` emits primary.550 `#3661b5` at 3.02:1 on the floor and 2.69:1 on `background.tertiary`, and nothing reported the second number. The pin stands, as author intent. The miss is now reported the way a missed override is. An override that misses its contract lands in `ModeResult.warnings` and fails a mode check, because its role's `ratio` falls under `min` and `tree.ts` counts every role with a `min`. So overrides DO count in `modeChecks` / `modePass`, and the tier miss does both:
+  - `resolveMode` ends with a tier check over every family whose page `fill.rest` came through `restFill` (primary, destructive, declared palettes), measured on the final value after the override pass.
+  - Each check is a `tierChecks` entry on `ModeResult`, and `tree.ts` counts it into `modeChecks` / `modePass`. A miss is also a `warnings` entry with `against: 'background.tertiary'`, a new optional field on `OverrideWarning`.
+  - The repro now reports one tier warning at 2.69:1 and 883/884 mode checks. The unpinned brand reports 884/884.
+  - Every brand gains 2 passing checks per mode (primary and destructive): the wendys fidelity report reads 884/884, from 876/876. No corpus brand, example or fixture misses, so no emitted value moves.
+  - The check also covers the fallback where no step clears both grounds and `pickBrand` returns the anchor, which was silent in the same way.
+- **S2: the tie rule lowers the dark hover / pressed label (documented, not changed).** Hover and pressed are exempt from the label floor (#1456, #1626), and `.ai.json` says so on each: "on this fill it drops below 4.5:1 in dark mode". The trade, for the six labels the rule moved (the label on the dark hover / pressed fill, black before → white after):
+
+  | brand | family | hover | pressed |
+  |---|---|---|---|
+  | prism3 | primary | 6.45 → **3.25** | 8.88 → **2.36** |
+  | prism3 | destructive | 6.34 → 3.31 | 8.75 → 2.40 |
+  | aurora | primary | 6.27 → 3.35 | 8.59 → 2.44 |
+  | aurora | destructive | 6.35 → 3.31 | 8.70 → 2.41 |
+  | harbor | destructive | 6.31 → 3.33 | 8.67 → 2.42 |
+  | minimal (×6) | destructive | 6.35 → 3.31 | 8.70 → 2.41 |
+
+  The lowest is prism3 dark primary: hover 3.25, pressed 2.36. Before the rule, the lowest of these six was hover 6.27, pressed 8.59. The dark labels that were already white sit in the same range: nb primary and destructive 3.25 / 2.40, harbor primary 3.28 / 2.41, wendys primary 3.26 / 2.28 (the corpus low), and wendys destructive 3.31 / 2.41. So the rule brings these six into line with the rest of the corpus. It still lowers the transient-state label by about half.
+- **S3: two missing tests.** `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio` holds `#767676` (white 4.542, black 4.623, gap 0.081) at black. `#1626 an explicit fill.selected override beats the carried fill.rest override` holds prism3 dark with rest → primary.300 and selected → primary.600 at `#86a7f7` / `#86a7f7` / `#1e1eff`.
+- **NITs.**
+  - The both-clear guard is unreachable at the engine's 4.5:1 on-fill floor. Two inks within 0.05:1 of each other both sit at 4.558:1 or above, since white and black meet at 4.583. The guard protects a raised floor, so it stays, and `#1773 tie rule: when an extreme misses the floor …` witnesses it at a synthetic 7:1 on `#3d68fc`, where it must keep black.
+  - `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording` is the witness for the `!inverse` scope. The page wording has its own line beside it.
+  - The broken sentence in the `version.ts` 0.197.0 entry ("… decision. Emitted / A `fill.rest` override …") is fixed.
+
+ENGINE stays at 0.197.0: this is the same unmerged PR, and the orchestrator renumbers at net. CONTRACT stands at 13.2.0.
 
 **Mutations** (committed first, restored from HEAD):
 - MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.

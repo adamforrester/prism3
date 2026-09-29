@@ -193,8 +193,14 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // input, so the roles measured against it kept the value and ratio they derived from the OLD one.
 // Optional rather than a separate union member so every existing reader of `{role, ratio, min}` keeps
 // working unchanged — the contrast fields are still the overridden role's own, and still correct.
-export type OverrideWarning = { role: string; ratio: number; min: number };
-export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; warnings?: OverrideWarning[] };
+// `against` is set only when the miss is on a ground OTHER than the role's own `against` — the page fill's
+// `background.tertiary` tier (#1773). Optional for the same reason: every reader of `{role, ratio, min}`
+// keeps working, and an entry without it still means "against the role's own ground".
+export type OverrideWarning = { role: string; ratio: number; min: number; against?: string };
+// A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
+// `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
+export type TierCheck = { role: string; against: string; ratio: number; min: number };
+export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; tierChecks?: TierCheck[]; warnings?: OverrideWarning[] };
 
 /**
  * Which role family carries an outline/text control's hover fill, for the selected method — and
@@ -429,15 +435,15 @@ export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | un
  * light-family modes are untouched. Exported so `test.ts` can hold the rule on synthetic fills with literal
  * expectations; `onColor` is its only production caller.
  *
- * SCOPED TO THE INTERACTIVE `on-fill` (page and inverse), which is what the owner decided. `onColor` also
- * picks the semantic `text.on-<status>` / `icon.on-<status>` inks; applied there too, the rule would move 42
- * of those cells black → white (on-brand, on-danger, on-info, on-success, in the `dark` mode of every corpus
- * brand and prism3), so that caller keeps the higher-ratio rule (`tieToWhite` defaults to false in `onColor`).
+ * EVERY `onColor` CALLER TAKES IT: the interactive `on-fill` (page and inverse, owner, 2026-09-29) and, since
+ * the owner extended it the same day, the semantic `text.on-<status>` / `icon.on-<status>` inks on the solid
+ * status fills (on-brand, on-danger, on-info, on-success, on-warning). Extending it moved 42 dark-mode status
+ * cells black → white, every one still at or above 4.5:1; the list is in `docs/00-progress.md`.
  */
 export const EXTREME_TIE = 0.05;
-export const pureExtremeInk = (fill: RGB, family: 'light' | 'dark', min: number, tieToWhite = true): 'white' | 'black' => {
+export const pureExtremeInk = (fill: RGB, family: 'light' | 'dark', min: number): 'white' | 'black' => {
   const w = contrast(WHITE, fill), b = contrast(BLACK, fill);
-  if (tieToWhite && family === 'dark' && w >= min && b >= min && Math.abs(w - b) <= EXTREME_TIE) return 'white';
+  if (family === 'dark' && w >= min && b >= min && Math.abs(w - b) <= EXTREME_TIE) return 'white';
   return w >= b ? 'white' : 'black';
 };
 
@@ -644,9 +650,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // It shipped for review without this branch, and the gate ratified it: a flat 4.5 floor passes at
     // 4.62 and at 17.27 alike, so it could not tell the regression from the fix. `test.ts` now carries
     // an HC-specific arm holding these modes to the extreme rather than the floor.
-    if (hc) return onColor(fill, true);
+    if (hc) return onColor(fill);
     const steps = [...(ramps.get(palette) ?? [])].sort((a, b) => a.num - b.num);
-    if (!steps.length) return onColor(fill, true);
+    if (!steps.length) return onColor(fill);
     // SCAN FROM THE LEAST-CONTRASTING END so the first passing step is the MOST VIVID one that is
     // still legible. On a LIGHT fill that means ascending (lightest first, walking darker until one
     // clears); on a DARK fill, descending. The test is "is the fill light", i.e. does it contrast more
@@ -662,8 +668,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     return rated(cand(`${ns}.${palette}.${pick.key}`, pick.rgb), fill);
   };
 
-  const onColor = (fill: RGB, tieToWhite = false): Rated => {
-    const extreme = (): Rated => pureExtremeInk(fill, cfg.family, onMin, tieToWhite) === 'white'
+  const onColor = (fill: RGB): Rated => {
+    const extreme = (): Rated => pureExtremeInk(fill, cfg.family, onMin) === 'white'
       ? rated(cand(`${ns}.white`, WHITE), fill) : rated(cand(`${ns}.black`, BLACK), fill);
     if (hc) return extreme();
     const lightCand = cfg.family === 'light' ? cand(`${ns}.white`, WHITE) : N025();  // light side: pure white in light, soft in dark
@@ -1140,14 +1146,21 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // 2.71–2.86:1 (nb, harbor, wendys, prism3) — under SC 1.4.11. So every page `fill.rest` pick must ALSO
   // clear the same bar against `background.tertiary`: `pickBrand`'s `alsoClear`, the nearest step to the
   // anchor that clears both. The recorded `against` stays the floor; `test.ts` measures the tertiary arm.
-  // An authored pin stays `exact` (#331) and is applied verbatim, its miss reported, as before.
+  // An authored pin stays `exact` (#331) and is applied verbatim. Its floor miss is the role's own
+  // `ratio`, and its TIERED miss is the tier check at the end of `resolveMode` (review of #1773): the pin
+  // skips `alsoClear`, so without that check a pin that clears the floor but not the tertiary tier ships
+  // silently. `tierGated` records each family whose rest came through here, so the check covers exactly
+  // the fills this gate governs.
   const fillTierRgb = asGround('background.tertiary', cfg.bg.tertiary.rgb);
-  const restFill = (palette: string, anchor: number, exact: boolean): RatedNum =>
-    chromatic(palette, anchor, floorRgb, fillFloorMin, exact, [fillTierRgb]);
+  const tierGated: string[] = [];
+  const restFill = (name: string, palette: string, anchor: number, exact: boolean): RatedNum => {
+    tierGated.push(name);
+    return chromatic(palette, anchor, floorRgb, fillFloorMin, exact, [fillTierRgb]);
+  };
   // Authored pin → `exact` (#331): applied as picked, floor miss reported not corrected.
   const actionRest = paAnchor !== undefined
-    ? restFill(r2p.action, paAnchor, true)
-    : restFill(r2p.action, theme.roleAnchorStep.action, false);
+    ? restFill('primary', r2p.action, paAnchor, true)
+    : restFill('primary', r2p.action, theme.roleAnchorStep.action, false);
 
   // THE FOCUS RING, DERIVED AGAINST ITS OWN GROUND (#1336). The keyboard-focus ring is the action
   // colour, but unlike a fill it is DRAWN on a ground whose lightness flips per mode (the page in the
@@ -1191,7 +1204,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
         `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on background.secondary`, cfg.floorName, fillMin);
     }
-    put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb), true), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
+    put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb)), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
   // Neutral fill anchor — a subtle grey by default (neutralEmphasis lever, later).
   // Returns a RatedNum so its states can walk the neutral ramp like any palette.
@@ -1274,8 +1287,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
   const daAnchor = modeAnchor('destructive') ?? theme.destructiveAnchorStep;
   const iDestructiveRest = daAnchor !== undefined
-    ? restFill(r2p.danger, daAnchor, true)
-    : restFill(r2p.danger, theme.roleAnchorStep.danger, false);
+    ? restFill('destructive', r2p.danger, daAnchor, true)
+    : restFill('destructive', r2p.danger, theme.roleAnchorStep.danger, false);
   iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
   // The destructive OUTLINE / TEXT ink (the button label + icon) is gated against the WORST-CASE page
   // tier — `background.tertiary`, the darkest emitted page surface — not merely `background.primary`.
@@ -1327,7 +1340,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // so a derived default is indistinguishable from a pin by the time it arrives here.
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
-    const rest = restFill(entry.palette, anchor, pinned);
+    const rest = restFill(entry.name, entry.palette, anchor, pinned);
     iFill(entry.name, rest, entry.palette, fillFloorMin);
     iBorder(entry.name, iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true), baseRgb, '', 'background.primary');
   }
@@ -1444,7 +1457,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // the least-contrasting end, that clears `onMin` on EVERY one. It lands a deeper step than before, at
     // rest too (prism3 primary.500 → 650 light, → 350 dark). Hover/pressed remain exempt from the floor by
     // the owner's decision, but the one ink has to clear selected, which is pressed's fill, so they clear too.
-    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround, FILL_STATES.map((st) => st === 'default' ? inkGround : asGround(`inverse.interactive.${name}.fill.${st}`, stateFill(st).rgb))) : onColor(inkGround, true);
+    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround, FILL_STATES.map((st) => st === 'default' ? inkGround : asGround(`inverse.interactive.${name}.fill.${st}`, stateFill(st).rgb))) : onColor(inkGround);
     // What a state's label does, measured. Silent where the ink clears its floor on this fill. Where it does
     // not: hover / pressed are the #1456 transient states, exempt by the owner's decision, and the strict
     // setting lifts that exemption for every brand-ink family (primary and destructive). Focused / selected
@@ -2157,7 +2170,29 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   for (const [rolePath, r] of Object.entries(roles))
     if (r.min > 0 && r.ratio < r.min) warnings.push({ role: rolePath, ratio: r.ratio, min: r.min });
 
-  return { mode, surface: baseRgb, roles, ...(warnings.length ? { warnings } : {}) };
+  // ---- the tier check (#1773, review) ----
+  // Every page `interactive.<c>.fill.rest` that `restFill` produced is contracted against TWO grounds: its
+  // `against` (the floor, `background.secondary`), which the sweep above reads, and `background.tertiary`
+  // (owner, 2026-09-29), which the role's single `ratio` cannot carry. The derived pick clears both by
+  // construction, but an authored pin is `exact` (#331) and skips `alsoClear`, and a ramp with no step
+  // clearing both falls back to the anchor. Measured: `modeAnchors.dark.primary: 550` on the default brand
+  // emits a fill at 2.68:1 on tertiary, and before this check nothing said so. The pin stands (author
+  // intent); the miss is reported the way an override's miss is. An override that misses its contract is
+  // a `warnings` entry AND a failed mode check, since its role's `ratio` falls under `min` and `tree.ts`
+  // counts every role with a `min`. So the tier miss is both: a warning naming the tier in `against`, and
+  // a `tierChecks` entry that `tree.ts` counts into `modeChecks` / `modePass`. Measured on the FINAL value,
+  // after the override pass, so an overridden rest is held to the same second ground.
+  const tierChecks: TierCheck[] = [];
+  for (const name of tierGated) {
+    const role = `interactive.${name}.fill.rest`;
+    const r = roles[role], rgb = rgbByRole.get(role);
+    if (!r || !rgb || !(r.min > 0)) continue;
+    const ratio = contrast(rgb, fillTierRgb);
+    tierChecks.push({ role, against: 'background.tertiary', ratio, min: r.min });
+    if (ratio < r.min) warnings.push({ role, ratio, min: r.min, against: 'background.tertiary' });
+  }
+
+  return { mode, surface: baseRgb, roles, ...(tierChecks.length ? { tierChecks } : {}), ...(warnings.length ? { warnings } : {}) };
 };
 
 /** How many genome rungs past `rest` a given interactive state sits: hover/focused 2, pressed/selected 4.

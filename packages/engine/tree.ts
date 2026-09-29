@@ -1263,6 +1263,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
+  // A role's second ground (#1773): the page interactive fill against `background.tertiary`. Counted like a
+  // role, so a pinned anchor that misses the tier fails the mode contract the way a missed override does.
+  for (const mr of modes) for (const c of mr.tierChecks ?? []) { modeChecks++; if (c.ratio >= c.min) modePass++; }
 
   // `+ 1` for `white-alpha.0` (#1318) — the one alpha leaf outside the 5–90 ramp steps.
   const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length + 1;

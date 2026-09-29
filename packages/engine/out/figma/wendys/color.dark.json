@@ -620,14 +620,14 @@
       ],
       "description": "Text on a solid info fill — 4.5:1 on foreground/info",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/black"
+        "name": "wds/core/palette/white"
       }
     },
     {
@@ -1070,14 +1070,14 @@
       ],
       "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/black"
+        "name": "wds/core/palette/white"
       }
     },
     {
