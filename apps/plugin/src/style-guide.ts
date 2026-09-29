@@ -1584,9 +1584,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         if (!bar) {
           // NO SILENT MISS: a member this build cannot read draws at the component's own width, and says so.
           failAs(noLayer, member);
-        } else if (!AUTO_LAYOUT.has(String(bar.layoutMode))) {
-          // A FIXED-WIDTH LAYER CANNOT BE SIZED IN AN INSTANCE (the owner's live run of 0.205.0): the host silently
-          // drops every width written to a layer inside an instance. Named once for the whole run, with the fix.
+        } else if (!AUTO_LAYOUT.has(String(bar.layoutMode)) || ((bar.children ?? []) as SgNode[]).some((k) => k.layoutPositioning !== 'ABSOLUTE')) {
+          // A FIXED-WIDTH LAYER, OR ONE WHOSE BARS ARE IN FLOW, CANNOT BE SIZED BY ITS PADDING (the owner's live run of
+          // 0.205.0): the host silently drops every width written to a layer inside an instance, and bars in flow add
+          // their own widths to the padding's. Named once for the whole run, with the fix.
           failAs(fixedLayer, String(bar.name));
         } else {
           // SIZED BY ITS LEFT PADDING, the one width a plugin can set on a layer inside an instance (measured live,

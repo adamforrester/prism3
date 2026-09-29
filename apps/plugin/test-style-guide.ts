@@ -602,7 +602,7 @@ const ownerSet = (name: string, variants: string[], withSpecimen: boolean): N =>
  * `left-bar` (1 × 16 at 0,0), `horizontal-line` (8 × 1 at 0,8) and `right-bar` (1 × 16 at 7,0), every one MIN/MIN.
  * `kind: 'odd'` is a set this build cannot read: each member holds a text label and nothing else.
  */
-const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' | 'inflow' = 'owner'): N => {
+const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' | 'inflow' | 'restructured' = 'owner'): N => {
   const set = new N('COMPONENT_SET');
   set.name = '_style-guide-spacing-cells';
   for (const display of ['filled', 'line']) {
@@ -611,7 +611,22 @@ const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' | 'inflow' = 'owner')
     m.layoutMode = 'HORIZONTAL'; m.primaryAxisSizingMode = 'AUTO'; m.counterAxisSizingMode = 'AUTO';
     m.paddingLeft = 32; m.paddingRight = 32; m.paddingTop = display === 'filled' ? 31.5 : 33.5; m.paddingBottom = m.paddingTop;
     const mm = { horizontal: 'MIN', vertical: 'MIN' };
-    if (kind === 'odd') {
+    if (kind === 'restructured') {
+      // THE OWNER'S CELLS AS RESTRUCTURED (2026-09-29, with the owner's OK, verified live): each example frame a
+      // HORIZONTAL auto layout that hugs (primary AUTO), counter FIXED (20 filled, 16 line), paddingLeft 8, the other
+      // paddings and itemSpacing 0; the line's bars ABSOLUTE: left-bar 0,0 1×16 MIN, horizontal-line 0,7.5 8×1
+      // STRETCH, right-bar 7,0 1×16 MAX, all vertical MIN. Typed here from the orchestrator's measurement.
+      const f = new N('FRAME'); f.name = `spacing-${display}-example`; f.w = 8; f.h = display === 'filled' ? 20 : 16;
+      f.layoutMode = 'HORIZONTAL'; f.primaryAxisSizingMode = 'AUTO'; f.counterAxisSizingMode = 'FIXED';
+      f.paddingLeft = 8; f.paddingRight = 0; f.paddingTop = 0; f.paddingBottom = 0; f.itemSpacing = 0;
+      f.fills = display === 'filled' ? [{ type: 'SOLID' }] : [];
+      m.appendChild(f);
+      if (display === 'line') for (const [name, w, h, x, y, hz] of [['left-bar', 1, 16, 0, 0, 'MIN'], ['horizontal-line', 8, 1, 0, 7.5, 'STRETCH'], ['right-bar', 1, 16, 7, 0, 'MAX']] as const) {
+        const r = new N('RECTANGLE'); r.name = name; r.w = w; r.h = h; r.fills = [{ type: 'SOLID' }];
+        f.appendChild(r);
+        r.layoutPositioning = 'ABSOLUTE'; r.x = x; r.y = y; r.constraints = { horizontal: hz, vertical: 'MIN' };
+      }
+    } else if (kind === 'odd') {
       const t = new N('TEXT'); t.name = 'label'; t.characters = display; t.fontName = { family: 'Inter', style: 'Regular' }; m.appendChild(t);
     } else if (display === 'filled') {
       const f = new N('FRAME'); f.name = 'spacing-filled-example'; f.w = 8; f.h = 20; f.clipsContent = true; f.fills = [{ type: 'SOLID' }]; f.constraints = mm; m.appendChild(f);
@@ -941,11 +956,12 @@ const main = async (): Promise<void> => {
     // ABSOLUTELY, constrained in the component: left-bar MIN, horizontal-line STRETCH, right-bar MAX. Literals here.
     const sp = setsNamed(s.pages, '_style-guide-spacing-cells')[0];
     const ex = (d: string): N | undefined => sp?.children.find((c) => c.name === `display=${d}`)?.children[0];
-    const shape1 = (f: N | undefined): string => `${f?.name}:${f?.layoutMode}:${f?.primaryAxisSizingMode}:${f?.paddingLeft}:${f?.width}`;
+    const shape1 = (f: N | undefined): string => `${f?.name}:${f?.layoutMode}:${f?.primaryAxisSizingMode}:${f?.counterAxisSizingMode}:${f?.width}x${f?.height}:pad ${f?.paddingLeft},${f?.paddingRight},${f?.paddingTop},${f?.paddingBottom}:gap ${f?.itemSpacing}`;
+    const bars = (f: N | undefined): string => (f?.children ?? []).map((k) => `${k.name} ${k.x},${k.y} ${k.width}x${k.height} ${k.layoutPositioning} ${k.constraints?.horizontal}/${k.constraints?.vertical}`).join('; ');
     const lineEx = ex('line');
-    ok(shape1(ex('filled')) === 'spacing-filled-example:HORIZONTAL:AUTO:8:8' && shape1(lineEx) === 'spacing-line-example:HORIZONTAL:AUTO:8:8'
-      && JSON.stringify(lineEx?.children.map((k) => `${k.name}@${k.x}:${k.layoutPositioning}:${k.constraints?.horizontal}`)) === JSON.stringify(['left-bar@0:ABSOLUTE:MIN', 'horizontal-line@0:ABSOLUTE:STRETCH', 'right-bar@7:ABSOLUTE:MAX']),
-      `1: the spacing members are hug frames sized by an 8px left padding, the bracket's bars absolute and constrained MIN, STRETCH and MAX (${shape1(ex('filled'))}; ${shape1(lineEx)}; ${lineEx?.children.map((k) => `${k.name}@${k.x}:${k.layoutPositioning}:${k.constraints?.horizontal}`).join(', ')})`);
+    ok(shape1(ex('filled')) === 'spacing-filled-example:HORIZONTAL:AUTO:FIXED:8x20:pad 8,0,0,0:gap 0' && shape1(lineEx) === 'spacing-line-example:HORIZONTAL:AUTO:FIXED:8x16:pad 8,0,0,0:gap 0'
+      && bars(lineEx) === 'left-bar 0,0 1x16 ABSOLUTE MIN/MIN; horizontal-line 0,7.5 8x1 ABSOLUTE STRETCH/MIN; right-bar 7,0 1x16 ABSOLUTE MAX/MIN',
+      `1: the spacing members are the owner's restructured tree exactly: hug frames 8×20 and 8×16 sized by an 8px left padding, the bracket's bars absolute at their literal geometry (${shape1(ex('filled'))}; ${shape1(lineEx)}; ${bars(lineEx)})`);
     // The diamond's box from the typings' transform (`rotation = atan2(-m10, m00)`, about the top-left corner):
     // a corner (px, py) lands at (x + px·cos θ + py·sin θ, y − px·sin θ + py·cos θ).
     const dia = sw?.children.find((c) => c.name === 'type=icon')?.findOne((k) => k.name === 'Specimen');
@@ -2219,6 +2235,16 @@ const main = async (): Promise<void> => {
     ok(['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => ex?.boundVariables[k]?.id === 'VariableID:nbds/radius/md'),
       `22: the owner's radius swatch binds all four corners of radius-example, the layer its clip shows (${Object.keys(ex?.boundVariables ?? {}).join(', ') || 'none bound'})`);
 
+    // THE OWNER'S CELLS AS RESTRUCTURED (their layer names, the padding recipe's tree): sized like the built ones.
+    const orr = await ownerFile(ownerSpacingSet('restructured'));
+    const rro = await draw(orr.api, contract);
+    const dimO = tableFrame(orr.prim, 'Dimension')!;
+    const spaceO = tableFrame(orr.prim, 'Space')!;
+    const filledO = (t: string): string => { const f = layer(spaceO, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.paddingLeft?.id === `VariableID:nbds/space/${t}`}`; };
+    ok(bracket(dimO, '4') === JSON.stringify({ w: 4, bound: true, line: 4, left: 0, right: 3 }) && bracket(dimO, '64') === JSON.stringify({ w: 64, bound: true, line: 64, left: 0, right: 63 })
+      && filledO('4') === '4:true' && filledO('64') === '64:true' && rro.unbound === 0 && !rro.misses.some((m) => /spacing/.test(m)),
+      `22: the owner's cells restructured to the padding recipe are sized: the bracket 4 and 64, right-bar at 3 and 63, the bar 4 and 64, nothing unbound (${bracket(dimO, '4')} ${bracket(dimO, '64')} ${filledO('4')} ${filledO('64')}; ${rro.unbound})`);
+
     // THE CELLS SET UP FILE BUILDS, by the real builder: sized by their left padding at the value, the bracket's
     // absolute bars carried by the constraints set in the component (left-bar MIN, horizontal-line STRETCH, right-bar
     // MAX). Literal widths: 4 → 4 and 64 → 64, the line as wide, right-bar at 3 and 63.
@@ -2291,8 +2317,8 @@ const main = async (): Promise<void> => {
 
   console.log('24. the review of f3bb76cd: no silent spacing miss, one verdict per specimen, a new table that pushes its row down');
   {
-    // (3) A HUGGING BRACKET WHOSE BARS ARE IN FLOW: bound by its left padding, it is still wider than the value, and
-    // the read-back counts it, by table and token.
+    // (3) A HUGGING BRACKET WHOSE BARS ARE IN FLOW: its bars would add their widths to the padding's, so it gets the
+    // one restructure line, like a fixed-width frame.
     const shimOwner = async (spacing: N | null): Promise<Shim & { prim: N; fc: N }> => {
       const fc = page(FC), prim = page(PRIM), sem = page(SEM), sgc = page('Style Guide Components');
       fc.appendChild(headerSet());
@@ -2305,9 +2331,9 @@ const main = async (): Promise<void> => {
     };
     const rn = await shimOwner(ownerSpacingSet('inflow'));
     const rr = await draw(rn.api, contract);
-    ok(rr.unbound === 5 && rr.misses.includes("5 display=line spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Dimension: 0, 4, 8 and 2 more)")
+    ok(rr.unbound === 5 && rr.misses.includes('5 spacing specimens are not sized, in 1 table. _style-guide-spacing-cells: make spacing-line-example a hug frame sized by left padding, with any bars positioned absolutely. Figma does not let a plugin resize a layer inside an instance.')
       && styleGuideSummary(rr).headline === '⚠ 5 specimens unbound',
-      `24: a hugging bracket with its bars in flow is read back wider than its value and counted, by table and token: ${rr.unbound} — "${styleGuideSummary(rr).headline}"`);
+      `24: a hugging bracket with its bars in flow cannot be sized by its padding: all 5 counted, in the one restructure line: ${rr.unbound} — "${styleGuideSummary(rr).headline}" (${rr.misses.filter((m) => /spacing/.test(m)).join(' / ')})`);
     // (4) NO SPACING SET AT ALL (every file set up before phase 2): each spacing specimen is counted, and the run is not
     // a pass. Five brackets here.
     const ns = await shimOwner(null);

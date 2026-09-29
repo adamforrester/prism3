@@ -289,7 +289,7 @@ const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode =>
     bar.layoutMode = 'HORIZONTAL';
     bar.primaryAxisSizingMode = 'AUTO';
     bar.counterAxisSizingMode = 'FIXED';
-    bar.paddingLeft = 8; bar.paddingRight = 0; bar.paddingTop = 0; bar.paddingBottom = 0;
+    bar.paddingLeft = 8; bar.paddingRight = 0; bar.paddingTop = 0; bar.paddingBottom = 0; bar.itemSpacing = 0;
     bar.clipsContent = display === 'filled';
     if (display === 'filled') bar.fills = solid('#F4A7A7');
     else {
@@ -303,7 +303,7 @@ const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode =>
         p.constraints = { horizontal, vertical: 'MIN' };
       };
       part('left-bar', 1, 16, 0, 0, 'MIN');
-      part('horizontal-line', 8, 1, 0, 8, 'STRETCH');
+      part('horizontal-line', 8, 1, 0, 7.5, 'STRETCH');
       part('right-bar', 1, 16, 7, 0, 'MAX');
     }
     root.appendChild?.(bar);
