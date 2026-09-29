@@ -59,8 +59,10 @@ export const cssVarAdapter = (scope: HTMLElement): WriteAdapter => ({
       const eff = model.dimOverrides[ref]?.[mode] ?? px;
       s.setProperty(cssVarName(ref), `${eff}px`);
     }
-    // Typography — mode-invariant; three atoms per composite.
+    // Typography — mode-invariant; three atoms per composite. A binding the brand does not emit is
+    // absent (named in `model.unresolvedType`, #1720) and left unset, like a sparse color.
     for (const [ref, t] of Object.entries(model.type)) {
+      if (!t) continue;
       s.setProperty(typeAtomName(ref, 'family'), t.fontFamilyStack);
       s.setProperty(typeAtomName(ref, 'weight'), String(t.fontWeight));
       s.setProperty(typeAtomName(ref, 'size'), `${t.fontSizePx}px`);

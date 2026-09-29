@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.213.0 — #1720: `resolvePreview` no longer resolves a type binding the brand does not emit to
+ * `sans-serif / 0 / 0px`. It read `node?.$value ?? {}` and every accessor after it fell through to its own
+ * default. Since #1632 a brand may decline `strong` in display/title while the preview spec binds
+ * `type.display.lg.strong` and `type.title.*.strong` by name, so this was reachable from a legal input. Such a
+ * binding is now absent from `ResolvedPreview.type` (typed `Partial`, so a reader has to guard) and named in
+ * the new `unresolvedType` list. Reported rather than thrown: the studio calls `resolvePreview` on every edit
+ * and would otherwise refuse a valid brand over a value it never paints. `visualize.ts` throws by name on a
+ * non-empty list. A read-model behavior change → ENGINE bump; no emitted value moves, so `out/**` and
+ * `schema/*` move only their version stamp. CONTRACT STANDS (no token name moves).
+ *
  * 0.208.0 — #1790: the paste path's theme cleanup (`runCleanupTheme`, the `use_figma` scratch-file wipe)
  * had the read-after-remove defect that `applyPrunePlan` was fixed for in 0.203.0. It read `.name` off
  * each style and each collection right after calling its `remove()`, and on the next collection it read `variableCollectionId`
@@ -4249,7 +4259,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.208.0';
+export const ENGINE_VERSION = '0.213.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

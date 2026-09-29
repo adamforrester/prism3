@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.208.0",
+  "engineVersion": "0.213.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {

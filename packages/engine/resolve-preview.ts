@@ -48,8 +48,15 @@ export type ResolvedPreview = {
    *  by mode appear, and only the modes that differ from the baseline — mirroring the tree's
    *  `$extensions.prism3.modes`. A consumer reads `dimOverrides[ref]?.[mode] ?? dims[ref]`. */
   dimOverrides: Record<string, Partial<Record<ModeName, number>>>;
-  /** typography binding (e.g. `type.label.md.emphasis`) → resolved composite. Mode-invariant. */
-  type: Record<string, ResolvedType>;
+  /** typography binding (e.g. `type.label.md.emphasis`) → resolved composite. Mode-invariant.
+   *  `Partial` because a bound ref the brand does not emit is ABSENT here and named in
+   *  `unresolvedType` — so a reader has to guard, and cannot paint a fabricated value (#1720). */
+  type: Partial<Record<string, ResolvedType>>;
+  /** Type bindings the spec names that this theme's tree does not carry, sorted. Empty for a brand
+   *  that emits every bound style. Since #1632 a brand may decline `strong` in display/title, and the
+   *  spec binds `type.display.lg.strong` / `type.title.*.strong` by name, so this is reachable from a
+   *  legal input. It used to resolve to `sans-serif / 0 / 0px` in `type` with no error (#1720). */
+  unresolvedType: string[];
   /** every shadow in the ramp (`shadow.xs`…`shadow.2xl`, `shadow.inset`) → per-mode CSS
    *  `box-shadow` string (the whole ramp, so the elevation specimen can show it; bound
    *  refs like `shadow.sm` are a subset). Mode-aware: dark is the reduced lift-primary
@@ -135,9 +142,20 @@ export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): R
     }
   }
   const type: ResolvedPreview['type'] = {};
+  const unresolvedType: string[] = [];
   for (const ref of [...typeRefs].sort()) {
     const node = at(data, ref);
-    const val = node?.$value ?? {};
+    // A binding the tree does not carry is REPORTED, never defaulted (#1720). This read used to be
+    // `node?.$value ?? {}`, and every accessor below then fell through to its own default, so a
+    // missing style resolved to `sans-serif / 0 / 0px` with no error anywhere.
+    //
+    // Reported rather than thrown, because the miss is reachable from a LEGAL input: since #1632 a
+    // brand may decline `strong` in display/title, and the studio calls this on every edit (its
+    // `rebuild()` treats a throw as a rejected edit, and its boot call is uncaught). A throw would
+    // make the studio refuse a valid brand over a value it never paints. The shadow read below throws
+    // instead, and the difference is deliberate: an unreadable mode entry can only be an engine bug.
+    const val = node?.$value;
+    if (val == null || typeof val !== 'object' || Array.isArray(val)) { unresolvedType.push(ref); continue; }
     const sizePx = node?.$extensions?.prism3?.sizePx ?? remPxOf(tree, subNode(tree, val.fontSize));
     const stack = familyOf(tree, subNode(tree, val.fontFamily));   // primary + fallbacks (CSS)
     const lhNode = val.lineHeight ? deref(tree, subNode(tree, val.lineHeight)) : undefined;
@@ -187,5 +205,5 @@ export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): R
     shadows[ref] = byMode;
   }
 
-  return { modes: modes.map((m) => m.mode), colors, contracts, dims, dimOverrides, type, shadows };
+  return { modes: modes.map((m) => m.mode), colors, contracts, dims, dimOverrides, type, unresolvedType, shadows };
 };

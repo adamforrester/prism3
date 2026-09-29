@@ -399,6 +399,12 @@ for (const b of brands) {
   // Dogfoods B1a/B1b: the SAME model the plugin/playground render from. Chips are
   // light mode; the overlay shows each declared contract's ratio + pass across all 4 modes.
   const rp = resolvePreview(themeFor[id]);
+  // The chips below claim to render from the preview spec, and `typeCss` reads the tree directly, so a
+  // bound style this brand does not emit would render in the page's default face with no sign (#1720).
+  // This page is generated over a fixed set of brands, so a miss here stops the build by name.
+  if (rp.unresolvedType.length) {
+    throw new Error(`visualize: '${id}' does not emit the type styles the preview spec binds: ${rp.unresolvedType.join(', ')}`);
+  }
   const cAt = (p: string, mode = 'light'): string => rp.colors[p]?.[mode as keyof (typeof rp.colors)[string]] ?? '#000';
   const dpx = (p: string): number => pxOf(tree, at(data, p));
   const typeCss = (p: string): string => {
