@@ -5322,6 +5322,35 @@ export const satisfiesBump = (prev: string, next: string, level: Level): boolean
 };
 
 /**
+ * Does `CONTRACT_VERSION` disagree with the baseline's recorded `contractVersion` in a way no surface
+ * change can explain (#1768)? Read by BOTH `token-contract.ts` modes, before either decides anything.
+ *
+ *  - `'behind'` — the constant is LOWER than the version the baseline records. Always wrong, at every
+ *    level: the only thing that ever raises the baseline's number is an `--accept` that saw the constant
+ *    at that value, so a lower constant is a revert, a bad merge resolution or a hand edit. A consumer
+ *    pinned to the higher number would read a lower one for the same surface. `--check` printed
+ *    "unchanged" over this, because `classify` compares PATHS and never looked at the numbers.
+ *  - `'ahead'` — the constant is HIGHER and no guaranteed path moved, so the bump has nothing to record.
+ *    `--accept` already refused this (`satisfiesBump(…, 'none')` is equality) while `--check` printed
+ *    "unchanged" over it: the two modes of one gate gave opposite verdicts on the same tree.
+ *
+ * DELIBERATELY NOT FLAGGED: a bump LARGER than a real diff requires (a MAJOR for an added path, or two
+ * majors for one removal). `docs/30` states the rule as "raised by AT LEAST the increment the diff
+ * requires", and `satisfiesBump` pins over-bumping as safe. Over-bumping costs a consumer a needless
+ * review, never a silent miss, so it stays the owner's policy call rather than this gate's.
+ *
+ * Compares numerically per component, never as strings: `'9.10.0' < '9.9.0'` lexically.
+ */
+export const contractVersionDrift = (baseline: string, current: string, level: Level): 'behind' | 'ahead' | undefined => {
+  const [ba, bi, bp] = parse(baseline);
+  const [ca, ci, cp] = parse(current);
+  const order = ca !== ba ? ca - ba : ci !== bi ? ci - bi : cp - bp;
+  if (order < 0) return 'behind';
+  if (order > 0 && level === 'none') return 'ahead';
+  return undefined;
+};
+
+/**
  * Classify the live guaranteed surface against the committed baseline.
  *
  * Removals and retypes are MAJOR because both break a consumer that did nothing wrong. Additions

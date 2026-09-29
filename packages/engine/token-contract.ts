@@ -3,6 +3,7 @@
  *
  *   npx tsx packages/engine/token-contract.ts --check    # fail (exit 1) if the surface moved
  *   npx tsx packages/engine/token-contract.ts --accept   # rewrite the baseline (requires the bump)
+ *   PRISM3_CONTRACT_BASELINE=/tmp/x.json npx tsx …  --check   # injected baseline, for tests (#1768)
  *
  * WHAT IS VERSIONED. Not values — NAMES. A consumer app hard-codes `prism.color.text.primary` in
  * its stylesheet; a brand tweak that moves that token's hue is the engine working as intended, but
@@ -94,6 +95,19 @@
  * pass. #281's lesson was "no gate reads the committed artifact"; this is the next one along — a
  * gate that is allowed to rewrite what it reads has no memory, and a baseline without memory is
  * just a second copy of the output. `--accept` is therefore a separate, deliberate act.
+ *
+ * THE NUMBERS ARE COMPARED TOO, NOT ONLY THE PATHS (#1768). `classify` answers "did the surface move?";
+ * it never read `CONTRACT_VERSION` against the baseline's `contractVersion`, so a constant LOWERED below
+ * the baseline (a revert, a bad merge resolution, a hand edit) printed "unchanged" and exited 0. Both modes
+ * now ask `contractVersionDrift` first, and fail by name on a constant that is BEHIND the baseline, or
+ * AHEAD of it with no surface change to record. A bump larger than the diff requires is not flagged:
+ * `docs/30` says "at least", and that is policy, not this gate's to tighten. See `contractVersionDrift`.
+ *
+ * `PRISM3_CONTRACT_BASELINE` points the run at another baseline file. It exists so `test.ts` can drive
+ * THIS entry point over a fixture whose recorded version it chose (the same shape as
+ * `lint-advisory-expiry.ts`'s `PRISM3_TODAY`): the drift arm's call site is then under test, not only the
+ * pure function behind it (docs/34, "mutate the call site"). The run prints a warning line when it is set,
+ * and `--accept` writes to the injected file, never to the committed baseline.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -103,7 +117,7 @@ import { nbTheme } from './nb-fixture';
 import { buildTree } from './tree';
 import { parseDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput } from './standard-design-md';
-import { CONTRACT_VERSION, ENGINE_VERSION, DEPRECATIONS, classify, satisfiesBump, Contract } from './version';
+import { CONTRACT_VERSION, ENGINE_VERSION, DEPRECATIONS, classify, contractVersionDrift, satisfiesBump, Contract } from './version';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const CONTRACT_PATH = resolve(here, 'schema', 'token-contract.json');
@@ -238,7 +252,7 @@ export const buildContract = (): Contract => {
   };
 };
 
-export const readBaseline = (): Contract => JSON.parse(readFileSync(CONTRACT_PATH, 'utf8')) as Contract;
+export const readBaseline = (path = CONTRACT_PATH): Contract => JSON.parse(readFileSync(path, 'utf8')) as Contract;
 
 const serialize = (c: Contract): string => JSON.stringify(c, null, 2) + '\n';
 
@@ -267,8 +281,10 @@ const main = (): void => {
     process.exit(2);
   }
 
+  const injected = process.env.PRISM3_CONTRACT_BASELINE;
+  const baselinePath = injected || CONTRACT_PATH;
   const live = buildContract();
-  const baseline = readBaseline();
+  const baseline = readBaseline(baselinePath);
   // `live.brandDependent` is passed so a DEMOTION reads as one and a CONDITIONAL migration is not
   // mistaken for rot — see `classify`. It cannot move the level; both of those are reporting.
   const diff = classify(baseline, live.guaranteed, DEPRECATIONS, live.brandDependent);
@@ -282,6 +298,7 @@ const main = (): void => {
   console.log(`Prism3 token contract — engine ${ENGINE_VERSION}, contract ${CONTRACT_VERSION}`);
   console.log(`  corpus: ${live.corpus.length} brands · guaranteed ${Object.keys(live.guaranteed).length} · brand-dependent ${live.brandDependent.length}`);
   console.log(`  baseline: contract ${baseline.contractVersion} · guaranteed ${Object.keys(baseline.guaranteed).length}`);
+  if (injected) console.log(`  ⚠ baseline INJECTED via PRISM3_CONTRACT_BASELINE, reading ${baselinePath}`);
 
   if (clashes.length) {
     console.error(`\n✗ ${clashes.length} $type clash(es) between corpus brands on the same path:`);
@@ -325,6 +342,29 @@ const main = (): void => {
     if (diff.added.length > 20) console.log(`    ADDED    … and ${diff.added.length - 20} more`);
   };
 
+  // Before either mode decides anything (#1768): `classify` compares paths, so a constant that moved
+  // BACKWARDS under an unchanged surface read as "unchanged". Both modes refuse it, by name.
+  const drift = contractVersionDrift(baseline.contractVersion, CONTRACT_VERSION, diff.level);
+  if (drift === 'behind') {
+    console.error(`\n✗ CONTRACT_VERSION moved BACKWARDS: ${CONTRACT_VERSION} in packages/engine/version.ts is below the baseline's ${baseline.contractVersion}.`);
+    console.error(
+      '  The baseline only ever records a version an --accept saw, so the constant is the one that moved —\n' +
+        '  usually a revert, a merge resolution or a hand edit. A consumer pinned to the higher number would\n' +
+        `  read a lower one for the same surface. Restore CONTRACT_VERSION to ${baseline.contractVersion}, then re-run.\n` +
+        '  First check `git log -p` on the baseline: if its number was hand-edited upward, restore the file from\n' +
+        '  history instead. Raising the constant to agree with a number no --accept wrote would hide that.',
+    );
+    process.exit(1);
+  }
+  if (drift === 'ahead') {
+    console.error(`\n✗ CONTRACT_VERSION is AHEAD of the baseline with nothing to record: ${CONTRACT_VERSION} vs the baseline's ${baseline.contractVersion}, and no guaranteed path moved.`);
+    console.error(
+      `  A contract bump records a surface change. Restore CONTRACT_VERSION to ${baseline.contractVersion}, or make the\n` +
+        '  change it was raised for; --accept will not stamp a raised number over an unchanged surface.',
+    );
+    process.exit(1);
+  }
+
   if (accept) {
     if (!satisfiesBump(baseline.contractVersion, CONTRACT_VERSION, diff.level)) {
       console.error(`\n✗ this change is ${diff.level.toUpperCase()} but CONTRACT_VERSION is still ${CONTRACT_VERSION} (baseline ${baseline.contractVersion}).`);
@@ -333,7 +373,7 @@ const main = (): void => {
       if (diff.removed.length) console.error('  If a removal is a RENAME, add a DEPRECATIONS entry so consumers get the replacement path.');
       process.exit(1);
     }
-    writeFileSync(CONTRACT_PATH, serialize(live));
+    writeFileSync(baselinePath, serialize(live));
     console.log(`\n✓ baseline accepted at ${CONTRACT_VERSION} (${diff.level === 'none' ? 'no surface change' : diff.level})`);
     if (diff.level !== 'none') report();
     return;
