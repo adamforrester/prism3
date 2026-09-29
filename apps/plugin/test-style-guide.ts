@@ -1837,7 +1837,7 @@ const main = async (): Promise<void> => {
     ok(p2First.tables.length === 13 && p2First.tables.every((t) => t.status === 'created') && styleGuideSummary(p2First).headline === '✓ style guide: 13 tables', `16: 13 tables, all created: "${styleGuideSummary(p2First).headline}"`);
     const space = tableFrame(p2.sem, 'Space')!;
     const sg = gridOf(space);
-    ok(JSON.stringify(headerRow(space)) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), `16: a dimension table is Token · <mode> · Value · Description, no contrast column (${headerRow(space).join(' · ')})`);
+    ok(JSON.stringify(headerRow(space)) === JSON.stringify(['Token', 'Default', 'Value', 'REM', 'Description']), `16: a dimension table is Token · <mode> · Value · REM · Description, REM in its own column, no contrast column (${headerRow(space).join(' · ')})`);
     // THE SPECIMEN: the spacing cell's filled bar at the value's width, its width bound to the variable, pinned to its mode.
     const r050 = rowOf(sg, '050');
     const cell = cellAt(sg, r050, 1);
@@ -1852,25 +1852,42 @@ const main = async (): Promise<void> => {
     const live = bar?.width;
     d4.valuesByMode['core:0'] = 4;
     ok(live === 5 && bar?.lsh === 'HUG', `16: the bar follows its variable live, with no rerun: dimension/4 set to 5 makes space/050's bar 5px (${live}px, ${bar?.lsh})`);
-    ok(textIn(cellAt(sg, r050, 2)) === '4px · 0.25rem | ↗ | pds3/core/dimension/4', `16: its value reads px and REM at a 16px base, with its alias: "${textIn(cellAt(sg, r050, 2))}"`);
-    ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px · 6rem | ↗ | pds3/core/dimension/96', `16: space/1200 reads "96px · 6rem" (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))})`);
+    // REM IS AN ADDITION, NEVER IN THE VALUE'S CELL (owner decision, 2026-09-29): the value cell is px and the alias
+    // chip; the REM column after it is REM at a 16px base, alone.
+    ok(textIn(cellAt(sg, r050, 2)) === '4px | ↗ | pds3/core/dimension/4' && textIn(cellAt(sg, r050, 3)) === '0.25rem',
+      `16: its value cell reads px with its alias, and the REM column beside it REM at a 16px base: "${textIn(cellAt(sg, r050, 2))}" ‖ "${textIn(cellAt(sg, r050, 3))}"`);
+    ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px | ↗ | pds3/core/dimension/96' && textIn(cellAt(sg, rowOf(sg, '1200'), 3)) === '6rem', `16: space/1200 reads "96px", and "6rem" in its REM column (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))} ‖ ${textIn(cellAt(sg, rowOf(sg, '1200'), 3))})`);
     ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200']),
       '16: the space scale in ramp order, 1000 after 900');
     // NUMERIC SORT: the metrics ramp is stored 16, 4, 100, 2.
     const step = gridOf(tableFrame(p2.prim, 'Step')!);
     const stepRows = step.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn);
     ok(JSON.stringify(stepRows) === JSON.stringify(['2', '4', '16', '100']), `16: a ramp stored 16, 4, 100, 2 draws 2, 4, 16, 100 (${stepRows.join(', ')})`);
-    ok(cellAt(step, 1, 1)?.mainComponent?.name === 'display=line' && barIn(cellAt(step, 4, 1))?.width === 100, '16: a size draws the bracket (display=line), 100px wide for 100');
+    ok(cellAt(step, 1, 1)?.mainComponent?.name === 'display=filled' && barIn(cellAt(step, 4, 1))?.width === 100, '16: a size draws the run\'s one spacing style, the filled bar by default, 100px wide for 100');
+    // ONE SPACING STYLE FOR THE WHOLE RUN (owner decision 18, 2026-09-29: "a stylistic choice, never chosen by role"). A
+    // table with a gap, a height and a width row draws every one in the chosen style: the filled bar by default, the
+    // bracket when `dimensionDisplay` is `line`, and `auto` is the default. Density here holds space/gap (GAP),
+    // size/row (WIDTH_HEIGHT) and size/width (WIDTH_HEIGHT, added).
+    const one = await phase2File();
+    one.vars.push({ id: 'VariableID:density:w', name: 'density/size/width', variableCollectionId: 'VariableCollectionId:density', resolvedType: 'FLOAT', description: '', valuesByMode: { 'density:0': 24, 'density:1': 32 }, scopes: ['WIDTH_HEIGHT'] });
+    const styles = async (o: StyleGuideOptions): Promise<string> => {
+      await draw(one.api, contract, { types: ['dimension'], tables: ['Density', 'Size'], ...o });
+      return [...new Set(['Density', 'Size'].flatMap((t) => gridOf(tableFrame(t === 'Size' ? one.sem : one.prim, t)!).children.filter((k) => k.gridRow! > 0 && k.gridCol === 1).map((k) => String(k.mainComponent?.name))))].join(',');
+    };
+    const [byDefault, byAuto, byLine] = [await styles({}), await styles({ dimensionDisplay: 'auto' }), await styles({ dimensionDisplay: 'line' })];
+    ok(byDefault === 'display=filled' && byAuto === 'display=filled' && byLine === 'display=line',
+      `16: gap, height and width rows all draw the run's one style: filled by default and for auto, the bracket for line, never mixed (${byDefault} | ${byAuto} | ${byLine})`);
     // MODES SIDE BY SIDE: a dimension that varies by mode draws one bound specimen per mode, each pinned.
     const dens = tableFrame(p2.prim, 'Density')!;
     const dg = gridOf(dens);
     const gap = rowOf(dg, 'space/gap');
-    const [c0, c1] = [cellAt(dg, gap, 1), cellAt(dg, gap, 3)];
-    ok(JSON.stringify(headerRow(dens)) === JSON.stringify(['Token', 'compact', 'Value', 'comfortable', 'Value', 'Description'])
+    const [c0, c1] = [cellAt(dg, gap, 1), cellAt(dg, gap, 4)];
+    ok(JSON.stringify(headerRow(dens)) === JSON.stringify(['Token', 'compact', 'Value', 'REM', 'comfortable', 'Value', 'REM', 'Description'])
       && c0?.explicitVariableModes['VariableCollectionId:density'] === 'density:0' && c1?.explicitVariableModes['VariableCollectionId:density'] === 'density:1'
       && barIn(c0)?.width === 8 && barIn(c1)?.width === 12 && barIn(c0)?.boundVariables.paddingLeft?.id === p2Id('density/space/gap') && barIn(c1)?.boundVariables.paddingLeft?.id === p2Id('density/space/gap'),
       `16: a mode-varying spacing draws a bound bar per mode, pinned: compact 8px, comfortable 12px (${barIn(c0)?.width}, ${barIn(c1)?.width})`);
-    ok(textIn(cellAt(dg, gap, 2)) === '8px · 0.5rem' && textIn(cellAt(dg, gap, 4)) === '12px · 0.75rem', '16: its values per mode: "8px · 0.5rem", "12px · 0.75rem"');
+    ok(textIn(cellAt(dg, gap, 2)) === '8px' && textIn(cellAt(dg, gap, 3)) === '0.5rem' && textIn(cellAt(dg, gap, 5)) === '12px' && textIn(cellAt(dg, gap, 6)) === '0.75rem',
+      '16: its values per mode, each with its own REM column: "8px" · "0.5rem", "12px" · "0.75rem"');
     // RADIUS: the swatches set's type=radius member at its fixed size, its corner bound to the variable, no ground.
     const rg = gridOf(tableFrame(p2.sem, 'Radius')!);
     const md = cellAt(rg, rowOf(rg, 'md'), 1);
@@ -1883,7 +1900,7 @@ const main = async (): Promise<void> => {
     const drawnWin = md?.findOne((n) => n.name === 'radius-example-container');
     ok(drawnWin?.clipsContent === true && drawnWin.w === 48 && drawnWin.findOne((n) => n.name === 'radius-example')?.w === 256,
       `16: the drawn radius specimen keeps the clip, so it shows one rounded corner of its 256px shape (clipsContent ${drawnWin?.clipsContent})`);
-    ok(textIn(cellAt(rg, rowOf(rg, 'capsule'), 2)) === '999px · 62.4375rem', `16: radius/capsule reads "999px · 62.4375rem" (${textIn(cellAt(rg, rowOf(rg, 'capsule'), 2))})`);
+    ok(textIn(cellAt(rg, rowOf(rg, 'capsule'), 2)) === '999px' && textIn(cellAt(rg, rowOf(rg, 'capsule'), 3)) === '62.4375rem', `16: radius/capsule reads "999px", and "62.4375rem" in its REM column (${textIn(cellAt(rg, rowOf(rg, 'capsule'), 2))} ‖ ${textIn(cellAt(rg, rowOf(rg, 'capsule'), 3))})`);
     ok(tablesOn(p2.sem).concat(tablesOn(p2.prim)).every((w) => gridOf(w).findAll((k) => k.name === 'Ground').length === 0), '16: no phase-2 specimen sits on a ground');
     // The spacing cell FILLs its track, as every cell but a swatch does, and no cell is wider than its column.
     ok(cell?.lsh === 'FILL' && cell.layoutSizingVertical === 'FILL', '16: a spacing cell FILLs its track, both axes');
@@ -1901,7 +1918,7 @@ const main = async (): Promise<void> => {
     const s16 = textOf(cellAt(size, rowOf(size, '16'), 1));
     ok(s16?.characters === 'Abc 123' && bindings(s16) === 'fontSize' && s16?.boundVariables.fontSize.id === p2Id('pds3/core/font/size/16'),
       `17: font size 16's specimen is "Abc 123" with fontSize alone bound to it (${s16?.characters}, bound ${bindings(s16)})`);
-    ok(textIn(cellAt(size, rowOf(size, '16'), 2)) === '16px · 1rem', '17: its value is "16px · 1rem"');
+    ok(textIn(cellAt(size, rowOf(size, '16'), 2)) === '16px' && textIn(cellAt(size, rowOf(size, '16'), 3)) === '1rem', '17: its value is "16px", and "1rem" in the REM column');
     const fam = gridOf(tableFrame(p2.prim, 'Font family')!);
     const fDisplay = textOf(cellAt(fam, rowOf(fam, 'display'), 1));
     ok(bindings(fDisplay) === 'fontFamily' && fDisplay?.boundVariables.fontFamily.id === p2Id('pds3/core/font/family/display') && textIn(cellAt(fam, rowOf(fam, 'display'), 2)) === 'Playfair Display',
@@ -1913,17 +1930,19 @@ const main = async (): Promise<void> => {
     ok(textIn(cellAt(wt, rowOf(wt, 'weight-role/strong'), 2)) === '600 · Semi Bold | ↗ | pds3/core/font/weight/600', '17: a weight role reads its weight and its alias');
     const lh = gridOf(tableFrame(p2.prim, 'Line height')!);
     const ls = gridOf(tableFrame(p2.prim, 'Letter spacing')!);
-    ok(bindings(textOf(cellAt(lh, 1, 1))) === 'lineHeight' && textIn(cellAt(lh, 1, 2)) === '24px · 1.5rem'
-      && bindings(textOf(cellAt(ls, 1, 1))) === 'letterSpacing' && textIn(cellAt(ls, 1, 2)) === '-0.5px · -0.0312rem',
-      `17: a line height binds lineHeight ("24px · 1.5rem"), a letter spacing letterSpacing ("${textIn(cellAt(ls, 1, 2))}")`);
+    ok(bindings(textOf(cellAt(lh, 1, 1))) === 'lineHeight' && textIn(cellAt(lh, 1, 2)) === '24px' && textIn(cellAt(lh, 1, 3)) === '1.5rem'
+      && bindings(textOf(cellAt(ls, 1, 1))) === 'letterSpacing' && textIn(cellAt(ls, 1, 2)) === '-0.5px' && textIn(cellAt(ls, 1, 3)) === '-0.0312rem',
+      `17: a line height binds lineHeight ("24px" · "1.5rem"), a letter spacing letterSpacing ("${textIn(cellAt(ls, 1, 2))}" · "${textIn(cellAt(ls, 1, 3))}")`);
+    // A FAMILY OR A WEIGHT IS NOT A LENGTH: no REM column.
+    ok(!headerRow(tableFrame(p2.prim, 'Font family')!).includes('REM') && !headerRow(tableFrame(p2.sem, 'Font weight')!).includes('REM'), '17: the font family and font weight tables have no REM column');
     // A FLUID size: one specimen per type-sets mode, each pinned, each value in its mode.
     const fluid = tableFrame(p2.prim, 'Font size (type-sets)')!;
     const fg = gridOf(fluid);
     const d3 = rowOf(fg, 'display/3xl/emphasis');
-    ok(JSON.stringify(headerRow(fluid)) === JSON.stringify(['Token', 'desktop', 'Value', 'mobile', 'Value', 'Description'])
-      && cellAt(fg, d3, 1)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:0' && cellAt(fg, d3, 3)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:1'
-      && textIn(cellAt(fg, d3, 2)) === '160px · 10rem' && textIn(cellAt(fg, d3, 4)) === '48px · 3rem',
-      `17: a fluid size draws desktop and mobile side by side, pinned: 160px and 48px (${textIn(cellAt(fg, d3, 2))} / ${textIn(cellAt(fg, d3, 4))})`);
+    ok(JSON.stringify(headerRow(fluid)) === JSON.stringify(['Token', 'desktop', 'Value', 'REM', 'mobile', 'Value', 'REM', 'Description'])
+      && cellAt(fg, d3, 1)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:0' && cellAt(fg, d3, 4)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:1'
+      && textIn(cellAt(fg, d3, 2)) === '160px' && textIn(cellAt(fg, d3, 3)) === '10rem' && textIn(cellAt(fg, d3, 5)) === '48px' && textIn(cellAt(fg, d3, 6)) === '3rem',
+      `17: a fluid size draws desktop and mobile side by side, pinned: 160px · 10rem and 48px · 3rem, each REM in its own column (${[2, 3, 5, 6].map((c) => textIn(cellAt(fg, d3, c))).join(' / ')})`);
     // The display override: Generic binds nothing; Size binds fontSize on a weight row.
     const gen = await phase2File();
     await draw(gen.api, contract, { types: ['fontWeight'], fontDisplay: 'generic' });
@@ -1937,41 +1956,50 @@ const main = async (): Promise<void> => {
   {
     const ts = tableFrame(p2.sem, 'Text styles')!;
     const tg = gridOf(ts);
-    ok(JSON.stringify(headerRow(ts)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'mobile', 'Size / line height', 'Family', 'Weight', 'Letter spacing', 'Description']),
-      `18: the text-style table: a specimen and size per type-sets mode, then family, weight, letter spacing (${headerRow(ts).join(' · ')})`);
+    ok(JSON.stringify(headerRow(ts)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'REM', 'mobile', 'Size / line height', 'REM', 'Family', 'Weight', 'Letter spacing', 'Description']),
+      `18: the text-style table: a specimen, size and REM per type-sets mode, then family, weight, letter spacing (${headerRow(ts).join(' · ')})`);
     const names = tg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn);
     ok(names.length === 63 && JSON.stringify(names) === JSON.stringify(p2.styles.map((st) => st.name)), `18: one row per text style, 63, in the file's order (${names.slice(0, 2).join(', ')} …)`);
     const body = rowOf(tg, 'body/lg/default');
     const bodyId = p2.styles.find((st) => st.name === 'body/lg/default')!.id;
-    const spec = [cellAt(tg, body, 1), cellAt(tg, body, 3)];
+    const spec = [cellAt(tg, body, 1), cellAt(tg, body, 4)];
     ok(spec.every((c) => c?.findOne((k) => k.type === 'TEXT')?.textStyleId === bodyId && c?.findOne((k) => k.type === 'TEXT')?.characters === 'Abc 123')
       && spec[0]?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:0' && spec[1]?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:1',
       `18: body/lg/default's specimen is "Abc 123" with its text style applied, one per mode, pinned (${spec.map((c) => c?.findOne((k) => k.type === 'TEXT')?.textStyleId).join(', ')})`);
-    ok(textIn(cellAt(tg, body, 2)) === '18px · 1.125rem / 150% | ↗ | pds3/core/font/size/18' && textIn(cellAt(tg, body, 5)) === 'Inter | ↗ | pds3/core/font/family/body'
-      && textIn(cellAt(tg, body, 6)) === '400 · Regular | ↗ | pds3/core/font/style/body/default' && textIn(cellAt(tg, body, 7)) === '0%',
-      `18: body/lg/default reads 18px · 1.125rem / 150%, Inter, 400 · Regular, 0% (${[2, 5, 6, 7].map((c) => textIn(cellAt(tg, body, c))).join(' ‖ ')})`);
+    ok(textIn(cellAt(tg, body, 2)) === '18px / 150% | ↗ | pds3/core/font/size/18' && textIn(cellAt(tg, body, 3)) === '1.125rem' && textIn(cellAt(tg, body, 7)) === 'Inter | ↗ | pds3/core/font/family/body'
+      && textIn(cellAt(tg, body, 8)) === '400 · Regular | ↗ | pds3/core/font/style/body/default' && textIn(cellAt(tg, body, 9)) === '0%',
+      `18: body/lg/default reads 18px / 150% with 1.125rem in its REM column, Inter, 400 · Regular, 0% (${[2, 3, 7, 8, 9].map((c) => textIn(cellAt(tg, body, c))).join(' ‖ ')})`);
     const hero = rowOf(tg, 'display/3xl/emphasis');
-    ok(textIn(cellAt(tg, hero, 2)) === '160px · 10rem / 105% | ↗ | pds3/font-fluid/display/3xl/emphasis' && textIn(cellAt(tg, hero, 4)) === '48px · 3rem / 105% | ↗ | pds3/font-fluid/display/3xl/emphasis'
-      && textIn(cellAt(tg, hero, 5)) === 'Playfair Display | ↗ | pds3/core/font/family/display' && textIn(cellAt(tg, hero, 6)) === '500 · Medium Italic | ↗ | pds3/core/font/style/display/emphasis' && textIn(cellAt(tg, hero, 7)) === '-3%',
-      `18: display/3xl/emphasis reads 160px on desktop and 48px on mobile, Playfair Display, 500 · Medium Italic, -3% (${[2, 4, 5, 6, 7].map((c) => textIn(cellAt(tg, hero, c))).join(' ‖ ')})`);
+    ok(textIn(cellAt(tg, hero, 2)) === '160px / 105% | ↗ | pds3/font-fluid/display/3xl/emphasis' && textIn(cellAt(tg, hero, 3)) === '10rem'
+      && textIn(cellAt(tg, hero, 5)) === '48px / 105% | ↗ | pds3/font-fluid/display/3xl/emphasis' && textIn(cellAt(tg, hero, 6)) === '3rem'
+      && textIn(cellAt(tg, hero, 7)) === 'Playfair Display | ↗ | pds3/core/font/family/display' && textIn(cellAt(tg, hero, 8)) === '500 · Medium Italic | ↗ | pds3/core/font/style/display/emphasis' && textIn(cellAt(tg, hero, 9)) === '-3%',
+      `18: display/3xl/emphasis reads 160px (10rem) on desktop and 48px (3rem) on mobile, Playfair Display, 500 · Medium Italic, -3% (${[2, 3, 5, 6, 7, 8, 9].map((c) => textIn(cellAt(tg, hero, c))).join(' ‖ ')})`);
     // THE TOGGLED COLUMNS: paragraph spacing and text decoration appear only when asked for.
     const tog = await phase2File();
     await draw(tog.api, contract, { types: ['typography'], paragraphSpacing: true, textDecoration: true });
     const tw = tableFrame(tog.sem, 'Text styles')!;
-    ok(JSON.stringify(headerRow(tw)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'mobile', 'Size / line height', 'Family', 'Weight', 'Letter spacing', 'Paragraph spacing', 'Decoration', 'Description']),
+    ok(JSON.stringify(headerRow(tw)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'REM', 'mobile', 'Size / line height', 'REM', 'Family', 'Weight', 'Letter spacing', 'Paragraph spacing', 'Decoration', 'Description']),
       `18: paragraph spacing and decoration toggled on add their columns (${headerRow(tw).join(' · ')})`);
     const link = rowOf(gridOf(tw), 'body/lg/default-link');
-    ok(textIn(cellAt(gridOf(tw), link, 8)) === '0px · 0rem' && textIn(cellAt(gridOf(tw), link, 9)) === 'Underline', `18: a link style reads "Underline" (${textIn(cellAt(gridOf(tw), link, 9))})`);
+    ok(textIn(cellAt(gridOf(tw), link, 10)) === '0px' && textIn(cellAt(gridOf(tw), link, 11)) === 'Underline', `18: a link style reads "0px" paragraph spacing and "Underline" (${textIn(cellAt(gridOf(tw), link, 10))} ‖ ${textIn(cellAt(gridOf(tw), link, 11))})`);
     await draw(tog.api, contract, { types: ['typography'] });
     ok(!headerRow(tableFrame(tog.sem, 'Text styles')!).includes('Paragraph spacing') && !headerRow(tableFrame(tog.sem, 'Text styles')!).includes('Decoration'),
       '18: toggled off, the two columns are gone on the rerun');
-    // PIXELS and REM: each toggle drops its unit.
+    // REM OFF: no REM column at all, and the value cell unchanged.
     await draw(tog.api, contract, { types: ['typography'], rem: false });
-    const noRem = gridOf(tableFrame(tog.sem, 'Text styles')!);
-    ok(textIn(cellAt(noRem, rowOf(noRem, 'body/lg/default'), 2)).startsWith('18px / 150%'), `18: REM off reads "18px / 150%" (${textIn(cellAt(noRem, rowOf(noRem, 'body/lg/default'), 2))})`);
+    const noRemW = tableFrame(tog.sem, 'Text styles')!;
+    const noRem = gridOf(noRemW);
+    ok(!headerRow(noRemW).includes('REM') && textIn(cellAt(noRem, rowOf(noRem, 'body/lg/default'), 2)).startsWith('18px / 150%'), `18: REM off: no REM column, and the value reads "18px / 150%" (${headerRow(noRemW).join(' · ')})`);
+    // PIXELS OFF, REM ON: the base value still appears in the value column (it is never replaced), and REM beside it.
     await draw(tog.api, contract, { types: ['typography'], pixels: false });
     const noPx = gridOf(tableFrame(tog.sem, 'Text styles')!);
-    ok(textIn(cellAt(noPx, rowOf(noPx, 'body/lg/default'), 2)).startsWith('1.125rem / 150%'), `18: pixels off reads "1.125rem / 150%" (${textIn(cellAt(noPx, rowOf(noPx, 'body/lg/default'), 2))})`);
+    const bpx = rowOf(noPx, 'body/lg/default');
+    ok(textIn(cellAt(noPx, bpx, 2)).startsWith('18px / 150%') && textIn(cellAt(noPx, bpx, 3)) === '1.125rem', `18: pixels off keeps the base value, "18px / 150%", with "1.125rem" in its REM column (${textIn(cellAt(noPx, bpx, 2))} ‖ ${textIn(cellAt(noPx, bpx, 3))})`);
+    // A LINE HEIGHT IN PIXELS gets its REM too: metrics' 24px line height and 16px size read "1rem / 1.5rem".
+    const lhPx = { ...p2.styles[0], id: 'S:lhpx:', name: 'px/line', fontSize: 16, lineHeight: { unit: 'PIXELS', value: 24 }, boundVariables: {} };
+    const pr = planStyleGuide({ collections: [], variables: [], textStyles: [lhPx] }, null, { types: ['typography'] });
+    ok(pr.tables[0]?.rows[0]?.cells[0]?.value === '16px / 24px' && pr.tables[0]?.rows[0]?.cells[0]?.rem === '1rem / 1.5rem',
+      `18: a style whose line height is in pixels reads "16px / 24px", and "1rem / 1.5rem" in its REM column (${pr.tables[0]?.rows[0]?.cells[0]?.value} ‖ ${pr.tables[0]?.rows[0]?.cells[0]?.rem})`);
   }
 
   console.log('19. phase 2: rerun, the tables filter, the phase boundary, an unbound specimen (#259)');
@@ -1986,8 +2014,8 @@ const main = async (): Promise<void> => {
     ok(tablesOn(p2.sem).length === 5 && tablesOn(p2.prim).length === 8 && tableFrame(p2.sem, 'Space')?.id === spaceId && again.tables.every((t) => t.status === 'updated'),
       '19: a rerun updates every phase-2 table in place, none duplicated');
     ok(JSON.stringify(upd('Space')?.diff) === JSON.stringify({ added: [], removed: [], changed: ['pds3/space/050'], renamed: [] }) && barIn(cellAt(sg, rowOf(sg, '050'), 1))?.width === 6
-      && textIn(cellAt(sg, rowOf(sg, '050'), 2)) === '6px · 0.375rem | ↗ | pds3/core/dimension/6',
-      `19: space/050 re-aliased to 6 is reported changed, its bar 6px and its value "6px · 0.375rem" (${JSON.stringify(upd('Space')?.diff)})`);
+      && textIn(cellAt(sg, rowOf(sg, '050'), 2)) === '6px | ↗ | pds3/core/dimension/6' && textIn(cellAt(sg, rowOf(sg, '050'), 3)) === '0.375rem',
+      `19: space/050 re-aliased to 6 is reported changed, its bar 6px, its value "6px" and its REM "0.375rem" (${JSON.stringify(upd('Space')?.diff)})`);
     ok(JSON.stringify(upd('Text styles')?.diff.changed) === JSON.stringify(['body/lg/default']), `19: a text style's letter spacing change is reported (${JSON.stringify(upd('Text styles')?.diff)})`);
     ok(again.deleted.length === 0 && again.kept.length === 0 && again.stale.length === 0, '19: nothing superseded');
     const remOnly = await draw(p2.api, contract, { rem: false });
@@ -2228,7 +2256,7 @@ const main = async (): Promise<void> => {
     const r = await draw(o.api, contract);
     const spacingLines = r.misses.filter((m) => /spacing/.test(m));
     ok(r.unbound === 7 && styleGuideSummary(r).headline === '⚠ 7 specimens unbound' && spacingLines.length === 1
-      && spacingLines[0] === '7 spacing specimens are not sized, in 2 tables. _style-guide-spacing-cells: make spacing-line-example and spacing-filled-example hug frames sized by left padding, with the bars positioned absolutely. Figma does not let a plugin resize a layer inside an instance.',
+      && spacingLines[0] === '7 spacing specimens are not sized, in 2 tables. _style-guide-spacing-cells: make spacing-filled-example a hug frame sized by left padding, with any bars positioned absolutely. Figma does not let a plugin resize a layer inside an instance.',
       `22: the owner's fixed-width cells: all 7 spacing specimens counted, and one line says what the component needs (${spacingLines.join(' / ')})`);
     const rx = tableFrame(o.prim, 'Radius') ? gridOf(tableFrame(o.prim, 'Radius')!) : null;
     const ex = rx ? cellAt(rx, rowOf(rx, 'md'), 1)?.findOne((k) => k.name === 'radius-example') : null;
@@ -2238,11 +2266,14 @@ const main = async (): Promise<void> => {
     // THE OWNER'S CELLS AS RESTRUCTURED (their layer names, the padding recipe's tree): sized like the built ones.
     const orr = await ownerFile(ownerSpacingSet('restructured'));
     const rro = await draw(orr.api, contract);
-    const dimO = tableFrame(orr.prim, 'Dimension')!;
+    // The bracket, from a run whose one spacing style is `line` (decision 18), on its own file.
+    const orrL = await ownerFile(ownerSpacingSet('restructured'));
+    const rroL = await draw(orrL.api, contract, { dimensionDisplay: 'line' });
+    const dimO = tableFrame(orrL.prim, 'Dimension')!;
     const spaceO = tableFrame(orr.prim, 'Space')!;
     const filledO = (t: string): string => { const f = layer(spaceO, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.paddingLeft?.id === `VariableID:nbds/space/${t}`}`; };
     ok(bracket(dimO, '4') === JSON.stringify({ w: 4, bound: true, line: 4, left: 0, right: 3 }) && bracket(dimO, '64') === JSON.stringify({ w: 64, bound: true, line: 64, left: 0, right: 63 })
-      && filledO('4') === '4:true' && filledO('64') === '64:true' && rro.unbound === 0 && !rro.misses.some((m) => /spacing/.test(m)),
+      && filledO('4') === '4:true' && filledO('64') === '64:true' && rro.unbound === 0 && rroL.unbound === 0 && ![...rro.misses, ...rroL.misses].some((m) => /spacing/.test(m)),
       `22: the owner's cells restructured to the padding recipe are sized: the bracket 4 and 64, right-bar at 3 and 63, the bar 4 and 64, nothing unbound (${bracket(dimO, '4')} ${bracket(dimO, '64')} ${filledO('4')} ${filledO('64')}; ${rro.unbound})`);
 
     // THE CELLS SET UP FILE BUILDS, by the real builder: sized by their left padding at the value, the bracket's
@@ -2250,12 +2281,14 @@ const main = async (): Promise<void> => {
     // MAX). Literal widths: 4 → 4 and 64 → 64, the line as wide, right-bar at 3 and 63.
     const ob = await ownerFile(null);
     const rb = await draw(ob.api, contract);
-    const dimB = tableFrame(ob.prim, 'Dimension')!;
+    const obL = await ownerFile(null);
+    const rbL = await draw(obL.api, contract, { dimensionDisplay: 'line' });
+    const dimB = tableFrame(obL.prim, 'Dimension')!;
     const spaceB = tableFrame(ob.prim, 'Space')!;
     const filledB = (t: string): string => { const f = layer(spaceB, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.paddingLeft?.id === `VariableID:nbds/space/${t}`}`; };
     const exB = cellAt(gridOf(tableFrame(ob.prim, 'Radius')!), 1, 1)?.findOne((k) => k.name === 'radius-example');
     ok(bracket(dimB, '4') === JSON.stringify({ w: 4, bound: true, line: 4, left: 0, right: 3 })
-      && bracket(dimB, '64') === JSON.stringify({ w: 64, bound: true, line: 64, left: 0, right: 63 }),
+      && bracket(dimB, '64') === JSON.stringify({ w: 64, bound: true, line: 64, left: 0, right: 63 }) && rbL.unbound === 0,
       `22: the built bracket is drawn at its value by its bound left padding: 4 and 64 wide, the line as wide, right-bar at 3 and 63 (${bracket(dimB, '4')} ${bracket(dimB, '64')})`);
     ok(filledB('4') === '4:true' && filledB('64') === '64:true', `22: the built filled bar is drawn at its value by its bound left padding: 4px → 4, 64px → 64 (${filledB('4')}, ${filledB('64')})`);
     ok(['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => exB?.boundVariables[k]?.id === 'VariableID:nbds/radius/md') && rb.unbound === 0
@@ -2265,8 +2298,8 @@ const main = async (): Promise<void> => {
     // A CELL THIS BUILD CANNOT READ: never a silent pass.
     const od = await ownerFile(ownerSpacingSet('odd'));
     const rd = await draw(od.api, contract, { types: ['dimension'] });
-    ok(rd.unbound === 7 && rd.misses.includes('5 display=line specimens are not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so they show the cell component\'s own value (Dimension: 0, 4, 8 and 2 more)')
-      && rd.misses.some((m) => m.startsWith('2 display=filled specimens are not bound: the member has no layer') && m.endsWith('(Space: 4, 64)')) && styleGuideSummary(rd).headline === '⚠ 7 specimens unbound',
+    ok(rd.unbound === 7 && rd.misses.includes('7 display=filled specimens are not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so they show the cell component\'s own value (Dimension: 0, 4, 8 and 2 more; Space: 4, 64)')
+      && styleGuideSummary(rd).headline === '⚠ 7 specimens unbound',
       `22: a spacing cell with no layer to size reports each specimen unbound, by table and token: ${rd.unbound} — "${styleGuideSummary(rd).headline}"`);
   }
 
@@ -2275,10 +2308,10 @@ const main = async (): Promise<void> => {
     const rw = await phase2File();
     await draw(rw.api, contract);
     const at = (title: string): string => { const w = tableFrame(rw.prim, title)!; return `${w.x},${w.y}`; };
-    // The Primitive page holds two categories: dimension (Dimension 583 wide and 1,970 tall, Density, Step) and font
+    // The Primitive page holds two categories: dimension (Dimension 610 wide, its REM column included and 1,970 tall, Density, Step) and font
     // variables (Font family 974 wide, …). The font row starts 160px below the dimension row's tallest table.
-    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at)) === JSON.stringify(['0,0', '743,0', '0,2130', '1134,2130']),
-      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 743,0; Font family 0,2130 and Font size (core) 1134,2130 (${['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at).join(' | ')})`);
+    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at)) === JSON.stringify(['0,0', '770,0', '0,2130', '1134,2130']),
+      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 770,0; Font family 0,2130 and Font size (core) 1134,2130 (${['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at).join(' | ')})`);
     const rowOfCat = (cat: RegExp): N[] => tablesOn(rw.prim).filter((w) => cat.test(w.pluginData['prism3-style-guide'])).sort((a, b) => a.x - b.x);
     const dimRow = rowOfCat(/^dimension\|/), fontRow = rowOfCat(/^(fontFamily|fontSize|fontWeight|lineHeight|letterSpacing)\|/);
     const rowGaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
@@ -2330,7 +2363,7 @@ const main = async (): Promise<void> => {
       return { ...s, prim, fc };
     };
     const rn = await shimOwner(ownerSpacingSet('inflow'));
-    const rr = await draw(rn.api, contract);
+    const rr = await draw(rn.api, contract, { dimensionDisplay: 'line' });
     ok(rr.unbound === 5 && rr.misses.includes('5 spacing specimens are not sized, in 1 table. _style-guide-spacing-cells: make spacing-line-example a hug frame sized by left padding, with any bars positioned absolutely. Figma does not let a plugin resize a layer inside an instance.')
       && styleGuideSummary(rr).headline === '⚠ 5 specimens unbound',
       `24: a hugging bracket with its bars in flow cannot be sized by its padding: all 5 counted, in the one restructure line: ${rr.unbound} — "${styleGuideSummary(rr).headline}" (${rr.misses.filter((m) => /spacing/.test(m)).join(' / ')})`);
@@ -2341,15 +2374,15 @@ const main = async (): Promise<void> => {
     set.remove();
     const rs = await draw(ns.api, contract);
     ok(setsNamed(ns.pages, '_style-guide-spacing-cells').length === 0 && rs.unbound === 5 && !styleGuideSummary(rs).ok && styleGuideSummary(rs).headline === '⚠ 5 specimens unbound'
-      && rs.misses.includes('5 display=line spacing specimens are not drawn: this file has no _style-guide-spacing-cells set, which Set up file adds (Dimension: 0, 4, 8 and 2 more)'),
+      && rs.misses.includes('5 display=filled spacing specimens are not drawn: this file has no _style-guide-spacing-cells set, which Set up file adds (Dimension: 0, 4, 8 and 2 more)'),
       `24: with no spacing set, every spacing specimen is counted and the run is not a pass: ${rs.unbound} — "${styleGuideSummary(rs).headline}"`);
     // (5) ONE VERDICT PER SPECIMEN: a bracket whose padding bind the host refuses counts once, in one report line.
     const one = await shimOwner(null);
     refuseBinding = true;
     let ro: StyleGuideResult;
     try { ro = await draw(one.api, contract); } finally { refuseBinding = false; }
-    const spacingMisses = ro.misses.filter((m) => /display=line/.test(m));
-    ok(ro.unbound === 5 && spacingMisses.length === 1 && spacingMisses[0].startsWith('5 display=line spacing specimens are not bound to their variable'),
+    const spacingMisses = ro.misses.filter((m) => /display=filled/.test(m));
+    ok(ro.unbound === 5 && spacingMisses.length === 1 && spacingMisses[0].startsWith('5 display=filled spacing specimens are not bound to their variable'),
       `24: five brackets whose padding bind is refused count once each, 5, in one report line (${ro.unbound}; ${spacingMisses.join(' / ')})`);
     // (2) A NEW TABLE FROM A FILTERED RUN, TALLER THAN ITS ROW, pushes the rows below it down: an 80-step collection
     // drawn alone lands at the end of the dimension row, and the font row moves to 160px below it.

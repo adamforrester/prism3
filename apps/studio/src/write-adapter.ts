@@ -211,7 +211,7 @@ export type StyleGuideOptionsMsg = {
   tables?: string[];
   pixels?: boolean;
   rem?: boolean;
-  dimensionDisplay?: 'auto' | 'generic' | 'spacing' | 'radius';
+  dimensionDisplay?: 'auto' | 'filled' | 'line';
   fontDisplay?: 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
   paragraphSpacing?: boolean;
   textDecoration?: boolean;

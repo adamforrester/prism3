@@ -5277,8 +5277,8 @@ const renderStyleGuidePage = (host: PageHost): void => {
     knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
       'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'),
     // #259 phase 2: the dimension and font-variable specimens, the units lengths print in, and the text-style columns.
-    knob('Dimension display', pick('dimensionDisplay', [['auto', 'From each token’s role'], ['generic', 'Generic'], ['spacing', 'Spacing'], ['radius', 'Border radius']], 'auto'),
-      'The dimension specimen. By default a spacing draws a filled bar, a size a bracket, and a radius a rounded corner, each at its value.'),
+    knob('Dimension display', pick('dimensionDisplay', [['filled', 'Filled bar'], ['line', 'Bracket']], 'filled'),
+      'One style for every dimension row, drawn at its value. A radius draws a rounded corner either way.'),
     knob('Font variable display', pick('fontDisplay', [['auto', 'From each variable’s kind'], ['generic', 'Generic'], ['family', 'Family'], ['size', 'Size'], ['weight', 'Weight'], ['letterSpacing', 'Letter spacing'], ['lineHeight', 'Line height']], 'auto'),
       '“Abc 123” with one property bound to the variable. By default each variable binds the property it is for.'),
     knob('Pixels', toggleField(styleGuideOptions.pixels ?? true, (on) => { styleGuideOptions.pixels = on; }), 'Print dimensions, font sizes and text styles in pixels.'),

@@ -139,6 +139,8 @@ export interface SgCell {
   num?: number | null;
   /** Phase 2: the resolved string in this mode (a font family), which the specimen loads before binding. */
   str?: string | null;
+  /** Phase 2: the value in REM, for the REM column that follows the value column; undefined where the table has none. */
+  rem?: string;
 }
 
 /** A phase-2 row's specimen. A color row has none: its `display` names the swatch. */
@@ -580,14 +582,14 @@ const FONT_LABEL: Record<FontKind, string> = { fontFamily: 'Font family', fontSi
 
 /** A number as the table prints it: up to `d` places, trailing zeros dropped. */
 const trimNum = (n: number, d: number): string => String(Math.round(n * 10 ** d) / 10 ** d);
-/** A length in the owner's units: `16px · 1rem` with both toggles on (the default), either alone, and pixels when
- *  both are off, since a value column always prints a value (proposed, owner to confirm). REM at a 16px base. */
-export const formatLength = (px: number, o: { pixels?: boolean; rem?: boolean } = {}): string => {
-  const parts: string[] = [];
-  if (o.pixels !== false) parts.push(`${trimNum(px, 2)}px`);
-  if (o.rem !== false) parts.push(`${trimNum(px / REM_BASE, 4)}rem`);
-  return parts.length ? parts.join(' · ') : `${trimNum(px, 2)}px`;
-};
+/** A length in its BASE unit, pixels: what a value column prints. REM is never in the same cell (owner decision,
+ *  2026-09-29: "REM is always an addition to the base value, never a replacement"); it has its own column. */
+export const formatPx = (px: number): string => `${trimNum(px, 2)}px`;
+/** The same length in REM at a 16px base (`REM_BASE`), for the REM column. */
+export const formatRem = (px: number): string => `${trimNum(px / REM_BASE, 4)}rem`;
+/** Whether a table's lengths get a REM column: the `rem` option, on by default. `pixels` no longer removes the base
+ *  value, which every value column prints (held for the owner: whether the Pixels toggle stays). */
+const remOn = (o: StyleGuideOptions): boolean => o.rem !== false;
 /** The style name of each numeric weight, the names Figma's font menus use. */
 const WEIGHT_NAME: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black' };
 export const weightName = (w: number): string | undefined => WEIGHT_NAME[Math.round(w / 100) * 100];
@@ -600,10 +602,10 @@ export const weightOf = (style: string): number | undefined => {
 };
 const formatWeight = (w: number): string => { const n = weightName(w); return n ? `${trimNum(w, 0)} · ${n}` : trimNum(w, 0); };
 /** A text style's line height: pixels as a length, a percentage as it is stored, AUTO as "auto". */
-const formatLineHeight = (lh: SgTextStyle['lineHeight'], o: StyleGuideOptions): string =>
-  !lh || lh.unit === 'AUTO' ? 'auto' : lh.unit === 'PERCENT' ? `${trimNum(lh.value ?? 0, 2)}%` : formatLength(lh.value ?? 0, o);
-const formatSpacing = (ls: SgTextStyle['letterSpacing'], o: StyleGuideOptions): string =>
-  !ls ? formatLength(0, o) : ls.unit === 'PERCENT' ? `${trimNum(ls.value, 2)}%` : formatLength(ls.value, o);
+const formatLineHeight = (lh: SgTextStyle['lineHeight']): string =>
+  !lh || lh.unit === 'AUTO' ? 'auto' : lh.unit === 'PERCENT' ? `${trimNum(lh.value ?? 0, 2)}%` : formatPx(lh.value ?? 0);
+const formatSpacing = (ls: SgTextStyle['letterSpacing']): string =>
+  !ls ? formatPx(0) : ls.unit === 'PERCENT' ? `${trimNum(ls.value, 2)}%` : formatPx(ls.value);
 
 /** A variable's literal in a mode, following aliases the way `resolveColor` does: a number, a string, or null. */
 const resolveLiteral = (ix: Index, v: SgVariable, modeId: string): unknown => {
@@ -662,6 +664,9 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
           ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
           : FONT_LABEL[type as FontKind];
         const title = root ? `${unrooted} — ${root}` : unrooted;
+        // A REM COLUMN after each Value column, in a table of lengths (dimension, font size, line height, letter
+        // spacing), when REM is on (owner decision, 2026-09-29). A family or a weight is not a length.
+        const lengths = remOn(options) && (type === 'dimension' || type === 'fontSize' || type === 'lineHeight' || type === 'letterSpacing');
         const rows: SgRow[] = rampSort(mine.map(({ v, kind }) => {
           const cells: SgCell[] = col.modes.map((m) => {
             const lit = resolveLiteral(ix, v, m.modeId);
@@ -670,8 +675,9 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
             const num = typeof lit === 'number' ? lit : null;
             const str = typeof lit === 'string' ? lit : null;
             const value = num === null ? (str ?? '—')
-              : type === 'fontWeight' ? formatWeight(num) : formatLength(num, options);
-            return { modeId: m.modeId, modeName: m.name, value, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
+              : type === 'fontWeight' ? formatWeight(num) : formatPx(num);
+            const rem = lengths ? (num === null ? '—' : formatRem(num)) : undefined;
+            return { modeId: m.modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
           });
           return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
         }));
@@ -689,7 +695,7 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
           title,
           description: `${n} ${noun} in ${col.name}${perMode}${refs}`,
           modes: col.modes,
-          columns: ['Token', ...col.modes.flatMap((m) => [m.name, 'Value']), ...(options.description === false ? [] : ['Description'])],
+          columns: ['Token', ...col.modes.flatMap((m) => [m.name, 'Value', ...(lengths ? ['REM'] : [])]), ...(options.description === false ? [] : ['Description'])],
           rows,
         });
       }
@@ -700,14 +706,15 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
   return out;
 };
 
-/** A phase-2 row's specimen, from its role, or the Customize override (the phase 1 pattern, decision 8). A dimension:
- *  a radius draws the radius swatch, a spacing the filled bar, a size or a plain scale the bracket (proposed, owner
- *  to confirm). A font variable binds the property it is for. */
+/** A phase-2 row's specimen. A DIMENSION draws ONE spacing style for the whole run (owner decision 18, 2026-09-29: "a
+ *  stylistic choice, never chosen by role"; a table that mixes the filled bar and the bracket reads as a bug): the
+ *  `dimensionDisplay` option, `filled` by default, `auto` meaning `filled`. A radius is the one exception, and not a
+ *  spacing style: it draws the radius swatch, a corner, whatever the option. A font variable binds the property it is
+ *  for, or the Customize override. */
 const specimenOf = (type: string, kind: VarKind, options: StyleGuideOptions): SgSpecimen => {
   if (type === 'dimension') {
-    const d = options.dimensionDisplay && options.dimensionDisplay !== 'auto' ? options.dimensionDisplay
-      : kind === 'radius' ? 'radius' : kind === 'spacing' ? 'spacing' : 'generic';
-    return d === 'radius' ? { kind: 'radius' } : { kind: 'spacing', member: d === 'spacing' ? 'filled' : 'line' };
+    if (kind === 'radius') return { kind: 'radius' };
+    return { kind: 'spacing', member: options.dimensionDisplay === 'line' ? 'line' : 'filled' };
   }
   const f = options.fontDisplay ?? 'auto';
   const bind: FontKind | null = f === 'auto' ? kind as FontKind : f === 'generic' ? null
@@ -773,7 +780,9 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     const cells: SgCell[] = per.map(({ m, size, lh, ls, family, style, weight }) => ({
       modeId: m.modeId,
       modeName: m.name,
-      value: `${formatLength(size, options)} / ${formatLineHeight(lh, options)}`,
+      value: `${formatPx(size)} / ${formatLineHeight(lh)}`,
+      // The REM column: the size, and the line height too when it is a length (a percentage or auto has no REM).
+      rem: remOn(options) ? `${formatRem(size)}${lh && lh.unit === 'PIXELS' ? ` / ${formatRem(lh.value ?? 0)}` : ''}` : undefined,
       alias: boundVar(s, 'fontSize')?.name ?? null,
       // What the style holds in this mode, in pixels and its own units, so a REM toggle is not a change.
       raw: JSON.stringify([family, style, weight ?? null, size, lh ?? null, ls ?? null, s.paragraphSpacing ?? 0, s.textDecoration ?? 'NONE']),
@@ -785,8 +794,8 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     const extra: { value: string; alias: string | null }[] = [
       { value: once(per.map((p) => p.family)), alias: boundVar(s, 'fontFamily')?.name ?? null },
       { value: once(per.map((p) => (p.weight !== undefined ? `${trimNum(p.weight, 0)} · ${p.style}` : p.style))), alias: (boundVar(s, 'fontWeight') ?? boundVar(s, 'fontStyle'))?.name ?? null },
-      { value: once(per.map((p) => formatSpacing(p.ls, options))), alias: boundVar(s, 'letterSpacing')?.name ?? null },
-      ...(options.paragraphSpacing ? [{ value: formatLength(s.paragraphSpacing ?? 0, options), alias: boundVar(s, 'paragraphSpacing')?.name ?? null }] : []),
+      { value: once(per.map((p) => formatSpacing(p.ls))), alias: boundVar(s, 'letterSpacing')?.name ?? null },
+      ...(options.paragraphSpacing ? [{ value: formatPx(s.paragraphSpacing ?? 0), alias: boundVar(s, 'paragraphSpacing')?.name ?? null }] : []),
       ...(options.textDecoration ? [{ value: sentence((s.textDecoration ?? 'NONE').toLowerCase()), alias: null }] : []),
     ];
     return { variableId: s.id, name: s.name, token: s.name.split('/').slice(prefix.length).join('/'), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
@@ -801,7 +810,7 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     title: 'Text styles',
     description: `${n} text style${n === 1 ? '' : 's'} in this file${modeCol ? `, sizes per ${modeCol.name} mode (${modeCol.modes.map((m) => m.name).join(', ')})` : ''}`,
     modes,
-    columns: ['Token', ...modes.flatMap((m) => [m.name, 'Size / line height']), 'Family', 'Weight', 'Letter spacing',
+    columns: ['Token', ...modes.flatMap((m) => [m.name, 'Size / line height', ...(remOn(options) ? ['REM'] : [])]), 'Family', 'Weight', 'Letter spacing',
       ...(options.paragraphSpacing ? ['Paragraph spacing'] : []), ...(options.textDecoration ? ['Decoration'] : []),
       ...(options.description === false ? [] : ['Description'])],
     rows,
@@ -1678,6 +1687,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
           await drawSpecimen(row, row.specimen, cell, collection, r + 1, c++);
           const chip = options.aliases !== false && cell.alias;
           place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
+          if (cell.rem !== undefined) place(await textCell('default', 'white', cell.rem), r + 1, c++);
         }
         for (const x of row.extra ?? []) place(await textCell(options.aliases !== false && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
       } else for (const cell of row.cells) {

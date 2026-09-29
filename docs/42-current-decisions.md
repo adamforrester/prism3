@@ -92,6 +92,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | a style-guide table can lead with an editable Name column on every table type, its default the token's path humanized ("Text Primary"), a designer's edit kept on rerun and never counted as an edit to the table | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
 | style-guide tables flow left to right on their page, each token category (color, dimension, font variables, text styles) starting a new row | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
 | a style-guide row is one token type drawn (the font kinds together), 160px apart; the radius swatch shows one rounded corner through a clip, all four of its inner shape's corners bound; the later-phase note names "shadow and effect" and "other number or string"; a palette swatch fills its cell with an 80px floor | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
+| a style-guide run draws one spacing style for every dimension row, the filled bar by default and the bracket on request, never chosen by role; REM prints in its own column after the base value, never in the value's cell | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
 
 ## Known gaps, named rather than silent
 

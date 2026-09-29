@@ -615,7 +615,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, picked in the words
   // on screen. A knob is found by its exact label, since "REM" is a substring of other knobs' prose.
   const knobNamed = (label) => page.locator('.knob').filter({ has: page.locator('label.knob-label', { hasText: new RegExp(`^${label}$`) }) });
-  await knobNamed('Dimension display').locator('select').selectOption('radius');
+  await knobNamed('Dimension display').locator('select').selectOption('line');
   await knobNamed('Font variable display').locator('select').selectOption('weight');
   await knobNamed('REM').locator('input.toggle').click({ force: true });
   await knobNamed('Paragraph spacing').locator('input.toggle').click({ force: true });
@@ -631,7 +631,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
     `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
   const p2 = pending.sent[0]?.options ?? {};
-  ok(p2.dimensionDisplay === 'radius' && p2.fontDisplay === 'weight' && p2.rem === false && p2.paragraphSpacing === true && p2.titleCell === true && p2.pixels === undefined && p2.textDecoration === undefined,
+  ok(p2.dimensionDisplay === 'line' && p2.fontDisplay === 'weight' && p2.rem === false && p2.paragraphSpacing === true && p2.titleCell === true && p2.pixels === undefined && p2.textDecoration === undefined,
     `#259 phase 2: the dimension and font displays, REM off and paragraph spacing on cross the bridge; untouched toggles are not sent — sent ${JSON.stringify(p2)}`);
   ok(JSON.stringify(pending.sent[0]?.options?.tables) === JSON.stringify(['Primary — nbds', 'Text — pds3']),
     `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);

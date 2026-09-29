@@ -106,9 +106,10 @@ export type UiToMain =
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
 /** How a style-guide value cell prints a color. */
 export type ValueFormat = 'hex' | 'rgba' | 'hsl' | 'hsb';
-/** A dimension row's specimen (#259 phase 2): `spacing` a filled bar at the value's width, `generic` the bracket
- *  (`display=line`) at that width, `radius` the radius swatch with its corner bound. `auto` chooses from the role. */
-export type DimensionDisplay = 'auto' | 'generic' | 'spacing' | 'radius';
+/** The spacing specimen's style for the WHOLE run (owner decision, 2026-09-29: a stylistic choice, never chosen by
+ *  role): `filled` a filled bar at the value's width (the default, the first member of the owner's cell set), `line` the
+ *  bracket. `auto` is kept for the agent link and means the default, `filled`; it never varies by row. */
+export type DimensionDisplay = 'auto' | 'filled' | 'line';
 /** A font-variable row's specimen (#259 phase 2): "Abc 123" with the one named property bound to the variable;
  *  `generic` binds none. `auto` binds the property the variable is for. */
 export type FontDisplay = 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
@@ -139,7 +140,7 @@ export interface StyleGuideOptions {
   pixels?: boolean;
   /** Print lengths in REM as well, at a 16px base. Default on. */
   rem?: boolean;
-  /** The dimension specimen; `auto` (default) chooses from each variable's role. */
+  /** The spacing specimen for every dimension row: `filled` (default) or `line`. `auto` means `filled`. */
   dimensionDisplay?: DimensionDisplay;
   /** The font-variable specimen; `auto` (default) binds the property each variable is for. */
   fontDisplay?: FontDisplay;

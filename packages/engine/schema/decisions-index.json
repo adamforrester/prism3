@@ -208,6 +208,13 @@
       "title": "the row definition, the radius swatch's one corner, and the later-phase kind names",
       "doc": "docs/45-style-guide-generator.md",
       "section": null
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "one spacing style per run, and REM in its own column",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
     }
   ]
 }

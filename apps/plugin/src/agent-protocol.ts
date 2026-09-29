@@ -190,7 +190,7 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (!oneOf(args.display, ['auto', 'default', 'text', 'icon', 'border', 'transparency'])) return fail('bad-args', 'style-guide takes args.display: auto, default, text, icon, border or transparency');
       if (!flag(args.aliases) || !flag(args.description)) return fail('bad-args', 'style-guide takes args.aliases and args.description as booleans');
       // #259 phase 2: the dimension, font-variable and text-style options.
-      if (!oneOf(args.dimensionDisplay, ['auto', 'generic', 'spacing', 'radius'])) return fail('bad-args', 'style-guide takes args.dimensionDisplay: auto, generic, spacing or radius');
+      if (!oneOf(args.dimensionDisplay, ['auto', 'filled', 'line'])) return fail('bad-args', 'style-guide takes args.dimensionDisplay: filled or line (auto means filled)');
       if (!oneOf(args.fontDisplay, ['auto', 'generic', 'family', 'size', 'weight', 'letterSpacing', 'lineHeight'])) return fail('bad-args', 'style-guide takes args.fontDisplay: auto, generic, family, size, weight, letterSpacing or lineHeight');
       if (!flag(args.pixels) || !flag(args.rem) || !flag(args.paragraphSpacing) || !flag(args.textDecoration)) return fail('bad-args', 'style-guide takes args.pixels, args.rem, args.paragraphSpacing and args.textDecoration as booleans');
       if (!flag(args.titleCell)) return fail('bad-args', 'style-guide takes args.titleCell as a boolean');
