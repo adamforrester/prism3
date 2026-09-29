@@ -2186,7 +2186,9 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
           const inkKey = inkKeyOf(st);
           c.m.roles[`${prefix}interactive.${color}.subtle-fill.${st}`] = {
             path: fill.path,
-            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, the outline/text control's ${st} background)`,
+            // The SELECTED fill has two users since 2026-09-29 (an outline/text control, and a control the user
+            // selects in place, Tag's select type), so its sentence names both rather than one.
+            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, ${st === 'selected' ? 'the selected background of a selectable control or an outline/text control' : `the outline/text control's ${st} background`})`,
             ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
             // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
             // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.

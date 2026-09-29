@@ -4984,12 +4984,22 @@ for (const b of brands) {
   // THE × SLOT IS MARKED AS A TARGET INSIDE THE TAG (#1741), which `lint-hit-target.ts` reads; and the marker is
   // validated: on the role target, or on a part with no bound side, it is refused by name.
   const withPart = (name: string, patch: Record<string, unknown>) => ({ ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagParts, [name]: { ...tagParts[name], ...patch } } } }) as ComponentDef;
-  const onTarget = validateComponentDef(withPart('container', { innerTarget: true })).errors;
-  const unsized = validateComponentDef(withPart('content', { innerTarget: true })).errors;
-  ok(tagParts.dismiss?.innerTarget === true && validateComponentDef(tagDef).errors.length === 0
-    && onTarget.some((e) => /'container' claims role 'target' and innerTarget/.test(e))
-    && unsized.some((e) => /'content' declares innerTarget but binds neither 'size' nor 'height'/.test(e)),
-    `tag innerTarget: the × slot carries the marker, and the marker is refused on the role target and on a part with no bound side (${[...onTarget, ...unsized].join('; ') || 'no refusal'})`);
+  const errsWith = (name: string, patch: Record<string, unknown>) => validateComponentDef(withPart(name, patch)).errors;
+  ok(tagParts.dismiss?.innerTarget === true && validateComponentDef(tagDef).errors.length === 0,
+    `tag innerTarget: the × slot carries the marker, and Tag validates clean (${validateComponentDef(tagDef).errors.join('; ') || 'no errors'})`);
+  // Each refusal on its own synthetic case, each assertion named for the refusal it pins.
+  const REFUSALS: [string, string, Record<string, unknown>, RegExp][] = [
+    ['a value other than true', 'dismiss', { innerTarget: 'yes' }, /'dismiss' declares innerTarget "yes"/],
+    ['the role target', 'container', { innerTarget: true }, /'container' claims role 'target' and innerTarget/],
+    ['the anatomy root', 'container', { innerTarget: true }, /'container' is the anatomy ROOT and declares innerTarget/],
+    ['an absolute part', 'focusRing', { innerTarget: true }, /'focusRing' is kind 'absolute' and declares innerTarget/],
+    ['a part with no bound side', 'content', { innerTarget: true }, /'content' declares innerTarget but binds neither 'size' nor both 'width' and 'height'/],
+    ['a part bound on its height alone', 'content', { innerTarget: true, height: 'size.{size}.height' }, /'content' declares innerTarget but binds neither 'size' nor both 'width' and 'height'/],
+  ];
+  for (const [what, part, patch, want] of REFUSALS) {
+    const errs = errsWith(part, patch);
+    ok(errs.some((e) => want.test(e)), `tag innerTarget refused on ${what} (${errs.join('; ') || 'no refusal'})`);
+  }
   const aria = tagDef.accessibility.aria;
   ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
     'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
@@ -7174,7 +7184,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       for (const f of RELS) for (const p of e[f] ?? []) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.${f}: ${p}`); }
       if (e.usage_limit?.body_text_alternative !== undefined) { pathsChecked++; if (!isRole(e.usage_limit.body_text_alternative)) pathBad.push(`${b} ${k}.usage_limit: ${e.usage_limit.body_text_alternative}`); }
       for (const cw of e.contrast_with ?? []) for (const p of [cw.token, cw.composited_over].filter(Boolean)) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.contrast_with: ${p}`); }
-      for (const v of Object.values<string>(e.mode_overrides ?? {})) refMiss(`${k}.mode_overrides`, v);
+      // A tinted wash states its fill role and opacity token as a pair (schema 0.4); each half must resolve.
+      for (const v of Object.values<any>(e.mode_overrides ?? {})) for (const r of typeof v === 'string' ? [v] : [v?.color, v?.opacity]) refMiss(`${k}.mode_overrides`, r);
     }
     for (const [k, e] of Object.entries<any>(ai.typography)) {
       miss('typography key', k);
@@ -7348,6 +7359,32 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     && entriesChecked > 2_500 && skillNamesChecked >= 4 * 10 && capsChecked > 3_000 && limitsChecked > 800 && tracking > 50,
     `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} legibility relations (+${tracking} tracks), ${cwChecked} contrast_with, ${clausesChecked} surface clauses, ${entriesChecked} tree leaves, ${skillNamesChecked} skill names, ${capsChecked} prose fields for capitals, ${limitsChecked} usage-limit checks across ${BRANDS.length} brands`);
   ok(pathBad.length === 0, 'sidecar paths: every token path named in .ai.json resolves in the brand\'s emitted tree' + (pathBad.length ? ` — ${pathBad.length}: ${pathBad.slice(0, 5).join(' | ')}` : ''));
+
+// THE TINTED WASH IN THE SIDECAR (2026-09-29). Every overlay-neutral brand now carries one tinted wash,
+// `interactive.primary.subtle-fill.selected`, whose `$value` is a literal composite — which exposed two readings
+// that had only ever seen a synthetic solid-tint theme (#1112). (1) A semantic color role is described under
+// `color` and never listed under `primitives` ("private primitive — prefer a semantic token" about the token Tag
+// binds). (2) Its `mode_overrides` state the tint — the fill ROLE at the OPACITY token — never the opaque fill's
+// palette step. The expected fill and opacity are read off the emitted TREE's `$extensions.prism3.tint`, not
+// off the sidecar's own source.
+{
+  for (const [id, th] of [['nb', nbTheme()], ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)]] as [string, any][]) {
+    const tree = buildTree(th).tree as any;
+    const root = Object.keys(tree)[0];
+    const ai = buildAiMetadata(th, tree) as any;
+    const leaf = tree[root].color.interactive.primary['subtle-fill'].selected;
+    const asPrimitive = Object.keys(ai.primitives ?? {}).filter((k) => k.startsWith('color.') && k.slice('color.'.length) in (ai.color ?? {}));
+    ok(!!ai.color?.['interactive.primary.subtle-fill.selected'] && asPrimitive.length === 0,
+      `sidecar (${id}): no semantic color role is listed under primitives, and the selected tint is described under color${asPrimitive.length ? ` — listed as primitives: ${asPrimitive.join(', ')}` : ''}`);
+    const ov = ai.color?.['interactive.primary.subtle-fill.selected']?.mode_overrides ?? {};
+    const wrong = Object.entries(ov).filter(([m, v]) => {
+      const t = (m === 'light' ? leaf.$extensions.prism3.tint : leaf.$extensions.prism3.modes?.[m]?.tint ?? leaf.$extensions.prism3.tint);
+      return JSON.stringify(v) !== JSON.stringify({ color: t.color, opacity: t.opacity });
+    });
+    ok(Object.keys(ov).length === 4 && wrong.length === 0,
+      `sidecar (${id}): the selected tint's mode_overrides state the fill role at the opacity token in every mode, as the tree's tint does (${wrong.length ? wrong.map(([m, v]) => `${m}: ${JSON.stringify(v)}`).join('; ') : JSON.stringify(ov.light)})`);
+  }
+}
   ok(a11Seen > 0, `sidecar paths: the AI/A-11 exemption (held for #1614) is still live (${a11Seen}) — once it reads 0, delete the exemption`);
   ok(pairBad.length === 0, 'sidecar pairings: every sits_on / carries / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
   ok(primBad.length === 0, 'sidecar fields: every entry carries its required fields, and every sub-body-text ink its usage_limit' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));

@@ -2956,6 +2956,9 @@
  *   `interactive.primary.subtle-fill.selected` (one leaf on overlay-neutral, by the solid-tint rule), Tag binds it,
  *   and `none` drops it. Emitted trees, overlays, Figma color files and sidecars move for every overlay-neutral
  *   brand. The role is brandDependent, so CONTRACT stands at 13.1.0. Same version.
+ *   Re-review: the `.ai.json` sidecar describes the tint as a color role and never as a primitive, and a tinted
+ *   role's `mode_overrides` state `{ color, opacity }` rather than the fill's palette step (sidecar schema 0.3 →
+ *   0.4). An `innerTarget` part must bind `size` or both sides. Same version.
  *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read

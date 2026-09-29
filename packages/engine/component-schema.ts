@@ -221,8 +221,8 @@ export type PartDef = {
    *
    *  Nothing in the projector reads it. Refused on the `role: 'target'` part (that one is measured as the
    *  control itself), on the anatomy root, on an `absolute` part (outside the flow it owns no hit area —
-   *  `role`'s own rule) and on a part binding neither `size` nor `height` (a target with no bound dimension
-   *  cannot be measured against the floor). */
+   *  `role`'s own rule) and on a part binding neither `size` nor both `width` and `height` (a target with an
+   *  unbound side cannot be measured against the floor on that side). */
   innerTarget?: true;
   /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
   children?: string[];
@@ -3250,8 +3250,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is the anatomy ROOT and declares innerTarget — the root is the control, not a target inside it`);
     if (p.kind === 'absolute')
       e.push(`anatomy part '${n}' is kind 'absolute' and declares innerTarget — a part outside the layout flow owns no hit area`);
-    if (p.size === undefined && p.height === undefined)
-      e.push(`anatomy part '${n}' declares innerTarget but binds neither 'size' nor 'height' — a target with no bound dimension cannot be measured against the hit-target floor`);
+    // BOTH SIDES: `size` (a square), or `width` AND `height`. A part bound on its height alone is measured on its
+    // height alone, so a slot 4 wide and 44 tall would clear the floor.
+    if (p.size === undefined && (p.height === undefined || p.width === undefined))
+      e.push(`anatomy part '${n}' declares innerTarget but binds neither 'size' nor both 'width' and 'height' — a target with an unbound side cannot be measured against the hit-target floor on that side`);
   }
 
   // NO TWO BOXES MAY CLAIM THE SAME SLOT (#933). `paintOf` dispatches on the slot alone and is blind to

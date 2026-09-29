@@ -1462,7 +1462,7 @@
             "selected": {
               "$type": "color",
               "$value": "rgba(138, 0, 24, 0.3)",
-              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the outline/text control's selected background)",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",

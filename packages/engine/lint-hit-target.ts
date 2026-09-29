@@ -281,34 +281,76 @@ for (const def of componentDefs) {
 
 // ── TARGETS INSIDE A CONTROL (#1741): unseen nests and unlisted marked parts fail; each listed inner target
 // is a marked part, and clears the floor ─────────────────────────────────────────────────────────────────────
-for (const def of componentDefs) {
-  if (!(def.id in INTERACTIVE)) {
-    for (const [name, part] of Object.entries(def.anatomy?.parts ?? {}))
-      if (part.innerTarget) failures.push(`${def.id}.${name}: the def marks it innerTarget, but '${def.id}' is not an INTERACTIVE control here — a target inside a control this gate does not measure is measured by nothing. Classify the def, or drop the marker.`);
-    continue;
+/**
+ * The REPRESENTATION arms, as one pure function so the self-check below can drive each with a synthetic def
+ * (docs/34: an arm no case can make fire is unfalsifiable). Four ways a target inside a control goes unmeasured:
+ * a mark on a def this gate does not measure; a nested interactive control INNER_TARGETS does not list; a marked
+ * part it does not list; and an entry naming a part the def does not say is a target.
+ */
+const markFailures = (defs: readonly ComponentDef[], interactive: ReadonlySet<string>, inner: ReadonlySet<string>): string[] => {
+  const out: string[] = [];
+  for (const def of defs) {
+    const parts = Object.entries(def.anatomy?.parts ?? {});
+    if (!interactive.has(def.id)) {
+      for (const [name, part] of parts)
+        if (part.innerTarget) out.push(`${def.id}.${name}: the def marks it innerTarget, but '${def.id}' is not an INTERACTIVE control here — a target inside a control this gate does not measure is measured by nothing. Classify the def, or drop the marker.`);
+      continue;
+    }
+    for (const [name, part] of parts) {
+      if (part.kind === 'nest' && part.nests && interactive.has(part.nests) && !inner.has(`${def.id}.${name}`))
+        out.push(`${def.id}.${name}: nests the interactive control '${part.nests}', a second target inside '${def.id}', and INNER_TARGETS does not list it — a nested target this gate cannot see is #1741's defect. Measure it here, or change the anatomy.`);
+      if (part.innerTarget && !inner.has(`${def.id}.${name}`))
+        out.push(`${def.id}.${name}: the def marks it innerTarget, a second target inside '${def.id}', and INNER_TARGETS does not list it — a marked target this gate does not measure is #1741's defect. Add it to INNER_TARGETS with the key of its side.`);
+    }
   }
-  for (const [name, part] of Object.entries(def.anatomy?.parts ?? {})) {
-    if (part.kind === 'nest' && part.nests && part.nests in INTERACTIVE && !(`${def.id}.${name}` in INNER_TARGETS))
-      failures.push(`${def.id}.${name}: nests the interactive control '${part.nests}', a second target inside '${def.id}', and INNER_TARGETS does not list it — a nested target this gate cannot see is #1741's defect. Measure it here, or change the anatomy.`);
-    if (part.innerTarget && !(`${def.id}.${name}` in INNER_TARGETS))
-      failures.push(`${def.id}.${name}: the def marks it innerTarget, a second target inside '${def.id}', and INNER_TARGETS does not list it — a marked target this gate does not measure is #1741's defect. Add it to INNER_TARGETS with the key of its side.`);
+  for (const id of inner) {
+    const [defId, partName] = id.split('.');
+    const part = defs.find((d) => d.id === defId)?.anatomy?.parts[partName];
+    if (!part || !interactive.has(defId)) continue;   // stale entries are the measure loop's to report
+    // The entry's other direction: the def must say the part is a target. A nested interactive control says so
+    // by what it nests; any other part says so with the `innerTarget` marker.
+    const nestsControl = part.kind === 'nest' && !!part.nests && interactive.has(part.nests);
+    if (!part.innerTarget && !nestsControl)
+      out.push(`INNER_TARGETS names '${id}', and the def does not mark that part innerTarget (nor does it nest an interactive control) — the entry and the def disagree about whether it is a target. Mark the part, or drop the entry.`);
+  }
+  return out;
+};
+
+// SELF-CHECK: each representation arm fires on its own synthetic case, and a clean case fires none.
+{
+  const box = (innerTarget?: true) => ({ kind: 'box', size: 'size.{size}.height', ...(innerTarget ? { innerTarget } : {}) });
+  const defOf = (id: string, parts: Record<string, unknown>) => ({ id, anatomy: { root: 'root', parts: { root: { kind: 'box', role: 'target' }, ...parts } } }) as unknown as ComponentDef;
+  const MARK_CASES: Array<{ why: string; defs: ComponentDef[]; interactive: string[]; inner: string[]; want: RegExp | null }> = [
+    { why: 'a mark on a def the gate does not measure', defs: [defOf('x', { slot: box(true) })], interactive: [], inner: [], want: /is not an INTERACTIVE control here/ },
+    { why: 'a marked part INNER_TARGETS does not list', defs: [defOf('x', { slot: box(true) })], interactive: ['x'], inner: [], want: /marks it innerTarget, a second target inside 'x', and INNER_TARGETS does not list it/ },
+    { why: 'a nested interactive control INNER_TARGETS does not list', defs: [defOf('x', { btn: { kind: 'nest', nests: 'y' } }), defOf('y', {})], interactive: ['x', 'y'], inner: [], want: /nests the interactive control 'y'/ },
+    { why: 'an entry naming an unmarked part', defs: [defOf('x', { slot: box() })], interactive: ['x'], inner: ['x.slot'], want: /does not mark that part innerTarget/ },
+    { why: 'a marked, listed part (clean)', defs: [defOf('x', { slot: box(true) })], interactive: ['x'], inner: ['x.slot'], want: null },
+  ];
+  for (const c of MARK_CASES) {
+    const got = markFailures(c.defs, new Set(c.interactive), new Set(c.inner));
+    if (c.want ? !got.some((f) => c.want!.test(f)) : got.length) selfFails.push(`markFailures, ${c.why}: ${c.want ? 'should FIRE' : 'should pass'}, got ${got.length ? got.join(' | ') : 'nothing'}.`);
   }
 }
+failures.push(...selfFails.filter((f) => f.startsWith('markFailures')));
+
+failures.push(...markFailures(componentDefs, new Set(Object.keys(INTERACTIVE)), new Set(Object.keys(INNER_TARGETS))));
 for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const [defId, partName] = id.split('.');
   const def = componentDefs.find((d) => d.id === defId);
   const part = def?.anatomy?.parts[partName];
   if (!def || !part) { failures.push(`INNER_TARGETS names '${id}', which is not a part of a registered def — a stale entry measures nothing.`); continue; }
   if (!(defId in INTERACTIVE)) { failures.push(`INNER_TARGETS names '${id}', whose def is not an INTERACTIVE control.`); continue; }
-  // The entry's other direction: the def must say the part is a target. A nested interactive control says so
-  // by what it nests; any other part says so with the `innerTarget` marker.
   const nestsControl = part.kind === 'nest' && !!part.nests && part.nests in INTERACTIVE;
-  if (!part.innerTarget && !nestsControl) { failures.push(`INNER_TARGETS names '${id}', and the def does not mark that part innerTarget (nor does it nest an interactive control) — the entry and the def disagree about whether it is a target. Mark the part, or drop the entry.`); continue; }
+  if (!part.innerTarget && !nestsControl) continue;   // reported by `markFailures`
   const size = defaultSizeOf(def);
   if (!size) { failures.push(`${id}: its def has no default size to measure the inner target at.`); continue; }
   const want = inner.key(size);
-  const bound = (part.size ?? part.height)?.replace('{size}', size);
-  if (bound !== want) { failures.push(`${id}/${size}: the part binds '${bound ?? 'nothing'}' as its side, not '${want}' (${inner.why}) — the inner target's binding moved. Re-point INNER_TARGETS['${id}'].key.`); continue; }
+  // BOTH SIDES: a square's one `size`, or `width` and `height` each (the schema refuses a marked part with an
+  // unbound side). Each must expand to the measured key, so a slot 4 wide and 44 tall cannot clear on its height.
+  const sides = part.size !== undefined ? [part.size] : [part.width, part.height];
+  const moved = sides.map((k) => k?.replace('{size}', size)).find((k) => k !== want);
+  if (sides.some((k) => k === undefined) || moved !== undefined) { failures.push(`${id}/${size}: the part binds '${moved ?? 'nothing'}' as a side, not '${want}' (${inner.why}) — the inner target's binding moved. Re-point INNER_TARGETS['${id}'].key.`); continue; }
   const tokenPath = (def.tokens as Record<string, string>)[want];
   const measured = floorBuilds.map((b) => ({ density: b.density, px: tokenPath ? resolvePx(b.tree, b.root, tokenPath) : undefined }));
   if (!tokenPath || measured.some((m) => m.px === undefined)) { failures.push(`${id}/${size}: tokens['${want}'] does not resolve to a px on every floor density — cannot measure the inner target.`); continue; }

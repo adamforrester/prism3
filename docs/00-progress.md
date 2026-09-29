@@ -130,6 +130,25 @@
   - T3a: `none` keeps the binding → **`tag on an outlineInteraction none brand: all 15 selected members have no fill`**, plus `#1608 … @ none` ×2 and `lint-lever-sweep` (b) ×3.
   - T3b: the role emitted under `none` → **`outline method 'none' emits ONLY that family`** (every corpus brand) and `#288 outlineInteraction=none still emits no subtle-fill`.
 
+**Re-review of `06a9c279..767aae35` (same version).** The reviewer confirmed the tint values, the contract class and the plugin write order. The fixes:
+- **Blocking: a stray scratch script, `fp.mts`, was committed at the repo root.** It was written through a relative path (`../../fp.mts`) from `apps/plugin/`, which is the worktree root and not the scratchpad, and `git add -A` took it. It is deleted, and no other file outside the intended set is in the diff against `main`. **The trap for the next agent:** write scratch files by absolute scratchpad path, and read `git status` before an `add -A`.
+- **The sidecar listed the tint as a primitive.** Its `$value` is a literal composite, so the primitive walk took it and told agents "private primitive — prefer a semantic token" about the token Tag binds. A leaf that is a semantic color role is now skipped there. This was latent on the solid-tint path (#1112).
+- **`mode_overrides` named the opaque fill's palette step for a tinted wash.** For aurora light that was `{ads.core.palette.accent.500}`, not the 30% tint, so an agent read the wrong color. A tinted role now states `{ color: <fill role>, opacity: <opacity token> }`, the pair the tree carries in `$extensions.prism3.tint`.
+  - This changes a field's value shape, so the sidecar schema moves **0.3 → 0.4** (`AI_METADATA_SCHEMA` and `schema/ai-metadata.schema.json`, which gains a `tintReference` def).
+  - The sidecar path gate resolves both halves.
+- **The tint's prose** (`when_to_use` in the sidecar, and the tree's `$description`) said it sat behind an outline or text control whose label is `interactive.primary.text.pressed`. That is true on solid-tint and not true for Tag. The selected state now names both users, and it presents the pressed ink as the one the recorded ratio is measured with.
+- **Untested refusals.** Each `innerTarget` refusal now has its own named synthetic case:
+  - a non-`true` value, the role target, the root, an `absolute` part, no bound side, and a height alone.
+  - `lint-hit-target`'s representation arms move into a pure `markFailures` with a self-check of five synthetic cases (four fire, one is clean).
+- **Nit: a height-only side.** The marker now needs `size`, or both `width` and `height`, and the gate measures every bound side against the key. Before, a slot 4 wide and 44 tall would have cleared.
+- **Mutations** (committed first, restored from HEAD, each failing by name):
+  - F1: the primitive skip removed → **`sidecar (nb|aurora): no semantic color role is listed under primitives`**.
+  - F2: `mode_overrides` back to the palette step → **`sidecar (nb|aurora): the selected tint's mode_overrides state the fill role at the opacity token`**.
+  - Ra, Rb, Rc: the non-`true`, root and `absolute` refusals disabled → **`tag innerTarget refused on a value other than true | the anatomy root | an absolute part`**.
+  - Rd: the lint arm for a mark on an unmeasured def disabled → `lint-hit-target` **`markFailures, a mark on a def the gate does not measure`**.
+  - Rn: a height-only side admitted → **`tag innerTarget refused on a part bound on its height alone`**.
+- **Scratch-runner collision.** A mutation runner named `mut.py` in the shared scratchpad was overwritten by another lane's script of the same name. It was caught when a batch printed another worktree's status. The other lane's script skipped every mutation on an unknown argument, so nothing was written anywhere. The batch was rerun under a lane-specific name.
+
 ---
 
 ## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)
