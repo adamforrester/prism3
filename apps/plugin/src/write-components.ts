@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -94,7 +94,14 @@ export interface CompRef { id: string; name: string; createInstance(): CompNode 
  *  matching against Figma's property order is not. `defaultVariant` is deliberately NOT in this port —
  *  Figma offers it, and reading it is `#656`: its value is the set's first child, an artifact of creation
  *  order. A port that cannot name it cannot accidentally fall back to it. */
-export interface CompSetRef { id: string; name: string; children?: readonly { name?: string }[] }
+export interface CompSetRef { id: string; name: string; children?: readonly CompMemberRef[] }
+
+/** A MEMBER of a set, as its set's own `children` hand it back (#1781). The member is instantiated from
+ *  HERE — out of the set the def named — and never re-looked-up by name in the document-wide COMPONENT
+ *  map, where every set's `size=small` shares one key. `type` because a set's child is only instantiable
+ *  when Figma says it is a COMPONENT; `createInstance` optional because the port cannot promise it of a
+ *  child that is not. */
+export interface CompMemberRef { name?: string; type?: string; createInstance?(): CompNode }
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
@@ -324,7 +331,7 @@ export interface ComponentsApi {
    *
    *  TWO SEARCHES, not one widened search, and the reason is the cast each one licenses (#681). The
    *  `COMPONENT` search's results are cast to `CompRef` and INSTANTIATED; the `COMPONENT_SET` search's are
-   *  cast to `CompSetRef` and read for their children's names. A single `types: ['COMPONENT',
+   *  cast to `CompSetRef` and read for their children — names to match, members to instantiate (#1781). A single `types: ['COMPONENT',
    *  'COMPONENT_SET']` call would return a union and put a `ComponentSetNode` — which has no
    *  `createInstance` — inside the map the swap path instantiates from. One criteria list per cast keeps
    *  each cast true at its own call site, which is the property the original comment here was making.
@@ -1423,12 +1430,17 @@ const writeComponentSet = async (
   // The SET map (#681). A second criteria call rather than a widened one — see the port's note on why
   // each cast needs its own criteria list. Sets only: a `nest-fixed` part resolves a MEMBER out of one,
   // and this is the only lookup in this file whose results are never instantiated directly.
-  const setByName = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[]).map((s) => [s.name, s] as const));
+  //
+  // A LIST, NOT A NAME→SET MAP (#1781). A map keyed by name keeps one set per name and drops the rest
+  // silently, which is the one fact a nest must not lose: two sets under the exact name a def targets is
+  // an ambiguity to report, not a tie to break by document order. `resolveNestMember` filters it by exact
+  // name per nest, so a set renamed aside (`__old__checkbox-row`) never answers for `checkbox-row`.
+  const compSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
 
   /** WHAT THE FILE HOLDS under a name `compByName` came back empty for (#1280 PR-C). The same second
    *  search the nest path runs, and on the same terms: by name, every type, on the FAILURE PATH ONLY —
    *  a cold build does 2,592 subtree searches already (#701) and this must not add one per member to the
-   *  happy path. Reads `api.root.findAll` rather than `setByName`, even though a COMPONENT_SET could be
+   *  happy path. Reads `api.root.findAll` rather than `compSets`, even though a COMPONENT_SET could be
    *  answered from the map: the map cannot tell an INSTANCE from a FRAME from nothing at all, and three
    *  of the four rows below need exactly that distinction. */
   const swapFound = (name: string): SwapFound => {
@@ -1474,35 +1486,27 @@ const writeComponentSet = async (
       // `nestVariant` against a file that has flattened its ring to a component still resolves rather
       // than reporting a coordinate the file no longer has axes for.
       const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
-      const set = !nested && n.nestTarget && n.nestVariant ? setByName.get(n.nestTarget) : undefined;
-      if (set) {
-        // RESOLVE THE DEF'S COORDINATE against the members' own names. `nestVariantMatch` compares axis by
-        // axis and returns null on "no match" AND on "more than one match" — see its own note for why the
-        // second is refused rather than resolved by picking the first.
-        const members = (set.children ?? []).map((c) => c.name ?? '');
-        const hit = nestVariantMatch(n.nestVariant!, members);
-        if (!hit) {
-          // THE FIFTH MISS. A different sentence from the four below because it is a different mistake:
-          // those four are "the file does not hold what this needs", this is "the def asks for a member
-          // this set does not have". Nothing is nested — nesting the set's first child here would be
-          // #656 exactly, and a valid wrong ring looks like a success.
-          misses.push(`${n.name}.nestVariant -> ${n.nestTarget} (${nestVariantMissAdvice(n.nestVariant!, members)})`);
-          return null;
-        }
-        // The MEMBER is what gets instantiated, not the set — Figma has no "instance of a set", and the
-        // member is a plain COMPONENT, which is why the existing criteria search finds it under its
-        // variant coordinate. That is the same lookup whose blindness to the set's own name WAS #681: the
-        // members were always there, and nothing knew which one to ask for. Now the def says.
-        const member = compByName.get(hit);
-        if (!member) {
-          // Unreachable in a coherent file — `hit` came from this set's children, and a set's children ARE
-          // components, so the criteria search has them. Reported rather than asserted because the two
-          // lookups are independent reads of a live document, and a host that disagrees with itself should
-          // say so in the channel this build has rather than throw away 647 other members.
-          misses.push(`${n.name}.nestVariant -> ${n.nestTarget} (matched member ${hit} is not instantiable; nothing built — the COMPONENT_SET and COMPONENT searches disagree about this file)`);
-          return null;
-        }
-        node = wr(member.createInstance());
+      // THE SET AND ITS MEMBER, resolved together and only together (#1781) — see `resolveNestMember`, which
+      // this executor and the paste payload share, decision AND wording. The member comes out of the named
+      // set's own `children`. It used to be re-looked-up by NAME in `compByName`, where `size=small` is every
+      // set's `size=small` and the last one searched wins: that is how a group's rows became `switch-row`'s
+      // and a row's control became `radio-control`'s, each building as a success. The set is matched by EXACT
+      // name, so `__old__checkbox-row` never answers for `checkbox-row`, and two sets under the exact name are
+      // reported rather than picked between.
+      //
+      // `null` means no set carries the name, and the four-way diagnosis below takes over. A `miss` covers
+      // the three ways a named set can still fail to yield a member: AMBIGUOUS (two sets, against
+      // `nestTarget` — the FILE is the problem), the FIFTH MISS (the def's coordinate matches no member, or
+      // more than one — `nestVariantMatch` refuses both, #656), and a matched child that is not a COMPONENT.
+      // Nothing is nested in any of them: a valid wrong member looks like a success.
+      const res = !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      if (res && res.miss !== undefined) {
+        misses.push(`${n.name}${res.miss}`);
+        return null;
+      }
+      if (res) {
+        // The MEMBER is what gets instantiated, not the set — Figma has no "instance of a set".
+        node = wr(res.member.createInstance!());
       } else if (!nested) {
         // DIAGNOSE, then report (#681). The criteria lookup above cannot tell "absent" from "present at a
         // type this search does not match", so the miss it produced said "not in this file" of a node the

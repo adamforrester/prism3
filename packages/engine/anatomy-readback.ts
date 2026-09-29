@@ -473,9 +473,28 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `an instance of ${String(p)}`,
     check: (_p, n) => (String(n.type ?? '') === 'INSTANCE' ? null : `${str(n.type)} — not an instance`),
   },
+  // WHOSE instance, not merely AN instance (#1781). A nest resolved into the wrong set is still an INSTANCE,
+  // of a component with the right member name (`size=small` is in every row set), so a type check passes
+  // on exactly the defect: `checkbox-group` nesting `switch-row/size=small`, `checkbox-row` nesting
+  // `radio-control`'s identically-named member, a group nesting a renamed-aside `__old__radio-group`.
+  //
+  // Read off the HOST: `mainComponent` is Figma's own `InstanceNode.mainComponent`, and its `parent` is the
+  // COMPONENT_SET for a variant. The owner is the set when there is one and the component itself when it is
+  // plain, and it must EQUAL the plan's `nestTarget` — exact, so `__old__checkbox-row` is not `checkbox-row`.
+  // A host that cannot name the main component fails too: an instance whose source is unreadable is not
+  // evidence the nest landed. On a live host under `documentAccess: dynamic-page` the sync getter is
+  // unavailable, so a real-host arm resolves it with `getMainComponentAsync` before handing the tree here.
   nestTarget: {
-    show: (p) => `an instance of ${String(p)}`,
-    check: (_p, n) => (String(n.type ?? '') === 'INSTANCE' ? null : `${str(n.type)} — not an instance`),
+    show: (p) => `an instance of a member of ${String(p)}`,
+    check: (p, n) => {
+      if (String(n.type ?? '') !== 'INSTANCE') return `${str(n.type)} — not an instance`;
+      const main = n.mainComponent as { name?: unknown; parent?: { name?: unknown; type?: unknown } | null } | null | undefined;
+      if (!main || typeof main.name !== 'string') return 'an instance whose main component the host cannot name';
+      const inSet = main.parent?.type === 'COMPONENT_SET';
+      const owner = inSet ? String(main.parent?.name ?? '') : main.name;
+      if (owner === p) return null;
+      return inSet ? `an instance of ${owner}/${main.name} — the WRONG SET` : `an instance of ${main.name} — the WRONG COMPONENT`;
+    },
   },
   nestVariant: { reason: 'which VARIANT the nested instance resolved to is an id on the host; the executor resolves it by name at write time and reports a miss, and this reader has no independent name for it' },
   // #1330 — HOST-TRUTH for exposure. The plan's `nestExpose` names the child axes the consumer drives;
