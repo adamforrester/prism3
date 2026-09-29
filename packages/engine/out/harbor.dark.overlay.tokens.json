@@ -1848,30 +1848,6 @@
               }
             }
           },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{hds.core.palette.black}",
-            "$description": "Ink on the destructive interactive fill",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "hds.core.palette.black",
-                "contrast": 4.6,
-                "against": "interactive.destructive.fill.rest",
-                "min": 4.5
-              }
-            }
-          },
           "text": {
             "rest": {
               "$type": "color",

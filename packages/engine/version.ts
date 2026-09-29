@@ -2937,7 +2937,9 @@
  * overridden rest cannot strand the twins on the derived step (review of #1773). Every page interactive
  * `fill.rest` (and so focused/selected) now also clears its floor against `background.tertiary` (owner,
  * 2026-09-29, the #1352 pattern): in `dark` nb, harbor, wendys and prism3 move one step lighter. The page
- * `fill.selected` `.ai.json` guidance says selection must show by other means. Emitted
+ * `fill.selected` `.ai.json` guidance says selection must show by other means. The interactive on-fill's
+ * pure-extreme pick takes WHITE on a near-tie (both clear 4.5:1, within 0.05:1) in dark-family modes (owner,
+ * `pureExtremeInk`): prism3, aurora, harbor and minimal dark labels move black → white. Emitted
  * values move in every brand, and the projected surface moves wherever a def binds a focused/selected fill
  * or the inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
  *

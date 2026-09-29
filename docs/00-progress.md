@@ -82,16 +82,33 @@
   | prism3 | dark | primary | primary.550 `#294cfd` · 3.03 / 2.71 · `neutral.025` 5.53 | primary.500 `#3d68fc` · 3.91 / 3.51 · **`black`** 4.58 |
   | harbor | light | destructive | danger.500 `#cd4840` · 3.31 / 2.91 · `white` 4.57 | danger.550 `#b83d36` · 4.04 / 3.56 · `white` 5.59 |
 
-  Aurora and minimal already cleared. Harbor's light destructive fill moved too, because it read 2.91:1 on tertiary. **prism3 dark's label turns pure black, not white.** Neither softened ink clears 4.5:1 on `#3d68fc` (025 at 4.28:1; 950 falls short too), so `onColor` escalates to the better pure extreme: black 4.584 against white 4.581, a 0.003 margin. That is the existing mechanism's output, so it ships, but the owner expected white. A brand-level tie-break toward the light extreme in dark modes would be a new rule and is left to the owner. The softening pin in `test.ts` now reads "softened unless neither softened ink clears 4.5:1 on the fill", recomputed from the theme's neutral 025/950 (a synthetic brand there hit the same escalation).
+  Aurora and minimal already cleared. Harbor's light destructive fill moved too, because it read 2.91:1 on tertiary. **prism3 dark's label turned pure black, not white** (since resolved: the owner's tie rule below makes it white). Neither softened ink clears 4.5:1 on `#3d68fc` (025 at 4.28:1; 950 falls short too), so `onColor` escalates to the better pure extreme: black 4.584 against white 4.581, a 0.003 margin. That is the existing mechanism's output, so it ships, but the owner expected white. A brand-level tie-break toward the light extreme in dark modes would be a new rule and is left to the owner. The softening pin in `test.ts` now reads "softened unless neither softened ink clears 4.5:1 on the fill", recomputed from the theme's neutral 025/950 (a synthetic brand there hit the same escalation).
 
   `test.ts` holds a literal [P, S, T] table for the radio's checked dot, the checkbox's checked box and the switch's on track, each read through its own def binding, in every mode of the five distinct corpus palettes, prism3 and the NB master theme (225 cells, all ≥ 3:1; the tertiary minimum is 3.22, minimal dark). The #1763 dark literals moved to nb 4.58, aurora 4.60, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58. The switch's off track vs on track is 3.22–14.01:1 now (it was 2.71 before the gate). No `text.*`, `icon.*` or `border.*` value moved, so #1367 is untouched.
 - **The `.ai.json` guidance for page `fill.selected` ships as written:** "The fill of a filled `<color>` interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline." `describeInteractive` now takes `inverse` and switches the lead sentence for page `fill.selected` only. The shared `STATE_WHEN.selected` is unchanged, so every other role, the inverse `fill.selected` included, keeps its wording. The generated label note still follows.
+
+**Owner decision on the prism3 dark label (2026-09-29): prefer white on a near-tie in dark-family modes.** `modes.ts` `pureExtremeInk`: when pure white and pure black both clear 4.5:1 on the fill and sit within 0.05:1 of each other (`EXTREME_TIE`), `dark` and `hc-dark` take white; otherwise the higher ratio wins, as before, and light-family modes are unchanged.
+
+It is scoped to the interactive `on-fill`, page and inverse (`onColor(…, true)` at those call sites and in `brandOnFill`'s HC and empty-ramp fallbacks). Applied to every `onColor` caller, it would also move 42 semantic `text.on-<status>` / `icon.on-<status>` cells black → white in `dark` (on-brand, on-danger, on-info, on-success, every corpus brand and prism3). That goes beyond the decision as worded, so the semantic caller keeps the higher-ratio rule. Whether to extend it is the owner's call.
+
+Cells that moved, all in `dark`, black → white:
+
+| brand | role | before | after |
+|---|---|---|---|
+| prism3 | page primary on-fill | 4.584 | 4.581 |
+| prism3 | page destructive on-fill | 4.596 | 4.569 |
+| aurora | page primary and destructive on-fill | 4.601 | 4.565 / 4.564 |
+| harbor | page destructive on-fill | 4.597 | 4.568 |
+| minimal (all six fixtures) | page destructive on-fill | 4.601 | 4.564 |
+
+No other cell moved. The #1763 aurora dark literal moved 4.60 → 4.56. `test.ts` pins the prism3 dark label as white at 4.58:1 on `#3d68fc`. It holds a light-mode near-tie on the same fill taking black, the higher ratio, and a fill where white is under 4.5:1 (`#7398f8`) taking black in a dark-family mode. The "softened unless…" pin's comment now names the tie rule; its assertion was already color-agnostic.
 
 **Mutations** (committed first, restored from HEAD):
 - MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.
 - MB, the inverse re-pick disabled (`alsoClear` emptied): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb light inverse focused 3.33:1, …). The `#1244` arm does not fire here: a rest-only pick is shallower, not too far. `(4c)` is the arm that holds it.
 - MD, `withFillStateTwins` removed from the override pass: `#1626 a fill.rest override carries to focused and selected` fails (focused and selected `#294cfd`, on-fill 3.28:1).
 - ME, the tertiary gate removed (`restFill` passes no `alsoClear`): `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on … .tertiary` (nb dark on tertiary 2.85:1, …) and `#1763 dark mode: … pinned literals` (nb 5.24 against 4.58, …).
+- MF, the dark-family tie rule removed from `pureExtremeInk`: `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc` fails (got `#000000`), with `#1763 dark mode: … pinned literals` (aurora 4.6 against 4.56).
 - MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
 - The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
 

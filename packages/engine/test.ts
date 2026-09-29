@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimen
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
@@ -6695,8 +6695,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // on-fill softening: dark interactive on-fill is near-black (950), light keeps pure white; HC keeps pure
   // #1773 (owner, 2026-09-29): the page fill now also clears 3:1 against `background.tertiary`, which moves this
   // brand's dark primary fill one step lighter. There neither softened ink (neutral 025 / 950) clears 4.5:1, so
-  // `onColor` escalates to a pure extreme — its documented fallback, the one place pure black is allowed. The
-  // pin is therefore "softened UNLESS neither softened ink clears", recomputed from the emitted hexes here.
+  // `onColor` escalates to a pure extreme — its documented fallback, the one place pure black is allowed (and
+  // on a near-tie in a dark-family mode, white, by the owner's #1773 rule). The pin is therefore "softened
+  // UNLESS neither softened ink clears", recomputed from the emitted hexes here.
   {
     const dInk = p(D, 'interactive.primary.on-fill');
     const hx = (k: string) => D[k].hex as string;
@@ -22507,7 +22508,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // NB master theme ships light only. Switch: on thumb vs on track. Checkbox: checked mark vs checked box,
   // read through `checkbox-control`'s own bindings. Re-measured after the tertiary gate (#1773): nb, harbor,
   // wendys and prism3 moved their dark rest fill one step lighter, and the label escalated to a pure extreme.
-  const DARK_ON: Record<string, number> = { nb: 4.58, aurora: 4.6, harbor: 4.58, wendys: 4.8, minimal: 4.63, prism3: 4.58 };
+  // Aurora dark then moved 4.60 → 4.56 with the owner's dark-family tie rule (black 4.601 → white 4.565).
+  const DARK_ON: Record<string, number> = { nb: 4.58, aurora: 4.56, harbor: 4.58, wendys: 4.8, minimal: 4.63, prism3: 4.58 };
   const cbRole = (key: string) => (checkboxControl.tokens[key] ?? '').replace(/^color\./, '');
   const darkWrong: string[] = [];
   let darkSeen = 0;
@@ -22523,7 +22525,25 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     if (cb !== DARK_ON[short]) darkWrong.push(`${short} checkbox checked mark ${cb}:1 (want ${DARK_ON[short]})`);
   }
   ok(darkSeen === 6 && darkWrong.length === 0,
-    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 4.58, aurora 4.60, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
+    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 4.58, aurora 4.56, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
+
+  // THE DARK-FAMILY TIE RULE (#1773, owner, 2026-09-29): when pure white and pure black both clear 4.5:1 on a
+  // fill and sit within 0.05:1 of each other, a dark-family mode takes WHITE; otherwise the higher ratio wins,
+  // and light modes are unchanged. (a) prism3 dark's primary label is white at 4.58:1 on `#3d68fc`, where black
+  // measures 4.584 against white's 4.581 — removing the rule paints it black and fails here by name. (b) The same
+  // near-tie fill in a LIGHT-family mode still takes the higher ratio, black. (c) A fill where white is under
+  // 4.5:1 (`#7398f8`, white 2.83) still takes black in a dark-family mode — the rule never trades legibility.
+  {
+    const pDark = resolveAllModes(prism3).find((m) => m.mode === 'dark')!;
+    const pInk = pDark.roles['interactive.primary.on-fill'], pFill = pDark.roles['interactive.primary.fill.rest'];
+    ok(pInk.hex === '#ffffff' && pFill.hex === '#3d68fc' && ratio(pInk.hex, pFill.hex) === 4.58,
+      `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc (got ${pInk.hex} on ${pFill.hex}, ${ratio(pInk.hex, pFill.hex)}:1)`);
+    const tieFill = hexToRgb('#3d68fc'), lightFill = hexToRgb('#7398f8');
+    ok(pureExtremeInk(tieFill, 'light', 4.5) === 'black',
+      `#1773 tie rule: a near-tie in a LIGHT-family mode still takes the higher ratio (black 4.584 over white 4.581 on #3d68fc; got ${pureExtremeInk(tieFill, 'light', 4.5)})`);
+    ok(ratio('#ffffff', '#7398f8') < 4.5 && pureExtremeInk(lightFill, 'dark', 4.5) === 'black',
+      `#1773 tie rule: where white is under 4.5:1 (#7398f8, white ${ratio('#ffffff', '#7398f8')}:1) a dark-family mode still takes black (got ${pureExtremeInk(lightFill, 'dark', 4.5)})`);
+  }
 
   // THE SELECTED FILL ON EVERY PAGE TIER (#1773, owner, 2026-09-29). The radio's checked dot, the checkbox's
   // checked box and the switch's on track each read `interactive.primary.fill.selected` (the rest step), and

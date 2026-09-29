@@ -7938,9 +7938,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.black}",
-                    "aliasOf": "ads.core.palette.black",
-                    "contrast": 4.6,
+                    "$value": "{ads.core.palette.white}",
+                    "aliasOf": "ads.core.palette.white",
+                    "contrast": 4.56,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },
@@ -8830,9 +8830,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{ads.core.palette.black}",
-                    "aliasOf": "ads.core.palette.black",
-                    "contrast": 4.6,
+                    "$value": "{ads.core.palette.white}",
+                    "aliasOf": "ads.core.palette.white",
+                    "contrast": 4.56,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   },

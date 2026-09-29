@@ -1285,14 +1285,14 @@
       ],
       "description": "Label on the primary fill — 4.5:1 at rest",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/black"
+        "name": "pds3/core/palette/white"
       }
     },
     {
@@ -1625,14 +1625,14 @@
       ],
       "description": "Label on the destructive fill — 4.5:1 at rest",
       "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/black"
+        "name": "pds3/core/palette/white"
       }
     },
     {

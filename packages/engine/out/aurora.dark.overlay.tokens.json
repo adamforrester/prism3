@@ -1206,30 +1206,6 @@
               }
             }
           },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{ads.core.palette.black}",
-            "$description": "Ink on the primary interactive fill",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "ads.core.palette.black",
-                "contrast": 4.6,
-                "against": "interactive.primary.fill.rest",
-                "min": 4.5
-              }
-            }
-          },
           "text": {
             "rest": {
               "$type": "color",
@@ -1581,30 +1557,6 @@
                   "against": "neutral.900",
                   "min": 3
                 }
-              }
-            }
-          },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{ads.core.palette.black}",
-            "$description": "Ink on the destructive interactive fill",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "ads.core.palette.black",
-                "contrast": 4.6,
-                "against": "interactive.destructive.fill.rest",
-                "min": 4.5
               }
             }
           },

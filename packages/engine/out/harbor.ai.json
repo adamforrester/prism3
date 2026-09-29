@@ -1149,7 +1149,7 @@
     "interactive.destructive.fill.hover": {
       "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{hds.core.palette.danger.650}",
@@ -1169,7 +1169,7 @@
     "interactive.destructive.fill.pressed": {
       "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{hds.core.palette.danger.750}",
@@ -1233,7 +1233,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
       "mode_overrides": {
         "light": "{hds.core.palette.white}",
-        "dark": "{hds.core.palette.black}",
+        "dark": "{hds.core.palette.white}",
         "hc-light": "{hds.core.palette.white}",
         "hc-dark": "{hds.core.palette.black}"
       },

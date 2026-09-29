@@ -420,6 +420,28 @@ export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | un
 }
 
 /**
+ * THE PURE-EXTREME INK ON A FILL, WITH THE DARK-FAMILY TIE RULE (#1773, owner, 2026-09-29). `onColor`'s last
+ * resort (and its whole answer in HC) is pure white or pure black, whichever contrasts more with the fill. On
+ * a mid-tone fill the two can land within a hair of each other — prism3 dark's primary rest fill `#3d68fc`
+ * measures black 4.584 against white 4.581 — and the higher ratio then paints a black label on a dark-mode
+ * button by 0.003. The owner's rule: in a DARK-family mode (dark, hc-dark), when BOTH extremes clear `min`
+ * and sit within `EXTREME_TIE` of each other, take WHITE. Otherwise the higher ratio wins, as before, and
+ * light-family modes are untouched. Exported so `test.ts` can hold the rule on synthetic fills with literal
+ * expectations; `onColor` is its only production caller.
+ *
+ * SCOPED TO THE INTERACTIVE `on-fill` (page and inverse), which is what the owner decided. `onColor` also
+ * picks the semantic `text.on-<status>` / `icon.on-<status>` inks; applied there too, the rule would move 42
+ * of those cells black → white (on-brand, on-danger, on-info, on-success, in the `dark` mode of every corpus
+ * brand and prism3), so that caller keeps the higher-ratio rule (`tieToWhite` defaults to false in `onColor`).
+ */
+export const EXTREME_TIE = 0.05;
+export const pureExtremeInk = (fill: RGB, family: 'light' | 'dark', min: number, tieToWhite = true): 'white' | 'black' => {
+  const w = contrast(WHITE, fill), b = contrast(BLACK, fill);
+  if (tieToWhite && family === 'dark' && w >= min && b >= min && Math.abs(w - b) <= EXTREME_TIE) return 'white';
+  return w >= b ? 'white' : 'black';
+};
+
+/**
  * THE REST → FOCUSED / SELECTED OVERRIDE TWINS (#1626). On the page, `interactive.<c>.fill.focused` and
  * `.fill.selected` ARE the rest step (owner, 2026-09-29) — `fillStateCand` returns the derived rest for both.
  * The override layer rewrites exactly one role, so an override on `fill.rest` alone moved rest and left the two
@@ -622,9 +644,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // It shipped for review without this branch, and the gate ratified it: a flat 4.5 floor passes at
     // 4.62 and at 17.27 alike, so it could not tell the regression from the fix. `test.ts` now carries
     // an HC-specific arm holding these modes to the extreme rather than the floor.
-    if (hc) return onColor(fill);
+    if (hc) return onColor(fill, true);
     const steps = [...(ramps.get(palette) ?? [])].sort((a, b) => a.num - b.num);
-    if (!steps.length) return onColor(fill);
+    if (!steps.length) return onColor(fill, true);
     // SCAN FROM THE LEAST-CONTRASTING END so the first passing step is the MOST VIVID one that is
     // still legible. On a LIGHT fill that means ascending (lightest first, walking darker until one
     // clears); on a DARK fill, descending. The test is "is the fill light", i.e. does it contrast more
@@ -640,8 +662,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     return rated(cand(`${ns}.${palette}.${pick.key}`, pick.rgb), fill);
   };
 
-  const onColor = (fill: RGB): Rated => {
-    if (hc) return pickMostExtreme([cand(`${ns}.white`, WHITE), cand(`${ns}.black`, BLACK)], fill);
+  const onColor = (fill: RGB, tieToWhite = false): Rated => {
+    const extreme = (): Rated => pureExtremeInk(fill, cfg.family, onMin, tieToWhite) === 'white'
+      ? rated(cand(`${ns}.white`, WHITE), fill) : rated(cand(`${ns}.black`, BLACK), fill);
+    if (hc) return extreme();
     const lightCand = cfg.family === 'light' ? cand(`${ns}.white`, WHITE) : N025();  // light side: pure white in light, soft in dark
     const cL = rated(lightCand, fill), cD = rated(N950(), fill);
     const win = cL.ratio >= cD.ratio ? cL : cD;
@@ -655,7 +679,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Pure black is permitted HERE and only here. This is ink on a saturated FILL, where black on a
     // bright amber is the legible, conventional answer; the no-pure-black rule is about ink on the
     // page CANVAS, and is scoped to that in test.ts rather than applied to every role blindly.
-    return pickMostExtreme([cand(`${ns}.white`, WHITE), cand(`${ns}.black`, BLACK)], fill);
+    // A near-tie in a dark-family mode takes white (owner, #1773) — see `pureExtremeInk`.
+    return extreme();
   };
   // Wireframe (docs/11 Pillar 1b): a mechanical greyscale. Every CHROMATIC role resolves on
   // the NEUTRAL ramp at the position its colour pick would land — then re-nudged to clear the
@@ -1166,7 +1191,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
         `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on background.secondary`, cfg.floorName, fillMin);
     }
-    put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb)), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
+    put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb), true), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
   // Neutral fill anchor — a subtle grey by default (neutralEmphasis lever, later).
   // Returns a RatedNum so its states can walk the neutral ramp like any palette.
@@ -1419,7 +1444,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // the least-contrasting end, that clears `onMin` on EVERY one. It lands a deeper step than before, at
     // rest too (prism3 primary.500 → 650 light, → 350 dark). Hover/pressed remain exempt from the floor by
     // the owner's decision, but the one ink has to clear selected, which is pressed's fill, so they clear too.
-    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround, FILL_STATES.map((st) => st === 'default' ? inkGround : asGround(`inverse.interactive.${name}.fill.${st}`, stateFill(st).rgb))) : onColor(inkGround);
+    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround, FILL_STATES.map((st) => st === 'default' ? inkGround : asGround(`inverse.interactive.${name}.fill.${st}`, stateFill(st).rgb))) : onColor(inkGround, true);
     // What a state's label does, measured. Silent where the ink clears its floor on this fill. Where it does
     // not: hover / pressed are the #1456 transient states, exempt by the owner's decision, and the strict
     // setting lifts that exemption for every brand-ink family (primary and destructive). Focused / selected
