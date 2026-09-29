@@ -100,6 +100,36 @@
   - D4: the selected hover edge key dropped → **`tag selected hover (owner decision 2026-09-29)`**, plus `tag contrast (selected outline against the page.hover)`.
   - The tint and emission mutations were not run, because that decision is held.
 
+**The held tint, answered (owner, 2026-09-29: "(b) respect `none`").** Built on the same version.
+- **Emission (`modes.ts`).** Every brand whose `outlineInteraction` is not `none` emits `interactive.primary.subtle-fill.selected`.
+  - Solid-tint brands carry the whole family, as before.
+  - Overlay-neutral brands carry that one leaf, on the page ground. `settleSolidTint` makes it with a new `only` argument, so the step is chosen by the full rule (hover's guards first, then selected one step above) and matches the solid-tint value exactly. `test.ts` asserts the equality for NB.
+  - `none` brands emit nothing.
+  - The branch tests the lever directly, as the existing solid-tint branch does. That keeps (10h) independent of `outlineFillFamily`.
+- **Contract.** The role is `brandDependent` (absent under `minimal-levers`), so `token-contract --check` moved no guaranteed path. The accept rewrote informational counts only, and CONTRACT stays at 13.1.0.
+- **Tag.** `selected.overlay` binds the new role. `applyOutlineInteraction` drops a bound subtle fill under `none`, the same way it drops a wash, so on `none` a selected tag has no fill and keeps its 2px outline and check. `lint-lever-sweep` stays green.
+- **The contrast contract**, all in `test.ts` against literal floors: selected label ≥ 4.5:1 and check ≥ 3:1 on the tint.
+  - 20 corpus cells on the default lever, and the same 20 on solid-tint.
+  - 12 cells across three synthetic brands (pale yellow, mid red, near-black navy × 4 modes).
+  - The neutral ink's lowest is 10.19:1.
+  - The primary ink would fail in 13 of 20 cells (lowest 3.02:1), so the ink stays neutral.
+- **Measured:**
+  - prism3 light: `#1e1eff` at 30% over `#ffffff` → `#bcbcff`, label and check 10.84:1.
+  - NB light: `#cf0b2c` at 30% → `#f1b6c0`, label and check 11.26:1.
+- **What a newly emitted role touched in an overlay-neutral brand.** Each item is a place that had only ever seen a synthetic solid-tint theme (#1112):
+  - `INVERSE_GAPS` gains the leaf. It is undecided and narrow: Tag has no inverse variant, so no band twin was emitted.
+  - The `.ai.json` sidecar named `inverse.interactive.primary.subtle-fill.*`, which does not exist on these brands. It now names the twin only when the brand emits it (`Ctx.has`).
+  - The Figma description pointed at the inverse wash, and at 108 characters it broke the 100 ceiling. That clause is dropped.
+  - The Figma generalise and wireframe arms assumed every color variable aliases a palette step. A tint aliases its fill variable at an opacity (#1646), so both arms now follow it to the fill.
+  - The `materialise` arm now expects exactly one alias-opacity row.
+  - The plugin's `test-write.ts` and `test-readback.ts` wrote NB's color plan into a file with no opacity axis. The tint's alias then named a miss, correctly: that is the "color before opacity" arm. The arms now write the opacity collection first, the order Apply Theme uses, so the collection count they pin is three.
+  - Emitted trees, overlays, Figma color files and sidecars move for every overlay-neutral brand. The component surface was re-accepted for `tag` ×3: the default binding moved, and the `codeOnly` tint line is part of every plan. The paint census was re-accepted for `tag.set` and `tag.grid`.
+- **Mutations** (committed first, restored from HEAD):
+  - T1: the tint bound back to `overlay.selected` → **`tag selected tint: binds … on overlay-neutral and solid-tint, and nothing on none`**, plus `tag rest (selected, …)` ×3 and `tag selected hover|pressed`.
+  - T2: the overlay-neutral emission removed → **`#288 the default (overlay-neutral) emits exactly one subtle fill`**, `tag contrast (selected label | check mark on the tint)`, `tag contrast (synthetic brands)`, (10h) `MISSING`, and `INVERSE_GAPS` stale.
+  - T3a: `none` keeps the binding → **`tag on an outlineInteraction none brand: all 15 selected members have no fill`**, plus `#1608 … @ none` ×2 and `lint-lever-sweep` (b) ×3.
+  - T3b: the role emitted under `none` → **`outline method 'none' emits ONLY that family`** (every corpus brand) and `#288 outlineInteraction=none still emits no subtle-fill`.
+
 ---
 
 ## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)

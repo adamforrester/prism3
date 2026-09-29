@@ -2196,6 +2196,10 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
  *  anchored — `color.inverse.interactive.*` is never AUTHORED (the projector's surface rewrite
  *  supplies it), so a def that authored one would pass through untouched rather than half-rewritten. */
 const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
+/** A page-ground SUBTLE FILL a def binds by name: Tag's selected tint, `color.interactive.primary.subtle-fill.selected`
+ *  (owner, 2026-09-29). Emitted under `overlay-neutral` (that one leaf) and `solid-tint` (the family), and under
+ *  `none` not at all — so under `none` the entry is DROPPED, the same way a wash is. */
+const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/;
 
 /**
  * Materialize a def for a brand's `outlineInteraction` lever (#1608), BEFORE projection — the third
@@ -2215,7 +2219,8 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
  *                         intended "no hover expression"), the rest fill for a field. Dropping rather
  *                         than binding transparent is what makes this a non-event on the host: no
- *                         variable is asked for, so there is nothing to miss.
+ *                         variable is asked for, so there is nothing to miss. A bound SUBTLE FILL (Tag's
+ *                         selected tint, 2026-09-29) is dropped the same way: `none` emits none of them.
  *
  * `solid-tint` binds `color.interactive.<color>.subtle-fill.<state>` — the TINTED WASH VARIABLE, whose value in
  * each mode is the category's fill variable aliased at the opacity step the engine chose (#1614, `settleSolidTint`),
@@ -2227,9 +2232,11 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  */
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
-  if (!Object.values(def.tokens).some((ref) => OUTLINE_OVERLAY_REF.test(ref))) return def;
+  const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
+  if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
+    if (method === 'none' && OUTLINE_SUBTLE_REF.test(ref)) continue;
     const m = OUTLINE_OVERLAY_REF.exec(ref);
     if (!m) { tokens[k] = ref; continue; }
     const role = outlineFillRole(method, m[1], m[2]);

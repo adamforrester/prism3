@@ -611,6 +611,7 @@
     "color.interactive.primary.overlay.hover",
     "color.interactive.primary.overlay.pressed",
     "color.interactive.primary.overlay.selected",
+    "color.interactive.primary.subtle-fill.selected",
     "color.inverse.interactive.destructive.overlay.hover",
     "color.inverse.interactive.destructive.overlay.pressed",
     "color.inverse.interactive.destructive.overlay.selected",

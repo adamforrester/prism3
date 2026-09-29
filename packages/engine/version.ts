@@ -2952,6 +2952,10 @@
  *   Owner decisions 2026-09-29: the Select check's Figma switch is `Check icon` (the plan digest moves, the
  *   member count does not); the widening check and the stepping selected edge are recorded as decided. Same
  *   version. The one emitted `subtle-fill.selected` for every brand is held (the `none` lever omits it by design).
+ *   Then the owner's answer, "respect none": every brand whose `outlineInteraction` is not `none` emits
+ *   `interactive.primary.subtle-fill.selected` (one leaf on overlay-neutral, by the solid-tint rule), Tag binds it,
+ *   and `none` drops it. Emitted trees, overlays, Figma color files and sidecars move for every overlay-neutral
+ *   brand. The role is brandDependent, so CONTRACT stands at 13.1.0. Same version.
  *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read

@@ -54,24 +54,15 @@
  *      stays `showCheck`. The Dismissible × has no switch: it is the tag's action, present on every member.
  *   I. SELECTED HOVER AND PRESSED: the tint holds and the 2px outline steps darker
  *      (`interactive.primary.border.hover` / `.pressed`).
- *   The owner also chose one `interactive.primary.subtle-fill.selected` emitted in every brand for the tint.
- *   That one is NOT built here: the `outlineInteraction: 'none'` lever omits every outline fill by design, and
- *   emitting the role there needs the owner's word (`notes.contested`).
+ *   J. THE TINT (owner, 2026-09-29, "respect `none`"): `interactive.primary.subtle-fill.selected`, the primary
+ *      fill at an opacity step. Every brand whose `outlineInteraction` is not `none` emits it — the whole
+ *      subtle-fill family on `solid-tint`, this one leaf on the default `overlay-neutral` (`modes.ts`,
+ *      `resolveAllModes`), derived by one rule so the two agree. It is `brandDependent` in the token contract.
+ *      On `none` it is not emitted, `applyOutlineInteraction` drops the binding, and a selected tag shows its 2px
+ *      outline and its check only.
  *
- * ── THE TINT, AND THE ONE THING HERE THE OWNER'S DECISION DID NOT SETTLE ────────────────────────────────
- *
- * The owner named `interactive.primary.subtle-fill.selected` for the tint. That role is emitted ONLY under the
- * `outlineInteraction: solid-tint` lever (`modes.ts`'s `outlineFillFamily`), and NO corpus brand sets that lever
- * — so in every committed brand it does not exist, and a def binding it would miss in every brand. The binding
- * here is the page-ground wash `interactive.primary.overlay.selected`, which `applyOutlineInteraction` repoints
- * to exactly `interactive.primary.subtle-fill.selected` on a `solid-tint` brand (the owner's NB file) — and which,
- * under the default `overlay-neutral`, is a 20% NEUTRAL wash, not a primary tint; under `none` the entry is
- * dropped and a selected tag carries only its outline (and its check). HELD for the owner in `notes.contested`
- * and the PR, with the contrast numbers for both levers.
- *
- * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint: on the
- * overlay-neutral wash `interactive.primary.text.rest` measures 2.70:1 (aurora/dark), and on the solid-tint
- * tint 3.02:1 (aurora/light), against 4.5:1. The neutral ink clears 10.04:1 and 10.19:1.
+ * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint:
+ * `interactive.primary.text.rest` measures 3.02:1 (aurora/light) against 4.5:1. The neutral ink clears 10.19:1.
  *
  * ── THE SCHEMA BOUNDARY ────────────────────────────────────────────────────────────────────────────────
  *
@@ -185,13 +176,13 @@ export const tag: ComponentDef = {
     'unselected.icon.hover': 'color.interactive.neutral.icon.hover',
     'unselected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
-    // SELECTED — a tint and a 2px primary outline (owner decision E). THE TINT is the page-ground wash
-    // `overlay.selected`, which the `outlineInteraction` lever repoints to `subtle-fill.selected` on a solid-tint
-    // brand — see the header: the owner's named role exists only there. One key, no state steps: hover and
+    // SELECTED — a tint and a 2px primary outline (owner decision E). THE TINT is the primary subtle fill at its
+    // selected step (owner decision J, 2026-09-29), emitted on every brand but a `none` one, where
+    // `applyOutlineInteraction` drops this entry. It stays in the `overlay` paint slot. One key, no state steps: hover and
     // pressed fall through to it (the template list's rest fallback), so the tint holds and the EDGE steps with
     // the interaction, as an outline's edge does. The label and the check keep the unselected neutral ink —
     // the primary ink fails 4.5:1 on the tint (header).
-    'selected.overlay': 'color.interactive.primary.overlay.selected',
+    'selected.overlay': 'color.interactive.primary.subtle-fill.selected',
     'selected.border': 'color.interactive.primary.border.rest',
     'selected.border.hover': 'color.interactive.primary.border.hover',
     'selected.border.pressed': 'color.interactive.primary.border.pressed',
@@ -300,7 +291,7 @@ export const tag: ComponentDef = {
       'The Tag prop named type — the component\'s own prop (select | dismissible), the same values as the Figma type axis. It is NOT the HTML type attribute and is never forwarded to the element: a select tag rendered as a <button> sets type="button" itself, so a tag inside a form never submits it. In React, destructure type out of the props before spreading the rest onto the element.',
       'The select tag in code — a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
       'The dismissible tag\'s hit target is not decided yet, and both options build from the same Figma structure. (1) The whole tag is one <button> named "Remove" followed by the label, and pressing anywhere on it removes the tag. (2) Only the × slot is the button, named the same, and the body is not interactive; the tag is then a row in a role="grid" group, the label one gridcell and the × slot a second. Either way the × slot is a square as tall as the tag, 44px at medium on comfortable density, and its click does not reach any handler on the tag body.',
-      'The selected tint — `interactive.primary.overlay.selected` on the page ground; on a brand whose outline interaction is solid-tint it is `interactive.primary.subtle-fill.selected`, the primary fill at an opacity step. The outline is `interactive.primary.border` at 2px, drawn inside the box (an inset outline, outline-offset: -2px, or an inset box-shadow), never a border that would grow the tag. In forced-colors mode the tint drops out and the 2px outline and the check mark carry the state.',
+      'The selected tint — `interactive.primary.subtle-fill.selected`, the primary fill at an opacity step, over the page ground. A brand whose outline interaction is none has no tint, and a selected tag there shows the 2px outline and the check mark only. The outline is `interactive.primary.border` at 2px, drawn inside the box (an inset outline, outline-offset: -2px, or an inset box-shadow), never a border that would grow the tag. In forced-colors mode the tint drops out and the 2px outline and the check mark carry the state.',
       'The group contract (the tag group is not built yet) — the group owns the selection model (multiple: a listbox with aria-multiselectable, or pressed buttons; single: a radiogroup), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A dismissible group is role="grid" when the × slot alone is the target: each tag is a row, its label a gridcell and its remove control a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for dismissible tags: ARIA does not allow an interactive child inside role="option".',
       'Focus after removal — capture the removed tag\'s index before it goes; after the list updates, focus the next tag, else the previous one, else the group or the input that owns it. Never let focus fall to <body>.',
       'Overflow — a group wraps by default. A group that must stay on one line measures the available width against the tags (a ResizeObserver) and ends in a computed "+N more" tag that opens a popover of the rest; the popover is keyboard and screen-reader reachable. The measurement moves when web fonts load.',
@@ -399,8 +390,7 @@ export const tag: ComponentDef = {
 
   notes: {
     contested: [
-      'The selected tint (owner decision E named `interactive.primary.subtle-fill.selected`): that role exists only under the solid-tint outline-interaction lever, which no corpus brand sets. The def binds `interactive.primary.overlay.selected`, which the lever repoints to the named role on a solid-tint brand; on the default overlay-neutral lever it is a 20% neutral wash (not a primary tint), and under `none` it is dropped, leaving the 2px outline and the check. Held for the owner: accept the lever-following binding, emit `subtle-fill.selected` in every brand (a new guaranteed token name, CONTRACT MINOR), or bind another role. Measured in 20 cells: the neutral label on the wash ≥ 10.04:1 and on the solid-tint tint ≥ 10.19:1. The owner\'s answer (2026-09-29) is to emit that one role in every brand; it is held because the `none` lever omits every outline fill by design, and a brand on `none` would then carry the role.',
-      'The selected label and check ink stay the unselected neutral ink. The owner fixed the tint and the outline, not the ink; the primary ink fails 4.5:1 on the tint in 11 of 20 cells on overlay-neutral (lowest 2.70:1, aurora/dark) and 13 of 20 on solid-tint (lowest 3.02:1, aurora/light). Held for the owner.',
+      'The selected label and check ink stay the unselected neutral ink. The owner fixed the tint and the outline, not the ink; the primary ink fails 4.5:1 on the tint in 13 of 20 cells (lowest 3.02:1, aurora/light). Held for the owner.',
       'The dismissible hit target: the whole tag, or only the × slot. Open by owner decision C; `codeOnly` states both. The Figma structure is the same, and the × slot is 44px at medium on comfortable density either way.',
       'The × glyph size in its slot binds the tag\'s own icon rung (`size.{size}.icon`, 24px at medium), the same rung the check and the leading icon use. Held for the owner, with the slot\'s inner padding it implies.',
       'A long label wraps in code, and the row centers the leading icon, the check mark and the × slot on the label block (`align: center`, as in Figma, where the label is one line). Whether they should sit on the first line instead is held for the owner.',
@@ -415,9 +405,10 @@ export const tag: ComponentDef = {
       'The check mark is the first part carrying both a boolean and a variant presence gate. The offline shim builds it (the node exists only at selected members, and the switch toggles it there); a real Figma host has not been checked for a boolean property that some members of a set have no node for.',
       'The minimum width is a BOUND `minWidth` (`minWidthKey`), the first in the corpus. The offline shim honors it; a real Figma host binding a variable to an auto-layout `minWidth` has not been checked.',
       'A medium tag is 44px tall on comfortable density, a medium Button\'s height (owner decision 4), and a dismissible tag adds a 44px square. Whether a pill that tall still reads as a tag beside buttons of the same height is a visual question no gate asks.',
-      'The overlay-neutral selected wash is a 20% neutral over the page. Whether it reads as "selected" beside the 10% hover wash of an unselected tag is a visual question no gate asks; the 2px primary outline is the measured separation.',
+      'The selected tint is the primary fill at an opacity step over the page. Whether it reads as "selected" beside the 10% neutral hover wash of an unselected tag is a visual question no gate asks; the 2px primary outline is the measured separation.',
     ],
     evolution: [
+      'Owner, 2026-09-29 ("respect none"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.',
       'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (32px at medium), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
       'Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.',
       'Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',

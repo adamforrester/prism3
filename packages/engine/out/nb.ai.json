@@ -6484,6 +6484,22 @@
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
+    },
+    "interactive.primary.subtle-fill.selected": {
+      "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the outline/text control's selected background)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The tinted selected wash behind an outline or text primary control: the primary fill at a set opacity, laid over `background.primary`. The label on it is `interactive.primary.text.pressed`.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`) or for another intent (use `interactive.neutral.*` or `interactive.destructive.*`).",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.550}",
+        "hc-light": "{nbds.core.palette.red.700}",
+        "hc-dark": "{nbds.core.palette.red.300}"
+      },
+      "tracks": [
+        "interactive.primary.fill.rest",
+        "interactive.primary.text.pressed"
+      ]
     }
   },
   "typography": {
@@ -10823,6 +10839,12 @@
         "type.title.xl.strong",
         "type.title.xs.strong"
       ]
+    },
+    "color.interactive.primary.subtle-fill.selected": {
+      "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the outline/text control's selected background)",
+      "meaning": "Color primitive — interactive primary subtle-fill selected",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token."
     },
     "opacity.0": {
       "$description": "opacity 0% (0)",

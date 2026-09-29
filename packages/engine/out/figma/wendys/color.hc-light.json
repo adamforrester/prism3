@@ -1521,6 +1521,29 @@
       }
     },
     {
+      "name": "wds/color/interactive/primary/subtle-fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected tinted wash — the primary fill at 30% over the page",
+      "value": {
+        "r": 0.5529412031173706,
+        "g": 0,
+        "b": 0.10588235408067703,
+        "a": 0.3019607961177826
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/color/interactive/primary/fill/rest"
+      },
+      "aliasOpacity": {
+        "value": 30,
+        "name": "wds/opacity/30"
+      }
+    },
+    {
       "name": "wds/color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [

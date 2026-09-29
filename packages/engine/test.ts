@@ -1725,7 +1725,17 @@ for (const b of brands) {
 
     ok(keysOf(tintRoles(nbTheme())).length > 0, '#288 solid-tint emits subtle-fill roles (it emitted NOTHING before)');
     ok(keysOf(noneRoles(nbTheme())).length === 0, '#288 outlineInteraction=none still emits no subtle-fill');
-    ok(keysOf(resolveAllModes(nbTheme())).length === 0, '#288 the default (overlay-neutral) emits no subtle-fill — existing artifacts unmoved');
+    // Since 2026-09-29 (owner: the selected tint, "respect none") the default emits exactly ONE subtle fill,
+    // `interactive.primary.subtle-fill.selected` on the page ground, in every mode — and at the very value a
+    // solid-tint brand carries, so the leaf is one role under two levers rather than two derivations.
+    const defModes = resolveAllModes(nbTheme());
+    const defKeys = [...new Set(keysOf(defModes))];
+    const tintSame = defModes.every((m, i) => {
+      const a = m.roles['interactive.primary.subtle-fill.selected'], b = tintRoles(nbTheme())[i].roles['interactive.primary.subtle-fill.selected'];
+      return !!a && !!b && a.hex === b.hex && a.alpha === b.alpha;
+    });
+    ok(JSON.stringify(defKeys) === '["interactive.primary.subtle-fill.selected"]' && defModes.every((m) => !!m.roles['interactive.primary.subtle-fill.selected']) && tintSame,
+      `#288 the default (overlay-neutral) emits exactly one subtle fill, interactive.primary.subtle-fill.selected, in every mode, equal to the solid-tint value (got [${defKeys.join(', ')}], same as solid-tint: ${tintSame})`);
 
     // #898 — the inverse/dark-band surface may name a NON-neutral palette (a brand-navy hero), not just
     // a neutral step. Bare number / white / black stay NEUTRAL (back-compat); `{ palette, step }` names
@@ -2992,8 +3002,11 @@ for (const b of brands) {
   // red rather than quiet, which is the only reason it is safe to write as a `find`.
   const bg = rows.find(([n]) => n === nbVar('color/background/primary'));
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
-  // A brand without `solid-tint` carries no wash, so no row gains the opacity element (#1672: byte-identical).
-  ok(rows.every((r) => r.length === 2), 'materialise: a brand with no tinted wash carries no alias opacity in any row');
+  // A brand without `solid-tint` carries ONE tinted wash since 2026-09-29 — the selected primary subtle fill a
+  // selectable control binds — so exactly that row gains the opacity element, and no other (#1672).
+  const withOpacity = rows.filter((r) => r.length !== 2).map(([n]) => n);
+  ok(JSON.stringify(withOpacity) === JSON.stringify([nbVar('color/interactive/primary/subtle-fill/selected')]),
+    `materialise: an overlay-neutral brand carries alias opacity on exactly one row, the selected primary subtle fill (got ${JSON.stringify(withOpacity)})`);
 }
 
 // #1672 — the paste path writes a TINTED WASH's alias opacity. `color-aliases` used to bind each
@@ -5067,7 +5080,7 @@ for (const b of brands) {
   // held to its own literal row at rest, per size, on the projected members.
   const TAG_REST: Record<string, { fill?: string; stroke: string; weight: string; label: string; check: boolean }> = {
     unselected: { stroke: 'color/interactive/neutral/border/rest', weight: 'border-width/hairline', label: 'color/interactive/neutral/text/rest', check: false },
-    selected: { fill: 'color/interactive/primary/overlay/selected', stroke: 'color/interactive/primary/border/rest', weight: 'border-width/thick', label: 'color/interactive/neutral/text/rest', check: true },
+    selected: { fill: 'color/interactive/primary/subtle-fill/selected', stroke: 'color/interactive/primary/border/rest', weight: 'border-width/thick', label: 'color/interactive/neutral/text/rest', check: true },
   };
   const LABEL_STYLE: Record<string, string> = { small: 'type.label.sm.emphasis', medium: 'type.label.md.emphasis', large: 'type.label.lg.emphasis' };
   const restOf = (type: string, selection: string, size: string) => tagMembers.find((m) => m.type === type && m.selection === selection && m.size === size && m.state === 'rest')!;
@@ -5129,10 +5142,18 @@ for (const b of brands) {
         `tag selected width (${b}, medium): owner decision 2026-09-29, the check widens the tag — with the check mark on, a selected tag is ${CHECK_PLUS_GAP_MD}px wider than its unselected twin (a 24px glyph and an 8px gap), and with it off the two are one width (unselected ${un}, selected ${sel}, check off ${selOff})`);
     }
   }
-  // THE TINT THE OWNER NAMED, where it exists: on a solid-tint brand the lever repoints the wash to exactly
-  // `interactive.primary.subtle-fill.selected` (held for the owner: it exists nowhere else in the corpus).
-  ok(applyOutlineInteraction(tagDef, 'solid-tint').tokens['selected.overlay'] === 'color.interactive.primary.subtle-fill.selected',
-    `tag selected tint: on a solid-tint brand it binds interactive.primary.subtle-fill.selected (got ${applyOutlineInteraction(tagDef, 'solid-tint').tokens['selected.overlay']})`);
+  // THE TINT (owner, 2026-09-29, "respect none"): `interactive.primary.subtle-fill.selected` on the default and
+  // solid-tint levers, and NO FILL on `none` — there a selected tag shows its 2px outline and its check only. Read
+  // off the materialized def per lever and off the projected `none` members (a fill that appears is a failure).
+  const TINT_REF = 'color.interactive.primary.subtle-fill.selected';
+  const tintAt = (lever: 'overlay-neutral' | 'solid-tint' | 'none') => applyOutlineInteraction(tagDef, lever).tokens['selected.overlay'];
+  ok(tintAt('overlay-neutral') === TINT_REF && tintAt('solid-tint') === TINT_REF && tintAt('none') === undefined,
+    `tag selected tint: binds ${TINT_REF} on overlay-neutral and solid-tint, and nothing on none (got ${tintAt('overlay-neutral')} / ${tintAt('solid-tint')} / ${tintAt('none') ?? 'nothing'})`);
+  const noneSelected = figmaAnatomySet(applyOutlineInteraction(tagDef, 'none'), { swapTarget: 'FPO-default-icon' })
+    .filter((p) => /selection=selected/.test(planComponentName(p)));
+  const noneFilled = noneSelected.filter((p) => p.root.paints?.fills !== undefined || findNode(p.root, 'check') === undefined || p.root.bound?.strokeWeight !== 'border-width/thick');
+  ok(noneSelected.length === 15 && noneFilled.length === 0,
+    `tag on an outlineInteraction none brand: all 15 selected members have no fill, and keep the 2px outline and the check (${noneSelected.length} members${noneFilled.length ? ` — wrong: ${noneFilled.slice(0, 3).map((p) => `${planComponentName(p)} fill ${p.root.paints?.fills}`).join(' | ')}` : ''})`);
 
   // THE CROSS-COMPONENT ARM (owner decision 3, restated 2026-09-28): at rest, every status Badge against every Tag
   // type × selection differs on three stated properties. SHAPE — the tag is a pill (`radius/round`) and the status
@@ -5228,6 +5249,25 @@ for (const b of brands) {
   measureTag('selected label on the tint', ref('selected.label'), ['interactive.primary.subtle-fill.selected'], 4.5, 'solid-tint');
   measureTag('check mark on the tint', ref('selected.icon'), [tint], 3);
   measureTag('check mark on the tint', ref('selected.icon'), ['interactive.primary.subtle-fill.selected'], 3, 'solid-tint');
+  // THE TINT'S CONTRACT BEYOND THE CORPUS (owner, 2026-09-29): on synthetic brands at the primary's extremes — a
+  // pale yellow, a mid saturated red and a near-black navy, each on the default lever — the tint exists in every
+  // mode, and the selected label clears 4.5:1 and the check 3:1 on it, composited over the page.
+  {
+    const SYNTH: [string, { l: number; c: number; h: number }][] = [['pale-yellow', { l: 0.93, c: 0.17, h: 100 }], ['mid-red', { l: 0.58, c: 0.22, h: 25 }], ['dark-navy', { l: 0.25, c: 0.09, h: 262 }]];
+    const bad: string[] = [];
+    let cells = 0;
+    for (const [id, primary] of SYNTH) for (const m of resolveAllModes(brandTheme({ id: `synthetic-${id}`, primary, neutral: { hue: primary.h, chroma: 0.008 } } as BrandInput))) {
+      const page = hexToRgb(m.roles['background.primary'].hex);
+      const g = colorOf(m.roles, 'interactive.primary.subtle-fill.selected', page);
+      const lab = g && colorOf(m.roles, ref('selected.label'), g), chk = g && colorOf(m.roles, ref('selected.icon'), g);
+      if (!g || !lab || !chk) { bad.push(`${id}/${m.mode}: missing`); continue; }
+      cells++;
+      if (contrast(lab, g) < 4.5) bad.push(`${id}/${m.mode} label ${contrast(lab, g).toFixed(2)}`);
+      if (contrast(chk, g) < 3) bad.push(`${id}/${m.mode} check ${contrast(chk, g).toFixed(2)}`);
+    }
+    ok(cells === 12 && bad.length === 0,
+      `tag contrast (synthetic brands): the tint exists in all ${cells} of 12 synthetic brand × mode cells, the selected label clears 4.5:1 and the check 3:1 on it${bad.length ? ` — ${bad.join('; ')}` : ''}`);
+  }
   for (const st of ['', '.hover', '.pressed']) measureTag(`selected outline against the page${st}`, ref(`selected.border${st}`), [], 3);
   // THE × IN EVERY PROJECTED STATE, on its own ground: the page at rest and focus-visible (no key of its own, so
   // the rest ink), the page under the hover and pressed washes, and the disabled glyph ink on the page.
@@ -8589,8 +8629,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
           for (const st of ['hover', 'pressed', 'selected']) {
             for (const fam of FAMILIES) {
               const present = m.roles[`interactive.${color}.${fam}.${st}`] !== undefined;
-              if (fam === family && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
-              if (fam !== family && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
+              // THE ONE SANCTIONED EXTRA (owner, 2026-09-29): overlay-neutral also carries the SELECTED primary
+              // subtle fill, the tint a selectable control binds. Written here as a literal, not read from the
+              // emitter; `none` gets no such allowance, so a tint appearing there is still spurious.
+              const selectedTint = method === 'overlay-neutral' && fam === 'subtle-fill' && color === 'primary' && st === 'selected';
+              if ((fam === family || selectedTint) && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
+              if (fam !== family && !selectedTint && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
             }
             // The role key the helper hands a consumer must be the one that resolves — the read the
             // dashboard performs, asserted directly rather than inferred from the two sets above.
@@ -10340,8 +10384,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // (b) COLOUR aliases — every per-mode alias name resolves within palette (name-based).
     const paletteNames = new Set(palette.variables.map((v) => v.name));
     const colorAliasBad: string[] = [];
+    // A TINT (#1646) aliases its FILL VARIABLE in this same collection at an opacity, not a palette step, and that
+    // fill is itself held to a palette step by this loop. Since 2026-09-29 every overlay-neutral brand carries one
+    // (`interactive.primary.subtle-fill.selected`), so the corpus reaches this case; before, only a solid-tint theme did.
+    const colorNames = new Set(color.flatMap((c) => c.variables.map((v) => v.name)));
     for (const c of color) for (const v of c.variables) {
-      if (!v.alias || !paletteNames.has(v.alias.name)) colorAliasBad.push(`${c.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
+      const tintOk = (v as { aliasOpacity?: unknown }).aliasOpacity !== undefined && !!v.alias && colorNames.has(v.alias.name) && /\/fill\/rest$/.test(v.alias.name);
+      if (!tintOk && (!v.alias || !paletteNames.has(v.alias.name))) colorAliasBad.push(`${c.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
     }
     ok(colorAliasBad.length === 0, `figma generalise (${id}): every colour alias resolves to a real palette variable within THIS brand` + (colorAliasBad.length ? ` — ${colorAliasBad.slice(0, 3).join(', ')}` : ''));
 
@@ -10494,8 +10543,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     if (!node) continue;
     const ext = node.$extensions?.prism3?.modes?.wireframe?.$value;
     if (typeof ext !== 'string') continue; // some roles may keep the light value in wireframe (already-neutral); accept whatever the tree emits
-    const wantName = figName(ext.replace(/^\{|\}$/g, ''));
+    // A TINT (#1646) carries a literal composite `$value` and names its fill in `tint.color`; the Figma variable
+    // aliases that fill variable at an opacity, and the fill's own wireframe alias is held to the neutral ramp by
+    // this same loop. So the tint is matched against its fill, and the greyscale check is the fill's.
+    const tintColor = (node.$extensions?.prism3?.modes?.wireframe?.tint ?? node.$extensions?.prism3?.tint)?.color;
+    const wantName = figName((typeof tintColor === 'string' ? tintColor : ext).replace(/^\{|\}$/g, ''));
     if (v.alias?.name !== wantName) mismatchedAliases.push(`${v.name} → ${v.alias?.name} (want ${wantName})`);
+    if (typeof tintColor === 'string') continue;
     const neutralPrefix = `${wf.root}/core/palette/`;
     if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`) && v.alias.name !== `${neutralPrefix}transparent`) {
       // Wireframe is a greyscale mode — every chromatic role should route to the neutral

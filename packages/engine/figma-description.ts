@@ -141,7 +141,9 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       // The tinted wash (#1614): the category's own fill at an opacity step, over whatever it sits on.
       if (part === 'subtle-fill') return inv
         ? `${c} ${st} tinted wash on inverse — the ${seg[1]} inverse fill at ${pct}`
-        : `${c} ${st} tinted wash — the ${seg[1]} fill at ${pct} over the page (inverse surfaces use the inverse wash)`;
+        // No pointer to the inverse twin: an overlay-neutral brand carries the page's selected tint alone (owner,
+        // 2026-09-29), so the sentence would name a variable that is not there.
+        : `${c} ${st} tinted wash — the ${seg[1]} fill at ${pct} over the page`;
       if (part === 'overlay') return inv
         ? `${c} ${st} wash on inverse — ${pct}, opposite polarity to the page wash`
         : `${c} ${st} wash — ${pct} neutral over the page (inverse surfaces use the inverse wash)`;

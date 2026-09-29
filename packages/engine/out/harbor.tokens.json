@@ -8128,6 +8128,71 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#0066664d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the outline/text control's selected background)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{hds.color.interactive.primary.fill.rest}",
+                    "opacity": "{hds.opacity.30}"
+                  },
+                  "contrast": 7.33,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed",
+                  "modes": {
+                    "dark": {
+                      "$value": "#2972724d",
+                      "tint": {
+                        "color": "{hds.color.interactive.primary.fill.rest}",
+                        "opacity": "{hds.opacity.30}"
+                      },
+                      "contrast": 7.12,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    },
+                    "hc-light": {
+                      "$value": "#004b4b4d",
+                      "tint": {
+                        "color": "{hds.color.interactive.primary.fill.rest}",
+                        "opacity": "{hds.opacity.30}"
+                      },
+                      "contrast": 9.17,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    },
+                    "hc-dark": {
+                      "$value": "#8eadac4d",
+                      "tint": {
+                        "color": "{hds.color.interactive.primary.fill.rest}",
+                        "opacity": "{hds.opacity.30}"
+                      },
+                      "contrast": 8.13,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  }
+                }
+              }
+            }
           }
         },
         "destructive": {

@@ -295,9 +295,11 @@ whose actual value comes from the host, not from the plan.
 - **Selection → a tint and a 2px outline, at a constant label weight (the system pattern, owner decision
   2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a segmented
   control, a selectable card or a list option next — shows its selected state as a subtle tint plus a bold
-  outline, and neither of the two moves its box. Bind the tint to `color.interactive.primary.overlay.selected`
-  in the `overlay` paint slot: the `outlineInteraction` lever repoints it to the primary subtle fill at its
-  selected step on a solid-tint brand, the only setting that emits that role (no example brand sets it).
+  outline, and neither of the two moves its box. Bind the tint to `color.interactive.primary.subtle-fill.selected`
+  in the `overlay` paint slot: the primary fill at an opacity step, emitted by every brand whose
+  `outlineInteraction` is not `none` (owner, 2026-09-29). It is brand-dependent in the token contract. On a
+  `none` brand `applyOutlineInteraction` drops the binding, and the selected state is the outline and the
+  check alone.
   Bind the outline to `color.interactive.primary.border.*` at `border-width.thick` (2px), through a
   `{selection}`-keyed `strokeWidth`, so the unselected member keeps `border-width.hairline`; both executors draw
   the stroke inside the box, so the thicker outline adds no width. Keep the label's type binding the same at

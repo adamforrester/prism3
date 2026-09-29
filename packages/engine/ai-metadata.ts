@@ -119,6 +119,10 @@ type Ctx = {
   failing: (ink: string, ground: string, min: number) => string[];
   /** The lowest floor a role carries in any mode, 0 when it has none — the one an agent must design to. */
   floorMin: (role: string) => number;
+  /** Whether the brand emits this role (by its full key, `inverse.` prefix included). A sentence that names a
+   *  role must name one that exists: an overlay-neutral brand carries the page's selected subtle fill but no
+   *  band twin (owner, 2026-09-29). */
+  has: (role: string) => boolean;
 };
 
 /** The large-text-only sentence (AI/C-2), or nothing when the ink's floor meets the body-text floor in
@@ -343,7 +347,7 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   // and a wash is neither ink nor an opaque ground. It follows its fill, and its state label is measured on it.
   if (slot === 'subtle-fill') {
     const ink = `interactive.${c}.text.${state === 'selected' ? 'pressed' : state ?? 'hover'}`;
-    return { when_to_use: `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.`, tracks: [`interactive.${c}.fill.rest`, ink] };
+    return { when_to_use: `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, ...(ctx.has(`inverse.interactive.${c}.subtle-fill.${state}`) ? { page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.` } : {}), tracks: [`interactive.${c}.fill.rest`, ink] };
   }
   if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle) or as a modal backdrop (use ${q('scrim.default')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
@@ -574,6 +578,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         const floors = Object.values(byRole[real(r)] ?? {}).map((x) => x.min).filter((m) => m > 0);
         return floors.length ? Math.min(...floors) : 0;
       },
+      has: (r) => r in byRole,
     };
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
     const base = group === 'interactive'

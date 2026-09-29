@@ -5824,6 +5824,36 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "rgba(207, 11, 44, 0.3)",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the outline/text control's selected background)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{nbds.color.interactive.primary.fill.rest}",
+                    "opacity": "{nbds.opacity.30}"
+                  },
+                  "contrast": 6.99,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  }
+                }
+              }
+            }
           }
         },
         "destructive": {
