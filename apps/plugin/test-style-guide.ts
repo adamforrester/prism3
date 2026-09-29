@@ -224,6 +224,8 @@ let refuseResize: ((n: N) => boolean) | null = null;
 /** When set, `resize` does nothing on a node it matches and says nothing: the silent answer, as the live run's
  *  brackets looked (every one 8px, "unbound: 0"). */
 let ignoreResize: ((n: N) => boolean) | null = null;
+/** When set, a padding bind on a node it matches is accepted and changes nothing: a width that does not follow. */
+let ignorePadding: ((n: N) => boolean) | null = null;
 /** When set, a layer inside an instance refuses a new `constraints` (and, with `refuseMove`, a new `x`): the two host
  *  answers this build cannot rule out offline for the owner's bracket, whose parts are all constrained MIN. */
 let refuseConstraints = false;
@@ -260,7 +262,14 @@ const valueAt = (w: World, node: N, v: ShimVar): unknown => {
 /** The shim's text metric: every character 7px wide, lines split at "\n". Its own figure, not the plugin's. */
 const CHAR_W = 7;
 const isAuto = (n: N | null | undefined): boolean => n?.layoutMode === 'HORIZONTAL' || n?.layoutMode === 'VERTICAL';
-const padX = (n: N): number => Number(n.paddingLeft ?? 0) + Number(n.paddingRight ?? 0);
+/** A padding as the host lays it out: a BOUND padding is its variable's value in the node's mode, read live, so a
+ *  frame sized by a bound paddingLeft follows its variable (the owner's live run of 0.205.0). */
+const padOf = (n: N, side: 'paddingLeft' | 'paddingRight' | 'paddingTop' | 'paddingBottom'): number => {
+  const b = n.boundVariables?.[side];
+  const v = b && active ? active.vars.find((x) => x.id === b.id) : undefined;
+  return v ? Number(valueAt(active!, n, v)) : Number(n[side] ?? 0);
+};
+const padX = (n: N): number => padOf(n, 'paddingLeft') + padOf(n, 'paddingRight');
 /** A text node's width set on one line. */
 const naturalOf = (t: N): number => Math.max(0, ...String(t.characters ?? '').split('\n').map((l) => l.length)) * CHAR_W;
 /** The lines a text sets in: one per "\n" while it hugs; a HEIGHT text breaks at spaces to its box, and a word
@@ -278,7 +287,9 @@ const linesOf = (t: N): number => String(t.characters ?? '').split('\n').reduce(
   return n + lines;
 }, 0);
 const LINE_H = 20;
-const padY = (n: N): number => Number(n.paddingTop ?? 0) + Number(n.paddingBottom ?? 0);
+const padY = (n: N): number => padOf(n, 'paddingTop') + padOf(n, 'paddingBottom');
+/** Out of an auto-layout frame's flow: an ABSOLUTE child takes no part in what the frame hugs. */
+const inFlow = (k: N): boolean => k.layoutPositioning !== 'ABSOLUTE';
 /** THE LAYOUT EPOCH: bumped by every write to every node (each `N` is a proxy that counts its writes), so a grid's
  *  tracks are computed once per state of the file rather than once per read. A 124-row table's fingerprint reads
  *  1,750 cell widths, each a column of 125 cells: uncached, the suite ran ~8× slower. The proxy cannot see a write
@@ -303,7 +314,14 @@ class N {
   /** The stored height — what `resize` sets. `height` reads it unless the node's layout computes one. */
   h = 0;
   private _x = 0;
-  get x(): number { return this._x; }
+  // An ABSOLUTE child constrained MAX keeps its distance to its parent's right edge however the parent's width is
+  // reached (a hug from a bound padding included); `_anchor` is where it sat, and how wide its parent was, when its
+  // constraints were set in the component.
+  get x(): number {
+    const a = this._anchor as { pw: number; x: number; w: number } | undefined;
+    if (a && this.parent && this.layoutPositioning === 'ABSOLUTE' && this._constraints?.horizontal === 'MAX') return this.parent.width - (a.pw - a.x);
+    return this._x;
+  }
   set x(v: number) { if (refuseMove && insideInstance(this)) throw new Error('cannot move a layer inside an instance'); this._x = v; }
   y = 0;
   private _constraints?: { horizontal: string; vertical: string };
@@ -311,6 +329,7 @@ class N {
   set constraints(v: { horizontal: string; vertical: string } | undefined) {
     if (refuseConstraints && insideInstance(this)) throw new Error('cannot override constraints inside an instance');
     this._constraints = v ? { ...v } : v;
+    if (v && this.parent && this.layoutPositioning === 'ABSOLUTE') this._anchor = { pw: this.parent.width, x: this._x, w: this.w };
   }
   fills: unknown = [];
   strokes: unknown = [];
@@ -338,6 +357,8 @@ class N {
   // in-flow children (summed across a row, the widest down a column); a hugging grid is its tracks; anything else
   // is its stored width.
   get width(): number {
+    const a = this._anchor as { pw: number; x: number; w: number } | undefined;
+    if (a && this.parent && this.layoutPositioning === 'ABSOLUTE' && this._constraints?.horizontal === 'STRETCH') return a.w + this.parent.width - a.pw;
     if (this.type === 'TEXT' && this.textAutoResize === 'WIDTH_AND_HEIGHT') return naturalOf(this);
     const p = this.parent;
     if (this.lsh === 'FILL' && p) {
@@ -405,9 +426,10 @@ class N {
     this.byRow.get(r)!.add(c);
   }
   remove(): void { this.detach(); }
-  // THE HOST'S QUIRK (live, 2026-09-28): a FIXED text inside an INSTANCE ignores `resize`'s width and keeps its main
-  // component's — the owner's 29px label stayed 29px under resize(296, h). Its height still moves. A frame that hugs
-  // or fills is FIXED once resized, on both axes, as a designer's drag leaves it.
+  // THE HOST'S QUIRK (live, 2026-09-28, and measured in the plugin runtime 2026-09-29 on the owner's run of 0.205.0):
+  // a width written to ANY layer inside an INSTANCE is silently dropped, no throw: the owner's 29px label stayed 29px
+  // under resize(296, h), and every spacing specimen stayed 8px. Its height still moves. A frame that hugs or fills is
+  // FIXED once resized, on both axes, as a designer's drag leaves it.
   resize(w: number, h: number): void {
     if (refuseResize?.(this)) throw new Error(`cannot resize ${this.name}`);
     if (ignoreResize?.(this)) return;
@@ -424,7 +446,7 @@ class N {
         else if (hz === 'STRETCH') k.w += dx;
       }
     }
-    if (!(this.type === 'TEXT' && this.lsh === 'FIXED' && inInstance)) this.w = w;
+    if (!inInstance) this.w = w;
     this.h = h;
     if (this.type !== 'TEXT') {
       if (this.lsh === 'HUG' || this.lsh === 'FILL') this.lsh = 'FIXED';
@@ -462,7 +484,14 @@ class N {
       if (next && !w.fonts.has(fontId(next))) throw new Error(`unloaded font ${fontId(next)}`);
       if (next) this.fontName = next;
     }
+    // A bound WIDTH on a layer inside an instance is dropped too, silently, as a written one is.
+    if (v && field === 'width' && insideInstance(this)) return;
+    if (v && /^padding/.test(field) && ignorePadding?.(this)) return;
+    const firstPad = /^padding/.test(field) && !Object.keys(this.boundVariables).some((k) => /^padding/.test(k));
     if (v) this.boundVariables[field] = { type: 'VARIABLE_ALIAS', id: v.id };
+    // THE FREEZE (measured live, 2026-09-29): after its first padding bind a hugging frame can freeze at FIXED at the
+    // width that bind gave it, and then no longer follows its variable until HUG is set again.
+    if (v && firstPad && this.lsh === 'HUG' && isAuto(this)) { const w0 = this.width; this.lsh = 'FIXED'; this.w = w0; }
   }
   textStyleId = '';
   async setTextStyleIdAsync(id: string): Promise<void> {
@@ -479,7 +508,7 @@ class N {
       const c = new N(n === this ? 'INSTANCE' : n.type);
       for (const k of ['name', 'w', 'lsh', 'h', 'layoutSizingVertical', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode',
         'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'primaryAxisSizingMode', 'counterAxisSizingMode', 'textAutoResize', 'textTruncation',
-        'constraints', 'clipsContent', 'cornerRadius', 'topLeftRadius']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
+        'layoutPositioning', 'constraints', '_anchor', 'clipsContent', 'cornerRadius', 'topLeftRadius']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
       for (const k of n.children) c.appendChild(clone(k));
       return c;
     };
@@ -504,7 +533,7 @@ const contentW = (n: N): number => {
   // more (the host's answer is a live-check, docs/45 §7). So a palette swatch that FILLs its cell without a floor
   // collapses its column to its header's text.
   if (!isAuto(n)) return n.lsh === 'FILL' ? Number(n.minWidth ?? 0) : n.w;
-  const ws = n.children.filter((k) => k.visible !== false && k.lsh !== 'FILL').map((k) => k.width);
+  const ws = n.children.filter((k) => k.visible !== false && k.lsh !== 'FILL' && inFlow(k)).map((k) => k.width);
   const inner = n.layoutMode === 'HORIZONTAL' ? ws.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, ws.length - 1) : Math.max(0, ...ws);
   return padX(n) + inner;
 };
@@ -512,7 +541,7 @@ const contentH = (n: N): number => {
   if (n.type === 'TEXT') return linesOf(n) * LINE_H;
   if (n.layoutMode === 'GRID') return hugGridH(n);
   if (!isAuto(n)) return n.layoutSizingVertical === 'FILL' ? Number(n.minHeight ?? 0) : n.h;
-  const hs = n.children.filter((k) => k.visible !== false).map((k) => k.height);
+  const hs = n.children.filter((k) => k.visible !== false && inFlow(k)).map((k) => k.height);
   return padY(n) + (n.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
 };
 /** A track's size: FIXED is its value, HUG (or FLEX) its widest cell. */
@@ -573,7 +602,7 @@ const ownerSet = (name: string, variants: string[], withSpecimen: boolean): N =>
  * `left-bar` (1 × 16 at 0,0), `horizontal-line` (8 × 1 at 0,8) and `right-bar` (1 × 16 at 7,0), every one MIN/MIN.
  * `kind: 'odd'` is a set this build cannot read: each member holds a text label and nothing else.
  */
-const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' = 'owner'): N => {
+const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' | 'inflow' = 'owner'): N => {
   const set = new N('COMPONENT_SET');
   set.name = '_style-guide-spacing-cells';
   for (const display of ['filled', 'line']) {
@@ -588,6 +617,9 @@ const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' = 'owner'): N => {
       const f = new N('FRAME'); f.name = 'spacing-filled-example'; f.w = 8; f.h = 20; f.clipsContent = true; f.fills = [{ type: 'SOLID' }]; f.constraints = mm; m.appendChild(f);
     } else {
       const f = new N('FRAME'); f.name = 'spacing-line-example'; f.w = 8; f.h = 16; f.clipsContent = false; f.fills = []; f.constraints = mm;
+      // `inflow`: a hugging auto-layout frame sized by its left padding, as the fix asks, but with its bars IN FLOW, so
+      // they add their widths to the padding's and the bracket is never the value's width.
+      if (kind === 'inflow') { f.layoutMode = 'HORIZONTAL'; f.primaryAxisSizingMode = 'AUTO'; f.counterAxisSizingMode = 'FIXED'; f.paddingLeft = 8; f.paddingRight = 0; }
       // `renamed`: the same bracket with its parts named otherwise, which the finder must not pass silently.
       const names = kind === 'renamed' ? ['cap-start', 'rule', 'cap-end'] : ['left-bar', 'horizontal-line', 'right-bar'];
       for (const [i, [w, h, x, y]] of ([[1, 16, 0, 0], [8, 1, 0, 8], [1, 16, 7, 0]] as const).entries()) {
@@ -863,7 +895,7 @@ const boundId = (paints: unknown): string | undefined => (paints as { boundVaria
  *  text needs only its box; any other text needs its words on one line. */
 const need = (n: N): number => {
   if (n.type === 'TEXT') return n.textAutoResize === 'HEIGHT' ? n.width : naturalOf(n);
-  const kids = n.children.filter((k) => k.visible !== false);
+  const kids = n.children.filter((k) => k.visible !== false && inFlow(k));
   if (n.layoutMode === 'HORIZONTAL') return padX(n) + kids.reduce((a, k) => a + need(k), 0) + Number(n.itemSpacing ?? 0) * Math.max(0, kids.length - 1);
   if (n.layoutMode === 'VERTICAL') return padX(n) + Math.max(0, ...kids.map(need));
   // A frame that clips its content needs only its own width: the radius swatch's 128px shape shows through a 32px window.
@@ -904,12 +936,16 @@ const main = async (): Promise<void> => {
     ok(win?.clipsContent === true, `1: the radius swatch's radius-example-container clips its content, so only one corner shows (clipsContent ${win?.clipsContent})`);
     ok(win?.w === 48 && win.h === 48 && shape?.parent === win && shape.w === 256 && shape.h === 96 && shape.x === 0 && shape.y === 0 && Number(shape.cornerRadius) > 0,
       `1: inside it, radius-example is 256 × 96 at 0,0 with a radius, larger than the 48 × 48 window both ways (${win?.w}×${win?.h}; ${shape?.w}×${shape?.h} at ${shape?.x},${shape?.y}, r${shape?.cornerRadius})`);
-    // The spacing members in the owner's structure: an example frame, and the bracket's three parts in the line's.
+    // The spacing members, sized by their left padding (the owner's live run of 0.205.0): each member's first child is
+    // a HORIZONTAL frame that hugs its width, paddingLeft 8 and no flow child; the line's three bars sit inside it
+    // ABSOLUTELY, constrained in the component: left-bar MIN, horizontal-line STRETCH, right-bar MAX. Literals here.
     const sp = setsNamed(s.pages, '_style-guide-spacing-cells')[0];
-    const lineEx = sp?.children.find((c) => c.name === 'display=line')?.children[0];
-    ok(sp?.children.find((c) => c.name === 'display=filled')?.children[0]?.name === 'spacing-filled-example' && lineEx?.name === 'spacing-line-example'
-      && JSON.stringify(lineEx.children.map((k) => `${k.name}@${k.x}:${k.constraints?.horizontal}`)) === JSON.stringify(['left-bar@0:MIN', 'horizontal-line@0:STRETCH', 'right-bar@7:MAX']),
-      `1: the spacing members are the owner's structure: spacing-filled-example, and spacing-line-example holding left-bar, horizontal-line and right-bar, the right bar constrained MAX and the line STRETCH (${lineEx?.children.map((k) => `${k.name}@${k.x}:${k.constraints?.horizontal}`).join(', ')})`);
+    const ex = (d: string): N | undefined => sp?.children.find((c) => c.name === `display=${d}`)?.children[0];
+    const shape1 = (f: N | undefined): string => `${f?.name}:${f?.layoutMode}:${f?.primaryAxisSizingMode}:${f?.paddingLeft}:${f?.width}`;
+    const lineEx = ex('line');
+    ok(shape1(ex('filled')) === 'spacing-filled-example:HORIZONTAL:AUTO:8:8' && shape1(lineEx) === 'spacing-line-example:HORIZONTAL:AUTO:8:8'
+      && JSON.stringify(lineEx?.children.map((k) => `${k.name}@${k.x}:${k.layoutPositioning}:${k.constraints?.horizontal}`)) === JSON.stringify(['left-bar@0:ABSOLUTE:MIN', 'horizontal-line@0:ABSOLUTE:STRETCH', 'right-bar@7:ABSOLUTE:MAX']),
+      `1: the spacing members are hug frames sized by an 8px left padding, the bracket's bars absolute and constrained MIN, STRETCH and MAX (${shape1(ex('filled'))}; ${shape1(lineEx)}; ${lineEx?.children.map((k) => `${k.name}@${k.x}:${k.layoutPositioning}:${k.constraints?.horizontal}`).join(', ')})`);
     // The diamond's box from the typings' transform (`rotation = atan2(-m10, m00)`, about the top-left corner):
     // a corner (px, py) lands at (x + px·cos θ + py·sin θ, y − px·sin θ + py·cos θ).
     const dia = sw?.children.find((c) => c.name === 'type=icon')?.findOne((k) => k.name === 'Specimen');
@@ -1790,8 +1826,16 @@ const main = async (): Promise<void> => {
     const r050 = rowOf(sg, '050');
     const cell = cellAt(sg, r050, 1);
     const bar = barIn(cell);
-    ok(cell?.mainComponent?.name === 'display=filled' && bar?.width === 4 && bar?.boundVariables.width?.id === p2Id('pds3/space/050') && cell.explicitVariableModes['VariableCollectionId:space'] === 'space:0',
-      `16: space/050 draws the filled spacing bar at 4px, its width bound to space/050 and pinned to the space mode (${cell?.mainComponent?.name}, ${bar?.width}px, bound ${bar?.boundVariables.width?.id})`);
+    ok(cell?.mainComponent?.name === 'display=filled' && bar?.width === 4 && bar?.boundVariables.paddingLeft?.id === p2Id('pds3/space/050') && cell.explicitVariableModes['VariableCollectionId:space'] === 'space:0',
+      `16: space/050 draws the filled spacing bar at 4px, its left padding bound to space/050 and pinned to the space mode (${cell?.mainComponent?.name}, ${bar?.width}px, bound ${bar?.boundVariables.paddingLeft?.id})`);
+    // LIVE: the bar follows its variable with no rerun. The first padding bind can freeze the frame at FIXED at the
+    // width it gave; the run sets HUG again after it, so a new value (dimension/4, which space/050 aliases, set to 5)
+    // reaches the bar. Restored after.
+    const d4 = p2.vars.find((v) => v.name === 'pds3/core/dimension/4')!;
+    d4.valuesByMode['core:0'] = 5;
+    const live = bar?.width;
+    d4.valuesByMode['core:0'] = 4;
+    ok(live === 5 && bar?.lsh === 'HUG', `16: the bar follows its variable live, with no rerun: dimension/4 set to 5 makes space/050's bar 5px (${live}px, ${bar?.lsh})`);
     ok(textIn(cellAt(sg, r050, 2)) === '4px · 0.25rem | ↗ | pds3/core/dimension/4', `16: its value reads px and REM at a 16px base, with its alias: "${textIn(cellAt(sg, r050, 2))}"`);
     ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px · 6rem | ↗ | pds3/core/dimension/96', `16: space/1200 reads "96px · 6rem" (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))})`);
     ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200']),
@@ -1808,7 +1852,7 @@ const main = async (): Promise<void> => {
     const [c0, c1] = [cellAt(dg, gap, 1), cellAt(dg, gap, 3)];
     ok(JSON.stringify(headerRow(dens)) === JSON.stringify(['Token', 'compact', 'Value', 'comfortable', 'Value', 'Description'])
       && c0?.explicitVariableModes['VariableCollectionId:density'] === 'density:0' && c1?.explicitVariableModes['VariableCollectionId:density'] === 'density:1'
-      && barIn(c0)?.width === 8 && barIn(c1)?.width === 12 && barIn(c0)?.boundVariables.width?.id === p2Id('density/space/gap') && barIn(c1)?.boundVariables.width?.id === p2Id('density/space/gap'),
+      && barIn(c0)?.width === 8 && barIn(c1)?.width === 12 && barIn(c0)?.boundVariables.paddingLeft?.id === p2Id('density/space/gap') && barIn(c1)?.boundVariables.paddingLeft?.id === p2Id('density/space/gap'),
       `16: a mode-varying spacing draws a bound bar per mode, pinned: compact 8px, comfortable 12px (${barIn(c0)?.width}, ${barIn(c1)?.width})`);
     ok(textIn(cellAt(dg, gap, 2)) === '8px · 0.5rem' && textIn(cellAt(dg, gap, 4)) === '12px · 0.75rem', '16: its values per mode: "8px · 0.5rem", "12px · 0.75rem"');
     // RADIUS: the swatches set's type=radius member at its fixed size, its corner bound to the variable, no ground.
@@ -2058,24 +2102,23 @@ const main = async (): Promise<void> => {
     ok(lpOpen.notes.includes('Not drawn until a later phase: 2 duration, 1 motion, 2 shadow and effect, 2 gradient, 2 paragraph spacing, 1 opacity, 1 other number or string variables'),
       `21: each is reported as not drawn until a later phase, by kind (${lpOpen.notes.join(' / ')})`);
 
-    // (2) A BAR THE HOST WILL NOT RESIZE: the run completes, and the refusal is counted and named.
+    // (2) A PADDING BIND THE HOST REFUSES, and one it accepts that the width does not follow: the run completes, and
+    // each is counted and named by table and token. (The resize this replaced is gone: a width written inside an
+    // instance is silently dropped, so the run no longer writes one.)
     const rz = await phase2File();
-    refuseResize = (n) => n.name === 'spacing-filled-example' && n.parent?.type === 'INSTANCE';
-    let threw = '';
-    let rr: StyleGuideResult | null = null;
-    try { rr = await draw(rz.api, contract, { tables: ['Space'] }); } catch (e) { threw = String(e); } finally { refuseResize = null; }
-    ok(!threw && rr?.tables.length === 1 && rr.tables[0].status === 'created' && gridOf(tableFrame(rz.sem, 'Space')!).children.length > 0,
-      `21: a bar the host will not resize does not abort the run: the Space table is drawn (${threw || rr?.tables.map((t) => t.status).join(',')})`);
-    const rs = rr ? styleGuideSummary(rr) : null;
-    ok(rr?.unbound === 18 && !!rs?.summary.includes("18 display=filled spacing specimens are not sized to their value: the host refused or ignored the resize, so they show the cell component's own width (Space: 0, 025, 050 and 15 more)") && rs?.headline === '⚠ 18 specimens unbound',
-      `21: each refused resize is counted and named, and is not a pass: ${rr?.unbound} — "${rs?.headline}"`);
+    refuseBinding = true;
+    let rr: StyleGuideResult;
+    try { rr = await draw(rz.api, contract, { tables: ['Space'] }); } finally { refuseBinding = false; }
+    const rs = styleGuideSummary(rr);
+    ok(rr.tables[0]?.status === 'created' && rr.unbound === 18 && rs.summary.includes('18 display=filled spacing specimens are not bound to their variable') && rs.headline === '⚠ 18 specimens unbound',
+      `21: a padding bind the host refuses is counted and named, and the run completes: ${rr.unbound} — "${rs.headline}"`);
     const ig = await phase2File();
-    ignoreResize = (n) => n.name === 'spacing-filled-example' && n.parent?.type === 'INSTANCE';
+    ignorePadding = (n) => n.name === 'spacing-filled-example' && insideInstance(n);
     let ri: StyleGuideResult;
-    try { ri = await draw(ig.api, contract, { tables: ['Space'] }); } finally { ignoreResize = null; }
-    // 17, not 18: space/100 is 8px, the member's own width, so its bar reads right without the resize.
-    ok(ri.unbound === 17 && ri.misses.some((m) => m.startsWith("17 display=filled spacing specimens are not sized to their value: the host refused or ignored the resize")),
-      `21: a resize the host silently ignores is read back, counted and named: ${ri.unbound} unbound`);
+    try { ri = await draw(ig.api, contract, { tables: ['Space'] }); } finally { ignorePadding = null; }
+    // 17, not 18: space/100 is 8px, the member's own padding, so its bar reads right without the bind.
+    ok(ri.unbound === 17 && ri.misses.includes("17 display=filled spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Space: 0, 025, 050 and 14 more)"),
+      `21: a padding bind the width does not follow is read back, counted and named: ${ri.unbound} unbound`);
 
     // (3) + (4) FONTS, LOADED BEFORE THEY ARE BOUND, IN THE MODE PINNED FIRST. A family that varies by mode, whose
     // default mode (product) is the SECOND column; a weight at 800 (Inter Extra Bold, which Set up file never loads);
@@ -2111,14 +2154,18 @@ const main = async (): Promise<void> => {
     // repaints a bound bar's width, replayed here, and width is in the fingerprint.
     const sp = await phase2File();
     await draw(sp.api, contract);
+    // The host follows a bound padding live, and so does the shim: moving the value moves the bar with no rerun.
     const m16 = sp.vars.find((v) => v.name === 'metrics/step/16')!;
+    const bound16 = tablesOn(sp.prim).flatMap((w) => w.findAll((k) => k.boundVariables?.paddingLeft?.id === m16.id));
+    const w16 = bound16[0]?.width;
     m16.valuesByMode['metrics:0'] = 20;
-    const repainted = tablesOn(sp.prim).flatMap((w) => w.findAll((k) => k.boundVariables?.width?.id === m16.id));
-    for (const b of repainted) b.resize(20, b.height);
-    for (let i = sp.vars.length - 1; i >= 0; i--) if (/^density\/|^metrics\/step\//.test(sp.vars[i].name)) sp.vars.splice(i, 1);
+    const repainted = bound16.filter((b) => b.width === 20 && w16 === 16);
+    // Superseded by a regrouping, which moves each table's key while its variables (and their bindings) stay: density's
+    // variables move under `dense/`, metrics' steps under `metrics/rung/`.
+    for (const v of sp.vars) { if (/^density\//.test(v.name)) v.name = v.name.replace(/^density\//, 'dense/'); if (/^metrics\/step\//.test(v.name)) v.name = v.name.replace('/step/', '/rung/'); }
     for (const st of sp.styles) st.name = `brand/${st.name}`;
     const sup = await draw(sp.api, contract);
-    ok(repainted.length === 2 && JSON.stringify([...sup.deleted].sort()) === JSON.stringify(['Style guide — Density', 'Style guide — Text styles']) && !tableFrame(sp.prim, 'Density'),
+    ok(repainted.length === 1 && JSON.stringify([...sup.deleted].sort()) === JSON.stringify(['Style guide — Density', 'Style guide — Text styles']) && !tableFrame(sp.prim, 'Density') && !!tableFrame(sp.prim, 'Dense'),
       `21: an unedited superseded dimension table and text-style table are deleted (deleted ${JSON.stringify(sup.deleted)})`);
     const tsNow = tablesOn(sp.sem).filter((w) => w.name === 'Style guide — Text styles');
     ok(tsNow.length === 1 && tsNow[0].pluginData['prism3-style-guide'] === 'typography|text-styles|brand', `21: the text styles are drawn once, under their new key (${tsNow.map((w) => w.pluginData['prism3-style-guide']).join(', ')})`);
@@ -2152,64 +2199,42 @@ const main = async (): Promise<void> => {
       return { ...s, prim };
     };
     const layer = (w: N, token: string, name: string): N | null => { const g = gridOf(w); return cellAt(g, rowOf(g, token), 1)?.findOne((k) => k.name === name) ?? null; };
-    /** The bracket in the Dimension table's row for `token`: the frame, the line and both bars, as numbers. */
+    /** The bracket in the Dimension table's row for `token`: the frame, its bound padding, the line and both bars. */
     const bracket = (w: N, token: string): string => {
       const f = layer(w, token, 'spacing-line-example');
       const part = (n: string): N | null => f?.findOne((k) => k.name === n) ?? null;
-      return JSON.stringify({ w: f?.width, bound: f?.boundVariables.width?.id === `VariableID:nbds/dimension/${token}`, line: part('horizontal-line')?.width,
-        lineBound: part('horizontal-line')?.boundVariables.width?.id === `VariableID:nbds/dimension/${token}`, left: part('left-bar')?.x, right: part('right-bar')?.x });
+      return JSON.stringify({ w: f?.width, bound: f?.boundVariables.paddingLeft?.id === `VariableID:nbds/dimension/${token}`, line: part('horizontal-line')?.width,
+        left: part('left-bar')?.x, right: part('right-bar')?.x });
     };
+    // THE OWNER'S CELLS, as measured live (fixed-width frames, bars in flow at MIN): a plugin cannot size them inside an
+    // instance. Every spacing specimen is counted, and the report says so ONCE, with what the component needs.
     const o = await ownerFile(ownerSpacingSet());
     const r = await draw(o.api, contract);
-    const dim = tableFrame(o.prim, 'Dimension')!;
-    ok(bracket(dim, '4') === JSON.stringify({ w: 4, bound: true, line: 4, lineBound: true, left: 0, right: 3 })
-      && bracket(dim, '64') === JSON.stringify({ w: 64, bound: true, line: 64, lineBound: true, left: 0, right: 63 }),
-      `22: the owner's bracket is drawn at its value: spacing-line-example and its horizontal-line 4 and 64 wide, each bound, right-bar at the right edge, 3 and 63 (${bracket(dim, '4')} ${bracket(dim, '64')})`);
-    ok(layer(dim, '64', 'right-bar')?.constraints?.horizontal === 'MAX', `22: its right edge is carried by a MAX constraint, so a changed value moves it too (${layer(dim, '64', 'right-bar')?.constraints?.horizontal})`);
-    const space = tableFrame(o.prim, 'Space')!;
-    const filled = (t: string): string => { const f = layer(space, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.width?.id === `VariableID:nbds/space/${t}`}`; };
-    ok(filled('4') === '4:true' && filled('64') === '64:true', `22: the owner's filled bar is drawn at its value and bound: 4px → 4, 64px → 64 (${filled('4')}, ${filled('64')})`);
+    const spacingLines = r.misses.filter((m) => /spacing/.test(m));
+    ok(r.unbound === 7 && styleGuideSummary(r).headline === '⚠ 7 specimens unbound' && spacingLines.length === 1
+      && spacingLines[0] === '7 spacing specimens are not sized, in 2 tables. _style-guide-spacing-cells: make spacing-line-example and spacing-filled-example hug frames sized by left padding, with the bars positioned absolutely. Figma does not let a plugin resize a layer inside an instance.',
+      `22: the owner's fixed-width cells: all 7 spacing specimens counted, and one line says what the component needs (${spacingLines.join(' / ')})`);
     const rx = tableFrame(o.prim, 'Radius') ? gridOf(tableFrame(o.prim, 'Radius')!) : null;
     const ex = rx ? cellAt(rx, rowOf(rx, 'md'), 1)?.findOne((k) => k.name === 'radius-example') : null;
     ok(['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => ex?.boundVariables[k]?.id === 'VariableID:nbds/radius/md'),
       `22: the owner's radius swatch binds all four corners of radius-example, the layer its clip shows (${Object.keys(ex?.boundVariables ?? {}).join(', ') || 'none bound'})`);
-    ok(r.unbound === 0 && styleGuideSummary(r).headline === '✓ style guide: 3 tables' && !r.misses.some((m) => /right edge/.test(m)),
-      `22: nothing unbound and no right edge named: "${styleGuideSummary(r).headline}" (${r.misses.join(' / ')})`);
 
-    // THE SAME RUN ON THE CELLS SET UP FILE BUILDS, by the real builder: the same finder, the same literal widths. Its
-    // right-bar is constrained MAX in the component, so a host that refuses the override changes nothing.
+    // THE CELLS SET UP FILE BUILDS, by the real builder: sized by their left padding at the value, the bracket's
+    // absolute bars carried by the constraints set in the component (left-bar MIN, horizontal-line STRETCH, right-bar
+    // MAX). Literal widths: 4 → 4 and 64 → 64, the line as wide, right-bar at 3 and 63.
     const ob = await ownerFile(null);
-    refuseConstraints = true;
-    let rb: StyleGuideResult;
-    try { rb = await draw(ob.api, contract); } finally { refuseConstraints = false; }
+    const rb = await draw(ob.api, contract);
     const dimB = tableFrame(ob.prim, 'Dimension')!;
     const spaceB = tableFrame(ob.prim, 'Space')!;
-    const filledB = (t: string): string => { const f = layer(spaceB, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.width?.id === `VariableID:nbds/space/${t}`}`; };
+    const filledB = (t: string): string => { const f = layer(spaceB, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.paddingLeft?.id === `VariableID:nbds/space/${t}`}`; };
     const exB = cellAt(gridOf(tableFrame(ob.prim, 'Radius')!), 1, 1)?.findOne((k) => k.name === 'radius-example');
-    ok(bracket(dimB, '4') === JSON.stringify({ w: 4, bound: true, line: 4, lineBound: true, left: 0, right: 3 })
-      && bracket(dimB, '64') === JSON.stringify({ w: 64, bound: true, line: 64, lineBound: true, left: 0, right: 63 })
-      && filledB('4') === '4:true' && filledB('64') === '64:true'
-      && ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => exB?.boundVariables[k]?.id === 'VariableID:nbds/radius/md'),
-      `22: the cells Set up file builds draw the same: the bracket 4 and 64 with right-bar at 3 and 63, the bar 4 and 64, radius-example's four corners bound (${bracket(dimB, '4')} ${bracket(dimB, '64')} ${filledB('4')} ${filledB('64')})`);
-    ok(rb.unbound === 0 && !rb.misses.some((m) => /right edge/.test(m)), `22: the built bracket's right edge needs no override, so a host that refuses one names nothing (${rb.misses.join(' / ')})`);
-
-    // A HOST THAT REFUSES THE CONSTRAINT OVERRIDE: the right bar is moved to the value instead, and the report says the
-    // edge is static. Refusing the move as well leaves the edge wrong, and that is counted, by table and token.
-    const oc = await ownerFile(ownerSpacingSet());
-    refuseConstraints = true;
-    let rc: StyleGuideResult;
-    try { rc = await draw(oc.api, contract, { types: ['dimension'] }); } finally { refuseConstraints = false; }
-    const dimC = tableFrame(oc.prim, 'Dimension')!;
-    ok(bracket(dimC, '64') === JSON.stringify({ w: 64, bound: true, line: 64, lineBound: true, left: 0, right: 63 }) && layer(dimC, '64', 'right-bar')?.constraints?.horizontal === 'MIN' && rc.unbound === 0
-      && rc.misses.includes("5 display=line brackets' right edges were placed at the value, not bound to it: the host refused a constraint on right-bar, so a changed value moves the line but not that edge until the next run (Dimension: 0, 4, 8 and 2 more)"),
-      `22: with the constraint refused, right-bar is moved to the value and the report calls the edge static (${bracket(dimC, '64')}; ${rc.misses.filter((m) => /right edge/.test(m)).join(' / ')})`);
-    const om = await ownerFile(ownerSpacingSet());
-    refuseConstraints = true; refuseMove = true;
-    let rm: StyleGuideResult;
-    try { rm = await draw(om.api, contract, { types: ['dimension'] }); } finally { refuseConstraints = false; refuseMove = false; }
-    ok(rm.unbound === 4 && rm.misses.includes('4 display=line bracket specimens are not bound at their right edge: right-bar could be neither constrained to the edge nor moved there, so the bracket shows the wrong length (Dimension: 0, 4, 64 and 1 more)')
-      && styleGuideSummary(rm).headline === '⚠ 4 specimens unbound',
-      `22: refused both, the four brackets whose edge is not already at the value are counted, by table and token, and are not a pass: ${rm.unbound} — "${styleGuideSummary(rm).headline}"`);
+    ok(bracket(dimB, '4') === JSON.stringify({ w: 4, bound: true, line: 4, left: 0, right: 3 })
+      && bracket(dimB, '64') === JSON.stringify({ w: 64, bound: true, line: 64, left: 0, right: 63 }),
+      `22: the built bracket is drawn at its value by its bound left padding: 4 and 64 wide, the line as wide, right-bar at 3 and 63 (${bracket(dimB, '4')} ${bracket(dimB, '64')})`);
+    ok(filledB('4') === '4:true' && filledB('64') === '64:true', `22: the built filled bar is drawn at its value by its bound left padding: 4px → 4, 64px → 64 (${filledB('4')}, ${filledB('64')})`);
+    ok(['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => exB?.boundVariables[k]?.id === 'VariableID:nbds/radius/md') && rb.unbound === 0
+      && styleGuideSummary(rb).headline === '✓ style guide: 3 tables',
+      `22: the built radius swatch's four corners bound, and nothing unbound: "${styleGuideSummary(rb).headline}" (${rb.misses.join(' / ')})`);
 
     // A CELL THIS BUILD CANNOT READ: never a silent pass.
     const od = await ownerFile(ownerSpacingSet('odd'));
@@ -2266,7 +2291,8 @@ const main = async (): Promise<void> => {
 
   console.log('24. the review of f3bb76cd: no silent spacing miss, one verdict per specimen, a new table that pushes its row down');
   {
-    // (3) A BRACKET WHOSE PARTS ARE NAMED OTHERWISE: its frame is sized and bound, its bracket is not, and that is counted.
+    // (3) A HUGGING BRACKET WHOSE BARS ARE IN FLOW: bound by its left padding, it is still wider than the value, and
+    // the read-back counts it, by table and token.
     const shimOwner = async (spacing: N | null): Promise<Shim & { prim: N; fc: N }> => {
       const fc = page(FC), prim = page(PRIM), sem = page(SEM), sgc = page('Style Guide Components');
       fc.appendChild(headerSet());
@@ -2277,11 +2303,11 @@ const main = async (): Promise<void> => {
       await ensureStyleGuideCells(s.api, fc);
       return { ...s, prim, fc };
     };
-    const rn = await shimOwner(ownerSpacingSet('renamed'));
+    const rn = await shimOwner(ownerSpacingSet('inflow'));
     const rr = await draw(rn.api, contract);
-    ok(rr.unbound === 5 && rr.misses.includes("5 display=line bracket specimens are not sized: the bracket's frame has layers, but none named horizontal-line and right-bar, so the bracket shows the cell component's own width (Dimension: 0, 4, 8 and 2 more)")
+    ok(rr.unbound === 5 && rr.misses.includes("5 display=line spacing specimens are not sized to their value: bound by their left padding, the layer did not take the value's width (Dimension: 0, 4, 8 and 2 more)")
       && styleGuideSummary(rr).headline === '⚠ 5 specimens unbound',
-      `24: a bracket whose parts are not named horizontal-line and right-bar is counted, by table and token, and is not a pass: ${rr.unbound} — "${styleGuideSummary(rr).headline}"`);
+      `24: a hugging bracket with its bars in flow is read back wider than its value and counted, by table and token: ${rr.unbound} — "${styleGuideSummary(rr).headline}"`);
     // (4) NO SPACING SET AT ALL (every file set up before phase 2): each spacing specimen is counted, and the run is not
     // a pass. Five brackets here.
     const ns = await shimOwner(null);
@@ -2291,16 +2317,14 @@ const main = async (): Promise<void> => {
     ok(setsNamed(ns.pages, '_style-guide-spacing-cells').length === 0 && rs.unbound === 5 && !styleGuideSummary(rs).ok && styleGuideSummary(rs).headline === '⚠ 5 specimens unbound'
       && rs.misses.includes('5 display=line spacing specimens are not drawn: this file has no _style-guide-spacing-cells set, which Set up file adds (Dimension: 0, 4, 8 and 2 more)'),
       `24: with no spacing set, every spacing specimen is counted and the run is not a pass: ${rs.unbound} — "${styleGuideSummary(rs).headline}"`);
-    // (5) ONE VERDICT PER SPECIMEN: a bracket whose frame and line both refuse the resize and the binding counts once.
-    const one = await shimOwner(ownerSpacingSet());
+    // (5) ONE VERDICT PER SPECIMEN: a bracket whose padding bind the host refuses counts once, in one report line.
+    const one = await shimOwner(null);
     refuseBinding = true;
-    ignoreResize = (n) => (n.name === 'spacing-line-example' || n.name === 'horizontal-line') && insideInstance(n);
     let ro: StyleGuideResult;
-    try { ro = await draw(one.api, contract); } finally { refuseBinding = false; ignoreResize = null; }
-    const spacingMisses = ro.misses.filter((m) => /display=line/.test(m) && !/right edges were placed/.test(m));
-    const counted = spacingMisses.reduce((a, m) => a + Number(m.split(' ')[0]), 0);
-    ok(ro.unbound === 5 && counted === 5 && spacingMisses.some((m) => m.startsWith('4 display=line spacing specimens are not sized to their value')) && spacingMisses.some((m) => m.startsWith('1 display=line spacing specimen is not bound to its variable')),
-      `24: five brackets, each refused a resize and two bindings, count once each, 5: four not sized, and the 8px one, already its value's width, not bound (${ro.unbound}; ${spacingMisses.join(' / ')})`);
+    try { ro = await draw(one.api, contract); } finally { refuseBinding = false; }
+    const spacingMisses = ro.misses.filter((m) => /display=line/.test(m));
+    ok(ro.unbound === 5 && spacingMisses.length === 1 && spacingMisses[0].startsWith('5 display=line spacing specimens are not bound to their variable'),
+      `24: five brackets whose padding bind is refused count once each, 5, in one report line (${ro.unbound}; ${spacingMisses.join(' / ')})`);
     // (2) A NEW TABLE FROM A FILTERED RUN, TALLER THAN ITS ROW, pushes the rows below it down: an 80-step collection
     // drawn alone lands at the end of the dimension row, and the font row moves to 160px below it.
     const tl = await phase2File();

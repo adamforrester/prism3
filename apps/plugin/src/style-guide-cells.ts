@@ -278,20 +278,29 @@ const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode =>
     root.name = `display=${display}`;
     autoLayout(root, { dir: 'HORIZONTAL', padding: 12, counterAlign: 'CENTER' });
     root.fills = [];
-    // THE OWNER'S STRUCTURE (measured live, 2026-09-29): the member's first child is a frame named
-    // `spacing-<display>-example`, 8px wide, which the table resizes and binds to the value. The bracket is three
-    // layers inside it, `left-bar`, `horizontal-line` and `right-bar`. The owner's are all constrained MIN; this set
-    // constrains the right bar MAX and the line STRETCH, so a resized or rebound frame carries them in any host.
+    // SIZED BY ITS LEFT PADDING (the owner's live run of 0.205.0, measured in the plugin runtime, 2026-09-29): Figma
+    // silently drops a width written to a layer inside an instance (`resize`, `resizeWithoutConstraints`, a bound
+    // `width`), but keeps a bound `paddingLeft`. So the member's first child, `spacing-<display>-example`, is a
+    // HORIZONTAL auto-layout frame that hugs its width (no flow children, paddingLeft 8 here, every other padding 0)
+    // at a fixed height, and the table binds its paddingLeft to the value. The bracket's three bars sit inside it
+    // ABSOLUTELY, their constraints set here in the component (left-bar MIN, horizontal-line STRETCH, right-bar MAX),
+    // so a frame the padding widens carries them with no per-instance override. The names are the owner's.
     const bar = box(api, `spacing-${display}-example`, 8, display === 'filled' ? 20 : 16);
+    bar.layoutMode = 'HORIZONTAL';
+    bar.primaryAxisSizingMode = 'AUTO';
+    bar.counterAxisSizingMode = 'FIXED';
+    bar.paddingLeft = 8; bar.paddingRight = 0; bar.paddingTop = 0; bar.paddingBottom = 0;
     bar.clipsContent = display === 'filled';
     if (display === 'filled') bar.fills = solid('#F4A7A7');
     else {
       const part = (name: string, w: number, h: number, x: number, y: number, horizontal: string): void => {
         const p = box(api, name, w, h);
         p.fills = solid('#D14343');
+        bar.appendChild?.(p);
+        // Absolute only once inside the auto-layout frame, which the host requires; then placed and constrained.
+        p.layoutPositioning = 'ABSOLUTE';
         p.x = x; p.y = y;
         p.constraints = { horizontal, vertical: 'MIN' };
-        bar.appendChild?.(p);
       };
       part('left-bar', 1, 16, 0, 0, 'MIN');
       part('horizontal-line', 8, 1, 0, 8, 'STRETCH');

@@ -1342,7 +1342,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   //   • A PRIMITIVE (palette) row has no ground: nothing is measured against one, so the swatch is the cell itself.
   const unboundIn = new Map<string, number>();
   // PHASE-2 MISSES, each by what it is and WHERE: the table and the token, per specimen (a mode-varying row counts
-  // once a mode). Every one but `staticEdge` counts as unbound, so the run is not a pass (the live finding on
+  // once a mode). Every one counts as unbound, so the run is not a pass (the live finding on
   // 4faeb98a: the owner's line cells drew one 8px bracket for all 41 rows and the run read "unbound: 0").
   const missAt = (m: Map<string, string[]>, what: string, where: string): void => { if (!m.has(what)) m.set(what, []); m.get(what)!.push(where); };
   /** Specimens the host would not bind, by what they are ("type=radius", "font size"). */
@@ -1353,12 +1353,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const noLayer = new Map<string, string[]>();
   /** Spacing specimens not drawn at all: the file has no `_style-guide-spacing-cells` set. */
   const noSet = new Map<string, string[]>();
-  /** Brackets whose frame holds layers, but none named `horizontal-line` and `right-bar`. */
-  const noParts = new Map<string, string[]>();
-  /** Brackets whose right edge could be neither carried by a constraint nor moved to the value. */
-  const noEdge = new Map<string, string[]>();
-  /** Brackets whose right edge was MOVED to the value, not carried by a constraint: correct now, static until a rerun. */
-  const staticEdge = new Map<string, string[]>();
+  /** Spacing specimens whose sized layer is a fixed-width frame, by that layer's name: unsizable in an instance. */
+  const fixedLayer = new Map<string, string[]>();
   /** Bind `field` on `node` to the variable; false where there is no node or variable, or the host refuses. */
   const bindTo = (node: SgNode | null | undefined, field: string, variable: unknown): boolean => {
     if (!node?.setBoundVariable || !variable) return false;
@@ -1556,8 +1552,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     /**
      * A PHASE-2 SPECIMEN (#259), bound to the row's variable and pinned to its column's mode, as a color swatch is:
      *   • spacing: a `_style-guide-spacing-cells` member (`filled` for a spacing, `line` for a size or scale) whose sized
-     *     layer (`spacingLayer`) is the value's width, the width bound (`setBoundVariable('width')`); a bracket's
-     *     `horizontal-line` is bound the same way and its `right-bar` carried to the right edge;
+     *     layer (`spacingLayer`) is the value's width by its bound `paddingLeft`, the one width the host lets a plugin
+     *     set inside an instance; a bracket's bars, absolute and constrained in the component, follow it;
      *   • radius: the swatches set's `type=radius` member at its fixed size, its four corners bound;
      *   • font: "Abc 123" in a text cell with the one property bound (a family or weight first loads that font);
      *   • style: "Abc 123" in a text cell with the text style applied (`setTextStyleIdAsync`).
@@ -1579,57 +1575,32 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         const member = String(v.name);
         const bar = spacingLayer(inst);
         pin(inst);
+        // Fitted FIRST, so the HUG the recipe below sets after the bind is the last word on the frame's sizing, and the
+        // read-back sees what the canvas will.
+        fit(inst);
         // ONE VERDICT PER SPECIMEN (review of f3bb76cd): the first thing wrong with it, in this order, counted once.
         let fail: [Map<string, string[]>, string] | null = null;
         const failAs = (m: Map<string, string[]>, what: string): void => { if (!fail) fail = [m, what]; };
         if (!bar) {
           // NO SILENT MISS: a member this build cannot read draws at the component's own width, and says so.
           failAs(noLayer, member);
+        } else if (!AUTO_LAYOUT.has(String(bar.layoutMode))) {
+          // A FIXED-WIDTH LAYER CANNOT BE SIZED IN AN INSTANCE (the owner's live run of 0.205.0): the host silently
+          // drops every width written to a layer inside an instance. Named once for the whole run, with the fix.
+          failAs(fixedLayer, String(bar.name));
         } else {
-          const w = Math.max(0.01, typeof cell.num === 'number' ? cell.num : num(bar.width));
-          // GUARDED LIKE THE BIND (review of `4faeb98a`): a host that refuses to resize a layer inside an instance
-          // would otherwise abort the whole run on the first spacing row. Read back, so a resize the host IGNORES is
-          // caught as surely as one it refuses.
-          const resize = (n: SgNode): boolean => { try { n.resize?.(w, num(n.height)); } catch { return false; } return near(num(n.width), w); };
-          // THE OWNER'S BRACKET (live, 2026-09-29): `spacing-line-example` holds `left-bar`, `horizontal-line` and
-          // `right-bar`, every one constrained MIN, so resizing the frame alone left the bracket at 8px. The line is
-          // bound like the frame, and the right bar is carried to the right edge: a MAX constraint set BEFORE the
-          // resize carries it now and on every later value; where the host refuses that override, it is moved to
-          // the value (static until a rerun, and named); where it cannot be moved either, it is counted.
-          const line = byLayerName(bar, 'horizontal-line');
-          const right = byLayerName(bar, 'right-bar');
-          // A bracket frame WITH layers, but not ones named horizontal-line and right-bar, would be sized while its
-          // bracket stays at the component's width: counted, never a silent pass (review of f3bb76cd). A frame with
-          // no layers (an earlier build's `Bar`, drawn with its own strokes) needs none.
-          if (spec.member === 'line' && (bar.children ?? []).length > 0 && (!line || !right)) failAs(noParts, member);
-          let carried = false;
-          if (right) {
-            const cur = (right.constraints ?? {}) as { horizontal?: unknown; vertical?: unknown };
-            // The set Set up file builds constrains it MAX in the component, so there is nothing to override.
-            if (cur.horizontal === 'MAX') carried = true;
-            else {
-              try {
-                right.constraints = { horizontal: 'MAX', vertical: cur.vertical ?? 'MIN' };
-                carried = (right.constraints as { horizontal?: unknown } | undefined)?.horizontal === 'MAX';
-              } catch { carried = false; }
-            }
-          }
-          const sized = [bar, ...(line ? [line] : [])].map(resize).every(Boolean);
-          const bound = [bar, ...(line ? [line] : [])].map((n) => bindTo(n, 'width', variable)).every(Boolean);
-          if (!sized) failAs(unsized, member);
+          // SIZED BY ITS LEFT PADDING, the one width a plugin can set on a layer inside an instance (measured live,
+          // 2026-09-29): HUG, bind paddingLeft, then HUG AGAIN, because the first padding bind can freeze the frame at
+          // FIXED, and a frozen frame no longer follows its variable. Then read back: the width must be the value.
+          for (const k of ['paddingRight', 'paddingTop', 'paddingBottom'] as const) { try { bar[k] = 0; } catch { /* an override the host refuses shows in the read-back */ } }
+          sizing(bar, 'HUG');
+          const bound = bindTo(bar, 'paddingLeft', variable);
+          sizing(bar, 'HUG');
+          const want = Math.max(0, typeof cell.num === 'number' ? cell.num : 0);
           if (!bound) failAs(unboundSpec, `${member} spacing`);
-          if (right) {
-            const edge = num(bar.width) - num(right.width);
-            if (!near(num(right.x), edge)) {
-              carried = false;
-              try { right.x = edge; } catch { /* named below */ }
-            }
-            if (!near(num(right.x), edge)) failAs(noEdge, member);
-            else if (!carried && !fail) missAt(staticEdge, member, where);
-          }
+          else if (!near(num(bar.width), want)) failAs(unsized, member);
         }
         if (fail) missAt(fail[0], fail[1], where);
-        fit(inst);
         place(inst, r, c);
         return;
       }
@@ -1921,16 +1892,22 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   }
 
   const count = (...ms: Map<string, string[]>[]): number => ms.flatMap((m) => [...m.values()]).reduce((a, w) => a + w.length, 0);
-  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noEdge, noSet, noParts);
+  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noSet, fixedLayer);
   const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
   for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what === 'text-style' ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
-  for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not sized to ${plural(n, 'its', 'their')} value: the host refused or ignored the resize, so ${plural(n, 'it shows', 'they show')} the cell component's own width (${placesOf(ws)})`); }
+  for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not sized to ${plural(n, 'its', 'their')} value: bound by ${plural(n, 'its', 'their')} left padding, the layer did not take the value's width (${placesOf(ws)})`); }
+  // THE OWNER'S FIXED-WIDTH CELLS: said ONCE for the run, in the terms of the fix, not once per specimen.
+  if (fixedLayer.size) {
+    const all = [...fixedLayer.values()].flat();
+    const tables = new Set(all.map((w) => w.split('\u241f')[0])).size;
+    const layers = [...fixedLayer.keys()];
+    const named = layers.length > 1 ? `${layers.slice(0, -1).join(', ')} and ${layers[layers.length - 1]}` : layers[0];
+    const fix = layers.length > 1 ? `make ${named} hug frames sized by left padding, with the bars positioned absolutely` : `make ${named} a hug frame sized by left padding, with any bars positioned absolutely`;
+    misses.push(`${all.length} spacing specimen${plural(all.length, ' is', 's are')} not sized, in ${tables} table${plural(tables, '', 's')}. ${SPACING_CELL_SET}: ${fix}. Figma does not let a plugin resize a layer inside an instance.`);
+  }
   for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
-  for (const [what, ws] of noParts) { const n = ws.length; misses.push(`${n} ${what} bracket specimen${plural(n, ' is', 's are')} not sized: the bracket's frame has layers, but none named horizontal-line and right-bar, so the bracket shows the cell component's own width (${placesOf(ws)})`); }
   for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
-  for (const [what, ws] of noEdge) { const n = ws.length; misses.push(`${n} ${what} bracket specimen${plural(n, ' is', 's are')} not bound at ${plural(n, 'its', 'their')} right edge: right-bar could be neither constrained to the edge nor moved there, so the bracket shows the wrong length (${placesOf(ws)})`); }
-  for (const [what, ws] of staticEdge) { const n = ws.length; misses.push(`${n} ${what} bracket${plural(n, "'s right edge was", "s' right edges were")} placed at the value, not bound to it: the host refused a constraint on right-bar, so a changed value moves the line but not that edge until the next run (${placesOf(ws)})`); }
   return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched };
 };
 
