@@ -482,10 +482,16 @@ export const FIELDS: Record<string, FieldCheck> = {
   // COMPONENT_SET for a variant. The owner is the set when there is one and the component itself when it is
   // plain, and it must EQUAL the plan's `nestTarget` — exact, so `__old__checkbox-row` is not `checkbox-row`.
   // A host that cannot name the main component fails too: an instance whose source is unreadable is not
-  // evidence the nest landed. On a live host under `documentAccess: dynamic-page` the sync getter is
-  // unavailable, so a real-host arm resolves it with `getMainComponentAsync` before handing the tree here.
+  // evidence the nest landed.
+  //
+  // ONLY THE OFFLINE SHIM FEEDS THIS TODAY. `test-roundtrip.ts` is the one consumer, and the shim sets
+  // `mainComponent` as a plain property. No real-host read-back arm exists yet. Under the plugin's
+  // `documentAccess: dynamic-page` the sync `mainComponent` getter is unavailable, so a live arm that handed
+  // raw nodes to this reader would fail EVERY nest with "cannot name". Whoever builds that arm must first
+  // resolve each instance with `getMainComponentAsync` and set the result where this predicate reads it.
   nestTarget: {
-    show: (p) => `an instance of a member of ${String(p)}`,
+    // True for both owners the check accepts: the plain component of that name, or a member of the set.
+    show: (p) => `an instance of ${String(p)} (the component of that name, or a member of the set of that name)`,
     check: (p, n) => {
       if (String(n.type ?? '') !== 'INSTANCE') return `${str(n.type)} — not an instance`;
       const main = n.mainComponent as { name?: unknown; parent?: { name?: unknown; type?: unknown } | null } | null | undefined;

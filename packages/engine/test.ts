@@ -16537,6 +16537,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         const ambMiss = amb.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
         ok(ambMiss.length > 0 && ambMiss.every((m) => m.includes('found 2 COMPONENT_SETs named checkbox-row') && m.includes('nothing built')),
           `#1781 paste path: two sets named exactly checkbox-row are reported by name and nothing is picked (${ambMiss[0] ?? JSON.stringify(amb.misses.slice(0, 2))})`);
+        // MISSING on the paste path: `checkbox-row` is gone and only `__old__checkbox-row` remains. The renamed
+        // copy does not stand in; the four-way diagnosis names the target as absent, and no row is built from
+        // the old set. Mirrors the plugin arm `#1781 with checkbox-row missing …`.
+        const gonePage: StubPage = { children: [] };
+        const gone = await runPayload(planToPluginJs(grpPlan), {
+          vars: [...planBoundVars(grpPlan.root), ...planPaintVars(grpPlan.root)], styles: planTextStyles(grpPlan.root),
+          comps: ['FPO-default-icon'], fileNodes: nestFile.filter((f) => f.name !== 'checkbox-row'), page: gonePage,
+        });
+        const goneMiss = gone.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+        const fromOld: string[] = [];
+        const walkOld = (n: Record<string, unknown>): void => {
+          const main = (n as { mainComponent?: { parent?: { name?: string } } }).mainComponent;
+          if (n.type === 'INSTANCE' && main?.parent?.name === '__old__checkbox-row') fromOld.push(String(n.name));
+          for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walkOld(c);
+        };
+        for (const c of gonePage.children) walkOld(c);
+        ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && fromOld.length === 0,
+          `#1781 paste path: with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${fromOld.length} rows from __old__; ${goneMiss[0] ?? JSON.stringify(gone.misses.slice(0, 2))})`);
       }
 
       // ---- #682: the payload's unlock is exercised, not just grepped ----------------------------
