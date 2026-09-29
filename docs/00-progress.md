@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-09-29) — Rendered contrast: no opacity carve-out, real bars for the popover and form controls, and a legibility pass over the plugin bundle (#1069, #779, #1041)
+
+Gate-integrity work on the two browser suites that measure what renders. No engine or UI code changed, so there is no version bump: `ENGINE_VERSION` and `CONTRACT_VERSION` stand.
+
+**#1069 — the `op < 0.02` carve-out is gone.** `LEGIBILITY_PROBE`'s `drawn()` dropped any node whose opacity chain multiplied out under 0.02, "presumed mid-transition". The presumption had no referent. `styles.css` transitions no opacity at all, and a census over the whole sweep (every page × mode × brand, before and after animations settle) found no text node under 0.5. What the carve-out did do was excuse #1069's mutation, every nav label at `opacity: .011`. Now every laid-out node is measured, and a near-invisible one composites to ~1:1 and fails. The "mid-transition" case is handled by waiting instead of presuming: `settle()` resolves once every finite running animation has finished (a real condition, in keeping with the file's no-sleeps rule; the Motion page's eight one-shot trace animations are the only ones in the sweep). Rows now carry `op`, so a failure says whether a low ratio was faded or mis-inked.
+
+**#779 — the split reaches the two arms #1653 left on the 2.0 floor.** #1653 held the sweep's chrome text to WCAG 1.4.3. The form-control walk and the brand-menu popover arm stayed on the "invisible" floor, which is the shape-14 fix applied in one place and left standing in its siblings. Field values now take `barOf` by their own size and weight. The caret takes 1.4.11's 3:1. Specimens stay at 2.0.
+- The field walk caught nothing: the lowest chrome field is 10.77:1, now printed every run.
+- **The popover caught one real node.** `span.mctx-always` "always", in the brand menu's locked Light row, renders at **2.95:1** in every brand and both schemes. It is a legal `--faint` (5.13:1) faded through `.mctx-opt.fixed{opacity:.72}`, which is `.mo-playnote`'s shape exactly. Every fix is a visual or policy choice, so it is filed as **#1770** with the options measured, not tuned away.
+- The node is held as a `KNOWN_FINDINGS` entry under three rules. It is still judged at 2.0, so no looser than before. It is matched by class and text. And an arm requires it to still reproduce: it fails when the node is never seen, and it fails when every sighting clears the real bar. So the entry has to leave in the PR that fixes the row.
+- The one decision #779 still carried is which contract each unpaired specimen is held to. It moved to **#1774**, so #779 can close on the mechanical work.
+
+**#1041 — `test-start-screen.mjs` §8 measures `apps/plugin/dist/ui.html`.** It is a second subject in the harness that already boots the panel at the host's sizes. Those sizes are read from `src/main.ts`, not restated. There are two arms, split the way #1046 settled by mutation:
+- **Direct.** The shell's resolved `color-scheme` must not name `dark`. This is the arm that fails if `light dark` comes back.
+- **Ratio.** Every text node and form control at the smoke suite's bars. It covers both emulated schemes crossed with Figma's light and dark themes, at the default size on every rail page this host offers (the plugin-only Components page included, asserted by name) plus the brand menu, and at `MIN_SIZE` on the start screen and the editor.
+- **The Figma theme is stubbed in the SERVED document**, as Figma injects it: the `figma-dark` class on `<html>` and the `--figma-color-*` values. The first draft used `addInitScript`, which runs before `<html>` exists. It threw on every boot, and the stub silently did not apply. An arm now reads the class and `--figma-color-bg` back from the rendered page.
+- **The inline-ink marker audit is scoped to `#app`.** The plugin entry mounts one piece of chrome beside the shared UI, the Agent link chip, and it is inked inline by the owner's design. It is still held to the chrome bar (15.3:1).
+- The probe is a second copy of the studio's, deliberately. `test-smoke.mjs` runs on import and cannot export it, and extracting a shared module would restructure the studio's gate from a plugin lane. The header says the two must agree, and neither carries the carve-out.
+
+**#812 — held.** The Overlay wash specimen paints `text.rest` on the hover wash. The Button def binds `text.hover` there, and the overlay role's own contract is `text.primary`. So the badge's number depends on which pair the row previews, and that is a visible choice. All three options are measured on #812 across prism3 / aurora / harbor / the nb fixture × light and dark (plus HC):
+- A: the role's contract, 12.80–15.51, all pass. It would put a ✓ beside a 3.6:1 specimen.
+- B: the drawn pair, 3.64–4.48 on primary in light and dark, failing.
+- C: the shipped pair, 5.35 or higher, all pass. It requires repainting the specimen.
+The NB master theme is `solid-tint`, so the row does not render for it.
+
+**Mutations** (each run on a committed tree and restored from HEAD by a trap, with the diff asserted non-empty and the shell mutations checked in the built `dist/ui.html`):
+- M1, `.stage-t b{opacity:.011}` (#1069's replay): studio `…every one of N chrome text nodes meets WCAG 1.4.3 — b.- "Palettes" at 1.02:1 (13.5px/600, op 0.01, needs 4.5:1)` and `…clears 2:1` in all 108 states. Plugin `…every one of N text nodes meets its bar` on every rail page.
+- M1c, the same with the carve-out restored: studio **green, 2532 assertions**. That proves the carve-out's removal is why M1 fires (docs/34 shape 19's necessity check).
+- M2, the studio probe's selector matching nothing: `the contrast probe measured 0 text nodes (floor 20)` per state, `the sweep measured 0 text nodes in total (floor 8000)`, `measured 0 text node(s) inside the popover (floor 6)`, and the known-finding arm `NEVER SEEN`.
+- M2p, the same in the plugin copy: `measured 0 text nodes (floor 10)` ×56, `measured 0 text nodes across the panel sweep (floor 2000)`, and `known finding #1770 … NEVER SEEN`.
+- M3, the brand menu's Name field inked at `#949494`: studio popover arm `input.bm-in … at 2.73:1 … needs 4.5:1` in all six brand × scheme cells, and the plugin brand-menu field arm in all four scheme × theme cells. 2.73 clears the old 2.0 floor, so it was green before. Its first studio run crashed in §2 (the Export click timed out at load average ~9 with other lanes running); the rerun was clean.
+- M4, `color-scheme: light dark` restored in `src/ui/index.html`: plugin `the shell resolves a light-only color-scheme ("light dark")` on all 56 measurements.
+- M5, M4 plus `.brandmenu .bm-in{color:revert!important}`: M4's 56, plus the dark-scheme brand-menu field arm at **1.11:1**, #1031's own number.
+- M6, `.mctx-opt.fixed{opacity:1}` (fixing #1770): `known finding #1770 … now CLEAR the bar (… 5.13:1): the defect is fixed, delete the entry` in both suites.
+- M7, the Figma stub not served: `the panel carries Figma's dark theme (class "", --figma-color-bg unset)` in all four combinations.
+
+**Not done here:** the specimen contract map (#1774). The plugin pass sweeps each rail page in the brand's first mode only. The studio sweep covers every mode of the shared pages, but the Components page in any other mode is measured by nothing.
+
+### Round 2 — owner decisions on #812 and #1770, and the independent review
+
+**#812, option C (owner-decided).** The Overlay wash specimen now inks `interactive.<c>.text.hover`, the pair the Button binds (`outline.label.hover` over `outline.overlay.hover`). A held press swaps the ink to `text.pressed` on the pressed wash, the Button's pressed pair; `exOutline` gained a `pressedInk` option for it. The row carries a receipt like its siblings: the hover ink on the hover wash, composited over the ground the wash declares and held to `text.hover`'s own `min`. The wash role's own `ratio` rates `text.primary` (its `legibleFor`), so it is deliberately not what the receipt shows. Across the corpus the badge reads 5.35:1 or higher. Smoke §2a-ii gains three arms per row, in both customizable modes. The oracle is the committed emission's `text.hover` hex and `min`, and the actual is the ink and wash the specimen renders, composited in Node:
+- the ink is the emitted hover ink;
+- the badge's printed ratio equals the rendered ratio;
+- the rendered pair clears `text.hover`'s contract.
+
+**#1770 (owner-decided): locked, not faded.** `.mctx-opt.fixed` loses its `opacity: .72`. A 13px lock glyph (`ICON_PATH.lock`, `role="img"`, `aria-label="Locked"`) marks the row, and the row's title still carries the reason. "always" keeps `--faint` at full strength, 5.13:1 on the popover. I read "full ink" as unfaded, not re-inked to `--ink2`; the glyph now carries the lock. The #1770 exception is deleted from both suites. The node is held to the chrome bar like everything else, and smoke §4 asserts both that the locked row's "always" was measured and that the glyph has an accessible name. The brand menu is shared, so the plugin bundle carries the same change.
+
+**No `ENGINE_VERSION` bump, deliberately.** version.ts defines the engine surface as the emitted trees plus the projected component surface. Both changes are studio UI, which ships in the web and plugin bundles, not in either surface. `regen --check`, `lint-emission-version` and `lint-component-surface` agree.
+
+**Review of 91c806d2, folded in:**
+- **BLOCKING — the probes skipped any color they could not parse.** `parse()` read only `rgb[a]()`. Chrome serializes a `color-mix()` in sRGB as `color(srgb …)` and `oklch()` in its own notation, so `if (!col) continue` dropped the node uncounted, #1069 by another route. The reviewer's `color-mix` ink on the nav labels left both suites green with 10 labels gone from the count. Both copies now parse `color(srgb r g b / a)` and convert anything else through the browser itself (relative color syntax on a scratch node). A color that still cannot be read is recorded and FAILS by name, counted and printed as "Unparsed colors: N".
+- It was also wrong on the GROUND: `styles.css` sets `--ok-tint` / `--danger-tint` with `color-mix`, so every `.cbadge` and `.genview-chip.ok` background had been skipped in `groundOf` and its text composited against the wrong layer. The sweep's old lowest chrome node, `span.cb-mark` "✓" at 4.53:1, was that miscompositing. Measured correctly, the lowest is `div.sg-callout` at 4.54:1.
+- **SHOULD-FIX — `settle()` had no cap.** A 1000s transition hung §8 silently, and CI sets no timeout. The wait now races a 5s cap (`SETTLE_CAP_MS`, far above the studio's longest animation, the Motion page's 1.2s trace), and a tripped cap fails naming the animation and its target.
+- **NIT — a caret-only failure named the 4.5:1 text bar.** The plugin message now names both bars.
+- **NIT — `caret-color: transparent` read as "no caret".** On an editable field (not read-only, not disabled, not a `<select>`) it is an invisible caret. It is now measured as the ground against itself, 1:1, and fails the 3:1 caret bar.
+
+**Round-2 mutations** (restored from HEAD by a trap, with the diff asserted non-empty):
+- N1, the fade restored on the locked row: studio popover arm `span.mctx-always "always" at 2.95:1 (10px/400, op 0.72, needs 4.5:1)` ×6; plugin brand-menu text arm ×4.
+- N2, the specimen back to `text.rest`: studio `the specimen inks the Button's hover pair — #e0695e, emitted … text.hover #e69086`, `the specimen carries a contrast receipt for the pair on screen — badge 5.35:1, rendered 3.83:1`, and `the hover pair clears text.hover's own contract — 3.83:1 against 4.5:1`. Plugin §8 does not check the pairing, only legibility, so it stays green.
+- N3, the review's `color-mix(in srgb,#000 6%,#fff)` ink on `.stage-t b, .bm-item`: studio chrome and floor arms at 1.03:1 in every state plus the popover arm; plugin text arm on every rail page.
+- N3b, N3 with both parsers put back to `rgb()`-only: `every computed color the probe met was parsed — N not: b.- color "color(srgb …)"` in both suites. Without the unparsed arm, that run is the review's green.
+- N4, `animation: rvw 1000s` on the nav subtitles: `every finite animation settles within 5000ms before measuring — still running: rvw on small.-` in both suites.
+- N5, `caret-color: transparent` on the brand menu's fields: the caret arm at 1:1 against 3:1, in both suites.
+
+---
+
 ## (2026-09-29) — Badge's neutral pairs are mode contracts, not example-brand measurements (#1745)
 
 **The gap.** Badge's accessibility lines rest on three neutral pairs, and `test.ts` measured each only in the five example brands. The engine contracted none of them: `border.secondary` carried `min: 0`, `inverse.foreground.tertiary` was a `self` surface, and `inverse.text.primary` is contracted against the inverse BAND, not the band's third step that Badge paints its bold neutral with. A client brand got no check. ENGINE 0.197.0 → **0.198.0** (MINOR; renumbered at net after #1749 took 0.197.0). CONTRACT stands at 13.2.0 (no token name moves).
