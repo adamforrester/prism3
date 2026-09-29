@@ -4302,4 +4302,33 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
 }
 
+// =============================================================================================
+// TAG'S MINIMUM WIDTH = ITS HEIGHT (owner decision D, 2026-09-28): A ONE-LETTER TAG IS SQUARE
+// =============================================================================================
+// The container binds `minWidth` to its own height rung (`minWidthKey` → `size.{size}.height`). Built through the
+// REAL executor into the shim with `layoutModel`, at the NB px for the medium rungs (`varPx`: the synthetic hash
+// puts the height at 8px, below any content, so the floor would never bind). A one-letter label measures 6px in
+// the shim, so the label row is 16 + 6 + 16 = 38px, under the 44px height: the member is 44 wide only because the
+// bound floor holds it there. EXPECTED is the literal 44 on both axes. Mutation by name: zero the shim's
+// `boundFloor`, or drop `minWidthKey` from the def, and `tag min width` fails (the member measures 38 wide).
+{
+  const NB_MD = { 'size/md/height': 44, 'size/md/padding-x': 16, 'size/md/gap': 8, 'icon/size/md': 24 };
+  const base = componentDefs.find((d) => d.id === 'tag')!;
+  const oneLetter: ComponentDef = { ...base, figmaProperties: { ...base.figmaProperties!, texts: { label: { part: 'label', default: 'T' } } } };
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const plans = [...project(oneLetter), ...project(componentDefs.find((d) => d.id === 'focus-ring')!)];
+  const f = fullFor(plans);
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, varPx: NB_MD });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(oneLetter, { defs: componentDefs, project, host: shim as any, build });
+  const r = await build(oneLetter);
+  const set = page.children.find((c) => c.name === 'tag' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const member = ((set?.children as Node[] | undefined) ?? []).find((m) => m.name === 'type=select, selection=unselected, size=medium, state=rest');
+  const row = ((member?.children as Node[] | undefined) ?? []).find((c) => c.name === 'content');
+  const label = ((row?.children as Node[] | undefined) ?? []).find((c) => c.name === 'label');
+  ok(r.misses.length === 0 && label?.characters === 'T' && (row?.width as number) === 38 && (member?.width as number) === 44 && (member?.height as number) === 44,
+    `tag min width: a one-letter medium tag is as wide as it is tall, 44 × 44, held by the bound minimum width over a 38px label row (member ${String(member?.width)} × ${String(member?.height)}, row ${String(row?.width)}, label '${String(label?.characters)}'; ${r.misses[0] ?? '0 misses'})`);
+}
+
 if (failed) process.exit(1);

@@ -874,6 +874,12 @@ npx tsx packages/engine/lint-hit-target.ts          # every interactive control 
                                                     # spacious regression) and both exceptions asserted
                                                     # actually below the floor (a lift fails by name).
                                                     # Every def is represented (measured or excluded).
+                                                    # Targets INSIDE a control too (#1741): each
+                                                    # INNER_TARGETS part (Tag's × slot) is measured at
+                                                    # the floor through its own `size` binding, and a
+                                                    # nested interactive control not listed there fails.
+                                                    # The def marks such a part `innerTarget`, and the
+                                                    # marks and the list are compared both ways.
 npx tsx packages/engine/lint-lever-sweep.ts         # no lever setting silently deletes a guaranteed
                                                     # path or a component binding (#957). Sweeps every
                                                     # toggle + enum option, ONE AT A TIME, over minimal +
@@ -1005,8 +1011,16 @@ npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+
                                         # that is the one a too-eager trigger breaks. Written
                                         # positively (the editor rendered, the brand chip names the
                                         # restored brand) so "nothing rendered at all" cannot pass as
-                                        # "hydrated". Needs the same one-off `npx playwright install
-                                        # chromium` as test:smoke
+                                        # "hydrated". ALSO the plugin bundle's RENDERED-LEGIBILITY pass
+                                        # (§8, #1041) — the only gate that measures dist/ui.html: the
+                                        # shell's resolved color-scheme must not name dark (the arm that
+                                        # fails if #1031's `light dark` opt-in returns), and every text
+                                        # node and form control at the bars test:smoke holds the web
+                                        # bundle to, in both emulated schemes × Figma's stubbed light
+                                        # and dark themes, on every rail page this host offers (the
+                                        # plugin-only Components page included) and the brand menu.
+                                        # Needs the same one-off `npx playwright install chromium` as
+                                        # test:smoke
 npm run test:roundtrip -w @prism3/plugin # THE COMPONENT ROUND-TRIP (#874): build every projected def,
                                         # read the result back out of the host, diff it against the
                                         # plan that built it. docs/14 §4 specified this on 2026-07-03

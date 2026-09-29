@@ -1,5 +1,5 @@
 {
-  "$schema": "prism3-ai-metadata/0.3",
+  "$schema": "prism3-ai-metadata/0.4",
   "brand": "prism3",
   "generated": true,
   "note": "Agent-readable metadata, companion to prism3.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
@@ -6527,6 +6527,34 @@
           "ratio": 5.04,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
+      ]
+    },
+    "interactive.primary.subtle-fill.selected": {
+      "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The primary selected tint: the primary fill at a set opacity, laid over `background.primary`, behind a control the user selects in place (a select tag) or an outline or text primary control in its selected state. The label keeps the control's own ink; the recorded ratio is `interactive.primary.text.pressed` on the tint.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`) or for another intent (use `interactive.neutral.*` or `interactive.destructive.*`).",
+      "mode_overrides": {
+        "light": {
+          "color": "{pds3.color.interactive.primary.fill.rest}",
+          "opacity": "{pds3.opacity.30}"
+        },
+        "dark": {
+          "color": "{pds3.color.interactive.primary.fill.rest}",
+          "opacity": "{pds3.opacity.30}"
+        },
+        "hc-light": {
+          "color": "{pds3.color.interactive.primary.fill.rest}",
+          "opacity": "{pds3.opacity.30}"
+        },
+        "hc-dark": {
+          "color": "{pds3.color.interactive.primary.fill.rest}",
+          "opacity": "{pds3.opacity.30}"
+        }
+      },
+      "tracks": [
+        "interactive.primary.fill.rest",
+        "interactive.primary.text.pressed"
       ]
     }
   },

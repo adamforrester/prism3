@@ -871,7 +871,10 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mctx-box{width:16px;height:16px;flex:none;border:1px solid var(--line2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
 .mctx-opt.on .mctx-box{background:var(--ink);border-color:var(--ink)}
 /* #57 — Light row is locked (base mode): muted, grayed check, no hover — reads as non-interactive. */
-.mctx-opt.fixed{cursor:default;opacity:.72}
+/* #1770 — locked, not faded: the lock glyph says so, and the row's text keeps its full ink (a .72 fade took
+   `--faint` "always" from 5.13:1 to 2.95:1). */
+.mctx-opt.fixed{cursor:default}
+.mctx-lock{width:13px;height:13px;flex:none}
 .mctx-opt.fixed:hover{background:none}
 .mctx-opt.fixed .mctx-box{background:var(--muted);border-color:var(--muted)}
 .mctx-always{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--faint)}

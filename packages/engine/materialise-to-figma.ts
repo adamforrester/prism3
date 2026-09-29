@@ -450,7 +450,10 @@ export const aliasRows = (brand: string): { modes: string[]; rows: AliasRow[] } 
 /** The `color-aliases` payload for a plan. Exported so the suite can drive a plan no committed brand
  *  emits (no brand sets `solid-tint`, #1112) through the SAME string the CLI prints. */
 export const colorAliasesJs = (plan: WritePlan): string => {
-  const { modes, rows: A } = aliasRowsFrom(plan);
+  const { modes, rows } = aliasRowsFrom(plan);
+  return colorAliasesJsFor(modes, rows);
+};
+const colorAliasesJsFor = (modes: string[], A: AliasRow[]): string => {
   return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const A=${JSON.stringify(A)};
@@ -478,7 +481,40 @@ for(const [name,targets,ops] of A){
 return {bound,expected:A.length*MODES.length,misses};
 `;
 };
-const colorAliasesPass = (brand: string): string => colorAliasesJs(planFor(brand));
+
+/**
+ * `color-aliases` -> N payloads, packed by BYTES — `colorCreateChunks`' rule, for the same transport.
+ *
+ * WHY (the #1743 merge of main at 0.199.0). The pass was one payload, and nb's measured 44,813 bytes on
+ * this branch and 44,840 on main, each under the 45,000 ceiling on its own; merged, 45,144, over it. Both
+ * sides added colour variables, and the pass had no way to grow except past the wall — the exact shape
+ * #906 fixed for `color-create`. Each row is independent (one variable, its per-mode targets), and every
+ * chunk carries the same lookup preamble, so the chunks are order-free among themselves; what stays
+ * ordered is the pass against `color-create` and `dims-create`, unchanged. Packed against the FINISHED
+ * payload, not a sum of row sizes, for the reason `colorCreateChunks` states.
+ */
+export const colorAliasesChunks = (
+  brand: string,
+  budgetBytes: number = COLOR_CHUNK_BYTES,
+): { index: number; total: number; js: string; bytes: number; rows: number }[] => {
+  const { modes, rows } = aliasRowsFrom(planFor(brand));
+  const slices: AliasRow[][] = [];
+  let cur: AliasRow[] = [];
+  for (const row of rows) {
+    const next = [...cur, row];
+    if (cur.length && Buffer.byteLength(colorAliasesJsFor(modes, next), 'utf8') > budgetBytes) {
+      slices.push(cur);
+      cur = [row];
+    } else {
+      cur = next;
+    }
+  }
+  if (cur.length) slices.push(cur);
+  return slices.map((slice, i) => {
+    const js = colorAliasesJsFor(modes, slice);
+    return { index: i, total: slices.length, js, bytes: Buffer.byteLength(js, 'utf8'), rows: slice.length };
+  });
+};
 
 // ---- pass: dims-create (every FLOAT collection, N modes, literal fallback values) -------
 // One payload for all ten axes rather than ten payloads: floats are small (≈250 variables
@@ -709,7 +745,7 @@ return {total:T.length,created,bound,skipped,misses};
 // PURE — exported so `test.ts` can assert the algorithm against synthetic file/plan name sets with
 // no live Figma. `verifyJs` below inlines the SAME two functions as generated JS rather than
 // importing this one: the pass runs inside Figma's execution sandbox pasted via `figma_execute`,
-// not Node, so it can no more `import` this than `colorAliasesPass` can import `aliasRows` — every
+// not Node, so it can no more `import` this than `colorAliasesJs` can import `aliasRows` — every
 // pass in this file re-states its own logic as a string for that reason. Kept side by side with the
 // inline copy below so a change to one is a change you're looking at making to the other.
 export type OrphanInfo = { name: string; reason: string };
@@ -821,14 +857,14 @@ return {
 };
 
 // ---- CLI --------------------------------------------------------------------------------
-// Every pass returns a LIST of payloads. All but `color-create` return exactly one, and the list is
+// Every pass returns a LIST of payloads. All but `color-create` and `color-aliases` return exactly one, and the list is
 // the point: a pass that outgrows the transport becomes N payloads without changing what it is
 // called, so `ORDER` stays the paste order a human follows rather than growing a name each time a
 // lane fills up.
 const PASSES: Record<string, (b: string) => string[]> = {
   palette: (b) => [palettePass(b)],
   'color-create': (b) => colorCreateChunks(b).map((c) => c.js),
-  'color-aliases': (b) => [colorAliasesPass(b)],
+  'color-aliases': (b) => colorAliasesChunks(b).map((c) => c.js),
   'dims-create': (b) => [dimsCreatePass(b)], 'dims-aliases': (b) => [dimsAliasesPass(b)],
   'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
   styles: (b) => [stylesPass(b)], verify: (b) => [verifyJs(planFor(b), colourModes(b))],
