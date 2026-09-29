@@ -2644,6 +2644,78 @@
             }
           }
         },
+        "success": {
+          "$type": "color",
+          "$value": "{ads.core.palette.success.450}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "ads.core.palette.success.450",
+              "contrast": 5.07,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{ads.core.palette.warning.450}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "ads.core.palette.warning.450",
+              "contrast": 4.99,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{ads.core.palette.danger.450}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "ads.core.palette.danger.450",
+              "contrast": 4.95,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
         "focus": {
           "$type": "color",
           "$value": "{ads.core.palette.accent.450}",

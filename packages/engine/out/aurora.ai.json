@@ -6280,9 +6280,9 @@
       "avoid_when": "Do not use as success ink or fill — use `text.success` or `foreground.success`.",
       "mode_overrides": {
         "light": "{ads.core.palette.success.500}",
-        "dark": "{ads.core.palette.success.500}",
-        "hc-light": "{ads.core.palette.success.500}",
-        "hc-dark": "{ads.core.palette.success.500}"
+        "dark": "{ads.core.palette.success.450}",
+        "hc-light": "{ads.core.palette.success.600}",
+        "hc-dark": "{ads.core.palette.success.450}"
       },
       "contrast_with": [
         {
@@ -6300,9 +6300,9 @@
       "avoid_when": "Do not use as warning ink or fill — use `text.warning` or `foreground.warning`.",
       "mode_overrides": {
         "light": "{ads.core.palette.warning.500}",
-        "dark": "{ads.core.palette.warning.500}",
-        "hc-light": "{ads.core.palette.warning.500}",
-        "hc-dark": "{ads.core.palette.warning.500}"
+        "dark": "{ads.core.palette.warning.450}",
+        "hc-light": "{ads.core.palette.warning.600}",
+        "hc-dark": "{ads.core.palette.warning.400}"
       },
       "contrast_with": [
         {
@@ -6319,16 +6319,16 @@
       "when_to_use": "Validation/state borders for danger (e.g. invalid fields).",
       "avoid_when": "Do not use as danger ink or fill — use `text.danger` or `foreground.danger`.",
       "mode_overrides": {
-        "light": "{ads.core.palette.danger.500}",
-        "dark": "{ads.core.palette.danger.500}",
-        "hc-light": "{ads.core.palette.danger.500}",
-        "hc-dark": "{ads.core.palette.danger.500}"
+        "light": "{ads.core.palette.danger.550}",
+        "dark": "{ads.core.palette.danger.450}",
+        "hc-light": "{ads.core.palette.danger.600}",
+        "hc-dark": "{ads.core.palette.danger.400}"
       },
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.56,
+          "ratio": 5.55,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -9261,6 +9261,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.success",
         "color.icon.success",
         "color.icon.success-subtle",
         "color.inverse.icon.success",
@@ -9306,6 +9307,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.success",
         "color.icon.success",
         "color.inverse.icon.success",
         "color.inverse.text.success",
@@ -9450,7 +9452,10 @@
       "meaning": "warning ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.border.warning"
+      ]
     },
     "core.palette.warning.450": {
       "$description": "warning status 450 — Mid-Tone band (mid tones, steps 400–600)",
@@ -9459,6 +9464,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.icon.warning",
         "color.icon.warning-subtle",
         "color.inverse.icon.warning",
@@ -9504,6 +9510,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.icon.warning",
         "color.inverse.icon.warning",
         "color.inverse.text.warning",
@@ -9891,6 +9898,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
@@ -9908,6 +9916,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.icon.danger",
         "color.icon.danger-subtle",
         "color.inverse.icon.danger",
@@ -9923,7 +9932,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.danger",
         "color.foreground.danger",
         "color.icon.danger",
         "color.icon.danger-subtle",
@@ -9944,6 +9952,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.inverse.icon.danger-subtle",
         "color.inverse.text.danger-subtle"
       ]
@@ -9955,6 +9964,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.icon.danger",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",

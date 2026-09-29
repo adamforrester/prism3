@@ -7,6 +7,56 @@
 
 ---
 
+## (2026-09-29) — Status field borders clear 3:1 on the hover wash (#1782)
+
+**STATUS: PR open from `lane/status-border-hover`, labeled DO NOT MERGE. Closes #1782.** ENGINE 0.200.0 → **0.201.0** (renumbered at net after #1772 and #1767 took 0.199.0 and 0.200.0; the #1710 sweep's status × hover exclusion is removed in this merge, since this gate now covers it). Emitted values move; CONTRACT stands at 13.2.0 (no token name, no projected member; stamp-only accept). No new regen artifact.
+
+**The defect.** At `state=hover`, `text-field`, `textarea` and `select` fill the control with the translucent `interactive.neutral.overlay.hover` wash (10% black on light, 10% white on dark). A non-default status keeps its status border there (`border.danger` / `.warning` / `.success`). Those roles were contracted at 3:1 against `background.primary` only. Against the wash composited over `background.secondary`, the 500 anchor measured 2.64–3.00:1: 132 members in 44 brand × mode × stroke × ground cells, found by #1772's extension of the #1710 sweep.
+
+**The fix is an existing mechanism, not a new rule.** `pickBrand` already takes `alsoClear`, the extra grounds a role must also clear. The semantic inks use it for their own `-subtle` tint. The three field status borders now pass three extra grounds: `background.secondary` (the field's darkest permissible ground since #1341), and the hover wash composited over each page ground. The anchor stays 500 wherever it clears all of them. `border.brand` and `border.info` are not field statuses and keep the page-only contract. A brand that opts out of the wash (`outlineInteraction` none / solid-tint) adds only `background.secondary`.
+
+**Owner decisions (2026-09-29).**
+1. **HC keeps its own 4.5:1 floor on the extra grounds.** `alsoClear` applies the role's own floor, `nonTextMin`, which is 4.5 in HC. On the wash the HC 500s measured 3.6–3.9:1, which clears SC 1.4.11's 3:1. So the HC moves come from this decision, not from WCAG. The neutral `field.border.hover` already clears 5.3:1 on the same wash in HC.
+2. **A status border never takes `border.focus`'s color.** The first cut put nb dark `border.danger` on red.450, the step `border.focus` already held there, so an errored field and a focused field shared an edge color. The solver now resolves the focus ring first and passes its value to the three status borders as `pickBrand`'s new `avoid`. An avoided step counts as a miss, so the pick moves at least one ramp step off the ring, to the nearest step that still clears every ground. The comparison is by emitted hex, not by palette, so it also holds in wireframe, where every chromatic role collapses onto the neutral ramp the ring uses. It applies to all three statuses. Warning and success did not collide in any corpus brand, but they share the ring's ramp wherever a brand maps them onto the action palette, and always in wireframe.
+
+**Decision 2 moved one value.** The rule was measured across every corpus brand × mode, prism3 and the NB master, and in a wireframe variant of each. The only collision was nb dark danger, which moved one step further:
+
+| brand / mode | role | before | after | page | `background.secondary` | wash on page | wash on secondary | `border.focus` |
+|---|---|---|---|---|---|---|---|---|
+| nb / dark | `border.danger` | red.450 `#da5657` (5.05 / 4.66 / 3.97 / 3.53) | red.400 `#de6c69` | 5.98 | 5.52 | 4.70 | 4.18 | red.450, unchanged |
+
+NB's authored red.500 measures 2.96:1 on the washed secondary, so 500 is a WCAG miss and 450 is the focus step, which leaves 400. `border.focus` and every inverse border are byte-unchanged, checked across the corpus.
+
+**The alpha is the one the brand's dialect ships (review S1).** The wash primitive ships as 8-digit hex in the hex dialect (`#0000001a`, so 10% renders at 26/255 = 0.102) and as `rgba(0, 0, 0, 0.1)` / Figma `a: 0.1` in NB's rgb dialect. The first cut composited everything at 26/255. For hex brands that was right. At the nominal 0.1, aurora and wendys light cleared 3:1 in the engine but measured 2.99–3.00:1 in the emitted tokens. For NB it held the border to a darker wash than NB ships: nb dark warning at 500 measured 2.999:1 at 0.102 and 3.02:1 at the shipped 0.1, so its move to 450 came from that difference alone. A new `emittedAlpha(a, colorFormat)` in `color.ts` is now the one quantization rule. `tree.ts` writes through it, byte-identically, and `modes.ts` composites through it. nb dark warning returns to amber.500, NB's authored step, and its divergence row is gone. The gate still parses the alpha back out of the emitted `$value` and never imports `emittedAlpha`, so the two cannot agree by construction.
+
+**What moves: 103 role-modes across the corpus and prism3. The NB master theme has none.**
+- **Light:** one rung darker (500 → 550) where 500 missed. That is all three statuses in harbor and prism3, nb warning, danger in aurora and the minimal fixtures, and wendys success (14 role-modes).
+- **Dark:** one rung lighter (500 → 450) for all three statuses in every washed brand, except nb warning (stays 500, see S1) and nb danger (→ 400, see decision 2).
+- **HC:** hc-light moves to 600 (danger, warning) or 550–600 (success); hc-dark moves to 400–450 (decision 1).
+- **NB master theme:** it has no wash, and 500 already clears `background.secondary`, so nothing moves.
+
+**NB fixture: nine divergences, group seven of `NB_KNOWN_DIVERGENCES`. Each row states its reason (review S2).** The earlier rationale called every row "a real non-text contrast miss", which was false for six of them. Measured at the shipped 0.1, on the authored step's worst ground (the wash over `background.secondary`):
+- **WCAG miss (3):** light warning amber.500 at 2.96, dark danger red.500 at 2.96 (and 450 is the focus step, see decision 2), and dark success green.500 at 2.78.
+- **The HC 4.5 floor, owner decision 1 (6):** hc-light danger 3.66, warning 3.59, success 3.90; hc-dark danger 3.82, warning 3.89, success (authored 450) 4.26. All of these clear 3:1.
+
+**The gate (`test.ts`, `a11y(#1782)`), standalone by design.** It walks the projected hover members with a non-default status for the three pinned defs. It recomputes contrast from resolved hexes against two literal page grounds, outside and inside, with the wash composited at the alpha parsed from the emitted primitive. The floor is a literal 3. It never reads the roles' `ratio`, `against` or `min`, and never imports the engine's ground list. Representation arms fail if a def × status drops out of the projection, if the cell count falls short, or if no member composites a real wash. #1772's #1710 sweep holds this coordinate out with a pointer here. Whichever of the two lands second deletes that exclusion. This round adds two arms:
+- **`a11y(#1782) HC` (review S3).** A literal 4.5:1 floor on both page grounds, outside and inside, in hc-light and hc-dark of every corpus brand (396 cells), with a representation arm requiring both HC modes and a real wash. The 3:1 arm could not see decision 1: dropping the extra grounds in HC leaves every HC 500 at 3.6–3.9:1, above 3.
+- **`a11y(#1782) status ≠ focus` (decision 2).** Resolved hex of each status border against `border.focus`'s, in every brand × mode of the corpus, prism3 and the NB master, each also with wireframe added (306 pairs, 44 of them on the ring's own ramp). It never reads `avoid`.
+- **Shared imports (review N1).** The gate imports `contrast` and `composite` from `color.ts`, the same functions the engine picks with. This is the standing pattern for contrast gates and is noted in the gate's header. The formula is the definition being measured. Everything that decides the answer (grounds, floors, alpha, focus value) is independent.
+
+**Mutations, each failing by name.** Each was committed first and restored from HEAD, with the diff checked non-empty before the run:
+- `border.danger` back to page-only (danger removed from `FIELD_STATUS_BORDERS`) → `a11y(#1782)` fires. (Round 1: 57 members in 19 cells.)
+- The wash ground dropped from the engine's `alsoClear` → `a11y(#1782)` fires. (Round 1: 132 members in 44 cells.)
+- The wash ground dropped from the gate's own measurement, with the engine fix also reverted → **zero** `a11y(#1782)` failures (round 1). This shows the inside arm is the one that catches the defect.
+- **Decision 2:** `avoid` removed from the status-border call → `a11y(#1782) status ≠ focus` fires with 8 collisions. One is in a shipped mode (nb dark danger = red.450), and the NB fixture's `color/border/danger` row also reports CHANGED. The other seven are in wireframe only: nb warning, wendys danger and warning, and minimal-levers danger, warning and success. This measured answer to "can warning or success collide?" is yes, in wireframe. No other check catches those seven, so the new arm is necessary, not just sufficient.
+- **S1, hex dialect:** the wash composited at a hard-coded 0.1 → `a11y(#1782)` fires, 9 cells, including aurora light danger 3.00 and wendys light success 2.99. `a11y(#1782) HC` also fires, 4 cells (harbor and prism3 hc-dark warning, 4.49–4.50).
+- **S1, rgb dialect:** a hard-coded 26/255 → the NB fixture's `figma color.dark` alias and value rows fire for `color/border/warning`. `a11y(#1782)` stays silent here, correctly: a darker wash than the one shipped only over-tightens the pick. It never lets a border under 3:1, so the gate that catches an over-strict alpha is the NB byte comparison.
+- **S3:** the extra grounds dropped in HC only → `a11y(#1782) HC` fires, 360 members in 120 cells. The 3:1 arm stays **silent** (0 failures), which is the gap S3 named. The NB fixture's hc-light and hc-dark rows fire too, but only for NB, so the HC arm is the only check for every other brand.
+
+**Trap for whoever re-measures this.** Measure at the alpha the brand's dialect ships, not at a single "real" alpha. For the hex dialect that is 0.102, and for NB it is 0.1. Using either one for every brand gets a different brand wrong.
+
+---
+
 ## (2026-09-29) — Tag: Select and Dismissible types; Badge: a smaller radius for status labels, and its `genre` axis renamed `type` (#1741, #1743)
 
 **STATUS: PR open from `lane/tag-badge-rework`, labeled DO NOT MERGE.** The owner's decisions of 2026-09-28 on Tag and Badge. ENGINE 0.199.0 → **0.200.0** (MINOR: Tag's and Badge's projected members move; the orchestrator renumbers). CONTRACT stands at 13.1.0 (stamp-only accept: `border-width.thick` and `radius.sm` already exist). No new regen artifact. Closes #1741 and #1743; part of #1758 (min width and truncation).

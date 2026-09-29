@@ -2860,6 +2860,78 @@
             }
           }
         },
+        "success": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.green.450}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "nbds.core.palette.green.450",
+              "contrast": 4.73,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.amber.500}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "nbds.core.palette.amber.500",
+              "contrast": 4.32,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.400}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "nbds.core.palette.red.400",
+              "contrast": 5.98,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
         "focus": {
           "$type": "color",
           "$value": "{nbds.core.palette.red.450}",

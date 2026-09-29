@@ -2926,6 +2926,23 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.201.0 — #1782: the three FIELD STATUS borders (`border.danger` / `border.warning` / `border.success`)
+ * clear their non-text floor on the grounds a status field actually draws them on. `text-field`, `textarea`
+ * and `select` keep the status border at hover, where the control fills with the translucent
+ * `interactive.neutral.overlay.hover` wash; contracted against `background.primary` alone, the 500 anchor
+ * measured 2.64–3.00:1 against that wash composited over `background.secondary` (132 members, 44 cells).
+ * The roles now also clear `background.secondary` and the wash composited over either page ground, through
+ * `pickBrand`'s existing `alsoClear` at the role's own `nonTextMin` (4.5 in HC — an owner decision, since
+ * the HC 500s already cleared 3:1), with the wash at the alpha the brand's dialect EMITS (`emittedAlpha`:
+ * 26/255 in hex, 0.1 in NB's rgb). A status border also never takes `border.focus`'s colour (owner
+ * decision): the three roles pass the resolved ring to `pickBrand` as `avoid`, which moved nb dark
+ * `border.danger` red.450 (the ring's step) → red.400. Values move one rung in light/dark (light → 550,
+ * dark → 450) wherever 500 missed, and one or two rungs in HC (hc-light → 550/600, hc-dark → 400/450);
+ * 103 role-modes across the corpus + prism3, none in the NB master theme (no wash, and 500 already clears
+ * `background.secondary`). `border.brand` / `border.info` are not field statuses and do not move. NB's
+ * authored values now diverge in nine role-modes (`NB_KNOWN_DIVERGENCES` group seven). Emitted values move
+ * in every washed brand → ENGINE bump. CONTRACT STANDS at 13.2.0 (no token name or projected member moves).
+ *
  * 0.200.0 — Tag: Select and Dismissible types; Badge: a smaller radius for status labels (owner decisions,
  * 2026-09-28; closes #1741 and #1743). TAG: a `type` variant axis (`select | dismissible`) and code prop
  * replace `interaction`; the plain clickable tag is dropped. Select carries an
@@ -4163,7 +4180,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.200.0';
+export const ENGINE_VERSION = '0.201.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

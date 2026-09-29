@@ -2398,14 +2398,14 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.2862745225429535,
-        "g": 0.5137255191802979,
-        "b": 0.2666666805744171,
+        "r": 0.20392157137393951,
+        "g": 0.40392157435417175,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/success/500"
+        "name": "wds/core/palette/success/600"
       }
     },
     {
@@ -2416,14 +2416,14 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.7176470756530762,
-        "g": 0.3607843220233917,
-        "b": 0.13725490868091583,
+        "r": 0.5764706134796143,
+        "g": 0.2705882489681244,
+        "b": 0.06666667014360428,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/warning/500"
+        "name": "wds/core/palette/warning/600"
       }
     },
     {
@@ -2434,14 +2434,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.6352941393852234,
+        "g": 0.2078431397676468,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/500"
+        "name": "wds/core/palette/danger/600"
       }
     },
     {

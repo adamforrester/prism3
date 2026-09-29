@@ -9052,6 +9052,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-dark', name: 'color/text/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
   { mode: 'hc-dark', name: 'color/icon/link/hover', nb: 'palette/red/250', engine: 'palette/red/200' },
   { mode: 'hc-dark', name: 'color/icon/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
+  // SEVENTH group (#1782): the three FIELD STATUS borders. NB authored `border.danger|warning|success` at 500
+  // (hc-dark success at 450) against the page alone. A text field / textarea / select with a status draws that
+  // border over `background.secondary` and over its own hover wash too, and the engine now also gates those
+  // three roles on those grounds (`alsoClear` in modes.ts), compositing the wash at the alpha NB SHIPS —
+  // `rgba(0, 0, 0, 0.1)` / Figma `a: 0.1`, not the hex dialect's 26/255. Each row is here for ONE of three
+  // reasons, stated per row because they are not the same claim, and ratios are the authored step's worst
+  // ground (the wash composited over `background.secondary`) at alpha 0.1:
+  //   WCAG — the authored step misses SC 1.4.11's 3:1 on that ground: a real non-text contrast miss, the same
+  //          owner stance as groups 1 and 4.
+  //   HC   — the authored step CLEARS 3:1 but misses the high-contrast modes' own 4.5:1 non-text floor on the
+  //          extra grounds. That floor is an OWNER DECISION (2026-09-29, #1782 decision 1), not a WCAG miss.
+  //   FOCUS — the step the contrast rule alone would pick is `border.focus`'s step, so the engine moves one
+  //          further (#1782 decision 2: an errored field must not share its edge color with a focused one).
+  // `border.brand` and `border.info` are not field statuses and are ABSENT here — still byte-checked against
+  // NB, which is the check that the move is scoped. So is nb DARK WARNING: amber.500 measures 3.02:1 at the
+  // shipped 0.1 (2.999 only at the hex dialect's 0.102), so it stays NB's authored step.
+  { mode: 'light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/550' },     // WCAG: 500 at 2.96:1
+  { mode: 'dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/400' },           // WCAG: 500 at 2.96:1; FOCUS: 450 is border.focus in nb dark
+  { mode: 'dark', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/450' },      // WCAG: 500 at 2.78:1
+  { mode: 'hc-light', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/600' },       // HC: 500 at 3.66:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/600' },  // HC: 500 at 3.59:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/550' },  // HC: 500 at 3.90:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },        // HC: 500 at 3.82:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },   // HC: 500 at 3.89:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },   // HC: 450 at 4.26:1 (clears 3:1)
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -13246,6 +13271,183 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
 
+  // ---- #1782: A STATUS FIELD'S BORDER CLEARS 3:1 (SC 1.4.11) ON THE PAGE AND ON ITS OWN HOVER WASH ----
+  // At `state=hover` a field control fills with the translucent `interactive.neutral.overlay.hover` wash, and a
+  // non-default status keeps its status border (`border.danger` / `.warning` / `.success`). The border is then
+  // drawn between two grounds: the page OUTSIDE the control and the wash composited over that page INSIDE it.
+  // Contracted against `background.primary` alone, the status borders measured 2.64–3.00:1 on the inside
+  // (132 members, 44 brand × mode × stroke × ground cells, found by #1772's extension of the #1710 sweep).
+  //
+  // STANDALONE on purpose: #1772's #1710 sweep holds this coordinate out with a pointer to #1782, and whichever
+  // of the two lands second deletes that exclusion. This block does not depend on it.
+  //
+  // WHAT THE TWO SIDES ARE, per docs/34 question 1.
+  //   SUBJECT — the paint the PROJECTED member carries: `figmaAnatomySet` walked for every hover member with a
+  //     non-default status, each visible stroked node contributing its own stroke + fill (shape 1's #536 fix —
+  //     read the plan, not `def.tokens`). The defs are PINNED by name and every def × status must be
+  //     represented, so a def or a status that drops out of the projection fails instead of shrinking the sweep.
+  //   ORACLE — contrast RECOMPUTED from resolved hexes against two page grounds written here as literals, with
+  //     the wash composited at its EMITTED alpha (the primitive's `$value`, not the role's recorded `ratio`,
+  //     `against` or `min` — the roles declare `against: background.primary` only, which is the defect). The
+  //     floor is the literal 3 of SC 1.4.11, not the mode's `nonTextMin`. Never imports the engine's
+  //     `FIELD_STATUS_BORDERS` / `alsoClear` grounds — dropping a ground there must fail HERE, by name.
+  //   SHARED, AND ACCEPTED: `contrast` and `composite` are imported from color.ts, the same two functions the
+  //     engine picks with. That is the repo's standing pattern for contrast gates (the WCAG formula and
+  //     source-over compositing are the definition being measured, not a derivation of the subject), so it is
+  //     left as is. What is NOT shared is everything that decides the answer: the grounds, the floors, the
+  //     wash alpha (parsed from the emitted `$value`, never `emittedAlpha`) and the focus value compared below.
+  //
+  // THREE MORE ARMS, from the owner's decisions of 2026-09-29:
+  //   HC — hc-light / hc-dark hold these borders to 4.5:1, not 3:1, on the same four grounds (decision 1: the
+  //     high-contrast modes keep their own non-text floor on the extra grounds). The 3:1 arm cannot see this:
+  //     the HC 500s measure 3.6–3.9:1 on the wash, above 3, so dropping the extra grounds in HC alone left it
+  //     silent. The floor is the literal 4.5, not `nonTextMin`.
+  //   STATUS ≠ FOCUS — no status border resolves to `border.focus`'s value (decision 2: an errored field and a
+  //     focused field must not share an edge color), in every brand × mode here AND in a wireframe variant of
+  //     each, where every chromatic role collapses onto the neutral ramp the focus ring also lands on.
+  {
+    // The NB master theme's brand input, COPIED as literal values (the owner's file, 2026-09-28; identical to
+    // the switch block's `NB_MASTER`), so this check does not move when that file does. It opts out of the
+    // overlay wash (`outlineInteraction: solid-tint`), so its hover members measure on the bare ground.
+    const NB_MASTER_1782: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+    const SH_CORPUS: Array<[string, Theme]> = [
+      ...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+      ['prism3', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+      ['nb-master', brandTheme(NB_MASTER_1782)],
+    ];
+    const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+    const SH_GROUNDS = ['background.primary', 'background.secondary'];
+    const SH_DEFS = ['text-field', 'textarea', 'select'];
+    const SH_STATUSES = ['error', 'warning', 'success'];
+    const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
+    type ShPaint = { def: string; status: string; coord: string; stroke: string; fill?: string };
+    const shPaints: ShPaint[] = [];
+    for (const id of SH_DEFS) {
+      const d = componentDefs.find((c) => c.id === id);
+      if (!d) continue;                                           // reported by the representation arm below
+      for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+        if (plan.coord.state !== 'hover' || plan.coord.status === undefined || plan.coord.status === 'default') continue;
+        const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
+        const walk = (n: any): void => {
+          if (n.visible !== false && typeof n.paints?.strokes === 'string')
+            shPaints.push({ def: id, status: String(plan.coord.status), coord, stroke: roleOfVar(n.paints.strokes), fill: typeof n.paints.fills === 'string' ? roleOfVar(n.paints.fills) : undefined });
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+      }
+    }
+    const shMissing = SH_DEFS.flatMap((id) => SH_STATUSES.filter((s) => !shPaints.some((p) => p.def === id && p.status === s)).map((s) => `${id}[status=${s}]`));
+    ok(shMissing.length === 0,
+      `a11y(#1782): every pinned field def (text-field, textarea, select) × non-default status (error, warning, success) projects a stroked hover member` + (shMissing.length ? ` — missing: ${shMissing.join(', ')}` : ''));
+
+    const shFails: string[] = [], shHcFails: string[] = [];
+    const shModesSeen = new Set<string>();
+    let shCells = 0, shCellsExpected = 0, shWashed = 0, shWashOptOut = 0, shHcCells = 0, shHcWashed = 0;
+    for (const [brand, th] of SH_CORPUS) {
+      const built = buildTree(th).tree as any;
+      const alphaOf = (path: string): number | undefined => {
+        const v = at(built, path)?.$value;
+        return typeof v === 'string' && !v.startsWith('{') ? parseColor(v).a : undefined;
+      };
+      const modes = resolveAllModes(th);
+      shCellsExpected += modes.length * shPaints.length * SH_GROUNDS.length;
+      for (const m of modes) {
+        shModesSeen.add(m.mode);
+        const brandHasWash = Object.keys(m.roles).some((k) => /^interactive\.[a-z0-9-]+\.overlay\./.test(k));
+        for (const p of shPaints) {
+          const tag = `${brand}/${m.mode} ${p.def}[${p.coord}]`;
+          const b = m.roles[p.stroke];
+          if (!b?.hex) { shFails.push(`${tag} stroke ${p.stroke} unresolved`); continue; }
+          let f = p.fill ? m.roles[p.fill] : undefined;
+          // The one absent fill that is not a failure: a hover WASH in a brand that opts out of overlay tokens
+          // (`outlineInteraction` none / solid-tint). Counted; any other absent fill fails (docs/34 question 3).
+          if (p.fill && !f && /^interactive\.[a-z0-9-]+\.overlay\./.test(p.fill) && !brandHasWash) shWashOptOut++;
+          else if (p.fill && !f) { shFails.push(`${tag} fill ${p.fill} not emitted`); continue; }
+          const fa = f ? alphaOf(f.path) : 0;
+          if (f && (!f.hex || fa === undefined)) { shFails.push(`${tag} fill ${p.fill} alpha unresolved`); continue; }
+          if (f && (fa as number) > 0) shWashed++;
+          const isHc = m.mode === 'hc-light' || m.mode === 'hc-dark';
+          for (const g of SH_GROUNDS) {
+            const ground = m.roles[g];
+            if (!ground?.hex) { shFails.push(`${tag} ground ${g} unresolved`); continue; }
+            const gRgb = hexToRgb(ground.hex);
+            const inside = f ? composite(gRgb, hexToRgb(f.hex), fa as number) : gRgb;
+            const outer = contrast(hexToRgb(b.hex), gRgb), inner = contrast(hexToRgb(b.hex), inside);
+            shCells++;
+            if (outer < 3) shFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+            if (inner < 3) shFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            if (isHc) {
+              shHcCells++;
+              if (f && (fa as number) > 0) shHcWashed++;
+              if (outer < 4.5) shHcFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+              if (inner < 4.5) shHcFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            }
+          }
+        }
+      }
+    }
+    const shModesMissing = SH_MODES.filter((mm) => !shModesSeen.has(mm));
+    // `shWashed > 0` is the arm that keeps the inside comparison from degenerating into the outside one: if no
+    // measured member composited a real wash, the gate would be measuring the page twice and calling it both.
+    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed > 0,
+      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
+    const shGrouped = new Map<string, string[]>();
+    for (const f of shFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shGrouped.set(key, [...(shGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shFails.length === 0,
+      `a11y(#1782): every status field border (danger / warning / success) clears 3:1 (SC 1.4.11) at hover against the page outside the control AND the hover wash composited over it inside, every corpus brand × mode — ${shFails.length} members below, in ${shGrouped.size} cells: ` + [...shGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shGrouped.size > 12 ? '; …' : ''));
+
+    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and at least one HC
+    // member must have composited a real wash — otherwise "inside" would be the page again and the arm would
+    // pass on the outside measurement alone.
+    const shHcGrouped = new Map<string, string[]>();
+    for (const f of shHcFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shHcGrouped.set(key, [...(shHcGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed > 0,
+      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
+    ok(shHcFails.length === 0,
+      `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
+
+    // STATUS ≠ FOCUS ARM (decision 2). The comparison is the resolved hex of each status border against the
+    // resolved hex of `border.focus` in the SAME mode — never the engine's `avoid` list. Wireframe variants are
+    // added because that is the mode where every status and the focus ring share one (neutral) ramp.
+    const SF_STATUSES = ['danger', 'warning', 'success'];
+    const sfCollide: string[] = [];
+    const sfModesSeen = new Set<string>();
+    let sfPairs = 0, sfSharedRamp = 0, sfModes = 0;
+    const sfBrands: Array<[string, Theme]> = [
+      ...SH_CORPUS,
+      ...SH_CORPUS.map(([id, th]) => [`${id}+wireframe`, { ...th, modes: [...th.modes.filter((mm) => mm !== 'wireframe'), 'wireframe'] }] as [string, Theme]),
+    ];
+    for (const [brand, th] of sfBrands) {
+      for (const m of resolveAllModes(th)) {
+        sfModesSeen.add(m.mode);
+        sfModes++;
+        const focus = m.roles['border.focus'];
+        if (!focus?.hex) { sfCollide.push(`${brand}/${m.mode} border.focus unresolved`); continue; }
+        for (const st of SF_STATUSES) {
+          const b = m.roles[`border.${st}`];
+          if (!b?.hex) { sfCollide.push(`${brand}/${m.mode} border.${st} unresolved`); continue; }
+          sfPairs++;
+          // Counted so the arm can show it walked pairs that COULD collide: same palette, different step.
+          if (b.path.split('.').slice(0, -1).join('.') === focus.path.split('.').slice(0, -1).join('.')) sfSharedRamp++;
+          if (b.hex.toLowerCase() === focus.hex.toLowerCase())
+            sfCollide.push(`${brand}/${m.mode} border.${st} = border.focus (${b.path.split('.').slice(-2).join('.')} ${b.hex})`);
+        }
+      }
+    }
+    ok(sfModes > 0 && sfPairs === sfModes * SF_STATUSES.length && ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'].every((mm) => sfModesSeen.has(mm)) && sfSharedRamp > 0,
+      `a11y(#1782) status ≠ focus: compared every status border with border.focus in every brand × mode, wireframe included (${sfPairs} pairs, ${sfSharedRamp} on the focus ring's own ramp)`);
+    ok(sfCollide.length === 0,
+      `a11y(#1782) status ≠ focus: no status field border (danger / warning / success) resolves to border.focus's color (owner decision, 2026-09-29: an errored field and a focused field must not share an edge color), every corpus brand × mode + prism3 + the NB master, and each in wireframe — ${sfCollide.length} collisions: ${sfCollide.slice(0, 12).join('; ')}${sfCollide.length > 12 ? '; …' : ''}`);
+  }
+
   // ---- #1710: THE READ-ONLY FIELD BOUNDARY CLEARS 3:1 (SC 1.4.11) ON ITS FILL AND ITS PAGE GROUND ----
   // A read-only field is still a control — focusable, in the tab order, submitted — so its boundary is the
   // visual information a user needs to identify it, and SC 1.4.11 asks 3:1 of it. The rest/hover border
@@ -13295,12 +13497,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // border holding a value. `focus-visible` and `disabled` are NOT swept: the focus border is gated against
     // the page by its own contract, and disabled is contrast-exempt — the defs' prose claims neither here.
     const RO_SWEPT = ['read-only', 'rest', 'hover', 'filled'];
-    // ONE COORDINATE IS HELD OUT, and counted: a non-default STATUS at `hover`. There the control's fill is
-    // the translucent hover wash, and the status borders (contracted at 3:1 against the page alone) measure
-    // 2.64–3.00:1 against the washed ground inside the control — a pre-existing defect outside #1710, filed
-    // as #1782. Remove this exclusion when #1782 closes. Every other status is swept at every other state.
-    const roHeldOut = (coord: Record<string, unknown>): boolean => coord.state === 'hover' && coord.status !== undefined && coord.status !== 'default';
-    let roHeldOutCount = 0;
+    // Every status is swept at every swept state. The status × hover coordinate was held out here until #1782
+    // (PR #1783) made the status borders clear the hover wash; its own gate is `a11y(#1782)`, and this sweep now
+    // covers the coordinate too.
     const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
     type RoPaint = { def: string; state: string; coord: string; stroke: string; fill?: string };
     const roPaints: RoPaint[] = [];
@@ -13314,7 +13513,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       if (RO_PINNED.includes(d.id))
         for (const st of RO_SWEPT) if (!axis.includes(st)) roUnframed.push(`${d.id}: no projected ${st} member`);
       for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).filter((p) => RO_SWEPT.includes(String(p.coord.state)))) {
-        if (roHeldOut(plan.coord)) { roHeldOutCount++; continue; }
         const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
         let stroked = 0;
         const walk = (n: any): void => {
@@ -13382,7 +13580,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
     for (const want of RO_MODES) if (!roModesSeen.has(want)) roModesMissing.push(`no brand resolved ${want}`);
     ok(roModesMissing.length === 0 && roCells > 0 && roCells === roCellsExpected,
-      `a11y(#1710): the field boundary sweep measured every corpus brand × mode × stroked member × ground (${roCells} of ${roCellsExpected} cells; ${roWashOptOut} member-modes with no hover wash because the brand opts out of overlay tokens, measured on the bare ground; ${roHeldOutCount} status × hover members held out for #1782)` + (roModesMissing.length ? ` — modes missing: ${roModesMissing.join(', ')}` : ''));
+      `a11y(#1710): the field boundary sweep measured every corpus brand × mode × stroked member × ground (${roCells} of ${roCellsExpected} cells; ${roWashOptOut} member-modes with no hover wash because the brand opts out of overlay tokens, measured on the bare ground)` + (roModesMissing.length ? ` — modes missing: ${roModesMissing.join(', ')}` : ''));
     // One line per brand × mode × stroke × ground, naming the defs and coordinates under it, so a failure
     // reads as the cells a reviewer would measure rather than as dozens of near-identical rows.
     const roGroup = (fails: string[]): string => {

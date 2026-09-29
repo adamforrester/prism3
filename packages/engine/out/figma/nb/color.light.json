@@ -2416,14 +2416,14 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.7019608020782471,
-        "g": 0.3843137323856354,
-        "b": 0.0117647061124444,
+        "r": 0.6274510025978088,
+        "g": 0.34117648005485535,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/amber/500"
+        "name": "nbds/core/palette/amber/550"
       }
     },
     {
