@@ -235,15 +235,11 @@ export const figmaBorderWidthDescription = (px: number): string => (px ? `${px}p
 export const figmaIconSizeDescription = (px: number, rung: string): string => `${px}px icon artboard — pairs with size/${rung}`;
 export const figmaOpacityDescription = (pct: number): string => `${pct}% opacity`;
 
-/** `size/<rung>/<prop>`. `labelPadPx` is the same rung's `padding-x`, for the icon-side inset. */
-export const figmaSizeDescription = (prop: string, px: number, labelPadPx?: number): string => {
+/** `size/<rung>/<prop>` — dimensions only; a component's padding and gaps bind `space/*` (the spacing model). */
+export const figmaSizeDescription = (prop: string, px: number): string => {
   switch (prop) {
     case 'height': return `Control row height — ${px}px`;
     case 'min-height': return `Minimum target size — ${px}px (WCAG 2.2 SC 2.5.5)`;
-    case 'padding-x': return `Horizontal padding, label side — ${px}px`;
-    case 'padding-x-visual': return `Horizontal padding, icon side — ${px}px (the icon's box adds space${labelPadPx !== undefined ? `; label side is ${labelPadPx}px` : ''})`;
-    case 'padding-y': return `Vertical padding — ${px}px`;
-    case 'gap': return `Gap between label and icon — ${px}px`;
     default: throw new Error(`figma-description: no Figma description for size field '${prop}'`);
   }
 };

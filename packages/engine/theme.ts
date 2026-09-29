@@ -134,9 +134,10 @@ export type ModeLevers = {
   // composes for free.
   shadow?: { softness?: number; tint?: { hue?: number; amount?: number } };
   // Per-mode DENSITY — a different component-size tier (compact/comfortable/spacious) for this mode. The
-  // dimension analog of the tempo enum: re-derives `sizes` (control heights + paired padding) via the
-  // same componentSizes the baseline uses. The `space.*` reference scale is density-free, so it doesn't
-  // change; only the component tier does. e.g. a `touch` custom mode runs `spacious`.
+  // dimension analog of the tempo enum: re-derives `sizes` (control heights) via the same componentSizes
+  // the baseline uses. The `space.*` reference scale is density-free, so it doesn't change; only the
+  // component tier does. A component's padding is its own `space.*` step, moved by the BRAND's density at
+  // materialization (the spacing model), so a mode's own density moves heights only. e.g. a `touch` mode.
   density?: Density;
   // Per-mode TYPE SIZE (#328) — `{ display: { '3xl': 96 } }` reads "in this mode, display.3xl is 96px".
   // Unlike the leading/tracking re-points above it names a NUMBER, not a rung key, and that asymmetry
@@ -173,7 +174,7 @@ export type Dims = {
   radiusByMode?: Record<string, RadiusStep[]>;
   // Per-mode component-size tiers (Phase D) — only modes whose `modeLevers.density` deviates the
   // baseline; each re-derived via the SAME componentSizes(density, spaceBase) buildDims uses. A size
-  // sub-leaf (height / padding-x / padding-y) whose px differs from light carries a per-mode override.
+  // height whose px differs from light carries a per-mode override.
   // Absent when no modeLevers.density → byte-identical.
   sizesByMode?: Record<string, SizeStep[]>;
   // Per-mode CONTROL tiers (#900) — the same seam, for the same reason. A mode running a different

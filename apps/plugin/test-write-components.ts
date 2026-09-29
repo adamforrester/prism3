@@ -3634,7 +3634,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const valueStyles = [...new Set(taPlans.map((p) => textOf(p.root)?.textStyle))];
   ok(valueStyles.length === 1 && !!valueStyles[0], `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
   const VALUE = valueStyles[0]!;
-  const PAD_Y = varValue('size/md/padding-y');   // what the shim binds the control's block padding to
+  // What the shim binds the control's block padding to: textarea's own comfortable step, `space.100` (the spacing
+  // model moved it off `size.md.padding-y`, pixel-identical in a brand; the shim's synthetic value is per name).
+  const PAD_Y = varValue('space/100');
   type Metrics = NonNullable<ShimOpts['styleMetrics']>[string];
   const lineOf = (m: Metrics): number => (m.lineHeight.unit === 'PIXELS' ? m.lineHeight.value! : (m.lineHeight.value! / 100) * m.fontSize);
 
@@ -4303,16 +4305,17 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
-// TAG'S MINIMUM WIDTH = ITS HEIGHT (owner decision D, 2026-09-28): A ONE-LETTER TAG IS SQUARE
+// TAG'S MINIMUM WIDTH = 1.5 × ITS HEIGHT, TO THE NEAREST 8 (owner decision L, 2026-09-29): A ONE-LETTER TAG IS 64
 // =============================================================================================
-// The container binds `minWidth` to its own height rung (`minWidthKey` → `size.{size}.height`). Built through the
-// REAL executor into the shim with `layoutModel`, at the NB px for the medium rungs (`varPx`: the synthetic hash
-// puts the height at 8px, below any content, so the floor would never bind). A one-letter label measures 6px in
-// the shim, so the label row is 16 + 6 + 16 = 38px, under the 44px height: the member is 44 wide only because the
-// bound floor holds it there. EXPECTED is the literal 44 on both axes. Mutation by name: zero the shim's
-// `boundFloor`, or drop `minWidthKey` from the def, and `tag min width` fails (the member measures 38 wide).
+// The floor is computed, so Figma receives it as a LITERAL per size, written by `applyMinWidthRatio` inside
+// `materializeForBrand` from the brand's heights (no brand here: the comfortable ladder, medium 44 → 64). Built
+// through the REAL executor into the shim with `layoutModel`, at the px of the variables the medium member binds
+// (`varPx`: the synthetic hash would put them anywhere from 8 to 32). A one-letter label measures 6px in the shim,
+// so the label row is 12 + 6 + 12 = 30px, far under the floor: the member is 64 wide only because the literal floor
+// holds it there. EXPECTED is the literal 64 × 44 and the literal 30. Mutation by name: drop `applyMinWidthRatio`
+// from `materializeForBrand`, or put `minWidthRatio` back to a bound height, and `tag min width` fails.
 {
-  const NB_MD = { 'size/md/height': 44, 'size/md/padding-x': 16, 'size/md/gap': 8, 'icon/size/md': 24 };
+  const NB_MD = { 'size/md/height': 44, 'space/150': 12, 'space/100': 8, 'space/075': 6, 'space/0': 0, 'icon/size/md': 24 };
   const base = componentDefs.find((d) => d.id === 'tag')!;
   const oneLetter: ComponentDef = { ...base, figmaProperties: { ...base.figmaProperties!, texts: { label: { part: 'label', default: 'T' } } } };
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
@@ -4326,9 +4329,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const set = page.children.find((c) => c.name === 'tag' && c.type === 'COMPONENT_SET') as Node | undefined;
   const member = ((set?.children as Node[] | undefined) ?? []).find((m) => m.name === 'type=select, selection=unselected, size=medium, state=rest');
   const row = ((member?.children as Node[] | undefined) ?? []).find((c) => c.name === 'content');
-  const label = ((row?.children as Node[] | undefined) ?? []).find((c) => c.name === 'label');
-  ok(r.misses.length === 0 && label?.characters === 'T' && (row?.width as number) === 38 && (member?.width as number) === 44 && (member?.height as number) === 44,
-    `tag min width: a one-letter medium tag is as wide as it is tall, 44 × 44, held by the bound minimum width over a 38px label row (member ${String(member?.width)} × ${String(member?.height)}, row ${String(row?.width)}, label '${String(label?.characters)}'; ${r.misses[0] ?? '0 misses'})`);
+  // The label sits one row further in since the spacing model: content → labelCheck → label.
+  const labelCheck = ((row?.children as Node[] | undefined) ?? []).find((c) => c.name === 'labelCheck');
+  const label = ((labelCheck?.children as Node[] | undefined) ?? []).find((c) => c.name === 'label');
+  ok(r.misses.length === 0 && label?.characters === 'T' && (row?.width as number) === 30 && (member?.width as number) === 64 && (member?.height as number) === 44,
+    `tag min width: a one-letter medium tag is 64 × 44 — 1.5 × its 44px height, to the nearest 8 — held by the literal floor over a 30px label row (member ${String(member?.width)} × ${String(member?.height)}, row ${String(row?.width)}, label '${String(label?.characters)}'; ${r.misses[0] ?? '0 misses'})`);
 }
 
 if (failed) process.exit(1);

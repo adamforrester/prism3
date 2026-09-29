@@ -13964,54 +13964,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{nbds.space.100}",
-          "$description": "size.xs horizontal inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.100",
-              "px": 8
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{nbds.space.075}",
-          "$description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.075",
-              "px": 6
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{nbds.space.050}",
-          "$description": "size.xs vertical inset — 4px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.050",
-              "px": 4
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{nbds.space.050}",
-          "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.050",
-              "px": 4
-            }
-          }
         }
       },
       "sm": {
@@ -14027,54 +13979,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{nbds.space.200}",
-          "$description": "size.sm horizontal inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{nbds.space.150}",
-          "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.150",
-              "px": 12
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{nbds.space.075}",
-          "$description": "size.sm vertical inset — 6px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.075",
-              "px": 6
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{nbds.space.100}",
-          "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.100",
-              "px": 8
-            }
-          }
         }
       },
       "md": {
@@ -14088,54 +13992,6 @@
               "aliasOf": "nbds.core.dimension.44",
               "px": 44,
               "density": "comfortable"
-            }
-          }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{nbds.space.200}",
-          "$description": "size.md horizontal inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{nbds.space.150}",
-          "$description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.150",
-              "px": 12
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{nbds.space.100}",
-          "$description": "size.md vertical inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.100",
-              "px": 8
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{nbds.space.100}",
-          "$description": "size.md label↔visual gap — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.100",
-              "px": 8
             }
           }
         },
@@ -14165,54 +14021,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{nbds.space.300}",
-          "$description": "size.lg horizontal inset — 24px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.300",
-              "px": 24
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{nbds.space.200}",
-          "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{nbds.space.100}",
-          "$description": "size.lg vertical inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.100",
-              "px": 8
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{nbds.space.150}",
-          "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.150",
-              "px": 12
-            }
-          }
         }
       },
       "xl": {
@@ -14226,54 +14034,6 @@
               "aliasOf": "nbds.core.dimension.68",
               "px": 68,
               "density": "comfortable"
-            }
-          }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{nbds.space.300}",
-          "$description": "size.xl horizontal inset — 24px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.300",
-              "px": 24
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{nbds.space.200}",
-          "$description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{nbds.space.200}",
-          "$description": "size.xl vertical inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{nbds.space.150}",
-          "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "nbds.space.150",
-              "px": 12
             }
           }
         }

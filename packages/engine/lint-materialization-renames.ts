@@ -68,6 +68,7 @@ import { dirname, resolve } from 'node:path';
 import {
   ACCOUNTING_COLLECTION_MOVES,
   MATERIALIZATION_RENAMES,
+  MATERIALIZATION_DELETIONS,
   accountFor,
   isTotal,
   keysFromEmittedFile,
@@ -335,6 +336,7 @@ const per = brands.map((brand) => {
       parseVarKey,
       root,
       contractClaimsFor(root),
+      MATERIALIZATION_DELETIONS,
     ),
   };
 });
@@ -358,7 +360,7 @@ const acct = {
 const ruleClaims = acct.claims.filter((c) => !c.rule.startsWith('contract:'));
 const contractClaims = acct.claims.filter((c) => c.rule.startsWith('contract:'));
 const claimTally = `${MATERIALIZATION_RENAMES.length} rule(s) making ${ruleClaims.length} claim(s) over the whole `
-  + `before-set, plus ${contractClaims.length} the contract already records`;
+  + `before-set, plus ${contractClaims.length} the contract already records, plus ${MATERIALIZATION_DELETIONS.length} recorded deletion(s)`;
 
 const PRINT = 25;
 const listing = (label: string, xs: readonly string[]): string[] =>
@@ -394,8 +396,9 @@ if (!isTotal(acct)) {
     '',
     '  A materialization rename is recorded as a RULE in `packages/engine/materialization-renames.ts`',
     '  (`docs/44` §5). Add or correct one so the accounting is total. If a name really was DELETED rather',
-    '  than renamed, that is not this gate\'s business and the rule should not claim it — but the deletion',
-    '  then shows up here as an unaccounted removal, which is the conversation this gate exists to force.',
+    '  than renamed, no rule should claim it: record the deletion in `MATERIALIZATION_DELETIONS` with the',
+    '  decision behind it, once the removal has been decided. Until then it is an unaccounted removal,',
+    '  which is the conversation this gate exists to force.',
     '',
     '  A CONTRACT rename is not a rule and must not be given one. If the ROLE moved, the record is a',
     '  `DEPRECATIONS` entry in `version.ts` (+ the `CONTRACT_VERSION` bump `token-contract.ts --accept`',

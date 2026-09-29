@@ -200,7 +200,7 @@
           "label": "Spacious"
         }
       ],
-      "description": "Drives component sizes (control height + paired padding). The name stays stable; the metrics shift."
+      "description": "Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. The name stays stable; the metrics shift. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only."
     },
     {
       "key": "controlShape",

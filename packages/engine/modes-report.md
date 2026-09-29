@@ -1140,15 +1140,15 @@ Radius — scale `1`:
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 
 # Theme: prism3 (pds3.* / hex)
 
@@ -2303,15 +2303,15 @@ Radius — scale `1`:
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 
 # Theme: aurora (ads.* / hex)
 
@@ -3468,15 +3468,15 @@ Radius — scale `2`:
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 
 # Theme: harbor (hds.* / hex)
 
@@ -4632,13 +4632,13 @@ Radius — scale `1`:
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 

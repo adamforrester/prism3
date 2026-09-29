@@ -281,6 +281,17 @@ materialized for the setting, binds something the setting doesn't emit. Its head
 not sweep: sliders, structured levers and combinations. `typography.weights`, the structured lever
 that removes paths, is covered by the `minimal-weights` and `minimal-weight-swap` corpus members instead (#1632, #1639, above).
 
+### The spacing tokens leave the size tier (14.0.0, the spacing model)
+
+The owner's spacing model (`docs/28` §5.4, 2026-09-29) removes the shared size scale's spacing:
+`size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}`, 20 guaranteed paths, from DTCG, the
+Figma `size` collection and every other emission. `size.*` keeps the heights and `size.md.min-height`. A
+guaranteed removal with no replacement path, so MAJOR: `CONTRACT_VERSION` 13.2.0 → 14.0.0, accepted with
+`token-contract.ts --accept` after the bump. The owner confirmed there are zero consumers. No
+`DEPRECATIONS` entry: there is no one path to point at. The migration is to bind the `space.*` step the
+component's spec names (a medium Button: `space.200` on the label side, `space.150` on the icon side,
+`space.100` between), moved one step for a compact or spacious brand.
+
 ## Change classification
 
 | change to the guaranteed set | level | why |

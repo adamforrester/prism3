@@ -630,6 +630,12 @@ let fieldsMeasured = 0;
 let worstField = Infinity;
 let worstFieldWhere = '';
 let statesVisited = 0;
+// Per-mode density (owner, 2026-09-29, docs/28 §5.4.3): wherever the studio sets a per-mode density, the knob
+// says in one literal sentence that spacing follows the brand's density. Counted, so a sweep that never met the
+// per-mode knob cannot pass silently.
+const PER_MODE_DENSITY_SENTENCE = 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.';
+let perModeDensityKnobs = 0;
+const perModeDensityMissing = [];
 /** Paired specimens by class (#1652), and the brand × mode cells that previewed an exempt one. */
 const pairedByClass = { contracted: 0, exempt: 0, unmapped: 0 };
 const exemptCells = new Set();
@@ -682,6 +688,12 @@ for (const brand of BRANDS) {
       const hasBar = await page.locator('.mctx-b').count() > 0;
       const where = `${brand} / ${label} / ${mode}`;
       statesVisited++;
+      const densityKnobs = await page.evaluate(() => [...document.querySelectorAll('.knob')]
+        .filter((k) => k.querySelector('.knob-label')?.textContent?.trim() === 'Density'
+          && [...k.querySelectorAll('option')].some((o) => (o.textContent ?? '').startsWith('Auto — follows global')))
+        .map((k) => k.querySelector('.knob-desc')?.textContent ?? ''));
+      perModeDensityKnobs += densityKnobs.length;
+      for (const d of densityKnobs) if (!d.includes(PER_MODE_DENSITY_SENTENCE)) perModeDensityMissing.push(`${where}: ${d.slice(0, 80)}`);
 
       // --- zero console errors -----------------------------------------------------------------
       const errs = drain();
@@ -820,6 +832,8 @@ for (const brand of BRANDS) {
 // compared to nothing; the state count is what makes "the loop never ran" a failure instead of a
 // silence, and the node total is what catches every state rendering nothing but chrome — which the
 // per-state floor passes 72 times over.
+ok(perModeDensityKnobs > 0 && perModeDensityMissing.length === 0,
+  `per-mode density: every per-mode Density knob (${perModeDensityKnobs} met) says "${PER_MODE_DENSITY_SENTENCE}"${perModeDensityMissing.length ? ` — MISSING: ${perModeDensityMissing.slice(0, 3).join(' | ')}` : ''}`);
 ok(statesVisited >= SWEEP_STATE_FLOOR,
   `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,

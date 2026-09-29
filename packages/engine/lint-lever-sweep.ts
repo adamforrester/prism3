@@ -47,11 +47,13 @@
  *
  * (b) COMPONENTS. SUBJECT = every def's projection after brand materialization — `applyControlShape`
  *     (off the raw input, as the plugin reads it), then `applyWeightIntent` and `applyOutlineInteraction`
- *     (off the resolved theme), then `applyButtonLayout` (#1667 and #1752's label weight, off the raw input and the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
+ *     (off the resolved theme), then `applySpacingDensity` (the spacing model, off the theme's density), then
+ *     `applyButtonLayout` (#1667 and #1752's label weight, off the raw input and the theme's heights), then
+ *     `applyMinWidthRatio` (Tag's floor, off the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
  *     `materializeForBrand` performs. It is restated here, not imported, because the engine must not
  *     depend on a surface. The plugin's own `test-write-components.ts` pins that function's weight-intent
  *     (#1605), outline-hover (#1608) and button-setting (#1667, #1752) reads; its `controlShape` read has no
- *     plugin-side arm. This gate pins the four engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
+ *     plugin-side arm. This gate pins the six engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
  *     (`figmaArtifacts`, the in-memory form of the `out/figma/<brand>/*.json` files Apply writes): its
  *     variable tails, its text styles and its effect styles, checked separately by `planBindingErrors`.
  *     No allowlist: a component that binds a thing its brand does not emit is always a miss on paste.
@@ -92,7 +94,7 @@ import { componentDefs } from './components';
 import type { ComponentDef } from './component-schema';
 import { sizeRefPx } from './scale';
 import {
-  figmaAnatomySet, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT,
+  figmaAnatomySet, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT,
   planBindingErrors, planComponentName, planBoundVars, planTextStyles, planEffectStyles, type AnatomyPlan,
 } from './anatomy-figma';
 
@@ -169,17 +171,18 @@ const figmaEmitted = (theme: Theme): Emitted => {
 };
 
 // The materialization, in `materializeForBrand`'s order (see the header for why it is restated).
-// The button layout (#1667) is last, off the raw input like `controlShape`, with the brand's own size ladder.
+// The spacing density (the spacing model) follows the outline family; the button layout (#1667) comes after it,
+// off the raw input like `controlShape`, with the brand's own size ladder; the ratio floor (Tag's) is last.
 const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): ComponentDef =>
-  applyButtonLayout(
-    applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input.controlShape ?? 'rounded'), weightAvailability(theme.typography)), theme.outlineInteraction),
+  applyMinWidthRatio(applyButtonLayout(
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input.controlShape ?? 'rounded'), weightAvailability(theme.typography)), theme.outlineInteraction), theme.dims.density),
     {
       icons: input.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
       content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
       minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
       labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
     },
-    sizeRefPx(theme.dims.sizes));
+    sizeRefPx(theme.dims.sizes)), sizeRefPx(theme.dims.sizes));
 
 // Projection is the expensive step and depends only on the materialized def, so cache by its content.
 const projCache = new Map<string, AnatomyPlan[]>();

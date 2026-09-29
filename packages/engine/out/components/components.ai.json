@@ -4882,7 +4882,7 @@
             "medium",
             "large"
           ],
-          "description": "Tag height, padding and label type, on the same rungs as Button. Medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than it is tall."
+          "description": "Tag height, padding and label type. The height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density)."
         },
         {
           "name": "disabled",
