@@ -98,6 +98,8 @@ export const INVERSE_GAPS: InverseGap[] = [
     paths: [
       'color.veil.dark.subtle', 'color.veil.dark.medium', 'color.veil.dark.strong',
       'color.veil.light.subtle', 'color.veil.light.medium', 'color.veil.light.strong',
+      // The clear ends a directional veil fades to (#1318) — the same wash, at 0%, so the same reason.
+      'color.veil.dark.clear', 'color.veil.light.clear',
     ],
     reason:
       'STRUCTURAL, not undecided. A veil composites over a PHOTOGRAPH, and an inverse band does not '

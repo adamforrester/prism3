@@ -510,6 +510,35 @@ export const FIELDS: Record<string, FieldCheck> = {
       return bad.length ? bad.join(', ') : null;
     },
   },
+  // ── the gradient form of a fill (#1318) ────────────────────────────────────────────────────────
+  // A GradientPaint carries its bindings on its STOPS, so the `paints` predicate above (which reads the
+  // paint object's own `boundVariables`) cannot read it. Compared on everything the host holds: the paint
+  // type, the matrix (a float, so with a tolerance), and each stop's position and bound variable, IN ORDER —
+  // a swapped stop order is a wash strongest at the wrong edge, and reads back wrong here.
+  gradientFill: {
+    show: (p) => JSON.stringify(p),
+    check: (p, n, ports) => {
+      const want = p as { gradientTransform: number[][]; stops: { position: number; variable: string }[] };
+      const first = Array.isArray(n.fills) ? (n.fills[0] as { type?: string; gradientTransform?: number[][]; gradientStops?: { position?: number; boundVariables?: Record<string, { id?: unknown }> }[] } | undefined) : undefined;
+      if (!first) return 'NO PAINT';
+      if (first.type !== 'GRADIENT_LINEAR') return `${str(first.type)} — not a linear gradient`;
+      const t = first.gradientTransform;
+      if (!Array.isArray(t) || want.gradientTransform.some((row, i) => row.some((v, j) => !(Math.abs((t[i]?.[j] ?? NaN) - v) < 1e-6)))) return `gradientTransform ${str(t)}`;
+      const got = first.gradientStops ?? [];
+      if (got.length !== want.stops.length) return `${got.length} stops`;
+      const bad: string[] = [];
+      want.stops.forEach((s, i) => {
+        const g = got[i];
+        if (g.position !== s.position) bad.push(`stop ${i} at ${str(g.position)}`);
+        const id = g.boundVariables?.color?.id;
+        if (typeof id !== 'string') { bad.push(`stop ${i} NOT BOUND`); return; }
+        const name = ports.varName(id);
+        if (name === null) bad.push(`stop ${i}→id ${id} resolves to no variable`);
+        else if (!name.endsWith(`/${s.variable}`) && name !== s.variable) bad.push(`stop ${i}→${name}`);
+      });
+      return bad.length ? bad.join(', ') : null;
+    },
+  },
   descendantFills: { reason: 'applies to nodes the SVG importer created, which this reader does not name; the executor read-back at write time is the only thing that can address them' },
 };
 

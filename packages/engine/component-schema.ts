@@ -445,6 +445,32 @@ export type PartDef = {
    *  translucent overlay on the same node. That rule used to be a hardcoded `??` in the projector with
    *  a paragraph explaining it; as a declaration it is visible in the def that depends on it. */
   paintSlots?: readonly string[];
+  /** For `box` parts: a LINEAR GRADIENT form of the box's `fill` (#1318), chosen by one variant axis.
+   *
+   *  At a coordinate whose `axis` value is a key of `angles`, the box's fill is not a solid: it is a
+   *  two-stop linear gradient running from the fill the box would otherwise have painted (stop 0) to the
+   *  role `fadeTo` names (stop 1), in the direction the angle gives. At any other value of `axis` the box
+   *  paints its solid fill exactly as it did before this field existed, so a def keeps its solid members
+   *  byte-identical by leaving their axis value out of `angles`.
+   *
+   *  `angles` holds CSS `linear-gradient()` angles in degrees — the direction the gradient RUNS, from stop 0
+   *  to stop 1 (180 is CSS `to bottom`: stop 0 at the top edge). Stored as the CSS angle rather than a Figma
+   *  matrix because it is the one value both surfaces read: the code guidance spells it as `to bottom`, and
+   *  the projector converts it with the same `gradientTransformFor` the brand gradient styles use.
+   *
+   *  `fadeTo` is a BINDING KEY, resolved from the coordinate the way an anatomy geometry key is (`{value}`
+   *  fills from the member's own axis value) and required to resolve — a gradient with no far stop is the
+   *  silent-loss shape, so a miss throws rather than painting half a gradient. It is not a `paintKeys`
+   *  template: the far stop is not a slot any other part asks for, so `paintKeyErrors` treats the keys it
+   *  names as governed by the anatomy, the way a nested component's own binding is.
+   *
+   *  Only a box that declares `fill` may carry it: the gradient REPLACES the fill, so a box with no fill has
+   *  nothing to fade from. Projected as `FigmaNodePlan.gradientFill`. */
+  gradient?: {
+    axis: string;
+    angles: Readonly<Record<string, number>>;
+    fadeTo: string;
+  };
   /** For `box` parts: whether the frame CROPS content that overflows its bounds — Figma's
    *  `clipsContent` (#1316's image-placeholder). Absent means `false`, which is what every box in the
    *  corpus was hardcoded to before this field, so an omission is unchanged behaviour rather than a new
@@ -1090,10 +1116,20 @@ export type FigmaProperties = {
    *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
    *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
    *
+   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `State icon`). `part` may be a LIST when one toggle
+   *  governs two nodes that never coexist — the switch thumb's check (at `selection=on`) and X (at
+   *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
+   *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
+   *  dedupes by name). A targeted part — one or several — MAY be `presentWhen`-gated on VARIANT axes
+   *  (Tag's check, present only on a selected select tag, is the one-part case): the gates must be
+   *  DISJOINT, so no member builds two nodes for the boolean, and at least one member the set keeps must
+   *  build a node. Coverage is not required — a member with no node has nothing to toggle. See the
+   *  refusals in `figmaPropertyErrors`.
+   *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
    *  are none. */
-  booleans?: Record<string, string | { part: string; default?: boolean; figmaName?: string }>;
+  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1722,15 +1758,17 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
-/** The part whose `visible` a `booleans` entry drives — bare string or `{ part }` object (#1331). */
-export const booleanPart = (v: string | { part: string; default?: boolean; figmaName?: string }): string =>
-  typeof v === 'string' ? v : v.part;
+type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string };
+/** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
+ *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
+export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
+  typeof v === 'string' ? [v] : typeof v.part === 'string' ? [v.part] : v.part;
 /** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
-export const booleanFigmaName = (prop: string, v: string | { part: string; default?: boolean; figmaName?: string }): string =>
+export const booleanFigmaName = (prop: string, v: BooleanEntry): string =>
   typeof v === 'string' ? prop : v.figmaName ?? prop;
 /** A `booleans` entry's BUILT visibility (#1331) — the value the part is created with AND the boolean's own
  *  default. Bare string defaults VISIBLE (Figma's own default for a built node); the object states otherwise. */
-export const booleanDefault = (v: string | { part: string; default?: boolean; figmaName?: string }): boolean =>
+export const booleanDefault = (v: BooleanEntry): boolean =>
   typeof v === 'string' ? true : v.default ?? true;
 
 /**
@@ -2010,43 +2048,64 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'mainComponent', 'slot');
   // `booleans` normalizes the same way (#1331). No `kind` — a `visible` toggle sits on any node type — and
   // `requireOptional`, because the anatomy must allow the part to be hidden.
-  checkMap('booleans', Object.fromEntries(Object.entries(fp.booleans ?? {}).map(([p, v]) => [p, booleanPart(v)])), 'visible', undefined, true);
+  // One `checkMap` call per targeted part: the list form (`part: [...]`) names several nodes for one prop,
+  // and a `prop → part` record can hold only one of them.
+  for (const [p, v] of Object.entries(fp.booleans ?? {}))
+    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true);
 
-  // A BOOLEAN toggles its part's `visible` in place (#1331). Until #1743 it was the SOLE presence mechanism
-  // on its part, and a `presentWhen` on the same part was refused. It now COMPOSES with a VARIANT gate, and
-  // the composition is defined, not left open: the variant gate decides WHICH members carry the node at all,
-  // and at those members the boolean toggles it. A member the gate excludes has no node and nothing to toggle,
-  // which Figma allows — a component property is declared once on the set, and a variant with no node bound to
-  // it simply ignores it. Tag's trailing check mark is the first user: present only at `selection=selected`,
-  // and switchable there (owner, 2026-09-28: "optional, on by default when selected").
+  // A BOOLEAN toggles its parts' `visible` in place (#1331). A part it targets may ALSO carry a VARIANT
+  // presence gate, and the composition is defined, not left open: the gate decides WHICH members carry the
+  // node at all, and at those members the boolean toggles it. A member no targeted part reaches has nothing
+  // to toggle, which Figma allows — a component property is declared once on the set, and a variant with no
+  // node bound to it ignores it. Two users, one rule (reconciled in the #1743 merge of #1765):
+  //   · Tag's `Check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
+  //   · switch-control's `State icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
+  // Full coverage of an axis is NOT required: Tag's unselected members carry no check and nothing is wrong.
   //
-  // STILL REFUSED, and for the old reason: a STATE gate (`when`, or `presentWhen`'s reserved `state` key). A
-  // state is not a variant the designer picks between members; it is the projected state axis, and a node that
-  // exists only at `focus-visible` behind a boolean would be a switch whose effect depends on a state the
-  // panel does not show beside it. No def needs it, so no composition is defined for it.
+  // THREE REFUSALS, each a way the composition goes wrong without a sound:
+  //   (1) A STATE gate (`when`, or `presentWhen`'s reserved `state` key). A state is not a variant the
+  //       designer picks between members; a node that exists only at `focus-visible` behind a boolean is a
+  //       switch whose effect depends on a state the panel does not show beside it. No def needs it.
+  //   (2) OVERLAP — a member at which two targeted parts both build. The boolean then drives two nodes at
+  //       once there, which is two affordances wearing one switch; the parts' gates must be DISJOINT. An
+  //       ungated part builds at every member, so it overlaps any second part the same boolean targets.
+  //   (3) NO MEMBER — every targeted part's gate lands only on coordinates the set does not keep (in
+  //       practice, `excludeCoordinates`). The switch would be declared on the set and wired to a node on no
+  //       member. Tag's check gated to `type=dismissible × selection=selected` is the case this was written for.
+  // The members are enumerated HERE, from the declaration, with their own matcher — the same independence the
+  // exclusion refusals above keep from `isExcludedCoordinate`. A gate naming an axis the set does not project
+  // builds nowhere (the projector supplies no value for it) and is refused by name in `anatomyErrors`.
   for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
-    const part = booleanPart(v);
-    const p = parts[part];
-    if (p?.when)
-      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
-    else if (p?.presentWhen && STATE_GATE in p.presentWhen)
-      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares presentWhen on '${STATE_GATE}' — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
-    // THE GATE MUST LAND ON A MEMBER THE SET KEEPS. A variant gate whose every coordinate `excludeCoordinates`
-    // removes validates clean on each field alone, and projects a switch declared on the set and wired to a node
-    // on no member. Enumerated here from the declaration, with its own matcher, like the exclusion refusals
-    // above; a gate naming an axis the set does not project is left to the `presentWhen` refusals.
-    else if (p?.presentWhen && fp.excludeCoordinates?.length) {
-      const axes = fp.variantAxes ?? [];
-      const gate = Object.entries(p.presentWhen);
-      if (gate.every(([a]) => axes.includes(a))) {
-        const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
-        let grid: Record<string, string>[] = [{}];
-        for (const a of axes) grid = grid.flatMap((c) => values(a).map((v) => ({ ...c, [a]: v })));
-        const kept = grid.filter((c) => !fp.excludeCoordinates!.some((entry) => Object.keys(entry).every((a) => entry[a].includes(c[a]))));
-        if (!kept.some((c) => gate.every(([a, vs]) => vs.includes(c[a]))))
-          e.push(`figmaProperties.booleans.${prop} → part '${part}' is gated to ${gate.map(([a, vs]) => `${a}=${vs.join('|')}`).join(', ')}, and excludeCoordinates removes every such member — the switch would be declared on the set and toggle a node on no member`);
+    const targeted = booleanPartsOf(v);
+    let stateGated = false;
+    for (const part of targeted) {
+      const p = parts[part];
+      if (p?.when) {
+        stateGated = true;
+        e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
+      } else if (p?.presentWhen && STATE_GATE in p.presentWhen) {
+        stateGated = true;
+        e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares presentWhen on '${STATE_GATE}' — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
       }
     }
+    if (stateGated || !targeted.every((part) => parts[part])) continue;
+    const axes = fp.variantAxes ?? [];
+    const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+    let grid: Record<string, string>[] = [{}];
+    for (const a of axes) grid = grid.flatMap((c) => values(a).map((val) => ({ ...c, [a]: val })));
+    const kept = grid.filter((c) => !(fp.excludeCoordinates ?? []).some((entry) => Object.keys(entry).length > 0 && Object.keys(entry).every((a) => (entry[a] ?? []).includes(c[a]))));
+    // AND across axes; an axis the member does not carry reads as ABSENT — the projector's reading.
+    const builds = (part: string, c: Record<string, string>): boolean =>
+      Object.entries(parts[part]!.presentWhen ?? {}).every(([a, vs]) => c[a] !== undefined && vs.includes(c[a]));
+    const gateText = (part: string): string =>
+      parts[part]!.presentWhen ? Object.entries(parts[part]!.presentWhen!).map(([a, vs]) => `${a}=${vs.join('|')}`).join(', ') : 'every member (ungated)';
+    const overlap = kept.find((c) => targeted.filter((part) => builds(part, c)).length > 1);
+    if (overlap) {
+      const both = targeted.filter((part) => builds(part, overlap));
+      e.push(`figmaProperties.booleans.${prop} → parts '${both.join("', '")}' both build at ${axes.map((a) => `${a}=${overlap[a]}`).join(', ') || 'every member'} (gated to ${both.map((part) => `${part}: ${gateText(part)}`).join('; ')}) — a boolean drives ONE node per member, so the presence gates of the parts it targets must be disjoint`);
+    }
+    if (!kept.some((c) => targeted.some((part) => builds(part, c))))
+      e.push(`figmaProperties.booleans.${prop} → part${targeted.length > 1 ? 's' : ''} '${targeted.join("', '")}' ${targeted.length > 1 ? 'are' : 'is'} gated to ${targeted.map(gateText).join('; ')}, and no member the set keeps builds ${targeted.length > 1 ? 'any of them' : 'it'}${fp.excludeCoordinates?.length ? ' — excludeCoordinates removes every such member' : ''}; the switch would be declared on the set and toggle a node on no member`);
   }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
@@ -2768,12 +2827,25 @@ export type State = (typeof STATES)[number];
  * says so where it matters (Tag, which renders a <button>). Each def's first value LEADS because it is the code
  * default and Figma's default member (`status`, `select`). It is an AUTHORING axis in both — a member's type is
  * chosen when it is placed and never moves on screen — so the box may differ across types.
+ *
+ * ── `direction`: THE TWENTIETH NAME, FOR THE VEIL'S GRADIENT WASHES (owner-decided, 2026-09-28, #1318) ──
+ *
+ * `direction` (`full | from-top | from-bottom | from-left | from-right`) is WHERE a veil's wash sits across
+ * the image: evenly over all of it (`full`, the solid wash), or strongest at one named edge and fading to
+ * clear at the opposite one — Prism 2's `Gradient from top/bottom/left/right`. The owner named it, and it
+ * clears this list's bar the way the veil's first two did: a distinct kind of distinction no existing name
+ * expresses, with the nearest defeated. `intensity` is how STRONG the wash is and `value` is its polarity;
+ * this is its SPATIAL distribution, which neither touches — a `from-top` strong wash and a `full` strong wash
+ * reach the same strength at the top edge. `offset` is a nested part's DISPLACEMENT, `style` a stroke
+ * treatment and `shape` a corner silhouette; none is an orientation across the surface. Naming it `intensity`
+ * would claim a fade is a weaker wash, which it is not at its named edge; naming it `style` would put a
+ * spatial choice into a stroke axis. `lint-axis-values.ts` carries the five values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type',
+  'status', 'emphasis', 'shape', 'type', 'direction',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3010,8 +3082,25 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
   const nestedIds = new Set(
     Object.values(def.anatomy?.parts ?? {}).flatMap((p) => (p.nests ? [p.nests] : [])),
   );
+  /*
+   * A SECOND KIND, read from the def the same way: a GRADIENT'S FAR STOP (#1318). A box's `gradient.fadeTo`
+   * is a binding key the ANATOMY names and the projector resolves through `resolveKey`, which throws on a
+   * miss — not a slot any template answers. `veil`'s `dark.clear` has the arity of `{value}.{intensity}` and
+   * would be read as intensity='clear'. Exempt only the keys the template actually fills to, over the
+   * declared values, so a key merely SHAPED like one stays governed.
+   */
+  const fadeKeys = new Set(
+    Object.values(def.anatomy?.parts ?? {}).flatMap((p) => {
+      if (!p.gradient) return [];
+      let fills: Record<string, string>[] = [{}];
+      for (const ph of paintKeyPlaceholders(p.gradient.fadeTo))
+        fills = fills.flatMap((c) => (variantsOf(def)[ph] ?? []).map((v) => ({ ...c, [ph]: v })));
+      return fills.flatMap((c) => { const k = fillKey(p.gradient!.fadeTo, c); return k ? [k] : []; });
+    }),
+  );
   const governed = (key: string): boolean => {
     if (nestedIds.has(key)) return false;
+    if (fadeKeys.has(key)) return false;
     // The `disabled` LEAD only — see the note above. The branch supplies that segment itself, so a
     // `disabled.*` key is not described by any template and must not be read through one: text-field's
     // `{slot}.{state}` matches `disabled.fill` by shape and would report `{slot}='disabled'` and
@@ -3938,6 +4027,45 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const dupes = p.paintSlots.filter((s, i) => p.paintSlots!.indexOf(s) !== i);
       if (dupes.length)
         e.push(`anatomy part '${n}': paintSlots repeats [${[...new Set(dupes)].join(', ')}] — order is precedence, so a repeat can only ever be unreachable`);
+    }
+    // ---- `gradient`, the BOX kind's directional fill (#1318) ----
+    // Every clause is a way the field could validate clean and project nothing: on another kind, or on a box
+    // with no fill to fade from, the projector never reads it; an axis the def does not declare is never
+    // supplied; an angle keyed by a value the axis lacks is never reached; and a far stop that resolves to no
+    // colour binding would throw mid-projection rather than here, where the author reads it.
+    if (p.gradient !== undefined) {
+      const g = p.gradient;
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'gradient' — only a 'box' carries a fill for a gradient to replace`);
+      else if (!(p.paintSlots ?? []).includes('fill'))
+        e.push(`anatomy part '${n}' declares 'gradient' but no 'fill' in paintSlots — the gradient fades FROM the box's fill, so a box with no fill has no first stop`);
+      const axisValues = variantsOf(def)[g.axis];
+      if (!axisValues)
+        e.push(`anatomy part '${n}': gradient.axis '${g.axis}' is not a variant axis this def declares — nothing would ever supply it, so the gradient is reached at no coordinate`);
+      const keys = Object.keys(g.angles ?? {});
+      if (!keys.length)
+        e.push(`anatomy part '${n}': gradient.angles is empty — a gradient with no direction is reached at no coordinate; omit the field instead`);
+      for (const k of keys) {
+        if (axisValues && !axisValues.includes(k))
+          e.push(`anatomy part '${n}': gradient.angles names '${k}', which is not a value of '${g.axis}' [${axisValues.join(', ')}] — that direction is reached at no coordinate`);
+        if (!Number.isFinite(g.angles[k]))
+          e.push(`anatomy part '${n}': gradient.angles['${k}'] is not a finite number of degrees`);
+      }
+      // The far stop must resolve to a COLOUR binding at every coordinate the template can be filled at.
+      const phs = paintKeyPlaceholders(g.fadeTo ?? '');
+      const bad = phs.filter((ph) => !variantsOf(def)[ph]);
+      if (bad.length)
+        e.push(`anatomy part '${n}': gradient.fadeTo '${g.fadeTo}' names [${bad.join(', ')}], which is not a declared variant axis`);
+      else {
+        let fills: Record<string, string>[] = [{}];
+        for (const ph of phs) fills = fills.flatMap((c) => (variantsOf(def)[ph] ?? []).map((v) => ({ ...c, [ph]: v })));
+        for (const c of fills) {
+          const key = fillKey(g.fadeTo, c);
+          const ref = key ? def.tokens?.[key] : undefined;
+          if (typeof ref !== 'string' || !ref.startsWith('color.'))
+            e.push(`anatomy part '${n}': gradient.fadeTo '${g.fadeTo}' fills to '${key}', which ${ref === undefined ? 'tokens does not bind' : `binds '${ref}', not a color role`} — the gradient would have no far stop`);
+        }
+      }
     }
     // ---- `clipsContent`, the BOX kind's crop flag (#1316) ----
     // The same wrong-kind rule `paintSlots` gets: only the frame-creating branch of each executor reads

@@ -3030,7 +3030,8 @@
               },
               "aliasOf": "wds.core.palette.neutral.250",
               "contrast": 10.11,
-              "against": "background.primary"
+              "against": "background.primary",
+              "min": 4.5
             }
           }
         },
@@ -3440,8 +3441,9 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "wds.core.palette.white",
-                "contrast": 1,
-                "against": "self"
+                "contrast": 21,
+                "against": "background.primary",
+                "min": 4.5
               }
             }
           },

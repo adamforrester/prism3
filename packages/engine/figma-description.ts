@@ -168,7 +168,12 @@ export const figmaColorDescription = (f: ColorFacts): string => {
     case 'scrim':
       return `Modal and drawer backdrop — black, ${pct}`;
     case 'veil': {
-      const [, tone] = seg;
+      const [, tone, rung] = seg;
+      // The clear end of a directional veil (#1318) — 0%, so a wash percentage would describe nothing.
+      if (rung === 'clear')
+        return tone === 'dark'
+          ? 'Media veil, clear end — transparent black, where a dark gradient veil fades to.'
+          : 'Media veil, clear end — transparent white, where a light gradient veil fades to.';
       return tone === 'dark'
         ? `Media veil — ${pct} black wash over an image to lift light text. Check contrast on your photo.`
         : `Media veil — ${pct} white wash over an image to lift dark text. Check contrast on your photo.`;

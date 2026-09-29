@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.195.0",
+  "engineVersion": "0.200.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -2355,7 +2355,7 @@
           "1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)",
           "1.3.1 Info and Relationships (label + describedby association)",
           "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
-          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1) / 2.4.13 Focus Appearance",
+          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance",
           "4.1.2 Name/Role/Value / 2.5.8 Target Size",
           "3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste"
         ],
@@ -2601,7 +2601,7 @@
           "3.3.2 Labels or Instructions (the \"Shift+Enter for a new line\" hint whenever Enter submits)",
           "1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)",
           "3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)",
-          "1.4.3 Contrast / 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance / 4.1.2 Name Role Value",
+          "1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value",
           "2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target"
         ],
         "keyboard": "Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.",
@@ -3685,9 +3685,9 @@
         {
           "name": "showStateLabel",
           "type": "boolean",
-          "default": false,
+          "default": true,
           "required": false,
-          "description": "The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. Off by default, since position already carries the state; add only where legibility genuinely demands it. The glyph is present in the Figma set at every member, and this prop gates it in the code projection. Not hardcoded \"On\"/\"Off\" text, which is rejected outright."
+          "description": "The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. The Figma set carries it as the `State icon` boolean, default on, so both surfaces start from the same default. Never the sole state signal — thumb position carries the state. Not hardcoded \"On\"/\"Off\" text, which is rejected outright."
         },
         {
           "name": "size",
@@ -3869,9 +3869,9 @@
         {
           "name": "showStateLabel",
           "type": "boolean",
-          "default": false,
+          "default": true,
           "required": false,
-          "description": "The on/off affordance — a checkmark in the thumb when on, an X when off, off by default since thumb position plus track color carries the state. Add only where state legibility genuinely demands it. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded \"On\"/\"Off\" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize."
+          "description": "The on/off affordance — a checkmark in the thumb when on, an X when off. On by default, matching the `State icon` boolean in the Figma set; turn it off where thumb position plus track color are enough. Never the sole state signal. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded \"On\"/\"Off\" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize."
         },
         {
           "name": "size",
@@ -4146,7 +4146,7 @@
           "1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)",
           "1.3.1 Info and Relationships (label + describedby association)",
           "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
-          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1) / 2.4.13 Focus Appearance",
+          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance",
           "4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size"
         ],
         "keyboard": "The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.",
@@ -4235,8 +4235,8 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "Wash over media so text stays legible. Intensity is a magnitude — verify contrast.",
-      "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
+      "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
+      "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
       "props": [
         {
           "name": "value",
@@ -4260,6 +4260,20 @@
             "strong"
           ],
           "description": "How much the wash mutes the image, weakest to strongest. A magnitude, not a contrast promise — a stronger wash darkens (or lightens) the photo more, and whether the text on top clears its floor depends on the image, so verify contrast against your own photo. subtle keeps the image most present; strong mutes it most."
+        },
+        {
+          "name": "direction",
+          "type": "enum: 'full' | 'from-top' | 'from-bottom' | 'from-left' | 'from-right'",
+          "default": "full",
+          "required": false,
+          "values": [
+            "full",
+            "from-top",
+            "from-bottom",
+            "from-left",
+            "from-right"
+          ],
+          "description": "Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge. The intensity applies at the named edge only, so verify contrast where the text actually sits."
         }
       ],
       "states": [],
@@ -4278,6 +4292,16 @@
             "strong"
           ],
           "kind": "authoring"
+        },
+        "direction": {
+          "values": [
+            "full",
+            "from-top",
+            "from-bottom",
+            "from-left",
+            "from-right"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -4294,9 +4318,10 @@
         "labelPattern": "A veil carries no text of its own — it is a wash behind other content. Where its variants are named in a UI, name the polarity and the magnitude plainly: \"Dark, medium\" rather than a WCAG floor, because the rung is a magnitude and not a contrast promise."
       },
       "docs": {
-        "usage": "Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.",
+        "usage": "Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge, fading to clear at the opposite edge. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.",
         "do": [
           "Pick the polarity from the image — a dark wash under light text, a light wash under dark text",
+          "Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom",
           "Verify the text's contrast against the actual photo; the intensity is a magnitude, not a guaranteed ratio",
           "Size the veil to its media container and keep the text and controls as siblings on top of it",
           "Mark the veil aria-hidden — it is a presentational background layer"
@@ -4305,14 +4330,14 @@
           "Read the intensity as a contrast promise — a stronger wash mutes the image more, but whether text clears its floor depends on the photo",
           "Reach for a veil as the modal backdrop — that is scrim.default, a separate mode-varying fill dialogs reference directly",
           "Put the text inside the veil node — the text is a sibling on top, so assistive tech reads it directly and the wash stays decorative",
-          "Expect a gradient wash — the top/bottom/left/right gradients are not built yet; only solid washes exist today"
+          "Set text in the clear half of a directional wash — the intensity holds only at the named edge, so text away from it sits on the unmuted photo"
         ],
         "contentGuidelines": "The veil holds no copy. Where its variants surface in a UI, name the polarity and magnitude (\"Dark, strong\") rather than a contrast floor."
       },
       "ai": {
         "primaryPurpose": "Place a designer-selected wash over a photograph or video so text set on top of it stays legible, choosing the wash's polarity and magnitude per image.",
-        "whenToUse": "Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, and verify contrast against the real photo.",
-        "avoidWhen": "The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).",
+        "whenToUse": "Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, then the direction — full for text anywhere, or a fade from the edge the text sits on — and verify contrast against the real photo where the text sits.",
+        "avoidWhen": "The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or the text sits in the clear half of a directional wash (move it to the named edge or use full).",
         "commonPartners": [
           "icon",
           "button",
@@ -4327,7 +4352,10 @@
           "photo overlay",
           "text over image",
           "darken image",
-          "media wash"
+          "media wash",
+          "gradient scrim",
+          "gradient overlay",
+          "fade overlay"
         ],
         "generationPriority": 3
       },

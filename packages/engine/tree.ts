@@ -13,7 +13,7 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex } from './color';
+import { RGB, contrast, hex, hexToRgb } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
@@ -460,6 +460,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   };
   palette['black-alpha'] = alphaRamp(BLACK, 'Black alpha');
   palette['white-alpha'] = alphaRamp(WHITE, 'White alpha');
+  // #1318 — 0% WHITE, the clear end of a LIGHT veil's directional fade (`veil.light.clear`). The ramps start
+  // at 5% and 0% black already exists as `transparent`, so this is the one missing leaf: a light veil fading
+  // to clear BLACK passes through gray, because Figma interpolates gradient stops unpremultiplied. Only the
+  // white ramp gains a 0 step — a `black-alpha.0` would duplicate `transparent`. The key sorts first on its own.
+  palette['white-alpha']['0'] = alphaLeaf(theme, WHITE, 0, 'White alpha 0% — clear white, the end a light veil fades to');
 
   // ---- opacity primitive scale (dimensionless 0..1) ----
   const opacity: Record<string, Token> = {};
@@ -1258,8 +1263,18 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
+  // A role's SECOND pair (`alsoAgainst`, #1745) is a contract too, so it counts here — this count is what
+  // `cli.ts` and `emit-dtcg.ts` exit on and what the fidelity report prints. Measured from the two final hex
+  // values: the engine stores no ratio for the pair, and its warning lives only in `ModeResult.warnings`,
+  // which neither exit path reads. A partner missing from the mode counts as a failure, not a skip.
+  for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.alsoAgainst) {
+    modeChecks++;
+    const partner = mr.roles[r.alsoAgainst.against];
+    if (partner && contrast(hexToRgb(r.hex), hexToRgb(partner.hex)) >= r.alsoAgainst.min) modePass++;
+  }
 
-  const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length;
+  // `+ 1` for `white-alpha.0` (#1318) — the one alpha leaf outside the 5–90 ramp steps.
+  const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length + 1;
   // 3 base swatches: white, black, and the alpha-0 `transparent` primitive (#1341).
   const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves;
   return { tree, modes, stats: { colorLeaves, dimLeaves: theme.dims.grid.length, spaceTokens: theme.dims.space.length, radiusTokens: theme.dims.radius.length, sizeSteps: theme.dims.sizes.length, fontSizes: theme.typography.sizesPx.length, fontWeights: theme.typography.weightsRef.length, typeComposites: theme.typography.composites.length, aliases: aliases.length, resolved: aliases.length - broken.length, broken, modeChecks, modePass } };

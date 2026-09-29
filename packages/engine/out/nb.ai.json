@@ -209,6 +209,18 @@
         "hc-dark": "{nbds.core.palette.black-alpha.70}"
       }
     },
+    "veil.dark.clear": {
+      "$description": "Media veil, dark — the clear end (0% black) a directional dark veil fades to. Identical in every mode",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "The clear end of a directional dark veil — the stop a gradient wash fades to, opposite the edge that carries the dark intensity. Clear black, so the fade keeps its hue rather than passing through gray.",
+      "avoid_when": "Do not use as a solid fill — it paints nothing on its own; it is only the far stop of a veil gradient.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.transparent}",
+        "dark": "{nbds.core.palette.transparent}",
+        "hc-light": "{nbds.core.palette.transparent}",
+        "hc-dark": "{nbds.core.palette.transparent}"
+      }
+    },
     "veil.light.subtle": {
       "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "meaning": "Text legibility over a photograph",
@@ -243,6 +255,18 @@
         "dark": "{nbds.core.palette.white-alpha.60}",
         "hc-light": "{nbds.core.palette.white-alpha.60}",
         "hc-dark": "{nbds.core.palette.white-alpha.60}"
+      }
+    },
+    "veil.light.clear": {
+      "$description": "Media veil, light — the clear end (0% white) a directional light veil fades to. Clear white, not clear black, so the fade stays white instead of passing through gray. Identical in every mode",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "The clear end of a directional light veil — the stop a gradient wash fades to, opposite the edge that carries the light intensity. Clear white, so the fade keeps its hue rather than passing through gray.",
+      "avoid_when": "Do not use as a solid fill — it paints nothing on its own; it is only the far stop of a veil gradient.",
+      "mode_overrides": {
+        "light": "{nbds.core.palette.white-alpha.0}",
+        "dark": "{nbds.core.palette.white-alpha.0}",
+        "hc-light": "{nbds.core.palette.white-alpha.0}",
+        "hc-dark": "{nbds.core.palette.white-alpha.0}"
       }
     },
     "foreground.primary": {
@@ -351,6 +375,20 @@
       ],
       "tracks": [
         "inverse.border.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 13.89,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "inverse.text.primary",
+          "min": "4.5:1",
+          "ratio": 12.94,
+          "requirement": "MUST clear 4.5:1 against `inverse.text.primary` in every mode."
+        }
       ]
     },
     "foreground.brand": {
@@ -5086,6 +5124,12 @@
           "min": "7:1",
           "ratio": 18.11,
           "requirement": "MUST clear 7:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.foreground.tertiary",
+          "min": "4.5:1",
+          "ratio": 12.94,
+          "requirement": "MUST clear 4.5:1 against `inverse.foreground.tertiary` in every mode."
         }
       ]
     },
@@ -6179,7 +6223,15 @@
         "dark": "{nbds.core.palette.neutral.500}",
         "hc-light": "{nbds.core.palette.neutral.700}",
         "hc-dark": "{nbds.core.palette.neutral.250}"
-      }
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.27,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
     },
     "border.tertiary": {
       "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
@@ -8158,7 +8210,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.field.fill",
-        "color.inverse.field.fill"
+        "color.inverse.field.fill",
+        "color.veil.dark.clear"
       ]
     },
     "core.palette.red.100": {
@@ -9791,6 +9844,16 @@
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+    },
+    "core.palette.white-alpha.0": {
+      "$description": "White alpha 0% — clear white, the end a light veil fades to",
+      "meaning": "White at 0% alpha (composites over any surface)",
+      "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.veil.light.clear"
+      ]
     },
     "core.palette.white-alpha.5": {
       "$description": "White alpha 5% — alpha, composites over any surface",

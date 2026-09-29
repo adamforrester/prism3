@@ -205,6 +205,8 @@ const makeShim = (plans: AnatomyPlan[], page: { children: any[] }) => {
     variables: {
       getLocalVariablesAsync: async () => varNames.map(mkVar),
       setBoundVariableForPaint: (paint: unknown) => paint,
+      // A gradient stop's binding (#1318) — the veil's directional members bind each stop through this.
+      createVariableAlias: (v: { id: string }) => ({ type: 'VARIABLE_ALIAS' as const, id: v.id }),
     },
     getLocalTextStylesAsync: async () => styleNames.map((n) => ({ id: `S:${n}`, name: n, fontName: { family: 'Inter', style: 'Regular' } })),
     getLocalEffectStylesAsync: async () => effectNames.map((n) => ({ id: `E:${n}`, name: n })),

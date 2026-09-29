@@ -1148,6 +1148,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // Real Figma RETURNS a new paint rather than mutating — modelled, because the executor's
       // assignment back into the array is exactly what a forgotten `node.fills = [p]` would skip.
       setBoundVariableForPaint: (p: object, field: string, v: { id: string }) => ({ ...p, boundVariables: { [field]: { id: v.id } } }),
+      // A gradient STOP's binding (#1318) — the alias the executor places on each stop itself. Carries only
+      // the id, as Figma's does, so a stop reads back to a variable through the same catalogue a paint does.
+      createVariableAlias: (v: { id: string }) => ({ type: 'VARIABLE_ALIAS' as const, id: v.id }),
     },
     // `fontName` on every style, because the executor loads the STYLE'S font before writing text.
     getLocalTextStylesAsync: async () => textStyles,

@@ -69,8 +69,10 @@ import { componentDefs } from './components/index.ts';
 import { figmaAnatomyPlan, type FigmaNodePlan } from './anatomy-figma.ts';
 import { validateComponentDef, variantsOf, type ComponentDef, type PartDef } from './component-schema.ts';
 
-type Prop = 'fills' | 'strokes';
-const PROPS: Prop[] = ['fills', 'strokes'];
+/** `gradientFill` (#1318) is a third property because it is a third plan field: a box's fill in its
+ *  GRADIENT form, carried instead of `paints.fills` at the coordinates its `gradient` names. */
+type Prop = 'fills' | 'strokes' | 'gradientFill';
+const PROPS: Prop[] = ['fills', 'strokes', 'gradientFill'];
 
 const fails: string[] = [];
 const notes: string[] = [];
@@ -80,7 +82,8 @@ const notes: string[] = [];
  *
  * `box`  — exactly what it declares. `border` is the one EDGE slot and reaches `strokes`; every other
  *          word in `BOX_PAINT_SLOTS` is a ground competing for the single `fills` array. A box declaring
- *          nothing paints nothing, and two defs' boxes are deliberately in that position.
+ *          nothing paints nothing, and two defs' boxes are deliberately in that position. A box declaring a
+ *          `gradient` over a `fill` may carry `gradientFill` (#1318); nothing else may.
  * `text` — ink, so `fills` and never `strokes`. WHICH ink is `paintSlot`'s question (#796) and this gate
  *          takes no view on it; a stroke on a text node is the spurious-outline defect `PRIMARY_PAINT_SLOTS`
  *          was written for, met on a different kind.
@@ -91,10 +94,10 @@ const notes: string[] = [];
 const allowed = (p: PartDef): Record<Prop, boolean> => {
   if (p.kind === 'box') {
     const declared = p.paintSlots ?? [];
-    return { fills: declared.some((s) => s !== 'border'), strokes: declared.includes('border') };
+    return { fills: declared.some((s) => s !== 'border'), strokes: declared.includes('border'), gradientFill: !!p.gradient && declared.includes('fill') };
   }
-  if (p.kind === 'text') return { fills: true, strokes: false };
-  return { fills: false, strokes: false };
+  if (p.kind === 'text') return { fills: true, strokes: false, gradientFill: false };
+  return { fills: false, strokes: false, gradientFill: false };
 };
 
 /** Every coordinate the def can be projected at — the FULL declared grid, never `figmaAnatomySet`.
@@ -111,7 +114,12 @@ const placements = (def: ComponentDef): { byPart: Map<string, Set<Prop>>; coords
 
   const walk = (n: FigmaNodePlan): void => {
     const got = byPart.get(n.name) ?? new Set<Prop>();
-    for (const prop of PROPS) if (n.paints?.[prop]) got.add(prop);
+    for (const prop of ['fills', 'strokes'] as const) if (n.paints?.[prop]) got.add(prop);
+    if (n.gradientFill) got.add('gradientFill');
+    // A gradient REPLACES the fill at its coordinate (#1318) — both on one node is two fills fighting for
+    // one array, and whichever executor writes second wins. Checked per node, per coordinate, because the
+    // per-part union above cannot see it.
+    if (n.gradientFill && n.paints?.fills) fails.push(`G/${def.id}.${n.name}: carries BOTH a solid fill and a gradientFill at one coordinate — the gradient replaces the fill, never joins it`);
     byPart.set(n.name, got);
     for (const c of n.children) walk(c);
   };
@@ -265,6 +273,8 @@ else {
   refuses('an ink slot on a box', withPart(asRow, 'container', { paintSlots: ['icon'] }), 'which a box may not take');
   refuses('an empty paintSlots', withPart(asRow, 'container', { paintSlots: [] }), "EMPTY 'paintSlots'");
   refuses('a word outside the vocabulary', withPart(asRow, 'container', { paintSlots: ['backdrop'] }), 'which a box may not take');
+  // #1318 — a gradient replaces a FILL, so a box with none has no first stop; the row declares no paint.
+  refuses('a gradient on a box with no fill', withPart(asRow, 'row', { gradient: { axis: 'appearance', angles: { filled: 180 }, fadeTo: 'disabled.fill' } }), "no 'fill' in paintSlots");
 }
 
 // ── ARM E: representation ─────────────────────────────────────────────────────────────────────────────

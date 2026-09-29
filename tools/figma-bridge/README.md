@@ -46,7 +46,7 @@ imported from its manifest for development.
    until it ends; `message` carries the phase's own fraction, e.g. `wire 24/48`.
 
 Commands: `status`, `apply-theme {input}`, `build-components {def?}`, `file-setup`,
-`prune {input, confirm}`, `readback` — the same six as the mailbox, run through the same handlers the
+`style-guide {collections?, types?}`, `prune {input, confirm}`, `readback` — the same seven as the mailbox, run through the same handlers the
 panel's buttons reach. `prune` with `confirm: true` deletes; send `confirm: false` first and report
 the preview.
 
