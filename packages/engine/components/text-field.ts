@@ -14,9 +14,9 @@
  *
  * State model = the input border, which is the one stateful field slot:
  *   rest → field.border.rest · hover → field.border.hover (a subtly stronger boundary, never the
- *   sole cue) · focus → border.focus + the field focus ring · read-only → border.secondary with
- *   FULL-contrast text.primary (read-only ≠ disabled: focusable, copyable, submitted, passes
- *   contrast — the component's live edge, §4) · disabled → the shared disabled.* skin
+ *   sole cue) · focus → border.focus + the field focus ring · read-only → field.border.rest (the
+ *   editable field's own boundary, #1710) with FULL-contrast text.primary (read-only ≠ disabled:
+ *   focusable, copyable, submitted, passes contrast — the component's live edge, §4) · disabled → the shared disabled.* skin
  *   (contrast-exempt). Validation is NOT a state: it is the `status` axis (see below).
  *
  * ── VALIDATION IS THE `status` AXIS, ALIGNED TO field-message (#1494, mirroring select) ───────────
@@ -242,8 +242,12 @@ export const textField: ComponentDef = {
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
-    // read-only's quieter boundary, with full-contrast value ink above it — the component's live edge.
-    'border.read-only': 'color.border.secondary',
+    // read-only keeps the editable field's boundary (owner decision, 2026-09-29, #1710): `field.border.rest`
+    // clears 3:1 on the darkest permissible ground, and it is the quietest neutral step that does, so read-only
+    // is told apart by its semantics and the affordances its member does not draw (no caret, no hover wash), not by a fainter
+    // edge. Bound explicitly rather than left to fall through to the bare `border`, so the state names its
+    // boundary. Full-contrast value ink sits above it — the component's live edge.
+    'border.read-only': 'color.field.border.rest',
     // The status-led border swaps, each bound PER non-disabled state so it wins over the neutral progression
     // and persists through hover, focus and read-only (the focus RING, a separate part, still carries the
     // focus signal). At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound
@@ -525,7 +529,7 @@ export const textField: ComponentDef = {
       '1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)',
       '1.3.1 Info and Relationships (label + describedby association)',
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
-      '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1) / 2.4.13 Focus Appearance',
+      '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance',
       '4.1.2 Name/Role/Value / 2.5.8 Target Size',
       '3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste',
     ],
@@ -600,6 +604,7 @@ export const textField: ComponentDef = {
     ],
     // KB text-field brief §13.
     evolution: [
+      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.',
       // Moved from `contested` (#1700): decided here (a status, not a state), so it is evolution.
       'warning as a distinct state (brief §4 calls it optional; many systems fold it into helper/error). Settled here as a STATUS, not a state: `warning` is a value of the `status` axis with its own border (`color.border.warning`, #1517) and its own message status, so the field signals it on both.',
       'FLOATING LABELS OUT OF FAVOR. Static top-aligned labels are now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13). This field composes the static FieldLabel.',

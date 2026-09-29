@@ -12918,8 +12918,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k))
     && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the border swaps (#1494/#1517)');
   ok(textField.tokens['border'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (bare border = rest, + border.hover) (#1494)');
-  // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
-  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
+  // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink,
+  // and the editable field's own boundary (owner decision 2026-09-29, #1710) rather than a fainter edge.
+  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.field.border.rest', 'component: TextField read-only stays full-contrast (text.primary + field.border.rest), not disabled.* (#1710)');
   // #784: the key naming that state must BE the state, or `{slot}.{state}` never reaches it. `border.readonly`
   // was bound, resolvable and unreachable — a read-only field painted its rest border. Asserted against
   // `states` rather than against the literal, so the two cannot drift apart again.
@@ -12936,6 +12937,162 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
+
+  // ---- #1710: THE READ-ONLY FIELD BOUNDARY CLEARS 3:1 (SC 1.4.11) ON ITS FILL AND ITS PAGE GROUND ----
+  // A read-only field is still a control — focusable, in the tab order, submitted — so its boundary is the
+  // visual information a user needs to identify it, and SC 1.4.11 asks 3:1 of it. The rest/hover border
+  // (`field.border.*`) is contracted at 3:1 on the darkest permissible ground since #1341; the read-only
+  // arm binds a different role and nothing measured it. #1710 found it at ~2.7:1 on `background.secondary`.
+  //
+  // WHAT THE TWO SIDES ARE, per docs/34 question 1.
+  //   SUBJECT — the paint the PROJECTED member actually carries: `figmaAnatomySet` is walked for every member
+  //     at state=read-only (every status) — and, since the #1772 review, at rest / hover / filled too, the
+  //     states the defs' SC 1.4.11 line claims (see RO_SWEPT) — and each visible node that strokes contributes its
+  //     own stroke + fill. Read off the emitted plan, not off `def.tokens`, so a paint-grammar slip that
+  //     leaves the read-only member stroking some other key is measured as what it paints (shape 1's #536
+  //     fix). Scope is DISCOVERED from `componentDefs` (any def whose projected state axis carries
+  //     `read-only`) and then PINNED by name below, so a discovery that silently drops a field def fails
+  //     instead of shrinking the sweep (shape 15).
+  //   ORACLE — contrast RECOMPUTED from the resolved hexes against two page grounds written here as
+  //     literals (`background.primary`, `background.secondary` — the surfaces a field is placed on, and the
+  //     pair #1710 measured). Never the role's own `ratio`, `against` or `min`: `border.secondary` declares
+  //     `against: background.primary, min: 0`, so any check that read its declaration would pass it (shape 1,
+  //     the #573 border-contrast instance). The fill is composited over each ground by its REAL alpha, read
+  //     from the emitted primitive's `$value` rather than inferred from the path name — the default
+  //     `field.fill` is transparent, so today the fill IS the ground, and a brand pointing it at a solid
+  //     surface is measured against that surface.
+  // BOTH SIDES ARE REQUIRED: the border against the page ground outside the control AND against the fill
+  // inside it. With a transparent fill they are one comparison; with an opaque read-only fill they diverge,
+  // and whether the outer edge alone may fall below 3:1 is part of #1710's open decision — not assumed here.
+  {
+    // The corpus the contract is built over (`corpus()` — nb, aurora, harbor, wendys and the minimal-lever
+    // fixtures), plus prism3 and the NB master theme — the brand the owner works in. The master's brand
+    // input is COPIED here as literal values (the owner's file, 2026-09-28; byte-identical to the #1354
+    // block's copy), so this check does not move when that file does.
+    const NB_MASTER_1710: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+    const RO_CORPUS: Array<[string, Theme]> = [
+      ...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+      ['prism3', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+      ['nb-master', brandTheme(NB_MASTER_1710)],
+    ];
+    const RO_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+    const RO_GROUNDS = ['background.primary', 'background.secondary'];
+    // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
+    // read-only member landed with #1699/#1709).
+    const RO_PINNED = ['text-field', 'textarea', 'select'];
+    // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
+    // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
+    // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
+    // #1772 retargeted textarea's `border.hover` to a 2.69:1 role and nothing failed). `filled` is the rest
+    // border holding a value. `focus-visible` and `disabled` are NOT swept: the focus border is gated against
+    // the page by its own contract, and disabled is contrast-exempt — the defs' prose claims neither here.
+    const RO_SWEPT = ['read-only', 'rest', 'hover', 'filled'];
+    // ONE COORDINATE IS HELD OUT, and counted: a non-default STATUS at `hover`. There the control's fill is
+    // the translucent hover wash, and the status borders (contracted at 3:1 against the page alone) measure
+    // 2.64–3.00:1 against the washed ground inside the control — a pre-existing defect outside #1710, filed
+    // as #1782. Remove this exclusion when #1782 closes. Every other status is swept at every other state.
+    const roHeldOut = (coord: Record<string, unknown>): boolean => coord.state === 'hover' && coord.status !== undefined && coord.status !== 'default';
+    let roHeldOutCount = 0;
+    const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
+    type RoPaint = { def: string; state: string; coord: string; stroke: string; fill?: string };
+    const roPaints: RoPaint[] = [];
+    // A member in a swept state that draws NO stroked boundary is a failure, never a skip (#1772 review): a
+    // fill-framed def discovered here used to contribute zero paints and stay green.
+    const roUnframed: string[] = [];
+    const roDefs = componentDefs.filter((d) => d.figmaProperties?.stateAxis?.values.includes('read-only'));
+    for (const d of roDefs) {
+      const axis = d.figmaProperties!.stateAxis!.values;
+      // A pinned def must PROJECT every swept state, so dropping one from its axis cannot shrink the sweep.
+      if (RO_PINNED.includes(d.id))
+        for (const st of RO_SWEPT) if (!axis.includes(st)) roUnframed.push(`${d.id}: no projected ${st} member`);
+      for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).filter((p) => RO_SWEPT.includes(String(p.coord.state)))) {
+        if (roHeldOut(plan.coord)) { roHeldOutCount++; continue; }
+        const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
+        let stroked = 0;
+        const walk = (n: any): void => {
+          if (n.visible !== false && typeof n.paints?.strokes === 'string') {
+            stroked++;
+            roPaints.push({ def: d.id, state: String(plan.coord.state), coord, stroke: roleOfVar(n.paints.strokes), fill: typeof n.paints.fills === 'string' ? roleOfVar(n.paints.fills) : undefined });
+          }
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+        if (!stroked) roUnframed.push(`${d.id}[${coord}]`);
+      }
+    }
+    const roMissingDefs = RO_PINNED.filter((id) => !roPaints.some((p) => p.def === id && p.state === 'read-only'));
+    ok(roMissingDefs.length === 0,
+      `a11y(#1710): the read-only boundary sweep REPRESENTS every pinned field def (text-field, textarea, select) with a stroked read-only member` + (roMissingDefs.length ? ` — missing: ${roMissingDefs.join(', ')}` : ''));
+    ok(roUnframed.length === 0,
+      `a11y(#1710): every discovered field member in a swept state (${RO_SWEPT.join(', ')}), every status, draws a stroked boundary — a member with none is unmeasured, not passing` + (roUnframed.length ? ` — ${roUnframed.length} without: ${roUnframed.slice(0, 6).join('; ')}${roUnframed.length > 6 ? '; …' : ''}` : ''));
+
+    const roFails: string[] = [];
+    const roModesMissing: string[] = [];
+    const roModesSeen = new Set<string>();
+    let roCells = 0, roCellsExpected = 0, roWashOptOut = 0;
+    for (const [brand, th] of RO_CORPUS) {
+      const built = buildTree(th).tree as any;
+      const alphaOf = (path: string): number | undefined => {
+        const v = at(built, path)?.$value;
+        return typeof v === 'string' && !v.startsWith('{') ? parseColor(v).a : undefined;
+      };
+      const modes = resolveAllModes(th);
+      if (!modes.length) roModesMissing.push(`${brand}: no modes`);
+      // Every mode × every stroked node × every ground is one cell; a `continue` below that skips a cell
+      // leaves `roCells` short of this, so a silent skip fails the floor as well as naming itself.
+      roCellsExpected += modes.length * roPaints.length * RO_GROUNDS.length;
+      for (const m of modes) {
+        roModesSeen.add(m.mode);
+        for (const p of roPaints) {
+          const tag = `${brand}/${m.mode} ${p.def}[${p.coord}]`;
+          const b = m.roles[p.stroke];
+          if (!b?.hex) { roFails.push(`${tag} stroke ${p.stroke} unresolved`); continue; }
+          let f = p.fill ? m.roles[p.fill] : undefined;
+          // THE ONE ABSENT FILL THAT IS NOT A FAILURE: a hover WASH (`interactive.*.overlay.*`) in a brand
+          // whose `outlineInteraction` lever opts out of overlay tokens (`none`, `solid-tint` — `minimal-levers`
+          // and the NB master theme). The engine emits no wash there by design (modes.ts), so the member paints
+          // no fill and the ground is what sits inside the border. Counted and printed, never silent; any other
+          // absent or unresolvable fill is a FAILURE, never a "treat as transparent" (docs/34 question 3).
+          if (p.fill && !f && /^interactive\.[a-z0-9-]+\.overlay\./.test(p.fill) && !Object.keys(m.roles).some((k) => /^interactive\.[a-z0-9-]+\.overlay\./.test(k))) {
+            roWashOptOut++;
+            f = undefined;
+          } else if (p.fill && !f) { roFails.push(`${tag} fill ${p.fill} not emitted`); continue; }
+          const fa = f ? alphaOf(f.path) : 0;
+          if (f && (!f.hex || fa === undefined)) { roFails.push(`${tag} fill ${p.fill} alpha unresolved`); continue; }
+          for (const g of RO_GROUNDS) {
+            const ground = m.roles[g];
+            if (!ground?.hex) { roFails.push(`${tag} ground ${g} unresolved`); continue; }
+            const gRgb = hexToRgb(ground.hex);
+            const inside = f ? composite(gRgb, hexToRgb(f.hex), fa as number) : gRgb;
+            const outer = contrast(hexToRgb(b.hex), gRgb), inner = contrast(hexToRgb(b.hex), inside);
+            roCells++;
+            if (outer < 3 || inner < 3)
+              roFails.push(`${tag} ${p.stroke} on ${g}: ${Math.min(outer, inner).toFixed(2)}`);
+          }
+        }
+      }
+    }
+    for (const want of RO_MODES) if (!roModesSeen.has(want)) roModesMissing.push(`no brand resolved ${want}`);
+    ok(roModesMissing.length === 0 && roCells > 0 && roCells === roCellsExpected,
+      `a11y(#1710): the field boundary sweep measured every corpus brand × mode × stroked member × ground (${roCells} of ${roCellsExpected} cells; ${roWashOptOut} member-modes with no hover wash because the brand opts out of overlay tokens, measured on the bare ground; ${roHeldOutCount} status × hover members held out for #1782)` + (roModesMissing.length ? ` — modes missing: ${roModesMissing.join(', ')}` : ''));
+    // One line per brand × mode × stroke × ground, naming the defs and coordinates under it, so a failure
+    // reads as the cells a reviewer would measure rather than as dozens of near-identical rows.
+    const roGroup = (fails: string[]): string => {
+      const grouped = new Map<string, string[]>();
+      for (const f of fails) {
+        const m = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+        const key = m ? `${m[1]} ${m[4]}` : f;
+        grouped.set(key, [...(grouped.get(key) ?? []), m ? `${m[2]}[${m[3]}]` : '']);
+      }
+      return `${fails.length} members below, in ${grouped.size} cells: ` + [...grouped].map(([k, defs]) => `${k} (${defs.join(', ')})`).join('; ');
+    };
+    const roFailsReadOnly = roFails.filter((f) => /state=read-only\]/.test(f));
+    const roFailsOther = roFails.filter((f) => !/state=read-only\]/.test(f));
+    ok(roFailsReadOnly.length === 0,
+      `a11y(#1710): every projected read-only field member's border clears 3:1 (SC 1.4.11) on its read-only fill and page ground, every corpus brand × mode × status — ${roGroup(roFailsReadOnly)}`);
+    ok(roFailsOther.length === 0,
+      `a11y(#1710): every projected rest / hover / filled field member's border clears 3:1 (SC 1.4.11) on its fill and page ground, every corpus brand × mode × status — the states the field defs' SC 1.4.11 line claims — ${roGroup(roFailsOther)}`);
+  }
 
   // #1623 sign-off (C1/TF-5 + C1/TA-4) — ONE VALIDATION API ACROSS THE FIELD FAMILY. text-field, textarea and
   // select each express validation through the same two props, spelled the same way, over the same value set,
@@ -13136,13 +13293,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const selProj = select.figmaProperties!.stateAxis!.values;
     ok(selProj.includes('read-only') && !selProj.includes('pending'),
       `#1699 select projects read-only and holds pending out of the Figma state axis (stateAxis [${selProj.join(', ')}])`);
-    //     The projected read-only member, read off the PLAN: text-field's quieter boundary, the value at full
-    //     contrast, no placeholder; an error status keeps the danger boundary at read-only.
+    //     The projected read-only member, read off the PLAN: the editable field's boundary (`field.border.rest`,
+    //     owner decision 2026-09-29, #1710), the value at full contrast, no placeholder; an error status keeps the
+    //     danger boundary at read-only.
     const roPlan = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'read-only' } as never).root;
-    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/border/secondary'
+    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/field/border/rest'
       && findPart(roPlan, 'value')?.paints?.fills === 'color/text/primary'
       && !findPart(roPlan, 'placeholder'),
-      `#1699 select's read-only member draws the secondary border and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
+      `#1699/#1710 select's read-only member draws the editable field border (field.border.rest) and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
     const roErr = figmaAnatomyPlan(select, undefined, { status: 'error', state: 'read-only' } as never).root;
     ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
       `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);

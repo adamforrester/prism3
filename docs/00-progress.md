@@ -7,6 +7,56 @@
 
 ---
 
+## (2026-09-29) — A11y: the read-only field keeps the editable field's border, 3:1 on its ground (#1710)
+
+**Owner-decided (2026-09-29): option A.** Read-only uses `field.border.rest`, the same border as an editable field, in every mode. Read-only is carried by its semantics and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.
+
+**Built.** `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to `color.field.border.rest`. The key stays explicit rather than falling through to the bare `border`, so the state names its boundary. The read-only border now measures 3.16–4.63:1 on `background.secondary` and 3.51–4.63:1 on `background.primary` across all 45 cells: light 3.16–3.32, dark 3.23–3.27, HC 4.54–4.63. The #1710 gate below passes unedited. The two pins that named the old role now assert `color.field.border.rest` / `color/field/border/rest` literally. The defs' "quieter boundary" prose is gone. Their SC 1.4.11 lines now say what is gated: the rest, hover and read-only borders on `background.secondary`. They make no claim for the focus or status borders, which this gate does not measure. Each def's `notes.evolution` records the decision. `docs/20`'s text-field binding line is updated. ENGINE 0.198.0 → 0.199.0 (MINOR; renumbered at net after #1749 and #1776 took 0.197.0 and 0.198.0). The projected read-only members' stroke moves, so the `component-surface` and `paint-census` baselines were re-accepted. The census moves for exactly `text-field`, `textarea` and `select` (set and grid, same assignment counts). The surface moves for those three defs and their two `outlineInteraction` projections each (still 24 members). CONTRACT stands at 13.2.0; `token-contract.json` moves only its `engineVersion` stamp.
+
+**The measurement that led to the decision** (the first commit of this PR stopped here).
+
+**Where it binds.** Three defs project a read-only member: `text-field`, `textarea` and `select` (#1709 landed, so select has it). Each bound `border.read-only` → `color.border.secondary` over `fill` → `color.field.fill`. The projected read-only control stroked `color/border/secondary` and fills `color/field/fill`, read off `figmaAnatomySet` for all three. `field.fill` is transparent by default (#1341), so the read-only fill is the page ground the field sits on.
+
+**Measured, every brand × mode.** The brands are `corpus()` (nb, aurora, harbor, wendys, six minimal fixtures), plus prism3 and the NB master theme. Literal hexes and ratios are in `packages/engine/fixtures/a11y/readonly-field-border-1710.json`. `border.secondary` fell under 3:1 on `background.secondary` in **light only**, in all 12 brands: 2.69 (nb, aurora) to 2.81 (harbor), NB master 2.72. It passed in dark (3.88–3.95) and HC (9.84–10.14). Status borders at the read-only coordinate (`border.danger` / `warning` / `success`) clear 3:1 on both grounds everywhere.
+
+**Why this is a design decision, not a mechanical fix.** The existing mechanism is `field.border.rest`: `pickMinPass` on `background.secondary` at 3:1, so it is the least-contrast neutral step that clears the floor. Two facts follow:
+- In light, a read-only border quieter than the rest border cannot clear 3:1. The quietest passing step is the rest border.
+- In dark and HC, `border.secondary` is already stronger than `field.border.rest`: on `background.secondary` it measures 3.88–3.95 against the rest border's 3.23–3.27 in dark, and 9.84–10.14 against 4.54–4.63 in HC. The def comment "read-only's quieter boundary" holds only in light.
+
+So rebinding to the contracted role changes what read-only looks like in every mode. In light it becomes identical to `filled`. In dark and HC it gets quieter. That is the owner's call.
+
+**Options (minimum on `background.secondary` across the 45 cells; floor 3:1):**
+- **A. `field.border.rest`**: 3.16, no failures. Read-only is pixel-identical to `filled` in every mode, and quieter than today in dark and HC. No new name.
+- **B. `field.border.hover`**: 4.52, no failures. Louder than rest, so read-only reads as more emphatic than an editable field.
+- **C. `border.tertiary`**: 5.48, no failures. The strongest neutral edge: HC resolves to the 950/025 extreme.
+- **D. `interactive.neutral.border.rest`**: 14.05, no failures. The near-black outline-button edge.
+- **E. Add a 3:1 floor on `background.secondary` to `border.secondary` itself.** Equals A in light and keeps today's values in dark and HC. It moves a global divider role that `badge` also binds (the badge lane is in flight).
+- **F. Mint `field.border.read-only`.** A new guaranteed name (CONTRACT MINOR). Under 3:1 in light it can only equal A or be stronger.
+- **G. Keep the border and give read-only an opaque fill.** On an opaque `background.primary` fill `border.secondary` measures 3.20–3.30 inside the control but stays 2.69–2.81 against a `background.secondary` page outside it. The gate below requires both sides, so G alone does not pass it.
+- **H. Issue option 2: read-only needs no 3:1 boundary.** Correct the "control boundary ≥3:1" claim in the three defs instead. Ruled out: `border.primary` (1.13).
+
+**The gate** is `test.ts`, `a11y(#1710): every projected read-only field member's border clears 3:1 (SC 1.4.11) on its read-only fill and page ground, every corpus brand × mode × status`. It walks every stroked node of every projected `state=read-only` member, of every def whose state axis carries `read-only`. It then recomputes the contrast from resolved hexes against the literal page grounds `background.primary` and `background.secondary`. It checks both the outside edge and the fill inside, with the fill composited over the ground at its real alpha, read from the emitted primitive. It never reads the role's `against`/`min`: `border.secondary` declares `against: background.primary, min: 0`, so reading the declaration would pass it (docs/34 shape 1, the #573 instance). Two sibling assertions keep the sweep from going quiet. One pins text-field, textarea and select by name. The other requires all four mode names and a cell floor (shape 15). Before the rebind it failed in 12 cells × 3 defs = 36 members; after it, 0.
+
+**Mutations.** Each was committed first and restored from HEAD.
+- Each def's read-only border set back to `color.border.secondary`, one at a time. The #1710 gate fails naming only that def, in the 12 light cells. text-field also fails its pin (`component: TextField read-only stays full-contrast (text.primary + field.border.rest) …`), and select fails `#1699/#1710 select's read-only member draws the editable field border …`. textarea has no pin; the gate is its only guard.
+- `read-only` dropped from select's projected state axis. The representation arm fails by name (`… — missing: select`) and the main gate stays green, so without that arm the sweep would have shrunk silently.
+
+### Review round (independent review of #1772 at 5ba93331; no blockers)
+
+- **A fill-framed def was dropped silently.** A discovered def whose read-only member drew no stroked node contributed zero paints and stayed green. The cell floor (`brands × 3 × 2`) also ignored modes and statuses. Now every discovered member in a swept state, at every status, must draw at least one stroked boundary node, or `a11y(#1710): every discovered field member in a swept state … draws a stroked boundary` fails and names it. A discovered pinned def must also project every swept state. A pinned def that is not discovered at all (no `read-only` on its axis) fails the representation arm. The floor is now exact: every mode × stroked member × ground, so a skipped cell fails it.
+- **The prose overclaimed hover.** The defs' SC 1.4.11 lines said the hover border is gated, and nothing gated a def's hover binding. The sweep now covers `rest`, `hover` and `filled` as well as `read-only` (`RO_SWEPT`). `read-only` keeps its assertion name; the other three states fail under `a11y(#1710): every projected rest / hover / filled field member's border clears 3:1 …`.
+- **What the hover sweep found, filed rather than fixed.** At hover the control's fill is the translucent overlay wash. Against that washed ground the status borders (`border.danger` / `warning` / `success`, contracted against the page alone) measure 2.64–3.00:1, in 132 members across 44 cells. That is a pre-existing defect outside #1710, filed as **#1782**. The sweep holds out exactly that coordinate (non-default status × hover), counts it, and names #1782 beside the exclusion. The neutral hover border clears 3:1 against the wash everywhere.
+- **One absent fill is allowed, and counted.** Brands whose `outlineInteraction` lever opts out of overlay tokens (`none`, `solid-tint`: `minimal-levers` and the NB master theme) emit no hover wash by design. The hover member then paints no fill and is measured on the bare ground, with the count printed in the floor assertion. Any other absent or unresolvable fill is a failure.
+- **Nit.** The fixture's first field now says nothing reads it.
+- **Mutations** (each committed first, confirmed applied, restored from HEAD):
+  - textarea's control made fill-framed (`paintSlots` without `border`, no `strokeWidth`): `… every discovered field member in a swept state … draws a stroked boundary …` names 13 textarea members, and the representation arm names textarea.
+  - textarea `border.hover` → `color.border.secondary`: `… every projected rest / hover / filled field member's border clears 3:1 …` names 32 textarea hover cells.
+  - Each def's `border.read-only` back to `color.border.secondary`: the read-only arm names only that def, 12 light cells each, plus text-field's and select's pins.
+  - `read-only` dropped from select's axis: the representation arm names select.
+  - The #1782 exclusion disabled: the rest / hover / filled arm names the 132 status × hover members across all three defs.
+
+---
+
 ## (2026-09-29) — Rendered contrast: no opacity carve-out, real bars for the popover and form controls, and a legibility pass over the plugin bundle (#1069, #779, #1041)
 
 Gate-integrity work on the two browser suites that measure what renders. No engine or UI code changed, so there is no version bump: `ENGINE_VERSION` and `CONTRACT_VERSION` stand.

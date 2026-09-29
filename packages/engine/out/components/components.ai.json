@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.198.0",
+  "engineVersion": "0.199.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -2355,7 +2355,7 @@
           "1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)",
           "1.3.1 Info and Relationships (label + describedby association)",
           "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
-          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1) / 2.4.13 Focus Appearance",
+          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance",
           "4.1.2 Name/Role/Value / 2.5.8 Target Size",
           "3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste"
         ],
@@ -2601,7 +2601,7 @@
           "3.3.2 Labels or Instructions (the \"Shift+Enter for a new line\" hint whenever Enter submits)",
           "1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)",
           "3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)",
-          "1.4.3 Contrast / 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance / 4.1.2 Name Role Value",
+          "1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value",
           "2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target"
         ],
         "keyboard": "Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.",
@@ -4146,7 +4146,7 @@
           "1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)",
           "1.3.1 Info and Relationships (label + describedby association)",
           "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion",
-          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1) / 2.4.13 Focus Appearance",
+          "1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance",
           "4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size"
         ],
         "keyboard": "The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.",

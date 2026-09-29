@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.199.0 — #1710 (owner decision, 2026-09-29): the read-only field keeps the editable field's boundary.
+ * `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to
+ * `color.field.border.rest`, so the read-only member draws the same border as rest and filled in every mode.
+ * `border.secondary` measured 2.69–2.81:1 on `background.secondary` in light in every brand, below the SC 1.4.11
+ * floor; `field.border.rest` measures 3.16–4.63:1 there across every corpus brand, prism3 and the NB master
+ * theme. The three defs' a11y and prose claims now name the boundary that is built. The projected read-only
+ * members' stroke moves (`schema/component-surface.json`, the paint census) → ENGINE MINOR. CONTRACT STANDS at
+ * 13.2.0: no token name moves — the defs bind an existing role.
+ *
  * 0.198.0 — #1745: Badge's three NEUTRAL pairs become mode contracts instead of example-brand measurements, so
  * every brand the engine generates is checked, not only the corpus. `border.secondary` is contracted against
  * `background.primary` at the mode's non-text bar (3:1, 4.5:1 in high-contrast), and its `pickClosest` now
@@ -4110,7 +4119,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.198.0';
+export const ENGINE_VERSION = '0.199.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

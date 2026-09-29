@@ -41,7 +41,7 @@
  *   rest          → `field.border.rest`      (the bare `border` key — the rest fallback)
  *   hover         → `field.border.hover`     (`border.hover`)
  *   focus-visible → `border.focus`           (`border.focus-visible`)
- *   read-only     → `border.secondary`       (`border.read-only` — text-field's quieter boundary, #1699)
+ *   read-only     → `field.border.rest`      (`border.read-only` — the editable boundary, text-field's binding, #1710)
  *   error         → `border.danger`          (`error.border.{state}` — a status-led, border-ONLY swap)
  *   warning       → `border.warning`         (`warning.border.{state}`)
  *   success       → `border.success`         (`success.border.{state}`)
@@ -179,7 +179,7 @@ export const select: ComponentDef = {
   //
   // `read-only` and `pending` (#1699 decision 2, owner-delegated) are text-field's and textarea's two states,
   // added so the field family carries one state set. `read-only` PROJECTS (the value at full contrast behind
-  // text-field's quieter `border.secondary` boundary); `pending` does not (a spinner swap with no static skin,
+  // the editable field's `field.border.rest` boundary, #1710); `pending` does not (a spinner swap with no static skin,
   // admitted in `codeOnly` exactly as text-field admits it).
   states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
@@ -256,8 +256,9 @@ export const select: ComponentDef = {
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
-    // read-only's quieter boundary, with the full-contrast value ink above it — text-field's binding (#1699).
-    'border.read-only': 'color.border.secondary',
+    // read-only keeps the editable field's boundary (owner decision, 2026-09-29, #1710), with the full-contrast
+    // value ink above it — text-field's binding.
+    'border.read-only': 'color.field.border.rest',
     // The status-led swaps, each bound per non-disabled state so it wins over the neutral progression above
     // and persists through hover and focus (the focus RING, a separate part, still carries the focus signal).
     // At `disabled` the cross-cutting `disabled.border` takes over. #1517 (owner-directed, Prism 2 parity):
@@ -508,7 +509,7 @@ export const select: ComponentDef = {
       'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving status(4) × state(6) = 24 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
       'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / filled / focus-visible / disabled / read-only / pending / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
       'pending — a real STATE (async options are loading: a spinner replaces the chevron and the control sets aria-busy), deliberately NOT a Figma variant, text-field\'s posture. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, so it stays in `states` and is held out of the projected `stateAxis`, leaving status(4) × state(6) = 24 members.',
-      'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the quieter boundary; in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
+      'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the editable field\'s boundary (`field.border.rest`, #1710); in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
       'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
     ],
   },
@@ -570,7 +571,7 @@ export const select: ComponentDef = {
       '1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)',
       '1.3.1 Info and Relationships (label + describedby association)',
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
-      '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1) / 2.4.13 Focus Appearance',
+      '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance',
       '4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size',
     ],
     keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.',
@@ -644,6 +645,7 @@ export const select: ComponentDef = {
     ],
     // KB select brief §13, the three-phase through-line the brief adopts as its framing.
     evolution: [
+      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.',
       'STYLING ERA (~2015–2020): custom <div> listboxes to escape the unstyleable native element, at the cost of industry-wide accessibility regressions (KB select brief §13).',
       'ACCESSIBILITY ERA (~2020–2024): headless libraries (React Aria, Radix) codify the ARIA 1.2 listbox and combobox patterns correctly, with JavaScript positioning and focus management dominating the payload.',
       'PLATFORM ERA (2025–present): the Popover API, CSS Anchor Positioning and `appearance: base-select` let a native <select> carry custom styling and rich option content, collapsing the native-versus-custom trade. Directional and unverified in the brief — the reason this def stays native-first and models only the closed control.',
