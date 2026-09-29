@@ -4911,6 +4911,116 @@ for (const b of brands) {
   }
 }
 
+// ---- BADGE'S NEUTRAL PAIRS ARE MODE CONTRACTS (#1745) -----------------------------------------------------------
+// The badge block above MEASURES the neutral pairs in the example brands; this holds that the engine CONTRACTS
+// them, so a client brand is checked at generation time too. Three pairs, each written here as a literal rather
+// than read from `modes.ts`:
+//   1. `border.secondary` (the subtle neutral edge) against `background.primary` at the non-text bar;
+//   2. `inverse.foreground.tertiary` (the bold neutral fill) against `background.primary` at the same bar;
+//   3. `inverse.text.primary` (the bold neutral label) on that fill at 4.5:1 — the fill's SECOND pair, because
+//      the ink's own `against` is already the inverse band.
+// Then three synthetic brands, one per pair, each of which the pre-#1745 engine shipped with the pair failing and
+// nothing naming it. Every ratio below is measured from the emitted hex values; none is read from `ratio`.
+{
+  const themes: [string, any][] = [
+    ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
+    ['nb', nbTheme()],
+    ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
+    ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
+    ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+  ];
+  // The non-text bar per mode, as a literal: 3:1, and 4.5:1 in the two high-contrast modes.
+  const NON_TEXT: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5 };
+  const wrong: string[] = [];
+  let cells = 0;
+  for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+    cells++;
+    const bar = NON_TEXT[m.mode];
+    const edge = m.roles['border.secondary'], fill = m.roles['inverse.foreground.tertiary'];
+    if (edge?.against !== 'background.primary' || edge?.min !== bar) wrong.push(`${brand}/${m.mode} border.secondary ${edge?.against}@${edge?.min}`);
+    if (fill?.against !== 'background.primary' || fill?.min !== bar) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary ${fill?.against}@${fill?.min}`);
+    if (JSON.stringify(fill?.alsoAgainst) !== JSON.stringify({ against: 'inverse.text.primary', min: 4.5 })) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary second pair ${JSON.stringify(fill?.alsoAgainst)}`);
+  }
+  ok(cells === 20 && wrong.length === 0,
+    `#1745 the three neutral pairs are contracted in all ${cells} of 20 brand × mode cells: border.secondary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+
+  const ratioOf = (m: any, a: string, b: string): number => contrast(hexToRgb(m.roles[a].hex), hexToRgb(m.roles[b].hex));
+  const lightOf = (bi: BrandInput) => resolveAllModes(brandTheme(bi)).find((m) => m.mode === 'light')!;
+  const warnsOf = (m: any, role: string) => (m.warnings ?? []).filter((w: any) => w.role === role);
+  // One synthetic brand per pair. Named literally, so dropping one fails by name instead of shrinking the proof
+  // (each arm below is guarded, so a dropped brand reads as this failure rather than a crash).
+  const SYNTH: Record<string, BrandInput> = {
+    // A warm neutral on an off-white page: the neutral step closest to the edge target lands under 3:1.
+    edge: { ...MINIMAL_BRAND, id: 't1745-edge', neutral: { hue: 60, chroma: 0.03 }, surfaces: { light: { base: 100 } } } as BrandInput,
+    // A mid-dark band: the ink still clears its own 7:1 on the band, but not 4.5:1 on the band's third step.
+    label: { ...MINIMAL_BRAND, id: 't1745-label', surfaces: { light: { inverseBase: 650 } } } as BrandInput,
+    // A band too close to the page: its third step no longer separates from the page at 3:1.
+    fill: { ...MINIMAL_BRAND, id: 't1745-fill', surfaces: { light: { inverseBase: 500 } } } as BrandInput,
+  };
+  ok(['edge', 'label', 'fill'].every((k) => k in SYNTH), `#1745 one synthetic brand per neutral pair: edge, label, fill (got ${Object.keys(SYNTH).join(', ')})`);
+
+  // (1) THE EDGE — the solver repairs it. Live check first: the step the pre-#1745 rule picked (the neutral step
+  // whose contrast on the page is closest to 1.4 × 2.2 = 3.08) is under 3:1, recomputed here from the ramp.
+  if (SYNTH.edge) {
+    const th = brandTheme(SYNTH.edge);
+    const m = lightOf(SYNTH.edge);
+    const page = hexToRgb(m.roles['background.primary'].hex);
+    const neutral = th.palettes.find((p: any) => p.palette === th.roleToPalette.neutral)!.steps;
+    const closest = neutral.map((s: any) => ({ key: s.key, r: contrast(s.rgb, page) })).sort((a: any, b: any) => Math.abs(a.r - 3.08) - Math.abs(b.r - 3.08))[0];
+    ok(closest.r < 3,
+      `#1745 edge fixture is live: under the old rule border.secondary took neutral.${closest.key} at ${closest.r.toFixed(2)}:1 on the page, below 3:1`);
+    const r = ratioOf(m, 'border.secondary', 'background.primary');
+    ok(r >= 3 && warnsOf(m, 'border.secondary').length === 0,
+      `#1745 edge repaired: border.secondary (${m.roles['border.secondary'].path.split('.').pop()}) clears 3:1 on the page at ${r.toFixed(2)} in the edge fixture, and no warning names it`);
+  }
+  // (2) THE LABEL ON THE BOLD NEUTRAL FILL — the contract catches it. The band is declared, so nothing moves it; the
+  // shortfall is named, with the ink as the partner.
+  if (SYNTH.label) {
+    const m = lightOf(SYNTH.label);
+    const own = ratioOf(m, 'inverse.text.primary', 'inverse.background.primary');
+    const r = ratioOf(m, 'inverse.text.primary', 'inverse.foreground.tertiary');
+    ok(own >= 7 && r < 4.5,
+      `#1745 label fixture is live: inverse.text.primary clears its own 7:1 on the band (${own.toFixed(2)}) but measures ${r.toFixed(2)} on inverse.foreground.tertiary`);
+    const w = warnsOf(m, 'inverse.foreground.tertiary').filter((x: any) => x.against === 'inverse.text.primary');
+    ok(w.length === 1 && w[0].min === 4.5 && Math.abs(w[0].ratio - r) < 0.01,
+      `#1745 label caught: a warning names inverse.foreground.tertiary against inverse.text.primary at ${r.toFixed(2)} under 4.5:1 (got ${JSON.stringify(warnsOf(m, 'inverse.foreground.tertiary'))})`);
+  }
+  // (3) THE BOLD NEUTRAL FILL ON THE PAGE — the contract catches it, as its own pair (no `against` on the warning).
+  if (SYNTH.fill) {
+    const m = lightOf(SYNTH.fill);
+    const r = ratioOf(m, 'inverse.foreground.tertiary', 'background.primary');
+    ok(r < 3, `#1745 fill fixture is live: inverse.foreground.tertiary measures ${r.toFixed(2)} on the page`);
+    const w = warnsOf(m, 'inverse.foreground.tertiary').filter((x: any) => x.against === undefined);
+    ok(w.length === 1 && w[0].min === 3 && Math.abs(w[0].ratio - r) < 0.01,
+      `#1745 fill caught: a warning names inverse.foreground.tertiary's own pair against the page at ${r.toFixed(2)} under 3:1 (got ${JSON.stringify(warnsOf(m, 'inverse.foreground.tertiary'))})`);
+  }
+  // (4) THE EXIT GATE COUNTS THE SECOND PAIR (review of #1776). `cli.ts` and `emit-dtcg.ts` exit on
+  // `stats.modePass < stats.modeChecks`, and the fidelity report prints the same count; a warning in
+  // `ModeResult.warnings` alone reaches none of them. Overriding the fill to `neutral.400` leaves its own
+  // pair clear of 3:1 on the page but sinks its label under 4.5:1, so exactly one contract must fail —
+  // held against the same brand without the override, so the count is relative, not a literal total.
+  {
+    const base = buildTree(brandTheme(MINIMAL_BRAND)).stats;
+    const ovInput = { ...MINIMAL_BRAND, overrides: { light: { 'inverse.foreground.tertiary': { palette: 'neutral', step: '400' } } } } as BrandInput;
+    const ovTheme = brandTheme(ovInput);
+    const ov = buildTree(ovTheme).stats;
+    const m = resolveAllModes(ovTheme).find((x) => x.mode === 'light')!;
+    const label = ratioOf(m, 'inverse.text.primary', 'inverse.foreground.tertiary');
+    const own = ratioOf(m, 'inverse.foreground.tertiary', 'background.primary');
+    ok(base.modePass === base.modeChecks && ov.modeChecks === base.modeChecks && ov.modeChecks - ov.modePass === 1 && label < 4.5 && own >= 3,
+      `#1745 exit gate: an override sinking the label on the bold neutral fill (${label.toFixed(2)}:1, the fill still ${own.toFixed(2)}:1 on the page) fails exactly one mode contract in the count the CLI and emit exit on (base ${base.modePass}/${base.modeChecks}, override ${ov.modePass}/${ov.modeChecks})`);
+  }
+  // (5) THE SIDECAR STATES THE SECOND PAIR FROM BOTH ENDS, after each role's own pair (which stays first).
+  {
+    const ai = buildAiMetadata(brandTheme(MINIMAL_BRAND), buildTree(brandTheme(MINIMAL_BRAND)).tree) as any;
+    const fillCw = ai.color['inverse.foreground.tertiary']?.contrast_with ?? [];
+    const inkCw = ai.color['inverse.text.primary']?.contrast_with ?? [];
+    const has = (cw: any[], token: string) => cw.slice(1).some((c) => c.token === token && c.min === '4.5:1' && c.requirement === `MUST clear 4.5:1 against \`${token}\` in every mode.`);
+    ok(fillCw[0]?.token === 'background.primary' && has(fillCw, 'inverse.text.primary') && inkCw[0]?.token === 'inverse.background.primary' && has(inkCw, 'inverse.foreground.tertiary'),
+      `#1745 sidecar: inverse.foreground.tertiary and inverse.text.primary each state the 4.5:1 label pair after their own pair (fill ${JSON.stringify(fillCw.map((c: any) => c.token))}, ink ${JSON.stringify(inkCw.map((c: any) => c.token))})`);
+  }
+}
+
 // ---- TAG — the owner's decisions of 2026-09-27, held here with literal expectations --------------------------
 // Written from the decisions, not read back from the def: interactive only (the five projected states), one
 // component switched by an `interaction` prop with the literal values clickable | selectable | removable, the

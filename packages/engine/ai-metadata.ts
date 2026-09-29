@@ -645,6 +645,22 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         requirement: contrastRequirement(roleKey, token, `${light.min}:1`, over),
       }];
     }
+    // A role's SECOND contracted pair (`alsoAgainst`, #1745) — `inverse.foreground.tertiary` under its label
+    // `inverse.text.primary` — is stated from both ends, so an agent reading either token learns the bar.
+    // Appended after the role's own pair: `contrast_with[0]` stays the pair the role is placed in, which is
+    // what the relation checks read. The ratio is measured here from the light values; the engine stores none.
+    const second: { token: string; min: number; partnerHex: string }[] = [];
+    if (light.alsoAgainst && byRole[light.alsoAgainst.against]?.light)
+      second.push({ token: light.alsoAgainst.against, min: light.alsoAgainst.min, partnerHex: byRole[light.alsoAgainst.against].light.hex });
+    for (const [k, pm] of Object.entries(byRole)) {
+      const a = pm.light?.alsoAgainst;
+      if (a && a.against === roleKey) second.push({ token: k, min: a.min, partnerHex: pm.light.hex });
+    }
+    for (const c of second) {
+      const min = `${c.min}:1`;
+      const ratio = Math.round(contrast(hexToRgb(light.hex), hexToRgb(c.partnerHex)) * 100) / 100;
+      (ai.contrast_with ??= []).push({ token: c.token, min, ratio, requirement: contrastRequirement(roleKey, c.token, min) });
+    }
     colorRoles[roleKey] = ai;
   }
 

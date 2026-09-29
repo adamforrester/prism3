@@ -11018,24 +11018,28 @@
               "aliasOf": "wds.core.palette.neutral.400",
               "contrast": 3.28,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{wds.core.palette.neutral.500}",
                   "aliasOf": "wds.core.palette.neutral.500",
                   "contrast": 4.21,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
                   "$value": "{wds.core.palette.neutral.700}",
                   "aliasOf": "wds.core.palette.neutral.700",
                   "contrast": 9.9,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.neutral.250}",
                   "aliasOf": "wds.core.palette.neutral.250",
                   "contrast": 10.11,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -12208,26 +12212,30 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "wds.core.palette.neutral.800",
-                "contrast": 1,
-                "against": "self",
+                "contrast": 13.95,
+                "against": "background.primary",
+                "min": 3,
                 "modes": {
                   "dark": {
                     "$value": "{wds.core.palette.neutral.150}",
                     "aliasOf": "wds.core.palette.neutral.150",
-                    "contrast": 1,
-                    "against": "self"
+                    "contrast": 12.35,
+                    "against": "background.primary",
+                    "min": 3
                   },
                   "hc-light": {
                     "$value": "{wds.core.palette.black}",
                     "aliasOf": "wds.core.palette.black",
-                    "contrast": 1,
-                    "against": "self"
+                    "contrast": 21,
+                    "against": "background.primary",
+                    "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.white}",
                     "aliasOf": "wds.core.palette.white",
-                    "contrast": 1,
-                    "against": "self"
+                    "contrast": 21,
+                    "against": "background.primary",
+                    "min": 4.5
                   }
                 },
                 "figma": {
@@ -22332,7 +22340,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.197.0",
+      "version": "0.198.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

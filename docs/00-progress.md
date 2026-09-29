@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-09-29) — Badge's neutral pairs are mode contracts, not example-brand measurements (#1745)
+
+**The gap.** Badge's accessibility lines rest on three neutral pairs, and `test.ts` measured each only in the five example brands. The engine contracted none of them: `border.secondary` carried `min: 0`, `inverse.foreground.tertiary` was a `self` surface, and `inverse.text.primary` is contracted against the inverse BAND, not the band's third step that Badge paints its bold neutral with. A client brand got no check. ENGINE 0.197.0 → **0.198.0** (MINOR; renumbered at net after #1749 took 0.197.0). CONTRACT stands at 13.2.0 (no token name moves).
+
+**What is contracted now** (`modes.ts`, the same `against`/`min` every tone pair uses):
+- `border.secondary` against `background.primary` at the mode's non-text bar, `cfg.nonTextMin` — 3:1, 4.5:1 in HC, the bar `border.<tone>` already uses.
+- `inverse.foreground.tertiary` moves from `putSurf` to `put`: against `background.primary` at the same bar, the way a bold tone fill is gated.
+- The label on that fill: `inverse.text.primary` at `onMin` (4.5:1, the bar every `text.on-<tone>` clears on its bold fill). This is the one pair the existing fields could not hold — the ink's own `against` is taken by the band, and the fill's by the page. So `ResolvedRole` gains an optional `alsoAgainst: { against, min }`, set on the fill. **No ratio is stored for it**, on purpose: the contrast sweep at the end of `resolveMode` measures the pair from the final colors, so an override that moves either side cannot leave a stale number behind (#956). A shortfall is a warning carrying `against` (the partner), so it cannot be mistaken for the role's own pair.
+
+**Repair or catch — decided by whether a solver already owns the value.** `border.secondary` is picked by `pickClosest` against a target (3.08 in light); that pick now takes the bar as a floor — steps under it are ineligible, the closest eligible step wins, and with none eligible the most extreme wins (`pickMinPass`'s fallback). That is the solver picking the nearest step that passes, so it repairs. The two inverse pairs are not repaired: the band is DECLARED (`surfaces.<mode>.inverseBase`), and moving it would overrule the author, so the sweep names the shortfall — the #956 posture.
+
+**Measured: nothing visible moves.** In every mode of prism3, nb, aurora, harbor and wendys, and in the NB master theme (light, and forced to all four modes), every emitted color is byte-identical; no corpus brand gains a warning. The lowest margins: `border.secondary` 3.20:1 (harbor light), the fill on the page 11.44:1 (harbor light), the label on the fill 12.33:1 (dark). `out/**` moves by the new `against`/`min`/`contrast` on the two roles (the fill's recorded contrast is now its real ratio on the page, not `1`), two new `contrast_with` entries per `.ai.json`, and the stamp. The DTCG `$description` and the Figma description of both roles are unchanged; neither cites the new bar (held below).
+
+**The synthetic brands** (`test.ts`, one per pair, each of which the pre-#1745 engine shipped failing with nothing naming it; every ratio measured from hex):
+- *edge* — a warm neutral (`hue 60, chroma 0.03`) on a `base: 100` page: the old rule took `neutral.450` at 2.81:1. Now `neutral.500` at 3.35:1, no warning. The test recomputes the old pick from the ramp, so the fixture fails loudly if it stops being a failing input.
+- *label* — `inverseBase: 650`: the ink clears its own 7:1 on the band (7.56) and measures 4.25 on the band's third step. Caught: one warning, `against: 'inverse.text.primary'`.
+- *fill* — `inverseBase: 500`: the third step measures 2.81 on the page. Caught, as the fill's own pair.
+
+**`lint-ratio-truth.ts` gains arm F** for the second pair: the partner resolves, and a pair below its bar is confessed by a warning naming that partner — recomputed from the two hex values. The confession set for arms A–B now excludes second-pair warnings, so one pair cannot excuse the other. A new case, `surfaces.light.inverseBase=650`, is the one that exercises it (none of the existing steps lands between "clears" and "the ink flips"), and a floor fails the gate if arm F sees no pair or no shortfall.
+
+**Mutations** (each committed first, restored from HEAD):
+- M1a, the label pair's contract entry (`alsoAgainst`) removed: `#1745 the three neutral pairs are contracted in all 20 of 20 brand × mode cells…` and `#1745 label caught…` fail, and `lint-ratio-truth` arm F's floor (`arm F saw 0 second pair(s)…`).
+- M1b, `border.secondary` back to `min: 0` and an unfloored pick: `#1745 the three neutral pairs are contracted…` and `#1745 edge repaired…` (450 at 2.81) fail.
+- M1b2, the floor alone dropped (contract kept): `#1745 edge repaired…` fails; `lint-ratio-truth` stays clean, correctly — the shortfall is warned.
+- M1c, `inverse.foreground.tertiary` back to `putSurf`: `#1745 the three neutral pairs are contracted…` and `#1745 fill caught…` fail.
+- M1d, the sweep's second-pair warning removed: `#1745 label caught…` fails, and `lint-ratio-truth` arm F fails twice — the `inverseBase=650` case and the override case `overrides.light[inverse.text.primary]=neutral.500`.
+- M2a, the `label` synthetic brand removed: `#1745 one synthetic brand per neutral pair: edge, label, fill (got edge, fill)` fails (plus the #1268 never-ran sites).
+- M2b, the edge fixture made passing (`base: 'white'`): `#1745 edge fixture is live…` fails (the old rule's pick measures 3.31).
+
+A trap for whoever re-checks arm F: removing the `inverseBase=650` case does NOT trip its floor, because the override sweep reaches a second-pair shortfall on its own (`inverse.text.primary` overridden to `neutral.500` measures 3.06 on the fill). The case stays for the route a client brand actually takes; the floor guards the arm, not the case.
+
+**Review round (independent review of 8ddc6936).**
+- **Blocking, fixed: the label pair was never counted as a contract.** `tree.ts` counted only each role's own pair in `modeChecks`/`modePass`, which is what `cli.ts` and `emit-dtcg.ts` exit on and what the fidelity report prints. The second-pair warning reached only `ModeResult.warnings`, and nothing outside the tests reads it. So `overrides.light['inverse.foreground.tertiary'] = neutral.400` (label on the fill 3.06:1, fill on the page still clear of 3:1) printed "all contrast contracts hold" and exited 0. The count now includes every `alsoAgainst` pair, measured from the two hex values; a missing partner counts as a failure. `test.ts` holds that override at exactly one failed contract, relative to the same brand without it. The fidelity report's count moves by one per mode.
+- **The sidecar states the label pair.** `inverse.foreground.tertiary` and `inverse.text.primary` each gain a second `contrast_with` entry at 4.5:1 naming the other. It is appended after the role's own pair, because the relation checks read `contrast_with[0]`.
+- **Filed, not fixed (#1779):** the `.ai.json` requirement says "MUST clear 3:1 … in every mode" from the light floor, but the high-contrast floor is 4.5:1. This predates #1745 and covers every mode-varying role (`border.brand` is the cited instance).
+- **Arm F's partner-exists branch cannot run today**, because `resolveMode` throws first. It is kept as a backstop and commented as unreachable.
+- **What the repair does to other edges.** On a light, low-contrast page (the edge fixture's shape), the floored `border.secondary` can land on the same step as `field.border.rest`: 96 of the 108 synthetic cells the repair moves, measured in review. Dividers there move one step darker. This is the solver's mechanical output. Since #1710 (PR #1772), read-only fields use `field.border.rest` directly rather than `border.secondary`, so the coincidence changes no field.
+- **The floor never fires in the dark family.** It is in the pick for every mode, but the dark and high-contrast targets (3.96:1 and 9.9:1) sit well above their bars, so no step under the bar is ever the closest. A mutation that drops the floor only outside light survived review across 168 dark and HC cells, none of which changed. The floor is exercised in light only, and that is what the edge fixture holds.
+
+**Held for the owner.** (1) The bar in the high-contrast modes is the engine's non-text bar, 4.5:1, not the issue's flat 3:1 — it matches `border.<tone>`, and every corpus brand clears it by 2x (9.84:1 and 21:1), so nothing moves; a flat 3:1 is a one-line change if preferred. (2) Badge's shipped prose still says "measured in every mode of the example brands", which stays true; strengthening it to cite the contract is a copy change, and #1767 is rewriting that def. (3) The `$description` / Figma lines for the two roles do not cite their new bar. (4) Out of scope and unchanged: the tone bold fills are contracted against the floor, not the page (the issue's fourth row) — measured, they clear the page at 3.46:1 or more.
+
+---
+
 ## (2026-09-29) — Quiet buttons: the hover and pressed fill is a rule across the whole grid, not three spot fixes (#1387)
 
 **STATUS: PR open, labeled DO NOT MERGE.** Files: `packages/engine/test.ts` (one new block; the NB master fixture moved to module scope so the block can read it) and this entry. The review follow-up (per-family counts, per-brand register, plugin materialization) landed as new commits on the same PR. No engine behavior moves, so `ENGINE_VERSION` stands at 0.196.0 and `CONTRACT_VERSION` at 13.2.0.

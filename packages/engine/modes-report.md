@@ -34,7 +34,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.tertiary | neutral.150 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
-| inverse.foreground.tertiary | neutral.800 | — | — | · |
+| inverse.foreground.tertiary | neutral.800 | 13.89 | 3 | ✅ |
 | foreground.brand | red.550 | 4.62 | 3 | ✅ |
 | foreground.success | green.500 | 4.02 | 3 | ✅ |
 | foreground.warning | amber.500 | 3.70 | 3 | ✅ |
@@ -264,7 +264,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.link.focused | red.450 | 4.66 | 4.5 | ✅ |
 | inverse.icon.link.pressed | red.250 | 8.70 | 4.5 | ✅ |
 | border.primary | neutral.100 | — | — | · |
-| border.secondary | neutral.400 | — | — | · |
+| border.secondary | neutral.400 | 3.27 | 3 | ✅ |
 | border.tertiary | neutral.600 | — | — | · |
 | border.brand | red.500 | 4.58 | 3 | ✅ |
 | border.success | green.500 | 4.89 | 3 | ✅ |
@@ -306,7 +306,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.tertiary | neutral.800 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
-| inverse.foreground.tertiary | neutral.150 | — | — | · |
+| inverse.foreground.tertiary | neutral.150 | 12.33 | 3 | ✅ |
 | foreground.brand | red.550 | 3.20 | 3 | ✅ |
 | foreground.success | green.500 | 3.67 | 3 | ✅ |
 | foreground.warning | amber.500 | 3.99 | 3 | ✅ |
@@ -536,7 +536,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.link.focused | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.icon.link.pressed | red.750 | 9.94 | 4.5 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.500 | — | — | · |
+| border.secondary | neutral.500 | 4.23 | 3 | ✅ |
 | border.tertiary | neutral.300 | — | — | · |
 | border.brand | red.500 | 4.24 | 3 | ✅ |
 | border.success | green.500 | 3.97 | 3 | ✅ |
@@ -578,7 +578,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.tertiary | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
-| inverse.foreground.tertiary | black | — | — | · |
+| inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
 | foreground.brand | red.700 | 8.25 | 7 | ✅ |
 | foreground.success | green.700 | 8.28 | 7 | ✅ |
 | foreground.warning | amber.700 | 8.05 | 7 | ✅ |
@@ -808,7 +808,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.link.focused | red.350 | 7.52 | 7 | ✅ |
 | inverse.icon.link.pressed | red.150 | 13.44 | 7 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.700 | 9.84 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | red.500 | 4.58 | 4.5 | ✅ |
 | border.success | green.500 | 4.89 | 4.5 | ✅ |
@@ -850,7 +850,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.tertiary | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
-| inverse.foreground.tertiary | white | — | — | · |
+| inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
 | foreground.brand | red.300 | 7.50 | 7 | ✅ |
 | foreground.success | green.300 | 7.19 | 7 | ✅ |
 | foreground.warning | amber.300 | 7.57 | 7 | ✅ |
@@ -1080,7 +1080,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.link.focused | red.650 | 8.29 | 7 | ✅ |
 | inverse.icon.link.pressed | red.850 | 16.32 | 7 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.250 | — | — | · |
+| border.secondary | neutral.250 | 10.09 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | red.500 | 4.58 | 4.5 | ✅ |
 | border.success | green.450 | 5.11 | 4.5 | ✅ |
@@ -1193,7 +1193,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | neutral.150 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
-| inverse.foreground.tertiary | neutral.800 | — | — | · |
+| inverse.foreground.tertiary | neutral.800 | 13.94 | 3 | ✅ |
 | foreground.brand | primary.600 | 6.44 | 3 | ✅ |
 | foreground.success | success.500 | 3.76 | 3 | ✅ |
 | foreground.warning | warning.500 | 3.74 | 3 | ✅ |
@@ -1423,7 +1423,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | primary.450 | 4.65 | 4.5 | ✅ |
 | inverse.icon.link.pressed | primary.250 | 8.72 | 4.5 | ✅ |
 | border.primary | neutral.100 | — | — | · |
-| border.secondary | neutral.400 | — | — | · |
+| border.secondary | neutral.400 | 3.28 | 3 | ✅ |
 | border.tertiary | neutral.600 | — | — | · |
 | border.brand | primary.500 | 4.58 | 3 | ✅ |
 | border.success | success.500 | 4.57 | 3 | ✅ |
@@ -1465,7 +1465,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | neutral.800 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
-| inverse.foreground.tertiary | neutral.150 | — | — | · |
+| inverse.foreground.tertiary | neutral.150 | 12.35 | 3 | ✅ |
 | foreground.brand | primary.550 | 3.03 | 3 | ✅ |
 | foreground.success | success.500 | 3.92 | 3 | ✅ |
 | foreground.warning | warning.500 | 3.94 | 3 | ✅ |
@@ -1695,7 +1695,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | primary.600 | 6.44 | 4.5 | ✅ |
 | inverse.icon.link.pressed | primary.800 | 12.42 | 4.5 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.500 | — | — | · |
+| border.secondary | neutral.500 | 4.26 | 3 | ✅ |
 | border.tertiary | neutral.250 | — | — | · |
 | border.brand | primary.500 | 4.24 | 3 | ✅ |
 | border.success | success.500 | 4.25 | 3 | ✅ |
@@ -1737,7 +1737,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
-| inverse.foreground.tertiary | black | — | — | · |
+| inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
 | foreground.brand | primary.650 | 7.72 | 7 | ✅ |
 | foreground.success | success.700 | 8.03 | 7 | ✅ |
 | foreground.warning | warning.700 | 8.11 | 7 | ✅ |
@@ -1967,7 +1967,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | primary.350 | 7.58 | 7 | ✅ |
 | inverse.icon.link.pressed | primary.150 | 13.46 | 7 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.700 | 9.89 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
 | border.success | success.500 | 4.57 | 4.5 | ✅ |
@@ -2009,7 +2009,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
-| inverse.foreground.tertiary | white | — | — | · |
+| inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
 | foreground.brand | primary.300 | 7.58 | 7 | ✅ |
 | foreground.success | success.300 | 7.65 | 7 | ✅ |
 | foreground.warning | warning.300 | 7.35 | 7 | ✅ |
@@ -2239,7 +2239,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | primary.600 | 7.82 | 7 | ✅ |
 | inverse.icon.link.pressed | primary.800 | 15.08 | 7 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.250 | — | — | · |
+| border.secondary | neutral.250 | 10.11 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
 | border.success | success.500 | 4.60 | 4.5 | ✅ |
@@ -2354,7 +2354,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | neutral.150 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
-| inverse.foreground.tertiary | neutral.800 | — | — | · |
+| inverse.foreground.tertiary | neutral.800 | 13.92 | 3 | ✅ |
 | foreground.brand | primary.550 | 5.29 | 3 | ✅ |
 | foreground.success | success.500 | 3.78 | 3 | ✅ |
 | foreground.warning | warning.500 | 3.78 | 3 | ✅ |
@@ -2584,7 +2584,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | accent.500 | 3.92 | 3 | ✅ |
 | inverse.icon.link.pressed | accent.300 | 7.32 | 3 | ✅ |
 | border.primary | neutral.100 | — | — | · |
-| border.secondary | neutral.400 | — | — | · |
+| border.secondary | neutral.400 | 3.26 | 3 | ✅ |
 | border.tertiary | neutral.600 | — | — | · |
 | border.brand | primary.500 | 4.58 | 3 | ✅ |
 | border.success | success.500 | 4.59 | 3 | ✅ |
@@ -2626,7 +2626,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | neutral.800 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
-| inverse.foreground.tertiary | neutral.150 | — | — | · |
+| inverse.foreground.tertiary | neutral.150 | 12.36 | 3 | ✅ |
 | foreground.brand | primary.500 | 3.91 | 3 | ✅ |
 | foreground.success | success.500 | 3.90 | 3 | ✅ |
 | foreground.warning | warning.500 | 3.90 | 3 | ✅ |
@@ -2856,7 +2856,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | accent.500 | 3.76 | 3 | ✅ |
 | inverse.icon.link.pressed | accent.700 | 8.27 | 3 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.500 | — | — | · |
+| border.secondary | neutral.500 | 4.28 | 3 | ✅ |
 | border.tertiary | neutral.300 | — | — | · |
 | border.brand | primary.500 | 4.25 | 3 | ✅ |
 | border.success | success.500 | 4.23 | 3 | ✅ |
@@ -2898,7 +2898,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
-| inverse.foreground.tertiary | black | — | — | · |
+| inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
 | foreground.brand | primary.650 | 7.57 | 7 | ✅ |
 | foreground.success | success.700 | 8.02 | 7 | ✅ |
 | foreground.warning | warning.700 | 8.11 | 7 | ✅ |
@@ -3128,7 +3128,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | accent.500 | 4.60 | 4.5 | ✅ |
 | inverse.icon.link.pressed | accent.300 | 8.59 | 4.5 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.700 | 9.85 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
 | border.success | success.500 | 4.59 | 4.5 | ✅ |
@@ -3170,7 +3170,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.tertiary | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
-| inverse.foreground.tertiary | white | — | — | · |
+| inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
 | foreground.brand | primary.300 | 7.45 | 7 | ✅ |
 | foreground.success | success.300 | 7.65 | 7 | ✅ |
 | foreground.warning | warning.300 | 7.33 | 7 | ✅ |
@@ -3400,7 +3400,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.link.focused | accent.500 | 4.56 | 4.5 | ✅ |
 | inverse.icon.link.pressed | accent.700 | 10.03 | 4.5 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.250 | — | — | · |
+| border.secondary | neutral.250 | 10.14 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | primary.500 | 4.59 | 4.5 | ✅ |
 | border.success | success.500 | 4.58 | 4.5 | ✅ |
@@ -3514,7 +3514,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.tertiary | neutral.200 | — | — | · |
 | inverse.foreground.primary | neutral.900 | — | — | · |
 | inverse.foreground.secondary | neutral.850 | — | — | · |
-| inverse.foreground.tertiary | neutral.800 | — | — | · |
+| inverse.foreground.tertiary | neutral.800 | 11.44 | 3 | ✅ |
 | foreground.brand | primary.600 | 4.91 | 3 | ✅ |
 | foreground.success | success.500 | 3.33 | 3 | ✅ |
 | foreground.warning | warning.500 | 3.33 | 3 | ✅ |
@@ -3744,7 +3744,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.link.focused | primary.450 | 4.61 | 4.5 | ✅ |
 | inverse.icon.link.pressed | primary.250 | 8.62 | 4.5 | ✅ |
 | border.primary | neutral.200 | — | — | · |
-| border.secondary | neutral.450 | — | — | · |
+| border.secondary | neutral.450 | 3.20 | 3 | ✅ |
 | border.tertiary | neutral.650 | — | — | · |
 | border.brand | primary.500 | 3.77 | 3 | ✅ |
 | border.success | success.500 | 3.79 | 3 | ✅ |
@@ -3786,7 +3786,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.tertiary | neutral.800 | — | — | · |
 | inverse.foreground.primary | neutral.050 | — | — | · |
 | inverse.foreground.secondary | neutral.100 | — | — | · |
-| inverse.foreground.tertiary | neutral.150 | — | — | · |
+| inverse.foreground.tertiary | neutral.150 | 12.36 | 3 | ✅ |
 | foreground.brand | primary.550 | 3.19 | 3 | ✅ |
 | foreground.success | success.500 | 3.89 | 3 | ✅ |
 | foreground.warning | warning.500 | 3.89 | 3 | ✅ |
@@ -4016,7 +4016,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.link.focused | primary.600 | 5.59 | 4.5 | ✅ |
 | inverse.icon.link.pressed | primary.800 | 11.49 | 4.5 | ✅ |
 | border.primary | neutral.750 | — | — | · |
-| border.secondary | neutral.500 | — | — | · |
+| border.secondary | neutral.500 | 4.23 | 3 | ✅ |
 | border.tertiary | neutral.250 | — | — | · |
 | border.brand | primary.500 | 4.24 | 3 | ✅ |
 | border.success | success.500 | 4.22 | 3 | ✅ |
@@ -4058,7 +4058,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.tertiary | white | — | — | · |
 | inverse.foreground.primary | black | — | — | · |
 | inverse.foreground.secondary | black | — | — | · |
-| inverse.foreground.tertiary | black | — | — | · |
+| inverse.foreground.tertiary | black | 21.00 | 4.5 | ✅ |
 | foreground.brand | primary.700 | 7.21 | 7 | ✅ |
 | foreground.success | success.750 | 8.43 | 7 | ✅ |
 | foreground.warning | warning.700 | 7.12 | 7 | ✅ |
@@ -4288,7 +4288,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.link.focused | primary.350 | 7.47 | 7 | ✅ |
 | inverse.icon.link.pressed | primary.150 | 13.33 | 7 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.700 | — | — | · |
+| border.secondary | neutral.700 | 9.85 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
 | border.success | success.500 | 4.60 | 4.5 | ✅ |
@@ -4330,7 +4330,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.tertiary | black | — | — | · |
 | inverse.foreground.primary | white | — | — | · |
 | inverse.foreground.secondary | white | — | — | · |
-| inverse.foreground.tertiary | white | — | — | · |
+| inverse.foreground.tertiary | white | 21.00 | 4.5 | ✅ |
 | foreground.brand | primary.300 | 7.44 | 7 | ✅ |
 | foreground.success | success.300 | 7.65 | 7 | ✅ |
 | foreground.warning | warning.300 | 7.34 | 7 | ✅ |
@@ -4560,7 +4560,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.link.focused | primary.650 | 8.28 | 7 | ✅ |
 | inverse.icon.link.pressed | primary.850 | 15.92 | 7 | ✅ |
 | border.primary | neutral.500 | — | — | · |
-| border.secondary | neutral.250 | — | — | · |
+| border.secondary | neutral.250 | 10.06 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
 | border.success | success.500 | 4.56 | 4.5 | ✅ |

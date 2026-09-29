@@ -7721,6 +7721,7 @@
               "aliasOf": "pds3.core.palette.neutral.400",
               "contrast": 3.28,
               "against": "background.primary",
+              "min": 3,
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8343,8 +8344,9 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "pds3.core.palette.neutral.800",
-                "contrast": 1,
-                "against": "self",
+                "contrast": 13.94,
+                "against": "background.primary",
+                "min": 3,
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -16697,7 +16699,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.197.0",
+      "version": "0.198.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
