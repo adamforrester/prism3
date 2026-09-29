@@ -155,6 +155,12 @@ ENGINE stays at 0.197.0: this is the same unmerged PR, and the orchestrator renu
 - ME, the tertiary gate removed (`restFill` passes no `alsoClear`): `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on … .tertiary` (nb dark on tertiary 2.85:1, …) and `#1763 dark mode: … pinned literals` (nb 5.24 against 4.58, …).
 - MF, the dark-family tie rule removed from `pureExtremeInk`: `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc` fails (got `#000000`), with `#1763 dark mode: … pinned literals` (aurora 4.6 against 4.56).
 - MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
+- MG, the tie rule off for the status on-colors only (`onColor` takes the higher ratio at the `on-<status>` call site): `#1773 tie rule on the status on-colors: … take white at the pinned literals` fails (nb dark `text.on-info` `#000000`, …), with `figma color.dark: every alias targets the same palette var as the fixture` (NB `on-info` back to `palette/black`) and `aurora.design.md → byte-identical to out/aurora.tokens.json`.
+- MH, the tier check's report removed (no `tierChecks`, no warning): `#1773 a pinned anchor that misses background.tertiary is reported` fails (0 tier warnings, 0 failed mode checks).
+- MI, `EXTREME_TIE = 0.2`: `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio` fails (`#767676` got white), with the NB `on-warning` divergence arm (on amber.500 `#b36203` black leads white by 0.16, 4.665 vs 4.501, so a 0.2 tie flips it).
+- MJ, the explicit-twin precedence removed from `withFillStateTwins`: `#1626 an explicit fill.selected override beats the carried fill.rest override` fails (selected `#86a7f7`).
+- MK, the both-clear guard dropped from `pureExtremeInk`: `#1773 tie rule: when an extreme misses the floor (7:1 on #3d68fc …)` fails (got white).
+- ML, the `!inverse` scope dropped in `describeInteractive`: `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording` fails.
 - The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
 
 ---
