@@ -34,7 +34,7 @@ import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
 import type { VarCollectionApplyResult as VarApplyResult } from './src/write-figma';
-import { preloadFonts, facesToPreload } from './src/preload-fonts';
+import { preloadFonts, facesToPreload, loadPreloadCandidates } from './src/preload-fonts';
 import type { FontPreloadApi } from './src/preload-fonts';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 
@@ -695,7 +695,7 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
   // The engine's own guess for Playfair 600 italic, taken from the real plan so the fixture is the row
   // the live run reported, not a hand-built stand-in.
   const semiBoldItalicRows = p3Plan.filter((r) => r.fontFamilyPrimary === 'Playfair Display' && r.fontStyle === 'Semi Bold Italic');
-  ok(semiBoldItalicRows.length > 0,
+  ok(semiBoldItalicRows.length === 12,
     `#1789 reachable: the prism3 plan still emits Playfair Display|Semi Bold Italic (${semiBoldItalicRows.length} rows) — the spelling the live run warned about`);
   /** A host whose font list is exactly `list` (family → styles) and whose loads succeed for those faces only. */
   const listHost = (list: Record<string, string[]>, fileStyles: { name: string; fontName: FontName }[] = []) => {
@@ -743,6 +743,26 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
   const fileSpelledPre = await preloadFonts([], fileSpelled.api);
   ok(JSON.stringify(fileSpelled.loads) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold' }]) && fileSpelledPre.unavailable.length === 0,
     `#1789 a FILE face 'Semi Bold' loads the host's 'SemiBold' and is not reported (got ${JSON.stringify(fileSpelled.loads)}, ${JSON.stringify(fileSpelledPre.unavailable)})`);
+
+  // THE DEDUPE HOLDS THE OUTCOME, NOT JUST "SEEN" — independent of candidate order. `facesToPreload` puts
+  // named candidates first, and a Set-only dedupe was correct only because of that. Fed crossed-first,
+  // with a face the list offers but whose load throws, the crossed candidate makes the one attempt; the
+  // theme candidate that resolves to the same face must still be REPORTED, without a second attempt.
+  const attempts: FontName[] = [];
+  const crossedFirst = await loadPreloadCandidates(
+    [
+      { face: { family: 'Playfair Display', style: 'SemiBold Italic' }, origin: 'crossed' },
+      { face: { family: 'Playfair Display', style: 'Semi Bold Italic' }, origin: 'theme' },
+    ],
+    {
+      async loadFontAsync(fn: FontName) { attempts.push(fn); throw new Error('load refused: Playfair Display SemiBold Italic'); },
+      async listAvailableFontsAsync() { return PLAYFAIR_TIGHT.map((style) => ({ fontName: { family: 'Playfair Display', style } })); },
+    },
+  );
+  ok(JSON.stringify(crossedFirst.unavailable) === JSON.stringify([{ face: 'Playfair Display|Semi Bold Italic', origin: 'theme', reason: 'load refused: Playfair Display SemiBold Italic' }]) && crossedFirst.crossedMisses === 1,
+    `#1789 a named face whose load already failed under an earlier CROSSED candidate is still reported (got ${JSON.stringify(crossedFirst.unavailable)}, crossedMisses ${crossedFirst.crossedMisses})`);
+  ok(JSON.stringify(attempts) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold Italic' }]) && crossedFirst.attempted === 1 && crossedFirst.loaded === 0,
+    `#1789 ...with no second load attempt for that face (got ${JSON.stringify(attempts)}, attempted ${crossedFirst.attempted})`);
 }
 
 console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

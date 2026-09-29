@@ -58,7 +58,9 @@ export type FaceOrigin = 'theme' | 'file' | 'crossed';
 export type FontPreloadResult = {
   /** faces successfully loaded, so the write that follows cannot fail on them. */
   loaded: number;
-  /** faces attempted (loaded + failed) — `loaded + unavailable.length + crossedMisses`. */
+  /** distinct resolved faces passed to `loadFontAsync` (loaded + failed loads). Not `loaded + unavailable
+   *  + crossedMisses`: a resolver miss is reported without a load, and a repeat of a failed face is
+   *  reported again under its own origin without a second load. */
   attempted: number;
   /** NAMED faces that would not load: the theme asks for a typeface this Figma does not have, or the
    *  file already uses one. Reportable — a brand is about to lose type it asked for. */
@@ -136,7 +138,8 @@ export const facesToPreload = (
  * resolving the same row, wrote the style correctly: the warning contradicted the apply it sat in. Only a
  * resolver `undefined` (the family lacks the weight under every spelling, or the family is absent) is a
  * miss. Every origin resolves the same way — the origin decides whether a miss is REPORTED, never how a
- * face is looked up. Two candidates that resolve to one face load it once.
+ * face is looked up. Two candidates that resolve to one face load it once; if that load fails, each
+ * named candidate among them is still reported, whichever candidate made the attempt.
  *
  * The verdict's "N font styles name-resolved" stays the text-style pass's count alone. It counts STYLES
  * whose baked name was corrected; this resolves candidate FACES (file and crossed pairs included, and a
@@ -154,8 +157,17 @@ export const preloadFonts = async (
     /* the file's styles are unreadable — the theme's own faces still load, which is strictly better
      * than loading nothing. Deliberately not fatal: this runs before a write that must still happen. */
   }
-  const candidates = facesToPreload(plan, existing);
+  return loadPreloadCandidates(facesToPreload(plan, existing), api);
+};
 
+/**
+ * The loading half of `preloadFonts`, over an explicit candidate list. Exported so a test can feed an
+ * order `facesToPreload` never produces: nothing below may rely on named candidates coming first.
+ */
+export const loadPreloadCandidates = async (
+  candidates: readonly { face: FontName; origin: FaceOrigin }[],
+  api: Pick<FontPreloadApi, 'loadFontAsync' | 'listAvailableFontsAsync'>,
+): Promise<FontPreloadResult> => {
   // The host's real styles per family, when it offers the list. Keyed by family because the resolver
   // needs a family's whole style list, not a membership test on one spelling (#1789).
   let stylesByFamily: Map<string, string[]> | undefined;
@@ -179,8 +191,11 @@ export const preloadFonts = async (
   const unavailable: FontPreloadResult['unavailable'] = [];
   const byOrigin: Record<FaceOrigin, number> = { theme: 0, file: 0, crossed: 0 };
 
-  /** resolved faces already attempted — two spellings of one face load it once. */
-  const tried = new Set<string>();
+  /** resolved face → the outcome of its one load. Two spellings of one face load it once, and a repeat
+   *  inherits the outcome: a failure is still REPORTED under the repeat's own origin. Holding the outcome,
+   *  not just "seen", is what keeps this independent of candidate order — a named face whose load failed
+   *  first under a crossed candidate must not vanish from the report. */
+  const tried = new Map<string, { ok: true } | { ok: false; reason: string }>();
 
   for (const { face, origin } of candidates) {
     byOrigin[origin]++;
@@ -201,16 +216,21 @@ export const preloadFonts = async (
       }
       toLoad = { family: face.family, style };
     }
-    if (tried.has(key(toLoad))) continue;
-    tried.add(key(toLoad));
-    attempted++;
-    try {
-      await api.loadFontAsync(toLoad);
-      loaded++;
-    } catch (e) {
-      if (origin === 'crossed') crossedMisses++;
-      else unavailable.push({ face: key(face), origin, reason: (e as Error)?.message ?? 'load failed' });
+    let outcome = tried.get(key(toLoad));
+    if (!outcome) {
+      attempted++;
+      try {
+        await api.loadFontAsync(toLoad);
+        loaded++;
+        outcome = { ok: true };
+      } catch (e) {
+        outcome = { ok: false, reason: (e as Error)?.message ?? 'load failed' };
+      }
+      tried.set(key(toLoad), outcome);
     }
+    if (outcome.ok) continue;
+    if (origin === 'crossed') crossedMisses++;
+    else unavailable.push({ face: key(face), origin, reason: outcome.reason });
   }
 
   return { loaded, attempted, unavailable, crossedMisses, byOrigin };

@@ -2930,8 +2930,9 @@
  * Italic)" on a Figma whose Playfair ships `SemiBold Italic`, in the same apply whose text-style pass wrote
  * that style correctly. `preloadFonts` tested each candidate by exact `family|style` and never ran the #499
  * resolver. It now resolves every candidate's style against its family's real styles with the same
- * `resolveFontStyle`, loads the RESOLVED face (once, however many candidates resolve to it), and reports a
- * named face unavailable only when the resolver returns `undefined`. Every origin (theme, file, crossed)
+ * `resolveFontStyle`, loads the RESOLVED face (once, however many candidates resolve to it; a failed load is
+ * still reported for every named candidate of that face, in any candidate order), and reports a named face
+ * unavailable only when the resolver or the load says so. Every origin (theme, file, crossed)
  * resolves the same way; the origin still decides only whether a miss is reported. The verdict's "N font
  * styles name-resolved" stays the text-style pass's count. A PLUGIN write-path behavior change (principle 5)
  * → ENGINE bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen.
