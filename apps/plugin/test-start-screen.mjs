@@ -339,11 +339,42 @@ console.log('\n7. the host reports absence rather than staying silent');
 console.log('\n8. the built panel is legible in both schemes and both Figma themes (#1041)');
 {
   const LEGIBILITY = () => {
-    const parse = (s) => {
-      const m = /rgba?\(([^)]+)\)/.exec(s);
-      if (!m) return null;
-      const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
-      return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+    /** Every computed color this probe could not read, by node and property (review of #1777). A node whose
+     *  ink or ground could not be parsed used to be dropped by `if (!col) continue` — uncounted, the same
+     *  silence as #1069's carve-out by another route — so it is RECORDED here and the suite fails on it by name.
+     *
+     *  Chrome serializes hex, named and `rgb()` colors as `rgb[a](…)`, but a `color-mix()` in sRGB as
+     *  `color(srgb …)`, and `oklch()` / `lab()` / mixes in other spaces in their own notation. Anything not
+     *  already sRGB is converted BY THE BROWSER — relative color syntax, `color(from <c> srgb r g b / alpha)`,
+     *  on a scratch node — so this reads what Chrome paints rather than re-implementing color spaces. Channels
+     *  outside the sRGB gamut are clipped, which is what the display does with them. */
+    const unparsed = [];
+    let scratch = null;
+    const toSrgb = (s) => {
+      if (!scratch) { scratch = document.createElement('i'); scratch.style.display = 'none'; document.body.append(scratch); }
+      scratch.style.color = '';
+      scratch.style.color = `color(from ${s} srgb r g b / alpha)`;
+      return scratch.style.color ? getComputedStyle(scratch).color : '';
+    };
+    const parseSrgb = (s) => {
+      let m = /^rgba?\(([^)]+)\)$/.exec(s);
+      if (m) { const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; }
+      m = /^color\(srgb\s+([^)]+)\)$/.exec(s);
+      if (m) {
+        const p = m[1].split(/[\s/]+/).filter(Boolean).map(Number);
+        const ch = (v) => Math.min(255, Math.max(0, v * 255));
+        return { r: ch(p[0]), g: ch(p[1]), b: ch(p[2]), a: p.length > 3 ? Math.min(1, Math.max(0, p[3])) : 1 };
+      }
+      return null;
+    };
+    const parse = (s, el, prop) => {
+      const v = (s ?? '').trim();
+      const c = parseSrgb(v) ?? (v ? parseSrgb(toSrgb(v)) : null);
+      if (!c || [c.r, c.g, c.b, c.a].some((n) => !Number.isFinite(n))) {
+        if (el) unparsed.push({ cls: name(el), prop, value: v.slice(0, 60) });
+        return null;
+      }
+      return c;
     };
     const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
     const lum = (c) => {
@@ -355,7 +386,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       let acc = null;
       for (let n = el; n; n = n.parentElement) {
         const cs = getComputedStyle(n);
-        const c = parse(cs.backgroundColor);
+        const c = parse(cs.backgroundColor, n, 'background-color');
         if (c && c.a > 0) {
           const layer = { ...c, a: c.a * Number(cs.opacity) };
           acc = acc ? over(acc, layer) : layer;
@@ -382,8 +413,8 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       const cs = getComputedStyle(el);
       const op = drawn(el, cs);
       if (op === null) continue;
-      const col = parse(cs.color);
-      if (!col) continue;
+      const col = parse(cs.color, el, 'color');
+      if (!col) continue;   // recorded in `unparsed`, which fails by name
       const ground = groundOf(el);
       text.push({
         ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)), op: round(op), cls: name(el),
@@ -400,18 +431,21 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       const cs = getComputedStyle(el);
       const op = drawn(el, cs);
       if (op === null) continue;
-      const col = parse(cs.color);
-      if (!col) continue;
+      const col = parse(cs.color, el, 'color');
+      if (!col) continue;   // recorded in `unparsed`, which fails by name
       const ground = groundOf(el);
-      const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor);
+      const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor, el, 'caret-color');
+      // A transparent caret on an editable field is an invisible caret (1:1), not "no caret".
+      const editable = el.tagName !== 'SELECT' && !el.readOnly && !el.disabled;
       fields.push({
         ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
-        caretRatio: caret && caret.a > 0 ? round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)) : null,
+        caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
         op: round(op), cls: name(el), text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
         ...classify(el, cs),
       });
     }
-    return { text, fields, colorScheme: getComputedStyle(document.documentElement).colorScheme };
+    scratch?.remove();
+    return { text, fields, unparsed, colorScheme: getComputedStyle(document.documentElement).colorScheme };
   };
 
   // The bars, AUTHORED here as WCAG states them — not imported from the studio suite, so a change to one
@@ -422,12 +456,6 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const caretBarOf = (f) => (f.specimen ? SPECIMEN_FLOOR : CARET_MIN);
   // Non-empty floors. A state that measured almost nothing fails naming itself rather than passing as
   // "every one of 0 nodes clears 4.5:1" — #779's first defect, which this file would otherwise repeat.
-  // Held, not hidden (#1770) — the same entry, for the same node, as `KNOWN_FINDINGS` in the studio
-  // suite, which states the rules. Held to the specimen floor, matched by class AND text, and required to
-  // still reproduce, so fixing the node turns this red until the entry is deleted.
-  const KNOWN = [{ cls: 'span.mctx-always', text: 'always', issue: '#1770' }];
-  const knownOf = (r) => KNOWN.find((k) => k.cls === r.cls && k.text === r.text) ?? null;
-  const knownSeen = [];
   const STATE_TEXT_FLOOR = 10;
   const SWEEP_TEXT_FLOOR = 2000;
   const SWEEP_FIELD_FLOOR = 20;
@@ -460,29 +488,48 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       `${scheme} scheme / Figma ${theme}: the panel carries Figma's ${theme} theme (class "${got.cls}", --figma-color-bg ${got.bg || 'unset'})`);
     return { context, page, errors };
   };
-  // Finite running animations finish first — what stays on screen, not a frame of a transition (#1069).
-  const settle = (page) => page.evaluate(() => Promise.all(document.getAnimations()
-    .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime))
-    .map((a) => a.finished.catch(() => null))));
+  // Finite running animations finish first — what stays on screen, not a frame of a transition (#1069) —
+  // CAPPED, and a tripped cap fails naming what was still moving (review of #1777: a 1000s transition hung
+  // the uncapped wait with no message, and CI sets no timeout).
+  const SETTLE_CAP_MS = 5000;
+  const settle = async (page, where) => {
+    const stuck = await page.evaluate((cap) => {
+      const live = document.getAnimations()
+        .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime));
+      const label = (a) => {
+        const t = a.effect?.target;
+        return `${a.animationName ?? a.transitionProperty ?? 'animation'} on ${t ? `${t.tagName.toLowerCase()}.${String(t.className ?? '').trim().replace(/\s+/g, '.') || '-'}` : '?'}`;
+      };
+      const done = Promise.all(live.map((a) => a.finished.catch(() => null))).then(() => []);
+      const capped = new Promise((r) => setTimeout(() => r(live.filter((a) => a.playState === 'running').map(label)), cap));
+      return Promise.race([done, capped]);
+    }, SETTLE_CAP_MS);
+    ok(stuck.length === 0, `${where}: every finite animation settles within ${SETTLE_CAP_MS}ms before measuring${
+      stuck.length ? ` — still running: ${stuck.slice(0, 3).join(' | ')}` : ''}`);
+  };
 
+  let unparsedTotal = 0;
   let textTotal = 0, fieldTotal = 0, worst = { ratio: Infinity, where: '' };
   const pagesSeen = new Set();
   const measure = async (page, where) => {
-    await settle(page);
+    await settle(page, where);
     const m = await page.evaluate(LEGIBILITY);
+    // Every color READ — an unparsed one fails naming the node, never a silent skip (review of #1777).
+    const uniq = [...new Map(m.unparsed.map((u) => [`${u.cls}|${u.prop}|${u.value}`, u])).values()];
+    unparsedTotal += uniq.length;
+    ok(uniq.length === 0, `${where}: every computed color the probe met was parsed${
+      uniq.length ? ` — ${uniq.length} not: ${uniq.slice(0, 3).map((u) => `${u.cls} ${u.prop} "${u.value}"`).join(' | ')}` : ''}`);
     textTotal += m.text.length; fieldTotal += m.fields.length;
     for (const r of m.text.filter((x) => !x.specimen)) if (r.ratio < worst.ratio) worst = { ratio: r.ratio, where: `${where} — ${r.cls} "${r.text}"` };
     ok(!/\bdark\b/.test(m.colorScheme),
       `${where}: the shell resolves a light-only color-scheme ("${m.colorScheme}") — opting into dark hands the UA the field ink, caret and option lists over surfaces painted from light tokens (#1031)`);
     ok(m.text.length >= STATE_TEXT_FLOOR, `${where}: measured ${m.text.length} text nodes (floor ${STATE_TEXT_FLOOR})`);
-    for (const r of m.text) if (knownOf(r)) knownSeen.push({ ...r, where });
-    const textBar = (r) => (knownOf(r) ? SPECIMEN_FLOOR : barOf(r));
-    const textUnder = m.text.filter((r) => r.ratio < textBar(r));
+    const textUnder = m.text.filter((r) => r.ratio < barOf(r));
     ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
-      textUnder.length ? ` — ${textUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${textBar(u)}:1)`).join(' | ')}` : ''}`);
+      textUnder.length ? ` — ${textUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
     const fieldUnder = m.fields.filter((f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio < caretBarOf(f)));
     ok(fieldUnder.length === 0, `${where}: every one of ${m.fields.length} form control(s) inks its value at its text bar and its caret at ${CARET_MIN}:1${
-      fieldUnder.length ? ` — ${fieldUnder.slice(0, 3).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.caretRatio}:1 (needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
+      fieldUnder.length ? ` — ${fieldUnder.slice(0, 3).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1 (needs ${barOf(u)}:1), caret ${u.caretRatio ?? 'n/a'}:1 (needs ${caretBarOf(u)}:1)`).join(' | ')}` : ''}`);
     // The marker audit, as in the studio sweep: inside the SHARED UI (`#app`), inline ink is what
     // specimens paint with and chrome does not, so an unmarked inline-inked node there is a specimen held
     // to AA or chrome someone mis-classified. Scoped to `#app` because the plugin's own entry mounts one
@@ -545,19 +592,13 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       }
     }
   }
-  for (const k of KNOWN) {
-    const seen = knownSeen.filter((r) => knownOf(r) === k);
-    const cleared = seen.filter((r) => r.ratio >= barOf(r));
-    ok(seen.length > 0 && cleared.length === 0,
-      `known finding ${k.issue} (${k.cls} "${k.text}") still reproduces — ${seen.length} sighting(s)${
-        !seen.length ? ' — NEVER SEEN: delete the entry' : cleared.length ? ` — now CLEARS its bar (${cleared[0].where}, ${cleared[0].ratio}:1): the defect is fixed, delete the entry` : ''}`);
-  }
   // REPRESENTED, not counted: the one page only this bundle has must be among those measured.
   ok(pagesSeen.has('Components'), `the plugin-only Components page was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
   console.log(`  ${pagesSeen.size} rail pages × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
+  console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);
 }
 
 await browser.close();

@@ -110,11 +110,42 @@ const ORIGIN = `http://127.0.0.1:${server.address().port}`;
  * the question here is "can this be read".
  */
 const LEGIBILITY_PROBE = (rootSel) => {
-  const parse = (s) => {
-    const m = /rgba?\(([^)]+)\)/.exec(s);
-    if (!m) return null;
-    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
-    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  /** Every computed color this probe could not read, by node and property (review of #1777). A node whose
+   *  ink or ground could not be parsed used to be dropped by `if (!col) continue` — uncounted, the same
+   *  silence as #1069's carve-out by another route — so it is RECORDED here and the suite fails on it by name.
+   *
+   *  Chrome serializes hex, named and `rgb()` colors as `rgb[a](…)`, but a `color-mix()` in sRGB as
+   *  `color(srgb …)`, and `oklch()` / `lab()` / mixes in other spaces in their own notation. Anything not
+   *  already sRGB is converted BY THE BROWSER — relative color syntax, `color(from <c> srgb r g b / alpha)`,
+   *  on a scratch node — so this reads what Chrome paints rather than re-implementing color spaces. Channels
+   *  outside the sRGB gamut are clipped, which is what the display does with them. */
+  const unparsed = [];
+  let scratch = null;
+  const toSrgb = (s) => {
+    if (!scratch) { scratch = document.createElement('i'); scratch.style.display = 'none'; document.body.append(scratch); }
+    scratch.style.color = '';
+    scratch.style.color = `color(from ${s} srgb r g b / alpha)`;
+    return scratch.style.color ? getComputedStyle(scratch).color : '';
+  };
+  const parseSrgb = (s) => {
+    let m = /^rgba?\(([^)]+)\)$/.exec(s);
+    if (m) { const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; }
+    m = /^color\(srgb\s+([^)]+)\)$/.exec(s);
+    if (m) {
+      const p = m[1].split(/[\s/]+/).filter(Boolean).map(Number);
+      const ch = (v) => Math.min(255, Math.max(0, v * 255));
+      return { r: ch(p[0]), g: ch(p[1]), b: ch(p[2]), a: p.length > 3 ? Math.min(1, Math.max(0, p[3])) : 1 };
+    }
+    return null;
+  };
+  const parse = (s, el, prop) => {
+    const v = (s ?? '').trim();
+    const c = parseSrgb(v) ?? (v ? parseSrgb(toSrgb(v)) : null);
+    if (!c || [c.r, c.g, c.b, c.a].some((n) => !Number.isFinite(n))) {
+      if (el) unparsed.push({ cls: name(el), prop, value: v.slice(0, 60) });
+      return null;
+    }
+    return c;
   };
   const over = (fg, bg) => ({
     r: fg.r * fg.a + bg.r * (1 - fg.a),
@@ -133,7 +164,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
     let acc = null;
     for (let n = el; n; n = n.parentElement) {
       const cs = getComputedStyle(n);
-      const c = parse(cs.backgroundColor);
+      const c = parse(cs.backgroundColor, n, 'background-color');
       if (c && c.a > 0) {
         const layer = { ...c, a: c.a * Number(cs.opacity) };
         acc = acc ? over(acc, layer) : layer;
@@ -144,7 +175,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
     return acc ? over(acc, white) : white;
   };
   const root = rootSel ? document.querySelector(rootSel) : document;
-  if (!root) return { text: [], fields: [], rootFound: false };
+  if (!root) return { text: [], fields: [], unparsed, rootFound: false };
   const round = (n) => Math.round(n * 100) / 100;
   const name = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().replace(/\s+/g, '.') || '-'}`;
   /** Laid out at all? Shared by both walks so they agree on what "rendered" means. Returns the
@@ -180,8 +211,8 @@ const LEGIBILITY_PROBE = (rootSel) => {
     const cs = getComputedStyle(el);
     const op = drawn(el, cs);
     if (op === null) continue;
-    const col = parse(cs.color);
-    if (!col) continue;
+    const col = parse(cs.color, el, 'color');
+    if (!col) continue;   // recorded in `unparsed`, which fails the suite by name
     const ground = groundOf(el);
     // A specimen that names the engine role pair it previews (#1652) also reports what it RENDERED for
     // each half, the column label it sits under, and its row, so the suite can check the claim against the
@@ -206,7 +237,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
       pair: pairHost ? {
         claim: pairHost.getAttribute('data-specimen-pair'),
         ink: col,
-        fill: parse(getComputedStyle(pairHost).backgroundColor),
+        fill: parse(getComputedStyle(pairHost).backgroundColor, pairHost, 'background-color'),
         state: pairHost.closest('.sg-bcol')?.querySelector('.sg-st')?.textContent.trim() ?? '',
         row: pairRow ? [...document.querySelectorAll('.sg-btns')].indexOf(pairRow) : -1,
       } : null,
@@ -224,15 +255,19 @@ const LEGIBILITY_PROBE = (rootSel) => {
     const cs = getComputedStyle(el);
     const op = drawn(el, cs);
     if (op === null) continue;
-    const col = parse(cs.color);
-    if (!col) continue;
+    const col = parse(cs.color, el, 'color');
+    if (!col) continue;   // recorded in `unparsed`, which fails the suite by name
     const ground = groundOf(el);
     // `caretColor: auto` computes to a concrete rgb, so this reads the used value rather than the
     // keyword. Only for text entry — a `<select>` has no caret to lose.
-    const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor);
+    const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor, el, 'caret-color');
+    // A TRANSPARENT caret on a field a person can type into is an invisible caret, not "no caret" (review
+    // of #1777): it is measured as the ground against itself, 1:1, and fails the caret bar. Only a field
+    // that takes no typing — read-only or disabled — has no caret to lose.
+    const editable = el.tagName !== 'SELECT' && !el.readOnly && !el.disabled;
     fields.push({
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
-      caretRatio: caret && caret.a > 0 ? round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)) : null,
+      caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
       cls: name(el),
       text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
       op: round(op),
@@ -243,7 +278,8 @@ const LEGIBILITY_PROBE = (rootSel) => {
       specimen: el.closest('[data-specimen]') !== null,
     });
   }
-  return { text, fields, rootFound: true };
+  scratch?.remove();
+  return { text, fields, unparsed, rootFound: true };
 };
 
 /**
@@ -307,26 +343,6 @@ const barOf = (r) => (r.specimen ? CONTRAST_FLOOR : isLargeText(r) ? CHROME_LARG
  */
 const CHROME_CARET_MIN = 3;
 
-/**
- * KNOWN FINDINGS — HELD, NOT HIDDEN. A node listed here failed its real bar when the bar was raised, and
- * the fix is a visual or policy choice that is the owner's (CLAUDE.md principle 6), so it is filed rather
- * than tuned away (docs/34 shape 14: "when raising it turns other surfaces red, those are findings").
- *
- * Three rules keep this from becoming the tuning it stands in for:
- *  - a listed node is still held to `CONTRAST_FLOOR`, so it is no looser than it was before the raise;
- *  - it is matched by class AND text, so a sibling that regresses is not excused by it;
- *  - it must still REPRODUCE: the arm below fails the moment every sighting clears its real bar, so the
- *    entry comes out in the PR that fixes the node and cannot outlive the defect. It also fails when the
- *    node is never seen, since an exception for something absent is a hole with a label on it.
- */
-const KNOWN_FINDINGS = [
-  // The brand menu's locked Light row: a legal `--faint` (5.13:1) faded through `.mctx-opt.fixed`'s
-  // `opacity: .72`, rendering at 2.95:1 — #555's `.mo-playnote` shape. Fix options are measured on the issue.
-  { cls: 'span.mctx-always', text: 'always', issue: '#1770' },
-];
-const knownOf = (r) => KNOWN_FINDINGS.find((k) => k.cls === r.cls && k.text === r.text) ?? null;
-/** Every sighting of a known finding, so the reproduce arm can judge them after the popover loop. */
-const knownSightings = [];
 const caretBarOf = (f) => (f.specimen ? CONTRAST_FLOOR : CHROME_CARET_MIN);
 const fieldFails = (f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio !== undefined && f.caretRatio < caretBarOf(f));
 const describeField = (u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.caretRatio}:1 (${u.px}px/${u.weight}, op ${u.op}; needs ${barOf(u)}:1, caret ${caretBarOf(u)}:1)`;
@@ -405,6 +421,19 @@ const loadEmission = async (brand) => {
   return { modes, role };
 };
 const hexOf = (c) => (c ? `#${[c.r, c.g, c.b].map((n) => Math.round(n).toString(16).padStart(2, '0')).join('')}` : 'none');
+/** Node-side color math for the #812 check, where the colors come back from the page as strings. */
+const parseRgb = (s) => {
+  const m = /rgba?\(([^)]+)\)/.exec(s ?? '');
+  if (!m) return null;
+  const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+};
+const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+const wcag = (a, b) => {
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const x = lum(a), y = lum(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+};
 
 /** Prove a paired specimen's claim, then classify it. Returns `{ problem }` or `{ cls, bar, contract }`. */
 const classifyPair = (p, emission, mode) => {
@@ -521,9 +550,35 @@ const gotoPage = async (page, label) => {
  *  moment the last transition or keyframe run ends, and at once when nothing is moving. Infinite and
  *  paused animations are left out, since neither ever finishes; a node faded by one of those is
  *  measured as it is drawn, which is what a reader would see. */
-const settle = (page) => page.evaluate(() => Promise.all(document.getAnimations()
-  .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime))
-  .map((a) => a.finished.catch(() => null))));
+/** Every color the probe met was READ — a color it could not parse is a failure naming the node and the
+ *  value, never a silent skip (review of #1777; see `unparsed` in `LEGIBILITY_PROBE`). Counted per run. */
+let unparsedTotal = 0;
+const assertParsed = (where, list) => {
+  const uniq = [...new Map(list.map((u) => [`${u.cls}|${u.prop}|${u.value}`, u])).values()];
+  unparsedTotal += uniq.length;
+  ok(uniq.length === 0, `${where}: every computed color the probe met was parsed${
+    uniq.length ? ` — ${uniq.length} not: ${uniq.slice(0, 3).map((u) => `${u.cls} ${u.prop} "${u.value}"`).join(' | ')}` : ''}`);
+};
+
+/** CAPPED, and a cap that trips is a FAILURE naming what was still moving (review of #1777): a
+ *  1000-second transition made the uncapped wait hang with no message, and CI sets no timeout. The cap
+ *  sits far above anything the studio animates (its longest run is the Motion page's 1.2s trace). */
+const SETTLE_CAP_MS = 5000;
+const settle = async (page, where) => {
+  const stuck = await page.evaluate((cap) => {
+    const live = document.getAnimations()
+      .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime));
+    const label = (a) => {
+      const t = a.effect?.target;
+      return `${a.animationName ?? a.transitionProperty ?? 'animation'} on ${t ? `${t.tagName.toLowerCase()}.${String(t.className ?? '').trim().replace(/\s+/g, '.') || '-'}` : '?'}`;
+    };
+    const done = Promise.all(live.map((a) => a.finished.catch(() => null))).then(() => []);
+    const capped = new Promise((r) => setTimeout(() => r(live.filter((a) => a.playState === 'running').map(label)), cap));
+    return Promise.race([done, capped]);
+  }, SETTLE_CAP_MS);
+  ok(stuck.length === 0, `${where}: every finite animation settles within ${SETTLE_CAP_MS}ms before measuring${
+    stuck.length ? ` — still running: ${stuck.slice(0, 3).join(' | ')}` : ''}`);
+};
 
 /** Same contract for the mode bar: the wait is "the bar says this mode is selected". */
 const selectMode = async (page, label) => {
@@ -688,9 +743,10 @@ for (const brand of BRANDS) {
 
       // --- rendered contrast -------------------------------------------------------------------
       // Settled first (#1069): the probe measures what stays on screen, not a frame of a transition.
-      await settle(page);
+      await settle(page, where);
       const probe = await page.evaluate(LEGIBILITY_PROBE);
       const rows = probe.text;
+      assertParsed(where, probe.unparsed);
       nodesMeasured += rows.length;
       fieldsMeasured += probe.fields.length;
       // The non-empty floor, asserted BEFORE the ratios and separately from them, so an empty state
@@ -796,6 +852,7 @@ console.log(`    ${worstWhere}`);
 console.log(`  Lowest chrome text: ${worstChrome}:1 (bar ${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) — ${specimensMeasured} of ${nodesMeasured} nodes are specimens`);
 console.log(`    ${worstChromeWhere}`);
 console.log(`  Lowest chrome form-control ink: ${worstField}:1 (bar ${CHROME_TEXT_MIN}:1, caret ${CHROME_CARET_MIN}:1)`);
+console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);
 console.log(`    ${worstFieldWhere}`);
 console.log(`  Lowest exempt pressed specimen: ${worstExempt}:1 (declared pressed min ${PRESSED_MIN}, smoke floor ${CONTRAST_FLOOR.toFixed(1)}:1 — #1281/#1456, not a finding)`);
 console.log(`    ${worstExemptWhere}`);
@@ -902,6 +959,12 @@ const READ_OVERLAY_ROWS = () => {
       // The example box's ground is computed by `exGround`, a different expression from the one the
       // swatch's underlay comes from — so agreeing is a real check, not one value read twice.
       exboxBg: getComputedStyle(row.querySelector('.exbox')).backgroundColor,
+      // The specimen AS DRAWN (#812): the button's ink, the wash it sits on, and the receipt beside it.
+      example: (() => {
+        const b = row.querySelector('.exbox .ibtn');
+        const cs = b ? getComputedStyle(b) : null;
+        return { ink: cs?.color ?? null, wash: cs?.backgroundColor ?? null, badge: row.querySelector('.aex .cbadge .cb-ratio')?.textContent ?? null };
+      })(),
       states: [...row.querySelectorAll('.astate')].map((c) => ({
         name: c.querySelector('.astate-n')?.textContent?.trim() ?? '',
         swatch: readSwatch(c.querySelector('.astate-sw')),
@@ -1008,6 +1071,7 @@ for (const brand of BRANDS) {
   const washModes = (await page.locator('.mctx-b .mctx-name').allTextContents())
     .map((m) => m.trim()).filter((m) => /^(light|dark)$/i.test(m));
   ok(washModes.length === 2, `${brand}: the Interactive page offers both customizable modes (${washModes.join(', ')})`);
+  const washEmission = await loadEmission(brand);
   for (const mode of washModes) {
     await selectMode(page, mode);
     const dark = /dark/i.test(mode);
@@ -1051,6 +1115,23 @@ for (const brand of BRANDS) {
         ok((st.swatch?.deltaLum ?? 0) > 0.005,
           `${where} / ${st.name}: the composited state wash is visible against that ground (Δluminance ${st.swatch?.deltaLum?.toFixed(4)})`);
       }
+      // (c) — the specimen previews the pair a component DRAWS on this wash, and carries a receipt for it
+      // (#812). ORACLE: the committed emission's `interactive.<c>.text.hover` — the ink the Button binds as
+      // `outline.label.hover` over `outline.overlay.hover` — and that role's own `min`; never the studio's
+      // resolution. ACTUAL: the ink and the wash the specimen renders, composited in Node over the example's
+      // ground, and the ratio the badge prints. The row painted `text.rest` here until #812, a pair no
+      // component renders (aurora Dark primary 3.83:1), with no receipt at all.
+      const fam = /^color\.interactive\.([a-z0-9-]+)\.overlay\.hover$/.exec(row.pill)?.[1];
+      const want = fam && washEmission ? washEmission.role(`interactive.${fam}.text.hover`, mode.toLowerCase()) : null;
+      const ink = parseRgb(row.example.ink), wash = parseRgb(row.example.wash), ground = parseRgb(row.exboxBg);
+      const drawn = ink && wash && ground ? wcag(ink, over(wash, ground)) : null;
+      const printed = row.example.badge ? parseFloat(row.example.badge) : null;
+      ok(want !== null && hexOf(ink) === want.hex,
+        `${where}: the specimen inks the Button's hover pair — ${hexOf(ink)}, emitted interactive.${fam}.text.hover ${want?.hex ?? 'unresolved'} (#812)`);
+      ok(drawn !== null && printed !== null && Math.abs(drawn - printed) < 0.011,
+        `${where}: the specimen carries a contrast receipt for the pair on screen — badge ${printed ?? 'ABSENT'}:1, rendered ${drawn?.toFixed(2)}:1 (#812)`);
+      ok(drawn !== null && typeof want?.min === 'number' && drawn >= want.min,
+        `${where}: the hover pair clears text.hover's own contract — ${drawn?.toFixed(2)}:1 against ${want?.min}:1 (#812)`);
       washRowsSeen++;
       washPolarities.add(expectPal);
     }
@@ -1476,8 +1557,9 @@ for (const brand of BRANDS) {
     const resolved = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
     ok(resolved === 'normal' || resolved === 'light',
       `${where}: the shell resolves a light-only color-scheme (resolved "${resolved}") — the studio paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
-    await settle(page);
+    await settle(page, where);
     const probe = await page.evaluate(LEGIBILITY_PROBE, '.brandmenu');
+    assertParsed(where, probe.unparsed);
     ok(probe.rootFound, `${where}: the popover is mounted and was measured`);
     // WHICH controls, not how many. A count of three passes the day Namespace stops rendering and some
     // fourth control appears in its place, while still reading as "Name, Namespace and the textarea were
@@ -1495,13 +1577,21 @@ for (const brand of BRANDS) {
 
     // At the bars the sweep holds the same nodes to (#779) — the popover is chrome, and it was the one
     // surface still judged against the 2.0 "invisible" floor after the sweep's own split.
-    // A known finding (#1770) is held to the specimen floor here and judged on its own arm below.
-    for (const r of probe.text) if (knownOf(r)) knownSightings.push({ ...r, where });
-    const textBar = (r) => (knownOf(r) ? CONTRAST_FLOOR : barOf(r));
     const bad = [
       ...probe.fields.filter(fieldFails).map(describeField),
-      ...probe.text.filter((r) => r.ratio < textBar(r)).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${textBar(u)}:1)`),
+      ...probe.text.filter((r) => r.ratio < barOf(r)).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`),
     ];
+    // #1770 — the locked Light row is locked by a GLYPH, not by a fade. It sat at 2.95:1 until then (a legal
+    // `--faint` "always" through `opacity: .72`), so the row's own text must be among what was measured —
+    // held to the bar above, not merely present — and the glyph must carry a name assistive tech can read.
+    const locked = await page.evaluate(() => {
+      const row = document.querySelector('.brandmenu .mctx-opt.fixed');
+      const lock = row?.querySelector('svg.mctx-lock');
+      return { row: !!row, lockName: lock?.getAttribute('role') === 'img' ? (lock.getAttribute('aria-label') ?? '') : '' };
+    });
+    ok(probe.text.some((r) => r.cls === 'span.mctx-always') && locked.row,
+      `${where}: the locked Light row is mounted and its "always" label was measured at the chrome bar (#1770)`);
+    ok(locked.lockName.length > 0, `${where}: the locked row's lock glyph is an image with an accessible name ("${locked.lockName}") (#1770)`);
     for (const r of [...probe.fields, ...probe.text]) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} ${r.text}`; }
     ok(bad.length === 0, `${where}: every one of ${probe.fields.length} control(s) and ${probe.text.length} text node(s) meets its bar — text ${CHROME_TEXT_MIN}:1 (${CHROME_LARGE_TEXT_MIN}:1 large), caret ${CHROME_CARET_MIN}:1, specimens ${CONTRAST_FLOOR}:1${
       bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
@@ -1515,16 +1605,6 @@ for (const brand of BRANDS) {
 }
 ok(menuFields >= BRANDS.length * 2 * BRANDMENU_FIELD_FLOOR,
   `${menuFields} popover controls measured across ${BRANDS.length} brands × 2 color schemes`);
-// The known findings still REPRODUCE — seen, and still under the bar they are excused from. A fix to the
-// node turns this red on purpose: delete its KNOWN_FINDINGS entry in the same PR.
-for (const k of KNOWN_FINDINGS) {
-  const seen = knownSightings.filter((r) => knownOf(r) === k);
-  const cleared = seen.filter((r) => r.ratio >= barOf(r));
-  ok(seen.length > 0 && cleared.length === 0,
-    `known finding ${k.issue} (${k.cls} "${k.text}") still reproduces — ${seen.length} sighting(s), lowest ${seen.length ? Math.min(...seen.map((r) => r.ratio)) : 'n/a'}:1 against its ${seen.length ? barOf(seen[0]) : '?'}:1 bar${
-      !seen.length ? ' — NEVER SEEN: the node moved or was removed, so the exception excuses nothing; delete the entry'
-        : cleared.length ? ` — ${cleared.length} sighting(s) now CLEAR the bar (${cleared[0].where}, ${cleared[0].ratio}:1): the defect is fixed, delete the entry` : ''}`);
-}
 console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover controls measured.`);
 
 // =============================================================================================
