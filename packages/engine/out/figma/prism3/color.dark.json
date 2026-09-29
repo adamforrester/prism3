@@ -1189,14 +1189,14 @@
       ],
       "description": "Primary fill, rest — 3:1 on background/secondary",
       "value": {
-        "r": 0.16078431904315948,
-        "g": 0.2980392277240753,
-        "b": 0.9921568632125854,
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/550"
+        "name": "pds3/core/palette/primary/500"
       }
     },
     {
@@ -1208,14 +1208,14 @@
       ],
       "description": "Primary fill, hover — 3:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.3803921639919281,
+        "g": 0.5372549295425415,
+        "b": 0.9764705896377563,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/400"
       }
     },
     {
@@ -1227,14 +1227,14 @@
       ],
       "description": "Primary fill, pressed — 3:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
+        "name": "pds3/core/palette/primary/300"
       }
     },
     {
@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.16078431904315948,
-        "g": 0.2980392277240753,
-        "b": 0.9921568632125854,
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/550"
+        "name": "pds3/core/palette/primary/500"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.16078431904315948,
-        "g": 0.2980392277240753,
-        "b": 0.9921568632125854,
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/550"
+        "name": "pds3/core/palette/primary/500"
       }
     },
     {
@@ -1285,14 +1285,14 @@
       ],
       "description": "Label on the primary fill — 4.5:1 at rest",
       "value": {
-        "r": 0.9686274528503418,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/025"
+        "name": "pds3/core/palette/black"
       }
     },
     {

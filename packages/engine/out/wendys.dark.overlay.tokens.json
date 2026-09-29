@@ -1277,9 +1277,33 @@
       "interactive": {
         "primary": {
           "fill": {
+            "rest": {
+              "$type": "color",
+              "$value": "{wds.core.palette.primary.450}",
+              "$description": "primary interactive fill — rest, clears 3:1 on background.secondary",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "wds.core.palette.primary.450",
+                  "contrast": 3.73,
+                  "against": "neutral.900",
+                  "min": 3
+                }
+              }
+            },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.400}",
+              "$value": "{wds.core.palette.primary.350}",
               "$description": "primary interactive fill — hover, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1294,8 +1318,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "wds.core.palette.primary.400",
-                  "contrast": 4.56,
+                  "aliasOf": "wds.core.palette.primary.350",
+                  "contrast": 5.5,
                   "against": "neutral.900",
                   "min": 3
                 }
@@ -1303,7 +1327,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.300}",
+              "$value": "{wds.core.palette.primary.250}",
               "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1318,35 +1342,59 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "wds.core.palette.primary.300",
-                  "contrast": 6.59,
+                  "aliasOf": "wds.core.palette.primary.250",
+                  "contrast": 7.84,
                   "against": "neutral.900",
                   "min": 3
                 }
               }
-            }
-          },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{wds.core.palette.neutral.025}",
-            "$description": "Ink on the primary interactive fill",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "wds.core.palette.neutral.025",
-                "contrast": 5.49,
-                "against": "interactive.primary.fill.rest",
-                "min": 4.5
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{wds.core.palette.primary.450}",
+              "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "wds.core.palette.primary.450",
+                  "contrast": 3.73,
+                  "against": "neutral.900",
+                  "min": 3
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{wds.core.palette.primary.450}",
+              "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "wds.core.palette.primary.450",
+                  "contrast": 3.73,
+                  "against": "neutral.900",
+                  "min": 3
+                }
               }
             }
           },

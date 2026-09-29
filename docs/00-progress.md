@@ -44,7 +44,7 @@
 
 **Review follow-ups (independent review of #1773 at 18287261).**
 - **A `fill.rest` override left focused/selected behind.** The override layer rewrites one role, and `on-fill` re-picks against the overridden rest (the pre-derivation `asGround` path), so the two twins stayed on the derived step. Repro: prism3 dark with rest overridden to `primary.300` gave on-fill `neutral.950` at 3.28:1 on selected, with no warning. `withFillStateTwins` now carries a page `fill.rest` override to `fill.focused` / `fill.selected` unless a twin has its own override, beside `withIconTwins`. The inverse band is not matched. The test pins all three on `#86a7f7` with the ink at 8.22:1. No corpus brand overrides `fill.rest`, so `out/` does not move.
-- **Held for the owner: the selected fill on darker dark-mode surfaces.** The radio's checked dot, the checkbox's checked box and the switch's on track all bind `interactive.primary.fill.selected`, which is now the rest step. The rest fill is gated at 3:1 against `background.secondary`, the floor every page fill uses, so on `background.tertiary` in `dark` it misses 1.4.11:
+- **The selected fill on darker dark-mode surfaces (measured for the owner; decided below as option 2).** The radio's checked dot, the checkbox's checked box and the switch's on track all bind `interactive.primary.fill.selected`, which is now the rest step. The rest fill is gated at 3:1 against `background.secondary`, the floor every page fill uses, so on `background.tertiary` in `dark` it misses 1.4.11:
 
   | brand | mode | before (selected step) P / S / T | after (rest step) P / S / T |
   |---|---|---|---|
@@ -67,12 +67,31 @@
   2. Gate every page interactive fill against `background.tertiary`, the #1352 pattern for destructive ink. Measured in `dark`: rest moves one step lighter in nb, harbor, wendys and prism3 (red.500, primary.500, primary.450, primary.500; 3.32–3.51:1 on tertiary; aurora and minimal already clear). The label escalates to pure white at 4.58–4.80:1. This moves every dark filled button.
   3. Rebind only the radio dot, the one of the three drawn straight on the page with no fill of its own, to a role gated against `background.tertiary`. No primary role at 3:1 against tertiary exists today, and the primary border/icon inks are #1367's pairs, so this needs a new role or #1367 first.
 - Nits: the radio prose says 3.28–10.03 (prism3 dark 3.28) and names the tertiary gap; the switch low of 2.71 names prism3 dark and wendys dark.
-- Proposed, not shipped: `.ai.json` `when_to_use` for page `fill.selected` still reads "selectable rows when selected / active" (the shared `STATE_WHEN` in `ai-metadata.ts`). The draft replacement is in the PR body for owner and voice review.
+- `.ai.json` `when_to_use` for page `fill.selected` read "selectable rows when selected / active" (the shared `STATE_WHEN` in `ai-metadata.ts`). A draft replacement went to the owner; shipped below.
+
+**Owner decisions on the review (2026-09-29).**
+- **Option 2: every page interactive fill clears 3:1 against `background.tertiary` too** (the #1352 pattern). `modes.ts` `restFill` passes `background.tertiary` as `pickBrand`'s `alsoClear` for the page `fill.rest` of primary, destructive and every declared palette. The solver takes the nearest step to the anchor that clears the floor (`background.secondary`) and the tertiary tier. Focused and selected are the rest step, so they follow; hover and pressed keep their walk and their exemption. An authored pin stays `exact` (#331). The recorded `against` stays the floor; `test.ts` measures the tertiary arm. The neutral fill is not a solver pick (subtle has no floor, strong is a fixed step); measured with `neutralEmphasis: 'strong'` on prism3 and the NB master theme, it clears both tiers in every mode. The inverse band is untouched.
+
+  Rest fills that moved (before → after, on `background.secondary` / `.tertiary`, and the label):
+
+  | brand | mode | family | before | after |
+  |---|---|---|---|---|
+  | nb | dark | primary, destructive | red.550 `#cf0b2c` · 3.20 / 2.85 · `neutral.025` 5.24 | red.500 `#d53d44` · 3.92 / 3.49 · `white` 4.58 |
+  | harbor | dark | primary | primary.550 `#297272` · 3.19 / 2.86 · `neutral.025` 5.23 | primary.500 `#437f7f` · 3.91 / 3.50 · `white` 4.58 |
+  | wendys | dark | primary | primary.500 `#c8102e` · 3.05 / 2.71 · `neutral.025` 5.49 | primary.450 `#ce3d44` · 3.73 / 3.32 · `white` 4.80 |
+  | prism3 | dark | primary | primary.550 `#294cfd` · 3.03 / 2.71 · `neutral.025` 5.53 | primary.500 `#3d68fc` · 3.91 / 3.51 · **`black`** 4.58 |
+  | harbor | light | destructive | danger.500 `#cd4840` · 3.31 / 2.91 · `white` 4.57 | danger.550 `#b83d36` · 4.04 / 3.56 · `white` 5.59 |
+
+  Aurora and minimal already cleared. Harbor's light destructive fill moved too, because it read 2.91:1 on tertiary. **prism3 dark's label turns pure black, not white.** Neither softened ink clears 4.5:1 on `#3d68fc` (025 at 4.28:1; 950 falls short too), so `onColor` escalates to the better pure extreme: black 4.584 against white 4.581, a 0.003 margin. That is the existing mechanism's output, so it ships, but the owner expected white. A brand-level tie-break toward the light extreme in dark modes would be a new rule and is left to the owner. The softening pin in `test.ts` now reads "softened unless neither softened ink clears 4.5:1 on the fill", recomputed from the theme's neutral 025/950 (a synthetic brand there hit the same escalation).
+
+  `test.ts` holds a literal [P, S, T] table for the radio's checked dot, the checkbox's checked box and the switch's on track, each read through its own def binding, in every mode of the five distinct corpus palettes, prism3 and the NB master theme (225 cells, all ≥ 3:1; the tertiary minimum is 3.22, minimal dark). The #1763 dark literals moved to nb 4.58, aurora 4.60, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58. The switch's off track vs on track is 3.22–14.01:1 now (it was 2.71 before the gate). No `text.*`, `icon.*` or `border.*` value moved, so #1367 is untouched.
+- **The `.ai.json` guidance for page `fill.selected` ships as written:** "The fill of a filled `<color>` interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline." `describeInteractive` now takes `inverse` and switches the lead sentence for page `fill.selected` only. The shared `STATE_WHEN.selected` is unchanged, so every other role, the inverse `fill.selected` included, keeps its wording. The generated label note still follows.
 
 **Mutations** (committed first, restored from HEAD):
 - MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.
 - MB, the inverse re-pick disabled (`alsoClear` emptied): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb light inverse focused 3.33:1, …). The `#1244` arm does not fire here: a rest-only pick is shallower, not too far. `(4c)` is the arm that holds it.
 - MD, `withFillStateTwins` removed from the override pass: `#1626 a fill.rest override carries to focused and selected` fails (focused and selected `#294cfd`, on-fill 3.28:1).
+- ME, the tertiary gate removed (`restFill` passes no `alsoClear`): `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on … .tertiary` (nb dark on tertiary 2.85:1, …) and `#1763 dark mode: … pinned literals` (nb 5.24 against 4.58, …).
 - MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
 - The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
 

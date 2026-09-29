@@ -1108,10 +1108,21 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // absent → the global anchor, so an unset map is byte-identical. Columns: 'primary'/'destructive'/accent.
   const modeAnchor = (col: string): number | undefined => theme.modeAnchors?.[mode]?.[col];
   const paAnchor = modeAnchor('primary') ?? theme.actionAnchorStep;
+  // THE PAGE FILL CLEARS THE DARKEST TIER TOO (#1773, owner, 2026-09-29 — the #1352 pattern). A page
+  // interactive fill is gated at `fillFloorMin` against the floor (`background.secondary`), and since #1626
+  // `fill.focused` / `fill.selected` ARE the rest step, so the radio's checked dot, the checkbox's checked box
+  // and the switch's on track read the rest fill. On a `background.tertiary` card in `dark` that measured
+  // 2.71–2.86:1 (nb, harbor, wendys, prism3) — under SC 1.4.11. So every page `fill.rest` pick must ALSO
+  // clear the same bar against `background.tertiary`: `pickBrand`'s `alsoClear`, the nearest step to the
+  // anchor that clears both. The recorded `against` stays the floor; `test.ts` measures the tertiary arm.
+  // An authored pin stays `exact` (#331) and is applied verbatim, its miss reported, as before.
+  const fillTierRgb = asGround('background.tertiary', cfg.bg.tertiary.rgb);
+  const restFill = (palette: string, anchor: number, exact: boolean): RatedNum =>
+    chromatic(palette, anchor, floorRgb, fillFloorMin, exact, [fillTierRgb]);
   // Authored pin → `exact` (#331): applied as picked, floor miss reported not corrected.
   const actionRest = paAnchor !== undefined
-    ? chromatic(r2p.action, paAnchor, floorRgb, fillFloorMin, true)
-    : paletteRole('action', floorRgb, fillFloorMin);
+    ? restFill(r2p.action, paAnchor, true)
+    : restFill(r2p.action, theme.roleAnchorStep.action, false);
 
   // THE FOCUS RING, DERIVED AGAINST ITS OWN GROUND (#1336). The keyboard-focus ring is the action
   // colour, but unlike a fill it is DRAWN on a ground whose lightness flips per mode (the page in the
@@ -1238,8 +1249,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
   const daAnchor = modeAnchor('destructive') ?? theme.destructiveAnchorStep;
   const iDestructiveRest = daAnchor !== undefined
-    ? chromatic(r2p.danger, daAnchor, floorRgb, fillFloorMin, true)
-    : paletteRole('danger', floorRgb, fillFloorMin);
+    ? restFill(r2p.danger, daAnchor, true)
+    : restFill(r2p.danger, theme.roleAnchorStep.danger, false);
   iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
   // The destructive OUTLINE / TEXT ink (the button label + icon) is gated against the WORST-CASE page
   // tier — `background.tertiary`, the darkest emitted page surface — not merely `background.primary`.
@@ -1291,7 +1302,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // so a derived default is indistinguishable from a pin by the time it arrives here.
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
-    const rest = chromatic(entry.palette, anchor, floorRgb, fillFloorMin, pinned);
+    const rest = restFill(entry.palette, anchor, pinned);
     iFill(entry.name, rest, entry.palette, fillFloorMin);
     iBorder(entry.name, iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true), baseRgb, '', 'background.primary');
   }

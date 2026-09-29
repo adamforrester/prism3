@@ -1189,14 +1189,14 @@
       ],
       "description": "Primary fill, rest — 3:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/500"
       }
     },
     {
@@ -1208,14 +1208,14 @@
       ],
       "description": "Primary fill, hover — 3:1 on background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/red/400"
       }
     },
     {
@@ -1227,14 +1227,14 @@
       ],
       "description": "Primary fill, pressed — 3:1 on background/secondary",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/300"
       }
     },
     {
@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/500"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/500"
       }
     },
     {
@@ -1285,14 +1285,14 @@
       ],
       "description": "Label on the primary fill — 4.5:1 at rest",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/white"
       }
     },
     {
@@ -1529,14 +1529,14 @@
       ],
       "description": "Destructive fill, rest — 3:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/500"
       }
     },
     {
@@ -1548,14 +1548,14 @@
       ],
       "description": "Destructive fill, hover — 3:1 on background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/red/400"
       }
     },
     {
@@ -1567,14 +1567,14 @@
       ],
       "description": "Destructive fill, pressed — 3:1 on background/secondary",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/300"
       }
     },
     {
@@ -1586,14 +1586,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/500"
       }
     },
     {
@@ -1605,14 +1605,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/500"
       }
     },
     {
@@ -1625,14 +1625,14 @@
       ],
       "description": "Label on the destructive fill — 4.5:1 at rest",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/white"
       }
     },
     {

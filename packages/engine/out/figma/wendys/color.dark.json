@@ -1189,14 +1189,14 @@
       ],
       "description": "Primary fill, rest — 3:1 on background/secondary",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0.8078431487083435,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/500"
+        "name": "wds/core/palette/primary/450"
       }
     },
     {
@@ -1208,14 +1208,14 @@
       ],
       "description": "Primary fill, hover — 3:1 on background/secondary",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.8509804010391235,
+        "g": 0.43529412150382996,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/400"
+        "name": "wds/core/palette/primary/350"
       }
     },
     {
@@ -1227,14 +1227,14 @@
       ],
       "description": "Primary fill, pressed — 3:1 on background/secondary",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/300"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0.8078431487083435,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/500"
+        "name": "wds/core/palette/primary/450"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0.8078431487083435,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/500"
+        "name": "wds/core/palette/primary/450"
       }
     },
     {
@@ -1285,14 +1285,14 @@
       ],
       "description": "Label on the primary fill — 4.5:1 at rest",
       "value": {
-        "r": 0.9686274528503418,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/025"
+        "name": "wds/core/palette/white"
       }
     },
     {

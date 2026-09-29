@@ -2934,7 +2934,10 @@
  * five state fills — the most vivid step clearing 4.5:1 on every one — so it lands a deeper step at rest too
  * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision. Emitted
  * A `fill.rest` override now carries to its page `focused` / `selected` twins (`withFillStateTwins`), so an
- * overridden rest cannot strand the twins on the derived step (review of #1773). Emitted
+ * overridden rest cannot strand the twins on the derived step (review of #1773). Every page interactive
+ * `fill.rest` (and so focused/selected) now also clears its floor against `background.tertiary` (owner,
+ * 2026-09-29, the #1352 pattern): in `dark` nb, harbor, wendys and prism3 move one step lighter. The page
+ * `fill.selected` `.ai.json` guidance says selection must show by other means. Emitted
  * values move in every brand, and the projected surface moves wherever a def binds a focused/selected fill
  * or the inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
  *

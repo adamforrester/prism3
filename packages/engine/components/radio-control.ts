@@ -51,11 +51,11 @@
  * THE DOT NOW SITS ON THE PAGE, WHICH IS THE ONE CONTRAST CONSEQUENCE. The pre-split dot sat on the
  * disc's fill, so its ink was `on-fill` (gated against the fill) and its disabled ink `disabled.indicator.on-fill`.
  * With no fill, the dot sits on the PAGE, so its ink is `interactive.primary.fill.selected` — the same
- * brand token the old filled disc used. Since #1626 `fill.selected` is the rest step, and the dot measures
- * 3.28–10.03:1 against `background.primary` across the corpus and prism3, clearing SC 1.4.11's 3:1
- * non-text floor on the page AS A DOT the same way it did as a disc. On the darker page tiers in `dark` it
- * does not: 3.03:1 minimum on `background.secondary`, and 2.71–2.86:1 on `background.tertiary` (nb,
- * harbor, wendys, prism3). That gap is held for the owner on #1773, with options. Its disabled ink is
+ * brand token the old filled disc used. Since #1626 `fill.selected` is the rest step, and since #1773 every
+ * page rest fill also clears 3:1 against `background.tertiary` (owner, 2026-09-29). The dot measures
+ * 3.91–10.03:1 on `background.primary`, 3.61–10.03:1 on `.secondary` and 3.22–10.03:1 on `.tertiary`
+ * across the corpus and prism3, so it clears SC 1.4.11's 3:1 non-text floor on every page tier AS A DOT the
+ * same way it did as a disc. Its disabled ink is
  * the page form `disabled.indicator` (`color.disabled.fill`), which the projector reaches on its own:
  * `paintOf`'s disabled branch asks for the `on-fill` form only when a fill is bound at rest (`restKey('fill')`),
  * and this atom binds no fill, so the plain `disabled.indicator` is what resolves.
@@ -181,8 +181,8 @@ export const radioControl: ComponentDef = {
     // ── THE INNER DOT — the selection affordance, present only at `checked`, painted the brand fill
     // AGAINST THE PAGE. `interactive.primary.fill.selected` is the token the pre-split filled disc used;
     // as a dot on the page (the ring is unfilled) it clears SC 1.4.11's 3:1 non-text floor on
-    // `background.primary` — 3.28–10.03:1 across the corpus and prism3 (#1626: the rest step); on
-    // `background.tertiary` in dark it reads 2.71–2.86:1, held for the owner (see the header). In the `indicator` slot, NOT `icon`: the dot IS the
+    // every page tier — 3.22–10.03:1 even on `background.tertiary`, across the corpus and prism3 (#1626: the
+    // rest step; #1773: gated against the tertiary tier too). In the `indicator` slot, NOT `icon`: the dot IS the
     // drawn shape (a filled box, no glyph), and #933's rule is one box per slot (`control` owns the
     // border grammar). ONE value, no per-state ladder: the hover/pressed affordance is the RING stroke
     // darkening (`field.border.hover`), not the dot — Prism 2 varies the ring, not the inner circle, and

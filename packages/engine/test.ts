@@ -6693,7 +6693,19 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!isWhite(p(D, 'inverse.background.primary')), 'dark inverse surface is near-white, not pure white');
   ok(isWhite(p(L, 'background.primary')), 'light base page stays pure white (the one allowed pure extreme)');
   // on-fill softening: dark interactive on-fill is near-black (950), light keeps pure white; HC keeps pure
-  ok(!isBlack(p(D, 'interactive.primary.on-fill')), 'dark interactive on-fill is softened (near-black, not pure)');
+  // #1773 (owner, 2026-09-29): the page fill now also clears 3:1 against `background.tertiary`, which moves this
+  // brand's dark primary fill one step lighter. There neither softened ink (neutral 025 / 950) clears 4.5:1, so
+  // `onColor` escalates to a pure extreme — its documented fallback, the one place pure black is allowed. The
+  // pin is therefore "softened UNLESS neither softened ink clears", recomputed from the emitted hexes here.
+  {
+    const dInk = p(D, 'interactive.primary.on-fill');
+    const hx = (k: string) => D[k].hex as string;
+    const nSteps = (th as any).palettes.find((q: any) => q.palette === (th as any).roleToPalette.neutral).steps as Array<{ key: string; rgb: any }>;
+    const nSoft = ['025', '950'].map((st) => { const x = nSteps.find((q) => q.key === st); return x ? hex(x.rgb) : undefined; });
+    const softClears = nSoft.some((h) => h && contrast(hexToRgb(h), hexToRgb(hx('interactive.primary.fill.rest'))) >= 4.5);
+    ok(!isBlack(dInk) || (!softClears && contrast(hexToRgb(hx('interactive.primary.on-fill')), hexToRgb(hx('interactive.primary.fill.rest'))) >= 4.5),
+      `dark interactive on-fill is softened (near-black, not pure) unless neither softened ink clears 4.5:1 on the fill (ink ${dInk}, softened clears: ${softClears})`);
+  }
   ok(isWhite(p(L, 'interactive.primary.on-fill')), 'light interactive on-fill stays pure white (user preference)');
   ok(isWhite(p(HCD, 'interactive.primary.on-fill')) || isBlack(p(HCD, 'interactive.primary.on-fill')), 'HC keeps pure extremes for on-fill (max contrast)');
   ok(isBlack(p(HCL, 'inverse.background.primary')), 'HC inverse stays a pure extreme (max contrast)');
@@ -22493,8 +22505,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // THE DARK LITERALS (#1763). Measured 2026-09-29 once the fix landed; before it these read 2.32–2.62:1
   // everywhere but aurora. One row per corpus palette (the six minimal fixtures share one) plus prism3; the
   // NB master theme ships light only. Switch: on thumb vs on track. Checkbox: checked mark vs checked box,
-  // read through `checkbox-control`'s own bindings.
-  const DARK_ON: Record<string, number> = { nb: 5.24, aurora: 4.6, harbor: 5.23, wendys: 5.49, minimal: 4.63, prism3: 5.53 };
+  // read through `checkbox-control`'s own bindings. Re-measured after the tertiary gate (#1773): nb, harbor,
+  // wendys and prism3 moved their dark rest fill one step lighter, and the label escalated to a pure extreme.
+  const DARK_ON: Record<string, number> = { nb: 4.58, aurora: 4.6, harbor: 4.58, wendys: 4.8, minimal: 4.63, prism3: 4.58 };
   const cbRole = (key: string) => (checkboxControl.tokens[key] ?? '').replace(/^color\./, '');
   const darkWrong: string[] = [];
   let darkSeen = 0;
@@ -22510,7 +22523,43 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     if (cb !== DARK_ON[short]) darkWrong.push(`${short} checkbox checked mark ${cb}:1 (want ${DARK_ON[short]})`);
   }
   ok(darkSeen === 6 && darkWrong.length === 0,
-    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 5.24, aurora 4.60, harbor 5.23, wendys 5.49, minimal 4.63, prism3 5.53:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
+    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 4.58, aurora 4.60, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
+
+  // THE SELECTED FILL ON EVERY PAGE TIER (#1773, owner, 2026-09-29). The radio's checked dot, the checkbox's
+  // checked box and the switch's on track each read `interactive.primary.fill.selected` (the rest step), and
+  // each must clear SC 1.4.11's 3:1 on `background.primary`, `.secondary` AND `.tertiary` in every mode — the
+  // tertiary arm is the owner's option 2 (before it, dark tertiary read 2.71–2.86:1 in nb, harbor, wendys and
+  // prism3). LITERALS per brand × mode, [P, S, T], read through EACH def's own binding, so a rebind of one of
+  // the three is measured on its own; removing the tertiary gate in `modes.ts` fails the T column by name.
+  const TIER: Record<string, [number, number, number]> = {
+    'nb light': [5.62, 4.62, 4.08], 'nb dark': [4.24, 3.92, 3.49], 'nb hc-light': [10.03, 10.03, 10.03], 'nb hc-dark': [8.77, 8.77, 8.77],
+    'aurora light': [4.56, 3.76, 3.3], 'aurora dark': [4.26, 3.92, 3.52], 'aurora hc-light': [10.03, 10.03, 10.03], 'aurora hc-dark': [8.59, 8.59, 8.59],
+    'harbor light': [5.59, 4.91, 4.32], 'harbor dark': [4.24, 3.91, 3.5], 'harbor hc-light': [9.96, 9.96, 9.96], 'harbor hc-dark': [8.72, 8.72, 8.72],
+    'wendys light': [5.88, 4.85, 4.25], 'wendys dark': [4.05, 3.73, 3.32], 'wendys hc-light': [9.77, 9.77, 9.77], 'wendys hc-dark': [9.19, 9.19, 9.19],
+    'minimal light': [4.97, 4.1, 3.59], 'minimal dark': [3.91, 3.61, 3.22], 'minimal hc-light': [8.65, 8.65, 8.65], 'minimal hc-dark': [8.44, 8.44, 8.44],
+    'prism3 light': [7.82, 6.44, 5.65], 'prism3 dark': [4.24, 3.91, 3.51], 'prism3 hc-light': [9.38, 9.38, 9.38], 'prism3 hc-dark': [8.88, 8.88, 8.88],
+    'NB master light': [19.36, 15.95, 14.01],
+  };
+  const tierWrong: string[] = [];
+  let tierCells = 0;
+  const tierBinds: Array<[string, ComponentDef, string]> = [['radio checked dot', radioControl, 'checked.indicator'], ['checkbox checked box', checkboxControl, 'checked.fill'], ['switch on track', switchControl, 'on.fill']];
+  for (const { id, theme } of [...corpus().filter((b) => ['nb', 'aurora', 'harbor', 'wendys', 'minimal'].includes(b.id.split(' ')[0])), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }]) {
+    const short = id === 'NB master' ? id : id.split(' ')[0];
+    for (const m of resolveAllModes(theme)) {
+      const want = TIER[`${short} ${m.mode}`];
+      if (!want) { tierWrong.push(`${short} ${m.mode}: no literal row`); continue; }
+      for (const [label, def, key] of tierBinds) {
+        const fillHex = m.roles[(def.tokens[key] ?? '').replace(/^color\./, '')]?.hex ?? '#808080';
+        (['primary', 'secondary', 'tertiary'] as const).forEach((tier, i) => {
+          tierCells++;
+          const r = ratio(fillHex, m.roles[`background.${tier}`].hex);
+          if (r !== want[i] || r < 3) tierWrong.push(`${short} ${m.mode} ${label} on ${tier} ${r}:1 (want ${want[i]})`);
+        });
+      }
+    }
+  }
+  ok(tierCells === Object.keys(TIER).length * 3 * 3 && tierWrong.length === 0,
+    `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on background.primary, .secondary and .tertiary in every mode, at the pinned literals (${tierCells} cells) — wrong: ${tierWrong.slice(0, 6).join('; ') || 'none'}${tierWrong.length > 6 ? ` (+${tierWrong.length - 6})` : ''}`);
 
   // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
   // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every

@@ -6874,9 +6874,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.550}",
-                      "aliasOf": "nbds.core.palette.red.550",
-                      "contrast": 3.2,
+                      "$value": "{nbds.core.palette.red.500}",
+                      "aliasOf": "nbds.core.palette.red.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -6923,9 +6923,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.450}",
-                      "aliasOf": "nbds.core.palette.red.450",
-                      "contrast": 4.66,
+                      "$value": "{nbds.core.palette.red.400}",
+                      "aliasOf": "nbds.core.palette.red.400",
+                      "contrast": 5.52,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -6972,9 +6972,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.350}",
-                      "aliasOf": "nbds.core.palette.red.350",
-                      "contrast": 6.44,
+                      "$value": "{nbds.core.palette.red.300}",
+                      "aliasOf": "nbds.core.palette.red.300",
+                      "contrast": 7.5,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7021,9 +7021,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.550}",
-                      "aliasOf": "nbds.core.palette.red.550",
-                      "contrast": 3.2,
+                      "$value": "{nbds.core.palette.red.500}",
+                      "aliasOf": "nbds.core.palette.red.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7070,9 +7070,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.550}",
-                      "aliasOf": "nbds.core.palette.red.550",
-                      "contrast": 3.2,
+                      "$value": "{nbds.core.palette.red.500}",
+                      "aliasOf": "nbds.core.palette.red.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7120,9 +7120,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.neutral.025}",
-                    "aliasOf": "nbds.core.palette.neutral.025",
-                    "contrast": 5.24,
+                    "$value": "{nbds.core.palette.white}",
+                    "aliasOf": "nbds.core.palette.white",
+                    "contrast": 4.58,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },
@@ -7766,9 +7766,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.550}",
-                      "aliasOf": "nbds.core.palette.red.550",
-                      "contrast": 3.2,
+                      "$value": "{nbds.core.palette.red.500}",
+                      "aliasOf": "nbds.core.palette.red.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7815,9 +7815,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.450}",
-                      "aliasOf": "nbds.core.palette.red.450",
-                      "contrast": 4.66,
+                      "$value": "{nbds.core.palette.red.400}",
+                      "aliasOf": "nbds.core.palette.red.400",
+                      "contrast": 5.52,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7864,9 +7864,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.350}",
-                      "aliasOf": "nbds.core.palette.red.350",
-                      "contrast": 6.44,
+                      "$value": "{nbds.core.palette.red.300}",
+                      "aliasOf": "nbds.core.palette.red.300",
+                      "contrast": 7.5,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7913,9 +7913,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.550}",
-                      "aliasOf": "nbds.core.palette.red.550",
-                      "contrast": 3.2,
+                      "$value": "{nbds.core.palette.red.500}",
+                      "aliasOf": "nbds.core.palette.red.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7962,9 +7962,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.550}",
-                      "aliasOf": "nbds.core.palette.red.550",
-                      "contrast": 3.2,
+                      "$value": "{nbds.core.palette.red.500}",
+                      "aliasOf": "nbds.core.palette.red.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -8012,9 +8012,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{nbds.core.palette.neutral.025}",
-                    "aliasOf": "nbds.core.palette.neutral.025",
-                    "contrast": 5.24,
+                    "$value": "{nbds.core.palette.white}",
+                    "aliasOf": "nbds.core.palette.white",
+                    "contrast": 4.58,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   },

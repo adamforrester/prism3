@@ -6233,13 +6233,13 @@
           "fill": {
             "rest": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.500}",
+              "$value": "{hds.core.palette.danger.550}",
               "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 3.31,
+                  "aliasOf": "hds.core.palette.danger.550",
+                  "contrast": 4.04,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6257,13 +6257,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.600}",
+              "$value": "{hds.core.palette.danger.650}",
               "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.600",
-                  "contrast": 4.92,
+                  "aliasOf": "hds.core.palette.danger.650",
+                  "contrast": 5.97,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6281,13 +6281,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.700}",
+              "$value": "{hds.core.palette.danger.750}",
               "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.700",
-                  "contrast": 7.24,
+                  "aliasOf": "hds.core.palette.danger.750",
+                  "contrast": 8.73,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6305,13 +6305,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.500}",
+              "$value": "{hds.core.palette.danger.550}",
               "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 3.31,
+                  "aliasOf": "hds.core.palette.danger.550",
+                  "contrast": 4.04,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6329,13 +6329,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.500}",
+              "$value": "{hds.core.palette.danger.550}",
               "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 3.31,
+                  "aliasOf": "hds.core.palette.danger.550",
+                  "contrast": 4.04,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6360,7 +6360,7 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "hds.core.palette.white",
-                "contrast": 4.57,
+                "contrast": 5.59,
                 "against": "interactive.destructive.fill.rest",
                 "min": 4.5,
                 "figma": {

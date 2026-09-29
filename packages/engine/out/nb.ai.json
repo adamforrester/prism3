@@ -764,7 +764,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -787,7 +787,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.450}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.800}",
         "hc-dark": "{nbds.core.palette.red.200}"
       },
@@ -807,7 +807,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.350}",
+        "dark": "{nbds.core.palette.red.300}",
         "hc-light": "{nbds.core.palette.red.900}",
         "hc-dark": "{nbds.core.palette.red.100}"
       },
@@ -827,7 +827,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -843,11 +843,11 @@
     "interactive.primary.fill.selected": {
       "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
+      "when_to_use": "The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -867,7 +867,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use `interactive.primary.text.*`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.neutral.025}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -1130,7 +1130,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -1153,7 +1153,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.450}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.800}",
         "hc-dark": "{nbds.core.palette.red.200}"
       },
@@ -1173,7 +1173,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.350}",
+        "dark": "{nbds.core.palette.red.300}",
         "hc-light": "{nbds.core.palette.red.900}",
         "hc-dark": "{nbds.core.palette.red.100}"
       },
@@ -1193,7 +1193,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -1209,11 +1209,11 @@
     "interactive.destructive.fill.selected": {
       "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
+      "when_to_use": "The fill of a filled destructive interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -1233,7 +1233,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.neutral.025}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -1547,7 +1547,7 @@
     "interactive.neutral.fill.selected": {
       "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
+      "when_to_use": "The fill of a filled neutral interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.150}",
@@ -8270,11 +8270,13 @@
         "color.icon.link.focused",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
         "color.inverse.icon.brand",
@@ -8301,12 +8303,10 @@
         "color.icon.danger-subtle",
         "color.icon.link.hover",
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.fill.pressed",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.hover",
@@ -8344,8 +8344,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
+        "color.interactive.primary.fill.hover",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.text.rest"
@@ -8365,9 +8367,7 @@
         "color.icon.danger-subtle",
         "color.icon.link.default",
         "color.icon.link.focused",
-        "color.interactive.destructive.fill.hover",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.fill.hover",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
@@ -8401,6 +8401,12 @@
         "color.border.danger",
         "color.icon.brand-subtle",
         "color.icon.danger-subtle",
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.selected",
+        "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.selected",
         "color.inverse.border.brand",
         "color.inverse.border.danger",
         "color.inverse.icon.brand-subtle",
@@ -9436,7 +9442,6 @@
         "color.icon.on-danger",
         "color.icon.on-success",
         "color.icon.primary",
-        "color.interactive.destructive.on-fill",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
@@ -9447,7 +9452,6 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.on-fill",
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",

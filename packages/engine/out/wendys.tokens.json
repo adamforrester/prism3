@@ -8094,9 +8094,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.500}",
-                      "aliasOf": "wds.core.palette.primary.500",
-                      "contrast": 3.05,
+                      "$value": "{wds.core.palette.primary.450}",
+                      "aliasOf": "wds.core.palette.primary.450",
+                      "contrast": 3.73,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -8143,9 +8143,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.400}",
-                      "aliasOf": "wds.core.palette.primary.400",
-                      "contrast": 4.56,
+                      "$value": "{wds.core.palette.primary.350}",
+                      "aliasOf": "wds.core.palette.primary.350",
+                      "contrast": 5.5,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -8192,9 +8192,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.300}",
-                      "aliasOf": "wds.core.palette.primary.300",
-                      "contrast": 6.59,
+                      "$value": "{wds.core.palette.primary.250}",
+                      "aliasOf": "wds.core.palette.primary.250",
+                      "contrast": 7.84,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -8241,9 +8241,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.500}",
-                      "aliasOf": "wds.core.palette.primary.500",
-                      "contrast": 3.05,
+                      "$value": "{wds.core.palette.primary.450}",
+                      "aliasOf": "wds.core.palette.primary.450",
+                      "contrast": 3.73,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -8290,9 +8290,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.500}",
-                      "aliasOf": "wds.core.palette.primary.500",
-                      "contrast": 3.05,
+                      "$value": "{wds.core.palette.primary.450}",
+                      "aliasOf": "wds.core.palette.primary.450",
+                      "contrast": 3.73,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -8340,9 +8340,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.neutral.025}",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 5.49,
+                    "$value": "{wds.core.palette.white}",
+                    "aliasOf": "wds.core.palette.white",
+                    "contrast": 4.8,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },

@@ -97,7 +97,7 @@
  * handle). Measured over the token-contract corpus, prism3 and the NB master theme, every mode:
  *
  *   off thumb on off track   12.36–21:1   (NB master light 14.05:1, prism3 light 14.04:1)
- *   off track vs on track     2.71–14.01:1 (NB master light 14.01:1, prism3 light 5.65:1)
+ *   off track vs on track     3.22–14.01:1 (NB master light 14.01:1, prism3 light 5.65:1)
  *   off border vs the page   15.98–21:1
  *
  * High-contrast modes flatten every background step to the page, so the off track is page-colored
@@ -119,11 +119,12 @@
  * thumb is the dark `neutral.border.rest`, so `off.icon` is the light `background.tertiary` (the
  * off-track color — the off-thumb pairing read the other way, 12.36–21:1); the on thumb is
  * `primary.on-fill`, so `on.icon` is `primary.fill.selected` (the on-track color — the on-thumb pairing
- * read the other way, 4.56–19.36:1 in every mode; prism3 light 7.82:1, dark 5.53:1). Before #1763 the dark
+ * read the other way, 4.56–19.36:1 in every mode; prism3 light 7.82:1, dark 4.58:1). Before #1763 the dark
  * modes measured 2.32–2.62:1 here: `fill.selected` walked a lighter step than the `fill.rest` the ink is
  * gated against. Since 2026-09-29 (owner) `fill.selected` takes the rest step, so the on track is the brand's
  * rest fill and the pair clears in every mode. The cost, measured: in `dark` the on track sits closer to the
- * dark off track (2.71–14.01:1 across modes; prism3 dark and wendys dark both 2.71:1). Thumb position still
+ * dark off track: 3.22–14.01:1 across modes (minimal dark 3.22:1), after #1773 gated every page fill against
+ * `background.tertiary` too — it read 2.71:1 in prism3 dark and wendys dark before that. Thumb position still
  * carries the state.
  */
 import { ComponentDef } from '../component-schema';
@@ -197,7 +198,7 @@ export const switchControl: ComponentDef = {
 
     // ── THE ON TRACK — the brief's "stark track-color contrast". `fill.selected` resolves to the rest step
     // (#1763), the step `on-fill` is contract-checked against, so the thumb clears 4.5:1 in every mode.
-    // NO STRUCTURAL BORDER (#1011): a fill at 3.28–19.36:1 against the page IS the boundary, so a
+    // NO STRUCTURAL BORDER (#1011): a fill at 3.91–19.36:1 against the page IS the boundary, so a
     // same-family border beside it can only agree invisibly or disagree visibly — the asymmetry with the
     // off track that `switch.ts`'s contested note documents as the trap not to "fix for consistency".
     'on.fill': 'color.interactive.primary.fill.selected',

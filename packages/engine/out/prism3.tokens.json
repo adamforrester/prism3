@@ -7707,9 +7707,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.550}",
-                      "aliasOf": "pds3.core.palette.primary.550",
-                      "contrast": 3.03,
+                      "$value": "{pds3.core.palette.primary.500}",
+                      "aliasOf": "pds3.core.palette.primary.500",
+                      "contrast": 3.91,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7756,9 +7756,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.450}",
-                      "aliasOf": "pds3.core.palette.primary.450",
-                      "contrast": 4.65,
+                      "$value": "{pds3.core.palette.primary.400}",
+                      "aliasOf": "pds3.core.palette.primary.400",
+                      "contrast": 5.51,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7805,9 +7805,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.350}",
-                      "aliasOf": "pds3.core.palette.primary.350",
-                      "contrast": 6.46,
+                      "$value": "{pds3.core.palette.primary.300}",
+                      "aliasOf": "pds3.core.palette.primary.300",
+                      "contrast": 7.58,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7854,9 +7854,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.550}",
-                      "aliasOf": "pds3.core.palette.primary.550",
-                      "contrast": 3.03,
+                      "$value": "{pds3.core.palette.primary.500}",
+                      "aliasOf": "pds3.core.palette.primary.500",
+                      "contrast": 3.91,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7903,9 +7903,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.550}",
-                      "aliasOf": "pds3.core.palette.primary.550",
-                      "contrast": 3.03,
+                      "$value": "{pds3.core.palette.primary.500}",
+                      "aliasOf": "pds3.core.palette.primary.500",
+                      "contrast": 3.91,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7953,9 +7953,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.neutral.025}",
-                    "aliasOf": "pds3.core.palette.neutral.025",
-                    "contrast": 5.53,
+                    "$value": "{pds3.core.palette.black}",
+                    "aliasOf": "pds3.core.palette.black",
+                    "contrast": 4.58,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },

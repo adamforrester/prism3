@@ -843,7 +843,7 @@
     "interactive.primary.fill.selected": {
       "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
+      "when_to_use": "The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.500}",
@@ -1203,7 +1203,7 @@
     "interactive.destructive.fill.selected": {
       "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
+      "when_to_use": "The fill of a filled destructive interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.danger.500}",
@@ -1541,7 +1541,7 @@
     "interactive.neutral.fill.selected": {
       "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
+      "when_to_use": "The fill of a filled neutral interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.150}",
