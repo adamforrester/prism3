@@ -2928,7 +2928,7 @@
  *
  * 0.200.0 — #259 phase 2: the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
  * `dimension` table per collection (spacing and size as a spacing cell at the value's width, its width bound; a radius
- * as the radius swatch, its corner bound), one table per font kind per collection ("Abc 123" with the one property
+ * as the radius swatch, its corners bound), one table per font kind per collection ("Abc 123" with the one property
  * bound), and one text-style table ("Abc 123" with the style applied, sizes per `type-sets` mode). Values in px and
  * REM at a 16px base; paragraph spacing and decoration columns on toggle; `PHASE_TYPES` widened; new panel Customize
  * fields and agent-link args (`pixels`, `rem`, `dimensionDisplay`, `fontDisplay`, `paragraphSpacing`,
@@ -2936,7 +2936,15 @@
  * moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 13.2.0. Design record:
  * `docs/45-style-guide-generator.md` §6, "How phase 2 decides". In the same release (owner decision 15): a title
  * cell on every table type (`titleCell`), a leading "Name" column with the path humanized ("Text Primary"), a
- * designer's edit kept on rerun, and the title column left out of the superseded-table fingerprint.
+ * designer's edit kept on rerun, and the title column left out of the superseded-table fingerprint. Also in it (the
+ * review of 4faeb98a and the owner's live run of it): the spacing specimen found by the owner's cell structure, the
+ * bracket's line bound and its right bar carried to the value (a MAX constraint override, else a named static move),
+ * every resize guarded and read back, a cell with no layer to size counted; a FLOAT drawn as a length only when its
+ * scopes or name say so (durations, shadow parts, gradient stops and paragraph spacing go to later phases); fonts
+ * loaded and the column's mode pinned before any font binding; all four radius corners bound. And the owner's live QA
+ * (decisions 13 restated and 16): a palette swatch FILLs its cell (floored at 32px), and tables flow left to right in
+ * one row per category (color, dimension, font variables, text styles), the rows stacked down the page; Set up file's
+ * spacing and radius cells built in the owner's layer structure.
  *
  * 0.199.0 — #1778 + #259 (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an

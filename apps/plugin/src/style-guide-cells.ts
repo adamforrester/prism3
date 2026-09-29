@@ -40,6 +40,8 @@ export interface CellNode extends FNode {
   y?: unknown;
   rotation?: unknown;
   topLeftRadius?: unknown;
+  /** A layer's constraints inside a frame without auto layout (the spacing bracket's parts). */
+  constraints?: unknown;
   readonly width?: number;
   readonly height?: number;
   readonly parent?: CellNode | null;
@@ -154,12 +156,20 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
         specimen.strokeWeight = 2;
         specimen.strokeAlign = 'INSIDE';
       } else if (type === 'radius') {
+        // THE OWNER'S STRUCTURE (measured live, 2026-09-29): a clipping `radius-example-container` window over a
+        // larger `radius-example`, so only its top-left corner shows. Here the window is the 32px specimen square and
+        // the shape inside it is 128 × 64 at a 16px radius; the table binds all four of its corners.
+        specimen.name = 'radius-example-container';
         specimen.cornerRadius = 0;
-        specimen.topLeftRadius = 16;
-        specimen.fills = solid(CHIP);
-        specimen.strokes = solid(INK);
-        specimen.strokeWeight = 2;
-        specimen.strokeAlign = 'INSIDE';
+        specimen.clipsContent = true;
+        specimen.fills = [];
+        const shape = box(api, 'radius-example', SPECIMEN * 4, SPECIMEN * 2);
+        shape.cornerRadius = 16;
+        shape.fills = solid(CHIP);
+        shape.strokes = solid(INK);
+        shape.strokeWeight = 2;
+        shape.strokeAlign = 'INSIDE';
+        specimen.appendChild?.(shape);
       } else {
         specimen.fills = solid(INK);
         // A hairline, so a white or near-white primitive still reads on a white cell.
@@ -168,7 +178,7 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
         specimen.strokeAlign = 'INSIDE';
       }
     }
-    specimen.name = 'Specimen';
+    if (type !== 'radius') specimen.name = 'Specimen';
     if (type === 'transparency') {
       // The checkerboard sits under the fill, so a translucent value shows as translucent.
       const checker = box(api, 'Checker', SPECIMEN, SPECIMEN);
@@ -263,13 +273,24 @@ const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode =>
     root.name = `display=${display}`;
     autoLayout(root, { dir: 'HORIZONTAL', padding: 12, counterAlign: 'CENTER' });
     root.fills = [];
-    const bar = box(api, 'Bar', 16, display === 'filled' ? 16 : 8);
+    // THE OWNER'S STRUCTURE (measured live, 2026-09-29): the member's first child is a frame named
+    // `spacing-<display>-example`, 8px wide, which the table resizes and binds to the value. The bracket is three
+    // layers inside it, `left-bar`, `horizontal-line` and `right-bar`. The owner's are all constrained MIN; this set
+    // constrains the right bar MAX and the line STRETCH, so a resized or rebound frame carries them in any host.
+    const bar = box(api, `spacing-${display}-example`, 8, display === 'filled' ? 20 : 16);
+    bar.clipsContent = display === 'filled';
     if (display === 'filled') bar.fills = solid('#F4A7A7');
     else {
-      // A bracket: a line with end caps, drawn as a frame with a bottom, left and right edge.
-      bar.strokes = solid('#D14343');
-      bar.strokeAlign = 'INSIDE';
-      bar.strokeTopWeight = 0; bar.strokeBottomWeight = 1; bar.strokeLeftWeight = 1; bar.strokeRightWeight = 1;
+      const part = (name: string, w: number, h: number, x: number, y: number, horizontal: string): void => {
+        const p = box(api, name, w, h);
+        p.fills = solid('#D14343');
+        p.x = x; p.y = y;
+        p.constraints = { horizontal, vertical: 'MIN' };
+        bar.appendChild?.(p);
+      };
+      part('left-bar', 1, 16, 0, 0, 'MIN');
+      part('horizontal-line', 8, 1, 0, 8, 'STRETCH');
+      part('right-bar', 1, 16, 7, 0, 'MAX');
     }
     root.appendChild?.(bar);
     page.appendChild(root);

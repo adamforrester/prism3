@@ -187,6 +187,20 @@
       "title": "each table's header spans its table, and its grid hugs and reflows like the owner's examples",
       "doc": "docs/45-style-guide-generator.md",
       "section": null
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "the title cell",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "tables flow left to right, a row per category",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
     }
   ]
 }

@@ -28,24 +28,25 @@
  *      groups within each root and names it in the title, grounds stay in their root, a rerun over the live
  *      run's tables rewrites old titles and reports the per-root tables as replaced and kept; an unbound swatch is a ⚠
  *      with its count; named values lead a ramp;
- *  10. a RERUN RE-STACKS the generator's tables when one grows, leaving a designer-moved table alone; a grid that drops its
+ *  10. a RERUN RE-FLOWS the generator's tables into a row, left to right, when one widens (owner decision 16), leaving a
+ *      designer-moved table alone; a grid that drops its
  *      HUG column or row tracks, and a header that does not take its table's width, are named. Column widths (sections 2
  *      and 5) are read off the shim's own layout model — 7px a character, a HUG track as wide as its widest cell's
  *      content, 2px between tracks — never off the plugin's arithmetic;
  *  11. SUPERSEDED tables (owner decision, 2026-09-28): an unedited replaced or stale table is deleted, header and
- *      cells with it, and the stack closes over it; one with a text cell retyped, one moved, one with no
+ *      cells with it, and the row closes over it; one with a text cell retyped, one moved, one with no
  *      fingerprint and a duplicate of one are kept and reported apart; a frame the generator did not make is
  *      never touched, whatever its name. The edits are made to the shim's nodes here, never through the plugin;
  *  12. THE OWNER'S GRID MODEL (owner decisions, 2026-09-29): HUG tracks 2px apart, every cell FILL on both axes, the
- *      swatch FIXED at its component's size (section 5 checks the specimen by role: a palette row's bare swatch with no
- *      ground; letters for a text role, the outline for a border and the filled square for a fill, each on its
+ *      palette swatch FILLing its cell, floored at 32 × 32, and a role's swatch FIXED on its ground (section 5 checks
+ *      the specimen by role: a palette row's bare swatch with no ground, a taller row making a taller swatch; letters for a text role, the outline for a border and the filled square for a fill, each on its
  *      ground), text on one line; the header spans its table, not the
  *      header component's 2,517px; a grid dragged wider keeps every cell as wide as its track, and the table and its
  *      header follow the grid. Whether the HUG tracks take up the extra width is NOT asserted: the typings define HUG
  *      as CSS `fit-content(100%)`, which does not grow past its content, so that is a live-check (docs/45 §7);
  *  13. the TABLES FILTER (#1778): one table drawn in place, the 42 others untouched and never stale; a filtered run
- *      moves only the tables below the drawn one, in its column, by exactly its change in height, growing or
- *      shrinking — it closes no gap, leaves a table a designer moved and a table with no position record alone, and
+ *      moves only the tables after the drawn one, in its row, by exactly its change in width, widening or
+ *      narrowing — it closes no gap, leaves a table a designer moved and a table with no position record alone, and
  *      writes no record for a table it does not move; any case, or a key; an unknown name reported with the first 8
  *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
@@ -61,6 +62,13 @@
  *      the tables filter; the phase boundary; a refused binding named.
  *  20. THE TITLE CELL (owner decision 15): off by default; humanized defaults; an edit survives reruns while an unedited
  *      title follows a rename; a title edit is not an edit to the table when a superseded table is judged.
+ *  21. THE REVIEW OF 4faeb98a: each reviewed shape's variable kind, a refused or ignored resize counted, the host's font
+ *      rule (loaded before bound, pinned before bound), superseded phase-2 tables, all four radius corners.
+ *  22. THE OWNER'S CELL STRUCTURE (the live run of 4faeb98a): the owner's spacing and radius cells, copied from a live
+ *      measurement, and the cells the real builder makes, each drawing the bracket, the bar and the radius at their
+ *      value; the bracket's right edge carried, moved (named static) or counted; a cell with no layer counted.
+ *  23. ROWS BY CATEGORY (owner decision 16): literal positions for two categories; a width change moves its row's later
+ *      tables, a height change moves the rows below; a new category starts a new row.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -185,7 +193,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy, humanizeName } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy, humanizeName, varKind } from './src/style-guide';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
@@ -208,6 +216,45 @@ const readJson = (f: string) => JSON.parse(readFileSync(join(OUT, f), 'utf8')) a
 let nextId = 1;
 /** Phase 2: when set, every `setBoundVariable` throws, as the host does for a binding it refuses. */
 let refuseBinding = false;
+/** When set, `resize` throws on a node it matches, as a host that refuses to resize a layer inside an instance would
+ *  (the review of `4faeb98a`: the spacing bar's resize had no guard, so one refusal aborted the whole run). */
+let refuseResize: ((n: N) => boolean) | null = null;
+/** When set, `resize` does nothing on a node it matches and says nothing: the silent answer, as the live run's
+ *  brackets looked (every one 8px, "unbound: 0"). */
+let ignoreResize: ((n: N) => boolean) | null = null;
+/** When set, a layer inside an instance refuses a new `constraints` (and, with `refuseMove`, a new `x`): the two host
+ *  answers this build cannot rule out offline for the owner's bracket, whose parts are all constrained MIN. */
+let refuseConstraints = false;
+let refuseMove = false;
+const insideInstance = (n: N): boolean => { for (let p = n.parent; p; p = p.parent) if (p.type === 'INSTANCE') return true; return false; };
+
+/**
+ * THE HOST'S FONT RULE, modeled (review of `4faeb98a`: font loading was untested). A text's font-bound property, or
+ * `setTextStyleIdAsync`, throws unless the text's font is loaded, and binding a family or weight also needs the font
+ * it resolves to: the bound family in the text's style, or the text's family at the weight's style. The variable is
+ * resolved in the node's mode AT THE MOMENT IT IS BOUND (the mode pinned on it or an ancestor, else the collection's
+ * default), which is what makes the order of pin and bind matter. Each shim keeps its own loaded fonts; a run
+ * starts with `loadAllPagesAsync`, which makes its shim the one whose fonts, variables and styles a bind reads.
+ * Its own weight table, not the plugin's (docs/34): the style a host picks for a weight.
+ */
+interface World { fonts: Set<string>; loads: string[]; cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyle[] }
+let active: World | null = null;
+const SHIM_WEIGHT_STYLE: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black' };
+const FONT_BOUND = new Set(['fontFamily', 'fontStyle', 'fontWeight', 'fontSize', 'letterSpacing', 'lineHeight', 'paragraphSpacing', 'paragraphIndent']);
+const fontId = (f: unknown): string => { const x = f as { family?: unknown; style?: unknown } | undefined; return `${String(x?.family)} ${String(x?.style)}`; };
+/** A variable's value in the mode `node` sits in now, following aliases. */
+const valueAt = (w: World, node: N, v: ShimVar): unknown => {
+  let cur: ShimVar | undefined = v;
+  for (let hop = 0; cur && hop < 16; hop++) {
+    const col = w.cols.find((c) => c.id === cur!.variableCollectionId);
+    let mode: string | undefined;
+    for (let n: N | null = node; n && !mode; n = n.parent) mode = n.explicitVariableModes[cur.variableCollectionId];
+    const raw = cur.valuesByMode[mode ?? col?.defaultModeId ?? ''] as { type?: string; id?: string } | undefined;
+    if (raw?.type !== 'VARIABLE_ALIAS') return raw;
+    cur = w.vars.find((x) => x.id === raw.id);
+  }
+  return undefined;
+};
 /** The shim's text metric: every character 7px wide, lines split at "\n". Its own figure, not the plugin's. */
 const CHAR_W = 7;
 const isAuto = (n: N | null | undefined): boolean => n?.layoutMode === 'HORIZONTAL' || n?.layoutMode === 'VERTICAL';
@@ -253,8 +300,16 @@ class N {
   lsh?: string;
   /** The stored height — what `resize` sets. `height` reads it unless the node's layout computes one. */
   h = 0;
-  x = 0;
+  private _x = 0;
+  get x(): number { return this._x; }
+  set x(v: number) { if (refuseMove && insideInstance(this)) throw new Error('cannot move a layer inside an instance'); this._x = v; }
   y = 0;
+  private _constraints?: { horizontal: string; vertical: string };
+  get constraints(): { horizontal: string; vertical: string } | undefined { return this._constraints; }
+  set constraints(v: { horizontal: string; vertical: string } | undefined) {
+    if (refuseConstraints && insideInstance(this)) throw new Error('cannot override constraints inside an instance');
+    this._constraints = v ? { ...v } : v;
+  }
   fills: unknown = [];
   strokes: unknown = [];
   characters?: string;
@@ -284,7 +339,7 @@ class N {
     if (this.type === 'TEXT' && this.textAutoResize === 'WIDTH_AND_HEIGHT') return naturalOf(this);
     const p = this.parent;
     if (this.lsh === 'FILL' && p) {
-      if (p.layoutMode === 'GRID' && this.gridCol !== undefined) return trackW(p, this.gridCol);
+      if (p.layoutMode === 'GRID' && this.gridCol !== undefined) return Math.max(trackW(p, this.gridCol), Number(this.minWidth ?? 0));
       if (isAuto(p)) return p.width - padX(p);
     }
     if (this.layoutMode === 'GRID' && this.lsh === 'HUG') return hugGridW(this);
@@ -300,7 +355,7 @@ class N {
     if (this.type === 'TEXT') return linesOf(this) * LINE_H;
     const lsv = this.layoutSizingVertical as string | undefined;
     const p = this.parent;
-    if (lsv === 'FILL' && p?.layoutMode === 'GRID' && this.gridRow !== undefined) return trackH(p, this.gridRow);
+    if (lsv === 'FILL' && p?.layoutMode === 'GRID' && this.gridRow !== undefined) return Math.max(trackH(p, this.gridRow), Number(this.minHeight ?? 0));
     if (this.layoutMode === 'GRID') return lsv === 'FIXED' ? this.h : hugGridH(this);
     const hug = lsv === 'HUG' || (lsv === undefined && ((this.layoutMode === 'VERTICAL' && this.primaryAxisSizingMode === 'AUTO') || (this.layoutMode === 'HORIZONTAL' && this.counterAxisSizingMode === 'AUTO')));
     if (hug && isAuto(this)) return contentH(this);
@@ -352,8 +407,21 @@ class N {
   // component's — the owner's 29px label stayed 29px under resize(296, h). Its height still moves. A frame that hugs
   // or fills is FIXED once resized, on both axes, as a designer's drag leaves it.
   resize(w: number, h: number): void {
+    if (refuseResize?.(this)) throw new Error(`cannot resize ${this.name}`);
+    if (ignoreResize?.(this)) return;
     let inInstance = false;
     for (let p = this.parent; p; p = p.parent) if (p.type === 'INSTANCE') { inInstance = true; break; }
+    // CONSTRAINTS: a frame without auto layout carries its children by theirs when resized — MAX keeps the distance
+    // to the right edge, STRETCH keeps both, CENTER splits the change; MIN (and none) stays put.
+    if (this.type !== 'TEXT' && !isAuto(this) && this.layoutMode !== 'GRID') {
+      const dx = w - this.w;
+      for (const k of this.children) {
+        const hz = k.constraints?.horizontal;
+        if (hz === 'MAX') k._x += dx;
+        else if (hz === 'CENTER') k._x += dx / 2;
+        else if (hz === 'STRETCH') k.w += dx;
+      }
+    }
     if (!(this.type === 'TEXT' && this.lsh === 'FIXED' && inInstance)) this.w = w;
     this.h = h;
     if (this.type !== 'TEXT') {
@@ -382,10 +450,25 @@ class N {
   boundVariables: Record<string, { type: string; id: string }> = {};
   setBoundVariable(field: string, v: { id: string } | null): void {
     if (refuseBinding) throw new Error(`cannot bind ${field}`);
+    const w = active;
+    if (w && v && this.type === 'TEXT' && FONT_BOUND.has(field)) {
+      if (!w.fonts.has(fontId(this.fontName))) throw new Error(`unloaded font ${fontId(this.fontName)}`);
+      const cur = this.fontName as { family: string; style: string };
+      const value = valueAt(w, this, v as ShimVar);
+      const next = field === 'fontFamily' ? { family: String(value), style: cur.style }
+        : field === 'fontWeight' ? { family: cur.family, style: SHIM_WEIGHT_STYLE[Math.round(Number(value) / 100) * 100] ?? 'Regular' } : null;
+      if (next && !w.fonts.has(fontId(next))) throw new Error(`unloaded font ${fontId(next)}`);
+      if (next) this.fontName = next;
+    }
     if (v) this.boundVariables[field] = { type: 'VARIABLE_ALIAS', id: v.id };
   }
   textStyleId = '';
-  async setTextStyleIdAsync(id: string): Promise<void> { this.textStyleId = id; }
+  async setTextStyleIdAsync(id: string): Promise<void> {
+    const st = active?.styles.find((x) => x.id === id);
+    if (active && st && !active.fonts.has(fontId(st.fontName))) throw new Error(`unloaded font ${fontId(st.fontName)}`);
+    this.textStyleId = id;
+    if (st) this.fontName = { ...st.fontName };
+  }
   setProperties(p: Record<string, unknown>): void {
     for (const [k, v] of Object.entries(p)) if (this.componentProperties?.[k]) this.componentProperties[k].value = v;
   }
@@ -393,7 +476,8 @@ class N {
     const clone = (n: N): N => {
       const c = new N(n === this ? 'INSTANCE' : n.type);
       for (const k of ['name', 'w', 'lsh', 'h', 'layoutSizingVertical', 'x', 'y', 'fills', 'strokes', 'characters', 'fontName', 'segments', 'visible', 'layoutMode',
-        'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'primaryAxisSizingMode', 'counterAxisSizingMode', 'textAutoResize', 'textTruncation']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
+        'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'itemSpacing', 'primaryAxisSizingMode', 'counterAxisSizingMode', 'textAutoResize', 'textTruncation',
+        'constraints', 'clipsContent', 'cornerRadius', 'topLeftRadius']) (c as Record<string, unknown>)[k] = (n as Record<string, unknown>)[k];
       for (const k of n.children) c.appendChild(clone(k));
       return c;
     };
@@ -414,7 +498,10 @@ class N {
 const contentW = (n: N): number => {
   if (n.type === 'TEXT') return n.textAutoResize === 'WIDTH_AND_HEIGHT' ? naturalOf(n) : n.w;
   if (n.layoutMode === 'GRID') return hugGridW(n);
-  if (!isAuto(n)) return n.w;
+  // A FILL child without auto layout has no content to hug: it offers a HUG track its floor, `minWidth`, and nothing
+  // more (the host's answer is a live-check, docs/45 §7). So a palette swatch that FILLs its cell without a floor
+  // collapses its column to its header's text.
+  if (!isAuto(n)) return n.lsh === 'FILL' ? Number(n.minWidth ?? 0) : n.w;
   const ws = n.children.filter((k) => k.visible !== false && k.lsh !== 'FILL').map((k) => k.width);
   const inner = n.layoutMode === 'HORIZONTAL' ? ws.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, ws.length - 1) : Math.max(0, ...ws);
   return padX(n) + inner;
@@ -422,7 +509,7 @@ const contentW = (n: N): number => {
 const contentH = (n: N): number => {
   if (n.type === 'TEXT') return linesOf(n) * LINE_H;
   if (n.layoutMode === 'GRID') return hugGridH(n);
-  if (!isAuto(n)) return n.h;
+  if (!isAuto(n)) return n.layoutSizingVertical === 'FILL' ? Number(n.minHeight ?? 0) : n.h;
   const hs = n.children.filter((k) => k.visible !== false).map((k) => k.height);
   return padY(n) + (n.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
 };
@@ -476,6 +563,52 @@ const ownerSet = (name: string, variants: string[], withSpecimen: boolean): N =>
   return set;
 };
 
+/**
+ * THE OWNER'S SPACING CELLS, copied from their test file as measured live (2026-09-29, the live run of `4faeb98a`,
+ * where every one of 41 "Dimension — nbds" rows drew the same 8px bracket and the run read "unbound: 0"). Each member
+ * is a 72 × 83 HORIZONTAL auto-layout that hugs; its one child is a frame without auto layout, constrained MIN/MIN:
+ * `spacing-filled-example` (8 × 20, clipped, one fill), and `spacing-line-example` (8 × 16) holding three rectangles,
+ * `left-bar` (1 × 16 at 0,0), `horizontal-line` (8 × 1 at 0,8) and `right-bar` (1 × 16 at 7,0), every one MIN/MIN.
+ * `kind: 'odd'` is a set this build cannot read: each member holds a text label and nothing else.
+ */
+const ownerSpacingSet = (kind: 'owner' | 'odd' = 'owner'): N => {
+  const set = new N('COMPONENT_SET');
+  set.name = '_style-guide-spacing-cells';
+  for (const display of ['filled', 'line']) {
+    const m = new N('COMPONENT');
+    m.name = `display=${display}`;
+    m.layoutMode = 'HORIZONTAL'; m.primaryAxisSizingMode = 'AUTO'; m.counterAxisSizingMode = 'AUTO';
+    m.paddingLeft = 32; m.paddingRight = 32; m.paddingTop = display === 'filled' ? 31.5 : 33.5; m.paddingBottom = m.paddingTop;
+    const mm = { horizontal: 'MIN', vertical: 'MIN' };
+    if (kind === 'odd') {
+      const t = new N('TEXT'); t.name = 'label'; t.characters = display; t.fontName = { family: 'Inter', style: 'Regular' }; m.appendChild(t);
+    } else if (display === 'filled') {
+      const f = new N('FRAME'); f.name = 'spacing-filled-example'; f.w = 8; f.h = 20; f.clipsContent = true; f.fills = [{ type: 'SOLID' }]; f.constraints = mm; m.appendChild(f);
+    } else {
+      const f = new N('FRAME'); f.name = 'spacing-line-example'; f.w = 8; f.h = 16; f.clipsContent = false; f.fills = []; f.constraints = mm;
+      for (const [name, w, h, x, y] of [['left-bar', 1, 16, 0, 0], ['horizontal-line', 8, 1, 0, 8], ['right-bar', 1, 16, 7, 0]] as const) {
+        const r = new N('RECTANGLE'); r.name = name; r.w = w; r.h = h; r.x = x; r.y = y; r.fills = [{ type: 'SOLID' }]; r.constraints = mm; f.appendChild(r);
+      }
+      m.appendChild(f);
+    }
+    set.appendChild(m);
+  }
+  return set;
+};
+/** The owner's `type=radius` swatch, as measured live: an 83 × 83 VERTICAL member holding a 48 × 48 clipping
+ *  `radius-example-container` at 18,18, and inside it `radius-example`, 256 × 96 at an 8px radius with one fill, so
+ *  only its top-left corner shows through the clip. */
+const ownerRadiusMember = (): N => {
+  const m = new N('COMPONENT');
+  m.name = 'type=radius';
+  m.layoutMode = 'VERTICAL'; m.primaryAxisSizingMode = 'FIXED'; m.counterAxisSizingMode = 'FIXED'; m.lsh = 'FIXED'; m.w = 83; m.h = 83;
+  const box = new N('FRAME'); box.name = 'radius-example-container'; box.w = 48; box.h = 48; box.x = 18; box.y = 18; box.clipsContent = true; box.constraints = { horizontal: 'MIN', vertical: 'MIN' };
+  const ex = new N('FRAME'); ex.name = 'radius-example'; ex.w = 256; ex.h = 96; ex.cornerRadius = 8; ex.fills = [{ type: 'SOLID' }];
+  box.appendChild(ex);
+  m.appendChild(box);
+  return m;
+};
+
 /** The `_Section-header` set the page header reads: a Size=Medium member with Title/Description text. */
 const headerSet = (name = '_Section-header'): N => {
   const set = new N('COMPONENT_SET');
@@ -496,7 +629,7 @@ const headerSet = (name = '_Section-header'): N => {
   return set;
 };
 
-interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[] }
+interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[]; world: World }
 interface ShimCol { id: string; name: string; modes: { modeId: string; name: string }[]; defaultModeId: string }
 interface ShimVar { id: string; name: string; variableCollectionId: string; resolvedType: string; description: string; valuesByMode: Record<string, unknown>; scopes?: string[] }
 /** A local text style as `getLocalTextStylesAsync` returns one (phase 2). */
@@ -508,14 +641,19 @@ interface ShimStyle {
 
 const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyle[] = []): Shim => {
   const fontFails = new Set<string>();
+  const world: World = { fonts: new Set(), loads: [], cols, vars, styles };
   const root = {
     get children() { return pages; },
     findAllWithCriteria: (c: { types: string[] }) => pages.flatMap((p) => p.findAllWithCriteria(c)),
   };
   const api = {
     root,
-    loadAllPagesAsync: async () => {},
-    loadFontAsync: async (f: { family: string; style: string }) => { if (fontFails.has(`${f.family} ${f.style}`)) throw new Error('no font'); },
+    loadAllPagesAsync: async () => { active = world; },
+    loadFontAsync: async (f: { family: string; style: string }) => {
+      if (fontFails.has(`${f.family} ${f.style}`)) throw new Error('no font');
+      world.fonts.add(fontId(f));
+      world.loads.push(fontId(f));
+    },
     createFrame: () => new N('FRAME'),
     getLocalTextStylesAsync: async () => styles,
     createComponent: () => new N('COMPONENT'),
@@ -535,7 +673,7 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
       setBoundVariableForPaint: (paint: object, field: string, v: { id: string }) => ({ ...paint, boundVariables: { [field]: { type: 'VARIABLE_ALIAS', id: v.id } } }),
     },
   };
-  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles };
+  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles, world };
 };
 
 /** The prism3 variables, as a theme write leaves them: `core` (Default) and `color` (four modes). */
@@ -572,6 +710,20 @@ const contract = resolveAllModes(brandTheme(input));
 /** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,828px by the shim's own metric, and the
  *  thirteen 2px gaps between them. */
 const TEXT_OWNER_W = 2828 + 13 * 2;
+/** The first three semantic tables' x in a row (decision 16): Background at the row's start, then each 160px after the
+ *  one before it, whose widths the shim measures as 2,361 (Background) and 3,173 (Foreground). */
+const XS_THREE = ['Background 0', 'Foreground 2521', 'Text 5854'];
+/** A 120-character description widens the Text table's description column from 662 (its longest, 90 characters:
+ *  630 + 16 + 16) to 872 (840 + 16 + 16): 210px. */
+const WIDEN_TEXT = 210;
+/** A 150-character description widens Primary — nbds's description column from 550 (its longest, 74 characters:
+ *  518 + 16 + 16) to 1,082 (1,050 + 16 + 16): 532px. */
+const WIDEN_PRIMARY = 532;
+/** A 100-character description widens Density's description column from its "Description" header (11 characters:
+ *  77 + 16 + 16 = 109) to 732 (700 + 16 + 16): 623px. */
+const WIDEN_DENSITY = 623;
+/** Two new steps add two rows to Dimension, each 44px (a text cell: 20 + 12 + 12) and its 2px gap: 92px. */
+const GROW_DIMENSION = 92;
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -706,6 +858,8 @@ const need = (n: N): number => {
   const kids = n.children.filter((k) => k.visible !== false);
   if (n.layoutMode === 'HORIZONTAL') return padX(n) + kids.reduce((a, k) => a + need(k), 0) + Number(n.itemSpacing ?? 0) * Math.max(0, kids.length - 1);
   if (n.layoutMode === 'VERTICAL') return padX(n) + Math.max(0, ...kids.map(need));
+  // A frame that clips its content needs only its own width: the radius swatch's 128px shape shows through a 32px window.
+  if (n.clipsContent === true) return n.w;
   return Math.max(n.w, ...kids.map((k) => Number(k.x) + need(k)));
 };
 /** Every cell of a table whose content is wider than its column's track, or whose text truncates — "row,col: need > track". */
@@ -732,7 +886,19 @@ const main = async (): Promise<void> => {
     const sw = setsNamed(s.pages, '_style-guide-swatches')[0];
     ok(sw?.parent === fc, '1: the swatch set sits on ↳ File Components');
     ok(JSON.stringify(sw?.children.map((c) => c.name)) === JSON.stringify(['type=default', 'type=text', 'type=icon', 'type=border', 'type=transparency', 'type=radius']), '1: six swatch types');
-    ok(sw?.children.every((c) => !!c.findOne((k) => k.name === 'Specimen')), '1: every swatch has a Specimen node');
+    ok(sw?.children.filter((c) => c.name !== 'type=radius').every((c) => !!c.findOne((k) => k.name === 'Specimen')), '1: every swatch but the radius has a Specimen node');
+    // The radius member in the owner's structure (measured live, 2026-09-29): a clipping container over a larger shape.
+    const rad = sw?.children.find((c) => c.name === 'type=radius');
+    const win = rad?.findOne((k) => k.name === 'radius-example-container');
+    const shape = win?.findOne((k) => k.name === 'radius-example');
+    ok(win?.clipsContent === true && win.w === 32 && shape?.parent === win && shape.w === 128 && shape.h === 64 && shape.cornerRadius === 16,
+      `1: the radius swatch is the owner's structure: a 32px clipping radius-example-container over a 128 × 64 radius-example at 16px (${win?.w}, ${shape?.w}×${shape?.h}, r${shape?.cornerRadius})`);
+    // The spacing members in the owner's structure: an example frame, and the bracket's three parts in the line's.
+    const sp = setsNamed(s.pages, '_style-guide-spacing-cells')[0];
+    const lineEx = sp?.children.find((c) => c.name === 'display=line')?.children[0];
+    ok(sp?.children.find((c) => c.name === 'display=filled')?.children[0]?.name === 'spacing-filled-example' && lineEx?.name === 'spacing-line-example'
+      && JSON.stringify(lineEx.children.map((k) => `${k.name}@${k.x}:${k.constraints?.horizontal}`)) === JSON.stringify(['left-bar@0:MIN', 'horizontal-line@0:STRETCH', 'right-bar@7:MAX']),
+      `1: the spacing members are the owner's structure: spacing-filled-example, and spacing-line-example holding left-bar, horizontal-line and right-bar, the right bar constrained MAX and the line STRETCH (${lineEx?.children.map((k) => `${k.name}@${k.x}:${k.constraints?.horizontal}`).join(', ')})`);
     // The diamond's box from the typings' transform (`rotation = atan2(-m10, m00)`, about the top-left corner):
     // a corner (px, py) lands at (x + px·cos θ + py·sin θ, y − px·sin θ + py·cos θ).
     const dia = sw?.children.find((c) => c.name === 'type=icon')?.findOne((k) => k.name === 'Specimen');
@@ -911,14 +1077,25 @@ const main = async (): Promise<void> => {
     ok(boundId(cellAt(neutral, nr, 1)?.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/core/palette/neutral/050'), '5: a primitive swatch is bound to its step');
     ok(cellAt(neutral, nr, 1)?.explicitVariableModes['VariableCollectionId:core'] === 'core:0', '5: a primitive swatch pins its one mode');
 
-    // THE SPECIMEN BY ROLE (owner decision 13, 2026-09-29). A palette row: no ground, its cell the type=default swatch at
-    // its component's 48 × 48, FIXED, in every primitive table (the alpha palettes draw type=transparency the same way).
+    // THE SPECIMEN BY ROLE (owner decision 13, 2026-09-29). A palette row: no ground, its cell the type=default swatch
+    // (the alpha palettes draw type=transparency the same way). THE SWATCH FILLS ITS CELL (decision 13 as the owner
+    // restated it, 2026-09-29): FILL both ways, floored at 32 × 32, so it is as wide as its column, 81px (its "Default"
+    // header: 7 × 7 + 16 + 16), and as tall as its row, 44px (a text cell: 20 + 12 + 12), not its component's 48 × 48.
     const pal = cellAt(neutral, nr, 1);
     const primGrounds = tablesOn(f.prim).flatMap((w) => gridOf(w).findAll((k) => k.name === 'Ground'));
     const primSwatches = tablesOn(f.prim).flatMap((w) => gridOf(w).children.filter((k) => k.gridRow! > 0 && k.gridCol === 1));
-    ok(pal?.type === 'INSTANCE' && pal.mainComponent?.name === 'type=default' && pal.lsh === 'FIXED' && pal.layoutSizingVertical === 'FIXED' && pal.width === 48 && pal.height === 48
-      && primGrounds.length === 0 && primSwatches.length > 0 && primSwatches.every((k) => k.type === 'INSTANCE' && k.width === 48 && k.height === 48),
-      `5: a palette row has no ground frame: its cell is the type=default swatch, 48 × 48 and FIXED (${pal?.name} ${pal?.mainComponent?.name} ${pal?.width}×${pal?.height}; ${primGrounds.length} grounds in the primitive tables)`);
+    const fills = (k: N): boolean => k.type === 'INSTANCE' && k.lsh === 'FILL' && k.layoutSizingVertical === 'FILL' && k.minWidth === 32 && k.minHeight === 32
+      && k.width === trackW(k.parent!, k.gridCol!) && k.height === trackH(k.parent!, k.gridRow!);
+    ok(pal?.type === 'INSTANCE' && pal.mainComponent?.name === 'type=default' && pal.width === 81 && pal.height === 44 && fills(pal)
+      && primGrounds.length === 0 && primSwatches.length > 0 && primSwatches.every(fills),
+      `5: a palette row has no ground frame: its cell is the type=default swatch, FILLing it both ways at 81 × 44, floored at 32 (${pal?.mainComponent?.name} ${pal?.lsh}/${pal?.layoutSizingVertical} ${pal?.width}×${pal?.height}; ${primGrounds.length} grounds, ${primSwatches.filter((k) => !fills(k)).length} swatches not filling)`);
+    // A TALLER ROW MAKES A TALLER SWATCH: the row's value cell given 40px more top padding makes the row, and the
+    // swatch in it, 84px tall; its neighbor row stays 44.
+    const vcell = cellAt(neutral, nr, 2)!;
+    vcell.paddingTop = Number(vcell.paddingTop) + 40;
+    const tall = [pal?.height, cellAt(neutral, nr + 1, 1)?.height];
+    vcell.paddingTop = Number(vcell.paddingTop) - 40;
+    ok(JSON.stringify(tall) === JSON.stringify([84, 44]), `5: a taller row makes a taller swatch: 84px in a row made 84px tall, 44 in the next (${tall.join(', ')})`);
     // A text role: letters, the type=text member, its "Aa" fill bound to the token, directly on its ground. No filled square.
     const tcell = cellAt(g, r, 1)!;
     const tsw = tcell.children[0];
@@ -1140,32 +1317,37 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(planStyleGuide(named, contract).tables.find((t) => t.title === 'Legacy')!.rows.map((r) => r.token)) === JSON.stringify(['white', 'black', '5', '50', '100', '900']), '9: named values lead, in file order, then steps ascending');
   }
 
-  console.log('10. a rerun re-stacks the generator\'s tables');
+  console.log('10. a rerun re-flows the generator\'s tables into a row (owner decision 16)');
   {
     const r = await fullFile();
     await draw(r.api, contract, { collections: ['color'] });
-    const order = (): N[] => r.sem.children.filter((n) => !!n.pluginData['prism3-style-guide']).sort((a, b) => a.y - b.y);
-    const gaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.y - (ns[i].y + ns[i].height));
-    ok(order().length === 11 && gaps(order()).every((d) => d === 160), `10: a first run stacks its tables 160px apart (${gaps(order()).join(', ')})`);
+    const order = (): N[] => r.sem.children.filter((n) => !!n.pluginData['prism3-style-guide']).sort((a, b) => a.x - b.x);
+    const gaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
+    ok(order().length === 11 && gaps(order()).every((d) => d === 160) && order().every((n) => n.y === order()[0].y),
+      `10: a first run lays its tables out left to right, top-aligned, 160px apart (${gaps(order()).join(', ')}; y ${[...new Set(order().map((n) => n.y))].join(', ')})`);
+    const xs = order().slice(0, 3).map((n) => `${n.name.replace('Style guide — ', '')} ${n.x}`);
+    ok(JSON.stringify(xs) === JSON.stringify(XS_THREE), `10: the first three tables sit at literal x positions (${xs.join(', ')})`);
     const text = tableFrame(r.sem, 'Text')!, icon = tableFrame(r.sem, 'Icon')!, border = tableFrame(r.sem, 'Border')!;
     border.y += 5000;
-    const [bx, by, iconY, textH] = [border.x, border.y, icon.y, text.height];
-    const grow = (n: number, tag: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: 'New', valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
-    // Ten new rows, each as tall as its specimen, 48 + 12 + 12 = 72, and the 2px gap above it: 74.
-    grow(10, 'grow');
+    const [bx, by, iconX, iconY, textW] = [border.x, border.y, icon.x, icon.y, text.width];
+    const grow = (n: number, tag: string, description: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description, valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
+    // A new row whose description is 120 characters, 840px at the shim's 7px: the description column widens to
+    // 840 + 16 + 16 = 872, and so does the table.
+    grow(1, 'wide', 'W'.repeat(120));
     await draw(r.api, contract, { collections: ['color'] });
-    ok(text.height - textH === 740 && icon.y - iconY === 740, `10: a table that grows by 10 rows pushes the next table down 740px (Text +${text.height - textH}, Icon +${icon.y - iconY})`);
+    const widened = text.width - textW;
+    ok(widened === WIDEN_TEXT && icon.x - iconX === widened && icon.y === iconY, `10: a table that widens by ${widened}px pushes the next table right by exactly that, its y unchanged (Icon +${icon.x - iconX}, y ${icon.y - iconY})`);
     ok(border.x === bx && border.y === by, '10: a table a designer moved stays where they put it');
     ok(gaps(order().filter((n) => n !== border)).every((d) => d === 160), `10: the rest stay 160px apart (${gaps(order().filter((n) => n !== border)).join(', ')})`);
-    // Tables drawn before the position was recorded: re-flowed while they keep the stack's x.
+    // Tables drawn before the position was recorded: re-flowed while they keep the row's y.
     for (const n of order()) delete n.pluginData['prism3-style-guide-at'];
     const field = tableFrame(r.sem, 'Field')!;
-    field.x += 2000;
-    const [fx, fy, iconY2] = [field.x, field.y, icon.y];
-    grow(5, 'more');
+    field.y += 2000;
+    const [fx, fy, iconX2] = [field.x, field.y, icon.x];
+    grow(1, 'wider', 'W'.repeat(130));
     await draw(r.api, contract, { collections: ['color'] });
-    ok(icon.y - iconY2 === 370, `10: tables from before the position record are re-flowed too: Icon +370 (got +${icon.y - iconY2})`);
-    ok(field.x === fx && field.y === fy, "10: a table from before the record, off the stack's x, is taken as moved and left alone");
+    ok(icon.x - iconX2 === 70, `10: tables from before the position record are re-flowed too: Icon +70, ten more characters in Text's description column (got +${icon.x - iconX2})`);
+    ok(field.x === fx && field.y === fy, "10: a table from before the record, off the row's y, is taken as moved and left alone");
 
     // A host that does not keep the grid's HUG tracks is named, not drawn silently wrong.
     const q = await fullFile();
@@ -1245,9 +1427,9 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(a.r.replaced) === JSON.stringify([LEGACY]) && JSON.stringify(a.r.deleted) === JSON.stringify([LEGACY]) && !legA.parent
       && JSON.stringify(names(a.sh.prim)) === JSON.stringify(['Style guide — Dark', 'Style guide — Light']), `11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light (${names(a.sh.prim).join(', ')})`);
     ok(a.sh.prim.findAll((k) => k.pluginData['prism3-style-guide-part'] === 'header').length === 2, "11: the deleted table's header and cells go with it");
-    // Dark and Light were drawn below Legacy; with Legacy gone, the first of them takes its place.
+    // Dark and Light were drawn after Legacy in its row; with Legacy gone, the first of them takes its place.
     const dark = tableFrame(a.sh.prim, 'Dark')!;
-    ok(dark.x === legA.x && dark.y === legA.y && tableFrame(a.sh.prim, 'Light')!.y === dark.y + dark.height + 160, `11: the stack closes over the deleted table: Dark starts where Legacy stood, Light 160px below it (${dark.x},${dark.y} vs ${legA.x},${legA.y})`);
+    ok(dark.x === legA.x && dark.y === legA.y && tableFrame(a.sh.prim, 'Light')!.x === dark.x + dark.width + 160 && tableFrame(a.sh.prim, 'Light')!.y === dark.y, `11: the row closes over the deleted table: Dark starts where Legacy stood, Light 160px to its right (${dark.x},${dark.y} vs ${legA.x},${legA.y})`);
     ok(summaryOf(a.r).includes('1 table the generator no longer draws was deleted, unedited: Style guide — Legacy'), '11: the summary names the deleted table');
     ok(styleGuideSummary(a.r).headline === '✓ 2 tables, 1 deleted', `11: the headline counts the deletion: "✓ 2 tables, 1 deleted" (got "${styleGuideSummary(a.r).headline}")`);
 
@@ -1419,11 +1601,11 @@ const main = async (): Promise<void> => {
     const others = [...tablesOn(f13.prim), ...tablesOn(f13.sem)].filter((n) => n !== target);
     const targetGrid = gridOf(target).id;
     // THE DESIGNER'S HAND, before the filtered runs. On the primitive page, the page the filter draws on: the fourth
-    // table, Accent, dragged 600px aside, which leaves a gap in the stack; and Warning, drawn before the position
-    // record, sitting 50px off the stack. On the semantic page, which the filter does not draw on, Text — nbds the
-    // same way. An unfiltered run re-flows a record-less table (section 10); a filtered run must touch none of them.
+    // table, Accent, dragged 600px down out of the row, which leaves a gap in it; and Warning, drawn before the
+    // position record, sitting 50px off the row. On the semantic page, which the filter does not draw on, Text — nbds
+    // the same way. An unfiltered run re-flows a record-less table (section 10); a filtered run must touch none of them.
     const accent = tableFrame(f13.prim, 'Accent — nbds')!;
-    accent.x += 600;
+    accent.y += 600;
     const warning = tableFrame(f13.prim, 'Warning — nbds')!;
     delete warning.pluginData[AT];
     warning.y += 50;
@@ -1452,32 +1634,43 @@ const main = async (): Promise<void> => {
     ok(textNb.y === snap.get(textNb)!.y && !textNb.pluginData[AT], `13: the semantic page, which the filtered run did not draw on, is not re-stacked (Text — nbds at ${textNb.y}, left at ${snap.get(textNb)!.y})`);
     ok(styleGuideSummary(r1).ok && styleGuideSummary(r1).headline === '✓ style guide: 1 table', `13: the verdict counts the one table (${styleGuideSummary(r1).headline})`);
 
-    // GROWTH, then SHRINKAGE: two new steps grow the table by 2 × (48 + 2) = 100px — a palette row is its bare 48px swatch (decision 13) and the 2px gap, and removing them shrinks it back.
-    // The tables below it in its column that sit where the generator left them move by exactly that, their records with
-    // them; Accent (moved aside by hand) and Warning (no record) do not move and gain no record, and the gap Accent left
-    // stays open. Nothing above it and nothing on the other page moves.
+    // WIDENING, then NARROWING (the row of decision 16): two new steps, one with a 150-character description, widen the
+    // table's description column, and removing them narrows it back. The tables AFTER it in its row that sit where the
+    // generator left them move right by exactly that, their records with them, their y unchanged; Accent (moved out
+    // of the row by hand) and Warning (no record) do not move and gain no record, and the gap Accent left stays open.
+    // Nothing before it and nothing on the other page moves.
     const onPage = (): N[] => tablesOn(f13.prim).filter((n) => n !== target);
     const at0 = new Map([...tablesOn(f13.prim), ...tablesOn(f13.sem)].map((n) => [n, { x: n.x, y: n.y, at: n.pluginData[AT] }]));
-    const below = onPage().filter((n) => at0.get(n)!.y > at0.get(target)!.y && n !== accent && n !== warning);
-    const above = onPage().filter((n) => at0.get(n)!.y < at0.get(target)!.y);
-    const h0 = target.height;
-    const steps = ['960', '970'].map((step) => ({ id: `VariableID:nb-grow:${step}`, name: `nbds/core/palette/primary/${step}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: '', valuesByMode: { 'core:0': { r: 0, g: 0, b: 0, a: 1 } } }));
+    const after = onPage().filter((n) => at0.get(n)!.x > at0.get(target)!.x && n !== accent && n !== warning);
+    const before = onPage().filter((n) => at0.get(n)!.x < at0.get(target)!.x);
+    const w0 = target.width;
+    const steps = ['960', '970'].map((step, i) => ({ id: `VariableID:nb-grow:${step}`, name: `nbds/core/palette/primary/${step}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: i ? '' : 'W'.repeat(150), valuesByMode: { 'core:0': { r: 0, g: 0, b: 0, a: 1 } } }));
     f13.vars.push(...steps);
     await draw(f13.api, contract, { tables: [PRIMARY] });
-    const shiftOf = (n: N): number => n.y - at0.get(n)!.y;
-    const inStep = (n: N): boolean => n.pluginData[AT] === `${n.x},${n.y}`;
-    ok(target.height - h0 === 100, `13: two new steps grow ${PRIMARY} by 2 × (48 + 2) = 100px (got ${target.height - h0})`);
-    ok(below.length === 17 && below.every((n) => shiftOf(n) === 100 && inStep(n)),
-      `13: a filtered run moves only the tables below its table, in its column and where the generator left them, by exactly its growth, 100px, each record moved with it (${below.length} tables: ${[...new Set(below.map(shiftOf))].join(', ')})`);
+    const shiftOf = (n: N): number => n.x - at0.get(n)!.x;
+    const inStep = (n: N): boolean => n.pluginData[AT] === `${n.x},${n.y}` && n.y === at0.get(n)!.y;
+    ok(target.width - w0 === WIDEN_PRIMARY, `13: a 150-character description widens ${PRIMARY} by ${WIDEN_PRIMARY}px (got ${target.width - w0})`);
+    ok(after.length === 17 && after.every((n) => shiftOf(n) === WIDEN_PRIMARY && inStep(n)),
+      `13: a filtered run moves only the tables after its table, in its row and where the generator left them, right by exactly its widening, each record moved with it, y unchanged (${after.length} tables: ${[...new Set(after.map(shiftOf))].join(', ')})`);
     ok(accent.x === at0.get(accent)!.x && accent.y === at0.get(accent)!.y && accent.pluginData[AT] === at0.get(accent)!.at
-      && warning.y === at0.get(warning)!.y && !warning.pluginData[AT],
+      && warning.x === at0.get(warning)!.x && warning.y === at0.get(warning)!.y && !warning.pluginData[AT],
       `13: a table a designer moved and a table with no position record are left alone, and neither gains a record (Accent +${shiftOf(accent)}, Warning +${shiftOf(warning)}, Warning's record "${warning.pluginData[AT] ?? ''}")`);
-    ok(above.length === 1 && above.every((n) => shiftOf(n) === 0) && tablesOn(f13.sem).every((n) => shiftOf(n) === 0),
-      `13: the table above it does not move, nor any table on the other page (${above.map((n) => n.name).join(', ')})`);
+    ok(before.length === 1 && before.every((n) => shiftOf(n) === 0) && tablesOn(f13.sem).every((n) => shiftOf(n) === 0 && n.y === at0.get(n)!.y),
+      `13: the table before it does not move, nor any table on the other page (${before.map((n) => n.name).join(', ')})`);
     for (const st of steps) f13.vars.splice(f13.vars.indexOf(st), 1);
     await draw(f13.api, contract, { tables: [PRIMARY] });
-    ok(target.height === h0 && below.every((n) => shiftOf(n) === 0 && inStep(n)) && shiftOf(accent) === 0 && shiftOf(warning) === 0 && !warning.pluginData[AT],
-      `13: shrinking back by 100px moves the same 17 tables up by exactly that, and leaves Accent and Warning where they are (${[...new Set(below.map(shiftOf))].join(', ')})`);
+    ok(target.width === w0 && after.every((n) => shiftOf(n) === 0 && inStep(n)) && shiftOf(accent) === 0 && shiftOf(warning) === 0 && !warning.pluginData[AT],
+      `13: narrowing back moves the same 17 tables left by exactly that, and leaves Accent and Warning where they are (${[...new Set(after.map(shiftOf))].join(', ')})`);
+    // A FIRST-TIME TABLE FROM A FILTERED RUN goes at the END of the row: 160px right of the rightmost table left where
+    // the generator put it, top-aligned with them.
+    const rowEnd = Math.max(...tablesOn(f13.prim).filter((n) => n !== accent && n !== warning).map((n) => n.x + n.width));
+    const rowY = target.y;
+    f13.vars.push({ id: 'VariableID:nb-new:0', name: 'nbds/core/palette/zest/100', variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: '', valuesByMode: { 'core:0': { r: 0.9, g: 0.8, b: 0.1, a: 1 } } });
+    const rz = await draw(f13.api, contract, { tables: ['Zest — nbds'] });
+    const zest = tableFrame(f13.prim, 'Zest — nbds');
+    ok(rz.tables[0]?.status === 'created' && zest?.x === rowEnd + 160 && zest?.y === rowY, `13: a table a filtered run draws for the first time goes at the end of the row, 160px right of it, top-aligned (${zest?.x},${zest?.y} for ${rowEnd + 160},${rowY})`);
+    f13.vars.pop();
+    zest?.remove();
 
     // NAMED IN ANY CASE, OR BY KEY.
     const r3 = await draw(f13.api, contract, { tables: ['primary — NBDS', 'color|variablecollectionid:color|pds3/color/text'] });
@@ -1571,7 +1764,7 @@ const main = async (): Promise<void> => {
   /** A table's header row, as drawn. */
   const headerRow = (w: N): string[] => gridOf(w).children.filter((k) => k.gridRow === 0).sort((a, b) => a.gridCol! - b.gridCol!).map(textIn);
   /** The bar inside a spacing cell. */
-  const barIn = (cell: N | undefined): N | null => cell?.findOne((k) => k.name === 'Bar') ?? null;
+  const barIn = (cell: N | undefined): N | null => cell?.findOne((k) => /^spacing-(filled|line)-example$/.test(k.name)) ?? null;
   {
     ok(JSON.stringify(tablesOn(p2.prim).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Density', 'Dimension', 'Font family', 'Font size (core)', 'Font size (type-sets)', 'Letter spacing', 'Line height', 'Step'])
       && JSON.stringify(tablesOn(p2.sem).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Font weight', 'Radius', 'Size', 'Space', 'Text styles']),
@@ -1609,8 +1802,11 @@ const main = async (): Promise<void> => {
     const rg = gridOf(tableFrame(p2.sem, 'Radius')!);
     const md = cellAt(rg, rowOf(rg, 'md'), 1);
     ok(md?.type === 'INSTANCE' && md.mainComponent?.name === 'type=radius' && md.lsh === 'FIXED' && md.width === 48 && md.height === 48
-      && md.findOne((k) => k.name === 'Specimen')?.boundVariables.topLeftRadius?.id === p2Id('pds3/radius/md') && md.explicitVariableModes['VariableCollectionId:radius'] === 'radius:0',
+      && md.findOne((k) => k.name === 'radius-example')?.boundVariables.topLeftRadius?.id === p2Id('pds3/radius/md') && md.explicitVariableModes['VariableCollectionId:radius'] === 'radius:0',
       `16: radius/md draws the type=radius swatch, 48 × 48 and FIXED, its corner bound to radius/md (${md?.mainComponent?.name}, ${md?.width}×${md?.height})`);
+    // ALL FOUR CORNERS (review of `4faeb98a`): the specimen shows the value whichever corner the member rounds.
+    const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].map((k) => md?.findOne((n) => n.name === 'radius-example')?.boundVariables[k]?.id);
+    ok(corners.every((id) => id === p2Id('pds3/radius/md')), `16: all four of its corners are bound to radius/md (${corners.map((id) => (id ? 'bound' : 'unbound')).join(', ')})`);
     ok(textIn(cellAt(rg, rowOf(rg, 'capsule'), 2)) === '999px · 62.4375rem', `16: radius/capsule reads "999px · 62.4375rem" (${textIn(cellAt(rg, rowOf(rg, 'capsule'), 2))})`);
     ok(tablesOn(p2.sem).concat(tablesOn(p2.prim)).every((w) => gridOf(w).findAll((k) => k.name === 'Ground').length === 0), '16: no phase-2 specimen sits on a ground');
     // The spacing cell FILLs its track, as every cell but a swatch does, and no cell is wider than its column.
@@ -1791,6 +1987,253 @@ const main = async (): Promise<void> => {
     ok(sup.deleted.includes('Style guide — Radius') && !tableFrame(t20.sem, 'Radius'),
       `20: a superseded table whose only change is a retitled row is deleted, unedited (deleted ${JSON.stringify(sup.deleted)}; kept ${JSON.stringify(sup.kept)})`);
     ok(JSON.stringify(sup.kept) === JSON.stringify([{ name: 'Style guide — Density', reason: 'edited' }]), `20: one with a value retyped is still kept as edited (${JSON.stringify(sup.kept)})`);
+  }
+
+  console.log('21. the review of 4faeb98a: variable kinds, a refused resize, fonts loaded, pinned before bound, superseded phase-2 tables');
+  {
+    // (1) A FLOAT IS A LENGTH ONLY WHEN ITS SCOPES OR NAME SAY SO. Literal fixtures, one per shape the review found on
+    // the reference/ exports (Prism2, New Balance), plus camelCase names and a FLOAT nothing places.
+    const kindOf = (name: string, scopes: string[] = [], resolvedType = 'FLOAT'): string | null =>
+      varKind({ id: name, name, variableCollectionId: 'c', resolvedType, valuesByMode: {}, scopes });
+    const shapes: [string, string[], string, string][] = [
+      ['pds/motion/duration/fast', [], 'FLOAT', 'duration'],
+      ['pds/motion/transition/enter/delay', [], 'FLOAT', 'duration'],
+      ['pds/motion/easing/ease-in', [], 'STRING', 'motion'],
+      ['pds/shadow/md/top/offsetY', ['EFFECT_FLOAT'], 'FLOAT', 'effect'],
+      ['pds/shadow/md/bottom/blur', [], 'FLOAT', 'effect'],
+      ['pds/color/gradient/brand/primary/stops/0/position', [], 'FLOAT', 'gradient'],
+      ['pds/color/gradient/brand/primary/angle', [], 'FLOAT', 'gradient'],
+      ['nbds/font/paragraph-spacing/16', ['PARAGRAPH_SPACING'], 'FLOAT', 'paragraphSpacing'],
+      ['brand/text/paragraphSpacing/body', [], 'FLOAT', 'paragraphSpacing'],
+      ['pds/font/lineHeight/body/default', [], 'FLOAT', 'lineHeight'],
+      ['nbds/font/lineheight/1p1', [], 'FLOAT', 'lineHeight'],
+      ['pds/font/letterSpacing/tight', [], 'FLOAT', 'letterSpacing'],
+      ['brand/fade/disabled', ['OPACITY'], 'FLOAT', 'opacity'],
+      ['pds/dimension/4', [], 'FLOAT', 'scale'],
+      ['pds3/core/dimension/4', ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'], 'FLOAT', 'scale'],
+    ];
+    const wrong = shapes.filter(([n, sc, t, k]) => kindOf(n, sc, t) !== k).map(([n, sc, t, k]) => `${n} → ${kindOf(n, sc, t)}, not ${k}`);
+    ok(wrong.length === 0, `21: each reviewed shape takes its own kind: durations, a shadow by scope and by name, gradient stops, a paragraph spacing by scope and by name, camelCase line heights and letter spacing (${wrong.join('; ')})`);
+    ok(kindOf('misc/ratio/golden') === 'other' && kindOf('misc/ratio/golden', ['ALL_SCOPES']) === 'other',
+      `21: a FLOAT neither its scopes nor its name place is "other", never a length (misc/ratio/golden → ${kindOf('misc/ratio/golden')})`);
+    // Planned: only the two scales draw as dimensions; every other shape is named as a later phase, never a bracket.
+    const legacy: SgCatalog = {
+      collections: [{ id: 'L', name: 'legacy', modes: [{ modeId: 'L:0', name: 'Default' }], defaultModeId: 'L:0' }],
+      variables: shapes.concat([['misc/ratio/golden', [], 'FLOAT', 'other']]).map(([name, scopes, resolvedType], i) =>
+        ({ id: `V:${i}`, name, variableCollectionId: 'L', resolvedType, valuesByMode: { 'L:0': resolvedType === 'STRING' ? 'ease-in' : 200 }, scopes })),
+    };
+    const lp = planStyleGuide(legacy, null, { types: ['dimension'] });
+    const lpOpen = planStyleGuide(legacy, null, {});
+    const dimRows = lp.tables.flatMap((t) => t.rows.map((r) => r.name));
+    ok(JSON.stringify(dimRows) === JSON.stringify(['pds/dimension/4', 'pds3/core/dimension/4']),
+      `21: planned, only the two scales are drawn as dimensions: no duration, shadow, gradient or paragraph spacing is a "200px · 12.5rem" bracket (${dimRows.join(', ')})`);
+    ok(lpOpen.notes.includes('Not drawn until a later phase: 2 duration, 1 motion, 2 shadow and effect, 2 gradient, 2 paragraph spacing, 1 opacity, 1 other number or string variables'),
+      `21: each is reported as not drawn until a later phase, by kind (${lpOpen.notes.join(' / ')})`);
+
+    // (2) A BAR THE HOST WILL NOT RESIZE: the run completes, and the refusal is counted and named.
+    const rz = await phase2File();
+    refuseResize = (n) => n.name === 'spacing-filled-example' && n.parent?.type === 'INSTANCE';
+    let threw = '';
+    let rr: StyleGuideResult | null = null;
+    try { rr = await draw(rz.api, contract, { tables: ['Space'] }); } catch (e) { threw = String(e); } finally { refuseResize = null; }
+    ok(!threw && rr?.tables.length === 1 && rr.tables[0].status === 'created' && gridOf(tableFrame(rz.sem, 'Space')!).children.length > 0,
+      `21: a bar the host will not resize does not abort the run: the Space table is drawn (${threw || rr?.tables.map((t) => t.status).join(',')})`);
+    const rs = rr ? styleGuideSummary(rr) : null;
+    ok(rr?.unbound === 18 && !!rs?.summary.includes("18 display=filled spacing specimens are not bound to their value's width: the host refused or ignored the resize, so they show the cell component's own width (Space: 0, 025, 050 and 15 more)") && rs?.headline === '⚠ 18 specimens unbound',
+      `21: each refused resize is counted and named, and is not a pass: ${rr?.unbound} — "${rs?.headline}"`);
+    const ig = await phase2File();
+    ignoreResize = (n) => n.name === 'spacing-filled-example' && n.parent?.type === 'INSTANCE';
+    let ri: StyleGuideResult;
+    try { ri = await draw(ig.api, contract, { tables: ['Space'] }); } finally { ignoreResize = null; }
+    // 17, not 18: space/100 is 8px, the member's own width, so its bar reads right without the resize.
+    ok(ri.unbound === 17 && ri.misses.some((m) => m.startsWith("17 display=filled spacing specimens are not bound to their value's width: the host refused or ignored the resize")),
+      `21: a resize the host silently ignores is read back, counted and named: ${ri.unbound} unbound`);
+
+    // (3) + (4) FONTS, LOADED BEFORE THEY ARE BOUND, IN THE MODE PINNED FIRST. A family that varies by mode, whose
+    // default mode (product) is the SECOND column; a weight at 800 (Inter Extra Bold, which Set up file never loads);
+    // a text style in a font no other test uses. The shim throws on any of them unloaded.
+    const fc21 = page(FC), prim21 = page(PRIM), sem21 = page(SEM);
+    fc21.appendChild(headerSet());
+    const cols21: ShimCol[] = [{ id: 'VariableCollectionId:bf', name: 'brand-fonts', modes: [{ modeId: 'bf:0', name: 'editorial' }, { modeId: 'bf:1', name: 'product' }], defaultModeId: 'bf:1' }];
+    const vars21: ShimVar[] = [
+      { id: 'VariableID:bf:0', name: 'brand/font/family/body', variableCollectionId: 'VariableCollectionId:bf', resolvedType: 'STRING', description: '', valuesByMode: { 'bf:0': 'Proof Serif', 'bf:1': 'Proof Sans' }, scopes: ['FONT_FAMILY'] },
+      { id: 'VariableID:bf:1', name: 'brand/font/weight/heavy', variableCollectionId: 'VariableCollectionId:bf', resolvedType: 'FLOAT', description: '', valuesByMode: { 'bf:0': 800, 'bf:1': 800 }, scopes: ['FONT_WEIGHT'] },
+    ];
+    const styles21: ShimStyle[] = [{ id: 'S:proof:', name: 'proof/mono', description: '', fontName: { family: 'Proof Mono', style: 'Medium' }, fontSize: 14, lineHeight: { unit: 'AUTO' }, letterSpacing: { unit: 'PERCENT', value: 0 }, paragraphSpacing: 0, textDecoration: 'NONE', boundVariables: {} }];
+    const s21 = makeShim([page('Cover'), prim21, sem21, fc21], cols21, vars21, styles21);
+    await ensureStyleGuideCells(s21.api, fc21);
+    const r21 = await draw(s21.api, contract);
+    const specText = (w: N | undefined, col: number): N | null => (w ? cellAt(gridOf(w), 1, col)?.findOne((k) => k.type === 'TEXT') ?? null : null);
+    const famW = tableFrame(prim21, 'Font family');
+    const [ed, pr] = [specText(famW, 1), specText(famW, 3)];
+    ok(s21.world.loads.includes('Proof Serif Regular') && s21.world.loads.includes('Proof Sans Regular') && pr?.boundVariables.fontFamily?.id === 'VariableID:bf:0' && fontId(pr?.fontName) === 'Proof Sans Regular',
+      `21: a family is loaded before it is bound (loaded ${s21.world.loads.filter((f) => f.startsWith('Proof S')).join(', ')}; product column ${fontId(pr?.fontName)})`);
+    ok(ed?.boundVariables.fontFamily?.id === 'VariableID:bf:0' && fontId(ed?.fontName) === 'Proof Serif Regular' && ed?.parent?.explicitVariableModes['VariableCollectionId:bf'] === 'bf:0',
+      `21: pinned before bound: the editorial column, not the collection's default mode, binds in its own font, Proof Serif (${fontId(ed?.fontName)}, bound ${ed?.boundVariables.fontFamily?.id})`);
+    const heavy = specText(tableFrame(prim21, 'Font weight'), 1);
+    ok(s21.world.loads.includes('Inter Extra Bold') && heavy?.boundVariables.fontWeight?.id === 'VariableID:bf:1' && fontId(heavy?.fontName) === 'Inter Extra Bold',
+      `21: a weight is bound after the cell's family at that weight is loaded, Inter Extra Bold (${fontId(heavy?.fontName)})`);
+    const mono = specText(tableFrame(sem21, 'Text styles'), 1);
+    ok(s21.world.loads.includes('Proof Mono Medium') && mono?.textStyleId === 'S:proof:',
+      `21: a text style is applied after its font, Proof Mono Medium, is loaded (style ${mono?.textStyleId || 'not applied'})`);
+    ok(r21.unbound === 0, `21: every font specimen bound: ${r21.unbound} unbound (${r21.misses.join(' / ')})`);
+
+    // (5) SUPERSEDED PHASE-2 TABLES. An unedited dimension table (density, its variables gone) and text-style table (every
+    // style moved under brand/, so its key moves) are deleted. A dimension table whose value moved is kept: the host
+    // repaints a bound bar's width, replayed here, and width is in the fingerprint.
+    const sp = await phase2File();
+    await draw(sp.api, contract);
+    const m16 = sp.vars.find((v) => v.name === 'metrics/step/16')!;
+    m16.valuesByMode['metrics:0'] = 20;
+    const repainted = tablesOn(sp.prim).flatMap((w) => w.findAll((k) => k.boundVariables?.width?.id === m16.id));
+    for (const b of repainted) b.resize(20, b.height);
+    for (let i = sp.vars.length - 1; i >= 0; i--) if (/^density\/|^metrics\/step\//.test(sp.vars[i].name)) sp.vars.splice(i, 1);
+    for (const st of sp.styles) st.name = `brand/${st.name}`;
+    const sup = await draw(sp.api, contract);
+    ok(repainted.length === 2 && JSON.stringify([...sup.deleted].sort()) === JSON.stringify(['Style guide — Density', 'Style guide — Text styles']) && !tableFrame(sp.prim, 'Density'),
+      `21: an unedited superseded dimension table and text-style table are deleted (deleted ${JSON.stringify(sup.deleted)})`);
+    const tsNow = tablesOn(sp.sem).filter((w) => w.name === 'Style guide — Text styles');
+    ok(tsNow.length === 1 && tsNow[0].pluginData['prism3-style-guide'] === 'typography|text-styles|brand', `21: the text styles are drawn once, under their new key (${tsNow.map((w) => w.pluginData['prism3-style-guide']).join(', ')})`);
+    ok(JSON.stringify(sup.kept) === JSON.stringify([{ name: 'Style guide — Step', reason: 'edited' }]) && styleGuideSummary(sup).summary.includes('edited: Style guide — Step'),
+      `21: a superseded dimension table whose value moved is kept and reported as edited (${JSON.stringify(sup.kept)})`);
+  }
+
+  console.log("22. the owner's cell structure (the live run of 4faeb98a): every spacing specimen sized, the bracket's right edge carried");
+  {
+    // The owner's file: their swatches (with their type=radius) and their spacing cells on "Style Guide Components",
+    // adopted; the text cells built. A plain dimension scale (the bracket), a spacing ramp (the filled bar), a radius.
+    const ownerFile = async (spacing: N | null): Promise<Shim & { prim: N }> => {
+      const fc = page(FC), prim = page(PRIM), sem = page(SEM), sgc = page('Style Guide Components');
+      fc.appendChild(headerSet());
+      // `null`: no owner cells at all, so Set up file's real builder makes all three sets (the "Prism3 Approved MCP
+      // Testing File" case, live 2026-09-29).
+      if (spacing) {
+        const sw = ownerSet('_style-guide-swatches', ['type=Default', 'type=Text'], true);
+        sw.appendChild(ownerRadiusMember());
+        sgc.appendChild(sw); sgc.appendChild(spacing);
+      }
+      const one = (id: string): ShimCol => ({ id: `VariableCollectionId:${id}`, name: id, modes: [{ modeId: `${id}:0`, name: 'Default' }], defaultModeId: `${id}:0` });
+      const cols = [one('core'), one('space'), one('radius')];
+      const vars: ShimVar[] = [];
+      const add = (col: string, name: string, value: number, scopes: string[]): void => { vars.push({ id: `VariableID:${name}`, name, variableCollectionId: `VariableCollectionId:${col}`, resolvedType: 'FLOAT', description: '', valuesByMode: { [`${col}:0`]: value }, scopes }); };
+      for (const n of [0, 4, 8, 64, 128]) add('core', `nbds/dimension/${n}`, n, []);
+      for (const n of [4, 64]) add('space', `nbds/space/${n}`, n, ['GAP']);
+      add('radius', 'nbds/radius/md', 8, ['CORNER_RADIUS']);
+      const s = makeShim([page('Cover'), prim, sem, fc, sgc], cols, vars);
+      await ensureStyleGuideCells(s.api, fc);
+      return { ...s, prim };
+    };
+    const layer = (w: N, token: string, name: string): N | null => { const g = gridOf(w); return cellAt(g, rowOf(g, token), 1)?.findOne((k) => k.name === name) ?? null; };
+    /** The bracket in the Dimension table's row for `token`: the frame, the line and both bars, as numbers. */
+    const bracket = (w: N, token: string): string => {
+      const f = layer(w, token, 'spacing-line-example');
+      const part = (n: string): N | null => f?.findOne((k) => k.name === n) ?? null;
+      return JSON.stringify({ w: f?.width, bound: f?.boundVariables.width?.id === `VariableID:nbds/dimension/${token}`, line: part('horizontal-line')?.width,
+        lineBound: part('horizontal-line')?.boundVariables.width?.id === `VariableID:nbds/dimension/${token}`, left: part('left-bar')?.x, right: part('right-bar')?.x });
+    };
+    const o = await ownerFile(ownerSpacingSet());
+    const r = await draw(o.api, contract);
+    const dim = tableFrame(o.prim, 'Dimension')!;
+    ok(bracket(dim, '4') === JSON.stringify({ w: 4, bound: true, line: 4, lineBound: true, left: 0, right: 3 })
+      && bracket(dim, '64') === JSON.stringify({ w: 64, bound: true, line: 64, lineBound: true, left: 0, right: 63 }),
+      `22: the owner's bracket is drawn at its value: spacing-line-example and its horizontal-line 4 and 64 wide, each bound, right-bar at the right edge, 3 and 63 (${bracket(dim, '4')} ${bracket(dim, '64')})`);
+    ok(layer(dim, '64', 'right-bar')?.constraints?.horizontal === 'MAX', `22: its right edge is carried by a MAX constraint, so a changed value moves it too (${layer(dim, '64', 'right-bar')?.constraints?.horizontal})`);
+    const space = tableFrame(o.prim, 'Space')!;
+    const filled = (t: string): string => { const f = layer(space, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.width?.id === `VariableID:nbds/space/${t}`}`; };
+    ok(filled('4') === '4:true' && filled('64') === '64:true', `22: the owner's filled bar is drawn at its value and bound: 4px → 4, 64px → 64 (${filled('4')}, ${filled('64')})`);
+    const rx = tableFrame(o.prim, 'Radius') ? gridOf(tableFrame(o.prim, 'Radius')!) : null;
+    const ex = rx ? cellAt(rx, rowOf(rx, 'md'), 1)?.findOne((k) => k.name === 'radius-example') : null;
+    ok(['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => ex?.boundVariables[k]?.id === 'VariableID:nbds/radius/md'),
+      `22: the owner's radius swatch binds all four corners of radius-example, the layer its clip shows (${Object.keys(ex?.boundVariables ?? {}).join(', ') || 'none bound'})`);
+    ok(r.unbound === 0 && styleGuideSummary(r).headline === '✓ style guide: 3 tables' && !r.misses.some((m) => /right edge/.test(m)),
+      `22: nothing unbound and no right edge named: "${styleGuideSummary(r).headline}" (${r.misses.join(' / ')})`);
+
+    // THE SAME RUN ON THE CELLS SET UP FILE BUILDS, by the real builder: the same finder, the same literal widths. Its
+    // right-bar is constrained MAX in the component, so a host that refuses the override changes nothing.
+    const ob = await ownerFile(null);
+    refuseConstraints = true;
+    let rb: StyleGuideResult;
+    try { rb = await draw(ob.api, contract); } finally { refuseConstraints = false; }
+    const dimB = tableFrame(ob.prim, 'Dimension')!;
+    const spaceB = tableFrame(ob.prim, 'Space')!;
+    const filledB = (t: string): string => { const f = layer(spaceB, t, 'spacing-filled-example'); return `${f?.width}:${f?.boundVariables.width?.id === `VariableID:nbds/space/${t}`}`; };
+    const exB = cellAt(gridOf(tableFrame(ob.prim, 'Radius')!), 1, 1)?.findOne((k) => k.name === 'radius-example');
+    ok(bracket(dimB, '4') === JSON.stringify({ w: 4, bound: true, line: 4, lineBound: true, left: 0, right: 3 })
+      && bracket(dimB, '64') === JSON.stringify({ w: 64, bound: true, line: 64, lineBound: true, left: 0, right: 63 })
+      && filledB('4') === '4:true' && filledB('64') === '64:true'
+      && ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => exB?.boundVariables[k]?.id === 'VariableID:nbds/radius/md'),
+      `22: the cells Set up file builds draw the same: the bracket 4 and 64 with right-bar at 3 and 63, the bar 4 and 64, radius-example's four corners bound (${bracket(dimB, '4')} ${bracket(dimB, '64')} ${filledB('4')} ${filledB('64')})`);
+    ok(rb.unbound === 0 && !rb.misses.some((m) => /right edge/.test(m)), `22: the built bracket's right edge needs no override, so a host that refuses one names nothing (${rb.misses.join(' / ')})`);
+
+    // A HOST THAT REFUSES THE CONSTRAINT OVERRIDE: the right bar is moved to the value instead, and the report says the
+    // edge is static. Refusing the move as well leaves the edge wrong, and that is counted, by table and token.
+    const oc = await ownerFile(ownerSpacingSet());
+    refuseConstraints = true;
+    let rc: StyleGuideResult;
+    try { rc = await draw(oc.api, contract, { types: ['dimension'] }); } finally { refuseConstraints = false; }
+    const dimC = tableFrame(oc.prim, 'Dimension')!;
+    ok(bracket(dimC, '64') === JSON.stringify({ w: 64, bound: true, line: 64, lineBound: true, left: 0, right: 63 }) && layer(dimC, '64', 'right-bar')?.constraints?.horizontal === 'MIN' && rc.unbound === 0
+      && rc.misses.includes("5 display=line brackets' right edges were placed at the value, not bound to it: the host refused a constraint on right-bar, so a changed value moves the line but not that edge until the next run (Dimension: 0, 4, 8 and 2 more)"),
+      `22: with the constraint refused, right-bar is moved to the value and the report calls the edge static (${bracket(dimC, '64')}; ${rc.misses.filter((m) => /right edge/.test(m)).join(' / ')})`);
+    const om = await ownerFile(ownerSpacingSet());
+    refuseConstraints = true; refuseMove = true;
+    let rm: StyleGuideResult;
+    try { rm = await draw(om.api, contract, { types: ['dimension'] }); } finally { refuseConstraints = false; refuseMove = false; }
+    ok(rm.unbound === 4 && rm.misses.includes('4 display=line bracket specimens are not bound at their right edge: right-bar could be neither constrained to the edge nor moved there, so the bracket shows the wrong length (Dimension: 0, 4, 64 and 1 more)')
+      && styleGuideSummary(rm).headline === '⚠ 4 specimens unbound',
+      `22: refused both, the four brackets whose edge is not already at the value are counted, by table and token, and are not a pass: ${rm.unbound} — "${styleGuideSummary(rm).headline}"`);
+
+    // A CELL THIS BUILD CANNOT READ: never a silent pass.
+    const od = await ownerFile(ownerSpacingSet('odd'));
+    const rd = await draw(od.api, contract, { types: ['dimension'] });
+    ok(rd.unbound === 7 && rd.misses.includes('5 display=line specimens are not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so they show the cell component\'s own value (Dimension: 0, 4, 8 and 2 more)')
+      && rd.misses.some((m) => m.startsWith('2 display=filled specimens are not bound: the member has no layer') && m.endsWith('(Space: 4, 64)')) && styleGuideSummary(rd).headline === '⚠ 7 specimens unbound',
+      `22: a spacing cell with no layer to size reports each specimen unbound, by table and token: ${rd.unbound} — "${styleGuideSummary(rd).headline}"`);
+  }
+
+  console.log('23. rows by category (owner decision 16): left to right within a category, a new row per category');
+  {
+    const rw = await phase2File();
+    await draw(rw.api, contract);
+    const at = (title: string): string => { const w = tableFrame(rw.prim, title)!; return `${w.x},${w.y}`; };
+    // The Primitive page holds two categories: dimension (Dimension 583 wide and 1,970 tall, Density, Step) and font
+    // variables (Font family 974 wide, …). The font row starts 160px below the dimension row's tallest table.
+    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at)) === JSON.stringify(['0,0', '743,0', '0,2130', '1134,2130']),
+      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 743,0; Font family 0,2130 and Font size (core) 1134,2130 (${['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at).join(' | ')})`);
+    const rowOfCat = (cat: RegExp): N[] => tablesOn(rw.prim).filter((w) => cat.test(w.pluginData['prism3-style-guide'])).sort((a, b) => a.x - b.x);
+    const dimRow = rowOfCat(/^dimension\|/), fontRow = rowOfCat(/^(fontFamily|fontSize|fontWeight|lineHeight|letterSpacing)\|/);
+    const rowGaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
+    ok(dimRow.length === 3 && fontRow.length === 5 && [dimRow, fontRow].every((r) => r.every((n) => n.y === r[0].y) && rowGaps(r).every((g) => g === 160)),
+      `23: each category's tables are top-aligned, 160px apart (${rowGaps(dimRow).join(', ')} | ${rowGaps(fontRow).join(', ')})`);
+    // A WIDTH CHANGE in row 1, by a filtered run: Density's description column widens by a 100-character description;
+    // Step, after it in its row, moves right by exactly that; Dimension and the whole font row stay.
+    const snap = new Map(tablesOn(rw.prim).map((w) => [w, { x: w.x, y: w.y }]));
+    const moved = (w: N): string => `${w.x - snap.get(w)!.x},${w.y - snap.get(w)!.y}`;
+    const densityW = tableFrame(rw.prim, 'Density')!;
+    const dw0 = densityW.width;
+    rw.vars.find((v) => v.name === 'density/space/gap')!.description = 'W'.repeat(100);
+    await draw(rw.api, contract, { tables: ['Density'] });
+    const dDelta = densityW.width - dw0;
+    ok(dDelta === WIDEN_DENSITY && moved(tableFrame(rw.prim, 'Step')!) === `${WIDEN_DENSITY},0` && moved(tableFrame(rw.prim, 'Dimension')!) === '0,0' && fontRow.every((w) => moved(w) === '0,0'),
+      `23: a width change in row 1 moves only row 1's later tables, by exactly it: Density +${dDelta}px, Step ${moved(tableFrame(rw.prim, 'Step')!)}, the font row ${[...new Set(fontRow.map(moved))].join(' ')}`);
+    // A HEIGHT CHANGE in row 1: two new steps make Dimension, the row's tallest, two rows taller; the font row moves down
+    // by exactly that, and row 1 stays where it is.
+    for (const w of tablesOn(rw.prim)) snap.set(w, { x: w.x, y: w.y });
+    const dimW = tableFrame(rw.prim, 'Dimension')!;
+    const [h0, w0] = [dimW.height, dimW.width];
+    for (const n of [7, 9]) rw.vars.push({ id: `VariableID:core:grow${n}`, name: `pds3/core/dimension/${n}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'FLOAT', description: '', valuesByMode: { 'core:0': n }, scopes: ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'] });
+    await draw(rw.api, contract, { tables: ['Dimension'] });
+    const hDelta = dimW.height - h0;
+    ok(hDelta === GROW_DIMENSION && dimW.width === w0 && fontRow.every((w) => moved(w) === `0,${GROW_DIMENSION}`) && dimRow.every((w) => moved(w) === '0,0'),
+      `23: a height change in row 1 moves row 2 down by exactly it: Dimension +${hDelta}px tall, the font row ${[...new Set(fontRow.map(moved))].join(' ')}, row 1 ${[...new Set(dimRow.map(moved))].join(' ')}`);
+    // A FIRST-TIME TABLE IN A NEW CATEGORY, drawn by a filtered run, starts a new row: 160px below the lowest table, at
+    // the row's left edge.
+    const nc = await phase2File();
+    await draw(nc.api, contract, { types: ['dimension'] });
+    const lowest = Math.max(...tablesOn(nc.prim).map((w) => w.y + w.height));
+    await draw(nc.api, contract, { tables: ['Font family'] });
+    const ff = tableFrame(nc.prim, 'Font family');
+    ok(ff?.x === 0 && ff?.y === lowest + 160, `23: a first table of a new category starts a new row, 160px below the lowest (${ff?.x},${ff?.y} for 0,${lowest + 160})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
