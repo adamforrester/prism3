@@ -156,15 +156,19 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
         specimen.strokeWeight = 2;
         specimen.strokeAlign = 'INSIDE';
       } else if (type === 'radius') {
-        // THE OWNER'S STRUCTURE (measured live, 2026-09-29): a clipping `radius-example-container` window over a
-        // larger `radius-example`, so only its top-left corner shows. Here the window is the 32px specimen square and
-        // the shape inside it is 128 × 64 at a 16px radius; the table binds all four of its corners.
+        // THE OWNER'S STRUCTURE AND SIZES (measured live, 2026-09-29; owner decision, "keep the one"): a 48 × 48
+        // `radius-example-container` that clips, over a 256 × 96 `radius-example` at its top-left, so the swatch SHOWS
+        // ONE rounded corner. The table binds all four of the shape's corners, which keeps the value right everywhere;
+        // the clip is what keeps the look to one corner.
+        specimen.resize?.(SWATCH_SIZE, SWATCH_SIZE);
         specimen.name = 'radius-example-container';
         specimen.cornerRadius = 0;
         specimen.clipsContent = true;
         specimen.fills = [];
-        const shape = box(api, 'radius-example', SPECIMEN * 4, SPECIMEN * 2);
-        shape.cornerRadius = 16;
+        const shape = box(api, 'radius-example', 256, 96);
+        shape.x = 0;
+        shape.y = 0;
+        shape.cornerRadius = 8;
         shape.fills = solid(CHIP);
         shape.strokes = solid(INK);
         shape.strokeWeight = 2;
@@ -196,7 +200,8 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
       checker.y = INSET;
       root.appendChild?.(checker);
     }
-    if (type !== 'icon') { specimen.x = type === 'text' ? 8 : INSET; specimen.y = type === 'text' ? 8 : INSET; }
+    if (type === 'radius') { specimen.x = 0; specimen.y = 0; }
+    else if (type !== 'icon') { specimen.x = type === 'text' ? 8 : INSET; specimen.y = type === 'text' ? 8 : INSET; }
     root.appendChild?.(specimen);
     page.appendChild(root);
     return root;

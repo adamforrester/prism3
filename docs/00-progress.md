@@ -35,9 +35,19 @@
 
 **Owner decisions from live QA (2026-09-29), folded into this PR.**
 - **Tables flow left to right, a row per category** (decision 16): "build these horizontal", amended to "a new category of tokens … ideally starts on a new 'row'". The category is the token type drawn (color, dimension, the font kinds together, text styles); the gap is 160px between tables and between rows; both proposed. Every rule of #1784's vertical stack carries over, turned on its side: a filtered run moves the tables after a redrawn one in its row by its change in width, and the rows below by its row's change in height, only while each sits where the generator left it; a first-time table goes at the end of its category's row, or starts a new row. An earlier build's vertical stack converts in its own order (the sort is x, then y). **The trap:** "the row's height" is the tallest table's, not the redrawn table's, so a filtered run that grows a table that is not its row's tallest moves nothing below it.
-- **A palette swatch FILLs its cell** (decision 13, restated: "the 83x83 size … is likely driven by the padding within the rows"), floored at 32 × 32 so a HUG track cannot collapse it; the floor is below the row's text-cell height on purpose, so the row's height stays the text cells'. Role swatches stay FIXED on a ground that FILLs.
+- **A palette swatch FILLs its cell** (decision 13, restated: "the 83x83 size … is likely driven by the padding within the rows"), floored so a HUG track cannot collapse it: 32px first, then 80px by the owner's decision (below). Role swatches stay FIXED on a ground that FILLs.
 - **Live check passed: a table dragged wider reflows** (HUG tracks, FILL cells). Decision 11 needs no FLEX tracks; removed from the open items.
 - **The cells Set up file builds mirror the owner's spacing and radius structure**, so one finder reads both; section 22 draws both at the same literal widths. The built bracket's `right-bar` is MAX in the component (the owner's is MIN), so it needs no instance override. The swatch and text-cell members keep this build's names: only a few of the owner's are measured, and phase 1's finder reads both by name, then by role.
+
+**Held items decided (2026-09-29, a follow-up commit on this PR; `docs/45` decision 17).** The row definition and the later-phase kind names are approved as proposed. The radius swatch keeps one visible rounded corner: the cells Set up file builds now use the owner's sizes too (a 48 × 48 clipping `radius-example-container` over a 256 × 96 `radius-example`), and section 1 asserts the clip and the oversized shape against literals typed in the test; dropping `clipsContent` in the builder fails "1: the radius swatch's radius-example-container clips its content…". The palette swatch's floor, held for the owner's answer, is decided at **80px** (close to the owner's 83px, not much smaller); the swatch still FILLs its cell, so a palette row with the built cells is now 80px tall.
+
+**The review of `f3bb76cd` (same follow-up commit), each fix with a literal test and a mutation.**
+- **HIGH, a title edit lost:** the names record was written only on a titled run, and the live title text was read but never saved, so edit → untitled run → titled run brought the generated default back. The live text is now merged into the record before the grid goes, and the record is written whenever it holds anything.
+- **A new table from a filtered run overlapped the row below:** the push-down skipped created tables. It now counts them, at a height of 0 before the run; an 80-step table 3,764px tall pushes the font row to 160px below it.
+- **A bracket whose parts are named otherwise, and a file with no spacing set,** each read as a pass; both are counted now, by table and token.
+- **One verdict per specimen:** a bracket could add up to 4 to `unbound`; it now adds 1, for the first thing wrong with it.
+- **Wording:** a refused or ignored resize reads "not sized to their value".
+- **The header exclusion in the fingerprint** was untested because the fixture's header box does not follow its header's width; section 20's header now FILLs its box, so dropping the exclusion fails by name.
 
 **Deliberately not done.** The fingerprint is unchanged for a table without a title column, so phase 1's recorded fingerprints keep matching; the cost is that a superseded dimension table whose value moved reads as edited and is kept (a bar's width is its value), the safe direction. Font style (`core/font/style/*`) waits for a later phase with opacity and the rest.
 
@@ -79,8 +89,16 @@
 | a single row for everything | "23: two categories, two tables each, at literal positions…", "23: each category's tables are top-aligned, 160px apart", "23: a width change in row 1 moves only row 1's later tables…", "23: a height change in row 1 moves row 2 down…", "23: a first table of a new category starts a new row…" |
 | vertical stacking (a row per table) | 14 checks, among them "10: a first run lays its tables out left to right, top-aligned, 160px apart", "13: a filtered run moves only the tables after its table, in its row…", "23: two categories, two tables each, at literal positions…" |
 | probe: the fixture's host repaint not replayed | "21: an unedited superseded dimension table and text-style table are deleted (… Step …)", "21: a superseded dimension table whose value moved is kept…" (the Step fixture is kept for the reason it claims) |
+| (f3bb76cd review) the live title text not merged into the record | "20: a title edited, then a run without the column, then one with it: the edit comes back ("Space 100")" |
+| (f3bb76cd review) created tables skipped by the push-down | "24: a new 80-step table lands at the end of the dimension row… (2130)" |
+| (f3bb76cd review) bracket parts not checked | "24: a bracket whose parts are not named horizontal-line and right-bar is counted… (0 — ✓)" |
+| (f3bb76cd review) no spacing set not counted | "24: with no spacing set, every spacing specimen is counted and the run is not a pass (0 — ✓)" |
+| (f3bb76cd review) each failure counted | "24: five brackets, each refused a resize and two bindings, count once each… (9)" |
+| (f3bb76cd review) header descendants not excluded from the fingerprint | "20: a superseded table whose only change is a retitled row is deleted, unedited", "20: one with a value retyped is still kept as edited" |
+| (decision 17) the radius clip dropped in the builder | "1: the radius swatch's radius-example-container clips its content…", "16: the drawn radius specimen keeps the clip…", "16: no cell in any phase-2 table is wider than its column" |
+| (decision 17) the palette floor removed, or back at 32 | "5: a palette row has no ground frame… floored at 80 (… 81×44)", "5: a taller row makes a taller swatch… (124, 44)" |
 
-Each mutation's diff was checked non-empty, and every run executed the whole suite (the same assertion count as its unmutated baseline: 302 for the title-cell, kind, resize, font-load, corner and probe rows, run at a work-in-progress tree before the rows and the filling swatch, whose code they do not touch; 314 for the rest, at the final tree). The title-cell rows were run for the first time in this round; the commit that added them had not run them.
+Each mutation's diff was checked non-empty, and every run executed the whole suite (the same assertion count as its unmutated baseline: 302 for the title-cell, kind, resize, font-load, corner and probe rows, run at a work-in-progress tree before the rows and the filling swatch, whose code they do not touch; 314 for the next seven, at the review-round head `f3bb76cd`; 321 for the last eight, at the final tree). The title-cell rows were run for the first time in this round; the commit that added them had not run them.
 
 ---
 

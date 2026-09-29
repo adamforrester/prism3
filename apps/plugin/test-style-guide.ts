@@ -69,6 +69,8 @@
  *      value; the bracket's right edge carried, moved (named static) or counted; a cell with no layer counted.
  *  23. ROWS BY CATEGORY (owner decision 16): literal positions for two categories; a width change moves its row's later
  *      tables, a height change moves the rows below; a new category starts a new row.
+ *  24. THE REVIEW OF f3bb76cd: a bracket with its parts named otherwise, and a file with no spacing set, counted; one
+ *      verdict per specimen; a new table taller than its row pushing the row below down.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -571,7 +573,7 @@ const ownerSet = (name: string, variants: string[], withSpecimen: boolean): N =>
  * `left-bar` (1 × 16 at 0,0), `horizontal-line` (8 × 1 at 0,8) and `right-bar` (1 × 16 at 7,0), every one MIN/MIN.
  * `kind: 'odd'` is a set this build cannot read: each member holds a text label and nothing else.
  */
-const ownerSpacingSet = (kind: 'owner' | 'odd' = 'owner'): N => {
+const ownerSpacingSet = (kind: 'owner' | 'odd' | 'renamed' = 'owner'): N => {
   const set = new N('COMPONENT_SET');
   set.name = '_style-guide-spacing-cells';
   for (const display of ['filled', 'line']) {
@@ -586,7 +588,10 @@ const ownerSpacingSet = (kind: 'owner' | 'odd' = 'owner'): N => {
       const f = new N('FRAME'); f.name = 'spacing-filled-example'; f.w = 8; f.h = 20; f.clipsContent = true; f.fills = [{ type: 'SOLID' }]; f.constraints = mm; m.appendChild(f);
     } else {
       const f = new N('FRAME'); f.name = 'spacing-line-example'; f.w = 8; f.h = 16; f.clipsContent = false; f.fills = []; f.constraints = mm;
-      for (const [name, w, h, x, y] of [['left-bar', 1, 16, 0, 0], ['horizontal-line', 8, 1, 0, 8], ['right-bar', 1, 16, 7, 0]] as const) {
+      // `renamed`: the same bracket with its parts named otherwise, which the finder must not pass silently.
+      const names = kind === 'renamed' ? ['cap-start', 'rule', 'cap-end'] : ['left-bar', 'horizontal-line', 'right-bar'];
+      for (const [i, [w, h, x, y]] of ([[1, 16, 0, 0], [8, 1, 0, 8], [1, 16, 7, 0]] as const).entries()) {
+        const name = names[i];
         const r = new N('RECTANGLE'); r.name = name; r.w = w; r.h = h; r.x = x; r.y = y; r.fills = [{ type: 'SOLID' }]; r.constraints = mm; f.appendChild(r);
       }
       m.appendChild(f);
@@ -724,6 +729,9 @@ const WIDEN_PRIMARY = 532;
 const WIDEN_DENSITY = 623;
 /** Two new steps add two rows to Dimension, each 44px (a text cell: 20 + 12 + 12) and its 2px gap: 92px. */
 const GROW_DIMENSION = 92;
+/** An 80-step dimension table: 81 rows of 44px and 80 gaps of 2px, 3,724, and the wrapper's 40px between its header
+ *  (0px tall in the shim) and its grid: 3,764px. */
+const RAMP_H = 3764;
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -887,12 +895,15 @@ const main = async (): Promise<void> => {
     ok(sw?.parent === fc, '1: the swatch set sits on ↳ File Components');
     ok(JSON.stringify(sw?.children.map((c) => c.name)) === JSON.stringify(['type=default', 'type=text', 'type=icon', 'type=border', 'type=transparency', 'type=radius']), '1: six swatch types');
     ok(sw?.children.filter((c) => c.name !== 'type=radius').every((c) => !!c.findOne((k) => k.name === 'Specimen')), '1: every swatch but the radius has a Specimen node');
-    // The radius member in the owner's structure (measured live, 2026-09-29): a clipping container over a larger shape.
+    // THE RADIUS SWATCH SHOWS ONE ROUNDED CORNER (owner decision, 2026-09-29, "keep the one"), in the owner's structure
+    // and sizes as measured live: a 48 × 48 radius-example-container that CLIPS, holding a 256 × 96 radius-example at
+    // its top-left, 0,0, with a radius, so only that one corner falls inside the window. Literals typed here.
     const rad = sw?.children.find((c) => c.name === 'type=radius');
     const win = rad?.findOne((k) => k.name === 'radius-example-container');
     const shape = win?.findOne((k) => k.name === 'radius-example');
-    ok(win?.clipsContent === true && win.w === 32 && shape?.parent === win && shape.w === 128 && shape.h === 64 && shape.cornerRadius === 16,
-      `1: the radius swatch is the owner's structure: a 32px clipping radius-example-container over a 128 × 64 radius-example at 16px (${win?.w}, ${shape?.w}×${shape?.h}, r${shape?.cornerRadius})`);
+    ok(win?.clipsContent === true, `1: the radius swatch's radius-example-container clips its content, so only one corner shows (clipsContent ${win?.clipsContent})`);
+    ok(win?.w === 48 && win.h === 48 && shape?.parent === win && shape.w === 256 && shape.h === 96 && shape.x === 0 && shape.y === 0 && Number(shape.cornerRadius) > 0,
+      `1: inside it, radius-example is 256 × 96 at 0,0 with a radius, larger than the 48 × 48 window both ways (${win?.w}×${win?.h}; ${shape?.w}×${shape?.h} at ${shape?.x},${shape?.y}, r${shape?.cornerRadius})`);
     // The spacing members in the owner's structure: an example frame, and the bracket's three parts in the line's.
     const sp = setsNamed(s.pages, '_style-guide-spacing-cells')[0];
     const lineEx = sp?.children.find((c) => c.name === 'display=line')?.children[0];
@@ -1079,23 +1090,24 @@ const main = async (): Promise<void> => {
 
     // THE SPECIMEN BY ROLE (owner decision 13, 2026-09-29). A palette row: no ground, its cell the type=default swatch
     // (the alpha palettes draw type=transparency the same way). THE SWATCH FILLS ITS CELL (decision 13 as the owner
-    // restated it, 2026-09-29): FILL both ways, floored at 32 × 32, so it is as wide as its column, 81px (its "Default"
-    // header: 7 × 7 + 16 + 16), and as tall as its row, 44px (a text cell: 20 + 12 + 12), not its component's 48 × 48.
+    // restated it, 2026-09-29): FILL both ways, floored at 80 × 80 (the owner's decision, 2026-09-29: close to the 83px in
+    // their file, not much smaller), so it is as wide as its column, 81px (its "Default" header: 7 × 7 + 16 + 16), and
+    // its row is the floor, 80px, taller than a text cell (20 + 12 + 12 = 44), not its component's 48 × 48.
     const pal = cellAt(neutral, nr, 1);
     const primGrounds = tablesOn(f.prim).flatMap((w) => gridOf(w).findAll((k) => k.name === 'Ground'));
     const primSwatches = tablesOn(f.prim).flatMap((w) => gridOf(w).children.filter((k) => k.gridRow! > 0 && k.gridCol === 1));
-    const fills = (k: N): boolean => k.type === 'INSTANCE' && k.lsh === 'FILL' && k.layoutSizingVertical === 'FILL' && k.minWidth === 32 && k.minHeight === 32
+    const fills = (k: N): boolean => k.type === 'INSTANCE' && k.lsh === 'FILL' && k.layoutSizingVertical === 'FILL' && k.minWidth === 80 && k.minHeight === 80
       && k.width === trackW(k.parent!, k.gridCol!) && k.height === trackH(k.parent!, k.gridRow!);
-    ok(pal?.type === 'INSTANCE' && pal.mainComponent?.name === 'type=default' && pal.width === 81 && pal.height === 44 && fills(pal)
+    ok(pal?.type === 'INSTANCE' && pal.mainComponent?.name === 'type=default' && pal.width === 81 && pal.height === 80 && fills(pal)
       && primGrounds.length === 0 && primSwatches.length > 0 && primSwatches.every(fills),
-      `5: a palette row has no ground frame: its cell is the type=default swatch, FILLing it both ways at 81 × 44, floored at 32 (${pal?.mainComponent?.name} ${pal?.lsh}/${pal?.layoutSizingVertical} ${pal?.width}×${pal?.height}; ${primGrounds.length} grounds, ${primSwatches.filter((k) => !fills(k)).length} swatches not filling)`);
-    // A TALLER ROW MAKES A TALLER SWATCH: the row's value cell given 40px more top padding makes the row, and the
-    // swatch in it, 84px tall; its neighbor row stays 44.
+      `5: a palette row has no ground frame: its cell is the type=default swatch, FILLing it both ways at 81 × 80, floored at 80 (${pal?.mainComponent?.name} ${pal?.lsh}/${pal?.layoutSizingVertical} ${pal?.width}×${pal?.height}; ${primGrounds.length} grounds, ${primSwatches.filter((k) => !fills(k)).length} swatches not filling)`);
+    // A TALLER ROW MAKES A TALLER SWATCH: the row's value cell given 80px more top padding makes the row, and the
+    // swatch in it, 124px tall (44 + 80); its neighbor row stays at the 80px floor.
     const vcell = cellAt(neutral, nr, 2)!;
-    vcell.paddingTop = Number(vcell.paddingTop) + 40;
+    vcell.paddingTop = Number(vcell.paddingTop) + 80;
     const tall = [pal?.height, cellAt(neutral, nr + 1, 1)?.height];
-    vcell.paddingTop = Number(vcell.paddingTop) - 40;
-    ok(JSON.stringify(tall) === JSON.stringify([84, 44]), `5: a taller row makes a taller swatch: 84px in a row made 84px tall, 44 in the next (${tall.join(', ')})`);
+    vcell.paddingTop = Number(vcell.paddingTop) - 80;
+    ok(JSON.stringify(tall) === JSON.stringify([124, 80]), `5: a taller row makes a taller swatch: 124px in a row made 124px tall, 80 in the next (${tall.join(', ')})`);
     // A text role: letters, the type=text member, its "Aa" fill bound to the token, directly on its ground. No filled square.
     const tcell = cellAt(g, r, 1)!;
     const tsw = tcell.children[0];
@@ -1807,6 +1819,9 @@ const main = async (): Promise<void> => {
     // ALL FOUR CORNERS (review of `4faeb98a`): the specimen shows the value whichever corner the member rounds.
     const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].map((k) => md?.findOne((n) => n.name === 'radius-example')?.boundVariables[k]?.id);
     ok(corners.every((id) => id === p2Id('pds3/radius/md')), `16: all four of its corners are bound to radius/md (${corners.map((id) => (id ? 'bound' : 'unbound')).join(', ')})`);
+    const drawnWin = md?.findOne((n) => n.name === 'radius-example-container');
+    ok(drawnWin?.clipsContent === true && drawnWin.w === 48 && drawnWin.findOne((n) => n.name === 'radius-example')?.w === 256,
+      `16: the drawn radius specimen keeps the clip, so it shows one rounded corner of its 256px shape (clipsContent ${drawnWin?.clipsContent})`);
     ok(textIn(cellAt(rg, rowOf(rg, 'capsule'), 2)) === '999px · 62.4375rem', `16: radius/capsule reads "999px · 62.4375rem" (${textIn(cellAt(rg, rowOf(rg, 'capsule'), 2))})`);
     ok(tablesOn(p2.sem).concat(tablesOn(p2.prim)).every((w) => gridOf(w).findAll((k) => k.name === 'Ground').length === 0), '16: no phase-2 specimen sits on a ground');
     // The spacing cell FILLs its track, as every cell but a swatch does, and no cell is wider than its column.
@@ -1960,6 +1975,12 @@ const main = async (): Promise<void> => {
       `20: on, a color table leads with Name: text/primary reads "Text Primary" in a default text cell that FILLs its track, on one line (${headerRow(text20).slice(0, 3).join(' · ')}; "${textIn(tn)}")`);
     ok(nameOf(tableFrame(c20.sem, 'Inverse')!, 'text/primary') === 'Inverse Text Primary', `20: an inverse role reads "Inverse Text Primary" (${nameOf(tableFrame(c20.sem, 'Inverse')!, 'text/primary')})`);
     const t20 = await phase2File();
+    // A HEADER WHOSE INSIDE FOLLOWS ITS WIDTH, as an auto-layout header component's does: its "Text" box FILLs it. A
+    // wider title column then widens the header's inside too, which the fingerprint must leave out with the header
+    // itself (review of f3bb76cd: with the fixture's plain box, dropping that exclusion failed nothing).
+    const hdr = t20.fc.findOne((k) => k.name === 'Size=Medium')!;
+    hdr.layoutMode = 'VERTICAL'; hdr.primaryAxisSizingMode = 'AUTO'; hdr.counterAxisSizingMode = 'FIXED';
+    hdr.findOne((k) => k.name === 'Text')!.lsh = 'FILL';
     await draw(t20.api, contract, { titleCell: true });
     const ts20 = tableFrame(t20.sem, 'Text styles')!;
     const space20 = tableFrame(t20.sem, 'Space')!;
@@ -1976,6 +1997,12 @@ const main = async (): Promise<void> => {
     await draw(t20.api, contract, { types: ['dimension'] });
     await draw(t20.api, contract, { titleCell: true });
     ok(nameOf(tableFrame(t20.sem, 'Space')!, '050') === 'Gutter small', '20: the edit survives a run drawn without the title column, and returns with it');
+    // THE ORDER THE REVIEW OF f3bb76cd FOUND LOSING AN EDIT: edit, then a run WITHOUT the column (its cells go), then a
+    // run with it. The edit is recorded before the cells go, so it comes back.
+    titleText(tableFrame(t20.sem, 'Space')!, '100').characters = 'Row gap';
+    await draw(t20.api, contract, { types: ['dimension'] });
+    await draw(t20.api, contract, { titleCell: true });
+    ok(nameOf(tableFrame(t20.sem, 'Space')!, '100') === 'Row gap', `20: a title edited, then a run without the column, then one with it: the edit comes back ("${nameOf(tableFrame(t20.sem, 'Space')!, '100')}")`);
     // A TITLE EDIT IS NOT AN EDIT TO THE TABLE: a superseded table whose only change is a title is deleted, unedited;
     // one with a value retyped is kept.
     titleText(tableFrame(t20.sem, 'Radius')!, 'md').characters = 'Medium corner, for cards';
@@ -2039,14 +2066,14 @@ const main = async (): Promise<void> => {
     ok(!threw && rr?.tables.length === 1 && rr.tables[0].status === 'created' && gridOf(tableFrame(rz.sem, 'Space')!).children.length > 0,
       `21: a bar the host will not resize does not abort the run: the Space table is drawn (${threw || rr?.tables.map((t) => t.status).join(',')})`);
     const rs = rr ? styleGuideSummary(rr) : null;
-    ok(rr?.unbound === 18 && !!rs?.summary.includes("18 display=filled spacing specimens are not bound to their value's width: the host refused or ignored the resize, so they show the cell component's own width (Space: 0, 025, 050 and 15 more)") && rs?.headline === '⚠ 18 specimens unbound',
+    ok(rr?.unbound === 18 && !!rs?.summary.includes("18 display=filled spacing specimens are not sized to their value: the host refused or ignored the resize, so they show the cell component's own width (Space: 0, 025, 050 and 15 more)") && rs?.headline === '⚠ 18 specimens unbound',
       `21: each refused resize is counted and named, and is not a pass: ${rr?.unbound} — "${rs?.headline}"`);
     const ig = await phase2File();
     ignoreResize = (n) => n.name === 'spacing-filled-example' && n.parent?.type === 'INSTANCE';
     let ri: StyleGuideResult;
     try { ri = await draw(ig.api, contract, { tables: ['Space'] }); } finally { ignoreResize = null; }
     // 17, not 18: space/100 is 8px, the member's own width, so its bar reads right without the resize.
-    ok(ri.unbound === 17 && ri.misses.some((m) => m.startsWith("17 display=filled spacing specimens are not bound to their value's width: the host refused or ignored the resize")),
+    ok(ri.unbound === 17 && ri.misses.some((m) => m.startsWith("17 display=filled spacing specimens are not sized to their value: the host refused or ignored the resize")),
       `21: a resize the host silently ignores is read back, counted and named: ${ri.unbound} unbound`);
 
     // (3) + (4) FONTS, LOADED BEFORE THEY ARE BOUND, IN THE MODE PINNED FIRST. A family that varies by mode, whose
@@ -2234,6 +2261,56 @@ const main = async (): Promise<void> => {
     await draw(nc.api, contract, { tables: ['Font family'] });
     const ff = tableFrame(nc.prim, 'Font family');
     ok(ff?.x === 0 && ff?.y === lowest + 160, `23: a first table of a new category starts a new row, 160px below the lowest (${ff?.x},${ff?.y} for 0,${lowest + 160})`);
+  }
+
+  console.log('24. the review of f3bb76cd: no silent spacing miss, one verdict per specimen, a new table that pushes its row down');
+  {
+    // (3) A BRACKET WHOSE PARTS ARE NAMED OTHERWISE: its frame is sized and bound, its bracket is not, and that is counted.
+    const shimOwner = async (spacing: N | null): Promise<Shim & { prim: N; fc: N }> => {
+      const fc = page(FC), prim = page(PRIM), sem = page(SEM), sgc = page('Style Guide Components');
+      fc.appendChild(headerSet());
+      if (spacing) sgc.appendChild(spacing);
+      const one = (id: string): ShimCol => ({ id: `VariableCollectionId:${id}`, name: id, modes: [{ modeId: `${id}:0`, name: 'Default' }], defaultModeId: `${id}:0` });
+      const vars: ShimVar[] = [0, 4, 8, 64, 128].map((n) => ({ id: `VariableID:nbds/dimension/${n}`, name: `nbds/dimension/${n}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'FLOAT', description: '', valuesByMode: { 'core:0': n }, scopes: [] }));
+      const s = makeShim([page('Cover'), prim, sem, fc, sgc], [one('core')], vars);
+      await ensureStyleGuideCells(s.api, fc);
+      return { ...s, prim, fc };
+    };
+    const rn = await shimOwner(ownerSpacingSet('renamed'));
+    const rr = await draw(rn.api, contract);
+    ok(rr.unbound === 5 && rr.misses.includes("5 display=line bracket specimens are not sized: the bracket's frame has layers, but none named horizontal-line and right-bar, so the bracket shows the cell component's own width (Dimension: 0, 4, 8 and 2 more)")
+      && styleGuideSummary(rr).headline === '⚠ 5 specimens unbound',
+      `24: a bracket whose parts are not named horizontal-line and right-bar is counted, by table and token, and is not a pass: ${rr.unbound} — "${styleGuideSummary(rr).headline}"`);
+    // (4) NO SPACING SET AT ALL (every file set up before phase 2): each spacing specimen is counted, and the run is not
+    // a pass. Five brackets here.
+    const ns = await shimOwner(null);
+    const set = setsNamed(ns.pages, '_style-guide-spacing-cells')[0];
+    set.remove();
+    const rs = await draw(ns.api, contract);
+    ok(setsNamed(ns.pages, '_style-guide-spacing-cells').length === 0 && rs.unbound === 5 && !styleGuideSummary(rs).ok && styleGuideSummary(rs).headline === '⚠ 5 specimens unbound'
+      && rs.misses.includes('5 display=line spacing specimens are not drawn: this file has no _style-guide-spacing-cells set, which Set up file adds (Dimension: 0, 4, 8 and 2 more)'),
+      `24: with no spacing set, every spacing specimen is counted and the run is not a pass: ${rs.unbound} — "${styleGuideSummary(rs).headline}"`);
+    // (5) ONE VERDICT PER SPECIMEN: a bracket whose frame and line both refuse the resize and the binding counts once.
+    const one = await shimOwner(ownerSpacingSet());
+    refuseBinding = true;
+    ignoreResize = (n) => (n.name === 'spacing-line-example' || n.name === 'horizontal-line') && insideInstance(n);
+    let ro: StyleGuideResult;
+    try { ro = await draw(one.api, contract); } finally { refuseBinding = false; ignoreResize = null; }
+    const spacingMisses = ro.misses.filter((m) => /display=line/.test(m) && !/right edges were placed/.test(m));
+    const counted = spacingMisses.reduce((a, m) => a + Number(m.split(' ')[0]), 0);
+    ok(ro.unbound === 5 && counted === 5 && spacingMisses.some((m) => m.startsWith('4 display=line spacing specimens are not sized to their value')) && spacingMisses.some((m) => m.startsWith('1 display=line spacing specimen is not bound to its variable')),
+      `24: five brackets, each refused a resize and two bindings, count once each, 5: four not sized, and the 8px one, already its value's width, not bound (${ro.unbound}; ${spacingMisses.join(' / ')})`);
+    // (2) A NEW TABLE FROM A FILTERED RUN, TALLER THAN ITS ROW, pushes the rows below it down: an 80-step collection
+    // drawn alone lands at the end of the dimension row, and the font row moves to 160px below it.
+    const tl = await phase2File();
+    await draw(tl.api, contract);
+    tl.cols.push({ id: 'VariableCollectionId:tall', name: 'tall', modes: [{ modeId: 'tall:0', name: 'Default' }], defaultModeId: 'tall:0' });
+    for (let i = 1; i <= 80; i++) tl.vars.push({ id: `VariableID:tall:${i}`, name: `tall/ramp/${i}`, variableCollectionId: 'VariableCollectionId:tall', resolvedType: 'FLOAT', description: '', valuesByMode: { 'tall:0': i }, scopes: ['WIDTH_HEIGHT'] });
+    const fontBefore = tablesOn(tl.prim).filter((w) => /^(fontFamily|fontSize|lineHeight|letterSpacing)\|/.test(w.pluginData['prism3-style-guide']));
+    const rt = await draw(tl.api, contract, { tables: ['Ramp'] });
+    const ramp = tableFrame(tl.prim, 'Ramp');
+    ok(rt.tables[0]?.status === 'created' && ramp?.y === 0 && ramp.height === RAMP_H && fontBefore.every((w) => w.y === RAMP_H + 160),
+      `24: a new 80-step table lands at the end of the dimension row, ${ramp?.height}px tall, and the font row moves to 160px below it, y ${RAMP_H + 160} (${[...new Set(fontBefore.map((w) => w.y))].join(', ')})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

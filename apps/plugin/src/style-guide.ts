@@ -1052,10 +1052,10 @@ const WHITE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', 
 /** The gap between tables in a page's row (owner decision 16, 2026-09-29: tables flow left to right). 160px, the gap
  *  the owner approved between component sets on a shared page (proposed, owner to confirm, for tables). */
 const TABLE_GAP = 160;
-/** A palette swatch's floor inside its FILL cell (owner decision 13, as the owner restated it on 2026-09-29): small
- *  enough that the row's height comes from its text cells (44px for the built cells, 83px for the owner's), large
- *  enough that a HUG track cannot collapse the swatch to nothing (proposed, owner to confirm). */
-const SWATCH_MIN = 32;
+/** A palette swatch's floor inside its FILL cell (owner decisions, 2026-09-29: decision 13 as restated, and the floor
+ *  itself, 80px, "close to the 83px in their file and not much smaller"). The swatch still FILLs its cell both ways;
+ *  80 is only the minimum, so a HUG track cannot shrink it below that. */
+const SWATCH_MIN = 80;
 /** The gap between a table's tracks, rows and columns alike: the owner's examples' 2px (owner decision, 2026-09-29). */
 const TRACK_GAP = 2;
 const PART_KEY = 'prism3-style-guide-part';
@@ -1351,6 +1351,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const unsized = new Map<string, string[]>();
   /** Specimens whose member has no layer this build recognizes to size or bind. */
   const noLayer = new Map<string, string[]>();
+  /** Spacing specimens not drawn at all: the file has no `_style-guide-spacing-cells` set. */
+  const noSet = new Map<string, string[]>();
+  /** Brackets whose frame holds layers, but none named `horizontal-line` and `right-bar`. */
+  const noParts = new Map<string, string[]>();
   /** Brackets whose right edge could be neither carried by a constraint nor moved to the value. */
   const noEdge = new Map<string, string[]>();
   /** Brackets whose right edge was MOVED to the value, not carried by a constraint: correct now, static until a rerun. */
@@ -1504,6 +1508,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         if (id !== NAME_HEADER && t && typeof t.characters === 'string') liveNames.set(id, t.characters);
       }
     }
+    // THE LIVE TEXT GOES INTO THE RECORD NOW, before the grid is rebuilt (review of f3bb76cd): a run WITHOUT the column
+    // removes the cells, so an edit made since the last titled run survives only if it is recorded here.
+    for (const [id, text] of liveNames) if (Object.prototype.hasOwnProperty.call(names, id)) names[id] = { auto: names[id].auto, text };
     const nameFor = (row: SgRow): string => {
       const rec = Object.prototype.hasOwnProperty.call(names, row.variableId) ? names[row.variableId] : undefined;
       const text = liveNames.get(row.variableId) ?? rec?.text;
@@ -1563,21 +1570,26 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const where = `${t.title}\u241f${row.token}`;
       const pin = (n: SgNode): void => { if (collection && cell.modeId) n.setExplicitVariableModeForCollection?.(collection, cell.modeId); };
       if (spec.kind === 'spacing') {
-        if (!spacingSet) return;
+        // NO SPACING SET: every file set up before phase 2 is in this state. Counted, so the run is not a pass
+        // (review of f3bb76cd); the named miss above says Set up file adds the set.
+        if (!spacingSet) { missAt(noSet, `display=${spec.member}`, where); return; }
         const v = variantOf(spacingSet, { display: spec.member }, `display=${spec.member}`);
-        if (!v?.createInstance) return;
+        if (!v?.createInstance) { missAt(noLayer, `display=${spec.member}`, where); return; }
         const inst = v.createInstance() as SgNode;
         const member = String(v.name);
         const bar = spacingLayer(inst);
         pin(inst);
+        // ONE VERDICT PER SPECIMEN (review of f3bb76cd): the first thing wrong with it, in this order, counted once.
+        let fail: [Map<string, string[]>, string] | null = null;
+        const failAs = (m: Map<string, string[]>, what: string): void => { if (!fail) fail = [m, what]; };
         if (!bar) {
           // NO SILENT MISS: a member this build cannot read draws at the component's own width, and says so.
-          missAt(noLayer, member, where);
+          failAs(noLayer, member);
         } else {
           const w = Math.max(0.01, typeof cell.num === 'number' ? cell.num : num(bar.width));
           // GUARDED LIKE THE BIND (review of `4faeb98a`): a host that refuses to resize a layer inside an instance
-          // would otherwise abort the whole run on the first spacing row. A refused or ignored resize is counted and named.
-          // Read back, so a resize the host IGNORES is caught as surely as one it refuses.
+          // would otherwise abort the whole run on the first spacing row. Read back, so a resize the host IGNORES is
+          // caught as surely as one it refuses.
           const resize = (n: SgNode): boolean => { try { n.resize?.(w, num(n.height)); } catch { return false; } return near(num(n.width), w); };
           // THE OWNER'S BRACKET (live, 2026-09-29): `spacing-line-example` holds `left-bar`, `horizontal-line` and
           // `right-bar`, every one constrained MIN, so resizing the frame alone left the bracket at 8px. The line is
@@ -1586,6 +1598,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
           // the value (static until a rerun, and named); where it cannot be moved either, it is counted.
           const line = byLayerName(bar, 'horizontal-line');
           const right = byLayerName(bar, 'right-bar');
+          // A bracket frame WITH layers, but not ones named horizontal-line and right-bar, would be sized while its
+          // bracket stays at the component's width: counted, never a silent pass (review of f3bb76cd). A frame with
+          // no layers (an earlier build's `Bar`, drawn with its own strokes) needs none.
+          if (spec.member === 'line' && (bar.children ?? []).length > 0 && (!line || !right)) failAs(noParts, member);
           let carried = false;
           if (right) {
             const cur = (right.constraints ?? {}) as { horizontal?: unknown; vertical?: unknown };
@@ -1598,30 +1614,28 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
               } catch { carried = false; }
             }
           }
-          let sized = resize(bar);
-          if (!bindTo(bar, 'width', variable)) missAt(unboundSpec, `${member} spacing`, where);
-          if (line) {
-            sized = resize(line) && sized;
-            if (!bindTo(line, 'width', variable)) missAt(unboundSpec, `${member} spacing`, where);
-          }
-          if (!sized) missAt(unsized, member, where);
+          const sized = [bar, ...(line ? [line] : [])].map(resize).every(Boolean);
+          const bound = [bar, ...(line ? [line] : [])].map((n) => bindTo(n, 'width', variable)).every(Boolean);
+          if (!sized) failAs(unsized, member);
+          if (!bound) failAs(unboundSpec, `${member} spacing`);
           if (right) {
             const edge = num(bar.width) - num(right.width);
             if (!near(num(right.x), edge)) {
               carried = false;
               try { right.x = edge; } catch { /* named below */ }
             }
-            if (!near(num(right.x), edge)) missAt(noEdge, member, where);
-            else if (!carried) missAt(staticEdge, member, where);
+            if (!near(num(right.x), edge)) failAs(noEdge, member);
+            else if (!carried && !fail) missAt(staticEdge, member, where);
           }
         }
+        if (fail) missAt(fail[0], fail[1], where);
         fit(inst);
         place(inst, r, c);
         return;
       }
       if (spec.kind === 'radius') {
         const v = variantOf(swatches, { type: 'radius' }, 'type=radius');
-        if (!v?.createInstance) return;
+        if (!v?.createInstance) { missAt(noLayer, 'type=radius', where); return; }
         const inst = v.createInstance() as SgNode;
         pin(inst);
         // Every corner bound, so the specimen shows the value whichever corner the member rounds (review of `4faeb98a`).
@@ -1724,7 +1738,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (header && !sizing(header, 'FILL')) setWidth(header, grid.width ?? 0);
     if (header && !near(num(wrap.width), num(grid.width))) misses.push(`${t.title}: the header did not take the table's width, so the table is ${Math.round(num(wrap.width))}px wide around a ${Math.round(num(grid.width))}px grid`);
 
-    if (options.titleCell) wrap.setPluginData?.(NAMES_KEY, JSON.stringify(names));
+    if (Object.keys(names).length) wrap.setPluginData?.(NAMES_KEY, JSON.stringify(names));
     const after = snapshotOf(t);
     const was = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));
@@ -1849,7 +1863,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const leftAt = (n: SgNode): boolean => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); };
   const catOf = (n: SgNode): string => categoryOfKey(n.getPluginData?.(TABLE_KEY) || '');
   if (options.tables) for (const p of drawnOn) {
-    const mine = drawn.filter((d) => d.page === p && !d.created);
+    // Every table the run drew here, a NEW one included (review of f3bb76cd): a first-time table lands at the end of
+    // its row, and when it is taller than the row it must push the rows below down, or it runs over them.
+    const mine = drawn.filter((d) => d.page === p);
     if (!mine.length) continue;
     const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
     const x0 = new Map(ours.map((n) => [n, num(n.x)]));
@@ -1859,6 +1875,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const rowDrops: { y: number; drop: number }[] = [];
     for (const d of mine) {
       const row = ours.filter((n) => inRowOf(d.frame, n));
+      // A table this run created was not there before: height 0.
       const was = (n: SgNode): number => mine.find((m) => m.frame === n)?.height0 ?? num(n.height);
       const drop = Math.max(...row.map((n) => num(n.height))) - Math.max(...row.map(was));
       const y = y0.get(d.frame) ?? 0;
@@ -1904,11 +1921,13 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   }
 
   const count = (...ms: Map<string, string[]>[]): number => ms.flatMap((m) => [...m.values()]).reduce((a, w) => a + w.length, 0);
-  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noEdge);
+  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noEdge, noSet, noParts);
   const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
   for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what === 'text-style' ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
-  for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} value's width: the host refused or ignored the resize, so ${plural(n, 'it shows', 'they show')} the cell component's own width (${placesOf(ws)})`); }
+  for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not sized to ${plural(n, 'its', 'their')} value: the host refused or ignored the resize, so ${plural(n, 'it shows', 'they show')} the cell component's own width (${placesOf(ws)})`); }
+  for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
+  for (const [what, ws] of noParts) { const n = ws.length; misses.push(`${n} ${what} bracket specimen${plural(n, ' is', 's are')} not sized: the bracket's frame has layers, but none named horizontal-line and right-bar, so the bracket shows the cell component's own width (${placesOf(ws)})`); }
   for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
   for (const [what, ws] of noEdge) { const n = ws.length; misses.push(`${n} ${what} bracket specimen${plural(n, ' is', 's are')} not bound at ${plural(n, 'its', 'their')} right edge: right-bar could be neither constrained to the edge nor moved there, so the bracket shows the wrong length (${placesOf(ws)})`); }
   for (const [what, ws] of staticEdge) { const n = ws.length; misses.push(`${n} ${what} bracket${plural(n, "'s right edge was", "s' right edges were")} placed at the value, not bound to it: the host refused a constraint on right-bar, so a changed value moves the line but not that edge until the next run (${placesOf(ws)})`); }
@@ -1986,7 +2005,7 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : r.unmatched.length ? '✗ no table matched' : '✓ style guide: 0 tables')
     : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped`
     : r.unmatched.length ? `⚠ ${drawn} drawn, ${r.unmatched.length} not found`
-    : r.unbound ? `⚠ ${r.unbound} ${r.misses.some((m) => / specimens? (is|are) not bound/.test(m)) ? 'specimens' : 'swatches'} unbound`
+    : r.unbound ? `⚠ ${r.unbound} ${r.misses.some((m) => / specimens? (is|are) not (bound|sized|drawn)/.test(m)) ? 'specimens' : 'swatches'} unbound`
     : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'Nothing to draw: this file has no variables or text styles of the types this run covers' };
 };
