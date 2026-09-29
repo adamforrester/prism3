@@ -640,8 +640,11 @@ export const CHUNK = 4;
  *  green. A harness with no event loop cannot distinguish a task from a microtask — there is no host to
  *  hand control to, so both "yield" identically. What the suite gates is that a yield HAPPENS at every
  *  boundary (counted at `yieldTo`); that it is a macrotask is gated only by the live run, which is why
- *  the 1m10s / Livegraph-1006 measurement in the header is cited rather than a test name. */
-const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+ *  the 1m10s / Livegraph-1006 measurement in the header is cited rather than a test name.
+ *
+ *  Exported for the style-guide executor (#1778), which yields to the host between tables and rows with the
+ *  same mechanism rather than a second copy of it. */
+export const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 
 /** How far a read-back `minHeight` may sit from the value written and still count as kept: a hundredth of a
  *  pixel. The host stores it at single precision, which moves an ~80px value by ~2e-6; a genuinely dropped or

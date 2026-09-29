@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.199.0 — #1778 + #259 (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
+ * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
+ * unknown name is reported; a filtered run supersedes nothing and re-stacks only its own pages. The executor
+ * yields to the host after every table and every ~28 cells (the component writer's `realYield`), and reports
+ * "table 7 of 22" to the pill and to an agent as progress phase `table`. The header FILLs its table instead of
+ * keeping the component's page width, and the grid follows the owner's examples: HUG tracks, FILL cells, text
+ * on one line (the FIXED columns and wrapped descriptions of 0.197.0 are gone). A plugin behavior change
+ * (principle 5) → ENGINE bump; no engine emission or projected surface moves, so `out/**` + `schema/*` are a
+ * stamp-only regen. CONTRACT STANDS at 13.2.0. Design record: `docs/45-style-guide-generator.md`.
+ *
  * 0.198.0 — #1745: Badge's three NEUTRAL pairs become mode contracts instead of example-brand measurements, so
  * every brand the engine generates is checked, not only the corpus. `border.secondary` is contracted against
  * `background.primary` at the mode's non-text bar (3:1, 4.5:1 in high-contrast), and its `pickClosest` now
@@ -4110,7 +4120,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.198.0';
+export const ENGINE_VERSION = '0.199.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

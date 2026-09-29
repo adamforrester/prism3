@@ -162,6 +162,9 @@ export interface HostCommit {
         // #259 — the outcome of a `style-guide` run, its own slot.
         | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+        // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
+        // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
+        | { kind: 'style-guide-progress'; done: number; total: number }
         // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
         // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
         // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
@@ -204,6 +207,7 @@ export type StyleGuideOptionsMsg = {
   aliases?: boolean;
   description?: boolean;
   display?: 'auto' | 'default' | 'text' | 'icon' | 'border' | 'transparency';
+  tables?: string[];
 };
 /** Kept in sync with `messages.ts` `UiToMain` (`style-guide`, #259). */
 type UiStyleGuideMsg = { type: 'style-guide'; options?: StyleGuideOptionsMsg };
@@ -279,6 +283,12 @@ const figmaCommit = (): HostCommit => ({
         if (phase && done !== null && total !== null && total > 0) {
           cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
         }
+      } else if (m.type === 'style-guide-progress') {
+        // #1778. Validated and dropped when unusable, for the `component-progress` reason above.
+        const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
+        const done = n(m.done);
+        const total = n(m.total);
+        if (done !== null && total !== null && total > 0 && done <= total) cb({ kind: 'style-guide-progress', done, total });
       } else if (m.type === 'prune-result') {
         // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
         // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.

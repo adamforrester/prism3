@@ -225,6 +225,31 @@ for (const c of CASES) {
   ok(Array.isArray(((bc.result?.data as { build?: { known?: unknown } }).build)?.known), 'build-components: the known def ids are structured data');
 }
 
+/* ── style-guide tables + progress (#1778) ───────────────────────────────────────────────────────────── */
+section('style-guide — tables reach the handler; a table reading is progress, never a verdict (#1778)');
+{
+  const orig = actions.styleGuide;
+  let got: unknown = null;
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    const sink = a[1] as { post(m: unknown): void };
+    sink.post({ type: 'style-guide-progress', done: 0, total: 2, tableMs: 0 });
+    sink.post({ type: 'style-guide-progress', done: 1, total: 2, tableMs: 12 });
+    sink.post({ type: 'style-guide-progress', done: 2, total: 2, tableMs: 7 });
+    sink.post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
+  };
+  posted.length = 0;
+  const { id } = await send('style-guide', { tables: ['Primary — nbds', 'Text — pds3'] });
+  await tick();
+  const r = (await read(id)) as AgentResult;
+  actions.styleGuide = orig;
+  ok(JSON.stringify(got) === JSON.stringify({ tables: ['Primary — nbds', 'Text — pds3'] }), `style-guide: args.tables reaches the handler as sent (${JSON.stringify(got)})`);
+  ok(r.ok && (r.result?.verdict as { type?: string } | null)?.type === 'style-guide-result' && !('earlierVerdicts' in (r.result?.data ?? {}))
+    && JSON.stringify((r.progress ?? []).map((p) => `${p.phase} ${p.done}/${p.total} ${p.chunkMs}ms`)) === JSON.stringify(['table 0/2 0ms', 'table 1/2 12ms', 'table 2/2 7ms']),
+    `style-guide: each table reading streams as progress phase "table", and the verdict is the result alone (${JSON.stringify(r.progress?.map((p) => p.phase))})`);
+  ok(!posted.some((m) => m.type === 'style-guide-progress'), 'style-guide: an agent run\'s table readings are not forwarded to the panel as verdicts');
+}
+
 /* ── envelope ───────────────────────────────────────────────────────────────────────────────────────── */
 section('envelope — every field, every command');
 for (const r of results) {
@@ -307,6 +332,13 @@ section('failures — answered, never silent');
   await tick();
   const rf = (await read(sf.id)) as AgentResult;
   ok(rf.ok === false && rf.error?.code === 'bad-args' && calls.length === 0, 'style-guide with valueFormat cmyk → bad-args');
+  for (const [tables, what] of [['Primary — nbds', 'a string'], [[], 'an empty list'], [['Primary — nbds', ''], 'an empty name']] as const) {
+    calls.length = 0;
+    const st = await send('style-guide', { tables });
+    await tick();
+    const rt = (await read(st.id)) as AgentResult;
+    ok(rt.ok === false && rt.error?.code === 'bad-args' && /args\.tables/.test(rt.error.message) && calls.length === 0, `style-guide with ${what} for tables → bad-args, and the style guide is not run`);
+  }
 
   // An entry with no usable id cannot be answered by id — it is reported on the link record instead.
   const q = JSON.parse(root.getSharedPluginData(MAILBOX.ns, MAILBOX.inbox));

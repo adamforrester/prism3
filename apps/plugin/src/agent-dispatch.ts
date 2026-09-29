@@ -198,8 +198,12 @@ export const createDispatcher = (deps: Deps) => {
     let logsDropped = 0;
     const sink: ActionSink = {
       post(m) {
-        if (m.type === 'component-progress') {
-          const p: AgentProgress = { at: now().toISOString(), phase: m.phase, done: m.done, total: m.total, chunkMs: m.chunkMs };
+        if (m.type === 'component-progress' || m.type === 'style-guide-progress') {
+          // A style-guide reading (#1778) is progress, not a verdict: it streams as phase `table`, never into
+          // `verdicts`, where 41 readings would each count as an earlier verdict.
+          const p: AgentProgress = m.type === 'component-progress'
+            ? { at: now().toISOString(), phase: m.phase, done: m.done, total: m.total, chunkMs: m.chunkMs }
+            : { at: now().toISOString(), phase: 'table', done: m.done, total: m.total, chunkMs: m.tableMs };
           if (progress.length < PROGRESS_CAP) progress.push(p);
           deps.onProgress?.(c.id, p);
         } else {

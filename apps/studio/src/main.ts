@@ -753,6 +753,9 @@ let styleGuideState: { ok: boolean; headline: string; summary: string } | 'pendi
 /** The Customize options (#259). Session state, not persisted with the brand: they shape a drawing of the
  *  file's variables, not the brand itself. Proposed, owner to confirm (docs/45). */
 const styleGuideOptions: StyleGuideOptionsMsg = {};
+/** How far the in-flight style-guide run has got (#1778) — `null` between runs and before the first reading.
+ *  A sibling of `styleGuideState`, not a variant of it, for the `componentProgress` reason: not a verdict. */
+let styleGuideProgress: { done: number; total: number } | null = null;
 /** How far the in-flight component build has got (#684) — `null` between builds and until the first
  *  chunk boundary reports.
  *
@@ -903,9 +906,22 @@ commit.onHostMessage((m) => {
   if (m.kind === 'style-guide-result') {
     // #259. The file-setup handling, against its own slot and row.
     styleGuideState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    styleGuideProgress = null;
     openDetail = m.ok ? null : 'styleguide';
     if (barHost) { renderBar(); syncApplyDetail(); }
     syncStyleGuideRow();
+    return;
+  }
+  if (m.kind === 'style-guide-progress') {
+    // #1778. The `component-progress` handling below, for the style guide's own pill: accepted only while a run
+    // is in flight, written as text into every live pending pill rather than re-rendering the bar.
+    if (styleGuideState !== 'pending') return;
+    styleGuideProgress = { done: m.done, total: m.total };
+    const text = styleGuidePendingText();
+    for (const node of styleGuidePendingEls) {
+      if (node.isConnected) node.textContent = text;
+      else styleGuidePendingEls.delete(node);
+    }
     return;
   }
   if (m.kind === 'component-progress') {
@@ -5210,7 +5226,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
   const det = el('details', 'contracts') as HTMLDetailsElement;
   const sum = el('summary', 'contracts-sum');
-  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns'));
+  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns · tables'));
   det.append(sum);
   const pick = <K extends 'valueFormat' | 'header' | 'display'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
     const s = selectEl();
@@ -5225,6 +5241,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
       'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'),
     knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
+    knob('Tables', tablesField(), 'Draws only the tables named, by title and separated by commas (Primary — nbds). Empty draws every table.'),
   );
   sec.append(det);
 
@@ -5234,7 +5251,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   styleGuideBtn = btn;
   btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
-    styleGuideState = 'pending'; openDetail = null;
+    styleGuideState = 'pending'; styleGuideProgress = null; openDetail = null;
     renderBar(); syncApplyDetail(); syncStyleGuideRow();
     commit.postStyleGuide({ ...styleGuideOptions });
   };
@@ -5243,6 +5260,31 @@ const renderStyleGuidePage = (host: PageHost): void => {
   sec.append(row);
   host.append(sec);
 };
+
+/** The Tables filter (#1778): a comma-separated list of table titles, sent as `tables` and left out when empty.
+ *  A text field rather than a checklist of titles: the titles are the main thread's plan of this file's
+ *  variables, which the panel does not hold until a run reports them. A name that matches nothing comes back
+ *  in the verdict with every title this run can draw. */
+const tablesField = (): HTMLInputElement => {
+  const input = el('input', 'tf-in') as HTMLInputElement;
+  input.type = 'text'; input.spellcheck = false; input.placeholder = 'Every table';
+  input.setAttribute('aria-label', 'Tables to draw, separated by commas');
+  input.value = (styleGuideOptions.tables ?? []).join(', ');
+  input.oninput = () => {
+    const names = input.value.split(',').map((x) => x.trim()).filter(Boolean);
+    if (names.length) styleGuideOptions.tables = names; else delete styleGuideOptions.tables;
+  };
+  return input;
+};
+
+/** The style guide's live pending text (#1778): the table being drawn, counted from 1. Before the first
+ *  reading, and from a host build older than this one, the pre-#1778 string. */
+const styleGuidePendingText = (): string => {
+  const p = styleGuideProgress;
+  return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : 'Drawing the style guide…';
+};
+/** The live style-guide pending pills, for `componentPendingEls`' reason: the bar and the page each render one. */
+const styleGuidePendingEls = new Set<HTMLElement>();
 
 /** The style-guide row's status, refreshed in place (#259) — `syncFileSetupRow`'s mechanism, its own slot. */
 let styleGuideRow: HTMLElement | null = null;
@@ -9489,7 +9531,12 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
     if (which === 'filesetup') return el('span', 'bar-seed', 'Setting up file…');
-    if (which === 'styleguide') return el('span', 'bar-seed', 'Drawing the style guide…');
+    if (which === 'styleguide') {
+      // #1778: the run reports each table, so this pill is cached for in-place updates like the component build's.
+      const node = el('span', 'bar-seed', styleGuidePendingText());
+      styleGuidePendingEls.add(node);
+      return node;
+    }
     const node = el('span', 'bar-seed', componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.

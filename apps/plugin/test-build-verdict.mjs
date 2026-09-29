@@ -596,6 +596,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       button: btn ? btn.textContent : null,
       disabled: btn ? btn.disabled : null,
       verdict: btn ? [...btn.parentElement.querySelectorAll('.applystat')].map((n) => n.textContent) : [],
+      pendingText: btn ? [...btn.parentElement.querySelectorAll('.bar-seed')].map((n) => n.textContent) : [],
       customize: det ? { open: det.open, text: det.textContent } : null,
       sent: window.__sent,
     };
@@ -609,6 +610,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.locator('details.contracts summary', { hasText: 'Customize' }).first().click();
   await page.locator('.knob', { hasText: 'Color value' }).locator('select').selectOption('hsl');
   await page.locator('.knob', { hasText: 'Display style' }).locator('select').selectOption('border');
+  // #1778: the Tables field — titles separated by commas, sent as a list, blanks dropped.
+  await page.locator('.knob', { hasText: 'Tables' }).locator('input').fill('Primary — nbds,  Text — pds3, ');
   const clicked = await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#259 the Draw style guide control can be clicked');
   // postMessage delivers asynchronously; a real condition rather than a sleep.
@@ -617,6 +620,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(pending.button === '⋯ Drawing…' && pending.disabled === true, `#259 a run in flight reads "⋯ Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
   ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
     `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
+  ok(JSON.stringify(pending.sent[0]?.options?.tables) === JSON.stringify(['Primary — nbds', 'Text — pds3']),
+    `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);
+  // #1778: a progress reading rewrites the page's pending pill in place.
+  await post(page, { type: 'style-guide-progress', done: 6, total: 22, tableMs: 900 });
+  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row .bar-seed')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const counting = await readSg();
+  ok(counting.pendingText.length === 1 && counting.pendingText[0] === 'Drawing table 7 of 22…', `#1778 a run in flight counts its tables on the page's row — read ${JSON.stringify(counting.pendingText)}`);
 
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables: 11 on ↳ Primitive tokens, 11 on ↳ Semantic tokens' });
   await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '▦ Draw style guide'), null, { timeout: 5000 }).catch(() => {});

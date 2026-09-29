@@ -141,6 +141,7 @@ npx tsx tools/figma-mcp/agent-link.ts send apply-theme --brand aurora
 npx tsx tools/figma-mcp/agent-link.ts send build-components '{"def":"button"}'
 npx tsx tools/figma-mcp/agent-link.ts send file-setup
 npx tsx tools/figma-mcp/agent-link.ts send style-guide '{"collections":["color"]}'
+npx tsx tools/figma-mcp/agent-link.ts send style-guide '{"tables":["Primary — nbds"]}'   # one table, by title or key
 npx tsx tools/figma-mcp/agent-link.ts send prune '{"confirm":false}' --brand aurora
 npx tsx tools/figma-mcp/agent-link.ts send readback
 npx tsx tools/figma-mcp/agent-link.ts read <id>                          # the result, or where the command is
@@ -171,7 +172,7 @@ What a result holds (`apps/plugin/src/agent-protocol.ts` is the definition):
 | `result.verdict` | the message the panel would have shown: `apply-result`, `component-result`, `file-setup-result`, `style-guide-result`, `prune-result` or `seed-info`, headline and summary byte for byte |
 | `result.data` | the facts behind the verdict: misses by axis, orphans, stranded collections, renames (`apply`); the component report, its counters and telemetry (`build`); the prune plan (`prunePlan`); the file-setup pages (`fileSetup`); every style-guide table and its diff (`styleGuide`); the contract checks (`readback`) and a census of every component page with each set's own build report (`components`) |
 | `result.logs` | every console line the plugin printed while the command ran |
-| `progress` | `component-progress` readings for a build |
+| `progress` | `component-progress` readings for a build (phase `build`, `wire` or `retry`), and a style-guide run's tables (phase `table`: `done` of `total`, `chunkMs` what the last table took) |
 | `error` | `{ code, message }` for a command that was not run |
 
 A result larger than 90 kB is split across several keys; the `read` script reassembles it. If a result
@@ -180,6 +181,10 @@ is too large to return in one `use_figma` call, read one subtree with `--path`.
 Rules:
 
 - **One command in flight at a time.** Send, read until done, then send the next.
+- **Work up to a full style guide one table at a time.** `style-guide` takes `tables`, a list of table titles as
+  drawn ("Primary — nbds") or keys, in any case. A name that matches no table comes back in
+  `result.verdict.summary` with every title the run can draw. A filtered run never deletes or reports another
+  table as stale; run without `tables` to have the generator judge those.
 - **`prune` with `confirm: true` deletes.** Send the preview (`confirm: false`) first and report its
   `result.verdict.summary` to the owner before sending the delete.
 - **No `cleanup` command exists**, because no panel action removes components. Use §4's scripts.
