@@ -184,9 +184,9 @@ const makeShim = (plans: AnatomyPlan[], page: { children: any[] }) => {
   const styleNames = [...new Set(plans.flatMap((p) => planTextStyles(p.root)))];
   const effectNames = [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))];
   // THE SHIM'S VARIABLES CARRY A ROOT, because the file's variables do (#1097) and a plan's binding names
-  // do not. `planBoundVars` returns root-relative names — `size/md/gap` — and the executor resolves them
+  // do not. `planBoundVars` returns root-relative names — `size/md/height` — and the executor resolves them
   // against `tailOf(v.name)`, so a shim handing those names back verbatim is not a shim of a real file: the
-  // tail of `size/md/gap` is `md/gap`, every lookup misses, and the executor silently skips every bind it
+  // tail of `size/md/height` is `md/height`, every lookup misses, and the executor silently skips every bind it
   // was asked to make. That is not a hypothetical — it reported 9563 unclaimed pairs across 59 groups, i.e.
   // ~every visually-significant property in the corpus, which reads as a catastrophic executor regression
   // rather than as a shim that stopped resembling Figma.

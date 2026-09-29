@@ -23,7 +23,7 @@ import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpace } from '@prism3/engine/scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { previewSpec } from '@prism3/engine/preview';
@@ -4676,7 +4676,11 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
     // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
     // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
     { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
-    { title: 'Density & size', sub: 'Component sizing — control height per step. The density name stays stable; the heights shift, and each component\'s padding moves one step on the spacing scale.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
+    // Per mode, the note says what a mode's own density does and does not move (owner, 2026-09-29, docs/28
+    // §5.4.3); the sentence is the density lever's own, so the knob and the section read the same.
+    { title: 'Density & size', sub: perMode
+      ? 'Component sizing — control height per step. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.'
+      : 'Component sizing — control height per step. The density name stays stable; the heights shift, and each component’s padding and gaps move one step on the spacing scale.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
     // which is more use than a section that quietly vanished.
@@ -7546,7 +7550,7 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
   for (const b of BUTTON_SIZES) {
     const h = sizes.find((x) => x.name === b.step);
     if (!h) continue;
-    const at = (k: string): number => spacePx(densitySpace((BUTTON_SPACING as Record<string, string>)[`size.${b.size.toLowerCase()}.${k}`], theme.dims.density)) ?? 0;
+    const at = (k: string): number => { const key = `size.${b.size.toLowerCase()}.${k}`; return spacePx(densitySpacingStep(key, (BUTTON_SPACING as Record<string, string>)[key], theme.dims.density)) ?? 0; };
     const z = { height: h.height, padX: at('padding-x'), padXVisual: at('padding-x-visual'), gap: at('gap') };
     const off = smaller && b.step === 'md';
     const iconPx = ICON_SIZES.find((i) => i.name === (off ? 'xs' : b.icon))?.px ?? 16;

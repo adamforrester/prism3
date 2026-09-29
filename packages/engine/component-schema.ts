@@ -28,7 +28,7 @@
  */
 import { normalizeRef, tokenPaths, isPrimitiveRef } from './eval';
 // The space ladder `densitySpacing` binds to (the spacing model). `scale.ts` is a leaf module: no cycle.
-import { SPACE_LADDER } from './scale';
+import { SPACE_LADDER, GAP_FLOOR_PX, isGapKey, SPACE_BASE } from './scale';
 // #1602 — type-only (erased at runtime, so no cycle and no plugin-bundle weight) for the weightIntent
 // category. `theme.ts` imports nothing back from here.
 import type { TypeGroup } from './theme';
@@ -55,7 +55,7 @@ export type PropDef = {
 // `ComponentDef` already carried the semantic contract (props/states/variants/a11y) and the
 // paint (`tokens`). What it never carried is structure: the node tree, the layout model, and
 // the slot→property mapping a materializer needs to actually call `createComponent()`. A
-// binding like `size.medium.padding-x → size.md.padding-x` says nothing about WHAT that
+// binding like `size.medium.height → size.md.height` says nothing about WHAT that
 // padding is applied to.
 //
 // THE LINE THIS DRAWS, and it is the load-bearing decision here:
@@ -3368,6 +3368,8 @@ const densitySpacingErrors = (def: ComponentDef): string[] => {
     const m = /^space\.([0-9]+)$/.exec(ref);
     if (!m || !SPACE_LADDER.includes(m[1]))
       e.push(`densitySpacing names '${k}' → '${ref}', which is not a step of the space ladder — density moves a spacing one step along space.*, so it must bind one`);
+    else if (isGapKey(k) && (Number(m[1]) / 100) * SPACE_BASE < GAP_FLOOR_PX)
+      e.push(`densitySpacing names the gap '${k}' → '${ref}', under the ${GAP_FLOOR_PX}px gap floor at comfortable — no gap goes below ${GAP_FLOOR_PX}px at any density`);
   }
   return e;
 };

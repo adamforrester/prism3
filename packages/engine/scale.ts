@@ -162,6 +162,13 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
 // must stay 0 at every density (Tag's dismissible trailing inset) is kept OUT of `densitySpacing` rather
 // than relying on the clamp, since spacious would move it to 2px.
 //
+// THE GAP FLOOR (owner, 2026-09-29): no GAP goes below 4px at any density. A gap is the space between two
+// things inside a component (icon→label, label→check, a row's control→label), and under 4px it stops reading
+// as space at all. So the step rule clamps a gap at `GAP_FLOOR_PX` after the step: compact small Tag's
+// label→check would step 4 → 2 and stays 4. PADDINGS are not floored. A density-following key is a gap when
+// its last segment is `gap` or ends in `-gap` (`size.medium.gap`, `size.small.check-gap`), the corpus's own
+// spelling; `densitySpacingStep` is the one place that reads a key that way.
+//
 // Heights keep their own density window (`componentSizes`, below). This rule replaces the window padding
 // used to ride on.
 /** The space ladder "one step" is measured on, in order. */
@@ -171,13 +178,22 @@ export const DENSITY_SPACE_SHIFT: Record<Density, number> = { compact: -1, comfo
 /** A def's comfortable `space.<key>` ref, moved for `density`: one step down at compact, one up at spacious,
  *  clamped at both ends of `SPACE_LADDER`. Throws on a ref that is not a step of the ladder — a
  *  density-following binding off the scale has no "one step" to take. */
-export const densitySpace = (ref: string, density: Density): string => {
+export const densitySpace = (ref: string, density: Density, floorPx = 0): string => {
   const m = /^space\.([0-9]+)$/.exec(ref);
   const i = m ? SPACE_KEYS.indexOf(m[1]) : -1;
   if (i < 0) throw new Error(`densitySpace: '${ref}' is not a step of the space ladder (${SPACE_KEYS.map((k) => `space.${k}`).join(', ')}), so density has no step to move it`);
-  const j = Math.min(SPACE_KEYS.length - 1, Math.max(0, i + DENSITY_SPACE_SHIFT[density]));
+  let j = Math.min(SPACE_KEYS.length - 1, Math.max(0, i + DENSITY_SPACE_SHIFT[density]));
+  // A floor lifts the step back up the ladder to the first one at or above it (the gap floor, above).
+  while (j < SPACE_KEYS.length - 1 && (Number(SPACE_KEYS[j]) / 100) * SPACE_BASE < floorPx) j++;
   return `space.${SPACE_KEYS[j]}`;
 };
+/** The smallest a GAP may be at any density, in px (owner, 2026-09-29). Paddings have no floor. */
+export const GAP_FLOOR_PX = 4;
+/** Is this density-following `tokens` key a GAP? Its last segment is `gap` or ends in `-gap`. */
+export const isGapKey = (key: string): boolean => /(^|-)gap$/.test(key.split('.').pop() ?? '');
+/** One density-following key's step at `density`: the step rule, with the gap floor for a gap. */
+export const densitySpacingStep = (key: string, ref: string, density: Density): string =>
+  densitySpace(ref, density, isGapKey(key) ? GAP_FLOOR_PX : 0);
 
 // Component-size ladder. A "size" is a CONTRACT (a control height) every component opts into — guaranteeing
 // a `md` button, input and select agree. Spacing is not part of it (the spacing model, above).

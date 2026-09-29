@@ -69,7 +69,7 @@
 | switch-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
 | tag | small | `padding-x` | 8 → 6 | 16 → 8 | 16 → 12 |
 | tag | small | `gap` | 4 → 4 | 8 → 6 | 8 → 8 |
-| tag | small | `check-gap` | 4 → 2 | 8 → 4 | 8 → 6 |
+| tag | small | `check-gap` | 4 → 4 (gap floor) | 8 → 4 | 8 → 6 |
 | tag | small | `select.padding-end` | 8 → 6 | 16 → 8 | 16 → 12 |
 | tag | small | `dismissible.padding-end` | 8 → 0 | 16 → 0 | 16 → 0 |
 | tag | medium | `padding-x` | 16 → 8 | 16 → 12 | 24 → 16 |
@@ -90,9 +90,16 @@ Tag's old values are what it bound before: the shared `padding-x` on both sides 
 - `materialization-renames`: a pure deletion had no register; it could only surface as an unaccounted removal. `MATERIALIZATION_DELETIONS` records it with the decision in `why`, evaluated over the whole before-set, contradicted if a claimed name is still emitted while the emission moved.
 - `lint-component-surface` and `lint-paint` baselines accepted: bindings moved from `size/*` to `space/*`, Tag gained a node; member and assignment counts unchanged.
 
-**Held for the owner.**
-- Per-mode density (`modeLevers.<mode>.density`) now moves heights only. A Figma component binds one `space/*` variable per side and the space collection is density-free, so a mode at a different density keeps the brand's baseline spacing. Nothing in the corpus uses per-mode density.
-- Some compact and spacious values move in directions worth a look: compact small spacing grows (Button padding-x 8 → 12, gap 4 → 6) because the old window slid small onto a rung with half the padding; spacious large Button/field padding-y shrinks 16 → 12.
+**Owner decisions on the held items** (`docs/28` §5.4.1–5.4.3, indexed).
+- **Gap floor: no gap below 4px at any density.** `densitySpacingStep` clamps a gap (a key whose last segment is `gap` or ends in `-gap`) at `GAP_FLOOR_PX` after the step; paddings are not floored, and the validator refuses a gap under 4px at comfortable. The only value it moves is compact small Tag's label→check, 2 → 4 (the table above); nothing else moves, and the orderings still hold (compact small Tag: both gaps 4, padding-x 6).
+- **The density step rule stands as written**, including compact small growing (Button padding-x 8 → 12, gap 4 → 6; row gaps 4 → 6) and spacious large block padding 16 → 12.
+- **Per-mode density changes heights only.** The lever stays. One sentence, the same in the density lever's description (shown on every per-mode Density knob), the studio's per-mode "Density & size" note and `docs/28`: "Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only." `test.ts` checks the lever and `docs/28`; the studio smoke suite checks every per-mode Density knob it meets (3 per run).
+
+**Independent review of 88d9a238** (approved on correctness; the seven non-Tag components' Figma plans byte-identical to main at comfortable across five brands). Folded in:
+- The deletion register gets check 2: on every run, no name a recorded deletion claims may be emitted by any brand. Without it a later PR could re-emit `size/md/gap` unseen, and a later rename of it would be written off (docs/34 shape 11). The same arm catches one brand's `size.json` restored by hand.
+- The deletion arm of the accounting is driven directly: honored, contradicted by a still-emitted name, and claimed twice by a deletion and a rename.
+- A def that states `padding-x-visual` must carry the #326 rule itself, with a fixture that must fail (Tag given an icon-side padding and a #325-only rule).
+- The studio's per-mode "Density & size" note says the decided sentence, and stale `size/md/gap` example names in comments now name `size/md/height`.
 
 **Mutations.** Each after a `wip:` commit, restored with `git checkout --` and a clean `git status`; every one fails a named assertion:
 
@@ -105,6 +112,11 @@ Tag's old values are what it bound before: the shared `padding-x` on both sides 
 | (e) dismissible right padding back to padding-x (`inlineEnd` removed) | `tag rendered width (×4)` (dismissible 92, want 80) |
 | (f) Button medium padding-x 16 → 12 (one step off) | `spacing model: every def's padding and gaps …` · `spacing ordering: #325 … #326 … hold for every rule …` (padding-x-visual 8 !< padding-x 8) · the `#1667 edges` arms (184 failures in all) |
 | (g) Tag's ordering rule dropped | `spacing ordering: every def that states a gap beside a padding has an ordering rule … NO RULE: tag` |
+| (h) gap floor removed (`densitySpacingStep` passes no floor) | `spacing model: every def's padding and gaps …` (tag@compact small 6/4/2) · `spacing model: the gap floor … (got 2) — UNDER: tag@compact size.small.check-gap: 2` |
+| (i) the per-mode sentence dropped from the density lever | `spacing model: "Spacing follows the brand’s density…" is in the density lever's description…` · `lever manifest: schema/lever-manifest.json is up to date` · studio smoke `per-mode density: every per-mode Density knob (3 met) says … MISSING: prism3 / Size & radius / Dark` |
+| (j) `size/md/gap` re-emitted for nb in the source (`tree.ts` + `emit-figma-dims.ts`, then regen) | `spacing model: the size tier holds heights only …` · `materialization deletions check 2: … STILL EMITTED: [delete:size-spacing-removed-spacing-model] nb size :: nbds/size/md/gap` · `lint-materialization-renames` (contradicted: still emitted) |
+| (k) the deletion contradiction arm neutered | `materialization deletions: a deletion whose name is still emitted is contradicted, by name ([])` |
+| (l) the #326 scope arm accepts any rule | `spacing ordering: a def that states padding-x-visual carries the #326 rule … the fixture … is caught: NOT caught` |
 
 **Traps.**
 - The studio must not reference `componentDefs` outside the `PRISM3_HOST === 'figma'` gate (`COMPONENT_CATALOGUE`); read spacing from `button-spacing.ts`.

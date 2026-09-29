@@ -25,7 +25,7 @@
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, Density } from './scale';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpace, ratioMinWidth } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -2099,7 +2099,8 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
  * Materialize a def's spacing for a brand's density. Identity at `comfortable` and for a def that names no
  * `densitySpacing` (it returns the same object, so every comfortable plan is byte-identical). At `compact`
  * every named key's step moves ONE STEP DOWN the space ladder, at `spacious` ONE STEP UP, clamped at the
- * ladder's ends. Keys off the list are untouched, which is how a 0px inset stays 0 at every density.
+ * ladder's ends, and a GAP never below `GAP_FLOOR_PX` (`densitySpacingStep`). Keys off the list are
+ * untouched, which is how a 0px inset stays 0 at every density.
  *
  * Per-mode density (`modeLevers.<mode>.density`) does NOT reach this: a Figma component binds one `space/*`
  * variable per side, and the space collection is density-free, so a mode that runs a different density
@@ -2111,7 +2112,7 @@ export const applySpacingDensity = (def: ComponentDef, density: Density): Compon
   for (const k of densitySpacingKeys(def)) {
     const ref = tokens[k];
     if (ref === undefined) throw new Error(`${def.id}: densitySpacing names '${k}', which is not a slot in tokens`);
-    tokens[k] = densitySpace(ref, density);
+    tokens[k] = densitySpacingStep(k, ref, density);
   }
   return { ...def, tokens };
 };

@@ -2931,7 +2931,7 @@
  * `size.<rung>.{padding-x,padding-x-visual,padding-y,gap}` (CONTRACT 14.0.0, below), and every component states
  * its own padding and gaps as `space.*` steps at comfortable density (`ComponentDef.densitySpacing`). Density
  * follows by rule: `applySpacingDensity` moves each named step one step down the space ladder at compact and
- * one up at spacious, clamped at the ends. Button, text-field, textarea, select and the checkbox, radio and
+ * one up at spacious, clamped at the ends, and no gap goes below 4px (`GAP_FLOOR_PX`). Button, text-field, textarea, select and the checkbox, radio and
  * switch rows are pixel-identical at comfortable; their compact and spacious spacing moves (the per-size table
  * is in the PR and the progress entry). Tag takes the owner's mockup values (padding 8/12/16, icon→label
  * 6/8/12, label→check 4/6/8), a nested label-and-check row, a 0 trailing inset before the dismissible × slot,

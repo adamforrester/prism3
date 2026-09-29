@@ -653,7 +653,31 @@ needs to override one component's spacing without editing its spec.
 
 **What does not move with it.** A mode that runs its own density (`modeLevers.<mode>.density`) moves its
 heights; a Figma component binds one `space/*` variable per side and the space collection is
-density-free, so its spacing stays at the brand's baseline density. Held for the owner.
+density-free, so its spacing stays at the brand's baseline density. Decided below (§5.4.3).
+
+#### 5.4.1 Decided (2026-09-29): no gap goes below 4px at any density
+
+The step rule clamps every GAP a def states (icon→label, label→check, a row's control→label, Button's gap)
+at a 4px minimum after the step (`GAP_FLOOR_PX`, `densitySpacingStep`). Paddings are not floored. A
+density-following key is a gap when its last segment is `gap` or ends in `-gap`, and the validator refuses a
+gap under the floor at comfortable. The one value it moves in the corpus is compact small Tag's label→check,
+2 → 4px; the #325/#326 orderings still hold everywhere with it (compact small Tag: both gaps 4, padding-x 6).
+
+#### 5.4.2 Decided (2026-09-29): the density step rule stands as written
+
+Accepted with its consequences for the converted components, including the two whose direction reads
+against intuition: compact small spacing grows (Button padding-x 8 → 12px, gap 4 → 6px; the rows' small gap
+4 → 6px), because the old rung window gave compact small half the padding; and spacious large block padding
+shrinks from 16 to 12px on Button and the fields. The per-component table is in `docs/00-progress.md`
+(2026-09-29, the spacing model) and #1792.
+
+#### 5.4.3 Decided (2026-09-29): per-mode density changes heights only
+
+The per-mode density lever stays. A Figma component binds one `space/*` variable per side and the space
+collection is density-free, so a mode cannot carry its own spacing without per-component tokens, which §5.4
+rejects. The studio says so wherever it sets a per-mode density, in the density lever's own description:
+
+> Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.
 
 ---
 

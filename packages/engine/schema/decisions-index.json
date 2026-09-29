@@ -187,6 +187,27 @@
       "title": "size is for size, space is for space — a component states its own spacing, and density moves it one step",
       "doc": "docs/28-component-anatomy-schema.md",
       "section": "5.4"
+    },
+    {
+      "date": "2026-09-29",
+      "issue": null,
+      "title": "no gap goes below 4px at any density",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.4.1"
+    },
+    {
+      "date": "2026-09-29",
+      "issue": null,
+      "title": "the density step rule stands as written",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.4.2"
+    },
+    {
+      "date": "2026-09-29",
+      "issue": null,
+      "title": "per-mode density changes heights only",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.4.3"
     }
   ]
 }

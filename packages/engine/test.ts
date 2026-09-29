@@ -40,7 +40,7 @@ import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSIO
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, type RenameMap } from './rename-map';
 import {
-  MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
+  MATERIALIZATION_RENAMES, MATERIALIZATION_DELETIONS, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
   recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
@@ -2817,6 +2817,17 @@ for (const b of brands) {
       `spacing model: the size tier holds heights only — no size.*.padding-x / padding-x-visual / padding-y / gap in DTCG or the Figma size collection, in ${builds.length} builds${extra.length ? ` — FOUND: ${extra.slice(0, 6).join('; ')}` : ''}`);
   }
 
+  // PER-MODE DENSITY CHANGES HEIGHTS ONLY (owner, 2026-09-29, `docs/28` §5.4.3), said in one sentence, the same
+  // in the density lever's description (which the studio shows wherever it sets a per-mode density; its smoke
+  // suite checks the rendered knob) and in the decision record.
+  {
+    const SENTENCE = 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.';
+    const lever = leverManifest.find((l) => l.key === 'density') as any;
+    const doc28 = readFileSync(resolve(HERE, '../../docs/28-component-anatomy-schema.md'), 'utf8');
+    ok(!!lever && String(lever.description).includes(SENTENCE) && doc28.includes(SENTENCE),
+      `spacing model: "${SENTENCE}" is in the density lever's description (${lever ? 'found' : 'no lever'}) and in docs/28 (${doc28.includes(SENTENCE)})`);
+  }
+
   // 2. THE STEP RULE, on the ladder as written. EXPECTED is a literal table of (ref, density) → ref.
   {
     const RULE: [string, 'compact' | 'comfortable' | 'spacious', string][] = [
@@ -2862,7 +2873,7 @@ for (const b of brands) {
       select: { compact: 'bare 12/6/6', comfortable: 'bare 16/8/8', spacious: 'bare 20/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
       'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
-      tag: { compact: 'small 6/4/2/6/0 · medium 8/6/4/8/0 · large 12/8/6/12/0', comfortable: 'small 8/6/4/8/0 · medium 12/8/6/12/0 · large 16/12/8/16/0', spacious: 'small 12/8/6/12/0 · medium 16/12/8/16/0 · large 20/16/12/20/0' },
+      tag: { compact: 'small 6/4/4/6/0 · medium 8/6/4/8/0 · large 12/8/6/12/0', comfortable: 'small 8/6/4/8/0 · medium 12/8/6/12/0 · large 16/12/8/16/0', spacious: 'small 12/8/6/12/0 · medium 16/12/8/16/0 · large 20/16/12/20/0' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -2883,6 +2894,31 @@ for (const b of brands) {
     // The defs above are every def that names a density-following spacing, and no other def does.
     const named = componentDefs.filter((d) => d.densitySpacing?.length).map((d) => d.id).sort().join(',');
     ok(named === Object.keys(SPECS).sort().join(','), `spacing model: the defs whose spacing follows density are exactly the ${Object.keys(SPECS).length} tabled here (${named})`);
+
+    // THE GAP FLOOR (owner, 2026-09-29, `docs/28` §5.4.1): no gap below 4px at any density; paddings are not
+    // floored. The gap keys are listed here, per def, literally. The floor's one move in the corpus is compact
+    // small Tag's label→check, which the bare step rule takes to 2px (`space.025`); the table above holds it at 4.
+    const GAP_KEYS: Record<string, string[]> = {
+      button: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'button-destructive': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'button-neutral': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'text-field': ['gap'], select: ['gap'],
+      'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'switch-row': ['size.small.gap', 'size.medium.gap'],
+      tag: ['size.small.gap', 'size.medium.gap', 'size.large.gap', 'size.small.check-gap', 'size.medium.check-gap', 'size.large.check-gap'],
+    };
+    const under: string[] = [];
+    for (const [id, keys] of Object.entries(GAP_KEYS)) {
+      const def = componentDefs.find((d) => d.id === id)!;
+      for (const d of densities) {
+        const m = applySpacingDensity(def, d);
+        for (const k of keys) { const px = SPACE_PX.get(m.tokens[k]); if (!(px !== undefined && px >= 4)) under.push(`${id}@${d} ${k}: ${px ?? m.tokens[k]}`); }
+      }
+    }
+    const tagCheck = SPACE_PX.get(applySpacingDensity(componentDefs.find((d) => d.id === 'tag')!, 'compact').tokens['size.small.check-gap']);
+    ok(under.length === 0 && tagCheck === 4 && densitySpace('space.050', 'compact') === 'space.025',
+      `spacing model: the gap floor — no gap is under 4px at any density in ${Object.keys(GAP_KEYS).length} defs, and compact small Tag's label→check is held at 4 where the bare step gives 2 (got ${tagCheck})${under.length ? ` — UNDER: ${under.join('; ')}` : ''}`);
   }
 
   // 4. THE ORDERINGS (#325, #326), now the specs' own rules. A literal rule per def: which key pairs must be
@@ -2915,6 +2951,18 @@ for (const b of brands) {
     const missing = stating.filter((id) => !(id in RULES));
     ok(missing.length === 0 && stating.length === Object.keys(RULES).length,
       `spacing ordering: every def that states a gap beside a padding has an ordering rule (${stating.join(', ')})${missing.length ? ` — NO RULE: ${missing.join(', ')}` : ''}`);
+    // A def that states an ICON-SIDE padding (`padding-x-visual`) needs the #326 rule specifically — both of its
+    // pairs — not just any rule. Checked over the corpus and over a fixture that must fail: Tag given a
+    // `padding-x-visual` while its rule stays #325-only.
+    const lacks326 = (defs: readonly ComponentDef[]): string[] => defs
+      .filter((d) => Object.entries(d.tokens).some(([k, ref]) => k.split('.').pop() === 'padding-x-visual' && String(ref).startsWith('space.')))
+      .filter((d) => { const lt = RULES[d.id]?.lt.map(([a, b]) => `${a}<${b}`) ?? []; return !(lt.includes('gap<padding-x-visual') && lt.includes('padding-x-visual<padding-x')); })
+      .map((d) => d.id);
+    const tagDef326 = componentDefs.find((d) => d.id === 'tag')!;
+    const fixture326 = lacks326([{ ...tagDef326, tokens: { ...tagDef326.tokens, 'size.medium.padding-x-visual': 'space.100' } }]);
+    const corpus326 = lacks326(componentDefs);
+    ok(corpus326.length === 0 && fixture326.join() === 'tag',
+      `spacing ordering: a def that states padding-x-visual carries the #326 rule (gap < padding-x-visual < padding-x) — corpus lacking it: ${corpus326.join(', ') || 'none'}; the fixture (tag with a padding-x-visual and a #325-only rule) is caught: ${fixture326.join(', ') || 'NOT caught'}`);
     const broken: string[] = [];
     let checks = 0;
     for (const [id, rule] of Object.entries(RULES)) {
@@ -14461,7 +14509,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // see below for the assertion that a merged set would have let through.
     const emittedEffects = new Set<string>();
     // #1097 — `emitted` HOLDS TAILS, `emittedStyles`/`emittedEffects` HOLD NAMES, and the asymmetry is the
-    // artifact's own: a variable is emitted as `nbds/size/md/gap`, a style as `label/md/emphasis` with no
+    // artifact's own: a variable is emitted as `nbds/size/md/height`, a style as `label/md/emphasis` with no
     // namespace and no tier. A plan's bound variable names are root-relative (see `figmaVarName`), so the
     // comparison space for variables is tail space and for styles it is name space.
     //
@@ -14472,7 +14520,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // brand whose namespace nobody here has spelled.
     //
     // A dropped namespace fails this arm rather than sneaking through, which is worth being sure of:
-    // `tailOf('size/md/gap')` on an un-namespaced emission returns `md/gap`, so the plan's `size/md/gap`
+    // `tailOf('size/md/height')` on an un-namespaced emission returns `md/height`, so the plan's `size/md/height`
     // finds nothing and every binding reports MISSING.
     for (const f of readdirSync(resolve(HERE, 'out/figma/nb'))) {
       if (!f.endsWith('.json')) continue;
@@ -15200,7 +15248,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     /** The brand namespace every variable in the stubbed file carries (#1097) — and DELIBERATELY a root
      *  no brand in the corpus emits.
      *
-     *  A real Figma file holds `nbds/size/md/gap`; a plan binds `size/md/gap`, because a plan is a
+     *  A real Figma file holds `nbds/size/md/height`; a plan binds `size/md/height`, because a plan is a
      *  function of the def alone and knows no brand (see `figmaVarName`). The two spaces meet in the
      *  executors, which key the live variables by TAIL. Rooting the stub is therefore what makes this
      *  block model a real file at all — before #1097 the stub's names WERE the plan's names, and the
@@ -19106,9 +19154,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // variable the anatomy plan binds must appear in the payload that would be pasted.
     const dimsCreate = passJs('nb', 'dims-create');
     const wanted = [...new Set(button.variants.size.flatMap((s) => planBoundVars(figmaAnatomyPlan(button, s, { leading: true, trailing: true }).root)))];
-    // TWO SPACES, ONE COMPARISON (#1097). `wanted` is root-relative — a plan binds `size/md/gap` and
+    // TWO SPACES, ONE COMPARISON (#1097). `wanted` is root-relative — a plan binds `size/md/height` and
     // knows no brand — while the payload creates the name Figma will hold, `nbds/core/dimension/0` and
-    // `nbds/size/md/gap`. `nbFixName` is the fixture's own hand-written translation (root on, `core/` for
+    // `nbds/size/md/height`. `nbFixName` is the fixture's own hand-written translation (root on, `core/` for
     // a core group), not something imported from the emitter, so a wrong translation on either side shows
     // up here rather than cancelling out. The QUOTES stay: dropping them to be root-agnostic would let
     // any prefix satisfy the substring test, including a doubled one.
@@ -19680,7 +19728,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `undefined` and throw at paste time — the exact class of error a payload should never carry.
   ok(!/"[a-z*]*\?[a-z*]*"/.test(create), 'materialise: every float scope encodes to a known code (no `?` in the payload)');
 
-  // Alias targets must resolve WITHIN the float lane — `size/md/gap → space/100`,
+  // Alias targets must resolve WITHIN the float lane — `size/md/height → dimension/44`,
   // `icon/size/md → dimension/24`. A target naming a variable no create pass makes would paste
   // clean and then miss silently at bind time.
   const created = new Set<string>();
@@ -19696,8 +19744,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // The component tier is the reason this pass exists (#327 binds it), so name it explicitly
   // rather than trusting the axis-coverage check to imply it.
-  // Rooted (#1097). `includes` on a quoted string is a substring test, so an unrooted `"size/md/gap"`
-  // matches nothing in a payload full of `"nbds/size/md/gap"` and these four arms would report the
+  // Rooted (#1097). `includes` on a quoted string is a substring test, so an unrooted `"size/md/height"`
+  // matches nothing in a payload full of `"nbds/size/md/height"` and these five arms would report the
   // component tier missing — the right verdict for the wrong reason. Note the direction that does NOT
   // work: dropping the quotes to make the test root-agnostic would match the rooted name as a substring
   // and pass whatever the prefix turned out to be, including a doubled one.
@@ -24445,6 +24493,46 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   ok(missingImages.length === 0,
     `#1039 check 2: every rule's image IS emitted — a rule pointing at a name nothing emits is `
     + `\`target-not-planned\` at apply time, i.e. inert and silent. ${missingImages.slice(0, 3).join(' · ')}`);
+  // CHECK 2 FOR THE DELETION REGISTER (the spacing model, 2026-09-29). A deletion is a standing claim that its
+  // names are gone, so on EVERY run — no git, no base ref — nothing matching a deletion's domain may be emitted
+  // by any brand. Without this, a later PR could re-emit `size/md/gap` and the accounting would never see it
+  // (no removal in its diff), and a later rename of it would be written off by the deletion (docs/34 shape 11).
+  // Also the arm that sees one brand's size.json put back to a pre-deletion copy without regen.
+  {
+    const revived: string[] = [];
+    for (const brand of brands) {
+      const root = rootOf(brand);
+      for (const key of emissionOf(brand)) {
+        const { collection, name } = parseVarKey(key);
+        for (const d of MATERIALIZATION_DELETIONS) if (d.domain(collection, name, root)) revived.push(`[delete:${d.id}] ${brand} ${key}`);
+      }
+    }
+    ok(MATERIALIZATION_DELETIONS.map((d) => d.id).join(',') === 'size-spacing-removed-spacing-model' && revived.length === 0,
+      `materialization deletions check 2: no name a recorded deletion claims is emitted by any of ${brands.length} brands (deletions: ${MATERIALIZATION_DELETIONS.map((d) => d.id).join(', ')})${revived.length ? ` — STILL EMITTED: ${revived.slice(0, 4).join(' · ')}` : ''}`);
+  }
+  // THE DELETION ARM OF THE ACCOUNTING, driven directly with literal fixtures: honored, contradicted, and
+  // doubly claimed. Root `x`, the one deletion the register ships.
+  {
+    const K = (n: string) => varKey('size', `x/size/md/${n}`);
+    const DEL = MATERIALIZATION_DELETIONS.filter((d) => d.id === 'size-spacing-removed-spacing-model');
+    // (1) honored: `gap` leaves, nothing arrives, the deletion claims it — total, nothing unaccounted.
+    const honored = accountFor(new Set([K('gap'), K('height')]), new Set([K('height')]), [], parseVarKey, 'x', [], DEL);
+    // …and the same diff with no deletion register is an unaccounted removal, so (1) is the register's doing.
+    const bare = accountFor(new Set([K('gap'), K('height')]), new Set([K('height')]), [], parseVarKey, 'x', [], []);
+    ok(DEL.length === 1 && isTotal(honored) && honored.unaccountedRemovals.length === 0 && !isTotal(bare) && bare.unaccountedRemovals.join() === K('gap'),
+      `materialization deletions: a recorded deletion accounts for its removal (honored total: ${isTotal(honored)}; without the register: ${bare.unaccountedRemovals.join(', ') || 'nothing unaccounted'})`);
+    // (2) contradicted: `gap` is still emitted while the emission moved (`width` arrived).
+    const kept = accountFor(new Set([K('gap'), K('height')]), new Set([K('gap'), K('height'), K('width')]), [], parseVarKey, 'x', [], DEL);
+    ok(!isTotal(kept) && kept.contradictedClaims.length === 1 && kept.contradictedClaims[0].rule === 'delete:size-spacing-removed-spacing-model'
+      && kept.contradictedClaims[0].from === K('gap') && kept.contradictedClaims[0].contradiction === 'still emitted — the deletion says it left and it did not',
+      `materialization deletions: a deletion whose name is still emitted is contradicted, by name (${JSON.stringify(kept.contradictedClaims)})`);
+    // (3) a deletion and a rename of the same name: one operation, two records — multiply claimed.
+    const RENAME: MaterializationRule = { id: 'fixture-gap-rename', since: '0.0.0', why: 'fixture', domain: (c, n) => c === 'size' && n === 'x/size/md/gap', map: () => 'x/size/md/spacing' };
+    const both = accountFor(new Set([K('gap')]), new Set([K('spacing')]), [RENAME], parseVarKey, 'x', [], DEL);
+    ok(!isTotal(both) && both.multiplyClaimed.length === 1 && both.multiplyClaimed[0].key === K('gap')
+      && both.multiplyClaimed[0].rules.join(',') === 'fixture-gap-rename,delete:size-spacing-removed-spacing-model',
+      `materialization deletions: a name both renamed and deleted is claimed twice and fails (${JSON.stringify(both.multiplyClaimed)})`);
+  }
   // ---- #1013: THE ARTIFACT'S FIRST REAL ENTRIES ----
   //
   // #1039 shipped this empty and `test.ts` asserted the emptiness, because `docs/44` §8 left open whether
