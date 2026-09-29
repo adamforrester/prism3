@@ -43,11 +43,17 @@ So rebinding to the contracted role changes what read-only looks like in every m
 
 ### Review round (independent review of #1772 at 5ba93331; no blockers)
 
-- **A fill-framed def was dropped silently.** A discovered def whose read-only member drew no stroked node contributed zero paints and stayed green. The cell floor (`brands × 3 × 2`) also ignored modes and statuses. Now every discovered member in a swept state, at every status, must draw at least one stroked boundary node, or `a11y(#1710): every discovered field member in a swept state … draws a stroked boundary` fails and names it. A pinned def must also project every swept state. The floor is now exact: every mode × stroked member × ground, so a skipped cell fails it.
+- **A fill-framed def was dropped silently.** A discovered def whose read-only member drew no stroked node contributed zero paints and stayed green. The cell floor (`brands × 3 × 2`) also ignored modes and statuses. Now every discovered member in a swept state, at every status, must draw at least one stroked boundary node, or `a11y(#1710): every discovered field member in a swept state … draws a stroked boundary` fails and names it. A discovered pinned def must also project every swept state. A pinned def that is not discovered at all (no `read-only` on its axis) fails the representation arm. The floor is now exact: every mode × stroked member × ground, so a skipped cell fails it.
 - **The prose overclaimed hover.** The defs' SC 1.4.11 lines said the hover border is gated, and nothing gated a def's hover binding. The sweep now covers `rest`, `hover` and `filled` as well as `read-only` (`RO_SWEPT`). `read-only` keeps its assertion name; the other three states fail under `a11y(#1710): every projected rest / hover / filled field member's border clears 3:1 …`.
 - **What the hover sweep found, filed rather than fixed.** At hover the control's fill is the translucent overlay wash. Against that washed ground the status borders (`border.danger` / `warning` / `success`, contracted against the page alone) measure 2.64–3.00:1, in 132 members across 44 cells. That is a pre-existing defect outside #1710, filed as **#1782**. The sweep holds out exactly that coordinate (non-default status × hover), counts it, and names #1782 beside the exclusion. The neutral hover border clears 3:1 against the wash everywhere.
 - **One absent fill is allowed, and counted.** Brands whose `outlineInteraction` lever opts out of overlay tokens (`none`, `solid-tint`: `minimal-levers` and the NB master theme) emit no hover wash by design. The hover member then paints no fill and is measured on the bare ground, with the count printed in the floor assertion. Any other absent or unresolvable fill is a failure.
 - **Nit.** The fixture's first field now says nothing reads it.
+- **Mutations** (each committed first, confirmed applied, restored from HEAD):
+  - textarea's control made fill-framed (`paintSlots` without `border`, no `strokeWidth`): `… every discovered field member in a swept state … draws a stroked boundary …` names 13 textarea members, and the representation arm names textarea.
+  - textarea `border.hover` → `color.border.secondary`: `… every projected rest / hover / filled field member's border clears 3:1 …` names 32 textarea hover cells.
+  - Each def's `border.read-only` back to `color.border.secondary`: the read-only arm names only that def, 12 light cells each, plus text-field's and select's pins.
+  - `read-only` dropped from select's axis: the representation arm names select.
+  - The #1782 exclusion disabled: the rest / hover / filled arm names the 132 status × hover members across all three defs.
 
 ## (2026-09-28) — Veil: directional gradient washes, and component-level gradient paint (#1318)
 
