@@ -720,7 +720,7 @@ const main = async (): Promise<void> => {
     ok(byTitle('semantic', 'Text')!.description === '23 text roles in color, per mode, each measured against the ground it is contracted for', '8: Text header: every role measured');
     ok(byTitle('semantic', 'Scrim')!.description === '1 scrim role in color, per mode', '8: Scrim header: no role is measured, so it does not say so');
     ok(byTitle('primitive', 'Legacy')!.description === '4 primitive colors in legacy', '8: Legacy header: nothing references it, so it does not say so');
-    ok(byTitle('primitive', 'Primary')!.description === '20 primitive colors in core, 19 referenced by a semantic role', '8: Primary header counts its referenced steps');
+    ok(byTitle('primitive', 'Primary')!.description === '20 primitive colors in core, each referenced by a semantic role', '8: Primary header counts its referenced steps');
     ok(byTitle('primitive', 'Accent')!.description === '20 primitive colors in core', '8: Accent header: no role references it, so it does not say so');
     ok(byTitle('semantic', 'Foreground')!.description === '13 foreground roles in color, per mode, 5 measured against the ground they are contracted for', '8: Foreground header counts its measured roles');
 

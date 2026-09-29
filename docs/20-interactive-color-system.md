@@ -67,6 +67,8 @@ destructiveAnchorStep?: number;  // optional fill-step override for the built-in
 
 **Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.inverse.*` (unconditional since #895), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 488-contract machinery (§13).
 
+*Forward note (2026-09-29, #1626 / #1763): `fill.focused` and `fill.selected` resolve to the `fill.rest` step in every mode; only `hover` and `pressed` walk. On the inverse band, the brand `on-fill` is picked to clear 4.5:1 on all five state fills, not on rest alone. See `docs/00-progress.md`.*
+
 **Naming.** `name` (or the palette name it defaults to) must be a single lowercase slug and must be **unique** and **must not collide** with a built-in column (`primary`/`neutral`/`destructive`) — the engine throws a clear error otherwise, mirroring the `actionPalette`/`brandColors` validation. The `palette` must be a **defined palette** (validated like `actionPalette`); an undefined palette throws.
 
 **Placement.** By default a column's rest fill anchors at the palette's pinned step (a `brandColors` accent → its own lightness step; `primary` → the primary anchor; an unanchored neutral/status palette → the 500 mid pivot), then the engine nudges to clear the fill's contrast floor. `anchorStep` overrides that placement per column. The built-in primary/destructive columns take the same override via `actionAnchorStep` / `destructiveAnchorStep`.

@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7490196228027344,
-        "b": 0.7372549176216125,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/150"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.9607843160629272,
-        "g": 0.8901960849761963,
-        "b": 0.886274516582489,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/050"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -1609,14 +1609,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7019608020782471,
-        "b": 0.6901960968971252,
+        "r": 0.9058823585510254,
+        "g": 0.5607843399047852,
+        "b": 0.5490196347236633,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/200"
+        "name": "wds/core/palette/danger/300"
       }
     },
     {
@@ -1628,14 +1628,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.9490196108818054,
-        "g": 0.8352941274642944,
-        "b": 0.8274509906768799,
+        "r": 0.9058823585510254,
+        "g": 0.5607843399047852,
+        "b": 0.5490196347236633,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/100"
+        "name": "wds/core/palette/danger/300"
       }
     },
     {
@@ -1949,14 +1949,14 @@
       ],
       "description": "Neutral fill, focused",
       "value": {
-        "r": 0.21568627655506134,
-        "g": 0.21960784494876862,
-        "b": 0.2235294133424759,
+        "r": 0.12941177189350128,
+        "g": 0.13333334028720856,
+        "b": 0.13333334028720856,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/750"
+        "name": "wds/core/palette/neutral/850"
       }
     },
     {
@@ -1968,14 +1968,14 @@
       ],
       "description": "Neutral fill, selected",
       "value": {
-        "r": 0.30588236451148987,
-        "g": 0.3137255012989044,
-        "b": 0.3176470696926117,
+        "r": 0.12941177189350128,
+        "g": 0.13333334028720856,
+        "b": 0.13333334028720856,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/650"
+        "name": "wds/core/palette/neutral/850"
       }
     },
     {
@@ -3245,7 +3245,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
       "value": {
         "r": 1,
         "g": 1,
@@ -3585,7 +3585,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
       "value": {
         "r": 1,
         "g": 1,

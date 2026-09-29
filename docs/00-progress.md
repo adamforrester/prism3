@@ -7,6 +7,164 @@
 
 ---
 
+## (2026-09-29) — On-fill: the label clears 4.5:1 on every persistent fill state (#1626, #1763)
+
+**Owner-decided (2026-09-29, after the before/after comparison page): "rest fill + deeper inverse ink".** ENGINE 0.201.0 → **0.202.0** (renumbered at net after #1749, #1776, #1772, #1767 and #1783 took 0.197.0–0.201.0); CONTRACT stands at 13.2.0, since no token name moves.
+
+**What was wrong.** `interactive.<c>.on-fill` (and its `inverse.` twin) was gated against `fill.rest` only. The engaged fills were never measured against the label on them, and 113 focused or selected pairs missed 4.5:1 across the token-contract corpus, prism3 and the NB master theme:
+- Page ground, `dark` only: primary everywhere but aurora (focused 3.21–3.67, selected 2.32–2.62), destructive in nb (3.59 / 2.60) and wendys (3.31 / 2.41). The selected pair is the switch's on thumb and the checkbox's checked mark (#1763), under even the 3:1 glyph floor.
+- Inverse band, light and dark: primary and destructive in every brand (focused 3.30–4.36, selected 2.53–3.55), from the #1456 stepped neutral fills.
+
+**Why no mechanism reached it, which is why this went to the owner.** On the page in `dark`, the steps where the fill clears its 3:1 floor and the near-white label clears 4.5:1 are the rest step alone (nb, harbor, wendys primary, prism3), or rest plus one darker step (minimal, wendys destructive), so no re-step exists. No single neutral ink clears rest and selected together either: pure black reaches 3.55–4.23:1 for primary.
+
+**The change.**
+- **Page:** `fillStateCand` returns the rest step for `focused` and `selected`, in every mode. Hover and pressed still walk. The focus ring marks focus, and the role names stay.
+- **Inverse:** `brandOnFill` takes the other fills the ink is painted on, and picks the first step, from the least-contrasting end, that clears 4.5:1 on all five state fills. It falls back to the rest-only pick if no step does. The pick is deeper at rest too: prism3 primary goes from 500 to 650 in light and 350 in dark; wendys primary lands on 600 and 300. The inverse on-fill `$description` now says "on every state of the white / black fill, rest through selected".
+- Hover and pressed stay exempt by the owner's earlier call (#1456, #1626). On the inverse band they clear anyway, because the one ink has to clear selected, which is pressed's fill. On the page in `dark` they still dip (3.21–3.67 / 2.32–2.62).
+
+**Before → after** (ink on fill, ratio):
+- prism3 dark, page `primary` selected: `neutral.025 #f7f7f7` on `primary.350 #7398f8`, 2.59 → on `primary.550 #294cfd`, 5.53.
+- prism3 light, inverse primary: `primary.500 #3d68fc` → `primary.650 #1914e2`. Rest on white 4.58 → 9.38; selected on `neutral.200 #c0c1c2` 2.54 → 5.20.
+- prism3 dark, inverse primary: `primary.500 #3d68fc` → `primary.350 #7398f8`. Rest on black 4.58 → 7.58; selected on `neutral.800 #2c2c2e` 3.04 → 5.03.
+- NB master (light only): page `primary` selected `#34383d` 11.80 → `#0b0e10` 19.36. Inverse destructive `primary.450 #d53c43` → `primary.650 #91001a`: rest 4.61 → 9.46, selected 2.56 → 5.25. Inverse primary is overridden to `neutral.950` and holds at 18.08 / 10.77.
+
+**Gates.**
+- `test.ts` `(4c) #1626` measures every emitted `on-fill` against all five fill states, in every mode of every corpus brand, prism3 and the NB master theme. The floor is authored in the test at 4.5:1. Rest and focused/selected must clear it with no register (the 113-entry pinned register from the first commit of this PR is gone). Hover/pressed are measured and exempt, and counted in the represented line. It also fails on any emitted fill state it does not measure, and on any `on-fill` that declares a min other than 4.5.
+- The #1763 exemption (`darkOnGap === 10`) is removed. The switch arm now holds on thumb and on glyph at 3:1 in every mode, `dark` included. A new arm pins the dark literals for the switch's on thumb and, through `checkbox-control`'s own bindings, the checked mark: nb 5.24, aurora 4.60, harbor 5.23, wendys 5.49, minimal 4.63, prism3 5.53:1.
+- `#1244` "most vivid" now requires the neighbor toward the fill to fail on at least one of the five state fills, read off the emitted tree. A rest-only neighbor check would call the new pick "too far".
+- `#1354` literals moved with the on track: NB master light `#0b0e10`, 14.01:1 off vs on; prism3 light `#1e1eff`, 5.65:1.
+
+**Fallout, measured.**
+- `lint-paint` and `lint-component-surface` pass without a re-accept: the defs bind the same role names, and the surface baseline is brand-independent.
+- `token-contract --accept` moved only the informational `engineVersion` field.
+- `.ai.json` `when_to_use` for `fill.focused` / `fill.selected` drops its generated "drops below 4.5:1 in dark mode" clause.
+- Emitted paths that moved: page `fill.focused` / `fill.selected`, inverse `fill.*` descriptions (the label notes), and inverse `on-fill`. No `text.*`, `icon.*` or `border.*` role moved, so #1367's pairs are untouched.
+- Radio's checked dot (`fill.selected` on the page) is now 3.30–10.03:1 corpus-wide, still above 3:1. Its prose, and the tag and switch prose, are updated.
+- **For the owner:** in `dark` the switch's on track now sits closer to the dark off track, at 2.71–14.01:1 across modes (prism3 dark and wendys dark both 2.71:1, from 5.70 minimum before). No gate requires off vs on track at 3:1, since thumb position carries the state, but it is a visible cost of the decision.
+
+**Review follow-ups (independent review of #1773 at 18287261).**
+- **A `fill.rest` override left focused/selected behind.** The override layer rewrites one role, and `on-fill` re-picks against the overridden rest (the pre-derivation `asGround` path), so the two twins stayed on the derived step. Repro: prism3 dark with rest overridden to `primary.300` gave on-fill `neutral.950` at 3.28:1 on selected, with no warning. `withFillStateTwins` now carries a page `fill.rest` override to `fill.focused` / `fill.selected` unless a twin has its own override, beside `withIconTwins`. The inverse band is not matched. The test pins all three on `#86a7f7` with the ink at 8.22:1. No corpus brand overrides `fill.rest`, so `out/` does not move.
+- **The selected fill on darker dark-mode surfaces (measured for the owner; decided below as option 2).** The radio's checked dot, the checkbox's checked box and the switch's on track all bind `interactive.primary.fill.selected`, which is now the rest step. The rest fill is gated at 3:1 against `background.secondary`, the floor every page fill uses, so on `background.tertiary` in `dark` it misses 1.4.11:
+
+  | brand | mode | before (selected step) P / S / T | after (rest step) P / S / T |
+  |---|---|---|---|
+  | nb | dark | red.350 6.97 / 6.44 / 5.73 | red.550 3.46 / 3.20 / **2.85** |
+  | aurora | dark | accent.300 7.95 / 7.32 / 6.57 | accent.500 4.26 / 3.92 / 3.52 |
+  | harbor | dark | primary.350 6.91 / 6.37 / 5.70 | primary.550 3.46 / 3.19 / **2.86** |
+  | wendys | dark | primary.300 7.14 / 6.59 / 5.87 | primary.500 3.30 / 3.05 / **2.71** |
+  | minimal | dark | primary.300 7.80 / 7.21 / 6.42 | primary.500 3.91 / 3.61 / 3.22 |
+  | prism3 | dark | primary.350 7.01 / 6.46 / 5.80 | primary.550 3.28 / 3.03 / **2.71** |
+  | nb | light | red.750 12.08 / 9.94 / 8.78 | red.550 5.62 / 4.62 / 4.08 |
+  | aurora | light | accent.700 10.03 / 8.27 / 7.26 | accent.500 4.56 / 3.76 / 3.30 |
+  | harbor | light | primary.800 11.49 / 10.11 / 8.88 | primary.600 5.59 / 4.91 / 4.32 |
+  | wendys | light | primary.700 11.42 / 9.41 / 8.25 | primary.500 5.88 / 4.85 / 4.25 |
+  | minimal | light | primary.700 10.29 / 8.48 / 7.44 | primary.500 4.97 / 4.10 / 3.59 |
+  | prism3 | light | primary.800 15.08 / 12.42 / 10.90 | primary.600 7.82 / 6.44 / 5.65 |
+  | NB master | light | brand-neutral.750 11.80 / 9.72 / 8.54 | brand-neutral.950 19.36 / 15.95 / 14.01 |
+
+  P, S and T are `background.primary`, `.secondary` and `.tertiary`. HC modes flatten the tiers and measure 8.44–10.03 after. A filled button at rest already sits at these same numbers on a tertiary card; the selected controls now share them. The options are for the owner:
+  1. Accept, and document `background.secondary` as the darkest tier a filled control is contracted on.
+  2. Gate every page interactive fill against `background.tertiary`, the #1352 pattern for destructive ink. Measured in `dark`: rest moves one step lighter in nb, harbor, wendys and prism3 (red.500, primary.500, primary.450, primary.500; 3.32–3.51:1 on tertiary; aurora and minimal already clear). The label escalates to pure white at 4.58–4.80:1. This moves every dark filled button.
+  3. Rebind only the radio dot, the one of the three drawn straight on the page with no fill of its own, to a role gated against `background.tertiary`. No primary role at 3:1 against tertiary exists today, and the primary border/icon inks are #1367's pairs, so this needs a new role or #1367 first.
+- Nits: the radio prose says 3.28–10.03 (prism3 dark 3.28) and names the tertiary gap; the switch low of 2.71 names prism3 dark and wendys dark.
+- `.ai.json` `when_to_use` for page `fill.selected` read "selectable rows when selected / active" (the shared `STATE_WHEN` in `ai-metadata.ts`). A draft replacement went to the owner; shipped below.
+
+**Owner decisions on the review (2026-09-29).**
+- **Option 2: every page interactive fill clears 3:1 against `background.tertiary` too** (the #1352 pattern). `modes.ts` `restFill` passes `background.tertiary` as `pickBrand`'s `alsoClear` for the page `fill.rest` of primary, destructive and every declared palette. The solver takes the nearest step to the anchor that clears the floor (`background.secondary`) and the tertiary tier. Focused and selected are the rest step, so they follow; hover and pressed keep their walk and their exemption. An authored pin stays `exact` (#331). The recorded `against` stays the floor; `test.ts` measures the tertiary arm. The neutral fill is not a solver pick (subtle has no floor, strong is a fixed step); measured with `neutralEmphasis: 'strong'` on prism3 and the NB master theme, it clears both tiers in every mode. The inverse band is untouched.
+
+  Rest fills that moved (before → after, on `background.secondary` / `.tertiary`, and the label):
+
+  | brand | mode | family | before | after |
+  |---|---|---|---|---|
+  | nb | dark | primary, destructive | red.550 `#cf0b2c` · 3.20 / 2.85 · `neutral.025` 5.24 | red.500 `#d53d44` · 3.92 / 3.49 · `white` 4.58 |
+  | harbor | dark | primary | primary.550 `#297272` · 3.19 / 2.86 · `neutral.025` 5.23 | primary.500 `#437f7f` · 3.91 / 3.50 · `white` 4.58 |
+  | wendys | dark | primary | primary.500 `#c8102e` · 3.05 / 2.71 · `neutral.025` 5.49 | primary.450 `#ce3d44` · 3.73 / 3.32 · `white` 4.80 |
+  | prism3 | dark | primary | primary.550 `#294cfd` · 3.03 / 2.71 · `neutral.025` 5.53 | primary.500 `#3d68fc` · 3.91 / 3.51 · **`black`** 4.58 |
+  | harbor | light | destructive | danger.500 `#cd4840` · 3.31 / 2.91 · `white` 4.57 | danger.550 `#b83d36` · 4.04 / 3.56 · `white` 5.59 |
+
+  Aurora and minimal already cleared. Harbor's light destructive fill moved too, because it read 2.91:1 on tertiary. **prism3 dark's label turned pure black, not white** (since resolved: the owner's tie rule below makes it white). Neither softened ink clears 4.5:1 on `#3d68fc` (025 at 4.28:1; 950 falls short too), so `onColor` escalates to the better pure extreme: black 4.584 against white 4.581, a 0.003 margin. That is the existing mechanism's output, so it ships, but the owner expected white. A brand-level tie-break toward the light extreme in dark modes would be a new rule and is left to the owner. The softening pin in `test.ts` now reads "softened unless neither softened ink clears 4.5:1 on the fill", recomputed from the theme's neutral 025/950 (a synthetic brand there hit the same escalation).
+
+  `test.ts` holds a literal [P, S, T] table for the radio's checked dot, the checkbox's checked box and the switch's on track, each read through its own def binding, in every mode of the five distinct corpus palettes, prism3 and the NB master theme (225 cells, all ≥ 3:1; the tertiary minimum is 3.22, minimal dark). The #1763 dark literals moved to nb 4.58, aurora 4.60, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58. The switch's off track vs on track is 3.22–14.01:1 now (it was 2.71 before the gate). No `text.*`, `icon.*` or `border.*` value moved, so #1367 is untouched.
+- **The `.ai.json` guidance for page `fill.selected` ships as written:** "The fill of a filled `<color>` interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline." `describeInteractive` now takes `inverse` and switches the lead sentence for page `fill.selected` only. The shared `STATE_WHEN.selected` is unchanged, so every other role, the inverse `fill.selected` included, keeps its wording. The generated label note still follows.
+
+**Owner decision on the prism3 dark label (2026-09-29): prefer white on a near-tie in dark-family modes.** `modes.ts` `pureExtremeInk`: when pure white and pure black both clear 4.5:1 on the fill and sit within 0.05:1 of each other (`EXTREME_TIE`), `dark` and `hc-dark` take white; otherwise the higher ratio wins, as before, and light-family modes are unchanged.
+
+It was first scoped to the interactive `on-fill`, page and inverse. Applied to every `onColor` caller, it also moves 42 semantic `text.on-<status>` / `icon.on-<status>` cells black → white in `dark`, which went beyond the decision as worded, so it went back to the owner. The owner extended it the same day; see below.
+
+Cells that moved, all in `dark`, black → white:
+
+| brand | role | before | after |
+|---|---|---|---|
+| prism3 | page primary on-fill | 4.584 | 4.581 |
+| prism3 | page destructive on-fill | 4.596 | 4.569 |
+| aurora | page primary and destructive on-fill | 4.601 | 4.565 / 4.564 |
+| harbor | page destructive on-fill | 4.597 | 4.568 |
+| minimal (all six fixtures) | page destructive on-fill | 4.601 | 4.564 |
+
+No other cell moved. The #1763 aurora dark literal moved 4.60 → 4.56. `test.ts` pins the prism3 dark label as white at 4.58:1 on `#3d68fc`. It holds a light-mode near-tie on the same fill taking black, the higher ratio, and a fill where white is under 4.5:1 (`#7398f8`) taking black in a dark-family mode. The "softened unless…" pin's comment now names the tie rule; its assertion was already color-agnostic.
+
+**Owner decision (2026-09-29): the tie rule reaches the status on-colors.** `onColor` now applies `pureExtremeInk`'s dark-family tie rule for every caller, so the semantic `text.on-<status>` / `icon.on-<status>` inks on the solid status fills follow the interactive `on-fill`. The `tieToWhite` switch is gone from `onColor` and `pureExtremeInk`, since no caller opts out. Exactly 42 cells move, all in `dark`, all black → white, all still at or above 4.5:1. Each row is `text.on-*` and `icon.on-*`; the six minimal fixtures share one palette and each moves the same four cells:
+
+| brand | status fill | black (before) | white (after) |
+|---|---|---|---|
+| nb | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| aurora | on-brand on primary.500 `#7269ca` | 4.589 | 4.576 |
+| aurora | on-danger on danger.500 `#c94c44` | 4.601 | 4.564 |
+| aurora | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| harbor | on-danger on danger.500 `#cd4840` | 4.597 | 4.568 |
+| harbor | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| wendys | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| minimal (×6 fixtures) | on-danger on danger.500 `#c94c44` | 4.601 | 4.564 |
+| minimal (×6 fixtures) | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| prism3 | on-success on success.500 `#2e8554` | 4.599 | 4.566 |
+| prism3 | on-danger on danger.500 `#d24241` | 4.596 | 4.569 |
+
+That is 2 (nb) + 6 (aurora) + 4 (harbor) + 2 (wendys) + 24 (minimal) + 4 (prism3) = 42. No other role moved: measured role by role over the corpus, prism3, the NB master theme and every example brief, before and after. `on-warning` is served by the same picker and did not move in any brand, since none of its fills sits in the tie. No `text.*`, `icon.*` or `border.*` value outside `text.on-*` / `icon.on-*` moved, so #1367's pairs are untouched. The NB fixture's recorded divergence for dark `text|icon/on-info` moves from `palette/black` to `palette/white` in `test.ts` (NB authored `neutral/950`, so it stays a divergence).
+
+**Re-review follow-ups (independent re-review of 18287261..faafdf10).**
+- **S1: a pinned anchor skipped the tertiary gate silently.** An authored anchor is `exact` (#331), so `pickBrand` returns it without reading `alsoClear`. Repro: the minimal brand with `modeAnchors.dark.primary: 550` emits primary.550 `#3661b5` at 3.02:1 on the floor and 2.69:1 on `background.tertiary`, and nothing reported the second number. The pin stands, as author intent. The miss is now reported the way a missed override is. An override that misses its contract lands in `ModeResult.warnings` and fails a mode check, because its role's `ratio` falls under `min` and `tree.ts` counts every role with a `min`. So overrides DO count in `modeChecks` / `modePass`, and the tier miss does both:
+  - `resolveMode` ends with a tier check over every family whose page `fill.rest` came through `restFill` (primary, destructive, declared palettes), measured on the final value after the override pass.
+  - Each check is a `tierChecks` entry on `ModeResult`, and `tree.ts` counts it into `modeChecks` / `modePass`. A miss is also a `warnings` entry with `against: 'background.tertiary'`, a new optional field on `OverrideWarning`.
+  - The repro now reports one tier warning at 2.69:1 and 883/884 mode checks. The unpinned brand reports 884/884.
+  - Every brand gains 2 passing checks per mode (primary and destructive): the wendys fidelity report reads 884/884, from 876/876. No corpus brand, example or fixture misses, so no emitted value moves.
+  - The check also covers the fallback where no step clears both grounds and `pickBrand` returns the anchor, which was silent in the same way.
+- **S2: the tie rule lowers the dark hover / pressed label (documented, not changed).** Hover and pressed are exempt from the label floor (#1456, #1626), and `.ai.json` says so on each: "on this fill it drops below 4.5:1 in dark mode". The trade, for the six labels the rule moved (the label on the dark hover / pressed fill, black before → white after):
+
+  | brand | family | hover | pressed |
+  |---|---|---|---|
+  | prism3 | primary | 6.45 → **3.25** | 8.88 → **2.36** |
+  | prism3 | destructive | 6.34 → 3.31 | 8.75 → 2.40 |
+  | aurora | primary | 6.27 → 3.35 | 8.59 → 2.44 |
+  | aurora | destructive | 6.35 → 3.31 | 8.70 → 2.41 |
+  | harbor | destructive | 6.31 → 3.33 | 8.67 → 2.42 |
+  | minimal (×6) | destructive | 6.35 → 3.31 | 8.70 → 2.41 |
+
+  The lowest is prism3 dark primary: hover 3.25, pressed 2.36. Before the rule, the lowest of these six was hover 6.27, pressed 8.59. The dark labels that were already white sit in the same range: nb primary and destructive 3.25 / 2.40, harbor primary 3.28 / 2.41, wendys primary 3.26 / 2.28 (the corpus low), and wendys destructive 3.31 / 2.41. So the rule brings these six into line with the rest of the corpus. It still cuts the label by about half on hover and about three quarters on pressed.
+- **S3: two missing tests.** `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio` holds `#767676` (white 4.542, black 4.623, gap 0.081) at black. `#1626 an explicit fill.selected override beats the carried fill.rest override` holds prism3 dark with rest → primary.300 and selected → primary.600 at `#86a7f7` / `#86a7f7` / `#1e1eff`.
+- **NITs.**
+  - The both-clear guard is unreachable at the engine's 4.5:1 on-fill floor. Two inks within 0.05:1 of each other both sit at 4.558:1 or above, since white and black meet at 4.583. The guard protects a raised floor, so it stays, and `#1773 tie rule: when an extreme misses the floor …` witnesses it at a synthetic 7:1 on `#3d68fc`, where it must keep black.
+  - `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording` is the witness for the `!inverse` scope. The page wording has its own line beside it.
+  - The broken sentence in the `version.ts` 0.197.0 entry ("… decision. Emitted / A `fill.rest` override …") is fixed.
+
+ENGINE stays at 0.197.0: this is the same unmerged PR, and the orchestrator renumbers at net. CONTRACT stands at 13.2.0.
+
+**Mutations** (committed first, restored from HEAD):
+- MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.
+- MB, the inverse re-pick disabled (`alsoClear` emptied): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb light inverse focused 3.33:1, …). The `#1244` arm does not fire here: a rest-only pick is shallower, not too far. `(4c)` is the arm that holds it.
+- MD, `withFillStateTwins` removed from the override pass: `#1626 a fill.rest override carries to focused and selected` fails (focused and selected `#294cfd`, on-fill 3.28:1).
+- ME, the tertiary gate removed (`restFill` passes no `alsoClear`): `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on … .tertiary` (nb dark on tertiary 2.85:1, …) and `#1763 dark mode: … pinned literals` (nb 5.24 against 4.58, …).
+- MF, the dark-family tie rule removed from `pureExtremeInk`: `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc` fails (got `#000000`), with `#1763 dark mode: … pinned literals` (aurora 4.6 against 4.56).
+- MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
+- MG, the tie rule off for the status on-colors only (`onColor` takes the higher ratio at the `on-<status>` call site): `#1773 tie rule on the status on-colors: … take white at the pinned literals` fails (nb dark `text.on-info` `#000000`, …), with `figma color.dark: every alias targets the same palette var as the fixture` (NB `on-info` back to `palette/black`) and `aurora.design.md → byte-identical to out/aurora.tokens.json`.
+- MH, the tier check's report removed (no `tierChecks`, no warning): `#1773 a pinned anchor that misses background.tertiary is reported` fails (0 tier warnings, 0 failed mode checks).
+- MI, `EXTREME_TIE = 0.2`: `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio` fails (`#767676` got white), with the NB `on-warning` divergence arm (on amber.500 `#b36203` black leads white by 0.16, 4.665 vs 4.501, so a 0.2 tie flips it).
+- MJ, the explicit-twin precedence removed from `withFillStateTwins`: `#1626 an explicit fill.selected override beats the carried fill.rest override` fails (selected `#86a7f7`).
+- MK, the both-clear guard dropped from `pureExtremeInk`: `#1773 tie rule: when an extreme misses the floor (7:1 on #3d68fc …)` fails (got white).
+- ML, the `!inverse` scope dropped in `describeInteractive`: `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording` fails.
+- The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
+
+---
+
 ## (2026-09-29) — Status field borders clear 3:1 on the hover wash (#1782)
 
 **STATUS: PR open from `lane/status-border-hover`, labeled DO NOT MERGE. Closes #1782.** ENGINE 0.200.0 → **0.201.0** (renumbered at net after #1772 and #1767 took 0.199.0 and 0.200.0; the #1710 sweep's status × hover exclusion is removed in this merge, since this gate now covers it). Emitted values move; CONTRACT stands at 13.2.0 (no token name, no projected member; stamp-only accept). No new regen artifact.

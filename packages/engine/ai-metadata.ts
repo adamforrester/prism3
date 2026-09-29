@@ -308,7 +308,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
 // families (color + slot + optional fill-state), so it is described on its own
 // rather than through the [group, variant, state] split above.
 const INTERACTIVE_COLOR: Record<string, string> = { primary: 'primary', neutral: 'neutral', destructive: 'destructive', accent: 'accent' };
-const describeInteractive = (color: string, slot: string, state: string | undefined, ctx: Ctx): Described => {
+const describeInteractive = (color: string, slot: string, state: string | undefined, ctx: Ctx, inverse = false): Described => {
   const c = INTERACTIVE_COLOR[color] ?? color;
   // One shape for every sibling (AI/D-4): the other two colors, each as a resolvable family.
   const others = ['primary', 'neutral', 'destructive'].filter((o) => o !== c);
@@ -322,7 +322,13 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
     const rest = !state || state === 'rest';
     const fails = rest ? [] : ctx.failing(onFill, `interactive.${c}.fill.${state}`, min || 4.5);
     const note = rest ? '' : ` The label stays ${q(onFill)}, which is gated against ${q(`interactive.${c}.fill.rest`)} only${fails.length ? `; on this fill it drops below ${min || 4.5}:1 in ${modeList(fails)}` : ''}.`;
-    return { when_to_use: `The fill of a filled ${c} interactive element — buttons, controls, selectable rows${sc(state)}.${note}`, avoid_when: `Do not use for ${other}, or for outline/text appearances (use ${q(`interactive.${c}.text.*`)} or ${q(`interactive.${c}.border.*`)}).`, ...(rest ? { carries: [onFill] } : {}) };
+    // PAGE `fill.selected` IS THE REST FILL (#1626, owner, 2026-09-29), so the color cannot mark selection on its
+    // own; the owner's wording (#1773) says so. Page only: the inverse band's selected fill still steps (#1456),
+    // and the shared `STATE_WHEN.selected` keeps serving every other role unchanged.
+    const lead = !inverse && state === 'selected'
+      ? `The fill of a filled ${c} interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline.`
+      : `The fill of a filled ${c} interactive element — buttons, controls, selectable rows${sc(state)}.`;
+    return { when_to_use: `${lead}${note}`, avoid_when: `Do not use for ${other}, or for outline/text appearances (use ${q(`interactive.${c}.text.*`)} or ${q(`interactive.${c}.border.*`)}).`, ...(rest ? { carries: [onFill] } : {}) };
   }
   if (slot === 'on-fill') return { when_to_use: `The label / icon placed on a filled ${c} interactive element.`, avoid_when: `Do not use on the page or on outline controls — use ${q(`interactive.${c}.text.*`)}.`, sits_on: [`interactive.${c}.fill.rest`] };
   // text and icon (AI/A-15: the icon slot had no branch and fell through to the generic fallback) —
@@ -597,7 +603,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     };
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
     const base = group === 'interactive'
-      ? describeInteractive(variant, state, pageKey.split('.')[3], ctx)
+      ? describeInteractive(variant, state, pageKey.split('.')[3], ctx, inverse)
       : describe(group, variant, state, ctx);
     const d = inverse
       ? onInverseGround(base, pageKey, known)

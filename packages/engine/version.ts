@@ -2926,6 +2926,27 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.202.0 — #1626 / #1763 (owner-decided 2026-09-29, "rest fill + deeper inverse ink"): the `on-fill` label
+ * is measured against every interactive fill state it sits on. On the page, `interactive.<c>.fill.focused` and
+ * `.fill.selected` resolve to the rest step in every mode (they used to walk like hover/pressed, and in `dark`
+ * that put the near-white label at 2.32–2.62:1 on the switch's on track and the checkbox's checked box). On the
+ * inverse band, the brand `on-fill` (primary, destructive) is re-picked by `brandOnFill`'s own rule over all
+ * five state fills — the most vivid step clearing 4.5:1 on every one — so it lands a deeper step at rest too
+ * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision.
+ * A `fill.rest` override now carries to its page `focused` / `selected` twins (`withFillStateTwins`), so an
+ * overridden rest cannot strand the twins on the derived step (review of #1773). Every page interactive
+ * `fill.rest` (and so focused/selected) now also clears its floor against `background.tertiary` (owner,
+ * 2026-09-29, the #1352 pattern): in `dark` nb, harbor, wendys and prism3 move one step lighter. An authored
+ * anchor pin stays `exact` and skips that gate, so its tertiary miss is now reported: a `warnings` entry with
+ * `against: 'background.tertiary'` and a `tierChecks` entry that `tree.ts` counts into `modeChecks` /
+ * `modePass`, the way a missed override counts (review of #1773). The page `fill.selected` `.ai.json`
+ * guidance says selection must show by other means. `onColor`'s pure-extreme pick takes WHITE on a near-tie
+ * (both clear 4.5:1, within 0.05:1) in dark-family modes (owner, `pureExtremeInk`), for the interactive
+ * on-fill and, extended by the owner the same day, the `text.on-<status>` / `icon.on-<status>` inks: prism3,
+ * aurora, harbor and minimal dark on-fill labels and 42 dark status cells move black → white. Emitted values
+ * move in every brand, and the projected surface moves wherever a def binds a focused/selected fill or the
+ * inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
+ *
  * 0.201.0 — #1782: the three FIELD STATUS borders (`border.danger` / `border.warning` / `border.success`)
  * clear their non-text floor on the grounds a status field actually draws them on. `text-field`, `textarea`
  * and `select` keep the status border at hover, where the control fills with the translucent
@@ -4180,7 +4201,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.201.0';
+export const ENGINE_VERSION = '0.202.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

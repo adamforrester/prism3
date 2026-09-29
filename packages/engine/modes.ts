@@ -225,10 +225,14 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // input, so the roles measured against it kept the value and ratio they derived from the OLD one.
 // Optional rather than a separate union member so every existing reader of `{role, ratio, min}` keeps
 // working unchanged — the contrast fields are still the overridden role's own, and still correct.
-// `against` is set only on a warning about a role's SECOND contracted pair (`AlsoAgainst`, #1745), and
-// names that pair's partner; a warning without it is about the role's own `against`, as it always was.
+// `against` is set only when the miss is on a ground OTHER than the role's own `against`: the page fill's
+// `background.tertiary` tier (#1773), or a role's SECOND contracted pair (`AlsoAgainst`, #1745), naming that
+// pair's partner. A warning without it is about the role's own `against`, as it always was.
 export type OverrideWarning = { role: string; ratio: number; min: number; against?: string };
-export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; warnings?: OverrideWarning[] };
+// A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
+// `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
+export type TierCheck = { role: string; against: string; ratio: number; min: number };
+export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; tierChecks?: TierCheck[]; warnings?: OverrideWarning[] };
 
 /**
  * Which role family carries an outline/text control's hover fill, for the selected method — and
@@ -457,6 +461,53 @@ export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | un
 }
 
 /**
+ * THE PURE-EXTREME INK ON A FILL, WITH THE DARK-FAMILY TIE RULE (#1773, owner, 2026-09-29). `onColor`'s last
+ * resort (and its whole answer in HC) is pure white or pure black, whichever contrasts more with the fill. On
+ * a mid-tone fill the two can land within a hair of each other — prism3 dark's primary rest fill `#3d68fc`
+ * measures black 4.584 against white 4.581 — and the higher ratio then paints a black label on a dark-mode
+ * button by 0.003. The owner's rule: in a DARK-family mode (dark, hc-dark), when BOTH extremes clear `min`
+ * and sit within `EXTREME_TIE` of each other, take WHITE. Otherwise the higher ratio wins, as before, and
+ * light-family modes are untouched. Exported so `test.ts` can hold the rule on synthetic fills with literal
+ * expectations; `onColor` is its only production caller.
+ *
+ * EVERY `onColor` CALLER TAKES IT: the interactive `on-fill` (page and inverse, owner, 2026-09-29) and, since
+ * the owner extended it the same day, the semantic `text.on-<status>` / `icon.on-<status>` inks on the solid
+ * status fills (on-brand, on-danger, on-info, on-success, on-warning). Extending it moved 42 dark-mode status
+ * cells black → white, every one still at or above 4.5:1; the list is in `docs/00-progress.md`.
+ */
+export const EXTREME_TIE = 0.05;
+export const pureExtremeInk = (fill: RGB, family: 'light' | 'dark', min: number): 'white' | 'black' => {
+  const w = contrast(WHITE, fill), b = contrast(BLACK, fill);
+  if (family === 'dark' && w >= min && b >= min && Math.abs(w - b) <= EXTREME_TIE) return 'white';
+  return w >= b ? 'white' : 'black';
+};
+
+/**
+ * THE REST → FOCUSED / SELECTED OVERRIDE TWINS (#1626). On the page, `interactive.<c>.fill.focused` and
+ * `.fill.selected` ARE the rest step (owner, 2026-09-29) — `fillStateCand` returns the derived rest for both.
+ * The override layer rewrites exactly one role, so an override on `fill.rest` alone moved rest and left the two
+ * twins on the derived step, while `on-fill` re-picked against the NEW rest (the pre-derivation `asGround`
+ * path). Measured on prism3 dark with rest overridden to `primary.300`: on-fill turned `neutral.950` and read
+ * 3.28:1 on the stale selected fill — #1763 again, with no warning. So a `fill.rest` override is carried to its
+ * `focused` / `selected` twins, unless a twin carries its own explicit override, which wins. The inverse band
+ * is deliberately NOT matched: its focused/selected step off the rest absolute by design (#1456).
+ */
+const FILL_TWIN_OF_REST = /^(interactive\.[^.]+\.)fill\.rest$/;
+export function withFillStateTwins(ov: ModeOverrides | undefined): ModeOverrides | undefined {
+  if (!ov) return ov;
+  const out: ModeOverrides = { ...ov };
+  for (const [rolePath, ref] of Object.entries(ov)) {
+    const m = FILL_TWIN_OF_REST.exec(rolePath);
+    if (!m) continue;
+    for (const st of ['focused', 'selected']) {
+      const twin = `${m[1]}fill.${st}`;
+      if (!(twin in ov)) out[twin] = ref;               // an explicit twin override wins
+    }
+  }
+  return out;
+}
+
+/**
  * THE ENGINE'S DEFINITION OF A GROUND (#985) — every role whose colour some other role's `ratio`
  * depends on. Named and exported so the one definition the override refusal reads has a place to be
  * checked against, rather than living inline where a second reader could quietly diverge from it.
@@ -620,7 +671,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the mode contrast contract report it. A brand whose ramp cannot carry its own label on its own fill
   // is a fact about that brand, and silently substituting a neutral would hide exactly the thing a
   // designer needs to see. `test.ts` asserts the ratio independently of this function.
-  const brandOnFill = (palette: string, fill: RGB): Rated => {
+  // `alsoClear` (#1626): every fill the ink is painted on besides `fill`. The pick must clear `onMin` on ALL
+  // of them — the inverse button's five state fills — and `fill` (the rest fill) stays the ground the ink is
+  // rated and contracted against. Omitted, the rule is the rest-only pick it always was.
+  const brandOnFill = (palette: string, fill: RGB, alsoClear: RGB[] = []): Rated => {
     // HC KEEPS ITS MAX-EXTREME INK, and this branch is the whole reason the rule below is safe to apply
     // by default. `onColor` in an HC mode returns `pickMostExtreme` — pure black or pure white — which is
     // ~17:1 on this fill. The brand step is ~4.6:1. Substituting it in `hc-light` / `hc-dark` is a 73%
@@ -642,12 +696,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // clears the floor easily and so looks correct to any check that only asserts the floor. It did
     // exactly that on the first run here; the `mostVivid` pin in `test.ts` is what now catches it.
     const order = contrast(fill, BLACK) >= contrast(fill, WHITE) ? steps : [...steps].reverse();
-    const pick = order.find((st) => contrast(st.rgb, fill) >= onMin) ?? order[order.length - 1];
+    // Clearing every state first; if no step does, the rest-only pick, and the per-state gate in `test.ts`
+    // reports the miss rather than this function hiding it.
+    const clears = (st: Step, grounds: RGB[]) => grounds.every((g) => contrast(st.rgb, g) >= onMin);
+    const pick = order.find((st) => clears(st, [fill, ...alsoClear])) ?? order.find((st) => clears(st, [fill])) ?? order[order.length - 1];
     return rated(cand(`${ns}.${palette}.${pick.key}`, pick.rgb), fill);
   };
 
   const onColor = (fill: RGB): Rated => {
-    if (hc) return pickMostExtreme([cand(`${ns}.white`, WHITE), cand(`${ns}.black`, BLACK)], fill);
+    const extreme = (): Rated => pureExtremeInk(fill, cfg.family, onMin) === 'white'
+      ? rated(cand(`${ns}.white`, WHITE), fill) : rated(cand(`${ns}.black`, BLACK), fill);
+    if (hc) return extreme();
     const lightCand = cfg.family === 'light' ? cand(`${ns}.white`, WHITE) : N025();  // light side: pure white in light, soft in dark
     const cL = rated(lightCand, fill), cD = rated(N950(), fill);
     const win = cL.ratio >= cD.ratio ? cL : cD;
@@ -661,7 +720,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Pure black is permitted HERE and only here. This is ink on a saturated FILL, where black on a
     // bright amber is the legible, conventional answer; the no-pure-black rule is about ink on the
     // page CANVAS, and is scoped to that in test.ts rather than applied to every role blindly.
-    return pickMostExtreme([cand(`${ns}.white`, WHITE), cand(`${ns}.black`, BLACK)], fill);
+    // A near-tie in a dark-family mode takes white (owner, #1773) — see `pureExtremeInk`.
+    return extreme();
   };
   // Wireframe (docs/11 Pillar 1b): a mechanical greyscale. Every CHROMATIC role resolves on
   // the NEUTRAL ramp at the position its colour pick would land — then re-nudged to clear the
@@ -1103,7 +1163,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Measure the origin here rather than trusting `rest.ratio` — an `exact` pin carries the ratio
     // it was picked with, and this must be the contrast against the ground `put` will use.
     const g = guardFrom(contrast(rest.rgb, floorRgb), floorRgb, fillMin);
-    return st === 'default' ? rest : walk(palette, rest.num, stateRungs(st), dir, g);
+    // FOCUSED AND SELECTED RIDE REST (#1626 / #1763, owner, 2026-09-29: "rest fill + deeper inverse ink").
+    // They used to walk like hover/pressed, and in `dark` that walk goes LIGHTER under a near-white label:
+    // the on-fill measured 2.32–2.62:1 on `fill.selected` (the switch's on thumb, the checkbox's checked
+    // mark) and 3.21–3.67:1 on `fill.focused`. No re-step fixes it — the steps that clear the fill's floor
+    // AND keep that label at 4.5:1 are the rest step alone in most brands — so the persistent states take
+    // the rest step itself, in every mode. `on-fill` is gated against that step, so the label clears there
+    // by construction. Hover and pressed still walk: they are transient and exempt from the label floor
+    // (owner, #1456 / #1626). The focus ring, not a fill shift, marks focus. The role NAMES stay.
+    return st === 'default' || st === 'focused' || st === 'selected' ? rest : walk(palette, rest.num, stateRungs(st), dir, g);
   };
 
   // The action palette's rest colour — the source for interactive.primary, the focus ring,
@@ -1115,10 +1183,28 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // absent → the global anchor, so an unset map is byte-identical. Columns: 'primary'/'destructive'/accent.
   const modeAnchor = (col: string): number | undefined => theme.modeAnchors?.[mode]?.[col];
   const paAnchor = modeAnchor('primary') ?? theme.actionAnchorStep;
+  // THE PAGE FILL CLEARS THE DARKEST TIER TOO (#1773, owner, 2026-09-29 — the #1352 pattern). A page
+  // interactive fill is gated at `fillFloorMin` against the floor (`background.secondary`), and since #1626
+  // `fill.focused` / `fill.selected` ARE the rest step, so the radio's checked dot, the checkbox's checked box
+  // and the switch's on track read the rest fill. On a `background.tertiary` card in `dark` that measured
+  // 2.71–2.86:1 (nb, harbor, wendys, prism3) — under SC 1.4.11. So every page `fill.rest` pick must ALSO
+  // clear the same bar against `background.tertiary`: `pickBrand`'s `alsoClear`, the nearest step to the
+  // anchor that clears both. The recorded `against` stays the floor; `test.ts` measures the tertiary arm.
+  // An authored pin stays `exact` (#331) and is applied verbatim. Its floor miss is the role's own
+  // `ratio`, and its TIERED miss is the tier check at the end of `resolveMode` (review of #1773): the pin
+  // skips `alsoClear`, so without that check a pin that clears the floor but not the tertiary tier ships
+  // silently. `tierGated` records each family whose rest came through here, so the check covers exactly
+  // the fills this gate governs.
+  const fillTierRgb = asGround('background.tertiary', cfg.bg.tertiary.rgb);
+  const tierGated: string[] = [];
+  const restFill = (name: string, palette: string, anchor: number, exact: boolean): RatedNum => {
+    tierGated.push(name);
+    return chromatic(palette, anchor, floorRgb, fillFloorMin, exact, [fillTierRgb]);
+  };
   // Authored pin → `exact` (#331): applied as picked, floor miss reported not corrected.
   const actionRest = paAnchor !== undefined
-    ? chromatic(r2p.action, paAnchor, floorRgb, fillFloorMin, true)
-    : paletteRole('action', floorRgb, fillFloorMin);
+    ? restFill('primary', r2p.action, paAnchor, true)
+    : restFill('primary', r2p.action, theme.roleAnchorStep.action, false);
 
   // THE FOCUS RING, DERIVED AGAINST ITS OWN GROUND (#1336). The keyboard-focus ring is the action
   // colour, but unlike a fill it is DRAWN on a ground whose lightness flips per mode (the page in the
@@ -1245,8 +1331,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
   const daAnchor = modeAnchor('destructive') ?? theme.destructiveAnchorStep;
   const iDestructiveRest = daAnchor !== undefined
-    ? chromatic(r2p.danger, daAnchor, floorRgb, fillFloorMin, true)
-    : paletteRole('danger', floorRgb, fillFloorMin);
+    ? restFill('destructive', r2p.danger, daAnchor, true)
+    : restFill('destructive', r2p.danger, theme.roleAnchorStep.danger, false);
   iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
   // The destructive OUTLINE / TEXT ink (the button label + icon) is gated against the WORST-CASE page
   // tier — `background.tertiary`, the darkest emitted page surface — not merely `background.primary`.
@@ -1298,7 +1384,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // so a derived default is indistinguishable from a pin by the time it arrives here.
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
-    const rest = chromatic(entry.palette, anchor, floorRgb, fillFloorMin, pinned);
+    const rest = restFill(entry.name, entry.palette, anchor, pinned);
     iFill(entry.name, rest, entry.palette, fillFloorMin);
     iBorder(entry.name, iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true), baseRgb, '', 'background.primary');
   }
@@ -1405,7 +1491,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // neutral and the declared interactive palettes already carry `onColor` (inkPalette null), so the rule is
     // by category — "a brand-ink label gives way to the neutral extreme" — and moves nothing else.
     const useBrandInk = inkPalette !== null && !theme.strictInteractiveContrast;
-    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround) : onColor(inkGround);
+    const extremeAnchor = cfg.family === 'light' ? 0 : 1000;   // white ≈ rung 0, black ≈ rung 1000
+    const stateFill = (st: typeof FILL_STATES[number]): Cand =>
+      st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
+    // THE BRAND INK CLEARS EVERY STATE FILL (#1626, owner, 2026-09-29: "rest fill + deeper inverse ink").
+    // It used to be picked against the rest fill alone, so it measured 4.56–5.34:1 at rest and dipped to
+    // 3.30–4.36:1 on focused and 2.53–3.55:1 on selected — the stepped #1456 fills, where focused/selected
+    // persist. `brandOnFill`'s own rule now runs over all five fills: the first brand step, scanned from
+    // the least-contrasting end, that clears `onMin` on EVERY one. It lands a deeper step than before, at
+    // rest too (prism3 primary.500 → 650 light, → 350 dark). Hover/pressed remain exempt from the floor by
+    // the owner's decision, but the one ink has to clear selected, which is pressed's fill, so they clear too.
+    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround, FILL_STATES.map((st) => st === 'default' ? inkGround : asGround(`inverse.interactive.${name}.fill.${st}`, stateFill(st).rgb))) : onColor(inkGround);
     // What a state's label does, measured. Silent where the ink clears its floor on this fill. Where it does
     // not: hover / pressed are the #1456 transient states, exempt by the owner's decision, and the strict
     // setting lifts that exemption for every brand-ink family (primary and destructive). Focused / selected
@@ -1420,10 +1516,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
           : `the strict interactive contrast setting does not change the ${name} label`}).`;
       return ` The label on it measures ${about}, below its ${onMin}:1 floor.`;
     };
-    const extremeAnchor = cfg.family === 'light' ? 0 : 1000;   // white ≈ rung 0, black ≈ rung 1000
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
+      const c: Cand = stateFill(st);
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb), stKey === 'rest'
         ? `${name} interactive fill on an inverse surface — rest — the white / black default`
         : `${name} interactive fill on an inverse surface — ${stKey} — ${stateRungs(st)} neutral rungs off the white / black rest fill.${labelNote(c.rgb, stKey)}`,
@@ -1466,7 +1561,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // max-contrast extreme instead (the `hc` branch in `brandOnFill`). Naming both arms is the only phrasing
       // that stays true across the set.
       useBrandInk
-        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes`
+        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes`
         : `Ink on the ${name} inverse fill — a neutral high-contrast label on the white / black rest fill`,
       `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
@@ -2068,7 +2163,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = withIconTwins(theme.overrides?.[mode]);
+  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode]));
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
@@ -2187,7 +2282,29 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     if (ratio < r.alsoAgainst.min) warnings.push({ role: rolePath, ratio, min: r.alsoAgainst.min, against: r.alsoAgainst.against });
   }
 
-  return { mode, surface: baseRgb, roles, ...(warnings.length ? { warnings } : {}) };
+  // ---- the tier check (#1773, review) ----
+  // Every page `interactive.<c>.fill.rest` that `restFill` produced is contracted against TWO grounds: its
+  // `against` (the floor, `background.secondary`), which the sweep above reads, and `background.tertiary`
+  // (owner, 2026-09-29), which the role's single `ratio` cannot carry. The derived pick clears both by
+  // construction, but an authored pin is `exact` (#331) and skips `alsoClear`, and a ramp with no step
+  // clearing both falls back to the anchor. Measured: `modeAnchors.dark.primary: 550` on the default brand
+  // emits a fill at 2.68:1 on tertiary, and before this check nothing said so. The pin stands (author
+  // intent); the miss is reported the way an override's miss is. An override that misses its contract is
+  // a `warnings` entry AND a failed mode check, since its role's `ratio` falls under `min` and `tree.ts`
+  // counts every role with a `min`. So the tier miss is both: a warning naming the tier in `against`, and
+  // a `tierChecks` entry that `tree.ts` counts into `modeChecks` / `modePass`. Measured on the FINAL value,
+  // after the override pass, so an overridden rest is held to the same second ground.
+  const tierChecks: TierCheck[] = [];
+  for (const name of tierGated) {
+    const role = `interactive.${name}.fill.rest`;
+    const r = roles[role], rgb = rgbByRole.get(role);
+    if (!r || !rgb || !(r.min > 0)) continue;
+    const ratio = contrast(rgb, fillTierRgb);
+    tierChecks.push({ role, against: 'background.tertiary', ratio, min: r.min });
+    if (ratio < r.min) warnings.push({ role, ratio, min: r.min, against: 'background.tertiary' });
+  }
+
+  return { mode, surface: baseRgb, roles, ...(tierChecks.length ? { tierChecks } : {}), ...(warnings.length ? { warnings } : {}) };
 };
 
 /** How many genome rungs past `rest` a given interactive state sits: hover/focused 2, pressed/selected 4.
