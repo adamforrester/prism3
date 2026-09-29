@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-29) — Prune: the executor reads nothing off an object it has removed
+
+**STATUS: PR open from `lane/prune-name-after-remove`, labeled DO NOT MERGE.** ENGINE 0.202.0 → **0.203.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). CONTRACT stands at 13.2.0.
+
+**The live failure.** An agent-link `prune` with `confirm: true`, on a real Figma test file at 0.202.0, reported `prune failed: in get_name: The style with id "S:…" does not exist` after removing 1 variable, 6 modes and exactly one text style; 58 styles were left. `applyPrunePlan`'s style loop did `s.remove(); found.add(s.name)`, and the host throws on any read of a removed style. The variable loop had the same order (`v.remove(); found.add(v.name)`). It did not throw live, but the Plugin API gives no guarantee, so it is fixed the same way. Checking the other removal paths turned up a third instance: after removing the stranded collections, the executor listed the file's collection names off the same objects to compute misses, which reads `.name` off each one it just removed. The mode path is clean: `removeMode` leaves the collection live, and the detector never offers a mode in a stranded collection. `main.ts` reads only the counts `applyPrunePlan` returns.
+
+**Why no test caught it.** The shim's `remove()` set a flag and left the object readable, so a read after `remove()` passed in Node and threw in Figma. The existing synthetic executor arm already removes four styles, so it would have caught this against a shim that behaved like the host.
+
+**The fix.** `applyPrunePlan` reads every name, id and collection id it matches on once, before the first `remove()`, and removes each object at most once (a `gone` flag, so two plan groups naming the same object cannot remove it twice or read it after). The shim in `apps/plugin/test-prune.ts` now throws the host's error, `in get_<prop>: The <style|variable|variable collection> with id "…" does not exist`, on any read or write of a removed object except `id` and `removed`, and on a second `remove()`. A removed collection takes its variables with it, as Figma does. The new `read-after-remove` arm pins three shim premises (a removed style, variable and collection each throw that message, typed as literals) and prunes 5 styles across all 4 kinds, 3 variables and 1 stranded collection, with removed items interleaved with survivors in every list. It asserts no throw, the exact counts, no misses, and the exact survivor sets.
+
+**Mutations (each on a `wip:` commit, restored by `git checkout --`).** Restoring the original style loop fails `read-after-remove: … completes without touching a removed object (threw "in get_name: The style with id "S:0002," does not exist")` plus three dependent arms, which reproduces the live message. Restoring the original variable loop fails the same arm with `The variable with id "V:1"`. Reverting the collection-names read to the live objects fails it with `The variable collection with id "C:2"`. Removing the style shim's invalidation fails `shim premise: reading .name off a removed style throws the host's error`.
+
+**Placement trap.** The new arm runs before the synthetic executor arm. That arm awaits `applyPrunePlan` unguarded, so a regression now throws out of it and ends the run. Placed after it, the new arm would never report by name.
+
+**Filed, not fixed.** `runCleanupTheme` in `apps/plugin/src/mcp-steps.ts` has the same shape: it reads `s.name` and `c.name` after `remove()`, and reads `variableCollectionId` on variables of a collection removed on an earlier iteration. Its shim in `test-mcp-paste.ts` does not invalidate either. That is #1790.
+
+---
+
 ## (2026-09-29) — Materialise: every brand's paste payloads inside the budget, and the chunked alias passes executed in a test (#1786)
 
 **STATUS: PR open from `lane/materialise-chunk-coverage`, labeled DO NOT MERGE.** Test and tooling only. **No ENGINE bump**: the CLI prints the same bytes for every committed brand (all 44 payloads across the 4 committed trees compared against `HEAD`'s `materialise-to-figma.ts`: 0 differ), nothing under `out/` moves, and the component surface is untouched, so nothing a consumer can observe changed (`version.ts` header, #1252). CONTRACT stands. Output impact: **byte-identical**. Closes #1786.

@@ -445,6 +445,12 @@ export interface PruneResult {
  * by (collection name, modeId), and styles by name within their own kind. A name the plan carries but the
  * file no longer holds is recorded in `misses`.
  *
+ * NOTHING IS READ OFF AN OBJECT AFTER ITS `remove()`. The host invalidates a removed style, variable or
+ * collection, and reading any property of it throws (`in get_name: The style with id "…" does not exist`
+ * — seen live, on the first text style a confirmed prune removed). So every name, id and collection id the
+ * executor matches on is read ONCE, up front, before the first delete, and each object is removed at most
+ * once. The test shim throws the same way, which is what keeps this ordering pinned.
+ *
  * MODES ARE REMOVED FIRST, before the stranded collections. The two sets are disjoint by construction
  * (the detector only proposes modes inside plan-owned collections), so the order changes no outcome — but
  * it keeps the destructive-and-narrow step ahead of the destructive-and-wide one, so a throw in the
@@ -461,9 +467,17 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   };
   const misses: string[] = [];
 
+  // Every property the executor matches on, read BEFORE the first `remove()` (see above). `gone` marks what
+  // this run removed, so an object two plan groups both name is removed once and never read again.
+  const liveColls = collections.map((obj) => ({ obj, id: obj.id, name: obj.name }));
+  const liveVars = vars.map((obj) => ({ obj, name: obj.name, collectionId: obj.variableCollectionId, gone: false }));
+  const liveStyles = Object.fromEntries(
+    STYLE_KINDS.map((k) => [k, (stylesByKind[k] ?? []).map((obj) => ({ obj, name: obj.name, gone: false }))]),
+  ) as Record<StyleKind, { obj: RemovableStyle; name: string; gone: boolean }[]>;
+
   // Orphan variables, scoped to their own collection by id so a name shared across collections can't
   // cross-delete.
-  const collByName = new Map(collections.map((c) => [c.name, c] as const));
+  const collByName = new Map(liveColls.map((c) => [c.name, c] as const));
   let variables = 0;
   for (const grp of plan.variables) {
     const coll = collByName.get(grp.collection);
@@ -473,9 +487,10 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
     }
     const want = new Set(grp.names);
     const found = new Set<string>();
-    for (const v of vars) {
-      if (v.variableCollectionId === coll.id && want.has(v.name)) {
-        v.remove();
+    for (const v of liveVars) {
+      if (!v.gone && v.collectionId === coll.id && want.has(v.name)) {
+        v.obj.remove();
+        v.gone = true;
         found.add(v.name);
         variables++;
       }
@@ -488,11 +503,14 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   // recognises) instead of a throw out of Figma's `removeMode`.
   let modesRemoved = 0;
   for (const grp of plan.modes) {
-    const coll = collByName.get(grp.collection);
-    if (!coll) {
+    const entry = collByName.get(grp.collection);
+    if (!entry) {
       for (const m of grp.modes) misses.push(`mode:${grp.collection}/${m.name}`);
       continue;
     }
+    // Read live, not from the snapshot: `removeMode` changes the list, and the collection itself is still
+    // live here — stranded collections go below, and the detector never offers a mode in one.
+    const coll = entry.obj;
     const removed: string[] = [];
     for (const m of grp.modes) {
       if (!coll.modes.some((x) => x.modeId === m.modeId)) { misses.push(`mode:${grp.collection}/${m.name}`); continue; }
@@ -510,13 +528,13 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   // Stranded collections — the whole collection, its variables with it.
   const strand = new Set(plan.collections);
   let collectionsRemoved = 0;
-  for (const c of collections) {
+  for (const c of liveColls) {
     if (strand.has(c.name)) {
-      c.remove();
+      c.obj.remove();
       collectionsRemoved++;
     }
   }
-  const presentCollections = new Set(collections.map((c) => c.name));
+  const presentCollections = new Set(liveColls.map((c) => c.name));
   for (const name of plan.collections) if (!presentCollections.has(name)) misses.push(`collection:${name}`);
 
   // Orphan styles, by name WITHIN their kind — a `shadow/lg` effect style and a `shadow/lg` paint style
@@ -525,9 +543,10 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   for (const grp of plan.styles) {
     const want = new Set(grp.names);
     const found = new Set<string>();
-    for (const s of stylesByKind[grp.kind] ?? []) {
-      if (want.has(s.name)) {
-        s.remove();
+    for (const s of liveStyles[grp.kind] ?? []) {
+      if (!s.gone && want.has(s.name)) {
+        s.obj.remove();
+        s.gone = true;
         found.add(s.name);
         stylesRemoved++;
       }
