@@ -12808,8 +12808,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k))
     && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the border swaps (#1494/#1517)');
   ok(textField.tokens['border'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (bare border = rest, + border.hover) (#1494)');
-  // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
-  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
+  // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink,
+  // and the editable field's own boundary (owner decision 2026-09-29, #1710) rather than a fainter edge.
+  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.field.border.rest', 'component: TextField read-only stays full-contrast (text.primary + field.border.rest), not disabled.* (#1710)');
   // #784: the key naming that state must BE the state, or `{slot}.{state}` never reaches it. `border.readonly`
   // was bound, resolvable and unreachable — a read-only field painted its rest border. Asserted against
   // `states` rather than against the literal, so the two cannot drift apart again.
@@ -13137,13 +13138,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const selProj = select.figmaProperties!.stateAxis!.values;
     ok(selProj.includes('read-only') && !selProj.includes('pending'),
       `#1699 select projects read-only and holds pending out of the Figma state axis (stateAxis [${selProj.join(', ')}])`);
-    //     The projected read-only member, read off the PLAN: text-field's quieter boundary, the value at full
-    //     contrast, no placeholder; an error status keeps the danger boundary at read-only.
+    //     The projected read-only member, read off the PLAN: the editable field's boundary (`field.border.rest`,
+    //     owner decision 2026-09-29, #1710), the value at full contrast, no placeholder; an error status keeps the
+    //     danger boundary at read-only.
     const roPlan = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'read-only' } as never).root;
-    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/border/secondary'
+    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/field/border/rest'
       && findPart(roPlan, 'value')?.paints?.fills === 'color/text/primary'
       && !findPart(roPlan, 'placeholder'),
-      `#1699 select's read-only member draws the secondary border and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
+      `#1699/#1710 select's read-only member draws the editable field border (field.border.rest) and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
     const roErr = figmaAnatomyPlan(select, undefined, { status: 'error', state: 'read-only' } as never).root;
     ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
       `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);

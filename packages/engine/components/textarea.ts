@@ -210,7 +210,8 @@ export const textarea: ComponentDef = {
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
-    'border.read-only': 'color.border.secondary',
+    // read-only keeps the editable field's boundary (owner decision, 2026-09-29, #1710) — text-field's binding.
+    'border.read-only': 'color.field.border.rest',
     // The status-led border swaps — text-field's keys and roles exactly (#1623 sign-off, C1/TA-4): each
     // non-default status binds its own border role PER non-disabled state, so the boundary persists
     // through hover, focus and read-only. `pending` is unbound (as on text-field); `default` binds none.
@@ -489,7 +490,7 @@ export const textarea: ComponentDef = {
       '3.3.2 Labels or Instructions (the "Shift+Enter for a new line" hint whenever Enter submits)',
       '1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)',
-      '1.4.3 Contrast / 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance / 4.1.2 Name Role Value',
+      '1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value',
       '2.5.8 Target Size — intent: the resize handle is the browser\'s own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target',
     ],
     keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
@@ -572,6 +573,7 @@ export const textarea: ComponentDef = {
     ],
     // KB textarea brief §13.
     evolution: [
+      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.',
       'AUTO-GROW IS BECOMING THE COMPOSER DEFAULT, with maxRows-plus-scroll as the safety valve, learned after early systems shipped unbounded growth (KB textarea brief §13).',
       'CSS `field-sizing: content` IS RETIRING JAVASCRIPT AUTO-GROW, moving the measurement off the main thread into the browser engine — the largest near-term implementation change, with support still to verify (see `notes.unverified`).',
       'SOFT LIMITS OVER HARD maxlength: allow the overflow, flag it, block submit, rather than truncating silently.',

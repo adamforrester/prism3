@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.197.0 — #1710 (owner decision, 2026-09-29): the read-only field keeps the editable field's boundary.
+ * `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to
+ * `color.field.border.rest`, so the read-only member draws the same border as rest and filled in every mode.
+ * `border.secondary` measured 2.69–2.81:1 on `background.secondary` in light in every brand, below the SC 1.4.11
+ * floor; `field.border.rest` measures 3.16–4.63:1 there across every corpus brand, prism3 and the NB master
+ * theme. The three defs' a11y and prose claims now name the boundary that is built. The projected read-only
+ * members' stroke moves (`schema/component-surface.json`, the paint census) → ENGINE MINOR. CONTRACT STANDS at
+ * 13.2.0: no token name moves — the defs bind an existing role.
+ *
  * 0.196.0 — #1318 (owner decisions, 2026-09-28): the veil's DIRECTIONAL GRADIENT washes, Prism 2's
  * `Gradient from top/bottom/left/right` scrim variants. A new variant axis `direction` (`full | from-top |
  * from-bottom | from-left | from-right`, default `full`) takes the veil from 6 members to 30; the six `full`
@@ -4088,7 +4097,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.196.0';
+export const ENGINE_VERSION = '0.197.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
