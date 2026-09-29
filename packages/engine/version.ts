@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.208.0 — #1790: the paste path's theme cleanup (`runCleanupTheme`, the `use_figma` scratch-file wipe)
+ * had the read-after-remove defect that `applyPrunePlan` was fixed for in 0.203.0. It read `.name` off
+ * each style and each collection right after calling its `remove()`, and on the next collection it read `variableCollectionId`
+ * off the variables of a collection it had already removed (the host removes them with it). The host throws
+ * on any read of a removed object (`in get_name: The style with id "S:…" does not exist`). The step now reads
+ * every name, id, stamp, description and collection id it matches on or reports before the first
+ * `remove()`. The `test-mcp-paste.ts` shim now treats a removed object as dead, as `test-prune.ts`'s does
+ * (shared helpers in `apps/plugin/removal-shim.ts`). A PLUGIN write-path behavior change (principle 5) →
+ * ENGINE bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen.
+ * CONTRACT STANDS at 13.2.0 (no token name moves).
+ *
  * 0.203.0 — the plugin's confirmed prune stopped after its first style: `applyPrunePlan` read `.name` off
  * each style (and each variable) right after calling its `remove()`, and the host throws on any read of a
  * removed object (`in get_name: The style with id "S:…" does not exist`, seen live on a real Figma test
@@ -4212,7 +4223,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.203.0';
+export const ENGINE_VERSION = '0.208.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
