@@ -275,8 +275,8 @@ transports: A, the file mailbox, and B, the local desktop bridge.
 
 - ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
   tsconfigs): the command envelope `{v, id, cmd, args, issuedAt}`, the result envelope
-  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the six
-  commands (`status`, `apply-theme`, `build-components`, `file-setup`, `prune`, `readback`) and the
+  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the seven
+  commands (`status`, `apply-theme`, `build-components`, `file-setup`, `style-guide`, `prune`, `readback`) and the
   validation both transports share. Unknown command, wrong version and malformed args are failed results,
   never silence.
 - ✅ **No parallel path** — `main.ts`'s handlers report to an `ActionSink`; the panel passes one that posts
