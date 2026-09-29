@@ -1803,10 +1803,14 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     else stale.push(String(f.name));
     const v = await verdictOf(f, p, colId);
     if (v === 'unedited' && f.remove) {
-      if (!freed.has(p)) freed.set(p, []);
-      freed.get(p)!.push({ x: num(f.x), y: num(f.y) });
+      // EVERYTHING READ BEFORE THE REMOVE (#1795): the host invalidates a removed node, and reading its `name`, `x` or
+      // `y` afterwards throws ("in get_name: … does not exist"), the shape of #1791 and #1794.
+      const name = String(f.name);
+      const at = { x: num(f.x), y: num(f.y) };
       f.remove();
-      deleted.push(String(f.name));
+      if (!freed.has(p)) freed.set(p, []);
+      freed.get(p)!.push(at);
+      deleted.push(name);
     } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
   }
 

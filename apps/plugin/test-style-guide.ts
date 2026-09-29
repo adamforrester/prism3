@@ -297,7 +297,15 @@ const inFlow = (k: N): boolean => k.layoutPositioning !== 'ABSOLUTE';
  *  and a grid track's `type` written in place, which the plugin does only where assigning the whole array throws,
  *  and the shim's assignment never throws. */
 let epoch = 0;
+/** A REMOVED NODE IS INVALID (#1795, the host's behavior #1791 and #1794 met): after `remove()`, reading any property
+ *  but `id` and `removed` throws, as Figma's "in get_name: … does not exist" does, and so does a second `remove()`.
+ *  Mirrored here, not imported from #1794's removal shim, which is not on this branch. */
+const REMOVED_READABLE = new Set<PropertyKey>(['id', 'removed', '_removed', 'constructor']);
 const BUMP: ProxyHandler<object> = {
+  get: (t, k, r) => {
+    if ((t as { _removed?: boolean })._removed && !REMOVED_READABLE.has(k) && typeof k === 'string') throw new Error(`in get_${k}: The node (${(t as { id?: string }).id}) does not exist`);
+    return Reflect.get(t, k, r);
+  },
   set: (t, k, v, r) => { epoch++; return Reflect.set(t, k, v, r); },
   defineProperty: (t, k, d) => { epoch++; return Reflect.defineProperty(t, k, d); },
   deleteProperty: (t, k) => { epoch++; return Reflect.deleteProperty(t, k); },
@@ -425,7 +433,9 @@ class N {
     this.byCol.get(col)!.add(c);
     this.byRow.get(r)!.add(c);
   }
-  remove(): void { this.detach(); }
+  _removed = false;
+  get removed(): boolean { return this._removed; }
+  remove(): void { this.detach(); this._removed = true; }
   // THE HOST'S QUIRK (live, 2026-09-28, and measured in the plugin runtime 2026-09-29 on the owner's run of 0.205.0):
   // a width written to ANY layer inside an INSTANCE is silently dropped, no throw: the owner's 29px label stayed 29px
   // under resize(296, h), and every spacing specimen stayed 8px. Its height still moves. A frame that hugs or fills is
@@ -1209,6 +1219,22 @@ const main = async (): Promise<void> => {
     ok(sum.ok && sum.headline === '✓ style guide: 22 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 22 tables"');
   }
 
+  console.log('6a. a deleted table is not read after it is removed (#1795)');
+  {
+    // The host invalidates a removed node: reading its name afterwards threw "in get_name: … does not exist" (#1795,
+    // the shape of #1791 and #1794), and the shim does the same. One run deletes TWO superseded, unedited tables
+    // (density's and metrics' steps regrouped under new names, their variables and bindings unchanged), and must
+    // name both. It runs here, before any other test deletes a table, so a read-after-remove fails by name.
+    const rm = await phase2File();
+    await draw(rm.api, contract, { types: ['dimension'] });
+    for (const v of rm.vars) { if (/^density\//.test(v.name)) v.name = v.name.replace(/^density\//, 'dense/'); if (/^metrics\/step\//.test(v.name)) v.name = v.name.replace('/step/', '/rung/'); }
+    let threw = '';
+    let rr: StyleGuideResult | null = null;
+    try { rr = await draw(rm.api, contract, { types: ['dimension'] }); } catch (e) { threw = String(e); }
+    ok(!threw && JSON.stringify([...(rr?.deleted ?? [])].sort()) === JSON.stringify(['Style guide — Density', 'Style guide — Step']),
+      `6a: one run deletes two superseded, unedited tables and names both, reading nothing off either after it is removed (${threw || JSON.stringify(rr?.deleted)})`);
+  }
+
   console.log('6. rerun');
   {
     const text = tableFrame(f.sem, 'Text')!;
@@ -1471,13 +1497,15 @@ const main = async (): Promise<void> => {
     const keptAs = (r: StyleGuideResult, reason: string): boolean => r.deleted.length === 0 && JSON.stringify(r.kept) === JSON.stringify([{ name: LEGACY, reason }]);
     const summaryOf = (r: StyleGuideResult): string => styleGuideSummary(r).summary;
     /** A file with the Legacy table drawn, `edit` applied to it by hand, then the ramp split so the table is replaced. */
-    const afterEdit = async (edit: (t: N, sh: Shim & { prim: N }) => void): Promise<{ r: StyleGuideResult; t: N; sh: Shim & { prim: N } }> => {
+    const afterEdit = async (edit: (t: N, sh: Shim & { prim: N }) => void): Promise<{ r: StyleGuideResult; t: N; sh: Shim & { prim: N }; at: { x: number; y: number } }> => {
       const sh = await fullFile();
       await draw(sh.api, contract, LEG);
       const t = tableFrame(sh.prim, 'Legacy')!;
       edit(t, sh);
       splitLegacy(sh);
-      return { r: await draw(sh.api, contract, LEG), t, sh };
+      // Where the table stood, read before the run that may delete it: a removed node cannot be read (#1795).
+      const at = { x: t.x, y: t.y };
+      return { r: await draw(sh.api, contract, LEG), t, sh, at };
     };
     const valueCell = (t: N): N => cellAt(gridOf(t), 1, 2)!;
     const valueText = (t: N): N => valueCell(t).findOne((k) => k.type === 'TEXT')!;
@@ -1489,12 +1517,12 @@ const main = async (): Promise<void> => {
     // THE CONTROL: the same run with nothing touched deletes the table, so every "kept" below is the edit's doing.
     const a = await afterEdit(() => {});
     const legA = a.t;
-    ok(JSON.stringify(a.r.replaced) === JSON.stringify([LEGACY]) && JSON.stringify(a.r.deleted) === JSON.stringify([LEGACY]) && !legA.parent
+    ok(JSON.stringify(a.r.replaced) === JSON.stringify([LEGACY]) && JSON.stringify(a.r.deleted) === JSON.stringify([LEGACY]) && legA.removed
       && JSON.stringify(names(a.sh.prim)) === JSON.stringify(['Style guide — Dark', 'Style guide — Light']), `11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light (${names(a.sh.prim).join(', ')})`);
     ok(a.sh.prim.findAll((k) => k.pluginData['prism3-style-guide-part'] === 'header').length === 2, "11: the deleted table's header and cells go with it");
     // Dark and Light were drawn after Legacy in its row; with Legacy gone, the first of them takes its place.
     const dark = tableFrame(a.sh.prim, 'Dark')!;
-    ok(dark.x === legA.x && dark.y === legA.y && tableFrame(a.sh.prim, 'Light')!.x === dark.x + dark.width + 160 && tableFrame(a.sh.prim, 'Light')!.y === dark.y, `11: the row closes over the deleted table: Dark starts where Legacy stood, Light 160px to its right (${dark.x},${dark.y} vs ${legA.x},${legA.y})`);
+    ok(dark.x === a.at.x && dark.y === a.at.y && tableFrame(a.sh.prim, 'Light')!.x === dark.x + dark.width + 160 && tableFrame(a.sh.prim, 'Light')!.y === dark.y, `11: the row closes over the deleted table: Dark starts where Legacy stood, Light 160px to its right (${dark.x},${dark.y} vs ${a.at.x},${a.at.y})`);
     ok(summaryOf(a.r).includes('1 table the generator no longer draws was deleted, unedited: Style guide — Legacy'), '11: the summary names the deleted table');
     ok(styleGuideSummary(a.r).headline === '✓ 2 tables, 1 deleted', `11: the headline counts the deletion: "✓ 2 tables, 1 deleted" (got "${styleGuideSummary(a.r).headline}")`);
 
@@ -1599,7 +1627,7 @@ const main = async (): Promise<void> => {
     dropLegacy(e);
     const re = await draw(e.api, contract, WITH_CORE);
     ok(foreign.parent === e.prim && foreign.x === 3000 && foreign.y === 0 && Object.keys(foreign.pluginData).length === 0, '11: a frame the generator did not make, named like its table, is never touched');
-    ok(!legE.parent && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify([LEGACY]) && JSON.stringify(re.kept) === JSON.stringify([{ name: LEGACY, reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
+    ok(legE.removed && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify([LEGACY]) && JSON.stringify(re.kept) === JSON.stringify([{ name: LEGACY, reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
     ok(summaryOf(re).includes('1 table the generator no longer draws was left in place — a copy: Style guide — Legacy'), '11: the summary says it is a copy');
 
     // An unedited table the host will not remove is named as such, not as edited.

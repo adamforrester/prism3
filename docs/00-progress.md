@@ -9,7 +9,7 @@
 
 ## (2026-09-29) — Style guide, phase 2: dimension, font-variable and text-style tables (#259)
 
-**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE **0.205.0** (0.200.0 until main, at 0.203.0, was merged into the branch; #1784's release is 0.204.0 here), a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
+**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE **0.210.0** (0.200.0, then 0.205.0 after main's 0.203.0 was merged in; renumbered above #1792–#1794, which claim 0.206.0–0.208.0; #1784's release is 0.209.0 here). Also fixes #1795, a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
 
 **Why.** Phase 2 of the owner's plan (#259, `docs/45` §5): the tables for dimension and typography, the owner's REM and pixel options, and the spacing cell set that phase 1 built and nothing read.
 
@@ -54,6 +54,8 @@
 **Owner decisions from live QA, later on 2026-09-29 (`docs/45` decisions 18 and 19).**
 - **One spacing style per run.** `dimensionDisplay` is `filled` (default) or `line`, and every spacing specimen in every table draws in it; `auto` means `filled` for the agent link. The per-role choice and the Generic / Border radius overrides are gone. A radius row still draws the radius swatch, a corner rather than a spacing style (held as proposed).
 - **REM in its own column.** A "REM" column follows each value column in every table of lengths (dimension, font size, line height, letter spacing, text styles); the value cell keeps px and the alias chip; `rem` off removes the column. With `pixels` off and `rem` on, the value column still prints px, because the base value always appears, so the Pixels toggle no longer changes anything (held for the owner: whether it stays). A text style's letter spacing and paragraph spacing print their base unit only, with no REM (proposed). The rerun report compares raw values, so the column change moves no row; the fingerprint needs no change either, because a superseded table is compared with its own recorded print and a drawn one is refingerprinted, so a table drawn before this build is not misread as edited.
+
+**#1795, folded in (the shape of #1791 and #1794).** A superseded table was deleted with `f.remove()` and its name read after, which the host refuses ("in get_name: … does not exist"). Its name and place are now read before the remove; nothing else in `style-guide.ts` or `style-guide-cells.ts` reads a removed node (the grid's rebuild removes old grids and reads nothing after). The shim now invalidates a removed node the way #1794's removal shim does (mirrored, not imported, since #1794 is not merged): any read but `id` and `removed` throws, and so does a second remove. Section 6a deletes two superseded, unedited tables in one run and names both literally; restoring the read-after-remove fails it by name ("6a: one run deletes two superseded, unedited tables and names both… (Error: in get_name: The node … does not exist)"), and the suite then stops at the next deletion, 91 checks in. Three older tests read a deleted table's `parent` or position after the run; they now read `removed`, or the position captured before.
 
 **Deliberately not done.** The fingerprint is unchanged for a table without a title column, so phase 1's recorded fingerprints keep matching; the cost is that a superseded dimension table whose value moved reads as edited and is kept (a bar's width is its value), the safe direction. Font style (`core/font/style/*`) waits for a later phase with opacity and the rest.
 
@@ -119,7 +121,7 @@ Each mutation's diff was checked non-empty, and every run executed the whole sui
 
 ## (2026-09-29) — Style guide: one table at a time, yielding to Figma, one run at a time, a header that spans its table and the owner's HUG grid (#1778, #1785, #259)
 
-**STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE **0.204.0** (0.199.0 on its own branch; renumbered on #1788's branch above main's 0.203.0 when main was merged in), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
+**STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE **0.209.0** (0.199.0 on its own branch; renumbered on #1788's branch above main and the releases #1792–#1794 claim), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
 
 **Why.** The owner's first full live run drew 41 tables in about 4.7 minutes and held Figma and the plugin for all of it (#1778). While the basics are debugged, the owner wants to run one table, or a few, and work up to all of them. Two scope additions came from the owner mid-lane (2026-09-29), both recorded as `docs/45` §2 decisions 10 and 11.
 

@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.205.0 — #259 phase 2 (numbered 0.200.0 on its branch; renumbered above main's 0.203.0): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
+ * 0.210.0 — #259 phase 2 and #1795 (0.200.0, then 0.205.0, on its branch; renumbered above #1792–#1794, which claim 0.206.0–0.208.0): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
  * `dimension` table per collection (spacing and size as a spacing cell at the value's width, its width bound; a radius
  * as the radius swatch, its corners bound), one table per font kind per collection ("Abc 123" with the one property
  * bound), and one text-style table ("Abc 123" with the style applied, sizes per `type-sets` mode). Values in px and
@@ -2947,8 +2947,10 @@
  * spacing and radius cells built in the owner's layer structure. After the owner's live run of 0.205.0: a spacing
  * specimen is sized by a bound `paddingLeft` (the host silently drops a width written to a layer inside an
  * instance), its frame set to HUG again after the bind and read back; cells that cannot be sized are named once.
+ * Owner decisions 18 and 19: one spacing style per run (filled by default), and REM in its own column. #1795: a
+ * superseded table's name and place are read before it is removed, never after.
  *
- * 0.204.0 — #1778 + #259 (numbered 0.199.0 on its branch; renumbered above main's 0.203.0) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
+ * 0.209.0 — #1778 + #259 (0.199.0 on its own branch, 0.204.0 here earlier; renumbered above #1792–#1794) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
  * unknown name is reported; a filtered run supersedes nothing and re-stacks only its own pages. The executor
  * yields to the host after every table and every ~28 cells (the component writer's `realYield`), and reports
@@ -4248,7 +4250,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.205.0';
+export const ENGINE_VERSION = '0.210.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
