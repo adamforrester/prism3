@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.11764705926179886,
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/550"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0,
-        "b": 0.07450980693101883,
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/550"
       }
     },
     {
@@ -1586,14 +1586,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.11764705926179886,
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/550"
       }
     },
     {
@@ -1605,14 +1605,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0,
-        "b": 0.07450980693101883,
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/550"
       }
     },
     {
@@ -1926,14 +1926,14 @@
       ],
       "description": "Neutral fill, focused",
       "value": {
-        "r": 0.6941176652908325,
-        "g": 0.7058823704719543,
-        "b": 0.7215686440467834,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/250"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -1945,14 +1945,14 @@
       ],
       "description": "Neutral fill, selected",
       "value": {
-        "r": 0.5882353186607361,
-        "g": 0.6078431606292725,
-        "b": 0.6235294342041016,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/350"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -3222,16 +3222,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/500"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -3562,16 +3562,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/500"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {

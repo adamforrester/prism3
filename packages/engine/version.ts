@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.197.0 — #1626 / #1763 (owner-decided 2026-09-29, "rest fill + deeper inverse ink"): the `on-fill` label
+ * is measured against every interactive fill state it sits on. On the page, `interactive.<c>.fill.focused` and
+ * `.fill.selected` resolve to the rest step in every mode (they used to walk like hover/pressed, and in `dark`
+ * that put the near-white label at 2.32–2.62:1 on the switch's on track and the checkbox's checked box). On the
+ * inverse band, the brand `on-fill` (primary, destructive) is re-picked by `brandOnFill`'s own rule over all
+ * five state fills — the most vivid step clearing 4.5:1 on every one — so it lands a deeper step at rest too
+ * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision. Emitted
+ * values move in every brand, and the projected surface moves wherever a def binds a focused/selected fill
+ * or the inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
+ *
  * 0.196.0 — #1318 (owner decisions, 2026-09-28): the veil's DIRECTIONAL GRADIENT washes, Prism 2's
  * `Gradient from top/bottom/left/right` scrim variants. A new variant axis `direction` (`full | from-top |
  * from-bottom | from-left | from-right`, default `full`) takes the veil from 6 members to 30; the six `full`
@@ -4088,7 +4098,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.196.0';
+export const ENGINE_VERSION = '0.197.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

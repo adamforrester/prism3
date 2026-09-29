@@ -1259,9 +1259,9 @@ for (const b of brands) {
       ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
       ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
       // WENDYS EARNS ITS PLACE rather than padding the list: it is the brand that does NOT land on the
-      // same indices as the others (500 / 350 against 550 / 400), so it is the one that would expose a
-      // rule quietly relying on "every brand lands at the same step". Its boundary neighbours measure
-      // 3.95 and 4.06 — both under the floor — so the most-vivid arm is exercised on a brand where the
+      // same indices as the others (600 / 300 against 650 / 350 since #1626 re-picked against every state
+      // fill; 500 / 350 against 550 / 400 before), so it is the one that would expose a rule quietly relying
+      // on "every brand lands at the same step" — the most-vivid arm is exercised on a brand where the
       // answer differs, not just confirmed three more times on brands that agree.
       ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
     ];
@@ -1316,8 +1316,15 @@ for (const b of brands) {
           // one step toward the fill = lighter on a light fill, darker on a dark one
           const toward = [...ramp].sort((a: any, b: any) => (fillIsLight ? a.num - b.num : b.num - a.num))
             .filter((st: any) => (fillIsLight ? st.num < chosen?.num : st.num > chosen?.num)).pop();
-          if (chosen && toward && contrast(toward.rgb, rgb255(fill)) >= FLOOR)
-            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears (${contrast(toward.rgb, rgb255(fill)).toFixed(2)}:1)`);
+          // #1626 (owner, 2026-09-29): the ink must clear EVERY state fill of the inverse button, rest through
+          // selected, so "most vivid that passes" means the neighbour toward the fill must fail on at least
+          // ONE of the five. Read off the emitted tree, not the producer: a rest-only neighbour check here
+          // would call the new, deeper pick "too far" and pass a revert to the rest-only rule.
+          const stateFills = ['rest', 'hover', 'pressed', 'focused', 'selected']
+            .map((st) => hexAt(tree, `color.inverse.interactive.primary.fill.${st}`, mode)).filter((h): h is string => !!h);
+          const worst = (rgb: any) => Math.min(...stateFills.map((h) => contrast(rgb, rgb255(h))));
+          if (chosen && toward && stateFills.length === 5 && worst(toward.rgb) >= FLOOR)
+            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears every state (worst ${worst(toward.rgb).toFixed(2)}:1)`);
         }
       }
     }
@@ -1332,7 +1339,7 @@ for (const b of brands) {
       '#1244 …and hc-light / hc-dark keep their MAX-EXTREME ink rather than the brand step — HC exists for low-vision users, and a brand step there clears the 4.5 floor while dropping ~73% of the contrast, which a flat-floor arm cannot distinguish from the fix'
       + (hcWeak.length ? ` — WEAKENED: ${hcWeak.join('; ')}` : ''));
     ok(notVivid.length === 0,
-      '#1244 …and it is the MOST VIVID passing step, not merely a passing one — the step one closer to the fill must FAIL the floor, or the selector is being unnecessarily extreme'
+      '#1244 / #1626 …and it is the MOST VIVID step that clears every state fill, not merely a passing one — the step one closer to the fill must FAIL the floor on at least one state, or the selector is being unnecessarily extreme'
       + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));
   }
 
@@ -1568,11 +1575,13 @@ for (const b of brands) {
     // destructive, neutral, and a declared interactive palette (an nb variant carrying `accent`, so the
     // declared-palette category is represented, not assumed). Ratios recomputed from emitted hexes.
     //
-    // The PAGE ground is measured too, in every mode but `dark`: there the page fill steps LIGHTER under an
-    // already-neutral near-white label (primary and destructive, lever ON or OFF, down to ~2.4:1). The lever's
-    // mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the page ink already IS
-    // the neutral extreme; fixing it means re-picking the ink per state or re-stepping the fill, a design call
-    // held in #1626. Excluding that one mode is named here and asserted as represented below, not silent.
+    // The PAGE ground is measured too, in every mode but `dark`: there the page HOVER / PRESSED fills step
+    // LIGHTER under an already-neutral near-white label (primary and destructive, lever ON or OFF, down to
+    // ~2.4:1). The lever's mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the
+    // page ink already IS the neutral extreme. #1626 (owner, 2026-09-29) settled the persistent states by
+    // putting focused / selected on the rest step, and kept hover / pressed exempt; the `(4c) #1626` arm holds
+    // every page focused/selected pair in `dark` too. Excluding that one mode here is named and asserted as
+    // represented below, not silent.
     const strictDips: string[] = [];
     const strictSeen = new Set<string>();
     let strictCells = 0;
@@ -22421,16 +22430,18 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const prism3 = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input);
 
   // (1) THE OWNER'S DEFECT, as literals. NB master light: the off track is the light #DCDBDB, the on track
-  // the brand-neutral #34383D, and they sit 8.54:1 apart. prism3 light is the control: #DBDBDC / #0B008C,
-  // 10.90:1. Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
+  // the brand-neutral #0B0E10, and they sit 14.01:1 apart. prism3 light is the control: #DBDBDC / #1E1EFF,
+  // 5.65:1. (Before #1626 the on track was `fill.selected`'s own walked step — #34383D at 8.54:1 and
+  // #0B008C at 10.90:1; since 2026-09-29 `fill.selected` takes the rest step, so the on track is the brand's
+  // rest fill.) Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
   // #2D2C2C, 1.18:1 from the on track, and fails the first arm by name.
   const mOff = hexAt(master, 'light', 'off.fill'), mOn = hexAt(master, 'light', 'on.fill');
-  ok(mOff === '#dcdbdb' && mOn === '#34383d' && mOff !== mOn,
-    `#1354 NB master light: the off track is the light #dcdbdb and the on track #34383d — two different tracks (off=${mOff}, on=${mOn})`);
-  ok(ratio(mOff, mOn) === 8.54, `#1354 NB master light: off track vs on track is 8.54:1 (got ${ratio(mOff, mOn)}:1)`);
+  ok(mOff === '#dcdbdb' && mOn === '#0b0e10' && mOff !== mOn,
+    `#1354 NB master light: the off track is the light #dcdbdb and the on track #0b0e10 — two different tracks (off=${mOff}, on=${mOn})`);
+  ok(ratio(mOff, mOn) === 14.01, `#1354 NB master light: off track vs on track is 14.01:1 (got ${ratio(mOff, mOn)}:1)`);
   const pOff = hexAt(prism3, 'light', 'off.fill'), pOn = hexAt(prism3, 'light', 'on.fill');
-  ok(pOff === '#dbdbdc' && pOn === '#0b008c' && ratio(pOff, pOn) === 10.9,
-    `#1354 prism3 light: off track #dbdbdc vs on track #0b008c at 10.90:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
+  ok(pOff === '#dbdbdc' && pOn === '#1e1eff' && ratio(pOff, pOn) === 5.65,
+    `#1354 prism3 light: off track #dbdbdc vs on track #1e1eff at 5.65:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
 
   // (2) THE LEVER DOES NOT REACH THE OFF TRACK. The same brand at `neutralEmphasis` subtle and strong
   // resolves the off track, its border and its thumb to the SAME hexes — while the neutral BUTTON fill
@@ -22457,12 +22468,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1354 prism3 light: off thumb #0d0d0e on the off track at 14.04:1 (got ${hexAt(prism3, 'light', 'off.indicator')}, ${ratio(hexAt(prism3, 'light', 'off.indicator'), pOff)}:1)`);
 
   // (4) THE CONTRAST CONTRACTS, every mode of every corpus brand + prism3 + the NB master, recomputed from
-  // resolved hexes. The on-thumb pair is held in every mode but `dark`, where `on-fill` (gated against
-  // `fill.rest`) measures 2.32–2.62:1 on `fill.selected` — the on arm is unchanged by owner decision and
-  // the gap is filed as #1763. The exemption is PINNED, not silent: exactly 10 dark rows fall under 3:1
-  // (every corpus brand's dark mode but aurora's, plus prism3's), and aurora dark holds at 8.59:1.
+  // resolved hexes. The on-thumb pair is held in EVERY mode, `dark` included. Until #1626/#1763 (owner,
+  // 2026-09-29) `dark` was exempt: `on.fill` (`primary.fill.selected`) walked a lighter step than rest and the
+  // light `on-fill` measured 2.32–2.62:1 on it, pinned here as `darkOnGap === 10`. `fill.selected` now takes
+  // the rest step, so the exemption is gone and the dark pair is asserted as LITERALS below — for the switch's
+  // on thumb and, through its own def, the checkbox's checked mark (the same role pair, bound independently).
   const misses: string[] = [];
-  let rows = 0, darkOnGap = 0, auroraDarkOn = 0;
+  let rows = 0;
   for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
     for (const m of resolveAllModes(theme)) {
       rows++;
@@ -22473,18 +22485,32 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       need('off thumb vs off track', ratio(h('off.indicator'), h('off.fill')));
       need('off glyph vs off thumb', ratio(h('off.icon'), h('off.indicator')));
       need('on track vs page', ratio(h('on.fill'), page));
-      if (m.mode === 'dark') {
-        if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++;
-        if (id.startsWith('aurora')) auroraDarkOn = ratio(h('on.indicator'), h('on.fill'));
-      }
-      else { need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill'))); need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator'))); }
+      need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill')));
+      need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator')));
     }
   ok(rows >= 40 && misses.length === 0,
-    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`) — misses: ${misses.join('; ') || 'none'}`);
-  ok(darkOnGap === 10,
-    `#1763 the dark-mode on-thumb exemption covers exactly 10 rows under 3:1 — every corpus brand's dark mode but aurora's, plus prism3's (got ${darkOnGap}); a new row under 3:1 is a regression, one fewer means #1763 moved`);
-  ok(auroraDarkOn === 8.59,
-    `#1763 aurora dark keeps its on thumb at 8.59:1 against the on track — the one dark mode outside the exemption (got ${auroraDarkOn}:1)`);
+    `#1354 / #1763 switch contrast: off border, off thumb, off glyph, on track, on thumb and on glyph clear 3:1 in all ${rows} brand×mode rows, dark included — misses: ${misses.join('; ') || 'none'}`);
+  // THE DARK LITERALS (#1763). Measured 2026-09-29 once the fix landed; before it these read 2.32–2.62:1
+  // everywhere but aurora. One row per corpus palette (the six minimal fixtures share one) plus prism3; the
+  // NB master theme ships light only. Switch: on thumb vs on track. Checkbox: checked mark vs checked box,
+  // read through `checkbox-control`'s own bindings.
+  const DARK_ON: Record<string, number> = { nb: 5.24, aurora: 4.6, harbor: 5.23, wendys: 5.49, minimal: 4.63, prism3: 5.53 };
+  const cbRole = (key: string) => (checkboxControl.tokens[key] ?? '').replace(/^color\./, '');
+  const darkWrong: string[] = [];
+  let darkSeen = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }]) {
+    const short = id.split(' ')[0];
+    if (!(short in DARK_ON)) continue;
+    const dm = resolveAllModes(theme).find((m) => m.mode === 'dark');
+    if (!dm) { darkWrong.push(`${short}: no dark mode`); continue; }
+    darkSeen++;
+    const sw = ratio(dm.roles[role('on.indicator')].hex, dm.roles[role('on.fill')].hex);
+    const cb = ratio(dm.roles[cbRole('checked.icon')]?.hex ?? '#808080', dm.roles[cbRole('checked.fill')]?.hex ?? '#808080');
+    if (sw !== DARK_ON[short]) darkWrong.push(`${short} switch on thumb ${sw}:1 (want ${DARK_ON[short]})`);
+    if (cb !== DARK_ON[short]) darkWrong.push(`${short} checkbox checked mark ${cb}:1 (want ${DARK_ON[short]})`);
+  }
+  ok(darkSeen === 6 && darkWrong.length === 0,
+    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 5.24, aurora 4.60, harbor 5.23, wendys 5.49, minimal 4.63, prism3 5.53:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
 
   // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
   // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every
@@ -22520,86 +22546,23 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // declares any other min fails the drift arm below rather than silently moving this bar.
   //
   // What each state is held to:
-  //   rest              — a hard floor, no exemption.
-  //   hover / pressed   — MEASURED, EXEMPT: transient states, exempt from the ink contract by the owner
-  //                       (#1456 on the inverse band; #1626, 2026-09-26, on the page — "hover and pressed do
-  //                       not have to meet contrast" until the before/after comparison is decided).
-  //   focused / selected — HELD at the floor, against the pinned register below. These states persist (a
-  //                       checked checkbox, an on switch), so no exemption is claimed for them. Every one that
-  //                       misses today is written down as a LITERAL (measured 2026-09-29 at ENGINE 0.196.0),
-  //                       because the fix is a visible colour choice the engine's own mechanisms cannot make:
-  //                       in `dark` the fill window that clears its 3:1 floor AND keeps the near-white label
-  //                       at 4.5:1 is the rest step alone, so no re-step exists, and no single neutral ink
-  //                       clears rest and selected together (#1626 holds the measured options). A NEW miss
-  //                       fails by name; a pinned miss that moves or clears fails as stale — both directions,
-  //                       so the register cannot drift silently while the owner decides.
+  //   rest               — the floor.
+  //   hover / pressed    — MEASURED, EXEMPT: transient states, exempt from the ink contract by the owner
+  //                        (#1456 on the inverse band; #1626 on the page). Counted in the represented line.
+  //   focused / selected — the floor, no exemption: these persist (a checked checkbox, an on switch).
+  //
+  // Before the owner's 2026-09-29 decision ("rest fill + deeper inverse ink") 113 focused/selected pairs
+  // missed and sat in a pinned register here. The fix moved the page's focused/selected fills onto the rest
+  // step and re-picked the inverse brand ink against every state fill, so the register is empty and the
+  // arm asserts zero misses. A regression back to the old page step (2.32–2.62:1 in `dark`) or to the
+  // rest-only inverse ink (2.53–3.55:1 on selected) fails `#1626 no on-fill falls under …` by name.
   {
     const ONFILL_FLOOR = 4.5;
     const ONFILL_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
     const TRANSIENT = new Set(['hover', 'pressed']);
-    // `brand mode role` → [focused, selected]; null = that state clears the floor. Literals, not a formula.
-    const ONFILL_KNOWN_MISSES: Record<string, [number | null, number | null]> = {
-      'nb light inverse.interactive.primary.on-fill': [3.33, 2.54],
-      'nb light inverse.interactive.destructive.on-fill': [3.33, 2.54],
-      'nb dark interactive.primary.on-fill': [3.59, 2.6],
-      'nb dark interactive.destructive.on-fill': [3.59, 2.6],
-      'nb dark inverse.interactive.primary.on-fill': [3.92, 3.03],
-      'nb dark inverse.interactive.destructive.on-fill': [3.92, 3.03],
-      'aurora light inverse.interactive.primary.on-fill': [3.3, 2.54],
-      'aurora light inverse.interactive.destructive.on-fill': [3.3, 2.54],
-      'aurora dark inverse.interactive.primary.on-fill': [3.92, 3.05],
-      'aurora dark inverse.interactive.destructive.on-fill': [3.92, 3.05],
-      'harbor light inverse.interactive.primary.on-fill': [3.32, 2.55],
-      'harbor light inverse.interactive.destructive.on-fill': [3.31, 2.54],
-      'harbor dark interactive.primary.on-fill': [3.62, 2.62],
-      'harbor dark inverse.interactive.primary.on-fill': [3.91, 3.03],
-      'harbor dark inverse.interactive.destructive.on-fill': [3.92, 3.04],
-      'wendys light inverse.interactive.primary.on-fill': [3.47, 2.66],
-      'wendys light inverse.interactive.destructive.on-fill': [3.32, 2.55],
-      'wendys dark interactive.primary.on-fill': [3.67, 2.54],
-      'wendys dark interactive.destructive.on-fill': [3.31, 2.41],
-      'wendys dark inverse.interactive.primary.on-fill': [null, 3.55],
-      'wendys dark inverse.interactive.destructive.on-fill': [3.9, 3.04],
-      'minimal light inverse.interactive.primary.on-fill': [3.59, 2.76],
-      'minimal light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'minimal dark interactive.primary.on-fill': [3.21, 2.32],
-      'minimal dark inverse.interactive.primary.on-fill': [4.36, 3.39],
-      'minimal dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
-      'minimal-levers light inverse.interactive.primary.on-fill': [3.59, 2.76],
-      'minimal-levers light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'minimal-levers dark interactive.primary.on-fill': [3.21, 2.32],
-      'minimal-levers dark inverse.interactive.primary.on-fill': [4.36, 3.39],
-      'minimal-levers dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
-      'minimal-bp2 light inverse.interactive.primary.on-fill': [3.59, 2.76],
-      'minimal-bp2 light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'minimal-bp2 dark interactive.primary.on-fill': [3.21, 2.32],
-      'minimal-bp2 dark inverse.interactive.primary.on-fill': [4.36, 3.39],
-      'minimal-bp2 dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
-      'minimal-weights light inverse.interactive.primary.on-fill': [3.59, 2.76],
-      'minimal-weights light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'minimal-weights dark interactive.primary.on-fill': [3.21, 2.32],
-      'minimal-weights dark inverse.interactive.primary.on-fill': [4.36, 3.39],
-      'minimal-weights dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
-      'minimal-compact light inverse.interactive.primary.on-fill': [3.59, 2.76],
-      'minimal-compact light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'minimal-compact dark interactive.primary.on-fill': [3.21, 2.32],
-      'minimal-compact dark inverse.interactive.primary.on-fill': [4.36, 3.39],
-      'minimal-compact dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
-      'minimal-weight-swap light inverse.interactive.primary.on-fill': [3.59, 2.76],
-      'minimal-weight-swap light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'minimal-weight-swap dark interactive.primary.on-fill': [3.21, 2.32],
-      'minimal-weight-swap dark inverse.interactive.primary.on-fill': [4.36, 3.39],
-      'minimal-weight-swap dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
-      'prism3 light inverse.interactive.primary.on-fill': [3.31, 2.54],
-      'prism3 light inverse.interactive.destructive.on-fill': [3.3, 2.53],
-      'prism3 dark interactive.primary.on-fill': [3.6, 2.59],
-      'prism3 dark inverse.interactive.primary.on-fill': [3.91, 3.04],
-      'prism3 dark inverse.interactive.destructive.on-fill': [3.92, 3.05],
-      'NB-master light inverse.interactive.destructive.on-fill': [3.34, 2.56],
-    };
     const ONFILL_ROLE = /^(inverse\.)?interactive\.[^.]+\.on-fill$/;
-    const restUnder: string[] = [], minDrift: string[] = [], unmeasured: string[] = [], newMisses: string[] = [], stale: string[] = [];
-    const visited = new Set<string>(), grounds = new Set<string>(), families = new Set<string>();
+    const restUnder: string[] = [], minDrift: string[] = [], unmeasured: string[] = [], persistentUnder: string[] = [];
+    const grounds = new Set<string>(), families = new Set<string>();
     const perState: Record<string, number> = {};
     let onRows = 0, onRoles = 0, transientUnder = 0;
     const brandsForOnFill = [
@@ -22622,25 +22585,18 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const st = r.slice(`${base}fill.`.length);
             if (!ONFILL_STATES.includes(st)) unmeasured.push(`${id} ${m.mode} ${r}`);
           }
-          const key = `${id} ${m.mode} ${k}`;
           for (const st of ONFILL_STATES) {
             const fill = m.roles[`${base}fill.${st}`];
             if (!fill) { unmeasured.push(`${id} ${m.mode} ${base}fill.${st} MISSING`); continue; }
             perState[st] = (perState[st] ?? 0) + 1;
             const r = ratio(ink.hex, fill.hex);
-            if (st === 'rest') { if (r < ONFILL_FLOOR) restUnder.push(`${key} rest ${r}:1`); continue; }
-            if (TRANSIENT.has(st)) { if (r < ONFILL_FLOOR) transientUnder++; continue; }
-            const pinned = ONFILL_KNOWN_MISSES[key]?.[st === 'focused' ? 0 : 1] ?? null;
-            if (pinned !== null) visited.add(`${key}/${st}`);
-            if (pinned === null && r < ONFILL_FLOOR) newMisses.push(`${key} ${st} ${r}:1`);
-            else if (pinned !== null && r !== pinned) stale.push(`${key} ${st} pinned ${pinned}:1, now ${r}:1`);
+            if (r >= ONFILL_FLOOR) continue;
+            if (st === 'rest') restUnder.push(`${id} ${m.mode} ${k} rest ${r}:1`);
+            else if (TRANSIENT.has(st)) transientUnder++;
+            else persistentUnder.push(`${id} ${m.mode} ${k} ${st} ${r}:1`);
           }
         }
       }
-    for (const [key, pair] of Object.entries(ONFILL_KNOWN_MISSES))
-      (['focused', 'selected'] as const).forEach((st, i) => {
-        if (pair[i] !== null && !visited.has(`${key}/${st}`)) stale.push(`${key} ${st} pinned ${pair[i]}:1, not measured`);
-      });
     ok(onRows >= 40 && grounds.size === 2 && ['primary', 'destructive', 'neutral'].every((f) => families.has(f))
       && ONFILL_STATES.every((st) => (perState[st] ?? 0) === onRoles),
       `#1626 on-fill × fill-state represented: ${onRoles} on-fill roles across ${onRows} brand×mode rows, page and inverse ground (${[...grounds].sort().join('/')}), families ${[...families].sort().join('/')}, every state measured once per role (${ONFILL_STATES.map((s) => `${s}=${perState[s] ?? 0}`).join(', ')}); ${transientUnder} hover/pressed pairs under ${ONFILL_FLOOR}:1, exempt`);
@@ -22649,11 +22605,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(minDrift.length === 0,
       `#1626 every on-fill role declares the ${ONFILL_FLOOR}:1 text floor this arm measures by — drift: ${minDrift.slice(0, 6).join('; ') || 'none'}`);
     ok(restUnder.length === 0,
-      `#1626 every on-fill clears ${ONFILL_FLOOR}:1 on its rest fill (hard floor) — under: ${restUnder.slice(0, 6).join('; ') || 'none'}`);
-    ok(newMisses.length === 0,
-      `#1626 no on-fill falls under ${ONFILL_FLOOR}:1 on a focused or selected fill outside the pinned register — a new miss is a regression: ${newMisses.slice(0, 6).join('; ') || 'none'}${newMisses.length > 6 ? ` (+${newMisses.length - 6})` : ''}`);
-    ok(stale.length === 0,
-      `#1626 / #1763 the pinned focused/selected misses still measure exactly as written — a moved or cleared entry means the register is stale: ${stale.slice(0, 6).join('; ') || 'none'}${stale.length > 6 ? ` (+${stale.length - 6})` : ''}`);
+      `#1626 every on-fill clears ${ONFILL_FLOOR}:1 on its rest fill — under: ${restUnder.slice(0, 6).join('; ') || 'none'}`);
+    ok(persistentUnder.length === 0,
+      `#1626 no on-fill falls under ${ONFILL_FLOOR}:1 on a focused or selected fill, in any brand or mode — under: ${persistentUnder.slice(0, 6).join('; ') || 'none'}${persistentUnder.length > 6 ? ` (+${persistentUnder.length - 6})` : ''}`);
   }
 
   // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes

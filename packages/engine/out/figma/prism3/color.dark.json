@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
+        "r": 0.16078431904315948,
+        "g": 0.2980392277240753,
+        "b": 0.9921568632125854,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
+        "name": "pds3/core/palette/primary/550"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
+        "r": 0.16078431904315948,
+        "g": 0.2980392277240753,
+        "b": 0.9921568632125854,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
+        "name": "pds3/core/palette/primary/550"
       }
     },
     {
@@ -1586,14 +1586,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.3843137323856354,
-        "b": 0.364705890417099,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/400"
+        "name": "pds3/core/palette/danger/500"
       }
     },
     {
@@ -1605,14 +1605,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.929411768913269,
-        "g": 0.5529412031173706,
-        "b": 0.5215686559677124,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/300"
+        "name": "pds3/core/palette/danger/500"
       }
     },
     {
@@ -1926,14 +1926,14 @@
       ],
       "description": "Neutral fill, focused",
       "value": {
-        "r": 0.21568627655506134,
-        "g": 0.21960784494876862,
-        "b": 0.22745098173618317,
+        "r": 0.12941177189350128,
+        "g": 0.12941177189350128,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/750"
+        "name": "pds3/core/palette/neutral/850"
       }
     },
     {
@@ -1945,14 +1945,14 @@
       ],
       "description": "Neutral fill, selected",
       "value": {
-        "r": 0.30588236451148987,
-        "g": 0.3137255012989044,
-        "b": 0.32156863808631897,
+        "r": 0.12941177189350128,
+        "g": 0.12941177189350128,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/650"
+        "name": "pds3/core/palette/neutral/850"
       }
     },
     {
@@ -3222,16 +3222,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
       "value": {
-        "r": 0.239215686917305,
-        "g": 0.40784314274787903,
-        "b": 0.9882352948188782,
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/500"
+        "name": "pds3/core/palette/primary/350"
       }
     },
     {
@@ -3562,16 +3562,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
       "value": {
-        "r": 0.8235294222831726,
-        "g": 0.25882354378700256,
-        "b": 0.2549019753932953,
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/500"
+        "name": "pds3/core/palette/danger/350"
       }
     },
     {

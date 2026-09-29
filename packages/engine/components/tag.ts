@@ -141,11 +141,10 @@ export const tag: ComponentDef = {
     'unselected.icon.pressed': 'color.interactive.neutral.icon.pressed',
 
     // SELECTED — filled from the primary family with its on-fill ink, and the fill self-bounds, so no edge is
-    // painted. The REST fill, not `fill.selected` (the role checkbox's `checked` binds): `fill.selected` resolves to
-    // the pressed step, which in dark mode LIGHTENS, and on-fill text on it measured 2.60:1 (nb) and 2.62:1
-    // (harbor) — a text label needs 4.5:1, where a checkbox's glyph is the only ink on its fill. `fill.rest` is the
-    // pair the engine contracts (on-fill clears 4.5:1 on it in every mode, measured again in `test.ts`). Hover and
-    // pressed step from there, exactly as a filled Button's do.
+    // painted. The REST fill, which the engine contracts `on-fill` against (4.5:1 in every mode, measured again in
+    // `test.ts`). Chosen when `fill.selected` still walked to the pressed step and put on-fill text at 2.60:1 (nb)
+    // and 2.62:1 (harbor) in dark; since #1626 `fill.selected` resolves to the rest step too, so the two agree.
+    // Hover and pressed step from there, exactly as a filled Button's do.
     'selected.fill': 'color.interactive.primary.fill.rest',
     'selected.fill.hover': 'color.interactive.primary.fill.hover',
     'selected.fill.pressed': 'color.interactive.primary.fill.pressed',

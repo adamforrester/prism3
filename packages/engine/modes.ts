@@ -583,7 +583,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the mode contrast contract report it. A brand whose ramp cannot carry its own label on its own fill
   // is a fact about that brand, and silently substituting a neutral would hide exactly the thing a
   // designer needs to see. `test.ts` asserts the ratio independently of this function.
-  const brandOnFill = (palette: string, fill: RGB): Rated => {
+  // `alsoClear` (#1626): every fill the ink is painted on besides `fill`. The pick must clear `onMin` on ALL
+  // of them — the inverse button's five state fills — and `fill` (the rest fill) stays the ground the ink is
+  // rated and contracted against. Omitted, the rule is the rest-only pick it always was.
+  const brandOnFill = (palette: string, fill: RGB, alsoClear: RGB[] = []): Rated => {
     // HC KEEPS ITS MAX-EXTREME INK, and this branch is the whole reason the rule below is safe to apply
     // by default. `onColor` in an HC mode returns `pickMostExtreme` — pure black or pure white — which is
     // ~17:1 on this fill. The brand step is ~4.6:1. Substituting it in `hc-light` / `hc-dark` is a 73%
@@ -605,7 +608,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // clears the floor easily and so looks correct to any check that only asserts the floor. It did
     // exactly that on the first run here; the `mostVivid` pin in `test.ts` is what now catches it.
     const order = contrast(fill, BLACK) >= contrast(fill, WHITE) ? steps : [...steps].reverse();
-    const pick = order.find((st) => contrast(st.rgb, fill) >= onMin) ?? order[order.length - 1];
+    // Clearing every state first; if no step does, the rest-only pick, and the per-state gate in `test.ts`
+    // reports the miss rather than this function hiding it.
+    const clears = (st: Step, grounds: RGB[]) => grounds.every((g) => contrast(st.rgb, g) >= onMin);
+    const pick = order.find((st) => clears(st, [fill, ...alsoClear])) ?? order.find((st) => clears(st, [fill])) ?? order[order.length - 1];
     return rated(cand(`${ns}.${palette}.${pick.key}`, pick.rgb), fill);
   };
 
@@ -1057,7 +1063,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Measure the origin here rather than trusting `rest.ratio` — an `exact` pin carries the ratio
     // it was picked with, and this must be the contrast against the ground `put` will use.
     const g = guardFrom(contrast(rest.rgb, floorRgb), floorRgb, fillMin);
-    return st === 'default' ? rest : walk(palette, rest.num, stateRungs(st), dir, g);
+    // FOCUSED AND SELECTED RIDE REST (#1626 / #1763, owner, 2026-09-29: "rest fill + deeper inverse ink").
+    // They used to walk like hover/pressed, and in `dark` that walk goes LIGHTER under a near-white label:
+    // the on-fill measured 2.32–2.62:1 on `fill.selected` (the switch's on thumb, the checkbox's checked
+    // mark) and 3.21–3.67:1 on `fill.focused`. No re-step fixes it — the steps that clear the fill's floor
+    // AND keep that label at 4.5:1 are the rest step alone in most brands — so the persistent states take
+    // the rest step itself, in every mode. `on-fill` is gated against that step, so the label clears there
+    // by construction. Hover and pressed still walk: they are transient and exempt from the label floor
+    // (owner, #1456 / #1626). The focus ring, not a fill shift, marks focus. The role NAMES stay.
+    return st === 'default' || st === 'focused' || st === 'selected' ? rest : walk(palette, rest.num, stateRungs(st), dir, g);
   };
 
   // The action palette's rest colour — the source for interactive.primary, the focus ring,
@@ -1359,7 +1373,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // neutral and the declared interactive palettes already carry `onColor` (inkPalette null), so the rule is
     // by category — "a brand-ink label gives way to the neutral extreme" — and moves nothing else.
     const useBrandInk = inkPalette !== null && !theme.strictInteractiveContrast;
-    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround) : onColor(inkGround);
+    const extremeAnchor = cfg.family === 'light' ? 0 : 1000;   // white ≈ rung 0, black ≈ rung 1000
+    const stateFill = (st: typeof FILL_STATES[number]): Cand =>
+      st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
+    // THE BRAND INK CLEARS EVERY STATE FILL (#1626, owner, 2026-09-29: "rest fill + deeper inverse ink").
+    // It used to be picked against the rest fill alone, so it measured 4.56–5.34:1 at rest and dipped to
+    // 3.30–4.36:1 on focused and 2.53–3.55:1 on selected — the stepped #1456 fills, where focused/selected
+    // persist. `brandOnFill`'s own rule now runs over all five fills: the first brand step, scanned from
+    // the least-contrasting end, that clears `onMin` on EVERY one. It lands a deeper step than before, at
+    // rest too (prism3 primary.500 → 650 light, → 350 dark). Hover/pressed remain exempt from the floor by
+    // the owner's decision, but the one ink has to clear selected, which is pressed's fill, so they clear too.
+    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround, FILL_STATES.map((st) => st === 'default' ? inkGround : asGround(`inverse.interactive.${name}.fill.${st}`, stateFill(st).rgb))) : onColor(inkGround);
     // What a state's label does, measured. Silent where the ink clears its floor on this fill. Where it does
     // not: hover / pressed are the #1456 transient states, exempt by the owner's decision, and the strict
     // setting lifts that exemption for every brand-ink family (primary and destructive). Focused / selected
@@ -1374,10 +1398,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
           : `the strict interactive contrast setting does not change the ${name} label`}).`;
       return ` The label on it measures ${about}, below its ${onMin}:1 floor.`;
     };
-    const extremeAnchor = cfg.family === 'light' ? 0 : 1000;   // white ≈ rung 0, black ≈ rung 1000
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
+      const c: Cand = stateFill(st);
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb), stKey === 'rest'
         ? `${name} interactive fill on an inverse surface — rest — the white / black default`
         : `${name} interactive fill on an inverse surface — ${stKey} — ${stateRungs(st)} neutral rungs off the white / black rest fill.${labelNote(c.rgb, stKey)}`,
@@ -1420,7 +1443,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // max-contrast extreme instead (the `hc` branch in `brandOnFill`). Naming both arms is the only phrasing
       // that stays true across the set.
       useBrandInk
-        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes`
+        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes`
         : `Ink on the ${name} inverse fill — a neutral high-contrast label on the white / black rest fill`,
       `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,

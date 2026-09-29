@@ -1567,7 +1567,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.200}",
+              "$value": "{pds3.core.palette.primary.300}",
               "$description": "primary interactive fill — focused, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1582,8 +1582,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "pds3.core.palette.primary.200",
-                  "contrast": 10.06,
+                  "aliasOf": "pds3.core.palette.primary.300",
+                  "contrast": 7.58,
                   "against": "neutral.900",
                   "min": 7
                 }
@@ -1591,7 +1591,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.100}",
+              "$value": "{pds3.core.palette.primary.300}",
               "$description": "primary interactive fill — selected, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1606,8 +1606,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "pds3.core.palette.primary.100",
-                  "contrast": 13.04,
+                  "aliasOf": "pds3.core.palette.primary.300",
+                  "contrast": 7.58,
                   "against": "neutral.900",
                   "min": 7
                 }
@@ -2017,7 +2017,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.danger.200}",
+              "$value": "{pds3.core.palette.danger.300}",
               "$description": "destructive interactive fill — focused, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -2032,8 +2032,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "pds3.core.palette.danger.200",
-                  "contrast": 9.95,
+                  "aliasOf": "pds3.core.palette.danger.300",
+                  "contrast": 7.46,
                   "against": "neutral.900",
                   "min": 7
                 }
@@ -2041,7 +2041,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{pds3.core.palette.danger.100}",
+              "$value": "{pds3.core.palette.danger.300}",
               "$description": "destructive interactive fill — selected, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -2056,8 +2056,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "pds3.core.palette.danger.100",
-                  "contrast": 13.04,
+                  "aliasOf": "pds3.core.palette.danger.300",
+                  "contrast": 7.46,
                   "against": "neutral.900",
                   "min": 7
                 }
@@ -2464,7 +2464,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.neutral.750}",
+              "$value": "{pds3.core.palette.neutral.850}",
               "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -2479,15 +2479,15 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "pds3.core.palette.neutral.750",
-                  "contrast": 1.53,
+                  "aliasOf": "pds3.core.palette.neutral.850",
+                  "contrast": 1.11,
                   "against": "neutral.900"
                 }
               }
             },
             "selected": {
               "$type": "color",
-              "$value": "{pds3.core.palette.neutral.650}",
+              "$value": "{pds3.core.palette.neutral.850}",
               "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -2502,8 +2502,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "pds3.core.palette.neutral.650",
-                  "contrast": 2.21,
+                  "aliasOf": "pds3.core.palette.neutral.850",
+                  "contrast": 1.11,
                   "against": "neutral.900"
                 }
               }
@@ -3926,7 +3926,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{pds3.core.palette.white}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4376,7 +4376,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{pds3.core.palette.white}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",

@@ -826,16 +826,16 @@
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.600}",
-        "dark": "{ads.core.palette.accent.400}",
-        "hc-light": "{ads.core.palette.accent.800}",
-        "hc-dark": "{ads.core.palette.accent.200}"
+        "light": "{ads.core.palette.accent.500}",
+        "dark": "{ads.core.palette.accent.500}",
+        "hc-light": "{ads.core.palette.accent.700}",
+        "hc-dark": "{ads.core.palette.accent.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 5.65,
+          "ratio": 3.76,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -846,16 +846,16 @@
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.700}",
-        "dark": "{ads.core.palette.accent.300}",
-        "hc-light": "{ads.core.palette.accent.900}",
-        "hc-dark": "{ads.core.palette.accent.100}"
+        "light": "{ads.core.palette.accent.500}",
+        "dark": "{ads.core.palette.accent.500}",
+        "hc-light": "{ads.core.palette.accent.700}",
+        "hc-dark": "{ads.core.palette.accent.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 8.27,
+          "ratio": 3.76,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1186,16 +1186,16 @@
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.danger.600}",
-        "dark": "{ads.core.palette.danger.400}",
-        "hc-light": "{ads.core.palette.danger.800}",
-        "hc-dark": "{ads.core.palette.danger.200}"
+        "light": "{ads.core.palette.danger.500}",
+        "dark": "{ads.core.palette.danger.500}",
+        "hc-light": "{ads.core.palette.danger.700}",
+        "hc-dark": "{ads.core.palette.danger.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 5.57,
+          "ratio": 3.76,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1206,16 +1206,16 @@
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.danger.700}",
-        "dark": "{ads.core.palette.danger.300}",
-        "hc-light": "{ads.core.palette.danger.900}",
-        "hc-dark": "{ads.core.palette.danger.100}"
+        "light": "{ads.core.palette.danger.500}",
+        "dark": "{ads.core.palette.danger.500}",
+        "hc-light": "{ads.core.palette.danger.700}",
+        "hc-dark": "{ads.core.palette.danger.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 8.23,
+          "ratio": 3.76,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1532,10 +1532,10 @@
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.neutral.250}",
-        "dark": "{ads.core.palette.neutral.750}",
-        "hc-light": "{ads.core.palette.neutral.250}",
-        "hc-dark": "{ads.core.palette.neutral.750}"
+        "light": "{ads.core.palette.neutral.150}",
+        "dark": "{ads.core.palette.neutral.850}",
+        "hc-light": "{ads.core.palette.neutral.150}",
+        "hc-dark": "{ads.core.palette.neutral.850}"
       }
     },
     "interactive.neutral.fill.selected": {
@@ -1544,10 +1544,10 @@
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
       "mode_overrides": {
-        "light": "{ads.core.palette.neutral.350}",
-        "dark": "{ads.core.palette.neutral.650}",
-        "hc-light": "{ads.core.palette.neutral.350}",
-        "hc-dark": "{ads.core.palette.neutral.650}"
+        "light": "{ads.core.palette.neutral.150}",
+        "dark": "{ads.core.palette.neutral.850}",
+        "hc-light": "{ads.core.palette.neutral.150}",
+        "hc-dark": "{ads.core.palette.neutral.850}"
       }
     },
     "interactive.neutral.on-fill": {
@@ -2001,9 +2001,9 @@
       ]
     },
     "inverse.interactive.primary.fill.hover": {
-      "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.100}",
@@ -2021,9 +2021,9 @@
       ]
     },
     "inverse.interactive.primary.fill.pressed": {
-      "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.pressed`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.200}",
@@ -2041,9 +2041,9 @@
       ]
     },
     "inverse.interactive.primary.fill.focused": {
-      "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+      "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.focused`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.100}",
@@ -2061,9 +2061,9 @@
       ]
     },
     "inverse.interactive.primary.fill.selected": {
-      "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+      "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.selected`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.200}",
@@ -2081,13 +2081,13 @@
       ]
     },
     "inverse.interactive.primary.on-fill": {
-      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled primary interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use `interactive.primary.text.*`.",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
-        "dark": "{ads.core.palette.accent.500}",
+        "light": "{ads.core.palette.accent.650}",
+        "dark": "{ads.core.palette.accent.350}",
         "hc-light": "{ads.core.palette.black}",
         "hc-dark": "{ads.core.palette.white}"
       },
@@ -2098,7 +2098,7 @@
         {
           "token": "inverse.interactive.primary.fill.rest",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 8.3,
           "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.fill.rest` in every mode."
         }
       ]
@@ -2371,9 +2371,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.hover": {
-      "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.hover`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.100}",
@@ -2391,9 +2391,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.pressed": {
-      "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.pressed`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.200}",
@@ -2411,9 +2411,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.focused": {
-      "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+      "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.focused`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.100}",
@@ -2431,9 +2431,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.selected": {
-      "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+      "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.selected`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.200}",
@@ -2451,13 +2451,13 @@
       ]
     },
     "inverse.interactive.destructive.on-fill": {
-      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled destructive interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.on-fill`. Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
       "mode_overrides": {
-        "light": "{ads.core.palette.danger.500}",
-        "dark": "{ads.core.palette.danger.500}",
+        "light": "{ads.core.palette.danger.650}",
+        "dark": "{ads.core.palette.danger.350}",
         "hc-light": "{ads.core.palette.black}",
         "hc-dark": "{ads.core.palette.white}"
       },
@@ -2468,7 +2468,7 @@
         {
           "token": "inverse.interactive.destructive.fill.rest",
           "min": "4.5:1",
-          "ratio": 4.56,
+          "ratio": 8.22,
           "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.fill.rest` in every mode."
         }
       ]
@@ -8436,7 +8436,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.tertiary",
+        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
+        "color.interactive.neutral.fill.selected",
         "color.inverse.foreground.tertiary"
       ]
     },
@@ -8466,7 +8468,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.secondary",
-        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.hover",
         "color.inverse.border.secondary",
         "color.inverse.disabled.border",
@@ -8494,7 +8495,6 @@
       "aliased_by": [
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
-        "color.interactive.neutral.fill.selected",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
         "color.inverse.field.placeholder",
@@ -8614,7 +8614,6 @@
         "color.disabled.on-fill",
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
-        "color.interactive.neutral.fill.selected",
         "color.inverse.field.placeholder",
         "color.inverse.text.secondary"
       ]
@@ -8643,7 +8642,6 @@
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
-        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.hover"
       ]
     },
@@ -8676,7 +8674,9 @@
       "aliased_by": [
         "color.background.tertiary",
         "color.foreground.secondary",
+        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
+        "color.interactive.neutral.fill.selected",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary"
       ]
@@ -8795,7 +8795,6 @@
       "aliased_by": [
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.inverse.text.link.visited",
         "color.text.link.pressed",
         "color.text.link.visited"
@@ -8826,7 +8825,6 @@
       "aliased_by": [
         "color.icon.link.pressed",
         "color.icon.link.visited",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.inverse.icon.link.visited",
         "color.inverse.text.link.pressed",
@@ -8866,6 +8864,7 @@
         "color.border.focus",
         "color.icon.link.hover",
         "color.icon.link.pressed",
+        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
@@ -8894,6 +8893,7 @@
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
@@ -8910,7 +8910,6 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.hover",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.inverse.icon.link.hover",
         "color.inverse.text.link.default",
@@ -8948,12 +8947,13 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.primary.border.rest",
+        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.selected",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.interactive.primary.on-fill",
         "gradient.brand"
       ]
     },
@@ -8985,7 +8985,6 @@
       "aliased_by": [
         "color.icon.link.hover",
         "color.interactive.primary.border.hover",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.text.hover",
@@ -9008,6 +9007,7 @@
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
@@ -9026,6 +9026,7 @@
         "color.border.focus",
         "color.icon.link.pressed",
         "color.interactive.primary.border.pressed",
+        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
@@ -9067,7 +9068,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.visited",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.inverse.icon.link.visited",
         "color.text.link.hover"
@@ -9100,7 +9100,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.text.link.pressed"
       ]
     },
@@ -9738,7 +9737,6 @@
       "aliased_by": [
         "color.foreground.danger-subtle",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.inverse.foreground.danger-subtle"
       ]
     },
@@ -9765,7 +9763,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.border.pressed",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
@@ -9798,6 +9795,7 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.interactive.destructive.border.hover",
+        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
@@ -9824,6 +9822,7 @@
         "color.inverse.foreground.danger",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.on-fill",
         "color.inverse.interactive.destructive.text.rest",
         "color.text.danger-subtle"
       ]
@@ -9836,7 +9835,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
@@ -9871,12 +9869,13 @@
         "color.foreground.danger",
         "color.icon.danger",
         "color.icon.danger-subtle",
+        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.selected",
         "color.inverse.border.danger",
         "color.inverse.foreground.danger",
         "color.inverse.icon.danger",
         "color.inverse.icon.danger-subtle",
-        "color.inverse.interactive.destructive.on-fill",
         "color.inverse.text.danger-subtle",
         "color.text.danger-subtle"
       ]
@@ -9901,7 +9900,6 @@
       "aliased_by": [
         "color.icon.danger",
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
@@ -9927,6 +9925,7 @@
         "color.inverse.icon.danger-subtle",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.on-fill",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger-subtle"
       ]
@@ -9940,6 +9939,7 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.interactive.destructive.border.hover",
+        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
@@ -9975,7 +9975,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.border.pressed",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
@@ -10008,7 +10007,6 @@
       "aliased_by": [
         "color.foreground.danger-subtle",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.inverse.foreground.danger-subtle"
       ]
     },

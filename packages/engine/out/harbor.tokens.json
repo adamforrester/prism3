@@ -7401,35 +7401,35 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.700}",
+              "$value": "{hds.core.palette.primary.600}",
               "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.700",
-                  "contrast": 7.21,
+                  "aliasOf": "hds.core.palette.primary.600",
+                  "contrast": 4.91,
                   "against": "neutral.100",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.450}",
-                      "aliasOf": "hds.core.palette.primary.450",
-                      "contrast": 4.61,
+                      "$value": "{hds.core.palette.primary.550}",
+                      "aliasOf": "hds.core.palette.primary.550",
+                      "contrast": 3.19,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{hds.core.palette.primary.800}",
-                      "aliasOf": "hds.core.palette.primary.800",
-                      "contrast": 10.11,
+                      "$value": "{hds.core.palette.primary.700}",
+                      "aliasOf": "hds.core.palette.primary.700",
+                      "contrast": 7.21,
                       "against": "neutral.100",
                       "min": 7,
                       "description": "primary interactive fill — focused, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{hds.core.palette.primary.200}",
-                      "aliasOf": "hds.core.palette.primary.200",
-                      "contrast": 9.93,
+                      "$value": "{hds.core.palette.primary.300}",
+                      "aliasOf": "hds.core.palette.primary.300",
+                      "contrast": 7.44,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "primary interactive fill — focused, clears 7:1 on background.secondary"
@@ -7450,35 +7450,35 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.800}",
+              "$value": "{hds.core.palette.primary.600}",
               "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.800",
-                  "contrast": 10.11,
+                  "aliasOf": "hds.core.palette.primary.600",
+                  "contrast": 4.91,
                   "against": "neutral.100",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.350}",
-                      "aliasOf": "hds.core.palette.primary.350",
-                      "contrast": 6.37,
+                      "$value": "{hds.core.palette.primary.550}",
+                      "aliasOf": "hds.core.palette.primary.550",
+                      "contrast": 3.19,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{hds.core.palette.primary.900}",
-                      "aliasOf": "hds.core.palette.primary.900",
-                      "contrast": 12.95,
+                      "$value": "{hds.core.palette.primary.700}",
+                      "aliasOf": "hds.core.palette.primary.700",
+                      "contrast": 7.21,
                       "against": "neutral.100",
                       "min": 7,
                       "description": "primary interactive fill — selected, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{hds.core.palette.primary.100}",
-                      "aliasOf": "hds.core.palette.primary.100",
-                      "contrast": 13.01,
+                      "$value": "{hds.core.palette.primary.300}",
+                      "aliasOf": "hds.core.palette.primary.300",
+                      "contrast": 7.44,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "primary interactive fill — selected, clears 7:1 on background.secondary"
@@ -8293,35 +8293,35 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.600}",
+              "$value": "{hds.core.palette.danger.500}",
               "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.600",
-                  "contrast": 4.92,
+                  "aliasOf": "hds.core.palette.danger.500",
+                  "contrast": 3.31,
                   "against": "neutral.100",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.danger.400}",
-                      "aliasOf": "hds.core.palette.danger.400",
-                      "contrast": 5.38,
+                      "$value": "{hds.core.palette.danger.500}",
+                      "aliasOf": "hds.core.palette.danger.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{hds.core.palette.danger.800}",
-                      "aliasOf": "hds.core.palette.danger.800",
-                      "contrast": 10.32,
+                      "$value": "{hds.core.palette.danger.700}",
+                      "aliasOf": "hds.core.palette.danger.700",
+                      "contrast": 7.24,
                       "against": "neutral.100",
                       "min": 7,
                       "description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{hds.core.palette.danger.200}",
-                      "aliasOf": "hds.core.palette.danger.200",
-                      "contrast": 9.95,
+                      "$value": "{hds.core.palette.danger.300}",
+                      "aliasOf": "hds.core.palette.danger.300",
+                      "contrast": 7.39,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
@@ -8342,35 +8342,35 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.700}",
+              "$value": "{hds.core.palette.danger.500}",
               "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.700",
-                  "contrast": 7.24,
+                  "aliasOf": "hds.core.palette.danger.500",
+                  "contrast": 3.31,
                   "against": "neutral.100",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.danger.300}",
-                      "aliasOf": "hds.core.palette.danger.300",
-                      "contrast": 7.39,
+                      "$value": "{hds.core.palette.danger.500}",
+                      "aliasOf": "hds.core.palette.danger.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{hds.core.palette.danger.900}",
-                      "aliasOf": "hds.core.palette.danger.900",
-                      "contrast": 13.2,
+                      "$value": "{hds.core.palette.danger.700}",
+                      "aliasOf": "hds.core.palette.danger.700",
+                      "contrast": 7.24,
                       "against": "neutral.100",
                       "min": 7,
                       "description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{hds.core.palette.danger.100}",
-                      "aliasOf": "hds.core.palette.danger.100",
-                      "contrast": 13,
+                      "$value": "{hds.core.palette.danger.300}",
+                      "aliasOf": "hds.core.palette.danger.300",
+                      "contrast": 7.39,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
@@ -9167,31 +9167,31 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.neutral.250}",
+              "$value": "{hds.core.palette.neutral.150}",
               "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.neutral.250",
-                  "contrast": 1.51,
+                  "aliasOf": "hds.core.palette.neutral.150",
+                  "contrast": 1.14,
                   "against": "neutral.100",
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.neutral.750}",
-                      "aliasOf": "hds.core.palette.neutral.750",
-                      "contrast": 1.51,
+                      "$value": "{hds.core.palette.neutral.850}",
+                      "aliasOf": "hds.core.palette.neutral.850",
+                      "contrast": 1.12,
                       "against": "neutral.900"
                     },
                     "hc-light": {
-                      "$value": "{hds.core.palette.neutral.250}",
-                      "aliasOf": "hds.core.palette.neutral.250",
-                      "contrast": 1.51,
+                      "$value": "{hds.core.palette.neutral.150}",
+                      "aliasOf": "hds.core.palette.neutral.150",
+                      "contrast": 1.14,
                       "against": "neutral.100"
                     },
                     "hc-dark": {
-                      "$value": "{hds.core.palette.neutral.750}",
-                      "aliasOf": "hds.core.palette.neutral.750",
-                      "contrast": 1.51,
+                      "$value": "{hds.core.palette.neutral.850}",
+                      "aliasOf": "hds.core.palette.neutral.850",
+                      "contrast": 1.12,
                       "against": "neutral.900"
                     }
                   },
@@ -9210,31 +9210,31 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{hds.core.palette.neutral.350}",
+              "$value": "{hds.core.palette.neutral.150}",
               "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.neutral.350",
-                  "contrast": 2.03,
+                  "aliasOf": "hds.core.palette.neutral.150",
+                  "contrast": 1.14,
                   "against": "neutral.100",
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.neutral.650}",
-                      "aliasOf": "hds.core.palette.neutral.650",
-                      "contrast": 2.19,
+                      "$value": "{hds.core.palette.neutral.850}",
+                      "aliasOf": "hds.core.palette.neutral.850",
+                      "contrast": 1.12,
                       "against": "neutral.900"
                     },
                     "hc-light": {
-                      "$value": "{hds.core.palette.neutral.350}",
-                      "aliasOf": "hds.core.palette.neutral.350",
-                      "contrast": 2.03,
+                      "$value": "{hds.core.palette.neutral.150}",
+                      "aliasOf": "hds.core.palette.neutral.150",
+                      "contrast": 1.14,
                       "against": "neutral.100"
                     },
                     "hc-dark": {
-                      "$value": "{hds.core.palette.neutral.650}",
-                      "aliasOf": "hds.core.palette.neutral.650",
-                      "contrast": 2.19,
+                      "$value": "{hds.core.palette.neutral.850}",
+                      "aliasOf": "hds.core.palette.neutral.850",
+                      "contrast": 1.12,
                       "against": "neutral.900"
                     }
                   },
@@ -12214,7 +12214,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12228,24 +12228,21 @@
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 16.7,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.100}",
                         "aliasOf": "hds.core.palette.neutral.100",
                         "contrast": 15.2,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.900}",
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 17.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12264,7 +12261,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12278,24 +12275,21 @@
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 12.96,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.200}",
                         "aliasOf": "hds.core.palette.neutral.200",
                         "contrast": 11.67,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.800}",
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 13.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12314,7 +12308,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12328,24 +12322,21 @@
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 16.7,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.9:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.100}",
                         "aliasOf": "hds.core.palette.neutral.100",
                         "contrast": 15.2,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.900}",
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 17.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12364,7 +12355,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12378,24 +12369,21 @@
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 12.96,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 3:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.200}",
                         "aliasOf": "hds.core.palette.neutral.200",
                         "contrast": 11.67,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.800}",
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 13.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12414,20 +12402,20 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.500}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$value": "{hds.core.palette.primary.650}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.500",
-                  "contrast": 4.58,
+                  "aliasOf": "hds.core.palette.primary.650",
+                  "contrast": 8.28,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.500}",
-                      "aliasOf": "hds.core.palette.primary.500",
-                      "contrast": 4.58,
+                      "$value": "{hds.core.palette.primary.350}",
+                      "aliasOf": "hds.core.palette.primary.350",
+                      "contrast": 7.47,
                       "against": "inverse.interactive.primary.fill.rest",
                       "min": 4.5
                     },
@@ -13108,7 +13096,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13122,24 +13110,21 @@
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 16.7,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.100}",
                         "aliasOf": "hds.core.palette.neutral.100",
                         "contrast": 15.2,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.900}",
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 17.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13158,7 +13143,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13172,24 +13157,21 @@
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 12.96,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.200}",
                         "aliasOf": "hds.core.palette.neutral.200",
                         "contrast": 11.67,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.800}",
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 13.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13208,7 +13190,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13222,24 +13204,21 @@
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 16.7,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.9:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.100}",
                         "aliasOf": "hds.core.palette.neutral.100",
                         "contrast": 15.2,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.900}",
                         "aliasOf": "hds.core.palette.neutral.900",
                         "contrast": 17.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13258,7 +13237,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13272,24 +13251,21 @@
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 12.96,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 3:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.200}",
                         "aliasOf": "hds.core.palette.neutral.200",
                         "contrast": 11.67,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{hds.core.palette.neutral.800}",
                         "aliasOf": "hds.core.palette.neutral.800",
                         "contrast": 13.9,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13308,20 +13284,20 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.500}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$value": "{hds.core.palette.danger.650}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 4.57,
+                  "aliasOf": "hds.core.palette.danger.650",
+                  "contrast": 8.25,
                   "against": "inverse.interactive.destructive.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.danger.500}",
-                      "aliasOf": "hds.core.palette.danger.500",
-                      "contrast": 4.6,
+                      "$value": "{hds.core.palette.danger.350}",
+                      "aliasOf": "hds.core.palette.danger.350",
+                      "contrast": 7.46,
                       "against": "inverse.interactive.destructive.fill.rest",
                       "min": 4.5
                     },
@@ -21496,7 +21472,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.196.0",
+      "version": "0.197.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

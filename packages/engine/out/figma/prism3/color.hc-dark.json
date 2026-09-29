@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.6705882549285889,
-        "g": 0.7607843279838562,
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
         "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/200"
+        "name": "pds3/core/palette/primary/300"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.8156862854957581,
-        "g": 0.8627451062202454,
-        "b": 0.9764705896377563,
+        "r": 0.5254902243614197,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/100"
+        "name": "pds3/core/palette/primary/300"
       }
     },
     {
@@ -1586,14 +1586,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.9411764740943909,
-        "g": 0.6980392336845398,
-        "b": 0.6745098233222961,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/200"
+        "name": "pds3/core/palette/danger/300"
       }
     },
     {
@@ -1605,14 +1605,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.8352941274642944,
-        "b": 0.8196078538894653,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/100"
+        "name": "pds3/core/palette/danger/300"
       }
     },
     {
@@ -1926,14 +1926,14 @@
       ],
       "description": "Neutral fill, focused",
       "value": {
-        "r": 0.21568627655506134,
-        "g": 0.21960784494876862,
-        "b": 0.22745098173618317,
+        "r": 0.12941177189350128,
+        "g": 0.12941177189350128,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/750"
+        "name": "pds3/core/palette/neutral/850"
       }
     },
     {
@@ -1945,14 +1945,14 @@
       ],
       "description": "Neutral fill, selected",
       "value": {
-        "r": 0.30588236451148987,
-        "g": 0.3137255012989044,
-        "b": 0.32156863808631897,
+        "r": 0.12941177189350128,
+        "g": 0.12941177189350128,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/650"
+        "name": "pds3/core/palette/neutral/850"
       }
     },
     {
@@ -3222,7 +3222,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
       "value": {
         "r": 1,
         "g": 1,
@@ -3562,7 +3562,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
       "value": {
         "r": 1,
         "g": 1,

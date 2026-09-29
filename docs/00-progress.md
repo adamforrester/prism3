@@ -7,24 +7,46 @@
 
 ---
 
-## (2026-09-29) — On-fill: the label measured on every interactive fill state; the fix held for the owner (#1626, #1763)
+## (2026-09-29) — On-fill: the label clears 4.5:1 on every persistent fill state (#1626, #1763)
 
-**What landed.** A `test.ts` arm, `(4c) #1626`, measures every `on-fill` role the engine emits (page and inverse ground, every family) against all five fill states (`rest`, `hover`, `pressed`, `focused`, `selected`) in every mode of every corpus brand, prism3 and the NB master theme, from resolved hexes. The floor is authored in the test at 4.5:1, because `on-fill` is a text ink. Rest is a hard floor. Hover and pressed are measured and exempt, by the owner's standing position (#1456 on the inverse band; the #1626 comment of 2026-09-26 on the page). Focused and selected persist, so they are held at the floor against a pinned register of today's misses, written as literals. The arm fails in both directions: a new miss fails as a regression, and a pinned entry that moves or clears fails as stale. It also fails if the engine emits a fill state the arm does not measure, or if an `on-fill` declares a min other than 4.5. No engine code or emitted artifact changed, so ENGINE stays at 0.196.0 and CONTRACT at 13.2.0.
+**Owner-decided (2026-09-29, after the before/after comparison page): "rest fill + deeper inverse ink".** ENGINE 0.196.0 → **0.197.0** (the orchestrator renumbers); CONTRACT stands at 13.2.0, since no token name moves.
 
-**What did not land, and why.** The brief asked for the failures fixed through an existing engine mechanism and the #1763 exemption removed. No mechanism reaches it, measured across the corpus, prism3 and the NB master theme:
-- **Re-step the fill (page, dark).** The walk would have to count steps where the fill clears its 3:1 floor on the page *and* the near-white label clears 4.5:1. That window is the rest step alone (nb, harbor, wendys primary, prism3) or rest plus one darker step (minimal, wendys destructive). Neither direction supplies the two or four qualifying rungs a state needs.
-- **Re-pick one ink over rest + focused + selected.** The best of `onColor`'s candidates is pure black, at 3.55–4.23:1 for primary. Wendys destructive is the one row it clears (4.57:1).
-Every working option changes a visible color, so it is the owner's call. The measured options: a per-state ink (page dark focused 4.94–5.86, selected 6.91–8.05; needs new token names, a MINOR contract bump); painting focused/selected on `fill.rest` (4.59–5.53; the checked checkbox, the on switch and a focused button take the rest color in every mode); on the inverse band, the existing strict-contrast setting (10.75–19.60 at every state, neutral label) or a brand ink re-picked to clear every state (selected 4.56–5.25, but rest moves to a deeper brand step, 600–650 light and 300–350 dark). A before/after comparison page, which the owner asked for on #1626, shows every failing case under each option. The #1763 switch exemption (`darkOnGap === 10`) stays until one is chosen.
+**What was wrong.** `interactive.<c>.on-fill` (and its `inverse.` twin) was gated against `fill.rest` only. The engaged fills were never measured against the label on them, and 113 focused or selected pairs missed 4.5:1 across the token-contract corpus, prism3 and the NB master theme:
+- Page ground, `dark` only: primary everywhere but aurora (focused 3.21–3.67, selected 2.32–2.62), destructive in nb (3.59 / 2.60) and wendys (3.31 / 2.41). The selected pair is the switch's on thumb and the checkbox's checked mark (#1763), under even the 3:1 glyph floor.
+- Inverse band, light and dark: primary and destructive in every brand (focused 3.30–4.36, selected 2.53–3.55), from the #1456 stepped neutral fills.
 
-**The numbers.** 113 focused or selected pairs miss 4.5:1 across 57 brand × mode × role rows. Page ground, `dark` only: primary everywhere but aurora (focused 3.21–3.67, selected 2.32–2.62), destructive in nb (3.59 / 2.60) and wendys (3.31 / 2.41). Inverse band, light and dark: primary and destructive in every brand (focused 3.30–4.36, selected 2.53–3.55), from the #1456 stepped neutral fills; the NB master theme's primary inverse ink is overridden to `neutral.950` and clears. HC modes clear everywhere. The switch's on thumb and the checkbox's checked mark are the `primary` selected pairs, so they miss the 3:1 glyph floor too.
+**Why no mechanism reached it, which is why this went to the owner.** On the page in `dark`, the steps where the fill clears its 3:1 floor and the near-white label clears 4.5:1 are the rest step alone (nb, harbor, wendys primary, prism3), or rest plus one darker step (minimal, wendys destructive), so no re-step exists. No single neutral ink clears rest and selected together either: pure black reaches 3.55–4.23:1 for primary.
+
+**The change.**
+- **Page:** `fillStateCand` returns the rest step for `focused` and `selected`, in every mode. Hover and pressed still walk. The focus ring marks focus, and the role names stay.
+- **Inverse:** `brandOnFill` takes the other fills the ink is painted on, and picks the first step, from the least-contrasting end, that clears 4.5:1 on all five state fills. It falls back to the rest-only pick if no step does. The pick is deeper at rest too: prism3 primary goes from 500 to 650 in light and 350 in dark; wendys primary lands on 600 and 300. The inverse on-fill `$description` now says "on every state of the white / black fill, rest through selected".
+- Hover and pressed stay exempt by the owner's earlier call (#1456, #1626). On the inverse band they clear anyway, because the one ink has to clear selected, which is pressed's fill. On the page in `dark` they still dip (3.21–3.67 / 2.32–2.62).
+
+**Before → after** (ink on fill, ratio):
+- prism3 dark, page `primary` selected: `neutral.025 #f7f7f7` on `primary.350 #7398f8`, 2.59 → on `primary.550 #294cfd`, 5.53.
+- prism3 light, inverse primary: `primary.500 #3d68fc` → `primary.650 #1914e2`. Rest on white 4.58 → 9.38; selected on `neutral.200 #c0c1c2` 2.54 → 5.20.
+- prism3 dark, inverse primary: `primary.500 #3d68fc` → `primary.350 #7398f8`. Rest on black 4.58 → 7.58; selected on `neutral.800 #2c2c2e` 3.04 → 5.03.
+- NB master (light only): page `primary` selected `#34383d` 11.80 → `#0b0e10` 19.36. Inverse destructive `primary.450 #d53c43` → `primary.650 #91001a`: rest 4.61 → 9.46, selected 2.56 → 5.25. Inverse primary is overridden to `neutral.950` and holds at 18.08 / 10.77.
+
+**Gates.**
+- `test.ts` `(4c) #1626` measures every emitted `on-fill` against all five fill states, in every mode of every corpus brand, prism3 and the NB master theme. The floor is authored in the test at 4.5:1. Rest and focused/selected must clear it with no register (the 113-entry pinned register from the first commit of this PR is gone). Hover/pressed are measured and exempt, and counted in the represented line. It also fails on any emitted fill state it does not measure, and on any `on-fill` that declares a min other than 4.5.
+- The #1763 exemption (`darkOnGap === 10`) is removed. The switch arm now holds on thumb and on glyph at 3:1 in every mode, `dark` included. A new arm pins the dark literals for the switch's on thumb and, through `checkbox-control`'s own bindings, the checked mark: nb 5.24, aurora 4.60, harbor 5.23, wendys 5.49, minimal 4.63, prism3 5.53:1.
+- `#1244` "most vivid" now requires the neighbor toward the fill to fail on at least one of the five state fills, read off the emitted tree. A rest-only neighbor check would call the new pick "too far".
+- `#1354` literals moved with the on track: NB master light `#0b0e10`, 14.01:1 off vs on; prism3 light `#1e1eff`, 5.65:1.
+
+**Fallout, measured.**
+- `lint-paint` and `lint-component-surface` pass without a re-accept: the defs bind the same role names, and the surface baseline is brand-independent.
+- `token-contract --accept` moved only the informational `engineVersion` field.
+- `.ai.json` `when_to_use` for `fill.focused` / `fill.selected` drops its generated "drops below 4.5:1 in dark mode" clause.
+- Emitted paths that moved: page `fill.focused` / `fill.selected`, inverse `fill.*` descriptions (the label notes), and inverse `on-fill`. No `text.*`, `icon.*` or `border.*` role moved, so #1367's pairs are untouched.
+- Radio's checked dot (`fill.selected` on the page) is now 3.30–10.03:1 corpus-wide, still above 3:1. Its prose, and the tag and switch prose, are updated.
+- **For the owner:** in `dark` the switch's on track now sits closer to the dark off track, at 2.71–14.01:1 across modes (prism3 dark 2.71:1, from 5.70 minimum before). No gate requires off vs on track at 3:1, since thumb position carries the state, but it is a visible cost of the decision.
 
 **Mutations** (committed first, restored from HEAD):
-- M1, focused/selected added to the transient set (the arm disabled): `#1626 / #1763 the pinned focused/selected misses still measure exactly as written` fails, every entry "not measured".
-- M2, `selected` dropped from the measured states: `#1626 every fill state the engine emits … is measured` fails naming each `fill.selected`, and the stale arm fails too.
-- M3, the `nb dark interactive.primary.on-fill` register row deleted (the exemption removed): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill outside the pinned register` fails on `nb dark … focused 3.59:1; … selected 2.6:1`.
-- M4, subject: `modes.ts` walks `selected` six rungs: the stale arm fails (`nb dark … selected pinned 2.6:1, now 1.92:1`, and so on), beside the existing #1763 aurora literal.
-
-**Trap for whoever re-verifies.** The register is keyed by the corpus id's first word, so `minimal`'s five variants each carry their own rows. They share one palette and today measure identically. A new corpus member with any on-fill miss fails the arm until its rows are added, which is the intent.
+- MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.
+- MB, the inverse re-pick disabled (`alsoClear` emptied): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb light inverse focused 3.33:1, …). The `#1244` arm does not fire here: a rest-only pick is shallower, not too far. `(4c)` is the arm that holds it.
+- MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
+- The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
 
 ---
 

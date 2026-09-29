@@ -51,7 +51,8 @@
  * THE DOT NOW SITS ON THE PAGE, WHICH IS THE ONE CONTRAST CONSEQUENCE. The pre-split dot sat on the
  * disc's fill, so its ink was `on-fill` (gated against the fill) and its disabled ink `disabled.indicator.on-fill`.
  * With no fill, the dot sits on the PAGE, so its ink is `interactive.primary.fill.selected` — the same
- * brand token the old filled disc used, measured 4.94–14.17:1 against the page corpus-wide, so it clears
+ * brand token the old filled disc used, measured 3.30–10.03:1 against the page corpus-wide (the rest step
+ * since #1626 took `fill.selected` onto it), so it clears
  * SC 1.4.11's 3:1 non-text floor everywhere AS A DOT the same way it did as a disc. Its disabled ink is
  * the page form `disabled.indicator` (`color.disabled.fill`), which the projector reaches on its own:
  * `paintOf`'s disabled branch asks for the `on-fill` form only when a fill is bound at rest (`restKey('fill')`),
@@ -178,7 +179,7 @@ export const radioControl: ComponentDef = {
     // ── THE INNER DOT — the selection affordance, present only at `checked`, painted the brand fill
     // AGAINST THE PAGE. `interactive.primary.fill.selected` is the token the pre-split filled disc used;
     // as a dot on the page (the ring is unfilled) it clears SC 1.4.11's 3:1 non-text floor the same way
-    // it did as a disc — 4.94–14.17:1 corpus-wide. In the `indicator` slot, NOT `icon`: the dot IS the
+    // it did as a disc — 3.30–10.03:1 corpus-wide (#1626: the rest step). In the `indicator` slot, NOT `icon`: the dot IS the
     // drawn shape (a filled box, no glyph), and #933's rule is one box per slot (`control` owns the
     // border grammar). ONE value, no per-state ladder: the hover/pressed affordance is the RING stroke
     // darkening (`field.border.hover`), not the dot — Prism 2 varies the ring, not the inner circle, and
