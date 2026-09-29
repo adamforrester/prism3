@@ -4336,4 +4336,128 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `tag min width: a one-letter medium tag is 64 × 44 — 1.5 × its 44px height, to the nearest 8 — held by the literal floor over a 30px label row (member ${String(member?.width)} × ${String(member?.height)}, row ${String(row?.width)}, label '${String(label?.characters)}'; ${r.misses[0] ?? '0 misses'})`);
 }
 
+// =============================================================================================
+// #1781 — A NEST RESOLVES INSIDE ITS OWN DEF'S SET, NEVER BY MEMBER NAME ACROSS SETS
+// =============================================================================================
+// The live rebuild: stale sets renamed aside (`__old__<name>`), then rebuilt. `checkbox-group`'s rows
+// nested `switch-row/size=small`, `radio-group/size=large` and `__old__radio-group/size=large`; later
+// `checkbox-row`'s control nested `radio-control/selection=unchecked, size=small, state=rest`. Each is the
+// right MEMBER NAME in the wrong SET, and each built with no miss, because both executors matched the name
+// inside the named set and then looked it up again across the whole file, where every set's `size=small`
+// shares one key.
+//
+// THE FILE reproduces that: `checkbox-control` and `radio-control` carry their real member names (which
+// overlap exactly where the rows point), the three rows and two groups carry their real `size=*` names, and
+// a renamed `__old__checkbox-row` and `__old__radio-group` sit beside them. Built in BOTH document orders,
+// because a last-wins lookup is only wrong for whichever set the search returns last — one order alone
+// would let `radio-row` pass by luck while `checkbox-row` fails, or the reverse.
+//
+// THE ORACLE is the host: each built instance's `mainComponent` (and its `parent`, the set), recorded by
+// the shim when `createInstance` was called on that object. The expectation is the plan's own
+// `nestTarget` and `nestVariant`, compared axis by axis here rather than through `nestVariantMatch`, which
+// is the executor's matcher.
+//
+// Mutations by name (recorded in the PR): restore `compByName.get(hit)` as the member lookup, or let the set
+// match on a prefix (`__old__`), and `#1781 nests resolve to their own set` fails.
+{
+  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
+  const defOf = (id: string): ComponentDef => componentDefs.find((d) => d.id === id)!;
+  const project = (id: string): AnatomyPlan[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP });
+  const membersOf = (id: string): string[] => project(id).map(planComponentName);
+  const baseFile: FileNode[] = [
+    ...SET_IDS.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: membersOf(id) })),
+    { name: '__old__checkbox-row', type: 'COMPONENT_SET', variants: membersOf('checkbox-row') },
+    { name: '__old__radio-group', type: 'COMPONENT_SET', variants: membersOf('radio-group') },
+  ];
+
+  // REACHABILITY FIRST — every assertion below is vacuous if the names do not actually collide.
+  const ctlName = 'selection=unchecked, size=small, state=rest';
+  ok(membersOf('checkbox-control').includes(ctlName) && membersOf('radio-control').includes(ctlName),
+    `#1781 reachable: checkbox-control and radio-control share the member name ${ctlName}`);
+  const rowSets = ['checkbox-row', 'radio-row', 'switch-row', 'radio-group', 'checkbox-group'];
+  ok(['size=small', 'size=medium'].every((n) => rowSets.every((id) => membersOf(id).includes(n)))
+    && ['checkbox-row', 'radio-row', 'radio-group', '__old__radio-group'].every((id) => baseFile.find((f) => f.name === id)?.type === 'COMPONENT_SET' && (baseFile.find((f) => f.name === id) as { variants: string[] }).variants.includes('size=large')),
+    `#1781 reachable: ${rowSets.join(', ')} all carry size=small | size=medium, and size=large is in checkbox-row, radio-row, radio-group and __old__radio-group (switch-row has no large)`);
+
+  type Inst = { part: string; member: string; set: string; main: string; parentType: string };
+  // Keyed MEMBER then PART: a nest `follow`s its parent's axes, so `control` wants `size=small` in one member
+  // and `size=large` in another.
+  const planNests = (plans: AnatomyPlan[]) => {
+    const out = new Map<string, { target: string; variant: Record<string, string> }>();
+    for (const p of plans) {
+      const walk = (n: { name: string; nestTarget?: string; nestVariant?: Record<string, string>; children?: unknown[] }): void => {
+        if (n.nestTarget) out.set(`${planComponentName(p)}|${n.name}`, { target: n.nestTarget, variant: n.nestVariant ?? {} });
+        for (const c of (n.children ?? []) as (typeof n)[]) walk(c);
+      };
+      walk(p.root as unknown as Parameters<typeof walk>[0]);
+    }
+    return out;
+  };
+  const builtInstances = (page: Page): Inst[] => {
+    const out: Inst[] = [];
+    for (const set of page.children) for (const m of (set.children as Node[] | undefined) ?? []) {
+      const walk = (n: Node): void => {
+        const main = (n as { mainComponent?: { name: string; parent?: { name: string; type: string } } }).mainComponent;
+        if (n.type === 'INSTANCE' && main) out.push({ part: String(n.name), member: String(m.name), set: String(main.parent?.name), parentType: String(main.parent?.type), main: main.name });
+        for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
+      };
+      for (const c of (m.children as Node[] | undefined) ?? []) walk(c);
+    }
+    return out;
+  };
+  const buildAgainst = async (id: string, fileNodes: FileNode[]) => {
+    const plans = project(id);
+    const f = fullFor(plans);
+    const page: Page = { children: [] };
+    // The nest targets are SETS in this file, never plain components — so the set path is the one taken.
+    const r = await run(plans, { ...f, comps: (f.comps ?? []).filter((c) => !SET_IDS.includes(c)), fileNodes, page });
+    return { plans, r, page };
+  };
+
+  for (const [label, file] of [['forward', baseFile], ['reversed', [...baseFile].reverse()]] as const) {
+    const wrong: string[] = [];
+    let checked = 0;
+    let planned = 0;
+    const nestMisses: string[] = [];
+    for (const id of ['checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group']) {
+      const { plans, r, page } = await buildAgainst(id, file);
+      const nests = planNests(plans);
+      nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant) ->/.test(m)).map((m) => `${id}: ${m}`));
+      // Every nested instance the PLAN declares, counted off the plan, so a nest dropped by a miss cannot pass
+      // by building nothing.
+      const countNests = (n: { nestTarget?: string; children?: unknown[] }): number => (n.nestTarget ? 1 : 0) + ((n.children ?? []) as (typeof n)[]).reduce((a, c) => a + countNests(c), 0);
+      planned += plans.reduce((a, p) => a + countNests(p.root as unknown as { nestTarget?: string; children?: unknown[] }), 0);
+      for (const inst of builtInstances(page)) {
+        const want = nests.get(`${inst.member}|${inst.part}`);
+        if (!want) continue; // a swap instance, not a nest
+        checked++;
+        const coord = new Map(inst.main.split(', ').map((kv) => kv.split('=') as [string, string]));
+        const coordOk = coord.size === Object.keys(want.variant).length && Object.entries(want.variant).every(([k, v]) => coord.get(k) === v);
+        if (inst.parentType !== 'COMPONENT_SET' || inst.set !== want.target || !coordOk)
+          wrong.push(`${id}/${inst.member} ${inst.part} -> ${inst.set}/${inst.main} (want ${want.target}/${Object.entries(want.variant).map(([k, v]) => `${k}=${v}`).join(', ')})`);
+      }
+    }
+    ok(checked > 0 && checked === planned && wrong.length === 0 && nestMisses.length === 0,
+      `#1781 nests resolve to their own set (${label} file order): every row's control and every group's rows and label is a member of the set its def names — ${checked}/${planned} nested instances checked; ${wrong.length ? `WRONG SET: ${wrong.slice(0, 4).join(' | ')}` : 'none wrong'}; ${nestMisses.length ? `misses: ${nestMisses.slice(0, 2).join(' | ')}` : 'no nest misses'}`);
+  }
+
+  // AMBIGUOUS: two sets under the exact name `checkbox-row`. Reported by name, nothing nested — neither is
+  // picked, because nothing but document order could choose between them.
+  const twoRows: FileNode[] = [...baseFile, { name: 'checkbox-row', type: 'COMPONENT_SET', variants: membersOf('checkbox-row') }];
+  const amb = await buildAgainst('checkbox-group', twoRows);
+  const ambMiss = amb.r.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+  const ambRows = builtInstances(amb.page).filter((i) => i.set === 'checkbox-row' || i.set === '__old__checkbox-row');
+  ok(ambMiss.length > 0 && ambMiss.every((m) => m.includes('found 2 COMPONENT_SETs named checkbox-row') && m.includes('nothing built')) && ambRows.length === 0,
+    `#1781 two sets named exactly checkbox-row are reported by name and no row is nested from either (${ambMiss.length} misses, ${ambRows.length} rows built; ${ambMiss[0] ?? 'NO MISS'})`);
+
+  // MISSING: the named set is gone and only the renamed-aside copy remains. The `__old__` set does NOT stand
+  // in for it; the four-way diagnosis reports the target as absent.
+  const onlyOld = baseFile.filter((f) => f.name !== 'checkbox-row');
+  const gone = await buildAgainst('checkbox-group', onlyOld);
+  const goneMiss = gone.r.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+  const goneRows = builtInstances(gone.page).filter((i) => i.set === '__old__checkbox-row');
+  ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && goneRows.length === 0,
+    `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
+}
+
 if (failed) process.exit(1);
