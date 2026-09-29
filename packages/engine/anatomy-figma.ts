@@ -1272,12 +1272,22 @@ export const figmaAnatomyPlan = (
     // A NODE-VISIBILITY BOOLEAN part (#1331) is EMITTED at every member — the boolean flips its `visible`
     // in place, so the node has to exist for there to be anything to toggle. This leads `present()` because
     // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
-    // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
-    // a `when`-gated part, so no second presence mechanism contends here. The ONE composition it admits is
-    // a boolean over several `presentWhen`-gated parts that PARTITION an axis between them (switch-control's
-    // check/X under `State icon`): such a part falls through to its variant gate below, and the boolean
-    // still has exactly one node to toggle at every member (the partition is `figmaPropertyErrors`' check).
-    if (booleanParts.has(name) && !a.parts[name]?.presentWhen) return true;
+    // both of which the lines below would otherwise DROP it on.
+    //
+    // A VARIANT gate composes with it, and it is evaluated HERE, before those lines, so an optional or
+    // slot-named boolean part is never dropped ahead of its own gate. ONE path for both users (the #1743
+    // merge of #1765): Tag's check (one part, present only at `type=select × selection=selected`) and
+    // switch-control's `State icon` (the check at `selection=on`, the X at `selection=off`). AND across axes,
+    // and an axis the caller did not supply reads as ABSENT — the same rule the variant-gated branch below
+    // applies. `figmaPropertyErrors` refuses a boolean on a STATE gate (`when`, or `presentWhen`'s `state`
+    // key) and a boolean whose parts could both build at one member, so neither reaches this line.
+    if (booleanParts.has(name)) {
+      for (const [axis, values] of Object.entries(a.parts[name]?.presentWhen ?? {})) {
+        const v = axisValue(axis);
+        if (v === undefined || !values.includes(v)) return false;
+      }
+      return true;
+    }
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
     // has a spinner where the leading visual would otherwise be.
@@ -1306,9 +1316,7 @@ export const figmaAnatomyPlan = (
     // measured symptom: `state=focus-visible` emitted a plan byte-identical to `rest` in all 108 rows,
     // because the ring was not a part at all and nothing else distinguishes focus.
     if (p?.kind === 'absolute') return !!p.when && p.when === state;
-    // A boolean part that passed its variant gate is BUILT even though it is `optional` (the boolean
-    // requires that) — its visibility is the boolean's, not this function's.
-    return !p?.optional || booleanParts.has(name);
+    return !p?.optional;
   };
 
   /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
@@ -1461,6 +1469,8 @@ export const figmaAnatomyPlan = (
       if (p.height) bound.height = varOf(p.height);
       // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
       if (p.minHeight) bound.minHeight = varOf(p.minHeight);
+      // A token-bound width FLOOR (`minWidthKey`): the row still hugs, and measures max(floor, content).
+      if (p.minWidthKey) bound.minWidth = varOf(p.minWidthKey);
       // A SQUARE box binds one key to both axes (IconButton's control). The same two-axes-one-variable
       // shape a slot's artboard uses, and legal for the same reason — the executor unlocks the node's
       // aspect ratio before binding, so the second write does not displace the first. Mutually exclusive
@@ -2218,6 +2228,10 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
  *  anchored — `color.inverse.interactive.*` is never AUTHORED (the projector's surface rewrite
  *  supplies it), so a def that authored one would pass through untouched rather than half-rewritten. */
 const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
+/** A page-ground SUBTLE FILL a def binds by name: Tag's selected tint, `color.interactive.primary.subtle-fill.selected`
+ *  (owner, 2026-09-29). Emitted under `overlay-neutral` (that one leaf) and `solid-tint` (the family), and under
+ *  `none` not at all — so under `none` the entry is DROPPED, the same way a wash is. */
+const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/;
 
 /**
  * Materialize a def for a brand's `outlineInteraction` lever (#1608), BEFORE projection — the third
@@ -2237,7 +2251,8 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
  *                         intended "no hover expression"), the rest fill for a field. Dropping rather
  *                         than binding transparent is what makes this a non-event on the host: no
- *                         variable is asked for, so there is nothing to miss.
+ *                         variable is asked for, so there is nothing to miss. A bound SUBTLE FILL (Tag's
+ *                         selected tint, 2026-09-29) is dropped the same way: `none` emits none of them.
  *
  * `solid-tint` binds `color.interactive.<color>.subtle-fill.<state>` — the TINTED WASH VARIABLE, whose value in
  * each mode is the category's fill variable aliased at the opacity step the engine chose (#1614, `settleSolidTint`),
@@ -2249,9 +2264,11 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  */
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
-  if (!Object.values(def.tokens).some((ref) => OUTLINE_OVERLAY_REF.test(ref))) return def;
+  const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
+  if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
+    if (method === 'none' && OUTLINE_SUBTLE_REF.test(ref)) continue;
     const m = OUTLINE_OVERLAY_REF.exec(ref);
     if (!m) { tokens[k] = ref; continue; }
     const role = outlineFillRole(method, m[1], m[2]);

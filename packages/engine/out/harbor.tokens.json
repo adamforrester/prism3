@@ -8140,6 +8140,71 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#0066664d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{hds.color.interactive.primary.fill.rest}",
+                    "opacity": "{hds.opacity.30}"
+                  },
+                  "contrast": 7.33,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed",
+                  "modes": {
+                    "dark": {
+                      "$value": "#437f7f4d",
+                      "tint": {
+                        "color": "{hds.color.interactive.primary.fill.rest}",
+                        "opacity": "{hds.opacity.30}"
+                      },
+                      "contrast": 6.72,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    },
+                    "hc-light": {
+                      "$value": "#004b4b4d",
+                      "tint": {
+                        "color": "{hds.color.interactive.primary.fill.rest}",
+                        "opacity": "{hds.opacity.30}"
+                      },
+                      "contrast": 9.17,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    },
+                    "hc-dark": {
+                      "$value": "#8eadac4d",
+                      "tint": {
+                        "color": "{hds.color.interactive.primary.fill.rest}",
+                        "opacity": "{hds.opacity.30}"
+                      },
+                      "contrast": 8.13,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  }
+                }
+              }
+            }
           }
         },
         "destructive": {
@@ -10189,24 +10254,28 @@
               "aliasOf": "hds.core.palette.neutral.450",
               "contrast": 3.2,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{hds.core.palette.neutral.500}",
                   "aliasOf": "hds.core.palette.neutral.500",
                   "contrast": 4.23,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
                   "$value": "{hds.core.palette.neutral.700}",
                   "aliasOf": "hds.core.palette.neutral.700",
                   "contrast": 9.85,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{hds.core.palette.neutral.250}",
                   "aliasOf": "hds.core.palette.neutral.250",
                   "contrast": 10.06,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -10316,35 +10385,35 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{hds.core.palette.success.500}",
+          "$value": "{hds.core.palette.success.550}",
           "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "hds.core.palette.success.500",
-              "contrast": 3.79,
+              "aliasOf": "hds.core.palette.success.550",
+              "contrast": 4.53,
               "against": "background.primary",
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.success.500}",
-                  "aliasOf": "hds.core.palette.success.500",
-                  "contrast": 4.22,
+                  "$value": "{hds.core.palette.success.450}",
+                  "aliasOf": "hds.core.palette.success.450",
+                  "contrast": 5.06,
                   "against": "background.primary",
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{hds.core.palette.success.500}",
-                  "aliasOf": "hds.core.palette.success.500",
-                  "contrast": 4.6,
+                  "$value": "{hds.core.palette.success.600}",
+                  "aliasOf": "hds.core.palette.success.600",
+                  "contrast": 6.7,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{hds.core.palette.success.500}",
-                  "aliasOf": "hds.core.palette.success.500",
-                  "contrast": 4.56,
+                  "$value": "{hds.core.palette.success.450}",
+                  "aliasOf": "hds.core.palette.success.450",
+                  "contrast": 5.47,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
@@ -10365,35 +10434,35 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{hds.core.palette.warning.500}",
+          "$value": "{hds.core.palette.warning.550}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "hds.core.palette.warning.500",
-              "contrast": 3.79,
+              "aliasOf": "hds.core.palette.warning.550",
+              "contrast": 4.58,
               "against": "background.primary",
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.warning.500}",
-                  "aliasOf": "hds.core.palette.warning.500",
-                  "contrast": 4.22,
+                  "$value": "{hds.core.palette.warning.450}",
+                  "aliasOf": "hds.core.palette.warning.450",
+                  "contrast": 5.02,
                   "against": "background.primary",
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{hds.core.palette.warning.500}",
-                  "aliasOf": "hds.core.palette.warning.500",
-                  "contrast": 4.6,
+                  "$value": "{hds.core.palette.warning.600}",
+                  "aliasOf": "hds.core.palette.warning.600",
+                  "contrast": 6.72,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{hds.core.palette.warning.500}",
-                  "aliasOf": "hds.core.palette.warning.500",
-                  "contrast": 4.56,
+                  "$value": "{hds.core.palette.warning.400}",
+                  "aliasOf": "hds.core.palette.warning.400",
+                  "contrast": 6.35,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
@@ -10414,35 +10483,35 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{hds.core.palette.danger.500}",
+          "$value": "{hds.core.palette.danger.550}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "hds.core.palette.danger.500",
-              "contrast": 3.76,
+              "aliasOf": "hds.core.palette.danger.550",
+              "contrast": 4.6,
               "against": "background.primary",
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{hds.core.palette.danger.500}",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 4.25,
+                  "$value": "{hds.core.palette.danger.450}",
+                  "aliasOf": "hds.core.palette.danger.450",
+                  "contrast": 4.94,
                   "against": "background.primary",
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{hds.core.palette.danger.500}",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 4.57,
+                  "$value": "{hds.core.palette.danger.600}",
+                  "aliasOf": "hds.core.palette.danger.600",
+                  "contrast": 6.8,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{hds.core.palette.danger.500}",
-                  "aliasOf": "hds.core.palette.danger.500",
-                  "contrast": 4.6,
+                  "$value": "{hds.core.palette.danger.400}",
+                  "aliasOf": "hds.core.palette.danger.400",
+                  "contrast": 6.31,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
@@ -11379,26 +11448,30 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "hds.core.palette.neutral.800",
-                "contrast": 1,
-                "against": "self",
+                "contrast": 11.44,
+                "against": "background.primary",
+                "min": 3,
                 "modes": {
                   "dark": {
                     "$value": "{hds.core.palette.neutral.150}",
                     "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 1,
-                    "against": "self"
+                    "contrast": 12.36,
+                    "against": "background.primary",
+                    "min": 3
                   },
                   "hc-light": {
                     "$value": "{hds.core.palette.black}",
                     "aliasOf": "hds.core.palette.black",
-                    "contrast": 1,
-                    "against": "self"
+                    "contrast": 21,
+                    "against": "background.primary",
+                    "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{hds.core.palette.white}",
                     "aliasOf": "hds.core.palette.white",
-                    "contrast": 1,
-                    "against": "self"
+                    "contrast": 21,
+                    "against": "background.primary",
+                    "min": 4.5
                   }
                 },
                 "figma": {
@@ -21472,7 +21545,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.197.0",
+      "version": "0.202.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

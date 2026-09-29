@@ -33,7 +33,7 @@
  * brand would pick, because the question is whether the bookkeeping survives — not whether the
  * result is pretty.
  *
- * ── THE FIVE ARMS ───────────────────────────────────────────────────────────────────────────────
+ * ── THE ARMS ────────────────────────────────────────────────────────────────────────────────────
  *
  *   A. HONESTY   — recomputed ratio == recorded ratio. Catches a ground moving without its
  *                  dependents being re-derived, which is the #956 defect itself. Dispatches on each
@@ -71,6 +71,10 @@
  *                  `scrim.default` carries `alpha: 0.4` and is genuinely `ink-on-surface`, so the
  *                  inference would misclassify a real role on day one — which is exactly why the
  *                  model is declared at the `put` site instead of being read off the data.
+ *   F. SECOND PAIR — a role's `alsoAgainst` (#1745) names a role that exists, and a pair below its
+ *                  bar is named by a warning carrying that partner in `against`. Measured from the
+ *                  two hex values; the engine stores no ratio for the pair, so arm A has nothing to
+ *                  hold, and B's confession is keyed apart so one pair cannot excuse the other.
  *
  * Run: `npx tsx packages/engine/lint-ratio-truth.ts`
  */
@@ -98,6 +102,12 @@ const CASES: Array<{ label: string; input: BrandInput }> = [
   ]),
   { label: 'surfaces.dark.inverseBase=25', input: { ...MINIMAL_BRAND, surfaces: { dark: { inverseBase: 25 } } } as BrandInput },
   { label: 'surfaces.light.inverseBase=black', input: { ...MINIMAL_BRAND, surfaces: { light: { inverseBase: 'black' } } } as BrandInput },
+  // A second-pair shortfall reached through `surfaces`, the route a client brand takes (#1745): a band where
+  // `inverse.text.primary` still clears its OWN 7:1 on the band (7.56) but only 4.25 on the band's third
+  // step, `inverse.foreground.tertiary`. None of the steps above lands there — 700 clears the second pair
+  // and 500 flips the ink to the dark end. The override sweep reaches one too (overriding the ink to
+  // `neutral.500`), so arm F is exercised by both routes rather than by an override alone.
+  { label: 'surfaces.light.inverseBase=650', input: { ...MINIMAL_BRAND, surfaces: { light: { inverseBase: 650 } } } as BrandInput },
 ];
 
 
@@ -134,7 +144,7 @@ const OVERRIDE_CASES = (): Array<{ label: string; ground: string; input: BrandIn
     })));
 
 const failures: string[] = [];
-let checked = 0, confessions = 0;
+let checked = 0, confessions = 0, alsoChecked = 0, alsoConfessions = 0;
 
 /** A ground that is a palette STEP (`neutral.050`) rather than a role — a real, intentional form. */
 const isPaletteStep = (s: string): boolean => /^[a-z][a-z0-9-]*\.\d+$/.test(s);
@@ -147,9 +157,34 @@ type OverrideCtx = { ground: string; baseline: Record<string, { hex: string }> }
 
 const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: OverrideCtx): void => {
   for (const m of resolveAllModes(theme)) {
-    const roles = m.roles as Record<string, { hex: string; against?: string; ratio?: number; min?: number; alpha?: number; model: string; legibleFor?: string }>;
-    const warned = new Set((m.warnings ?? []).map((w) => w.role));
+    const roles = m.roles as Record<string, { hex: string; against?: string; ratio?: number; min?: number; alpha?: number; model: string; legibleFor?: string; alsoAgainst?: { against: string; min: number } }>;
+    // A warning that carries `against` is about a role's SECOND pair (arm F), so it does not confess the
+    // role's own pair — keyed apart, or a shortfall on one pair would silently excuse the other.
+    const warned = new Set((m.warnings ?? []).filter((w) => w.against == null).map((w) => w.role));
+    const warnedAlso = new Set((m.warnings ?? []).filter((w) => w.against != null).map((w) => `${w.role} @ ${w.against}`));
     for (const [key, r] of Object.entries(roles)) {
+      // ARM F — a role's SECOND contracted pair (`alsoAgainst`, #1745): the partner resolves, and a pair
+      // below its bar is confessed by a warning naming that partner. Measured from the two emitted hex
+      // values here; the engine stores no ratio for this pair, so there is no recorded number to agree with.
+      // Runs before the `self` skip below, because the role carrying it may be a surface.
+      if (r.alsoAgainst) {
+        const partner = r.alsoAgainst.against;
+        // UNREACHABLE TODAY, and kept as a backstop rather than as coverage: `resolveMode` THROWS on an
+        // `alsoAgainst` partner that is not a role in the mode, so no tree reaching this sweep can carry
+        // one. This branch fires only if that throw is ever removed — a dangling partner would otherwise
+        // reach the `roles[partner].hex` read below and crash the gate without naming it.
+        if (!(partner in roles)) {
+          failures.push(`${label}/${m.mode}: '${key}' names alsoAgainst '${partner}', which is not a role in this mode — the second pair measures against nothing.`);
+        } else {
+          alsoChecked++;
+          const truth = contrast(hexToRgb(r.hex), hexToRgb(roles[partner].hex));
+          if (truth < r.alsoAgainst.min) {
+            alsoConfessions++;
+            if (!warnedAlso.has(`${key} @ ${partner}`))
+              failures.push(`${label}/${m.mode}: '${key}' measures ${truth.toFixed(2)} against its second pair '${partner}', below its ${r.alsoAgainst.min}:1 minimum, and NO warning names that pair. Generated output must comply or say so (#1745).`);
+          }
+        }
+      }
       const against = r.against;
       if (!against || against === 'self') continue;
 
@@ -300,10 +335,16 @@ if (checked < 2000)
 
 // FLOOR 2 — arm B must actually be exercised. Every case complying would mean the sweep never reaches
 // a ground the ramp cannot serve, so the confession arm would be unproven rather than satisfied.
+// FLOOR 4 — arm F must see a pair and see one fail (#1745). Zero checked means `alsoAgainst` moved off
+// the role and the arm is asserting over nothing; zero confessions means no case reaches a second-pair
+// shortfall any more, so "complies or confesses" is untested for second pairs.
+if (alsoChecked === 0 || alsoConfessions === 0)
+  failures.push(`arm F saw ${alsoChecked} second pair(s) and ${alsoConfessions} below its minimum — it needs at least one of each, or the \`alsoAgainst\` confession is unproven. Check that a role still carries \`alsoAgainst\` and that CASES still holds a band its second pair cannot clear.`);
+
 if (confessions === 0)
   failures.push(`arm B never fired: no case produced a role below its minimum, so "complies or confesses" was never tested. CASES needs a ground the ramp genuinely cannot serve (a mid-grey base is the reliable one).`);
 
-console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recomputed from final colors across ${corpus().length} corpus brand(s) + ${CASES.length} declared-surface case(s); ${confessions} below-minimum role(s), all confessed`);
+console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recomputed from final colors across ${corpus().length} corpus brand(s) + ${CASES.length} declared-surface case(s); ${confessions} below-minimum role(s), all confessed; ${alsoChecked} second pair(s), ${alsoConfessions} below minimum and confessed`);
 
 if (failures.length) {
   console.error(`\n❌ ${failures.length} ratio-truth failure(s):\n`);

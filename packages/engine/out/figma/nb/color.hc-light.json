@@ -1521,6 +1521,29 @@
       }
     },
     {
+      "name": "nbds/color/interactive/primary/subtle-fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected tinted wash — the primary fill at 30% over the page",
+      "value": {
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
+        "a": 0.30000001192092896
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/color/interactive/primary/fill/rest"
+      },
+      "aliasOpacity": {
+        "value": 30,
+        "name": "nbds/opacity/30"
+      }
+    },
+    {
       "name": "nbds/color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2375,14 +2398,14 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.054901961237192154,
-        "g": 0.5098039507865906,
-        "b": 0.26274511218070984,
+        "r": 0.019607843831181526,
+        "g": 0.45490196347236633,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/green/500"
+        "name": "nbds/core/palette/green/550"
       }
     },
     {
@@ -2393,14 +2416,14 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.7019608020782471,
-        "g": 0.3843137323856354,
-        "b": 0.0117647061124444,
+        "r": 0.5529412031173706,
+        "g": 0.2980392277240753,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/amber/500"
+        "name": "nbds/core/palette/amber/600"
       }
     },
     {
@@ -2411,14 +2434,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/500"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {

@@ -1747,6 +1747,36 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "rgba(213, 61, 68, 0.3)",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{nbds.color.interactive.primary.fill.rest}",
+                    "opacity": "{nbds.opacity.30}"
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  },
+                  "contrast": 6.98,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed"
+                }
+              }
+            }
           }
         },
         "destructive": {
@@ -2784,7 +2814,8 @@
               },
               "aliasOf": "nbds.core.palette.neutral.500",
               "contrast": 4.23,
-              "against": "background.primary"
+              "against": "background.primary",
+              "min": 3
             }
           }
         },
@@ -2808,6 +2839,78 @@
               "aliasOf": "nbds.core.palette.neutral.300",
               "contrast": 8.1,
               "against": "background.primary"
+            }
+          }
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.green.450}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "nbds.core.palette.green.450",
+              "contrast": 4.73,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.amber.500}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "nbds.core.palette.amber.500",
+              "contrast": 4.32,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.400}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "nbds.core.palette.red.400",
+              "contrast": 5.98,
+              "against": "background.primary",
+              "min": 3
             }
           }
         },
@@ -3074,8 +3177,9 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "nbds.core.palette.neutral.150",
-                "contrast": 1,
-                "against": "self"
+                "contrast": 12.33,
+                "against": "background.primary",
+                "min": 3
               }
             }
           },

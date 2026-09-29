@@ -1521,6 +1521,29 @@
       }
     },
     {
+      "name": "ads/color/interactive/primary/subtle-fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected tinted wash — the primary fill at 30% over the page",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.6784313917160034,
+        "b": 0.8156862854957581,
+        "a": 0.3019607961177826
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/color/interactive/primary/fill/rest"
+      },
+      "aliasOpacity": {
+        "value": 30,
+        "name": "ads/opacity/30"
+      }
+    },
+    {
       "name": "ads/color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2375,14 +2398,14 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.3019607961177826,
+        "g": 0.5686274766921997,
+        "b": 0.3176470696926117,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/500"
+        "name": "ads/core/palette/success/450"
       }
     },
     {
@@ -2393,14 +2416,14 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7411764860153198,
+        "g": 0.5098039507865906,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/500"
+        "name": "ads/core/palette/warning/400"
       }
     },
     {
@@ -2411,14 +2434,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8784313797950745,
+        "g": 0.4117647111415863,
+        "b": 0.3686274588108063,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
+        "name": "ads/core/palette/danger/400"
       }
     },
     {

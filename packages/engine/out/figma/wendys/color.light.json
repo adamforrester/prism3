@@ -1521,6 +1521,29 @@
       }
     },
     {
+      "name": "wds/color/interactive/primary/subtle-fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected tinted wash — the primary fill at 30% over the page",
+      "value": {
+        "r": 0.7843137383460999,
+        "g": 0.062745101749897,
+        "b": 0.18039216101169586,
+        "a": 0.3019607961177826
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/color/interactive/primary/fill/rest"
+      },
+      "aliasOpacity": {
+        "value": 30,
+        "name": "wds/opacity/30"
+      }
+    },
+    {
       "name": "wds/color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2375,14 +2398,14 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.2862745225429535,
-        "g": 0.5137255191802979,
-        "b": 0.2666666805744171,
+        "r": 0.24313725531101227,
+        "g": 0.4588235318660736,
+        "b": 0.23137255012989044,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/success/500"
+        "name": "wds/core/palette/success/550"
       }
     },
     {

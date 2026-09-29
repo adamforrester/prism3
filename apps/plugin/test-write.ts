@@ -87,6 +87,16 @@ class VariablesShim {
 // ---- drive it -----------------------------------------------------------------------------
 const plan = buildWritePlan(buildFigmaColor(nbThemeFrom(nbMeasured)));
 const shim = new VariablesShim();
+// THE OPACITY AXIS, WRITTEN FIRST, as Apply Theme does (`apply-theme.ts`). Since 2026-09-29 every overlay-neutral
+// brand carries one tinted wash (`color/interactive/primary/subtle-fill/selected`, the selected tint Tag binds),
+// which aliases an `opacity/<n>` variable — so a color write into a file with no opacity axis names a miss for it,
+// correctly (#1646's "color before opacity" arm below pins that). These arms model a real Apply, so they write
+// the opacity collection first; the full FLOAT plan is not needed for what they measure.
+const opacityPlan = buildFloatWritePlan(nbThemeFrom(nbMeasured)).filter((p) => p.name === 'opacity');
+if (opacityPlan.length !== 1) throw new Error(`test-write: expected ONE opacity float plan, got ${opacityPlan.length}`);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const opacityFirst = (s: VariablesShim) => applyFloatPlan(opacityPlan, s as any);
+await opacityFirst(shim);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const run = () => applyWritePlan(plan, shim as any);
@@ -119,7 +129,8 @@ ok(r1.misses.length === 0 && r2.misses.length === 0,
 // collection, which keeps the value tier's four appearance modes and the pointer tier's short names.
 const palCol = shim.collections.find((c) => c.name === 'core')!;
 const colCol = shim.collections.find((c) => c.name === 'color')!;
-ok(shim.collections.length === 2 && !!palCol && !!colCol, 'exactly two collections: core + color');
+const opCol = shim.collections.find((c) => c.name === 'opacity');
+ok(shim.collections.length === 3 && !!palCol && !!colCol && !!opCol, 'exactly three collections: core + color, and the opacity axis written before them');
 ok(colCol.modes.map((m) => m.name).join(',') === plan.color.modes.join(','),
   `color collection modes match the plan (${colCol.modes.map((m) => m.name).join('/')})`);
 
@@ -388,6 +399,7 @@ const child = crShim.createVariable('color/text/primary', legacy);
 // reason that has nothing to do with what a collection rename does. The variable half in the same file is
 // (vii) below, driven on the shipped rules.
 const crPass = await beginMigration(crShim as any, { collections: [{ from: 'legacy-color', to: 'color', since: '9.9.9' }], variables: [] }, []);
+await opacityFirst(crShim);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const crRes = await applyWritePlan(plan, crShim as any, crPass);
 ok(crPass.outcomes.some((o) => o.kind === 'collection' && o.status === 'migrated'),
@@ -508,6 +520,7 @@ const badPass = await beginMigration(badShim0 as any, { collections: [], variabl
 ok(badPass.refusals.length > 0 && badPass.map.variables.length === 0,
   `#1013 a statically-invalid map is REFUSED and emptied before any write${badPass.refusals.length ? ` — ${badPass.refusals[0]}` : ' — NOTHING was refused'}`);
 const badShim = badShim0;
+await opacityFirst(badShim);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const badRes = await applyWritePlan(plan, badShim as any, badPass);
 ok(badRes.misses.length === 0 && badRes.orphans.find((o) => o.name === 'color')!.names.length === soloCount,
@@ -572,6 +585,7 @@ ok(plan.color.create.some((r) => r.name === nbVar('color/background/primary')),
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const swapPass = await beginMigration(swapShim as any);
+await opacityFirst(swapShim);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const swapRes = await applyWritePlan(plan, swapShim as any, swapPass);
 const swapValueCol = swapShim.collections.find((c) => c.name === 'color')!;

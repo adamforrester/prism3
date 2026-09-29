@@ -1,5 +1,5 @@
 {
-  "$schema": "prism3-ai-metadata/0.3",
+  "$schema": "prism3-ai-metadata/0.4",
   "brand": "nb",
   "generated": true,
   "note": "Agent-readable metadata, companion to nb.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
@@ -375,6 +375,20 @@
       ],
       "tracks": [
         "inverse.border.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 13.89,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "inverse.text.primary",
+          "min": "4.5:1",
+          "ratio": 12.94,
+          "requirement": "MUST clear 4.5:1 against `inverse.text.primary` in every mode."
+        }
       ]
     },
     "foreground.brand": {
@@ -5110,6 +5124,12 @@
           "min": "7:1",
           "ratio": 18.11,
           "requirement": "MUST clear 7:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.foreground.tertiary",
+          "min": "4.5:1",
+          "ratio": 12.94,
+          "requirement": "MUST clear 4.5:1 against `inverse.foreground.tertiary` in every mode."
         }
       ]
     },
@@ -6203,7 +6223,15 @@
         "dark": "{nbds.core.palette.neutral.500}",
         "hc-light": "{nbds.core.palette.neutral.700}",
         "hc-dark": "{nbds.core.palette.neutral.250}"
-      }
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.27,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
     },
     "border.tertiary": {
       "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
@@ -6244,9 +6272,9 @@
       "avoid_when": "Do not use as success ink or fill — use `text.success` or `foreground.success`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.green.500}",
-        "dark": "{nbds.core.palette.green.500}",
-        "hc-light": "{nbds.core.palette.green.500}",
-        "hc-dark": "{nbds.core.palette.green.450}"
+        "dark": "{nbds.core.palette.green.450}",
+        "hc-light": "{nbds.core.palette.green.550}",
+        "hc-dark": "{nbds.core.palette.green.400}"
       },
       "contrast_with": [
         {
@@ -6263,16 +6291,16 @@
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields).",
       "avoid_when": "Do not use as warning ink or fill — use `text.warning` or `foreground.warning`.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.amber.500}",
+        "light": "{nbds.core.palette.amber.550}",
         "dark": "{nbds.core.palette.amber.500}",
-        "hc-light": "{nbds.core.palette.amber.500}",
-        "hc-dark": "{nbds.core.palette.amber.500}"
+        "hc-light": "{nbds.core.palette.amber.600}",
+        "hc-dark": "{nbds.core.palette.amber.450}"
       },
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.5,
+          "ratio": 5.44,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -6284,9 +6312,9 @@
       "avoid_when": "Do not use as danger ink or fill — use `text.danger` or `foreground.danger`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.500}",
-        "dark": "{nbds.core.palette.red.500}",
-        "hc-light": "{nbds.core.palette.red.500}",
-        "hc-dark": "{nbds.core.palette.red.500}"
+        "dark": "{nbds.core.palette.red.400}",
+        "hc-light": "{nbds.core.palette.red.600}",
+        "hc-dark": "{nbds.core.palette.red.450}"
       },
       "contrast_with": [
         {
@@ -6507,6 +6535,34 @@
           "ratio": 5.05,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
+      ]
+    },
+    "interactive.primary.subtle-fill.selected": {
+      "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The primary selected tint: the primary fill at a set opacity, laid over `background.primary`, behind a control the user selects in place (a select tag) or an outline or text primary control in its selected state. The label keeps the control's own ink; the recorded ratio is `interactive.primary.text.pressed` on the tint.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`) or for another intent (use `interactive.neutral.*` or `interactive.destructive.*`).",
+      "mode_overrides": {
+        "light": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        },
+        "dark": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        },
+        "hc-light": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        },
+        "hc-dark": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        }
+      },
+      "tracks": [
+        "interactive.primary.fill.rest",
+        "interactive.primary.text.pressed"
       ]
     }
   },
@@ -8343,6 +8399,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
@@ -8360,6 +8417,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.border.focus",
         "color.icon.brand",
         "color.icon.brand-subtle",
@@ -8463,6 +8521,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.icon.brand",
         "color.icon.danger",
         "color.interactive.destructive.border.rest",
@@ -8759,6 +8818,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.success",
         "color.icon.success",
         "color.inverse.icon.success",
         "color.inverse.text.success",
@@ -8802,6 +8862,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.success",
         "color.inverse.icon.success-subtle",
         "color.inverse.text.success-subtle"
       ]
@@ -8970,6 +9031,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.icon.warning",
         "color.icon.warning-subtle",
         "color.inverse.icon.warning",
@@ -9002,6 +9064,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.inverse.icon.warning-subtle",
         "color.inverse.text.warning-subtle"
       ]
@@ -9013,6 +9076,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.icon.warning",
         "color.inverse.icon.warning",
         "color.inverse.text.warning",

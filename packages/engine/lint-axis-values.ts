@@ -234,21 +234,36 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'purpose, the loud kind of divergence: `primary | secondary` names two TEXT roles a label chooses '
       + 'between, while `subtle | bold` names two paint treatments of a filled pill, and no value would mean '
       + 'the same thing on both defs, so none is shared. `subtle` LEADS because it is the code default and so '
-      + 'Figma\'s default member. Only the status genre carries both; the count and dot are bold-only through '
+      + 'Figma\'s default member. Only the status type carries both; the count and dot are bold-only through '
       + '`figmaProperties.excludeCoordinates`, which leaves this value set unchanged.',
   },
   {
-    axis: 'genre',
+    axis: 'type',
     values: ['status', 'count', 'dot'],
     defs: ['badge'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
-      'Which KIND of badge a member is (owner-approved, 2026-09-27): a status label in flow, a number over a '
-      + 'host, or a contentless mark over a host — the brief\'s three genres, which the owner made one component '
-      + 'switched by this axis. Self-describing values, `status` rather than `default`, as the owner asked, and '
-      + '`status` LEADS because it is the code default and the only genre that needs no host, so Figma\'s '
-      + 'default member matches. `sole`: `badge` is the only def with a `genre` axis. Three values and not the '
-      + 'brief\'s fourth count edge state (dot-on-overflow): that is a count behavior, not a kind.',
+      'Which KIND of badge a member is (owner-approved, 2026-09-27, as `genre`; renamed `type` 2026-09-28 so '
+      + 'Badge and Tag use one name): a status label in flow, a number over a host, or a contentless mark over a '
+      + 'host — the brief\'s three genres, which the owner made one component switched by this axis. '
+      + 'Self-describing values, `status` rather than `default`, as the owner asked, and `status` LEADS because '
+      + 'it is the code default and the only type that needs no host, so Figma\'s default member matches. '
+      + 'CANONICAL because it came first and is the wider set. Three values and not the brief\'s fourth count '
+      + 'edge state (dot-on-overflow): that is a count behavior, not a kind.',
+  },
+  {
+    axis: 'type',
+    values: ['select', 'dismissible'],
+    defs: ['tag'],
+    relation: 'disjoint',
+    reason:
+      'Which INTERACTION a tag carries (owner-named, 2026-09-28): one the user toggles on and off, or one the '
+      + 'user removes. The owner\'s own words for the two types, and self-describing — `select` rather than '
+      + '`selectable`, `dismissible` rather than `removable`. `select` LEADS because it is the code default and '
+      + 'Figma\'s default member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type '
+      + 'is a content kind and a tag type an interaction kind, and no value would mean the same thing on both '
+      + 'defs, so none is shared. Two values and not the three interactions it replaces (clickable | selectable '
+      + '| removable): the plain clickable tag was dropped, and an action in place is a button.',
   },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way

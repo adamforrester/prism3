@@ -56,7 +56,7 @@
  * regions by BORDER (the ≥4.5:1 border target), not by near-invisible tints.
  */
 import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
-import { RGB, contrast, hex, hexToRgb, composite, deltaE2000 } from './color';
+import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
 
@@ -84,11 +84,21 @@ const pickMinPass = (cands: Cand[], surface: RGB, min: number): Rated => {
 const pickMostExtreme = (cands: Cand[], surface: RGB): Rated =>
   cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) })).sort((a, b) => b.ratio - a.ratio)[0];
 
-/** Candidate whose contrast is closest to a target (for decorative borders). */
-const pickClosest = (cands: Cand[], surface: RGB, target: number): Rated =>
-  cands
-    .map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }))
-    .sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
+/**
+ * Candidate whose contrast is closest to a target (for the border ladders).
+ *
+ * `min` (#1745) is a FLOOR under the target, for a rung that also carries a contract: only candidates
+ * clearing `min` are eligible, and the closest of those wins. With no candidate clearing it, the most
+ * extreme one does — the same fallback `pickMinPass` takes — and the contrast sweep at the end of
+ * `resolveMode` names the shortfall. `min: 0` (the default) makes every candidate eligible, so an
+ * uncontracted rung picks exactly as it always has.
+ */
+const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0): Rated => {
+  const rated = cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }));
+  const eligible = rated.filter((c) => c.ratio >= min);
+  if (!eligible.length) return rated.sort((a, b) => b.ratio - a.ratio)[0];
+  return eligible.sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
+};
 
 /**
  * Keep the anchor step if it clears `min`; otherwise the nearest step that does.
@@ -97,11 +107,21 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number): Rated =>
  * than one surface (semantic ink sits on the page AND on its own subtle tint). The reported `ratio`
  * stays measured against `surface`, which is the ground the role's `against` names; the extra grounds
  * only tighten which step is eligible. Empty by default, so a single-ground role is unaffected.
+ *
+ * `avoid` names COLOURS the step must not equal — for a role that must stay visibly distinct from another
+ * role drawn in the same place (#1782 decision 2: a status field border must never take the focus ring's
+ * colour, or an errored field and a focused one share an edge). Compared by emitted hex, not by palette
+ * path, so it also holds where two palettes collapse onto one ramp (wireframe) or two steps share a hex. An
+ * avoided anchor is treated as a miss, so the pick moves to the nearest step that clears every ground AND
+ * is not avoided — at least one ramp step away. `exact` still wins (an authored pin is applied verbatim),
+ * and with no eligible step the anchor falls back as before, where the contrast sweep names the miss.
+ * Empty by default, so every other role is unaffected.
  */
-const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = []): RatedNum => {
+const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = []): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
   const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
-  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= min);
+  const avoidHex = new Set(avoid.map(hex));
+  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= min) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
   // applied verbatim even when it misses the floor — the app's apply-but-warn policy (#331). The
   // substitution below is a DERIVATION aid for an unpinned role, not an override guard: silently
@@ -174,7 +194,19 @@ export type ContrastModel = 'ink-on-surface' | 'ink-on-composite';
  *  in the same mode) and the EXISTING opacity-scale step it is laid at (`opacity`, a key of the `opacity.*`
  *  scale — 20 means `opacity.20`). The role's `alpha` is `opacity / 100`; this names where both came from. */
 export type TintSource = { fill: string; opacity: number };
-export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number; tint?: TintSource } & (
+/**
+ * A SECOND contracted pair on one role (#1745). `against`/`min` hold the pair a role is placed in; this
+ * holds one more it is USED in, where the partner already carries a contract of its own and cannot take
+ * a second `against`. The one user today is `inverse.foreground.tertiary`, Badge's bold neutral fill: it
+ * sits on the page (its own `against`) and carries `inverse.text.primary` as its label — and that ink is
+ * already contracted against `inverse.background.primary`.
+ *
+ * No ratio is stored, on purpose. A stored number goes stale the moment either colour moves after it was
+ * written (#956); the contrast sweep at the end of `resolveMode` measures the pair from the FINAL colours
+ * instead, and names a shortfall in `warnings` with the partner in `against`.
+ */
+export type AlsoAgainst = { against: string; min: number };
+export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number; tint?: TintSource; alsoAgainst?: AlsoAgainst } & (
   | { model: 'ink-on-surface'; legibleFor?: undefined }
   | { model: 'ink-on-composite'; legibleFor: string; alpha: number }
 );
@@ -193,9 +225,9 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // input, so the roles measured against it kept the value and ratio they derived from the OLD one.
 // Optional rather than a separate union member so every existing reader of `{role, ratio, min}` keeps
 // working unchanged — the contrast fields are still the overridden role's own, and still correct.
-// `against` is set only when the miss is on a ground OTHER than the role's own `against` — the page fill's
-// `background.tertiary` tier (#1773). Optional for the same reason: every reader of `{role, ratio, min}`
-// keeps working, and an entry without it still means "against the role's own ground".
+// `against` is set only when the miss is on a ground OTHER than the role's own `against`: the page fill's
+// `background.tertiary` tier (#1773), or a role's SECOND contracted pair (`AlsoAgainst`, #1745), naming that
+// pair's partner. A warning without it is about the role's own `against`, as it always was.
 export type OverrideWarning = { role: string; ratio: number; min: number; against?: string };
 // A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
 // `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
@@ -222,7 +254,10 @@ export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, R
  * covered its ground until then. The field stays so a future opaque method cannot be added without
  * every consumer that branches on it being re-read.
  *
- * NO BRAND SETS `solid-tint`, so the `subtle-fill` row below reaches no committed artifact and every
+ * SINCE 2026-09-29 an `overlay-neutral` brand also emits ONE subtle fill, `interactive.primary.subtle-fill.selected`
+ * (the selected tint a selectable control binds; `resolveAllModes`), which this helper does not describe: it
+ * names the family that carries HOVER. NO BRAND SETS `solid-tint`, so the rest of the `subtle-fill` row below
+ * reaches no committed artifact and every
  * EMISSION-SCOPED gate passes without seeing the family — #1112. `test.ts` reaches it synthetically
  * (it constructs the theme itself), which is what the family has instead of corpus coverage, and the
  * distinction is the finding: the exhaustive switch makes a MISSING method a compile error and does
@@ -695,10 +730,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const wf = cfg.kind === 'wireframe';                       // B — behaviour by kind, not name
   const neutralPal = r2p.neutral;
   const palOf = (palette: string): string => (wf && palette !== neutralPal ? neutralPal : palette);
-  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = []): RatedNum => {
-    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear);
+  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = []): RatedNum => {
+    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear, avoid);
     return wf && palette !== neutralPal
-      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear) // same position, greyscaled
+      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear, avoid) // same position, greyscaled
       : pick;
   };
   const paletteRole = (r: Role, surf: RGB, min: number): RatedNum =>
@@ -1066,7 +1101,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('foreground.tertiary', cfg.fg.tertiary, 'A third surface step');
   putSurf('inverse.foreground.primary', cfg.fgInverse.primary, 'Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)');
   putSurf('inverse.foreground.secondary', cfg.fgInverse.secondary, 'Inverse surface, second tier');
-  putSurf('inverse.foreground.tertiary', cfg.fgInverse.tertiary, 'Inverse surface, third tier');
+  // THE BOLD NEUTRAL FILL (#1745). Badge paints its bold neutral member with this surface under
+  // `inverse.text.primary`, because no page-polarity neutral separates from the page in the high-contrast
+  // modes. So it is contracted as a bold fill as well as a surface: against the page at the mode's
+  // non-text bar (the bar `border.<tone>` uses, 3:1 and 4.5:1 in HC), and — its second pair — under its
+  // label at `onMin`, the bar every `text.on-<tone>` clears on its own bold fill. The value is the inverse
+  // ladder's third step, unchanged: the ladder is DECLARED (`surfaces.<mode>.inverseBase`), so a band too
+  // close to the page is the author's choice, and the contrast sweep below names the shortfall rather than
+  // moving the band.
+  put('inverse.foreground.tertiary', rated(cfg.fgInverse.tertiary, baseRgb), 'Inverse surface, third tier', 'background.primary', cfg.nonTextMin);
+  roles['inverse.foreground.tertiary'].alsoAgainst = { against: 'inverse.text.primary', min: onMin };
   // bold semantic fills (filled badge / banner / button at rest) — static.
   const fills: Partial<Record<Role, RatedNum>> = {};
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
@@ -1972,7 +2016,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // set is `inverse.border.*` below. In HC the border targets escalate — borders
   // carry structure when surfaces flatten.
   put('border.primary', pickClosest(ramp, baseRgb, cfg.borderTarget), `Default border — decorative, ~${cfg.borderTarget}:1`, 'background.primary', 0);
-  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2), 'Stronger border / divider', 'background.primary', 0);
+  // CONTRACTED at the mode's non-text bar (#1745): Badge's subtle neutral member is edged in this role, and
+  // the edge is what separates it from the page. The target still sets the rung; the floor only makes a
+  // rung that lands under the bar ineligible, so the pick moves one step deeper where the closest step
+  // misses it (a warm neutral on an off-white page) and nowhere else.
+  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2, cfg.nonTextMin), 'Stronger border / divider', 'background.primary', cfg.nonTextMin);
   // A THIRD RUNG, because border was the only surface/ink family that stopped at two (#1140).
   // `background`, `foreground`, `text` and `icon` all ship `primary`/`secondary`/`tertiary`, so a
   // designer reaching for the third step of the neutral edge ladder found nothing and had to pick a
@@ -1985,8 +2033,62 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the three rungs resolve to DISTINCT steps in every mode of every corpus brand; the ratio ladder is
   // the derivation, the distinctness is the contract.
   put('border.tertiary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider — the third rung of the neutral edge ladder', 'background.primary', 0);
-  for (const r of SEMANTICS)
-    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
+  // #1782 — THE THREE FIELD STATUS BORDERS ALSO CLEAR THE FIELD'S OWN GROUNDS. `text-field`, `textarea` and
+  // `select` swap their border to `border.danger` / `border.warning` / `border.success` for a non-default
+  // status, in EVERY non-disabled state — including hover, where the control fills with the translucent
+  // `interactive.neutral.overlay.hover` wash. So the border is drawn against more than the page: against
+  // `background.secondary` (the darkest permissible field ground, `field.border.rest`'s own ground since
+  // #1341) outside the control, and against the wash composited over either page ground inside it. Gated
+  // at the page alone, the 500 anchor measured 2.64–3.00:1 on the washed `background.secondary` (every
+  // washed brand's dark mode, all of harbor light, one or more light statuses elsewhere) — under SC 1.4.11.
+  //
+  // THE EXISTING MECHANISM, NOT A NEW RULE: `pickBrand`'s `alsoClear` (the grounds a role placed on more
+  // than one surface must ALSO clear — the semantic-ink precedent). The anchor stays 500 wherever it clears
+  // every ground; otherwise the nearest step that does. The extra grounds take the role's OWN floor
+  // (`nonTextMin`: 3 in light/dark, 4.5 in HC), the same bar `field.border.*` holds on its ground, so in HC
+  // the step moves one or two rungs where the 500 measured 3.6–3.9:1 on the wash — above SC 1.4.11's 3:1, so
+  // the HC floor on the extra grounds is an OWNER DECISION (2026-09-29), not a WCAG requirement. The reported
+  // `ratio` and `against` stay the page's, as `alsoClear` documents. A brand that opts out of the overlay
+  // wash (`outlineInteraction` none / solid-tint) has no washed ground, so only `background.secondary` is
+  // added. `info` and `brand` are not field statuses and keep the page-only contract.
+  //
+  // `test.ts` (#1782 block) gates the RESULT from the emitted hexes and the wash's emitted alpha, never
+  // from this list — the grounds are written there as literals, so dropping one here fails it by name.
+  const FIELD_STATUS_BORDERS: readonly Role[] = ['danger', 'warning', 'success'];
+  const fieldPageRgb = asGround('background.primary', baseRgb);
+  const fieldInsetRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
+  const fieldWash = roles['interactive.neutral.overlay.hover'];
+  const fieldWashRgb = fieldWash ? asGround('interactive.neutral.overlay.hover', rgbByRole.get('interactive.neutral.overlay.hover')!) : undefined;
+  // The alpha a renderer actually applies, not the nominal one, and it is the BRAND'S DIALECT that decides
+  // it (`emittedAlpha`, the rule `tree.ts` writes through). The hex dialect emits 8-digit hex
+  // (`#0000001a`), so 10% renders as 26/255 = 0.102; at the nominal 0.1, aurora and wendys light cleared
+  // 3:1 here and measured 2.99–3.00 in the emitted tokens. The rgb dialect (NB) emits `rgba(0, 0, 0, 0.1)`
+  // and Figma `a: 0.1`, so compositing NB at 0.102 held it to a wash darker than the one it ships (nb dark
+  // warning moved 500 → 450 on that difference alone). A contract has to hold on what ships, per dialect.
+  const fieldWashA = fieldWash?.alpha !== undefined ? emittedAlpha(fieldWash.alpha, theme.colorFormat) : undefined;
+  const fieldStatusGrounds: RGB[] = [
+    fieldInsetRgb,
+    ...(fieldWashRgb && fieldWashA !== undefined
+      ? [composite(fieldPageRgb, fieldWashRgb, fieldWashA), composite(fieldInsetRgb, fieldWashRgb, fieldWashA)]
+      : []),
+  ];
+  // #1782 DECISION 2 (owner, 2026-09-29) — A STATUS BORDER NEVER TAKES THE FOCUS RING'S COLOUR. A field swaps
+  // its border to `border.focus` when focused and to its status border when validated, on the same edge, so
+  // the two must read as different states. Where the danger palette IS the action palette (NB: `red` for
+  // both), the #1782 move put nb dark `border.danger` on red.450 — the step `border.focus` already held —
+  // and an errored field was indistinguishable from a focused one by its edge. So the focus ring is
+  // resolved FIRST and passed to the three field status borders as `avoid`: the pick moves at least one
+  // ramp step off it, to the nearest step that still clears every ground above. Applied to all three, not
+  // danger alone: warning and success share the focus ring's ramp wherever a brand maps them onto the
+  // action palette, and in wireframe EVERY chromatic role collapses onto the neutral ramp. Compared against
+  // the value `border.focus` will carry (`asGround`, so a brand override of the ring is honoured).
+  // `test.ts` (`a11y(#1782) status ≠ focus`) gates the resolved hexes, not this list.
+  const focusBorder = hc ? rated(actionRest, baseRgb) : focusRing(baseRgb);
+  const focusAvoid = [asGround('border.focus', focusBorder.rgb)];
+  for (const r of SEMANTICS) {
+    const field = FIELD_STATUS_BORDERS.includes(r);
+    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin, false, field ? fieldStatusGrounds : [], field ? focusAvoid : []), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
+  }
   // The default ring adapts against the page in the STANDARD modes; in HC it keeps `actionRest` (#1336).
   // HC already made the default ring respond — `actionRest` is gated at the escalated HC fill bar
   // (`actionMin` 7:1) and so already resolves a dark ring on the white HC page and a light one on the
@@ -1997,7 +2099,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the page at `actionMin`, leaving the HC ring — already correct, already at max contrast, already
   // NB-faithful — untouched. (The inverse ring below has no such NB-authored HC pick to preserve and
   // was frozen in HC too, so it takes `focusRing` in every mode.)
-  put('border.focus', hc ? rated(actionRest, baseRgb) : focusRing(baseRgb), `Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1 on background.primary`, 'background.primary', cfg.nonTextMin);
+  put('border.focus', focusBorder, `Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1 on background.primary`, 'background.primary', cfg.nonTextMin);
 
   // The inverse edge set. Same rules, inverse ground: the neutrals keep their decorative targets, the
   // semantics keep the SC 1.4.11 floor (#892 step 5).
@@ -2169,6 +2271,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // moves no committed artifact. It fires exactly when someone picks a ground the ramp cannot serve.
   for (const [rolePath, r] of Object.entries(roles))
     if (r.min > 0 && r.ratio < r.min) warnings.push({ role: rolePath, ratio: r.ratio, min: r.min });
+  // A role's SECOND pair (#1745), measured here from the final colours rather than read off a number
+  // written earlier — see `AlsoAgainst`. A partner that does not resolve is a wiring error, not a
+  // shortfall, so it throws rather than warning.
+  for (const [rolePath, r] of Object.entries(roles)) {
+    if (!r.alsoAgainst) continue;
+    const me = rgbByRole.get(rolePath), partner = rgbByRole.get(r.alsoAgainst.against);
+    if (!me || !partner) throw new Error(`${mode}: '${rolePath}' names alsoAgainst '${r.alsoAgainst.against}', which is not a role in this mode`);
+    const ratio = contrast(me, partner);
+    if (ratio < r.alsoAgainst.min) warnings.push({ role: rolePath, ratio, min: r.alsoAgainst.min, against: r.alsoAgainst.against });
+  }
 
   // ---- the tier check (#1773, review) ----
   // Every page `interactive.<c>.fill.rest` that `restFill` produced is contracted against TWO grounds: its
@@ -2223,6 +2335,12 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
   // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch in `resolveMode`.
   if (theme.outlineInteraction === 'solid-tint') settleSolidTint(theme, results);
+  // THE SELECTED TINT FOR EVERY BRAND THAT HAS AN OUTLINE FILL (owner, 2026-09-29). A selectable control (Tag's
+  // select type) binds `interactive.primary.subtle-fill.selected`. A solid-tint brand already carries it inside the
+  // full family; an overlay-neutral brand carries that ONE leaf, on the page ground, derived by the same pass and
+  // the same step choice, so a solid-tint brand's value does not move. `none` carries nothing: that lever omits
+  // every outline fill, the selected one included, and a selected tag there shows its outline and check only.
+  else if (theme.outlineInteraction === 'overlay-neutral') settleSolidTint(theme, results, { color: 'primary', state: 'selected' });
   return results;
 };
 
@@ -2278,11 +2396,15 @@ const TINT_VISIBLE_DE = 2.3;
  * fill or the ink (the per-mode override layer runs inside `resolveMode`) is what the tint follows and is
  * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step.
  */
-const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
+const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: string; state: 'selected' }): void => {
   const steps = OPACITY_STEPS.filter((s) => s > 0);
   const hexRgb = (r: ResolvedRole) => hexToRgb(r.hex);
-  const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
-  for (const [prefix, groundKey, groundName] of [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const) {
+  // `only` (owner, 2026-09-29): one leaf on the page ground — the overlay-neutral brand's selected tint. The step
+  // is still chosen by the full rule below (hover's guards first, selected one step above), so the value is the
+  // one a solid-tint brand would carry.
+  const columns = only ? [only.color] : ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+  const grounds = [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const;
+  for (const [prefix, groundKey, groundName] of only ? grounds.slice(0, 1) : grounds) {
     for (const color of columns) {
       const fillKey = `${prefix}interactive.${color}.fill.rest`;
       // Every mode must carry the fill and the ground, or there is no single step to choose.
@@ -2304,6 +2426,7 @@ const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
       while (!visible('pressed', steps[p]) && p + 1 < steps.length) p++;
 
       for (const [st, i] of [['hover', h], ['pressed', p], ['selected', p]] as const) {
+        if (only && st !== only.state) continue;
         const step = steps[i];
         const nominal = TINT_NOMINAL[st];
         const why = step < nominal ? `, stepped down from opacity.${nominal} to keep the ${st} label legible`
@@ -2314,7 +2437,9 @@ const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
           const inkKey = inkKeyOf(st);
           c.m.roles[`${prefix}interactive.${color}.subtle-fill.${st}`] = {
             path: fill.path,
-            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, the outline/text control's ${st} background)`,
+            // The SELECTED fill has two users since 2026-09-29 (an outline/text control, and a control the user
+            // selects in place, Tag's select type), so its sentence names both rather than one.
+            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, ${st === 'selected' ? 'the selected background of a selectable control or an outline/text control' : `the outline/text control's ${st} background`})`,
             ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
             // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
             // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.

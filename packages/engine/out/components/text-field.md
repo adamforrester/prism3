@@ -92,7 +92,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
   - 1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)
   - 1.3.1 Info and Relationships (label + describedby association)
   - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
-  - 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1) / 2.4.13 Focus Appearance
+  - 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance
   - 4.1.2 Name/Role/Value / 2.5.8 Target Size
   - 3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste
 - **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.

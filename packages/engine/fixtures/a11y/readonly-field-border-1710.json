@@ -1,0 +1,2334 @@
+{
+  "issue": 1710,
+  "readBy": "Nothing. This file is not read by any gate, test or build: it is the measurement record behind the owner's #1710 decision (option A, `field.border.rest`, 2026-09-29), kept so the options can be re-checked. The live check is the #1710 block in packages/engine/test.ts.",
+  "measured": "2026-09-29",
+  "engineVersion": "0.196.0",
+  "what": "Candidate borders for the read-only member of text-field, textarea and select, measured against the two page grounds a field sits on. The default field.fill is transparent, so the read-only fill is the ground. Ratios are WCAG 2.x contrast, recomputed from the resolved hexes; the floor is 3:1 (SC 1.4.11).",
+  "summary": {
+    "current": {
+      "role": "border.secondary",
+      "minOnSecondary": 2.69,
+      "failingCells": 12,
+      "failing": [
+        "nb/light",
+        "aurora/light",
+        "harbor/light",
+        "wendys/light",
+        "minimal/light",
+        "minimal-levers/light",
+        "minimal-bp2/light",
+        "minimal-weights/light",
+        "minimal-compact/light",
+        "minimal-weight-swap/light",
+        "prism3/light",
+        "nb-master/light"
+      ]
+    },
+    "A": {
+      "role": "field.border.rest",
+      "minOnSecondary": 3.16,
+      "failingCells": 0,
+      "failing": []
+    },
+    "B": {
+      "role": "field.border.hover",
+      "minOnSecondary": 4.52,
+      "failingCells": 0,
+      "failing": []
+    },
+    "C": {
+      "role": "border.tertiary",
+      "minOnSecondary": 5.48,
+      "failingCells": 0,
+      "failing": []
+    },
+    "D": {
+      "role": "interactive.neutral.border.rest",
+      "minOnSecondary": 14.05,
+      "failingCells": 0,
+      "failing": []
+    },
+    "ruled-out": {
+      "role": "border.primary",
+      "minOnSecondary": 1.13,
+      "failingCells": 23,
+      "failing": [
+        "nb/light",
+        "nb/dark",
+        "aurora/light",
+        "aurora/dark",
+        "harbor/light",
+        "harbor/dark",
+        "wendys/light",
+        "wendys/dark",
+        "minimal/light",
+        "minimal/dark",
+        "minimal-levers/light",
+        "minimal-levers/dark",
+        "minimal-bp2/light",
+        "minimal-bp2/dark",
+        "minimal-weights/light",
+        "minimal-weights/dark",
+        "minimal-compact/light",
+        "minimal-compact/dark",
+        "minimal-weight-swap/light",
+        "minimal-weight-swap/dark",
+        "prism3/light",
+        "prism3/dark",
+        "nb-master/light"
+      ]
+    }
+  },
+  "cells": [
+    {
+      "brand": "nb",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e8e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#898f93",
+          "onPrimary": 3.27,
+          "onSecondary": 2.69
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7d8387",
+          "onPrimary": 3.84,
+          "onSecondary": 3.16
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#636a6f",
+          "onPrimary": 5.49,
+          "onSecondary": 4.52
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#565d62",
+          "onPrimary": 6.69,
+          "onSecondary": 5.51
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0c0d0f",
+          "onPrimary": 19.44,
+          "onSecondary": 15.99
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dadcdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.13
+        }
+      }
+    },
+    {
+      "brand": "nb",
+      "mode": "dark",
+      "background.primary": "#0c0d0f",
+      "background.secondary": "#151719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#70767c",
+          "onPrimary": 4.23,
+          "onSecondary": 3.91
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#636a6f",
+          "onPrimary": 3.54,
+          "onSecondary": 3.27
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7d8387",
+          "onPrimary": 5.06,
+          "onSecondary": 4.68
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.300",
+          "hex": "#a3a8ab",
+          "onPrimary": 8.1,
+          "onSecondary": 7.49
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.11,
+          "onSecondary": 16.74
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#34383c",
+          "onPrimary": 1.65,
+          "onSecondary": 1.52
+        }
+      }
+    },
+    {
+      "brand": "nb",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#3f4449",
+          "onPrimary": 9.84,
+          "onSecondary": 9.84
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#70767c",
+          "onPrimary": 4.59,
+          "onSecondary": 4.59
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#565d62",
+          "onPrimary": 6.69,
+          "onSecondary": 6.69
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0c0d0f",
+          "onPrimary": 19.44,
+          "onSecondary": 19.44
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#70767c",
+          "onPrimary": 4.59,
+          "onSecondary": 4.59
+        }
+      }
+    },
+    {
+      "brand": "nb",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b1b4b8",
+          "onPrimary": 10.09,
+          "onSecondary": 10.09
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#70767c",
+          "onPrimary": 4.57,
+          "onSecondary": 4.57
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#898f93",
+          "onPrimary": 6.41,
+          "onSecondary": 6.41
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#70767c",
+          "onPrimary": 4.57,
+          "onSecondary": 4.57
+        }
+      }
+    },
+    {
+      "brand": "aurora",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8e8e92",
+          "onPrimary": 3.26,
+          "onSecondary": 2.69
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#818286",
+          "onPrimary": 3.84,
+          "onSecondary": 3.16
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#68686d",
+          "onPrimary": 5.54,
+          "onSecondary": 4.57
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#5c5c61",
+          "onPrimary": 6.65,
+          "onSecondary": 5.48
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "aurora",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#171719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#75767a",
+          "onPrimary": 4.28,
+          "onSecondary": 3.95
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#68686d",
+          "onPrimary": 3.51,
+          "onSecondary": 3.23
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#818286",
+          "onPrimary": 5.06,
+          "onSecondary": 4.66
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.300",
+          "hex": "#a7a7aa",
+          "onPrimary": 8.1,
+          "onSecondary": 7.46
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f7f7f7",
+          "onPrimary": 18.13,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#38383b",
+          "onPrimary": 1.66,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "aurora",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#434347",
+          "onPrimary": 9.85,
+          "onSecondary": 9.85
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#75767a",
+          "onPrimary": 4.54,
+          "onSecondary": 4.54
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#5c5c61",
+          "onPrimary": 6.65,
+          "onSecondary": 6.65
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#75767a",
+          "onPrimary": 4.54,
+          "onSecondary": 4.54
+        }
+      }
+    },
+    {
+      "brand": "aurora",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b4b4b6",
+          "onPrimary": 10.14,
+          "onSecondary": 10.14
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#75767a",
+          "onPrimary": 4.63,
+          "onSecondary": 4.63
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8e8e92",
+          "onPrimary": 6.43,
+          "onSecondary": 6.43
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f7f7f7",
+          "onPrimary": 19.6,
+          "onSecondary": 19.6
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#75767a",
+          "onPrimary": 4.63,
+          "onSecondary": 4.63
+        }
+      }
+    },
+    {
+      "brand": "harbor",
+      "mode": "light",
+      "background.primary": "#e9e9e8",
+      "background.secondary": "#dcdbdb",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.450",
+          "hex": "#83817e",
+          "onPrimary": 3.2,
+          "onSecondary": 2.81
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#777572",
+          "onPrimary": 3.78,
+          "onSecondary": 3.32
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#5e5b58",
+          "onPrimary": 5.55,
+          "onSecondary": 4.88
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.650",
+          "hex": "#514f4c",
+          "onPrimary": 6.72,
+          "onSecondary": 5.91
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0e0d0c",
+          "onPrimary": 15.98,
+          "onSecondary": 14.05
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.200",
+          "hex": "#c2c1bf",
+          "onPrimary": 1.48,
+          "onSecondary": 1.3
+        }
+      }
+    },
+    {
+      "brand": "harbor",
+      "mode": "dark",
+      "background.primary": "#0e0d0c",
+      "background.secondary": "#181716",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#777572",
+          "onPrimary": 4.23,
+          "onSecondary": 3.9
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#6b6865",
+          "onPrimary": 3.51,
+          "onSecondary": 3.23
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#83817e",
+          "onPrimary": 5,
+          "onSecondary": 4.61
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b5b3b2",
+          "onPrimary": 9.3,
+          "onSecondary": 8.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f7f7f6",
+          "onPrimary": 18.11,
+          "onSecondary": 16.7
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#393735",
+          "onPrimary": 1.64,
+          "onSecondary": 1.51
+        }
+      }
+    },
+    {
+      "brand": "harbor",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#454341",
+          "onPrimary": 9.85,
+          "onSecondary": 9.85
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#777572",
+          "onPrimary": 4.59,
+          "onSecondary": 4.59
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#5e5b58",
+          "onPrimary": 6.75,
+          "onSecondary": 6.75
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0e0d0c",
+          "onPrimary": 19.42,
+          "onSecondary": 19.42
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#777572",
+          "onPrimary": 4.59,
+          "onSecondary": 4.59
+        }
+      }
+    },
+    {
+      "brand": "harbor",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b5b3b2",
+          "onPrimary": 10.06,
+          "onSecondary": 10.06
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#777572",
+          "onPrimary": 4.57,
+          "onSecondary": 4.57
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#908d8b",
+          "onPrimary": 6.37,
+          "onSecondary": 6.37
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f7f7f6",
+          "onPrimary": 19.59,
+          "onSecondary": 19.59
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#777572",
+          "onPrimary": 4.57,
+          "onSecondary": 4.57
+        }
+      }
+    },
+    {
+      "brand": "wendys",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9e9",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8d8e8f",
+          "onPrimary": 3.28,
+          "onSecondary": 2.7
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#808283",
+          "onPrimary": 3.86,
+          "onSecondary": 3.18
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#67696a",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#5a5c5e",
+          "onPrimary": 6.72,
+          "onSecondary": 5.53
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdc",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "wendys",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#171718",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#747577",
+          "onPrimary": 4.21,
+          "onSecondary": 3.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#67696a",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#808283",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b5",
+          "onPrimary": 9.35,
+          "onSecondary": 8.63
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f7f7f7",
+          "onPrimary": 18.13,
+          "onSecondary": 16.72
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#373839",
+          "onPrimary": 1.65,
+          "onSecondary": 1.52
+        }
+      }
+    },
+    {
+      "brand": "wendys",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424345",
+          "onPrimary": 9.9,
+          "onSecondary": 9.9
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#747577",
+          "onPrimary": 4.61,
+          "onSecondary": 4.61
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#5a5c5e",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#747577",
+          "onPrimary": 4.61,
+          "onSecondary": 4.61
+        }
+      }
+    },
+    {
+      "brand": "wendys",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b5",
+          "onPrimary": 10.11,
+          "onSecondary": 10.11
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#747577",
+          "onPrimary": 4.55,
+          "onSecondary": 4.55
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8d8e8f",
+          "onPrimary": 6.4,
+          "onSecondary": 6.4
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f7f7f7",
+          "onPrimary": 19.6,
+          "onSecondary": 19.6
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#747577",
+          "onPrimary": 4.55,
+          "onSecondary": 4.55
+        }
+      }
+    },
+    {
+      "brand": "minimal",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 3.28,
+          "onSecondary": 2.71
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 3.86,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 5.54
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "minimal",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#161719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 9.36,
+          "onSecondary": 8.64
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.1,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#36383b",
+          "onPrimary": 1.65,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "minimal",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424347",
+          "onPrimary": 9.88,
+          "onSecondary": 9.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "minimal",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 10.12,
+          "onSecondary": 10.12
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 6.39,
+          "onSecondary": 6.39
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        }
+      }
+    },
+    {
+      "brand": "minimal-levers",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 3.28,
+          "onSecondary": 2.71
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 3.86,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 5.54
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "minimal-levers",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#161719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 9.36,
+          "onSecondary": 8.64
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.1,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#36383b",
+          "onPrimary": 1.65,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "minimal-levers",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424347",
+          "onPrimary": 9.88,
+          "onSecondary": 9.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "minimal-levers",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 10.12,
+          "onSecondary": 10.12
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 6.39,
+          "onSecondary": 6.39
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        }
+      }
+    },
+    {
+      "brand": "minimal-bp2",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 3.28,
+          "onSecondary": 2.71
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 3.86,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 5.54
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "minimal-bp2",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#161719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 9.36,
+          "onSecondary": 8.64
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.1,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#36383b",
+          "onPrimary": 1.65,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "minimal-bp2",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424347",
+          "onPrimary": 9.88,
+          "onSecondary": 9.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "minimal-bp2",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 10.12,
+          "onSecondary": 10.12
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 6.39,
+          "onSecondary": 6.39
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        }
+      }
+    },
+    {
+      "brand": "minimal-weights",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 3.28,
+          "onSecondary": 2.71
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 3.86,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 5.54
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "minimal-weights",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#161719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 9.36,
+          "onSecondary": 8.64
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.1,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#36383b",
+          "onPrimary": 1.65,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "minimal-weights",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424347",
+          "onPrimary": 9.88,
+          "onSecondary": 9.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "minimal-weights",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 10.12,
+          "onSecondary": 10.12
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 6.39,
+          "onSecondary": 6.39
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        }
+      }
+    },
+    {
+      "brand": "minimal-compact",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 3.28,
+          "onSecondary": 2.71
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 3.86,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 5.54
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "minimal-compact",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#161719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 9.36,
+          "onSecondary": 8.64
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.1,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#36383b",
+          "onPrimary": 1.65,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "minimal-compact",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424347",
+          "onPrimary": 9.88,
+          "onSecondary": 9.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "minimal-compact",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 10.12,
+          "onSecondary": 10.12
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 6.39,
+          "onSecondary": 6.39
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        }
+      }
+    },
+    {
+      "brand": "minimal-weight-swap",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9ea",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 3.28,
+          "onSecondary": 2.71
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 3.86,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 5.52,
+          "onSecondary": 4.55
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 5.54
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16.01
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdd",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "minimal-weight-swap",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#161719",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#66696d",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#7f8285",
+          "onPrimary": 5.03,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 9.36,
+          "onSecondary": 8.64
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 18.1,
+          "onSecondary": 16.71
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#36383b",
+          "onPrimary": 1.65,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "minimal-weight-swap",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424347",
+          "onPrimary": 9.88,
+          "onSecondary": 9.88
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#595c60",
+          "onPrimary": 6.72,
+          "onSecondary": 6.72
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "minimal-weight-swap",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b6",
+          "onPrimary": 10.12,
+          "onSecondary": 10.12
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8c8e91",
+          "onPrimary": 6.39,
+          "onSecondary": 6.39
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f6f7f7",
+          "onPrimary": 19.57,
+          "onSecondary": 19.57
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#73767a",
+          "onPrimary": 4.6,
+          "onSecondary": 4.6
+        }
+      }
+    },
+    {
+      "brand": "prism3",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9e9",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8d8e90",
+          "onPrimary": 3.28,
+          "onSecondary": 2.7
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#808284",
+          "onPrimary": 3.86,
+          "onSecondary": 3.18
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#67696b",
+          "onPrimary": 5.51,
+          "onSecondary": 4.54
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#5b5c5f",
+          "onPrimary": 6.69,
+          "onSecondary": 5.51
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 16
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dbdbdc",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    },
+    {
+      "brand": "prism3",
+      "mode": "dark",
+      "background.primary": "#0d0d0e",
+      "background.secondary": "#171718",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.500",
+          "hex": "#747678",
+          "onPrimary": 4.26,
+          "onSecondary": 3.93
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.550",
+          "hex": "#67696b",
+          "onPrimary": 3.52,
+          "onSecondary": 3.25
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.450",
+          "hex": "#808284",
+          "onPrimary": 5.04,
+          "onSecondary": 4.64
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.250",
+          "hex": "#b3b4b5",
+          "onPrimary": 9.35,
+          "onSecondary": 8.63
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.025",
+          "hex": "#f7f7f7",
+          "onPrimary": 18.13,
+          "onSecondary": 16.72
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.750",
+          "hex": "#37383a",
+          "onPrimary": 1.66,
+          "onSecondary": 1.53
+        }
+      }
+    },
+    {
+      "brand": "prism3",
+      "mode": "hc-light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#ffffff",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.700",
+          "hex": "#424346",
+          "onPrimary": 9.89,
+          "onSecondary": 9.89
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#747678",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.600",
+          "hex": "#5b5c5f",
+          "onPrimary": 6.69,
+          "onSecondary": 6.69
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.950",
+          "hex": "#0d0d0e",
+          "onPrimary": 19.43,
+          "onSecondary": 19.43
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.black",
+          "hex": "#000000",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#747678",
+          "onPrimary": 4.56,
+          "onSecondary": 4.56
+        }
+      }
+    },
+    {
+      "brand": "prism3",
+      "mode": "hc-dark",
+      "background.primary": "#000000",
+      "background.secondary": "#000000",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.250",
+          "hex": "#b3b4b5",
+          "onPrimary": 10.11,
+          "onSecondary": 10.11
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.500",
+          "hex": "#747678",
+          "onPrimary": 4.61,
+          "onSecondary": 4.61
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.400",
+          "hex": "#8d8e90",
+          "onPrimary": 6.4,
+          "onSecondary": 6.4
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.025",
+          "hex": "#f7f7f7",
+          "onPrimary": 19.6,
+          "onSecondary": 19.6
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "palette.white",
+          "hex": "#ffffff",
+          "onPrimary": 21,
+          "onSecondary": 21
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.500",
+          "hex": "#747678",
+          "onPrimary": 4.61,
+          "onSecondary": 4.61
+        }
+      }
+    },
+    {
+      "brand": "nb-master",
+      "mode": "light",
+      "background.primary": "#ffffff",
+      "background.secondary": "#e9e9e9",
+      "options": {
+        "current": {
+          "role": "border.secondary",
+          "step": "neutral.400",
+          "hex": "#8f8d8d",
+          "onPrimary": 3.3,
+          "onSecondary": 2.72
+        },
+        "A": {
+          "role": "field.border.rest",
+          "step": "neutral.450",
+          "hex": "#838181",
+          "onPrimary": 3.87,
+          "onSecondary": 3.19
+        },
+        "B": {
+          "role": "field.border.hover",
+          "step": "neutral.550",
+          "hex": "#6a6868",
+          "onPrimary": 5.54,
+          "onSecondary": 4.56
+        },
+        "C": {
+          "role": "border.tertiary",
+          "step": "neutral.600",
+          "hex": "#5d5b5b",
+          "onPrimary": 6.75,
+          "onSecondary": 5.56
+        },
+        "D": {
+          "role": "interactive.neutral.border.rest",
+          "step": "neutral.950",
+          "hex": "#0e0d0d",
+          "onPrimary": 19.41,
+          "onSecondary": 15.99
+        },
+        "ruled-out": {
+          "role": "border.primary",
+          "step": "neutral.100",
+          "hex": "#dcdbdb",
+          "onPrimary": 1.38,
+          "onSecondary": 1.14
+        }
+      }
+    }
+  ]
+}

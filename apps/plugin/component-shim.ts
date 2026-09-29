@@ -100,6 +100,11 @@ export type ShimOpts = {
    *  answer different questions: `insetValue` reaches the not-a-number case, and this gives the ring's two
    *  halves DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
   varOverrides?: Record<string, unknown>;
+  /** Per-NAME px a variable carries into a BOUND dimension (`boundVariables.<field>.value`), in place of the
+   *  synthetic `varValue`. The hash is small (8–32px) and differs per name, which is what catches a wrong
+   *  binding, and it cannot exercise a FLOOR: Tag's minimum width is its own height rung, and at the hash's 8px
+   *  no content is ever narrower than the floor, so the floor never binds. Names not listed keep the hash. */
+  varPx?: Record<string, number>;
   /** Nodes in the file that are NOT plain components (#681). Kept separate from `comps` so every
    *  existing case reads unchanged: `comps` still means "a plain COMPONENT of this name". */
   fileNodes?: FileNode[];
@@ -476,7 +481,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
     });
   };
   const mkVar = (name: string) => ({
-    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
+    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: opts.varPx?.[name] ?? varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
     get valuesByMode(): Record<string, unknown> { return varValues.get(name) ?? {}; },
     setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
   });
@@ -569,7 +574,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // THE LITERAL WIDTH FLOOR (`minWidth`, #1343a), under `layoutModel`: a 320 control holds the field's
     // column at 320 on the host, so a wider-or-narrower nested message does not move the field's width.
     const floor = opts.layoutModel && typeof node.minWidth === 'number' ? node.minWidth : 0;
-    return Math.max(floor, padX(node) + hug + strokeX(node));
+    // THE BOUND WIDTH FLOOR (`minWidthKey`, 2026-09-28): a `minWidth` bound to a variable holds the frame at
+    // least that wide, as the host does — Tag's floor is its own height rung, so a one-letter tag is square.
+    const bvW = (node.boundVariables as Record<string, { value?: number }>).minWidth?.value;
+    const boundFloor = opts.layoutModel && typeof bvW === 'number' ? bvW : 0;
+    return Math.max(floor, boundFloor, padX(node) + hug + strokeX(node));
   };
 
   const mkNode = (type: string): Node => {

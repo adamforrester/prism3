@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.197.0 — #1626 / #1763 (owner-decided 2026-09-29, "rest fill + deeper inverse ink"): the `on-fill` label
+ * 0.202.0 — #1626 / #1763 (owner-decided 2026-09-29, "rest fill + deeper inverse ink"): the `on-fill` label
  * is measured against every interactive fill state it sits on. On the page, `interactive.<c>.fill.focused` and
  * `.fill.selected` resolve to the rest step in every mode (they used to walk like hover/pressed, and in `dark`
  * that put the near-white label at 2.32–2.62:1 on the switch's on track and the checkbox's checked box). On the
@@ -2946,6 +2946,98 @@
  * aurora, harbor and minimal dark on-fill labels and 42 dark status cells move black → white. Emitted values
  * move in every brand, and the projected surface moves wherever a def binds a focused/selected fill or the
  * inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
+ *
+ * 0.201.0 — #1782: the three FIELD STATUS borders (`border.danger` / `border.warning` / `border.success`)
+ * clear their non-text floor on the grounds a status field actually draws them on. `text-field`, `textarea`
+ * and `select` keep the status border at hover, where the control fills with the translucent
+ * `interactive.neutral.overlay.hover` wash; contracted against `background.primary` alone, the 500 anchor
+ * measured 2.64–3.00:1 against that wash composited over `background.secondary` (132 members, 44 cells).
+ * The roles now also clear `background.secondary` and the wash composited over either page ground, through
+ * `pickBrand`'s existing `alsoClear` at the role's own `nonTextMin` (4.5 in HC — an owner decision, since
+ * the HC 500s already cleared 3:1), with the wash at the alpha the brand's dialect EMITS (`emittedAlpha`:
+ * 26/255 in hex, 0.1 in NB's rgb). A status border also never takes `border.focus`'s colour (owner
+ * decision): the three roles pass the resolved ring to `pickBrand` as `avoid`, which moved nb dark
+ * `border.danger` red.450 (the ring's step) → red.400. Values move one rung in light/dark (light → 550,
+ * dark → 450) wherever 500 missed, and one or two rungs in HC (hc-light → 550/600, hc-dark → 400/450);
+ * 103 role-modes across the corpus + prism3, none in the NB master theme (no wash, and 500 already clears
+ * `background.secondary`). `border.brand` / `border.info` are not field statuses and do not move. NB's
+ * authored values now diverge in nine role-modes (`NB_KNOWN_DIVERGENCES` group seven). Emitted values move
+ * in every washed brand → ENGINE bump. CONTRACT STANDS at 13.2.0 (no token name or projected member moves).
+ *
+ * 0.200.0 — Tag: Select and Dismissible types; Badge: a smaller radius for status labels (owner decisions,
+ * 2026-09-28; closes #1741 and #1743). TAG: a `type` variant axis (`select | dismissible`) and code prop
+ * replace `interaction`; the plain clickable tag is dropped. Select carries an
+ * optional leading icon and a TRAILING check mark behind a `check mark` boolean (on by default), present only at
+ * `selection=selected`, and no dismiss. Dismissible has no selection (`excludeCoordinates` removes dismissible ×
+ * selected, so the set is 45 members, up from 30) and a plain `close` glyph in a square trailing slot the tag's
+ * height, replacing the nested IconButton.Neutral. The minimum width is the height, bound (`minWidthKey`, a new
+ * `PartDef` field, the width twin of `minHeight`). Selected is a tint (`interactive.primary.overlay.selected`,
+ * which the outline-interaction lever repoints to `subtle-fill.selected` on a solid-tint brand) and a 2px primary
+ * outline (`border-width.thick`) at a constant label weight. The label wraps in code (#1758). SCHEMA: a boolean now
+ * composes with a VARIANT `presentWhen` gate on its part (#1743 option (a)); a state gate is still refused.
+ * BADGE: the status label's corner binds `radius.sm` (`{type}.radius`); count and dot keep `radius.round`. And the
+ * owner's scope addition the same day: Badge's `genre` axis is renamed `type`, so Badge and Tag use one name.
+ * `VARIANT_AXES` loses `genre` and gains `type`, so its count is unchanged; the values (`status | count | dot`),
+ * the prop, the paint and geometry keys and the Figma variant property move with it. No token name carries it.
+ * GATES: `lint-hit-target` measures targets inside a control and fails on an unlisted nested interactive
+ * control (#1741). Projected members move for tag and badge → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no token
+ * name is added or removed (`border-width.thick` and `radius.sm` already exist).
+ *   Review round: a new `PartDef.innerTarget` marks a target inside a control (Tag's × slot), and
+ *   `lint-hit-target` compares the marks against its `INNER_TARGETS` in both directions, so neither can be
+ *   dropped silently. Tag's prose no longer says selecting never reflows: the label keeps its width, and the
+ *   check mark adds a cell. `figmaPropertyErrors` refuses a boolean whose variant gate lands only on excluded
+ *   coordinates. Badge's contested note says `type`. Emitted prose moves; no projected member does. Same version.
+ *   Owner decisions 2026-09-29: the Select check's Figma switch is `Check icon` (the plan digest moves, the
+ *   member count does not); the widening check and the stepping selected edge are recorded as decided. Same
+ *   version. The one emitted `subtle-fill.selected` for every brand is held (the `none` lever omits it by design).
+ *   Then the owner's answer, "respect none": every brand whose `outlineInteraction` is not `none` emits
+ *   `interactive.primary.subtle-fill.selected` (one leaf on overlay-neutral, by the solid-tint rule), Tag binds it,
+ *   and `none` drops it. Emitted trees, overlays, Figma color files and sidecars move for every overlay-neutral
+ *   brand. The role is brandDependent, so CONTRACT stands at 13.1.0. Same version.
+ *   Re-review: the `.ai.json` sidecar describes the tint as a color role and never as a primitive, and a tinted
+ *   role's `mode_overrides` state `{ color, opacity }` rather than the fill's palette step (sidecar schema 0.3 →
+ *   0.4). An `innerTarget` part must bind `size` or both sides. Same version.
+ *   Merged with main at 0.199.0 (#1765 and six more): two rules for a boolean over a `presentWhen`-gated part
+ *   met — #1765's (two or more parts PARTITIONING one axis, switch-control's `State icon`) and this entry's (one
+ *   part on a variant gate, Tag's `Check icon`). One rule replaces both: VARIANT gates only, the targeted parts'
+ *   gates DISJOINT (no member builds two nodes for the boolean), and at least one member the set keeps building a
+ *   node; coverage of an axis is no longer required. The projector evaluates the gate for every boolean part on one
+ *   path, ahead of the slot-name lines. Neither def's projection moves (switch 24 members, one glyph each; Tag 45,
+ *   the check on selected select members only). One merge-only break, fixed here: nb's single `color-aliases`
+ *   materialise payload measured 44,813 bytes on this branch and 44,840 on main, and 45,144 merged, over the
+ *   45,000 `figma_execute` ceiling. The pass is now packed into byte-budgeted chunks exactly as `color-create`
+ *   is (#906); nb pastes it as 2. CONTRACT STANDS at 13.2.0, main's. Same version, renumbered 0.200.0.
+ *
+ * 0.199.0 — #1710 (owner decision, 2026-09-29): the read-only field keeps the editable field's boundary.
+ * `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to
+ * `color.field.border.rest`, so the read-only member draws the same border as rest and filled in every mode.
+ * `border.secondary` measured 2.69–2.81:1 on `background.secondary` in light in every brand, below the SC 1.4.11
+ * floor; `field.border.rest` measures 3.16–4.63:1 there across every corpus brand, prism3 and the NB master
+ * theme. The three defs' a11y and prose claims now name the boundary that is built. The projected read-only
+ * members' stroke moves (`schema/component-surface.json`, the paint census) → ENGINE MINOR. CONTRACT STANDS at
+ * 13.2.0: no token name moves — the defs bind an existing role.
+ *
+ * 0.198.0 — #1745: Badge's three NEUTRAL pairs become mode contracts instead of example-brand measurements, so
+ * every brand the engine generates is checked, not only the corpus. `border.secondary` is contracted against
+ * `background.primary` at the mode's non-text bar (3:1, 4.5:1 in high-contrast), and its `pickClosest` now
+ * takes that bar as a floor: a rung that lands under it is ineligible and the pick moves one step deeper.
+ * `inverse.foreground.tertiary` (the bold neutral fill) moves from a `self` surface to a fill contracted
+ * against `background.primary` at the same bar, and carries a SECOND pair, `alsoAgainst` — its label
+ * `inverse.text.primary` at 4.5:1 — which the contrast sweep measures from the final colors and names in
+ * `warnings` (with the partner in `against`) when it falls short; `tree.ts` counts that pair in `modeChecks`, so the
+ * CLI and `emit-dtcg` exit non-zero on it, and both roles state it in their `.ai.json` `contrast_with`. NO emitted color moves in any corpus brand
+ * or in the NB master theme; `out/**` moves by the new `against`/`min`/`contrast` metadata on those two roles,
+ * the two new `contrast_with` entries per `.ai.json`, and the stamp → ENGINE MINOR. CONTRACT STANDS at 13.2.0
+ * (no token name moves).
+ *
+ * 0.197.0 — #259 phase 1: the style-guide generator, COLOR (owner decisions, 2026-09-27/28). A plugin
+ * feature: `apps/plugin/src/style-guide.ts` draws one table per color group onto `↳ Primitive tokens` /
+ * `↳ Semantic tokens` from the file's own variables, with modes side by side (each swatch bound and
+ * mode-pinned), each specimen on its contracted ground, and a contrast column from `resolveAllModes`.
+ * `style-guide-cells.ts` builds or adopts three cell sets on `↳ File Components` during Set up file. New panel
+ * step and `style-guide` agent command. A plugin behavior change (principle 5) → ENGINE bump; no engine
+ * emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at
+ * 13.1.0 (no token name moves). Design record: `docs/45-style-guide-generator.md`.
  *
  * 0.196.0 — #1318 (owner decisions, 2026-09-28): the veil's DIRECTIONAL GRADIENT washes, Prism 2's
  * `Gradient from top/bottom/left/right` scrim variants. A new variant axis `direction` (`full | from-top |
@@ -4109,7 +4201,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.197.0';
+export const ENGINE_VERSION = '0.202.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

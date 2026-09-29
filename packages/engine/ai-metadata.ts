@@ -55,7 +55,9 @@ type AiToken = {
   avoid_when: string;
   usage_limit?: UsageLimit;
   contrast_with?: Contrast[];
-  mode_overrides: Record<string, string>;
+  /** Per mode: the primitive the role resolves to, or — for a TINTED WASH (#1614) — the fill role and the opacity
+   *  token it is laid down at, the pair the tree states in `$extensions.prism3.tint` (schema 0.4). */
+  mode_overrides: Record<string, string | { color: string; opacity: string }>;
 } & Relations;
 
 /** The body-text floor (WCAG 1.4.3) and the large-text thresholds (24px, or 18.66px bold — 18pt / 14pt). */
@@ -119,6 +121,10 @@ type Ctx = {
   failing: (ink: string, ground: string, min: number) => string[];
   /** The lowest floor a role carries in any mode, 0 when it has none — the one an agent must design to. */
   floorMin: (role: string) => number;
+  /** Whether the brand emits this role (by its full key, `inverse.` prefix included). A sentence that names a
+   *  role must name one that exists: an overlay-neutral brand carries the page's selected subtle fill but no
+   *  band twin (owner, 2026-09-29). */
+  has: (role: string) => boolean;
 };
 
 /** The large-text-only sentence (AI/C-2), or nothing when the ink's floor meets the body-text floor in
@@ -355,7 +361,14 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   // and a wash is neither ink nor an opaque ground. It follows its fill, and its state label is measured on it.
   if (slot === 'subtle-fill') {
     const ink = `interactive.${c}.text.${state === 'selected' ? 'pressed' : state ?? 'hover'}`;
-    return { when_to_use: `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.`, tracks: [`interactive.${c}.fill.rest`, ink] };
+    // SELECTED is the one state with two users (2026-09-29): an outline or text control on a solid-tint brand, and a
+    // control the user selects in place (a select tag) on every brand that has an outline fill. Each keeps its own
+    // label ink, so the sentence names the measured ink as the control's, not as the only one.
+    const selected = state === 'selected';
+    const use = selected
+      ? `The ${c} selected tint: the ${c} fill at a set opacity, laid over ${q('background.primary')}, behind ${c === 'primary' ? 'a control the user selects in place (a select tag) or ' : ''}an outline or text ${c} control in its selected state. The label keeps the control's own ink; the recorded ratio is ${q(ink)} on the tint.`
+      : `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`;
+    return { when_to_use: use, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, ...(ctx.has(`inverse.interactive.${c}.subtle-fill.${state}`) ? { page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.` } : {}), tracks: [`interactive.${c}.fill.rest`, ink] };
   }
   if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle) or as a modal backdrop (use ${q('scrim.default')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
@@ -499,7 +512,7 @@ export type AiMetadataOptions = { tokensFile?: string };
 
 /** The sidecar's schema id. The JSON Schema at `schema/ai-metadata.schema.json` carries the same `$id`,
  *  and a test holds the two equal — bump both together when a field is added, renamed or removed. */
-export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.3';
+export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.4';
 
 /** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
  *  roles in each mode, composite a translucent one over its ground, compare with `min`. `lint-voice.ts`
@@ -586,6 +599,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         const floors = Object.values(byRole[real(r)] ?? {}).map((x) => x.min).filter((m) => m > 0);
         return floors.length ? Math.min(...floors) : 0;
       },
+      has: (r) => r in byRole,
     };
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
     const base = group === 'interactive'
@@ -594,8 +608,12 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     const d = inverse
       ? onInverseGround(base, pageKey, known)
       : { ...base, avoid_when: base.page_note ? `${base.avoid_when} ${base.page_note}` : base.avoid_when };
-    const mode_overrides: Record<string, string> = {};
-    for (const [mode, r] of Object.entries(perMode)) mode_overrides[mode] = `{${r.path}}`;
+    const mode_overrides: AiToken['mode_overrides'] = {};
+    // A TINTED WASH (#1614) is its fill at an opacity step: `r.path` is the OPAQUE fill's palette step, so naming it
+    // alone would hand an agent the wrong color. State the tint the way the token tree does (`$extensions.prism3.tint`):
+    // the fill role and the opacity token. Every overlay-neutral brand carries one since 2026-09-29.
+    for (const [mode, r] of Object.entries(perMode))
+      mode_overrides[mode] = r.tint ? { color: `{${root}.color.${r.tint.fill}}`, opacity: `{${root}.opacity.${r.tint.opacity}}` } : `{${r.path}}`;
     // what it SIGNIFIES / is for. The inverse ground is a suffix on the page role's meaning, for the
     // same reason the prose is decorated rather than rewritten: the role signifies the same thing.
     const meaning = (group === 'interactive' ? 'Interactivity / actions' : genMeaning(group, variant)) + (inverse ? ' (inverse ground)' : '');
@@ -651,6 +669,22 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         requirement: contrastRequirement(roleKey, token, `${light.min}:1`, over),
       }];
     }
+    // A role's SECOND contracted pair (`alsoAgainst`, #1745) — `inverse.foreground.tertiary` under its label
+    // `inverse.text.primary` — is stated from both ends, so an agent reading either token learns the bar.
+    // Appended after the role's own pair: `contrast_with[0]` stays the pair the role is placed in, which is
+    // what the relation checks read. The ratio is measured here from the light values; the engine stores none.
+    const second: { token: string; min: number; partnerHex: string }[] = [];
+    if (light.alsoAgainst && byRole[light.alsoAgainst.against]?.light)
+      second.push({ token: light.alsoAgainst.against, min: light.alsoAgainst.min, partnerHex: byRole[light.alsoAgainst.against].light.hex });
+    for (const [k, pm] of Object.entries(byRole)) {
+      const a = pm.light?.alsoAgainst;
+      if (a && a.against === roleKey) second.push({ token: k, min: a.min, partnerHex: pm.light.hex });
+    }
+    for (const c of second) {
+      const min = `${c.min}:1`;
+      const ratio = Math.round(contrast(hexToRgb(light.hex), hexToRgb(c.partnerHex)) * 100) / 100;
+      (ai.contrast_with ??= []).push({ token: c.token, min, ratio, requirement: contrastRequirement(roleKey, c.token, min) });
+    }
     colorRoles[roleKey] = ai;
   }
 
@@ -698,6 +732,10 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
   const primitives: Record<string, AiPrimitive> = {};
   for (const { path, node } of leaves) {
     if (refsIn(node.$value).length > 0) continue;       // skip aliases/composites — primitives only
+    // A SEMANTIC COLOR ROLE whose `$value` is a literal is still a role, described above in `color`: the tinted wash
+    // (#1614) carries its composite as a literal, and Tag binds it (2026-09-29). Listing it here would tell an agent
+    // "private primitive — prefer a semantic token" about the very semantic token a component binds.
+    if (path.startsWith('color.') && path.slice('color.'.length) in colorRoles) continue;
     if (thinRole(path)) continue;                        // a role with a literal value (`grid.md.columns`) is still a role
     // The palette, font and dimension primitives live under `core.` (CORE_TIER, theme.ts). Dispatch on
     // the family BELOW it — before #1623 (AI/A-1) every branch keyed on `seg[0]`, which is `core` for all

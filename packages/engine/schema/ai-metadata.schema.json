@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-ai-metadata/0.3",
+  "$id": "prism3-ai-metadata/0.4",
   "title": "Prism3 agent metadata sidecar (<brand>.ai.json)",
   "description": "Agent-readable metadata for one generated brand, companion to its DTCG token tree (<brand>.tokens.json). Every token in the tree has exactly one entry, keyed by its path below the brand root. Every field is generated from the token data on each build. The sidecar's own `$schema` value equals this schema's `$id`; both change together when a field is added, renamed or removed.",
   "type": "object",
   "additionalProperties": false,
   "required": ["$schema", "brand", "generated", "note", "color_fields", "typography_fields", "layout_fields", "motion_fields", "primitive_fields", "color", "typography", "layout", "motion", "primitives"],
   "properties": {
-    "$schema": { "const": "prism3-ai-metadata/0.3", "description": "The schema version this file follows. Equal to this schema's `$id`." },
+    "$schema": { "const": "prism3-ai-metadata/0.4", "description": "The schema version this file follows. Equal to this schema's `$id`." },
     "brand": { "$ref": "#/$defs/path", "description": "The brand id, as in the token tree's file name." },
     "generated": { "const": true, "description": "Always true: no field is hand-authored." },
     "note": { "type": "string", "minLength": 1, "description": "A one-paragraph guide to the tiers and fields, for a reader without this schema." },
@@ -65,6 +65,16 @@
       "pattern": "^\\{[a-z0-9][a-z0-9-]*(\\.[a-z0-9-]+)+\\}$",
       "description": "A DTCG alias in brace syntax, naming a full token path including the brand root."
     },
+    "tintReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["color", "opacity"],
+      "properties": {
+        "color": { "$ref": "#/$defs/reference", "description": "The fill role the wash is made of." },
+        "opacity": { "$ref": "#/$defs/reference", "description": "The opacity token it is laid down at." }
+      },
+      "description": "A tinted wash: a fill role at an opacity token, as the token tree states it in `$extensions.prism3.tint`. The color is the fill composited over the ground at that opacity, never the fill alone."
+    },
     "ratio": {
       "type": "string",
       "pattern": "^[0-9]+(\\.[0-9]+)?:1$",
@@ -107,8 +117,8 @@
           "type": "object",
           "required": ["light"],
           "additionalProperties": false,
-          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/reference" } },
-          "description": "The primitive the role resolves to in each mode, keyed by mode name."
+          "patternProperties": { "^[a-z][a-z0-9-]*$": { "anyOf": [{ "$ref": "#/$defs/reference" }, { "$ref": "#/$defs/tintReference" }] } },
+          "description": "What the role resolves to in each mode, keyed by mode name: a primitive, or for a tinted wash the fill role and the opacity token it is laid down at."
         }
       }
     },

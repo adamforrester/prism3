@@ -504,7 +504,7 @@ npx tsx packages/engine/materialise-to-figma.ts <brand>                     # ma
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette      # 1
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create --chunk 1  # 2 (see below)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass dims-create  # before 3: a tinted wash aliases an opacity/<n> variable (#1672)
-npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases # 3
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases --chunk 1 # 3 (chunked, like 2)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 ```
 
@@ -514,7 +514,7 @@ npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
    `hc-light`, `hc-dark`; `wireframe` if opted in) and writes the literal fallback
    `{r,g,b,a}` per mode. Every var also carries its slot-scoped `scopes` and `description`.
 
-   **CHUNKED (#906).** This is the one pass that can exceed the `figma_execute` ceiling, so it
+   **CHUNKED (#906).** This pass (and, since the #1743 merge, pass 3) can exceed the `figma_execute` ceiling, so it
    emits N payloads packed to 42,000 bytes each. **Run the manifest first** — it prints the chunk
    count and each chunk's fullness — then paste `--chunk 1`, `--chunk 2`, … in any order, all of
    them before pass 3. Asking for `--pass color-create` without `--chunk` when there is more than
@@ -536,6 +536,11 @@ npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
    element, the `opacity/<n>` variable per mode, and binds as
    `{ color: <alias>, opacity: <alias> }`. That variable is written by `dims-create`, so
    `dims-create` is pasted **before** this pass (#1672); the manifest prints the full order.
+
+   **CHUNKED as well**, packed to the same 42,000 bytes: nb's single payload crossed the ceiling
+   once main and the #1743 branch both added colour variables. Rows are independent and every
+   chunk carries the same lookup preamble, so the chunks are order-free among themselves; paste
+   every one after pass 2 and `dims-create`, and before `verify`.
 4. **`verify`** — reads back via `getLocalVariablesAsync` (authoritative for scopes,
    aliases, modes, hidden). Reports `colorVars`, `modes`, **`modesDistinct: true`**
    (the collapse guard, probing `color/background/primary` across modes), the

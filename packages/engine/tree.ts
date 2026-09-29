@@ -13,7 +13,7 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex } from './color';
+import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
@@ -27,9 +27,11 @@ const rgbStr = ({ r, g, b }: RGB) => `rgb(${r}, ${g}, ${b})`;
 const colorValue = (rgb: RGB, fmt: 'rgb' | 'hex') => (fmt === 'hex' ? hex(rgb) : rgbStr(rgb));
 const rgbFromHex = (h: string): RGB => ({ r: parseInt(h.slice(1, 3), 16), g: parseInt(h.slice(3, 5), 16), b: parseInt(h.slice(5, 7), 16) });
 const colorValueFromHex = (h: string, fmt: 'rgb' | 'hex') => (fmt === 'hex' ? h : rgbStr(rgbFromHex(h)));
-const alphaHex = (a: number) => Math.round(a * 255).toString(16).padStart(2, '0');
+// The alpha is quantized by `emittedAlpha` (color.ts) in both dialects — the one rule `modes.ts` also
+// composites through (#1782), so the engine measures a translucent wash at the alpha written here.
+const alphaHex = (a: number) => Math.round(emittedAlpha(a, 'hex') * 255).toString(16).padStart(2, '0');
 const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
-  fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${round(a, 2)})`;
+  fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${emittedAlpha(a, 'rgb')})`;
 // Shared opacity/alpha step set (percent). Ramps use 5–90; the opacity scale full.
 const ALPHA_STEPS = OPACITY_STEPS;
 
@@ -1266,6 +1268,15 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // A role's second ground (#1773): the page interactive fill against `background.tertiary`. Counted like a
   // role, so a pinned anchor that misses the tier fails the mode contract the way a missed override does.
   for (const mr of modes) for (const c of mr.tierChecks ?? []) { modeChecks++; if (c.ratio >= c.min) modePass++; }
+  // A role's SECOND pair (`alsoAgainst`, #1745) is a contract too, so it counts here — this count is what
+  // `cli.ts` and `emit-dtcg.ts` exit on and what the fidelity report prints. Measured from the two final hex
+  // values: the engine stores no ratio for the pair, and its warning lives only in `ModeResult.warnings`,
+  // which neither exit path reads. A partner missing from the mode counts as a failure, not a skip.
+  for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.alsoAgainst) {
+    modeChecks++;
+    const partner = mr.roles[r.alsoAgainst.against];
+    if (partner && contrast(hexToRgb(r.hex), hexToRgb(partner.hex)) >= r.alsoAgainst.min) modePass++;
+  }
 
   // `+ 1` for `white-alpha.0` (#1318) — the one alpha leaf outside the 5–90 ramp steps.
   const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length + 1;

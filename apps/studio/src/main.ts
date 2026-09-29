@@ -21,7 +21,7 @@
  */
 import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
@@ -38,6 +38,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
+import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
 import { persistInput, restoreInput } from './persist-local';
@@ -164,6 +165,10 @@ const NAV = [
   { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
   { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
   { key: 'preview', label: 'Preview', sub: 'Components & contrast, all modes', view: true },
+  // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
+  // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
+  // Placement and label are proposed, owner to confirm (docs/45).
+  { key: 'styleGuide', label: 'Style guide', sub: 'Token tables on the Figma canvas', view: true, figmaOnly: true },
   // #718 — the component write's destination, and A DEMOTION RATHER THAN A PROMOTION. The natural
   // reading of "components get their own rail item" is that the capability graduated; here it is the
   // reverse. The control is leaving a first-class slot beside Apply precisely because it is not
@@ -743,6 +748,11 @@ let componentState: { ok: boolean; headline: string; summary: string } | 'pendin
  *  host lays the page skeleton and builds the two template assets. Unlike the component build there is no
  *  progress sibling: file-setup posts a single terminal result, so `pending` is a static "in flight". */
 let fileSetupState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** The state of the style-guide run (#259) — its own slot, for the one-verdict-per-action reason above. */
+let styleGuideState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** The Customize options (#259). Session state, not persisted with the brand: they shape a drawing of the
+ *  file's variables, not the brand itself. Proposed, owner to confirm (docs/45). */
+const styleGuideOptions: StyleGuideOptionsMsg = {};
 /** How far the in-flight component build has got (#684) — `null` between builds and until the first
  *  chunk boundary reports.
  *
@@ -770,7 +780,7 @@ let pruneVerdict: { ok: boolean; count: number; summary: string } | null = null;
  *  independently-openable rows would both be pushing that height around. One row also means the open
  *  detail always belongs to a named pill — two rows could leave the theme write's counts sitting under a
  *  component verdict with nothing saying which was which. */
-let openDetail: 'apply' | 'components' | 'filesetup' | null = null;
+let openDetail: 'apply' | 'components' | 'filesetup' | 'styleguide' | null = null;
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
@@ -888,6 +898,14 @@ commit.onHostMessage((m) => {
     // would leave the button reading "⋯ Setting up…" and disabled.
     if (barHost) { renderBar(); syncApplyDetail(); }
     syncFileSetupRow();
+    return;
+  }
+  if (m.kind === 'style-guide-result') {
+    // #259. The file-setup handling, against its own slot and row.
+    styleGuideState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    openDetail = m.ok ? null : 'styleguide';
+    if (barHost) { renderBar(); syncApplyDetail(); }
+    syncStyleGuideRow();
     return;
   }
   if (m.kind === 'component-progress') {
@@ -2349,6 +2367,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
+  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply to Figma.'],
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
@@ -2741,7 +2760,7 @@ const edgeOf = (roles: RoleMap, prefix: string, state = 'rest'): string =>
  *  the one row this parameter exists for unable to reach its own pressed color: the border row's edge
  *  moves on press and its wash never does. */
 const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string,
-                   o: { ink?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
+                   o: { ink?: string; pressedInk?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const ink = o.ink ?? edge;
   const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); specimen(b).style.color = ink;
@@ -2751,6 +2770,13 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
   if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
   if (pressedWash) b.style.setProperty('--ibtn-pbg', pressedWash);
   if (pressedWash || o.pressedEdge) wirePress(b);
+  // #812 — a held press swaps the ink too, when the caller names the pressed ink, so the pressed state
+  // previews the pair a component binds (`text.pressed` on the pressed wash) rather than the rest ink
+  // carried onto a fill it is never drawn on.
+  if (o.pressedInk && (pressedWash || o.pressedEdge)) {
+    const restInk = ink, pressedInk = o.pressedInk;
+    b.onclick = (e) => { e.preventDefault(); b.style.color = b.classList.toggle('is-pressed') ? pressedInk : restInk; };
+  }
   // #1617 — the glyph draws from its OWN role (`interactive.<c>.icon.*`) when the caller passes one, so a
   // label/icon divergence is visible here rather than masked by painting both with the label ink.
   b.append(document.createTextNode('Outline'), iconEl('arrow', o.icon ?? ink));
@@ -2914,7 +2940,20 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   // Border row made them independently pinnable; painting both from the ink would have shown this row's
   // wash inside a border that silently ignored the neighboring row's override.
   const edge = edgeOf(roles, `interactive.${col.name}`);
-  const ink = roles[`interactive.${col.name}.text.rest`]?.hex;
+  // #812 — the ink is the HOVER text, because that is the pair a component draws on this wash: the Button
+  // binds `outline.label.hover` to `interactive.<c>.text.hover` over `outline.overlay.hover`. The row used to
+  // paint `text.rest` here, a pair no component renders (aurora Dark primary: 3.83:1, where the shipped pair
+  // is 5.35:1). Pressed swaps to `text.pressed` on the pressed wash, the Button's pressed pair.
+  const hoverInk = roles[`interactive.${col.name}.text.hover`];
+  const pressedInk = roles[`interactive.${col.name}.text.pressed`];
+  const pressed = roles[`interactive.${col.name}.overlay.pressed`];
+  // The receipt is for the pair ON SCREEN: the hover ink over the hover wash composited onto the ground the
+  // wash declares, held to the hover ink's own contract. Neither half is the wash role's own `ratio`, which
+  // rates `text.primary` (its `legibleFor`) and would put a pass beside any ink.
+  const ground = (r.against ? roles[r.against]?.hex : undefined) ?? roles['background.primary']?.hex;
+  const badge = hoverInk && ground && (hoverInk.min ?? 0) > 0
+    ? contrastBadge(contrast(hexToRgb(hoverInk.hex), composite(hexToRgb(ground), hexToRgb(r.hex), r.alpha ?? 1)), hoverInk.min!)
+    : undefined;
   return iRow({
     swatchBg: washCss(roles, r), label: 'Overlay wash',
     select: roleSourceSelect(roles, `interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
@@ -2926,8 +2965,8 @@ const overlayRow = (col: ICol): HTMLElement | null => {
     desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — a neutral alpha primitive composited over the page surface it is measured against, so there is no ramp step to swap in.',
     // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
     // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
-    example: iExample(exOutline(edge, rgbaOf(r), false, undefined,
-      roles[`interactive.${col.name}.overlay.pressed`] ? rgbaOf(roles[`interactive.${col.name}.overlay.pressed`]!) : undefined, { ink })),
+    example: iExample(exOutline(edge, rgbaOf(r), false, undefined, pressed ? rgbaOf(pressed) : undefined,
+      { ink: hoverInk?.hex, pressedInk: pressedInk?.hex }), badge),
     states: iStates(roles, nPal, [['Hover', `interactive.${col.name}.overlay.hover`], ['Pressed', `interactive.${col.name}.overlay.pressed`]]),
   });
 };
@@ -3503,11 +3542,15 @@ const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => 
   const wireOn = modes.includes('wireframe');
   menu.append(el('div', 'mctx-mcap', 'Modes this brand generates'));
 
-  // #57 — Light is the forced base mode; render the row as clearly LOCKED (muted, grayed check, no hover)
-  // rather than a live checkbox that can't be unticked.
+  // #57 — Light is the forced base mode; render the row as clearly LOCKED (grayed check, no hover, a lock
+  // glyph) rather than a live checkbox that can't be unticked. #1770: the lock is SAID by the glyph, not by
+  // fading the row — the fade took a legal `--faint` "always" (5.13:1) down to 2.95:1. The glyph is named
+  // for assistive tech; the row's title carries the reason.
   const lightRow = el('div', 'mctx-opt on fixed');
   lightRow.title = 'Light is always generated — it’s the base mode, so it can’t be turned off.';
-  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), el('span', 'mctx-always', 'always'));
+  const lock = iconEl('lock', 'currentColor');
+  lock.setAttribute('class', 'mctx-lock'); lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', 'Locked');
+  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), lock, el('span', 'mctx-always', 'always'));
   menu.append(lightRow);
 
   const opt = (label: string, on: boolean, title: string, toggle: () => void): void => {
@@ -5163,6 +5206,80 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   // elements, so removing the old one first keeps a verdict from landing beside the pending text.
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (fileSetupState) row.prepend(renderApplyStatus(fileSetupState, 'filesetup'));
+};
+
+/** The style-guide button's label (#259). Proposed, owner to confirm — the one string a reviewer changes. */
+const STYLE_GUIDE_LABEL = 'Draw style guide';
+
+/**
+ * The Style guide page (#259, phase 1: color) — the step after Apply theme. One button draws the color tables
+ * from the file's own variables; the per-type options fold away under Customize, every one with a default, so
+ * the button alone does the common case. The specimen is chosen from each token's role unless Display style
+ * overrides it (owner decision 8).
+ *
+ * Figma-only (`railNav()` omits it on web), and `commit.isFigma` is re-checked for the `renderComponentsPage`
+ * reason. Nothing here repaints with a lever, so its volatile set is empty, as on Components.
+ */
+const renderStyleGuidePage = (host: PageHost): void => {
+  const [title, lede] = PAGE_COPY.styleGuide;
+  host.append(hero(title, lede));
+  setVolatile([], () => {});
+  if (!commit.isFigma) return;
+
+  const sec = palSection('Color tables', 'Draws or updates one table per palette and one per role family.');
+  const note = el('p', 'cw-note');
+  note.append(document.createTextNode('Needs the pages and cell components Set up file adds. A rerun updates each table in place.'));
+  sec.append(note);
+
+  // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
+  const det = el('details', 'contracts') as HTMLDetailsElement;
+  const sum = el('summary', 'contracts-sum');
+  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns'));
+  det.append(sum);
+  const pick = <K extends 'valueFormat' | 'header' | 'display'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
+    const s = selectEl();
+    for (const [v, t] of opts) s.append(optionEl(v, t, (styleGuideOptions[key] ?? fallback) === v));
+    s.onchange = () => { (styleGuideOptions as Record<string, unknown>)[key] = s.value; };
+    return s;
+  };
+  det.append(
+    knob('Color value', pick('valueFormat', [['hex', 'Hex'], ['rgba', 'RGB-A'], ['hsl', 'HSL'], ['hsb', 'HSB']], 'hex'), 'How each value cell prints the color. A translucent hex adds its alpha as a percentage.'),
+    knob('Table header', pick('header', [['dark', 'Dark'], ['light', 'Light']], 'dark'), 'The header row’s fill.'),
+    knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
+      'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'),
+    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
+    knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
+  );
+  sec.append(det);
+
+  const row = el('div', 'fs-row');
+  styleGuideRow = row;
+  const btn = el('button', 'barbtn') as HTMLButtonElement;
+  styleGuideBtn = btn;
+  btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
+  btn.onclick = () => {
+    styleGuideState = 'pending'; openDetail = null;
+    renderBar(); syncApplyDetail(); syncStyleGuideRow();
+    commit.postStyleGuide({ ...styleGuideOptions });
+  };
+  row.append(btn);
+  syncStyleGuideRow({ staged: true });
+  sec.append(row);
+  host.append(sec);
+};
+
+/** The style-guide row's status, refreshed in place (#259) — `syncFileSetupRow`'s mechanism, its own slot. */
+let styleGuideRow: HTMLElement | null = null;
+let styleGuideBtn: HTMLButtonElement | null = null;
+const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
+  const row = styleGuideRow;
+  if (!row || !styleGuideBtn) return;
+  if (!opts.staged && !row.isConnected) return;
+  const pending = styleGuideState === 'pending';
+  styleGuideBtn.textContent = pending ? '⋯ Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
+  styleGuideBtn.disabled = pending;
+  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
+  if (styleGuideState) row.prepend(renderApplyStatus(styleGuideState, 'styleguide'));
 };
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
@@ -8060,6 +8177,7 @@ const ICON_PATH: Record<string, string> = {
   triangle: '<path d="M12 4l9 16H3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.01"/>',
   x: '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
   info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.01"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
 };
 const iconEl = (name: string, stroke: string): SVGElement => {
   const svg = document.createElementNS(SVGNS, 'svg');
@@ -8422,6 +8540,7 @@ const PAGE_RENDERERS: Record<PageKey, PageRenderer> = {
   layout: renderLayoutPage,
   motion: renderMotionPage,
   preview: renderPreviewPage,
+  styleGuide: renderStyleGuidePage,
   components: renderComponentsPage,
 };
 /** Attach the mode badge to every section on the page, in ONE post-render pass.
@@ -9385,8 +9504,8 @@ function renderSeedPill(o: SeedOutcome): HTMLElement {
   return pill;
 }
 
-function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components' | 'filesetup'): HTMLElement {
-  const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : 'component build';
+function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide'): HTMLElement {
+  const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : which === 'styleguide' ? 'style guide' : 'component build';
   if (state === 'pending') {
     // The theme write's pending text is static and the component build's is not (#684), so only the
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
@@ -9395,6 +9514,7 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
     if (which === 'filesetup') return el('span', 'bar-seed', 'Setting up file…');
+    if (which === 'styleguide') return el('span', 'bar-seed', 'Drawing the style guide…');
     const node = el('span', 'bar-seed', componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
@@ -9438,7 +9558,7 @@ const syncApplyDetail = (): void => {
   // ONE row, shared by both write pills (#483) — `openDetail` names whose summary is in it. Reading the
   // state through the discriminant rather than tracking it here means the row cannot show a summary whose
   // pill is not the open one: there is a single source for "which", and both the pill and this read it.
-  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : openDetail === 'filesetup' ? fileSetupState : null;
+  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : openDetail === 'filesetup' ? fileSetupState : openDetail === 'styleguide' ? styleGuideState : null;
   const show = state !== null && state !== 'pending';
   applyDetailHost.style.display = show ? '' : 'none';
   if (show) applyDetailHost.textContent = state.summary;
