@@ -23,9 +23,9 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
-import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight } from './scale';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
+import { axisKindOf, densitySizeValues, densitySpacingKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
+import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, Density } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -1508,7 +1508,9 @@ export const figmaAnatomyPlan = (
         // which is why this is additive rather than a redefinition of padding-x.
         const inlineVisual = p.padding.inlineVisual ?? p.padding.inlineLabel;
         bound.paddingLeft = varOf(leadingFilled ? inlineVisual : p.padding.inlineLabel);
-        bound.paddingRight = varOf(trailingFilled ? inlineVisual : p.padding.inlineLabel);
+        // A def that names its trailing side's own key (`inlineEnd`, Tag's dismissible row: 0 against the ×
+        // slot) takes it there; the validator refuses it beside `inlineVisual`, so the two never compete.
+        bound.paddingRight = varOf(p.padding.inlineEnd ?? (trailingFilled ? inlineVisual : p.padding.inlineLabel));
         // A PINNED cell's side (#1667) trades its binding for the literal reserve: the pinned node is out of
         // flow, so the padding holds its room. Keyed off `pin`, and off the CELL being filled (the caller's
         // slot or an overlay that took it), the same question the two lines above ask.
@@ -2083,6 +2085,62 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
     });
   }
   return { ...def, tokens, anatomy: { ...a, parts } };
+};
+
+// ── SPACING DENSITY (the spacing model, 2026-09-29) ─────────────────────────────────────────────────
+//
+// "Size is for size, space is for space": a def states its own padding and gaps as `space.*` steps at
+// COMFORTABLE density, and names them in `densitySpacing`. Density moves them BY RULE, one step along the
+// space ladder (`densitySpace`), materialized before projection for `applyControlShape`'s reason — the
+// projector stays a pure function of its def. It replaces the density window padding used to ride on as
+// `size.<rung>.padding-*`; heights keep that window.
+
+/**
+ * Materialize a def's spacing for a brand's density. Identity at `comfortable` and for a def that names no
+ * `densitySpacing` (it returns the same object, so every comfortable plan is byte-identical). At `compact`
+ * every named key's step moves ONE STEP DOWN the space ladder, at `spacious` ONE STEP UP, clamped at the
+ * ladder's ends, and a GAP never below `GAP_FLOOR_PX` (`densitySpacingStep`). Keys off the list are
+ * untouched, which is how a 0px inset stays 0 at every density.
+ *
+ * Per-mode density (`modeLevers.<mode>.density`) does NOT reach this: a Figma component binds one `space/*`
+ * variable per side, and the space collection is density-free, so a mode that runs a different density
+ * moves its heights (`size.*.height` carries the per-mode value) and keeps the brand's baseline spacing.
+ */
+export const applySpacingDensity = (def: ComponentDef, density: Density): ComponentDef => {
+  if (density === 'comfortable' || !def.densitySpacing?.length) return def;
+  const tokens = { ...def.tokens };
+  for (const k of densitySpacingKeys(def)) {
+    const ref = tokens[k];
+    if (ref === undefined) throw new Error(`${def.id}: densitySpacing names '${k}', which is not a slot in tokens`);
+    tokens[k] = densitySpacingStep(k, ref, density);
+  }
+  return { ...def, tokens };
+};
+
+/**
+ * Materialize every `minWidthRatio` floor into the per-size literal `minWidth` (Tag, owner 2026-09-29: 1.5 ×
+ * the height, rounded to the nearest 8px). Figma binds a variable, not an expression, so the floor reaches
+ * Figma the way Button's does (#1667): a literal per size, written from the brand's resolved heights (`px`),
+ * which a brand change reaches on a rebuild. Identity for a def with no ratio floor. THROWS when a size's
+ * height does not resolve, Button's reason: a missing floor at one size is the silent-loss shape.
+ */
+export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => number | undefined): ComponentDef => {
+  const a = def.anatomy;
+  if (!a || !Object.values(a.parts).some((p) => p.minWidthRatio !== undefined)) return def;
+  const sizes = densitySizeValues(def);
+  const parts: Record<string, PartDef> = {};
+  for (const [name, p] of Object.entries(a.parts)) {
+    if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
+    const minWidth = Object.fromEntries(sizes.map((v) => {
+      const ref = def.tokens[p.height!.replace('{size}', v)];
+      const h = ref === undefined ? undefined : px(ref);
+      if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
+      return [v, ratioMinWidth(h, p.minWidthRatio!)];
+    }));
+    const { minWidthRatio: _r, ...rest } = p;
+    parts[name] = { ...rest, minWidth };
+  }
+  return { ...def, anatomy: { ...a, parts } };
 };
 
 // ── WEIGHT INTENT (#1602) ───────────────────────────────────────────────────────────────────────

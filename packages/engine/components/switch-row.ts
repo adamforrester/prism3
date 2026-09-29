@@ -117,6 +117,9 @@ export const switchRow: ComponentDef = {
   // track; keeping them here with nothing selection-dependent left to resolve would be unreachable keys.
   paintKeys: ['{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
+  densitySpacing: ['size.{size}.gap'],
+
   tokens: {
     // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL. Every color binding for the track, thumb, glyphs,
     // focus ring and borders MOVED to `switch-control` with the painted surface itself. The label sits
@@ -125,10 +128,12 @@ export const switchRow: ComponentDef = {
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
 
-    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. `min-height` is the code projection's floor; Figma
+    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
+    // comfortable (8px at both sizes, the spacing model), which density moves one step (`densitySpacing`).
+    // `min-height` is the code projection's floor; Figma
     // has no floor, so the row hugs its children and the key stays bound only for code (see `codeOnly`).
-    'size.small.gap': 'size.sm.gap',
-    'size.medium.gap': 'size.md.gap',
+    'size.small.gap': 'space.100',
+    'size.medium.gap': 'space.100',
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
 

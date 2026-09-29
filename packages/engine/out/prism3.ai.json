@@ -7997,89 +7997,17 @@
       "when_to_use": "The height of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
       "resolves_to": "{pds3.core.dimension.28}"
     },
-    "size.xs.padding-x": {
-      "$description": "size.xs horizontal inset — 8px (density: comfortable)",
-      "meaning": "Control size step xs — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.100}"
-    },
-    "size.xs.padding-x-visual": {
-      "$description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
-      "meaning": "Control size step xs — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.075}"
-    },
-    "size.xs.padding-y": {
-      "$description": "size.xs vertical inset — 4px (density: comfortable)",
-      "meaning": "Control size step xs — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.050}"
-    },
-    "size.xs.gap": {
-      "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
-      "meaning": "Control size step xs — gap",
-      "when_to_use": "The gap of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.050}"
-    },
     "size.sm.height": {
       "$description": "size.sm control height — 36px (density: comfortable)",
       "meaning": "Control size step sm — height",
       "when_to_use": "The height of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
       "resolves_to": "{pds3.core.dimension.36}"
     },
-    "size.sm.padding-x": {
-      "$description": "size.sm horizontal inset — 16px (density: comfortable)",
-      "meaning": "Control size step sm — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.200}"
-    },
-    "size.sm.padding-x-visual": {
-      "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-      "meaning": "Control size step sm — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.150}"
-    },
-    "size.sm.padding-y": {
-      "$description": "size.sm vertical inset — 6px (density: comfortable)",
-      "meaning": "Control size step sm — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.075}"
-    },
-    "size.sm.gap": {
-      "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
-      "meaning": "Control size step sm — gap",
-      "when_to_use": "The gap of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.100}"
-    },
     "size.md.height": {
       "$description": "size.md control height — 44px (density: comfortable)",
       "meaning": "Control size step md — height",
       "when_to_use": "The height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{pds3.core.dimension.44}"
-    },
-    "size.md.padding-x": {
-      "$description": "size.md horizontal inset — 16px (density: comfortable)",
-      "meaning": "Control size step md — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.200}"
-    },
-    "size.md.padding-x-visual": {
-      "$description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-      "meaning": "Control size step md — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.150}"
-    },
-    "size.md.padding-y": {
-      "$description": "size.md vertical inset — 8px (density: comfortable)",
-      "meaning": "Control size step md — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.100}"
-    },
-    "size.md.gap": {
-      "$description": "size.md label↔visual gap — 8px (density: comfortable)",
-      "meaning": "Control size step md — gap",
-      "when_to_use": "The gap of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.100}"
     },
     "size.md.min-height": {
       "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 44, 44) = 44px",
@@ -8093,59 +8021,11 @@
       "when_to_use": "The height of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
       "resolves_to": "{pds3.core.dimension.56}"
     },
-    "size.lg.padding-x": {
-      "$description": "size.lg horizontal inset — 24px (density: comfortable)",
-      "meaning": "Control size step lg — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.300}"
-    },
-    "size.lg.padding-x-visual": {
-      "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-      "meaning": "Control size step lg — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.200}"
-    },
-    "size.lg.padding-y": {
-      "$description": "size.lg vertical inset — 8px (density: comfortable)",
-      "meaning": "Control size step lg — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.100}"
-    },
-    "size.lg.gap": {
-      "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
-      "meaning": "Control size step lg — gap",
-      "when_to_use": "The gap of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.150}"
-    },
     "size.xl.height": {
       "$description": "size.xl control height — 68px (density: comfortable)",
       "meaning": "Control size step xl — height",
       "when_to_use": "The height of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
       "resolves_to": "{pds3.core.dimension.68}"
-    },
-    "size.xl.padding-x": {
-      "$description": "size.xl horizontal inset — 24px (density: comfortable)",
-      "meaning": "Control size step xl — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.300}"
-    },
-    "size.xl.padding-x-visual": {
-      "$description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-      "meaning": "Control size step xl — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.200}"
-    },
-    "size.xl.padding-y": {
-      "$description": "size.xl vertical inset — 16px (density: comfortable)",
-      "meaning": "Control size step xl — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.200}"
-    },
-    "size.xl.gap": {
-      "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
-      "meaning": "Control size step xl — gap",
-      "when_to_use": "The gap of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{pds3.space.150}"
     },
     "control.size.sm.height": {
       "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
@@ -10714,8 +10594,6 @@
         "border-width.heavy",
         "control.size.md.inset",
         "radius.md",
-        "size.xs.gap",
-        "size.xs.padding-y",
         "space.050"
       ]
     },
@@ -10735,8 +10613,6 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "radius.lg",
-        "size.sm.padding-y",
-        "size.xs.padding-x-visual",
         "space.075"
       ]
     },
@@ -10747,11 +10623,6 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.sm.dot",
-        "size.lg.padding-y",
-        "size.md.gap",
-        "size.md.padding-y",
-        "size.sm.gap",
-        "size.xs.padding-x",
         "space.100"
       ]
     },
@@ -10771,10 +10642,6 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.lg.dot",
-        "size.lg.gap",
-        "size.md.padding-x-visual",
-        "size.sm.padding-x-visual",
-        "size.xl.gap",
         "space.150"
       ]
     },
@@ -10789,11 +10656,6 @@
         "grid.sm.gutter",
         "grid.sm.margin",
         "icon.size.xs",
-        "size.lg.padding-x-visual",
-        "size.md.padding-x",
-        "size.sm.padding-x",
-        "size.xl.padding-x-visual",
-        "size.xl.padding-y",
         "space.200"
       ]
     },
@@ -10831,8 +10693,6 @@
         "grid.md.margin",
         "grid.xl.gutter",
         "icon.size.md",
-        "size.lg.padding-x",
-        "size.xl.padding-x",
         "space.300"
       ]
     },

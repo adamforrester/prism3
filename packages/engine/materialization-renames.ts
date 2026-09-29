@@ -291,6 +291,42 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
   },
 ];
 
+/**
+ * A name DELETED from the emission, with no image — the register a pure removal is recorded in.
+ *
+ * Until the spacing model (2026-09-29) every name that left the Figma emission either moved (a rule above,
+ * or the contract's `DEPRECATIONS`) or was replaced by the same key arriving from elsewhere (#1148). A
+ * deletion with nothing in its place had no record, so it could only surface as an UNACCOUNTED REMOVAL —
+ * the conversation this gate exists to force. The conversation is had once, here, with the owner's decision
+ * named in `why`, and after it the removal is accounted for by id rather than by a rule claiming an image
+ * that does not exist (which would be contradicted, and should be).
+ *
+ * The same discipline as a rule: stated literally, never as "what the emitter no longer does" (`docs/34`
+ * shape 11), evaluated over the WHOLE before-set, and CONTRADICTED when a name it claims is still emitted
+ * while the emission moved. A deleted name needs no apply-side step: the plugin's prune removes a variable
+ * the engine stopped emitting.
+ */
+export type MaterializationDeletion = {
+  id: string;
+  since: string;
+  why: string;
+  domain: (collection: string, name: string, root: string) => boolean;
+};
+
+export const MATERIALIZATION_DELETIONS: MaterializationDeletion[] = [
+  {
+    id: 'size-spacing-removed-spacing-model',
+    since: '0.206.0',
+    why:
+      'The spacing model (owner, 2026-09-29, `docs/28` §5.4): "size is for size, space is for space". The '
+      + 'shared size scale stopped emitting its spacing, `<root>/size/<rung>/{padding-x,padding-x-visual,'
+      + 'padding-y,gap}`, 20 variables per brand. Nothing replaces them: each component binds the `space/*` '
+      + 'step its own spec states. CONTRACT 14.0.0 records the same removal on the token-name side.',
+    domain: (collection, name, root) =>
+      collection === 'size' && new RegExp(`^${root}/size/(xs|sm|md|lg|xl)/(padding-x|padding-x-visual|padding-y|gap)$`).test(name),
+  },
+];
+
 // ---- the accounting ---------------------------------------------------------------------------
 
 /** One rule's claim about one BEFORE key: it says this key is gone and this other key is its image. */
@@ -352,6 +388,8 @@ const account = (
   /** Renames the CONTRACT already records — see `accountFor`'s header for why they belong in this
    *  accounting and why they deliberately do not reach the contradiction arms. */
   contractClaims: readonly Claim[] = [],
+  /** Pure deletions — see `MaterializationDeletion`. Default empty so existing callers read unchanged. */
+  deletions: readonly MaterializationDeletion[] = [],
 ): Accounting => {
   const removed = [...before].filter((k) => !after.has(k)).sort();
   const added = [...after].filter((k) => !before.has(k)).sort();
@@ -435,6 +473,19 @@ const account = (
     claimedTo.add(c.to);
   }
 
+  // ── PURE DELETIONS, over the whole before-set like a rule. A deletion has no image, so its one
+  // contradiction is the name still being emitted; it joins `claimedFrom`, so a key a rule also claims
+  // fails as multiply claimed — one operation, one record.
+  for (const key of (walk === 'whole-set' ? before : removed)) {
+    const { collection, name } = parse(key);
+    for (const d of deletions) {
+      if (!d.domain(collection, name, root)) continue;
+      claimedFrom.set(key, [...(claimedFrom.get(key) ?? []), `delete:${d.id}`]);
+      if (after.has(key) && moved)
+        contradicted.push({ rule: `delete:${d.id}`, from: key, to: key, contradiction: 'still emitted — the deletion says it left and it did not' });
+    }
+  }
+
   const unaccountedRemovals = removed.filter((k) => !claimedFrom.has(k));
   const unaccountedAdditions = added.filter((k) => !claimedTo.has(k));
   const multiplyClaimed = removed
@@ -490,7 +541,8 @@ export const accountFor = (
   parse: (key: VarKey) => { collection: string; name: string },
   root: string,
   contractClaims: readonly Claim[] = [],
-): Accounting => account(before, after, rules, parse, root, 'whole-set', contractClaims);
+  deletions: readonly MaterializationDeletion[] = [],
+): Accounting => account(before, after, rules, parse, root, 'whole-set', contractClaims, deletions);
 
 /**
  * TOTAL means: nothing left unclaimed, no claim contradicted, no key claimed twice. Used by both the
