@@ -38,6 +38,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
+import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
 import { persistInput, restoreInput } from './persist-local';
@@ -164,6 +165,10 @@ const NAV = [
   { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
   { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
   { key: 'preview', label: 'Preview', sub: 'Components & contrast, all modes', view: true },
+  // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
+  // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
+  // Placement and label are proposed, owner to confirm (docs/45).
+  { key: 'styleGuide', label: 'Style guide', sub: 'Token tables on the Figma canvas', view: true, figmaOnly: true },
   // #718 — the component write's destination, and A DEMOTION RATHER THAN A PROMOTION. The natural
   // reading of "components get their own rail item" is that the capability graduated; here it is the
   // reverse. The control is leaving a first-class slot beside Apply precisely because it is not
@@ -743,6 +748,11 @@ let componentState: { ok: boolean; headline: string; summary: string } | 'pendin
  *  host lays the page skeleton and builds the two template assets. Unlike the component build there is no
  *  progress sibling: file-setup posts a single terminal result, so `pending` is a static "in flight". */
 let fileSetupState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** The state of the style-guide run (#259) — its own slot, for the one-verdict-per-action reason above. */
+let styleGuideState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** The Customize options (#259). Session state, not persisted with the brand: they shape a drawing of the
+ *  file's variables, not the brand itself. Proposed, owner to confirm (docs/45). */
+const styleGuideOptions: StyleGuideOptionsMsg = {};
 /** How far the in-flight component build has got (#684) — `null` between builds and until the first
  *  chunk boundary reports.
  *
@@ -770,7 +780,7 @@ let pruneVerdict: { ok: boolean; count: number; summary: string } | null = null;
  *  independently-openable rows would both be pushing that height around. One row also means the open
  *  detail always belongs to a named pill — two rows could leave the theme write's counts sitting under a
  *  component verdict with nothing saying which was which. */
-let openDetail: 'apply' | 'components' | 'filesetup' | null = null;
+let openDetail: 'apply' | 'components' | 'filesetup' | 'styleguide' | null = null;
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
@@ -888,6 +898,14 @@ commit.onHostMessage((m) => {
     // would leave the button reading "⋯ Setting up…" and disabled.
     if (barHost) { renderBar(); syncApplyDetail(); }
     syncFileSetupRow();
+    return;
+  }
+  if (m.kind === 'style-guide-result') {
+    // #259. The file-setup handling, against its own slot and row.
+    styleGuideState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    openDetail = m.ok ? null : 'styleguide';
+    if (barHost) { renderBar(); syncApplyDetail(); }
+    syncStyleGuideRow();
     return;
   }
   if (m.kind === 'component-progress') {
@@ -2349,6 +2367,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
+  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply to Figma.'],
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
@@ -5163,6 +5182,80 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   // elements, so removing the old one first keeps a verdict from landing beside the pending text.
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (fileSetupState) row.prepend(renderApplyStatus(fileSetupState, 'filesetup'));
+};
+
+/** The style-guide button's label (#259). Proposed, owner to confirm — the one string a reviewer changes. */
+const STYLE_GUIDE_LABEL = 'Draw style guide';
+
+/**
+ * The Style guide page (#259, phase 1: color) — the step after Apply theme. One button draws the color tables
+ * from the file's own variables; the per-type options fold away under Customize, every one with a default, so
+ * the button alone does the common case. The specimen is chosen from each token's role unless Display style
+ * overrides it (owner decision 8).
+ *
+ * Figma-only (`railNav()` omits it on web), and `commit.isFigma` is re-checked for the `renderComponentsPage`
+ * reason. Nothing here repaints with a lever, so its volatile set is empty, as on Components.
+ */
+const renderStyleGuidePage = (host: PageHost): void => {
+  const [title, lede] = PAGE_COPY.styleGuide;
+  host.append(hero(title, lede));
+  setVolatile([], () => {});
+  if (!commit.isFigma) return;
+
+  const sec = palSection('Color tables', 'Draws or updates one table per palette and one per role family.');
+  const note = el('p', 'cw-note');
+  note.append(document.createTextNode('Needs the pages and cell components Set up file adds. A rerun updates each table in place.'));
+  sec.append(note);
+
+  // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
+  const det = el('details', 'contracts') as HTMLDetailsElement;
+  const sum = el('summary', 'contracts-sum');
+  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns'));
+  det.append(sum);
+  const pick = <K extends 'valueFormat' | 'header' | 'display'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
+    const s = selectEl();
+    for (const [v, t] of opts) s.append(optionEl(v, t, (styleGuideOptions[key] ?? fallback) === v));
+    s.onchange = () => { (styleGuideOptions as Record<string, unknown>)[key] = s.value; };
+    return s;
+  };
+  det.append(
+    knob('Color value', pick('valueFormat', [['hex', 'Hex'], ['rgba', 'RGB-A'], ['hsl', 'HSL'], ['hsb', 'HSB']], 'hex'), 'How each value cell prints the color. A translucent hex adds its alpha as a percentage.'),
+    knob('Table header', pick('header', [['dark', 'Dark'], ['light', 'Light']], 'dark'), 'The header row’s fill.'),
+    knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
+      'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'),
+    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
+    knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
+  );
+  sec.append(det);
+
+  const row = el('div', 'fs-row');
+  styleGuideRow = row;
+  const btn = el('button', 'barbtn') as HTMLButtonElement;
+  styleGuideBtn = btn;
+  btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
+  btn.onclick = () => {
+    styleGuideState = 'pending'; openDetail = null;
+    renderBar(); syncApplyDetail(); syncStyleGuideRow();
+    commit.postStyleGuide({ ...styleGuideOptions });
+  };
+  row.append(btn);
+  syncStyleGuideRow({ staged: true });
+  sec.append(row);
+  host.append(sec);
+};
+
+/** The style-guide row's status, refreshed in place (#259) — `syncFileSetupRow`'s mechanism, its own slot. */
+let styleGuideRow: HTMLElement | null = null;
+let styleGuideBtn: HTMLButtonElement | null = null;
+const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
+  const row = styleGuideRow;
+  if (!row || !styleGuideBtn) return;
+  if (!opts.staged && !row.isConnected) return;
+  const pending = styleGuideState === 'pending';
+  styleGuideBtn.textContent = pending ? '⋯ Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
+  styleGuideBtn.disabled = pending;
+  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
+  if (styleGuideState) row.prepend(renderApplyStatus(styleGuideState, 'styleguide'));
 };
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
@@ -8422,6 +8515,7 @@ const PAGE_RENDERERS: Record<PageKey, PageRenderer> = {
   layout: renderLayoutPage,
   motion: renderMotionPage,
   preview: renderPreviewPage,
+  styleGuide: renderStyleGuidePage,
   components: renderComponentsPage,
 };
 /** Attach the mode badge to every section on the page, in ONE post-render pass.
@@ -9385,8 +9479,8 @@ function renderSeedPill(o: SeedOutcome): HTMLElement {
   return pill;
 }
 
-function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components' | 'filesetup'): HTMLElement {
-  const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : 'component build';
+function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide'): HTMLElement {
+  const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : which === 'styleguide' ? 'style guide' : 'component build';
   if (state === 'pending') {
     // The theme write's pending text is static and the component build's is not (#684), so only the
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
@@ -9395,6 +9489,7 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
     if (which === 'filesetup') return el('span', 'bar-seed', 'Setting up file…');
+    if (which === 'styleguide') return el('span', 'bar-seed', 'Drawing the style guide…');
     const node = el('span', 'bar-seed', componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
@@ -9438,7 +9533,7 @@ const syncApplyDetail = (): void => {
   // ONE row, shared by both write pills (#483) — `openDetail` names whose summary is in it. Reading the
   // state through the discriminant rather than tracking it here means the row cannot show a summary whose
   // pill is not the open one: there is a single source for "which", and both the pill and this read it.
-  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : openDetail === 'filesetup' ? fileSetupState : null;
+  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : openDetail === 'filesetup' ? fileSetupState : openDetail === 'styleguide' ? styleGuideState : null;
   const show = state !== null && state !== 'pending';
   applyDetailHost.style.display = show ? '' : 'none';
   if (show) applyDetailHost.textContent = state.summary;

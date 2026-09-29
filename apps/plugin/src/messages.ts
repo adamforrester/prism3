@@ -71,6 +71,10 @@ export type UiToMain =
    *  Carries no payload: the taxonomy is a config compiled into the main bundle (`file-taxonomy.ts`), not
    *  something the UI supplies, so there is nothing for the UI to send. */
   | { type: 'file-setup' }
+  /** Draw the style-guide tables (#259, phase 1: color) — one table per palette on `↳ Primitive tokens` and one
+   *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
+   *  Updates tables already drawn in place; never creates a page or moves a cell set. */
+  | { type: 'style-guide'; options?: StyleGuideOptions }
   /** OPT-IN PRUNE (#1521) — remove the styles/variables/collections a config change dropped.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, never a flag on it, for the #479 / #1152 reason: a theme apply
@@ -97,6 +101,30 @@ export type UiToMain =
    *  writing to storage on every pointer-move. The main thread clamps — the UI does not decide
    *  the minimum. */
   | { type: 'resize-ui'; width: number; height: number; commit: boolean };
+
+/** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
+export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
+/** How a style-guide value cell prints a color. */
+export type ValueFormat = 'hex' | 'rgba' | 'hsl' | 'hsb';
+
+/** The style guide's options (#259) — the panel's Customize fields and the agent command's args. Every one
+ *  has a default, so `{}` documents every color collection. Here, not in `style-guide.ts`, so this file and
+ *  `agent-protocol.ts` stay context-neutral: that module imports the engine's color math at runtime. */
+export interface StyleGuideOptions {
+  /** Collection names to document, in any case; absent means every collection. */
+  collections?: string[];
+  /** Token types; absent means every type this phase covers (`color`). */
+  types?: string[];
+  valueFormat?: ValueFormat;
+  /** Table header: `dark` (default) or `light`. */
+  header?: 'dark' | 'light';
+  /** Show each value's alias chip. Default on. */
+  aliases?: boolean;
+  /** Show the description column. Default on. */
+  description?: boolean;
+  /** Override the specimen chosen from each token's role. `auto` (default) chooses per row. */
+  display?: 'auto' | SwatchType;
+}
 
 /** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
@@ -128,6 +156,9 @@ export type MainToUi =
    *  write, so it needs its own state to be pending in and its own verdict slot. `headline` obeys the same
    *  ≤24-char pill budget; `summary` names the pages created and any font miss on the template assets. */
   | { type: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+  /** Result of a `style-guide` run (#259) — the same `{ok, headline, summary}` shape, its own kind and slot.
+   *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip. */
+  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
    *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
    *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text
