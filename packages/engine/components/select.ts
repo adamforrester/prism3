@@ -209,6 +209,10 @@ export const select: ComponentDef = {
   // border. `warning` / `success` swap the border alongside `error` since #1517 (Prism 2 parity).
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder
+  // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
+  densitySpacing: ['pad-x', 'pad-y', 'gap'],
+
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
     'radius': 'radius.sm',
@@ -222,10 +226,10 @@ export const select: ComponentDef = {
     // floor; small buttons stay the knowing exception below it (owner). text-field binds the same floor
     // since #1494, so the single-line fields share it.
     'min-height': 'size.md.min-height',
-    'pad-x': 'size.md.padding-x',
-    'pad-y': 'size.md.padding-y',
+    'pad-x': 'space.200',
+    'pad-y': 'space.100',
     // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value).
-    'gap': 'size.md.gap',
+    'gap': 'space.100',
     // The stack spacing between label, control and message.
     'root-gap': 'space.100',
     // The chevron and any leading glyph share one artboard rung.

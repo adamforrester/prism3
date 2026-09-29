@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -40,7 +40,7 @@ import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSIO
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, type RenameMap } from './rename-map';
 import {
-  MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
+  MATERIALIZATION_RENAMES, MATERIALIZATION_DELETIONS, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
   recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
@@ -53,7 +53,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -2692,32 +2692,10 @@ for (const b of brands) {
 }
 
 
-// SIZE GAP (#325) — the label<->visual space. `size.*` carried height/padding-x/padding-y but nothing
-// for the space between a leading visual, the label, and a trailing visual, so a Button with an icon
-// had no token for the one measurement that makes it read as assembled.
-//
-// The owner's hesitation on filing was the right one to design against: "teams will just use standard
-// spacing variables, and then you'll have some things as gaps and others as generic spacing." The
-// answer is structural — the component tier ALIASES the space scale rather than minting values, so
-// `size.md.gap` is `{space.100}`, a named pointer, not a competing 8px. These assert that property
-// holds rather than trusting it.
+// THE SIZE TIER — heights. `size.*` holds DIMENSIONS only since the spacing model (2026-09-29): the padding
+// and gap tokens it once carried beside the height (#325, #326) are gone, and every component states its own
+// spacing as `space.*` steps (the SPACING MODEL block below). These arms hold the height ladder.
 {
-  // 1. The CONTRACT, not the numbers: gap must be strictly tighter than the padding that separates
-  //    content from the control edge. That is proximity — elements inside a group must sit closer to
-  //    each other than to the group's boundary, or the icon and label stop reading as one unit. The
-  //    exact fraction is a tuning knob; this inequality is what must never break.
-  const violations: string[] = [];
-  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
-    for (const base of [4, 8, 12]) {
-      for (const z of componentSizes(d, base)) {
-        if (!(z.gap < z.padX)) violations.push(`${d}/base${base}/${z.name}: gap ${z.gap} !< padX ${z.padX}`);
-        if (z.gap <= 0) violations.push(`${d}/base${base}/${z.name}: gap ${z.gap} is not positive`);
-      }
-    }
-  }
-  ok(violations.length === 0, '#325 gap is always tighter than padding-x, at every size / density / spaceBase (proximity)'
-    + (violations.length ? ` — VIOLATIONS: ${violations.slice(0, 4).join(', ')}` : ''));
-
   // THE GATE THIS TIER LACKED: five names must be five DISTINCT, INCREASING heights, at every
   // density and every rhythm. The tier asserted its PADDING contract thoroughly and never once
   // checked the heights, so a clamped density shift published `compact` xs==sm and `spacious`
@@ -2796,78 +2774,214 @@ for (const b of brands) {
       `size-rung increments never shrink as the ladder climbs (${steps.join('/')} over ${rungs.join('/')})`);
   }
 
-  // #326 — the THREE-WAY ordering, which is the whole optical model in one assertion:
-  //     gap  <  padXVisual  <  padX
-  // tightest inside the group; looser where a glyph's own bounding box already contributes apparent
-  // space; loosest against plain text. The ratios are tuning knobs — this chain is the contract, so it
-  // is what gets locked rather than the numbers (which would pass just as happily if the ordering
-  // inverted and someone had updated the expected values to match).
-  const chain: string[] = [];
-  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
-    for (const base of [4, 8, 12]) {
-      for (const z of componentSizes(d, base)) {
-        if (!(z.gap < z.padXVisual && z.padXVisual < z.padX))
-          chain.push(`${d}/base${base}/${z.name}: ${z.gap} < ${z.padXVisual} < ${z.padX}`);
+}
+
+// THE SPACING MODEL (owner-decided 2026-09-29, `docs/28` §5.4): "size is for size, space is for space".
+//
+// Five claims, each held against LITERALS rather than against the functions that produce the values (docs/34):
+//   1. the emitted `size.*` tier carries heights only — no padding or gap leaf in any brand or emission;
+//   2. the density step rule, on the space ladder as written, including both clamped ends;
+//   3. every def's spacing, per size, at every density — the comfortable column is the pre-model px (pixel
+//      identity), and compact/spacious are the one-step moves the owner will see;
+//   4. the #325/#326 orderings, as literal rules over every def that states a gap and a padding, at every
+//      density AFTER the step rule, with a scope arm so dropping a def from the rules fails by name;
+//   5. Tag's geometry — the owner's worked widths, its floor at every density, and the dismissible row's 0.
+{
+  const densities = ['compact', 'comfortable', 'spacious'] as const;
+  // 1. DIMENSIONS ONLY. Every corpus brand, plus the compact fixture and a per-mode-density brand: each rung's
+  //    leaves are exactly `height` (and `md` also `min-height`). A re-emitted padding or gap leaf fails here.
+  {
+    const perModeDensity = brandTheme({ id: 'g', root: 'prism', modes: ['light', 'dark'],
+      primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+      modeLevers: { dark: { density: 'compact' } } } as any);
+    const builds: [string, any][] = [
+      ['nb', nbTheme()],
+      ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any]),
+      ['minimal-compact', brandTheme(MINIMAL_COMPACT_BRAND)],
+      ['per-mode-density', perModeDensity],
+    ];
+    const extra: string[] = [];
+    for (const [id, th] of builds) {
+      const built = buildTree(th).tree as any;
+      const size = built[Object.keys(built)[0]].size;
+      for (const rung of Object.keys(size)) {
+        const want = rung === 'md' ? 'height,min-height' : 'height';
+        const got = Object.keys(size[rung]).filter((k) => !k.startsWith('$')).sort().join(',');
+        if (got !== want) extra.push(`${id} size.${rung}: {${got}}`);
+      }
+      const figmaSize = buildFigmaDims(th).size;
+      for (const v of (figmaSize?.variables ?? []) as any[])
+        if (!/\/(height|min-height)$/.test(v.name)) extra.push(`${id} Figma size variable ${v.name}`);
+    }
+    ok(extra.length === 0,
+      `spacing model: the size tier holds heights only — no size.*.padding-x / padding-x-visual / padding-y / gap in DTCG or the Figma size collection, in ${builds.length} builds${extra.length ? ` — FOUND: ${extra.slice(0, 6).join('; ')}` : ''}`);
+  }
+
+  // PER-MODE DENSITY CHANGES HEIGHTS ONLY (owner, 2026-09-29, `docs/28` §5.4.3), said in one sentence, the same
+  // in the density lever's description (which the studio shows wherever it sets a per-mode density; its smoke
+  // suite checks the rendered knob) and in the decision record.
+  {
+    const SENTENCE = 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.';
+    const lever = leverManifest.find((l) => l.key === 'density') as any;
+    const doc28 = readFileSync(resolve(HERE, '../../docs/28-component-anatomy-schema.md'), 'utf8');
+    ok(!!lever && String(lever.description).includes(SENTENCE) && doc28.includes(SENTENCE),
+      `spacing model: "${SENTENCE}" is in the density lever's description (${lever ? 'found' : 'no lever'}) and in docs/28 (${doc28.includes(SENTENCE)})`);
+  }
+
+  // 2. THE STEP RULE, on the ladder as written. EXPECTED is a literal table of (ref, density) → ref.
+  {
+    const RULE: [string, 'compact' | 'comfortable' | 'spacious', string][] = [
+      ['space.200', 'compact', 'space.150'], ['space.200', 'spacious', 'space.250'], ['space.200', 'comfortable', 'space.200'],
+      ['space.150', 'compact', 'space.100'], ['space.150', 'spacious', 'space.200'],
+      ['space.100', 'compact', 'space.075'], ['space.075', 'compact', 'space.050'], ['space.050', 'compact', 'space.025'],
+      ['space.300', 'compact', 'space.250'], ['space.300', 'spacious', 'space.400'],
+      // THE ENDS CLAMP: nothing below space.0, nothing above space.1200.
+      ['space.0', 'compact', 'space.0'], ['space.025', 'compact', 'space.0'], ['space.0', 'spacious', 'space.025'],
+      ['space.1200', 'spacious', 'space.1200'], ['space.1100', 'spacious', 'space.1200'], ['space.1200', 'compact', 'space.1100'],
+    ];
+    const wrong = RULE.filter(([ref, d, want]) => densitySpace(ref, d) !== want).map(([ref, d, want]) => `${ref}@${d}: ${densitySpace(ref, d)} (want ${want})`);
+    ok(wrong.length === 0, `spacing model: density moves a step one position along the space ladder and clamps at both ends (${RULE.length} literal cases)${wrong.length ? ` — WRONG: ${wrong.join('; ')}` : ''}`);
+    let threw = '';
+    try { densitySpace('space.175', 'compact'); } catch (e) { threw = (e as Error).message; }
+    ok(/not a step of the space ladder/.test(threw), `spacing model: a ref off the space ladder has no step to take and is refused (${threw || 'no refusal'})`);
+  }
+
+  // 3. EVERY DEF'S SPACING, per size, at every density — px through the materializer the plugin runs. The
+  //    comfortable column is what the removed shared scale resolved to (Button 16/12/6/8, 16/12/8/8,
+  //    24/16/8/12; fields 16/8/8; rows 8/8/12), so it holds PIXEL IDENTITY; the other two are the step rule's
+  //    moves, the table the PR reports. Tag's comfortable column is the owner's mockup.
+  {
+    const SPACE_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space.${sp.key}`, sp.px]));
+    type Spec = { keys: string[]; sizes: string[] };
+    const BUTTONISH: Spec = { keys: ['padding-x', 'padding-x-visual', 'padding-y', 'gap'], sizes: ['small', 'medium', 'large'] };
+    const SPECS: Record<string, Spec & { bare?: string[] }> = {
+      button: BUTTONISH, 'button-destructive': BUTTONISH, 'button-neutral': BUTTONISH,
+      'text-field': { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'], bare: ['pad-x', 'pad-y', 'gap'] },
+      textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'], bare: ['pad-x', 'pad-y'] },
+      select: { keys: [], sizes: [], bare: ['pad-x', 'pad-y', 'gap'] },
+      'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
+      tag: { keys: ['padding-x', 'gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
+    };
+    const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
+    const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
+    const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
+      button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
+      'text-field': { compact: 'bare 12/6/6 · small 12/4 · medium 12/6 · large 20/6', comfortable: 'bare 16/8/8 · small 16/6 · medium 16/8 · large 24/8', spacious: 'bare 20/12/12 · small 20/8 · medium 20/12 · large 32/12' },
+      textarea: { compact: 'bare 12/6 · small 12/4 · medium 12/6 · large 20/6', comfortable: 'bare 16/8 · small 16/6 · medium 16/8 · large 24/8', spacious: 'bare 20/12 · small 20/8 · medium 20/12 · large 32/12' },
+      select: { compact: 'bare 12/6/6', comfortable: 'bare 16/8/8', spacious: 'bare 20/12/12' },
+      'checkbox-row': ROWS, 'radio-row': ROWS,
+      'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
+      tag: { compact: 'small 6/4/4/6/0 · medium 8/6/4/8/0 · large 12/8/6/12/0', comfortable: 'small 8/6/4/8/0 · medium 12/8/6/12/0 · large 16/12/8/16/0', spacious: 'small 12/8/6/12/0 · medium 16/12/8/16/0 · large 20/16/12/20/0' },
+    };
+    const wrong: string[] = [];
+    for (const [id, spec] of Object.entries(SPECS)) {
+      const def = componentDefs.find((d) => d.id === id);
+      if (!def) { wrong.push(`${id}: no such def`); continue; }
+      for (const d of densities) {
+        const m = applySpacingDensity(def, d);
+        const px = (k: string) => SPACE_PX.get(m.tokens[k]) ?? `?${m.tokens[k]}`;
+        const cols = [
+          ...(spec.bare ? [`bare ${spec.bare.map(px).join('/')}`] : []),
+          ...spec.sizes.map((v) => `${v} ${spec.keys.map((k) => px(`size.${v}.${k}`)).join('/')}`),
+        ].join(' · ');
+        if (cols !== EXPECTED[id][d]) wrong.push(`${id}@${d}: ${cols} (want ${EXPECTED[id][d]})`);
       }
     }
-  }
-  ok(chain.length === 0, '#326 the ordering holds everywhere: gap < padding-x-visual < padding-x'
-    + (chain.length ? ` — BROKEN: ${chain.slice(0, 4).join(' | ')}` : ''));
+    ok(wrong.length === 0,
+      `spacing model: every def's padding and gaps, per size, at compact / comfortable / spacious — comfortable pixel-identical to the removed shared scale, the others one ladder step each (${Object.keys(SPECS).length} defs)${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''}`);
+    // The defs above are every def that names a density-following spacing, and no other def does.
+    const named = componentDefs.filter((d) => d.densitySpacing?.length).map((d) => d.id).sort().join(',');
+    ok(named === Object.keys(SPECS).sort().join(','), `spacing model: the defs whose spacing follows density are exactly the ${Object.keys(SPECS).length} tabled here (${named})`);
 
-  // #326 is ADDITIVE — `padding-x` keeps its meaning (the label side) so no existing binding moves.
-  // The claim is only true if the visual-side value is a DIFFERENT leaf, never a mutation of padX.
-  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
-    const sizes = componentSizes(d, 8);
-    const padXs = sizes.map((z) => z.padX).join(',');
-    const expected = { compact: '8,8,16,16,24', comfortable: '8,16,16,24,24', spacious: '16,16,24,24,32' }[d];
-    ok(padXs === expected, `#326 ${d}: padding-x is unchanged by the split (${padXs})`);
+    // THE GAP FLOOR (owner, 2026-09-29, `docs/28` §5.4.1): no gap below 4px at any density; paddings are not
+    // floored. The gap keys are listed here, per def, literally. The floor's one move in the corpus is compact
+    // small Tag's label→check, which the bare step rule takes to 2px (`space.025`); the table above holds it at 4.
+    const GAP_KEYS: Record<string, string[]> = {
+      button: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'button-destructive': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'button-neutral': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'text-field': ['gap'], select: ['gap'],
+      'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'switch-row': ['size.small.gap', 'size.medium.gap'],
+      tag: ['size.small.gap', 'size.medium.gap', 'size.large.gap', 'size.small.check-gap', 'size.medium.check-gap', 'size.large.check-gap'],
+    };
+    const under: string[] = [];
+    for (const [id, keys] of Object.entries(GAP_KEYS)) {
+      const def = componentDefs.find((d) => d.id === id)!;
+      for (const d of densities) {
+        const m = applySpacingDensity(def, d);
+        for (const k of keys) { const px = SPACE_PX.get(m.tokens[k]); if (!(px !== undefined && px >= 4)) under.push(`${id}@${d} ${k}: ${px ?? m.tokens[k]}`); }
+      }
+    }
+    const tagCheck = SPACE_PX.get(applySpacingDensity(componentDefs.find((d) => d.id === 'tag')!, 'compact').tokens['size.small.check-gap']);
+    ok(under.length === 0 && tagCheck === 4 && densitySpace('space.050', 'compact') === 'space.025',
+      `spacing model: the gap floor — no gap is under 4px at any density in ${Object.keys(GAP_KEYS).length} defs, and compact small Tag's label→check is held at 4 where the bare step gives 2 (got ${tagCheck})${under.length ? ` — UNDER: ${under.join('; ')}` : ''}`);
   }
 
-  // …and it must alias the space scale like its siblings, not mint an off-scale literal.
+  // 4. THE ORDERINGS (#325, #326), now the specs' own rules. A literal rule per def: which key pairs must be
+  //    strictly ordered, per size (`size.{size}.`) or on the bare keys (''). Checked at every density AFTER
+  //    the step rule, in px. The SCOPE arm finds, structurally, every def that states a gap and a padding in
+  //    one group, and requires a rule for it — so a def dropped from RULES fails by name.
   {
-    const built = buildTree(nbTheme());
-    const size = (built.tree as any)[Object.keys(built.tree)[0]].size;
-    const bad = Object.keys(size).filter((k) => {
-      const v = size[k]?.['padding-x-visual']?.$value;
-      return typeof v !== 'string' || !/^\{.+\.space\..+\}$/.test(v);
-    });
-    ok(bad.length === 0, '#326 every padding-x-visual aliases space.* rather than carrying a literal'
-      + (bad.length ? ` — LITERAL: ${bad.join(', ')}` : ''));
+    const SPACE_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space.${sp.key}`, sp.px]));
+    const P326: [string, string][] = [['gap', 'padding-x-visual'], ['padding-x-visual', 'padding-x'], ['gap', 'padding-x']];
+    const RULES: Record<string, { prefix: 'sized' | 'bare'; lt: [string, string][] }> = {
+      button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
+      'text-field': { prefix: 'bare', lt: [['gap', 'pad-x']] },
+      select: { prefix: 'bare', lt: [['gap', 'pad-x']] },
+      tag: { prefix: 'sized', lt: [['gap', 'padding-x'], ['check-gap', 'padding-x']] },
+    };
+    const GAP_TAILS = ['gap', 'check-gap'];
+    const PAD_TAILS = ['padding-x', 'pad-x'];
+    const stating = componentDefs.filter((d) => {
+      const groups = new Map<string, Set<string>>();
+      for (const [k, ref] of Object.entries(d.tokens)) {
+        // A zero is no spacing at all (a group whose rows self-space), so it states no ordering.
+        if (!String(ref).startsWith('space.') || ref === 'space.0') continue;
+        const segs = k.split('.');
+        const tail = segs.pop()!;
+        const g = groups.get(segs.join('.')) ?? new Set<string>();
+        g.add(tail); groups.set(segs.join('.'), g);
+      }
+      return [...groups.values()].some((g) => GAP_TAILS.some((t) => g.has(t)) && PAD_TAILS.some((t) => g.has(t)));
+    }).map((d) => d.id).sort();
+    const missing = stating.filter((id) => !(id in RULES));
+    ok(missing.length === 0 && stating.length === Object.keys(RULES).length,
+      `spacing ordering: every def that states a gap beside a padding has an ordering rule (${stating.join(', ')})${missing.length ? ` — NO RULE: ${missing.join(', ')}` : ''}`);
+    // A def that states an ICON-SIDE padding (`padding-x-visual`) needs the #326 rule specifically — both of its
+    // pairs — not just any rule. Checked over the corpus and over a fixture that must fail: Tag given a
+    // `padding-x-visual` while its rule stays #325-only.
+    const lacks326 = (defs: readonly ComponentDef[]): string[] => defs
+      .filter((d) => Object.entries(d.tokens).some(([k, ref]) => k.split('.').pop() === 'padding-x-visual' && String(ref).startsWith('space.')))
+      .filter((d) => { const lt = RULES[d.id]?.lt.map(([a, b]) => `${a}<${b}`) ?? []; return !(lt.includes('gap<padding-x-visual') && lt.includes('padding-x-visual<padding-x')); })
+      .map((d) => d.id);
+    const tagDef326 = componentDefs.find((d) => d.id === 'tag')!;
+    const fixture326 = lacks326([{ ...tagDef326, tokens: { ...tagDef326.tokens, 'size.medium.padding-x-visual': 'space.100' } }]);
+    const corpus326 = lacks326(componentDefs);
+    ok(corpus326.length === 0 && fixture326.join() === 'tag',
+      `spacing ordering: a def that states padding-x-visual carries the #326 rule (gap < padding-x-visual < padding-x) — corpus lacking it: ${corpus326.join(', ') || 'none'}; the fixture (tag with a padding-x-visual and a #325-only rule) is caught: ${fixture326.join(', ') || 'NOT caught'}`);
+    const broken: string[] = [];
+    let checks = 0;
+    for (const [id, rule] of Object.entries(RULES)) {
+      const def = componentDefs.find((d) => d.id === id)!;
+      const sizes = rule.prefix === 'sized' ? (def.variants as any).size as string[] : [''];
+      for (const d of densities) {
+        const m = applySpacingDensity(def, d);
+        for (const v of sizes)
+          for (const [lo, hi] of rule.lt) {
+            const at = (k: string) => SPACE_PX.get(m.tokens[v ? `size.${v}.${k}` : k]);
+            const a = at(lo), b = at(hi);
+            checks++;
+            if (!(a !== undefined && b !== undefined && a < b)) broken.push(`${id}@${d}${v ? `/${v}` : ''}: ${lo} ${a} !< ${hi} ${b}`);
+          }
+      }
+    }
+    ok(broken.length === 0 && checks > 0,
+      `spacing ordering: #325 gap < padding-x and #326 gap < padding-x-visual < padding-x hold for every rule, at every size and density after the step rule (${checks} checks)${broken.length ? ` — BROKEN: ${broken.slice(0, 6).join(' | ')}` : ''}`);
   }
-
-  // 2. The issue's own bar: "visibly proportionate across the sizes (not a constant)". A gap that is
-  //    the same at every size would make the token pure overhead — space.* would do.
-  const gaps = componentSizes('comfortable', 8).map((z) => z.gap);
-  ok(new Set(gaps).size >= 3, `#325 gap varies across sizes — a constant would make the token pointless (${gaps.join('/')})`);
-  ok(gaps.every((g, i) => i === 0 || g >= gaps[i - 1]), `#325 gap never shrinks as the control grows (${gaps.join('/')})`);
-
-  // 3. It ALIASES the space scale — the whole answer to "isn't this a second spacing system?". A
-  //    literal here would be exactly the duplicate-value problem the design set out to avoid.
-  // The compact fixture joined when aurora moved to comfortable (#1215): compact's gaps are the other
-  // window onto the space scale, and aurora was this arm's only compact brand.
-  for (const [id, t] of [['nb', nbTheme()], ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)], ['minimal-compact', brandTheme(MINIMAL_COMPACT_BRAND)]] as Array<[string, any]>) {
-    const built = buildTree(t);
-    const size = (built.tree as any)[Object.keys(built.tree)[0]].size;
-    const bad = Object.keys(size).filter((k) => {
-      const v = size[k]?.gap?.$value;
-      return typeof v !== 'string' || !/^\{.+\.space\..+\}$/.test(v);
-    });
-    ok(bad.length === 0, `#325 ${id}: every gap aliases space.* rather than carrying a literal`
-      + (bad.length ? ` — LITERAL: ${bad.map((k) => `${k}=${JSON.stringify(size[k]?.gap?.$value)}`).join(', ')}` : ''));
-    const dangling = Object.keys(size).filter((k) => {
-      const m = String(size[k].gap.$value).match(/^\{(.+)\}$/);
-      return !m || !at(built.tree, m[1]);
-    });
-    ok(dangling.length === 0, `#325 ${id}: every gap alias resolves` + (dangling.length ? ` — DANGLING: ${dangling.join(', ')}` : ''));
-  }
-
-  // 4. Gap rides the per-mode density seam like padding does — a mode at a different density
-  //    re-derives its ladder, so its gap must move with it rather than freezing at the base value.
-  const perMode = (buildTree(brandTheme({ id: 'g', root: 'prism', modes: ['light', 'dark'],
-    primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
-    modeLevers: { dark: { density: 'compact' } } } as any)).tree as any).prism.size;
-  const moved = Object.keys(perMode).filter((k) => perMode[k].gap?.$extensions?.prism3?.modes?.dark);
-  ok(moved.length > 0, '#325 gap carries a per-mode override where density deviates (it must not freeze at the base density)');
 }
 
 // DISABLED — cross-cutting family (docs/20 §7): one treatment regardless of intent,
@@ -5187,29 +5301,52 @@ for (const b of brands) {
   // label row, after the label (never beside the leading icon), and it carries the `Check icon` switch (owner,
   // 2026-09-29; it was `check mark`), which
   // defaults ON; no unselected member has it.
+  // Since the spacing model the label and check sit in their own row (`labelCheck`), the last cell of the content
+  // row, so their gap can differ from the leading icon's (owner, 2026-09-29).
   const checkWrong = tagMembers.filter((m) => {
     const content = findNode(m.plan.root, 'content');
-    const order = (content?.children ?? []).map((c: any) => c.name);
+    const outer = (content?.children ?? []).map((c: any) => c.name);
+    const order = (findNode(m.plan.root, 'labelCheck')?.children ?? []).map((c: any) => c.name);
     const check = findNode(m.plan.root, 'check');
+    if (outer[outer.length - 1] !== 'labelCheck') return true;
     if (m.selection === 'unselected') return !!check;
-    return !(order[order.length - 1] === 'check' && order.indexOf('label') === order.length - 2 && check?.visibleProp === 'Check icon' && check?.visible !== false);
+    return !(order.join(',') === 'label,check' && check?.visibleProp === 'Check icon' && check?.visible !== false);
   });
   const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'Check icon');
   ok(checkWrong.length === 0 && checkProp?.type === 'BOOLEAN' && checkProp?.default === true,
     `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'Check icon' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
-  // THE × SLOT IS SQUARE AT THE TAG'S HEIGHT, AND THE MINIMUM WIDTH IS THE HEIGHT (owner decisions C and D), per
-  // size, as the literal variable names the tier emits.
+  // THE × SLOT IS SQUARE AT THE TAG'S HEIGHT (owner decision C), per size, as the literal variable names the tier
+  // emits. The minimum width is no longer the height (decision L, below): no member binds one to a variable.
   const HEIGHT_VAR: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
   const geomWrong = tagMembers.filter((m) => {
     const root = m.plan.root;
     const want = HEIGHT_VAR[m.size];
-    if (root.bound?.height !== want || root.bound?.minWidth !== want) return true;
+    if (root.bound?.height !== want || root.bound?.minWidth !== undefined) return true;
     if (m.type !== 'dismissible') return false;
     const slot = findNode(root, 'dismiss');
     return !(slot?.bound?.width === want && slot?.bound?.height === want);
   });
   ok(geomWrong.length === 0,
-    `tag geometry: every member binds its height and its minimum width to ${JSON.stringify(HEIGHT_VAR)}, and every dismissible member's × slot binds both sides to the same height${geomWrong.length ? ` — wrong: ${geomWrong.slice(0, 4).map((m) => `${m.name} (height ${m.plan.root.bound?.height}, minWidth ${m.plan.root.bound?.minWidth}, slot ${JSON.stringify(findNode(m.plan.root, 'dismiss')?.bound ?? {})})`).join(' | ')}` : ''}`);
+    `tag geometry: every member binds its height to ${JSON.stringify(HEIGHT_VAR)} and no variable to its minimum width, and every dismissible member's × slot binds both sides to the same height${geomWrong.length ? ` — wrong: ${geomWrong.slice(0, 4).map((m) => `${m.name} (height ${m.plan.root.bound?.height}, minWidth ${m.plan.root.bound?.minWidth}, slot ${JSON.stringify(findNode(m.plan.root, 'dismiss')?.bound ?? {})})`).join(' | ')}` : ''}`);
+  // THE MINIMUM WIDTH (owner decision L, 2026-09-29): 1.5 × the tag's height, rounded to the NEAREST 8px, on every
+  // brand, following the height at each density. Figma receives it as a per-size literal (`applyMinWidthRatio`,
+  // Button's route). EXPECTED is literal per density — 36/44/56 → 56/64/88 (54→56, 66→64, 84→88 on a tie up),
+  // 28/36/44 → 40/56/64, 44/56/68 → 64/88/104 — never recomputed from the ratio.
+  {
+    const FLOORS: Record<string, string> = { compact: '40/56/64', comfortable: '56/64/88', spacious: '64/88/104' };
+    const floorBuilds: [string, string, any][] = [
+      ['nb', 'comfortable', nbTheme()],
+      ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, 'comfortable', brandTheme(exampleBrands()[b] as BrandInput)] as [string, string, any]),
+      ...(['compact', 'spacious'] as const).map((d) => [`harbor@${d}`, d, brandTheme({ ...(exampleBrands()['harbor'] as BrandInput), density: d } as BrandInput)] as [string, string, any]),
+    ];
+    const bad: string[] = [];
+    for (const [b, d, th] of floorBuilds) {
+      const m = applyMinWidthRatio(applySpacingDensity(tagDef, th.dims.density), sizeRefPx(th.dims.sizes));
+      const got = ['small', 'medium', 'large'].map((sz) => figmaAnatomySet(m, { swapTarget: 'FPO-default-icon' }).find((p) => p.size === sz)?.root.minWidth).join('/');
+      if (got !== FLOORS[d]) bad.push(`${b}: ${got} (want ${FLOORS[d]})`);
+    }
+    ok(bad.length === 0, `tag minimum width (owner decision L): 1.5 × the height, rounded to the nearest 8px, per size and density, written as a literal floor in ${floorBuilds.length} builds${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
+  }
 
   // THE SELECTED LOOK (owner decision E): a tint + a 2px primary outline, and the label weight CONSTANT. Each side
   // held to its own literal row at rest, per size, on the projected members.
@@ -5239,17 +5376,17 @@ for (const b of brands) {
     ok(at.length === 3 && wrong.length === 0,
       `tag selected ${st} (owner decision 2026-09-29): the tint holds (${TAG_REST.selected.fill}) and the 2px outline steps to ${edge}, on all 3 sizes${wrong.length ? ` — wrong: ${wrong.map((m) => `${m.name} (fill ${m.plan.root.paints?.fills}, edge ${m.plan.root.paints?.strokes} at ${m.plan.root.bound?.strokeWeight})`).join(' | ')}` : ''}`);
   }
-  // THE SELECTED TAG'S WIDTH — AN OWNER DECISION (2026-09-29: "let it widen"). The label keeps its width and
-  // the check mark adds a cell; the unselected tag does not reserve it. An independent model of Figma's
-  // hugging row over the PLAN — the flow children only (a hidden or absolutely placed node takes no cell), plus
-  // the padding, one gap between cells and the root's bound minWidth; the strokes are drawn inside and take no
-  // width — with each variable's px read from the brand's built tree and a label of a fixed 30px. EXPECTED is a
-  // literal: the check mark is a 24px glyph plus an 8px gap, 32px at medium in every corpus brand, and with the
-  // `Check icon` switch off the two members are one width. A change that reserves the check's width reverses
-  // the owner's decision, and fails here by name.
+  // THE TAG'S RENDERED WIDTH — the owner's worked examples (2026-09-29) and "let it widen" (decision G). An
+  // independent model of Figma's hugging row over the PLAN — the flow children only (a hidden or absolutely placed
+  // node takes no cell), plus the padding, one gap between cells and the root's literal floor; the strokes are
+  // drawn inside and take no width — with each variable's px read from the brand's built tree. EXPECTED is
+  // literal, at medium on comfortable density, the owner's arithmetic:
+  //   · a 24px label alone: 12+24+12 = 48, under the 64px floor, so 64 (the content centers in it);
+  //   · a 24px label and the check: 12+24+6+24+12 = 78;
+  //   · a 67px label, the leading icon and the check: 12+24+8+67+6+24+12 = 153;
+  //   · a dismissible tag, 24px label: 12+24+0+44 = 80 — no inset before the × slot (decision M);
+  //   · the check widens a tag above its floor by one glyph and one gap, 24+6 = 30, and not at all with it off.
   {
-    const LABEL_W = 30;
-    const CHECK_PLUS_GAP_MD = 32;
     const widthBrands: [string, any][] = [['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any])];
     for (const [b, th] of widthBrands) {
       const built = buildTree(th).tree;
@@ -5261,20 +5398,28 @@ for (const b of brands) {
         const x = n?.$extensions?.prism3?.px;
         return typeof x === 'number' ? x : NaN;
       };
-      const widthOf = (n: any): number => {
-        if (n.type === 'TEXT') return LABEL_W;
+      const widthOf = (n: any, labelW: number): number => {
+        if (n.type === 'TEXT') return labelW;
         if (n.bound?.width) return px(n.bound.width);
         const flow = (n.children ?? []).filter((c: any) => c.visible !== false && !c.absoluteInset && !c.absoluteCenter);
-        const content = flow.reduce((acc: number, c: any) => acc + widthOf(c), 0) + Math.max(0, flow.length - 1) * px(n.bound?.itemSpacing);
-        return Math.max(n.bound?.minWidth ? px(n.bound.minWidth) : 0, px(n.bound?.paddingLeft) + content + px(n.bound?.paddingRight));
+        const content = flow.reduce((acc: number, c: any) => acc + widthOf(c, labelW), 0) + Math.max(0, flow.length - 1) * px(n.bound?.itemSpacing);
+        return Math.max(typeof n.minWidth === 'number' ? n.minWidth : 0, px(n.bound?.paddingLeft) + content + px(n.bound?.paddingRight));
       };
-      const hideCheck = (n: any): any => ({ ...n, ...(n.name === 'check' ? { visible: false } : {}), children: (n.children ?? []).map(hideCheck) });
-      const un = widthOf(restOf('select', 'unselected', 'medium').plan.root);
-      const selRoot = restOf('select', 'selected', 'medium').plan.root;
-      const sel = widthOf(selRoot);
-      const selOff = widthOf(hideCheck(selRoot));
-      ok(sel - un === CHECK_PLUS_GAP_MD && selOff === un,
-        `tag selected width (${b}, medium): owner decision 2026-09-29, the check widens the tag — with the check mark on, a selected tag is ${CHECK_PLUS_GAP_MD}px wider than its unselected twin (a 24px glyph and an 8px gap), and with it off the two are one width (unselected ${un}, selected ${sel}, check off ${selOff})`);
+      const set = (n: any, name: string, visible: boolean): any => ({ ...n, ...(n.name === name ? { visible } : {}), children: (n.children ?? []).map((c: any) => set(c, name, visible)) });
+      const mat = figmaAnatomySet(applyMinWidthRatio(applySpacingDensity(tagDef, th.dims.density), sizeRefPx(th.dims.sizes)), { swapTarget: 'FPO-default-icon' });
+      const rest = (type: string, sel: string) => mat.find((p) => p.size === 'medium' && new RegExp(`type=${type}, selection=${sel}, size=medium, state=rest`).test(planComponentName(p)))!.root;
+      const un = rest('select', 'unselected'), sel = rest('select', 'selected'), dis = rest('dismissible', 'unselected');
+      const got = {
+        alone: widthOf(set(un, 'leadingVisual', false), 24),
+        check: widthOf(set(sel, 'leadingVisual', false), 24),
+        full: widthOf(set(sel, 'leadingVisual', true), 67),
+        dismissible: widthOf(set(dis, 'leadingVisual', false), 24),
+        widen: widthOf(set(sel, 'leadingVisual', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
+        widenOff: widthOf(set(set(sel, 'leadingVisual', false), 'check', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
+      };
+      const WANT = { alone: 64, check: 78, full: 153, dismissible: 80, widen: 30, widenOff: 0 };
+      ok(JSON.stringify(got) === JSON.stringify(WANT),
+        `tag rendered width (${b}, medium, comfortable): the owner's worked examples — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, dismissible 80, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
     }
   }
   // THE TINT (owner, 2026-09-29, "respect none"): `interactive.primary.subtle-fill.selected` on the default and
@@ -5704,11 +5849,12 @@ for (const b of brands) {
     'D-shadow(i): a modeLevers entry with no shadow lever produces byte-identical output');
 }
 
-// PER-MODE DENSITY (Phase D) — a mode re-derives its component-size tier (size.* control heights + paired
-// padding) at a different density via the SAME componentSizes the baseline uses. Same seam: the engine
-// attaches `$extensions.prism3.modes.<mode>` to the `size.<name>.{height,padding-x,padding-y}` PRIMITIVE
-// (aliasing the dimension grid / space scale on-grid, else a literal px). The `space.*` reference scale
-// is density-free, so it's untouched. Byte-identical when absent.
+// PER-MODE DENSITY (Phase D) — a mode re-derives its component-size tier (size.* control heights) at a
+// different density via the SAME componentSizes the baseline uses. Same seam: the engine attaches
+// `$extensions.prism3.modes.<mode>` to the `size.<name>.height` PRIMITIVE (aliasing the dimension grid
+// on-grid, else a literal px). The `space.*` reference scale is density-free, so it's untouched, and since
+// the spacing model a component's padding is its own `space.*` step, moved by the BRAND's density at
+// materialization — a mode's own density moves heights only. Byte-identical when absent.
 {
   const root = 'prism';
   const base = { id: 'ddensity', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput;
@@ -5732,9 +5878,10 @@ for (const b of brands) {
   ok(typeof pmTree.size[changed!].height.$extensions.prism3.modes.dark.px === 'number',
     'D-density(a): the height override carries a resolved px');
 
-  // (b) padding also re-derives per mode (spacious loosens insets) on at least one rung.
-  const padChanged = sizeNames.find((n) => pmTree.size[n]['padding-x'].$extensions.prism3.modes?.dark || pmTree.size[n]['padding-y'].$extensions.prism3.modes?.dark);
-  ok(!!padChanged, `D-density(b): a size rung's padding carries a modes.dark override under spacious (rung: ${padChanged})`);
+  // (b) the spacing model: no size rung carries a padding or gap leaf for the mode to override — a mode's
+  //     density moves heights; padding is a component's own `space.*` step, moved by the brand's density.
+  const padLeaves = sizeNames.filter((n) => ['padding-x', 'padding-x-visual', 'padding-y', 'gap'].some((k) => k in pmTree.size[n]));
+  ok(padLeaves.length === 0, `D-density(b): no size rung carries a padding or gap leaf under a per-mode density (rungs with one: ${padLeaves.join(', ') || 'none'})`);
 
   // (c) the space.* REFERENCE scale is density-free — it carries NO per-mode override.
   ok(Object.keys(pmTree.space).every((k) => pmTree.space[k].$extensions.prism3.modes === undefined),
@@ -11927,11 +12074,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // absolute one) hug inside the padding, the frame is max(floor, hug) unless a designer fixes a width, the
     // single flow child is centered in the space inside the padding, and a pinned child keeps the x it was
     // placed at on the hugged frame, moved by the width change when its constraint is MAX. `oracle` never
-    // looks at the plan: it works the same positions out of the brand's own `size.*` and icon numbers.
+    // looks at the plan: it works the same positions out of Button's spec (a LITERAL per size, comfortable —
+    // every brand here is comfortable) and the brand's icon numbers. The spacing model moved the spacing off
+    // the brand's `size.*` tier and into the spec, so the oracle reads the spec's numbers as written.
+    const BTN_SPACING: Record<string, { padX: number; padXVisual: number; gap: number }> = {
+      small: { padX: 16, padXVisual: 12, gap: 8 }, medium: { padX: 16, padXVisual: 12, gap: 8 }, large: { padX: 24, padXVisual: 16, gap: 12 },
+    };
+    const SPACE_PX_BL = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
     for (const [bid, t] of BL_BRANDS) {
+      if (t.dims.density !== 'comfortable') throw new Error(`#1667 layout model: ${bid} is ${t.dims.density}; the literal spacing oracle is comfortable`);
       const pxOf = (v: string | undefined): number => {
-        const s = v && /^size\/([^/]+)\/(padding-x-visual|padding-x|gap)$/.exec(v);
-        if (s) { const z = t.dims.sizes.find((q) => q.name === s[1])!; return s[2] === 'gap' ? z.gap : s[2] === 'padding-x' ? z.padX : z.padXVisual; }
+        if (v && SPACE_PX_BL.has(v)) return SPACE_PX_BL.get(v)!;
         const i = v && /^icon\/size\/([^/]+)$/.exec(v);
         if (i) return ICON_SIZES.find((q) => q.name === i[1])!.px;
         throw new Error(`#1667 layout model: no px for ${v}`);
@@ -11961,7 +12114,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       for (const def of FAMILY) {
         const edges = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(t.dims.sizes));
         for (const size of def.variants.size) {
-          const z = t.dims.sizes.find((q) => q.name === stepOf(def, size))!;
+          const z = { height: t.dims.sizes.find((q) => q.name === stepOf(def, size))!.height, ...BTN_SPACING[size] };
           const icon = ICON_SIZES.find((q) => `icon.size.${q.name}` === def.tokens[`size.${size}.icon`])!.px;
           const floor = floorOracle(z.height, DEFAULT_BUTTON_LAYOUT.minWidthMultiplier);
           for (const [lead, trail] of [[false, false], [true, false], [false, true], [true, true]] as [boolean, boolean][]) {
@@ -14356,7 +14509,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // see below for the assertion that a merged set would have let through.
     const emittedEffects = new Set<string>();
     // #1097 — `emitted` HOLDS TAILS, `emittedStyles`/`emittedEffects` HOLD NAMES, and the asymmetry is the
-    // artifact's own: a variable is emitted as `nbds/size/md/gap`, a style as `label/md/emphasis` with no
+    // artifact's own: a variable is emitted as `nbds/size/md/height`, a style as `label/md/emphasis` with no
     // namespace and no tier. A plan's bound variable names are root-relative (see `figmaVarName`), so the
     // comparison space for variables is tail space and for styles it is name space.
     //
@@ -14367,7 +14520,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // brand whose namespace nobody here has spelled.
     //
     // A dropped namespace fails this arm rather than sneaking through, which is worth being sure of:
-    // `tailOf('size/md/gap')` on an un-namespaced emission returns `md/gap`, so the plan's `size/md/gap`
+    // `tailOf('size/md/height')` on an un-namespaced emission returns `md/height`, so the plan's `size/md/height`
     // finds nothing and every binding reports MISSING.
     for (const f of readdirSync(resolve(HERE, 'out/figma/nb'))) {
       if (!f.endsWith('.json')) continue;
@@ -15095,7 +15248,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     /** The brand namespace every variable in the stubbed file carries (#1097) — and DELIBERATELY a root
      *  no brand in the corpus emits.
      *
-     *  A real Figma file holds `nbds/size/md/gap`; a plan binds `size/md/gap`, because a plan is a
+     *  A real Figma file holds `nbds/size/md/height`; a plan binds `size/md/height`, because a plan is a
      *  function of the def alone and knows no brand (see `figmaVarName`). The two spaces meet in the
      *  executors, which key the live variables by TAIL. Rooting the stub is therefore what makes this
      *  block model a real file at all — before #1097 the stub's names WERE the plan's names, and the
@@ -16093,7 +16246,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         const c = icon.constraints as { horizontal?: string; vertical?: string } | null;
         return JSON.stringify([root.paddingRight, icon.layoutPositioning, c?.horizontal ?? null, c?.vertical ?? null, (root.width as number) - (icon.x as number) - (icon.width as number)]);
       };
-      const WANT = JSON.stringify([md.padXVisual + iconPx + md.gap, 'ABSOLUTE', 'MAX', 'CENTER', md.padXVisual]);
+      // Button's medium spacing, from its spec as written (comfortable, nb's density): 12px on the icon side, 8px gap.
+      const MD_VISUAL = 12, MD_GAP = 8;
+      if (!md.height || nbTheme().dims.density !== 'comfortable') throw new Error('#1667 paste leg: the literal spacing is comfortable');
+      const WANT = JSON.stringify([MD_VISUAL + iconPx + MD_GAP, 'ABSOLUTE', 'MAX', 'CENTER', MD_VISUAL]);
       const pastePage: StubPage = { children: [] };
       const pasted = await runPayload(planToPluginJs(edgesPlan), { ...eOpts, page: pastePage });
       const plugPage: StubPage = { children: [] };
@@ -18998,9 +19154,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // variable the anatomy plan binds must appear in the payload that would be pasted.
     const dimsCreate = passJs('nb', 'dims-create');
     const wanted = [...new Set(button.variants.size.flatMap((s) => planBoundVars(figmaAnatomyPlan(button, s, { leading: true, trailing: true }).root)))];
-    // TWO SPACES, ONE COMPARISON (#1097). `wanted` is root-relative — a plan binds `size/md/gap` and
+    // TWO SPACES, ONE COMPARISON (#1097). `wanted` is root-relative — a plan binds `size/md/height` and
     // knows no brand — while the payload creates the name Figma will hold, `nbds/core/dimension/0` and
-    // `nbds/size/md/gap`. `nbFixName` is the fixture's own hand-written translation (root on, `core/` for
+    // `nbds/size/md/height`. `nbFixName` is the fixture's own hand-written translation (root on, `core/` for
     // a core group), not something imported from the emitter, so a wrong translation on either side shows
     // up here rather than cancelling out. The QUOTES stay: dropping them to be root-agnostic would let
     // any prefix satisfy the substring test, including a doubled one.
@@ -19572,7 +19728,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `undefined` and throw at paste time — the exact class of error a payload should never carry.
   ok(!/"[a-z*]*\?[a-z*]*"/.test(create), 'materialise: every float scope encodes to a known code (no `?` in the payload)');
 
-  // Alias targets must resolve WITHIN the float lane — `size/md/gap → space/100`,
+  // Alias targets must resolve WITHIN the float lane — `size/md/height → dimension/44`,
   // `icon/size/md → dimension/24`. A target naming a variable no create pass makes would paste
   // clean and then miss silently at bind time.
   const created = new Set<string>();
@@ -19588,12 +19744,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // The component tier is the reason this pass exists (#327 binds it), so name it explicitly
   // rather than trusting the axis-coverage check to imply it.
-  // Rooted (#1097). `includes` on a quoted string is a substring test, so an unrooted `"size/md/gap"`
-  // matches nothing in a payload full of `"nbds/size/md/gap"` and these four arms would report the
+  // Rooted (#1097). `includes` on a quoted string is a substring test, so an unrooted `"size/md/height"`
+  // matches nothing in a payload full of `"nbds/size/md/height"` and these five arms would report the
   // component tier missing — the right verdict for the wrong reason. Note the direction that does NOT
   // work: dropping the quotes to make the test root-agnostic would match the rooted name as a substring
   // and pass whatever the prefix turned out to be, including a doubled one.
-  for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'].map(nbVar))
+  // Since the spacing model the size tier holds heights only; a component's spacing binds `space/*`.
+  for (const v of ['size/md/height', 'size/md/min-height', 'space/150', 'icon/size/md', 'radius/md'].map(nbVar))
     ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
 
   // Payload budget: EVERY BRAND since #1786, in the `materialise budget:` arms after this block. This
@@ -23217,8 +23374,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // `notes.contested`).
     'tag.container':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the × slot centers against the only line; in code a wrapped label centers the slot on the label block, which is held for the owner (tag.ts notes.contested).",
-    'tag.content':
-      "the tag's height is fixed at one line in Figma and its label is one line there, so the leading icon and the check mark center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
+    // Since the spacing model (2026-09-29) the label and check sit in their own row (`labelCheck`) so their gap
+    // can differ from the icon's; the leading icon now centers against that row, in `content`, which holds no
+    // text directly. The reason is the same one.
+    'tag.labelCheck':
+      "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
   let pairedRows = 0;
   const centred: string[] = [];
@@ -24333,6 +24493,46 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   ok(missingImages.length === 0,
     `#1039 check 2: every rule's image IS emitted — a rule pointing at a name nothing emits is `
     + `\`target-not-planned\` at apply time, i.e. inert and silent. ${missingImages.slice(0, 3).join(' · ')}`);
+  // CHECK 2 FOR THE DELETION REGISTER (the spacing model, 2026-09-29). A deletion is a standing claim that its
+  // names are gone, so on EVERY run — no git, no base ref — nothing matching a deletion's domain may be emitted
+  // by any brand. Without this, a later PR could re-emit `size/md/gap` and the accounting would never see it
+  // (no removal in its diff), and a later rename of it would be written off by the deletion (docs/34 shape 11).
+  // Also the arm that sees one brand's size.json put back to a pre-deletion copy without regen.
+  {
+    const revived: string[] = [];
+    for (const brand of brands) {
+      const root = rootOf(brand);
+      for (const key of emissionOf(brand)) {
+        const { collection, name } = parseVarKey(key);
+        for (const d of MATERIALIZATION_DELETIONS) if (d.domain(collection, name, root)) revived.push(`[delete:${d.id}] ${brand} ${key}`);
+      }
+    }
+    ok(MATERIALIZATION_DELETIONS.map((d) => d.id).join(',') === 'size-spacing-removed-spacing-model' && revived.length === 0,
+      `materialization deletions check 2: no name a recorded deletion claims is emitted by any of ${brands.length} brands (deletions: ${MATERIALIZATION_DELETIONS.map((d) => d.id).join(', ')})${revived.length ? ` — STILL EMITTED: ${revived.slice(0, 4).join(' · ')}` : ''}`);
+  }
+  // THE DELETION ARM OF THE ACCOUNTING, driven directly with literal fixtures: honored, contradicted, and
+  // doubly claimed. Root `x`, the one deletion the register ships.
+  {
+    const K = (n: string) => varKey('size', `x/size/md/${n}`);
+    const DEL = MATERIALIZATION_DELETIONS.filter((d) => d.id === 'size-spacing-removed-spacing-model');
+    // (1) honored: `gap` leaves, nothing arrives, the deletion claims it — total, nothing unaccounted.
+    const honored = accountFor(new Set([K('gap'), K('height')]), new Set([K('height')]), [], parseVarKey, 'x', [], DEL);
+    // …and the same diff with no deletion register is an unaccounted removal, so (1) is the register's doing.
+    const bare = accountFor(new Set([K('gap'), K('height')]), new Set([K('height')]), [], parseVarKey, 'x', [], []);
+    ok(DEL.length === 1 && isTotal(honored) && honored.unaccountedRemovals.length === 0 && !isTotal(bare) && bare.unaccountedRemovals.join() === K('gap'),
+      `materialization deletions: a recorded deletion accounts for its removal (honored total: ${isTotal(honored)}; without the register: ${bare.unaccountedRemovals.join(', ') || 'nothing unaccounted'})`);
+    // (2) contradicted: `gap` is still emitted while the emission moved (`width` arrived).
+    const kept = accountFor(new Set([K('gap'), K('height')]), new Set([K('gap'), K('height'), K('width')]), [], parseVarKey, 'x', [], DEL);
+    ok(!isTotal(kept) && kept.contradictedClaims.length === 1 && kept.contradictedClaims[0].rule === 'delete:size-spacing-removed-spacing-model'
+      && kept.contradictedClaims[0].from === K('gap') && kept.contradictedClaims[0].contradiction === 'still emitted — the deletion says it left and it did not',
+      `materialization deletions: a deletion whose name is still emitted is contradicted, by name (${JSON.stringify(kept.contradictedClaims)})`);
+    // (3) a deletion and a rename of the same name: one operation, two records — multiply claimed.
+    const RENAME: MaterializationRule = { id: 'fixture-gap-rename', since: '0.0.0', why: 'fixture', domain: (c, n) => c === 'size' && n === 'x/size/md/gap', map: () => 'x/size/md/spacing' };
+    const both = accountFor(new Set([K('gap')]), new Set([K('spacing')]), [RENAME], parseVarKey, 'x', [], DEL);
+    ok(!isTotal(both) && both.multiplyClaimed.length === 1 && both.multiplyClaimed[0].key === K('gap')
+      && both.multiplyClaimed[0].rules.join(',') === 'fixture-gap-rename,delete:size-spacing-removed-spacing-model',
+      `materialization deletions: a name both renamed and deleted is claimed twice and fails (${JSON.stringify(both.multiplyClaimed)})`);
+  }
   // ---- #1013: THE ARTIFACT'S FIRST REAL ENTRIES ----
   //
   // #1039 shipped this empty and `test.ts` asserted the emptiness, because `docs/44` §8 left open whether

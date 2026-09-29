@@ -98,7 +98,7 @@ export const leverManifest: Lever[] = [
     description: '0 = sharp, 1 = default, 2 = soft. Scales the radius ramp.' },
   { key: 'density', group: 'form', label: 'Density', control: 'enum', default: 'comfortable',
     options: enumOpts(['comfortable', 'Comfortable'], ['compact', 'Compact'], ['spacious', 'Spacious']),
-    description: 'Drives component sizes (control height + paired padding). The name stays stable; the metrics shift.' },
+    description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. The name stays stable; the metrics shift. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
   { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
     description: 'Corner shape for pill-able controls like buttons. Boxed is sharp (0px); hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.' },

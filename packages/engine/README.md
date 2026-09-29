@@ -238,9 +238,14 @@ organized by Curtis's three tiers (knowledge-base 02/22/24):
   holds: `none/sm/md/lg/round`. One scalar `radius.scale` drives it (`1` = sharp
   `2/4/6`; `2` = soft `4/8/12`; `0` collapses all but the pill).
 - **`size`** — *component* tier, t-shirt (`xs…xl`). Each size is a **contract**
-  binding a control height **and** paired padding drawn from the shared scales,
-  so a `md` button/input/select agree. This is the layer **`density`** acts on:
-  `compact` resolves `size.md` to smaller metrics while the name stays `md`.
+  for a control height, so a `md` button/input/select agree. Dimensions only:
+  "size is for size, space is for space". This is the layer **`density`** acts on:
+  `compact` resolves `size.md` to a shorter height while the name stays `md`.
+- **Component spacing** — every padding and gap is a `space.*` step that the
+  component's own def states at comfortable density (`densitySpacing`); there
+  are no per-component spacing tokens. Density moves each step one position
+  along the space scale — down at `compact`, up at `spacious`, clamped at the
+  ends (`densitySpace` in `scale.ts`, `docs/28` §5.4).
 
 Two bases by design: a **4px fine grid** backs radius/borders; an **8px rhythm**
 backs spacing (Prism2's split). NB is a *fidelity test*, not the taxonomy

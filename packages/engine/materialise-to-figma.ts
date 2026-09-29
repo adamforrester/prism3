@@ -579,7 +579,7 @@ return out;
 };
 
 // ---- pass: dims-aliases (rebind PER MODE — the same collapse-proofing as colour) --------
-// The float axes alias across collections (`size/md/gap` → `space/100`, `icon/size/md` →
+// The float axes alias across collections (`size/md/height` → `dimension/44`, `icon/size/md` →
 // `dimension/24`), which is why this is a second pass: a target in `space` cannot be bound until
 // `space` exists, and dims-create builds all nine before anything binds.
 const dimsAliasesPass = (brand: string): string => {

@@ -37,8 +37,7 @@
  *      of the tag's height (`size.{size}.height`, 44 at medium on comfortable). Whether the whole tag or only
  *      the × slot takes the press is OPEN (the owner's later call): the Figma structure is the same either way,
  *      and `codeOnly` states both options without picking one.
- *   D. MINIMUM WIDTH = THE TAG'S HEIGHT, per size, bound (`minWidthKey` → `size.{size}.height`), so it follows
- *      the density the height follows.
+ *   D. MINIMUM WIDTH = THE TAG'S HEIGHT, per size — REPLACED 2026-09-29 by decision L below.
  *   E. SELECTED = A SUBTLE TINT + A BOLD OUTLINE, the label weight CONSTANT (no bold on select, so the label
  *      keeps its width; the check mark, when shown, still adds a cell — `test.ts` pins that). The outline is `interactive.primary.border.*` at `border-width.thick` (2px), drawn INSIDE the
  *      box, so a selected member's box equals its unselected twin's where the check is off. Recorded as the
@@ -49,7 +48,7 @@
  * ── THE OWNER'S DECISIONS (2026-09-29) ─────────────────────────────────────────────────────────────────
  *
  *   G. THE CHECK WIDENS THE TAG. A selected tag with the check shown is one glyph and one gap wider than its
- *      unselected twin (32px at medium); the width is not reserved. `test.ts` `tag selected width` pins it.
+ *      unselected twin (30px at medium since decision K: a 24px glyph and the 6px label→check gap); the width is not reserved. `test.ts` `tag selected width` pins it.
  *   H. THE FIGMA SWITCH IS `Check icon` (it was `check mark`). It toggles only the Select check; the code prop
  *      stays `showCheck`. The Dismissible × has no switch: it is the tag's action, present on every member.
  *   I. SELECTED HOVER AND PRESSED: the tint holds and the 2px outline steps darker
@@ -60,6 +59,23 @@
  *      `resolveAllModes`), derived by one rule so the two agree. It is `brandDependent` in the token contract.
  *      On `none` it is not emitted, `applyOutlineInteraction` drops the binding, and a selected tag shows its 2px
  *      outline and its check only.
+ *
+ * ── THE OWNER'S DECISIONS (2026-09-29): SPACING, FROM A MOCKUP IN A REAL FIGMA FILE ───────────────────
+ *
+ *   K. THE SPACING, at comfortable, as this spec's own `space.*` steps (the spacing model: `size.*` is for
+ *      heights, `space.*` for every padding and gap, and density moves each step one along the space ladder):
+ *        small  (36 tall): padding-x 8,  icon→label 6,  label→check 4
+ *        medium (44 tall): padding-x 12, icon→label 8,  label→check 6
+ *        large  (56 tall): padding-x 16, icon→label 12, label→check 8
+ *      The two gaps differ in one row, so the label and the check sit in their own row (`labelCheck`) inside
+ *      the content row, the mockup's own nesting: content [leading icon, labelCheck [label, check]].
+ *   L. MINIMUM WIDTH = 1.5 × THE TAG'S HEIGHT, rounded to the nearest 8px (`minWidthRatio`, `ratioMinWidth`):
+ *      56/64/88 at comfortable, following the height at every other density. The content centers when the
+ *      floor applies. Figma cannot bind a computed value, so the floor reaches it as a literal per size,
+ *      written from the brand's heights before projection (`applyMinWidthRatio`, Button's #1667 route).
+ *   M. DISMISSIBLE: the label row's left inset is the select tag's, and its right inset is 0, so the label
+ *      runs straight to the × slot (`padding.inlineEnd` → `size.{size}.{type}.padding-end`). That 0 is not in
+ *      `densitySpacing`: it stays 0 at every density.
  *
  * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint:
  * `interactive.primary.text.rest` measures 3.02:1 (aurora/light) against 4.5:1. The neutral ink clears 10.19:1.
@@ -92,7 +108,7 @@ export const tag: ComponentDef = {
     { name: 'onClick', type: 'function', required: false, description: 'The toggle a select tag fires. Suppressed while disabled or read-only.' },
     { name: 'onRemove', type: 'function', required: false, description: 'Called when a dismissible tag\'s remove control is pressed, or when Delete or Backspace is pressed on the focused tag.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tag height, padding and label type, on the same rungs as Button. Medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than it is tall.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tag height, padding and label type. The height is Button\'s: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density).' },
     { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Removes the tag from interaction and dims it. Don\'t disable every tag in a group; hide the group instead.' },
     { name: 'readOnly', type: 'boolean', default: 'false', required: false, description: 'Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims.' },
   ],
@@ -118,6 +134,10 @@ export const tag: ComponentDef = {
   // alike, and a dismissible tag is always at `unselected`.
   paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}'],
 
+  // The spacing this spec states at comfortable (owner decision K), which density moves one step along the
+  // space ladder. The dismissible trailing inset is 0 at every density (decision M), so it is not listed.
+  densitySpacing: ['size.{size}.padding-x', 'size.{size}.gap', 'size.{size}.check-gap', 'size.{size}.select.padding-end'],
+
   tokens: {
     // Geometry. `radius.round` (the pill) keeps the tag off Button's `radius.md` rectangle, which an outlined
     // neutral tag would otherwise match edge for edge, and off the status badge's `radius.sm`; it is the
@@ -138,24 +158,35 @@ export const tag: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
-    // Per size, Button's rungs: the hit-target height (`lint-hit-target.ts` reads `size.medium.height`), which
-    // is also the minimum width and the × slot's side (owner decisions C and D), the label-side inset, the gap
-    // between cells and the label type. The glyph rung is 1:1 with the control rung (small → icon.size.sm), the
+    // Per size: Button's height rung (`lint-hit-target.ts` reads `size.medium.height`), which is also the × slot's
+    // side (owner decision C) and the base of the minimum width (decision L); then this spec's own spacing as
+    // `space.*` steps (decision K): the inline padding, the icon→label gap, the label→check gap, and the
+    // label row's trailing inset per type (decision M: the select tag's padding, 0 against the × slot). Then
+    // the glyph and the label type. The glyph rung is 1:1 with the control rung (small → icon.size.sm), the
     // corpus default; Button's one-rung-smaller glyph is an owner exception (`lint-rung-names.ts`
     // `ICON_OFFSET_DEFS`) and is held for the owner here rather than taken.
     'size.small.height': 'size.sm.height',
-    'size.small.padding-x': 'size.sm.padding-x',
-    'size.small.gap': 'size.sm.gap',
+    'size.small.padding-x': 'space.100',
+    'size.small.gap': 'space.075',
+    'size.small.check-gap': 'space.050',
+    'size.small.select.padding-end': 'space.100',
+    'size.small.dismissible.padding-end': 'space.0',
     'size.small.icon': 'icon.size.sm',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.height': 'size.md.height',
-    'size.medium.padding-x': 'size.md.padding-x',
-    'size.medium.gap': 'size.md.gap',
+    'size.medium.padding-x': 'space.150',
+    'size.medium.gap': 'space.100',
+    'size.medium.check-gap': 'space.075',
+    'size.medium.select.padding-end': 'space.150',
+    'size.medium.dismissible.padding-end': 'space.0',
     'size.medium.icon': 'icon.size.md',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.height': 'size.lg.height',
-    'size.large.padding-x': 'size.lg.padding-x',
-    'size.large.gap': 'size.lg.gap',
+    'size.large.padding-x': 'space.200',
+    'size.large.gap': 'space.150',
+    'size.large.check-gap': 'space.100',
+    'size.large.select.padding-end': 'space.200',
+    'size.large.dismissible.padding-end': 'space.0',
     'size.large.icon': 'icon.size.lg',
     'size.large.type': 'type.label.lg.emphasis',
 
@@ -213,22 +244,34 @@ export const tag: ComponentDef = {
         children: ['content', 'dismiss', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
         height: 'size.{size}.height',
-        // Owner decision D: never narrower than it is tall, per size, on the height's own token.
-        minWidthKey: 'size.{size}.height',
+        // Owner decision L: never narrower than 1.5 × its height, rounded to the nearest 8px. The row centers its
+        // content (`justify: center`) when the floor is the wider of the two.
+        minWidthRatio: 1.5,
         radius: 'radius',
         strokeWidth: '{selection}.border-width',
-        note: 'The tag body, a pill of fixed height that hugs its content and is never narrower than it is tall. Unselected, it is a 1px outline with no fill; selected, it takes a tint and a 2px outline, drawn inside the pill so the box does not grow.',
+        note: 'The tag body, a pill of fixed height that hugs its content and is never narrower than 1.5 times its height, rounded to the nearest 8px; when that minimum applies, the content is centered. Unselected, it is a 1px outline with no fill; selected, it takes a tint and a 2px outline, drawn inside the pill so the box does not grow.',
       },
       content: {
         kind: 'box',
         role: 'presentation',
-        // The inset row: the label-side padding on both sides, and the cells in visual order. A dismissible tag's
-        // × slot sits OUTSIDE it, flush against the pill's trailing edge.
-        children: ['leadingVisual', 'label', 'check'],
+        // The inset row: the leading icon, then the label and check in their own row. The leading inset is the
+        // tag's padding; the trailing one is the same on a select tag and 0 on a dismissible tag, whose × slot
+        // sits OUTSIDE this row, flush against the pill's trailing edge (decision M).
+        children: ['leadingVisual', 'labelCheck'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
-        padding: { block: 'pad-y', inlineLabel: 'size.{size}.padding-x' },
+        padding: { block: 'pad-y', inlineLabel: 'size.{size}.padding-x', inlineEnd: 'size.{size}.{type}.padding-end' },
         gap: 'size.{size}.gap',
-        note: 'The label row inside the pill: the optional leading icon, the label and, on a selected select tag, the check mark, with the tag\'s inline padding on both sides.',
+        note: 'The row inside the pill: the optional leading icon, then the label and its check mark. It is inset by the tag\'s padding on both sides, except before the × slot of a dismissible tag, where the label runs straight to the slot.',
+      },
+      labelCheck: {
+        kind: 'box',
+        role: 'presentation',
+        // The second gap (decision K): label→check is tighter than icon→label, so the two sit in their own row
+        // with their own gap, the owner mockup's nesting. With no check shown it holds the label alone.
+        children: ['label', 'check'],
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        gap: 'size.{size}.check-gap',
+        note: 'The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label.',
       },
       leadingVisual: {
         kind: 'slot',
@@ -297,7 +340,9 @@ export const tag: ComponentDef = {
       'Overflow — a group wraps by default. A group that must stay on one line measures the available width against the tags (a ResizeObserver) and ends in a computed "+N more" tag that opens a popover of the rest; the popover is keyboard and screen-reader reachable. The measurement moves when web fonts load.',
       'Combobox composition — a multi-select combobox renders its values as a group of dismissible tags inside the field. At an empty caret, Backspace focuses the last tag and a second Backspace removes it.',
       'RTL — logical properties (padding-inline, gap) mirror the row, so the leading icon moves to the right edge and the check mark and the × slot to the left. No physical directions, and no script.',
-      'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Set min-inline-size equal to the tag\'s block size so a one-letter tag is square. Translations run 30–50% longer. Figma holds one line of placeholder text.',
+      'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
+      'Minimum width — min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild.',
+      'Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Every value is a space token, and a compact or spacious brand moves each one step along the space scale.',
       'The hit-target expansion — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
     ],
   },
@@ -394,7 +439,6 @@ export const tag: ComponentDef = {
       'The dismissible hit target: the whole tag, or only the × slot. Open by owner decision C; `codeOnly` states both. The Figma structure is the same, and the × slot is 44px at medium on comfortable density either way.',
       'The × glyph size in its slot binds the tag\'s own icon rung (`size.{size}.icon`, 24px at medium), the same rung the check and the leading icon use. Held for the owner, with the slot\'s inner padding it implies.',
       'A long label wraps in code, and the row centers the leading icon, the check mark and the × slot on the label block (`align: center`, as in Figma, where the label is one line). Whether they should sit on the first line instead is held for the owner.',
-      'The label row keeps its full trailing inset before the × slot, so the × sits one inset plus half the slot\'s spare width from the label. A tighter trailing inset beside the slot would need Button\'s slot-aware inset (#326). Held for the owner as a visual call.',
       'A dismissible tag keeps the optional leading icon (the `leading icon` switch is on every member). The owner named it for Select; nothing says Dismissible drops it. Held for the owner.',
       'The selection axis values `[unselected, selected]` (brief §4 and §15 words) against checkbox\'s `[unchecked, checked]`. A filter tag\'s ARIA state is aria-pressed, aria-checked or aria-selected depending on the group\'s role, so no one ARIA word fits; recorded as `disjoint` in `lint-axis-values.ts` and held for the owner.',
       'Tone (§4, §15: neutral + info/success/warning/error) is NOT built. The owner requires the interactive family, which has no status hues, and the brief itself warns against status vocabulary in a tag (§7). A status-encoding tag is held for the owner.',
@@ -403,13 +447,16 @@ export const tag: ComponentDef = {
     ],
     unverified: [
       'The check mark is the first part carrying both a boolean and a variant presence gate. The offline shim builds it (the node exists only at selected members, and the switch toggles it there); a real Figma host has not been checked for a boolean property that some members of a set have no node for.',
-      'The minimum width is a BOUND `minWidth` (`minWidthKey`), the first in the corpus. The offline shim honors it; a real Figma host binding a variable to an auto-layout `minWidth` has not been checked.',
+      'The minimum width reaches Figma as a literal `minWidth` per size, written from the brand\'s heights before projection, Button\'s route. The offline shim honors it and so does Button on a real host; the nested label-and-check row inside the content row has not been checked on a real host.',
       'A medium tag is 44px tall on comfortable density, a medium Button\'s height (owner decision 4), and a dismissible tag adds a 44px square. Whether a pill that tall still reads as a tag beside buttons of the same height is a visual question no gate asks.',
       'The selected tint is the primary fill at an opacity step over the page. Whether it reads as "selected" beside the 10% neutral hover wash of an unselected tag is a visual question no gate asks; the 2px primary outline is the measured separation.',
     ],
     evolution: [
+      'Owner, 2026-09-29 (from a mockup in a real Figma file): the spacing is this spec\'s own `space.*` steps (padding 8/12/16, icon to label 6/8/12, label to check 4/6/8 at small/medium/large), and the label and check sit in their own row so their gap can differ from the icon\'s. It had bound Button\'s shared `size.*.padding-x` and `size.*.gap`, which the spacing model removed.',
+      'Owner, 2026-09-29: the minimum width is 1.5 times the tag\'s height, rounded to the nearest 8px (decision L), replacing "never narrower than it is tall" (decision D). Figma receives it as a number per size, written from the brand\'s heights, since a variable cannot hold the product.',
+      'Owner, 2026-09-29: a dismissible tag\'s label row has no trailing inset, so the label runs straight to the × slot. It had kept the full inset there, held as a visual call.',
       'Owner, 2026-09-29 ("respect none"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.',
-      'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (32px at medium), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
+      'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (30px at medium on comfortable density), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
       'Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.',
       'Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',
       'Badge\'s hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) Tag is a pill with an outline at rest, a tint and a 2px primary outline when selected; the status badge has a small radius and a tone fill, and binds no interactive role. (5) Tag no longer nests IconButton.Neutral: the × is a glyph in a square slot. `test.ts` holds (1) and (4) against Badge\'s projected rest paint.',

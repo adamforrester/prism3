@@ -200,6 +200,123 @@ A palette row is now 48px, its bare swatch, where it was 72 inside a ground, so 
 |---|---|
 | a ground on a palette row (primitive rows drawn through `specimen`) | "5: a palette row has no ground frame: its cell is the type=default swatch, 48 × 48 and FIXED (Ground … 168 grounds in the primitive tables)", "13: two new steps grow Primary — nbds by 2 × (48 + 2) = 100px (got 148)" |
 | a filled square for a text role (`autoDisplay` never returns `text`) | "5: a text.* row draws letters, the type=text member with its "Aa" fill bound to the token, on its ground, with no filled square (type=default…)", "5: text/primary uses the text swatch", "3: a text role draws the text swatch", "2: the adopted type=Text swatch is used for a text role" |
+## (2026-09-29) — Spacing model: size is for size, space is for space (and Tag's spacing from the owner's mockup)
+
+**STATUS: PR open from `lane/spacing-model`, labeled DO NOT MERGE.** ENGINE 0.203.0 → **0.206.0** (0.204.0 and 0.205.0 are taken on the style-guide lane's branch, #1788). CONTRACT 13.2.0 → **14.0.0** (MAJOR: 20 guaranteed paths removed, zero consumers confirmed by the owner). Decision record: `docs/28` §5.4, indexed in `docs/42` and `schema/decisions-index.json`.
+
+**The model (owner-decided).** `size.*` holds dimensions only: control heights per rung (and `size.md.min-height`), shared so a medium button, field and tag line up. `control.size.*` and `icon.size.*` are unchanged. Every padding and gap is a `space.*` step. A component's def states its own spacing per size at comfortable density and names those keys in `densitySpacing` (new `ComponentDef` field, validated: each key bound, to a step of the ladder). No per-component tokens.
+
+**What was removed.** `size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}` from DTCG, the Figma `size` collection, `emit-dtcg`'s size table, `visualize`, the Figma descriptions, and `SizeStep` itself (`componentSizes` returns heights only). `token-contract --check` showed exactly those 20 paths; accepted after the bump. `docs/30` carries the break.
+
+**Density follows by rule.** `densitySpace` (`scale.ts`) moves a comfortable step one position along `SPACE_LADDER` (`0, 025, 050, 075, 100, 150, 200, 250, 300, 400, …`): down at compact, up at spacious, clamped at both ends. `applySpacingDensity` (`anatomy-figma.ts`) applies it before projection, between the outline family and the button layout, in `materializeForBrand` and in `lint-lever-sweep`'s restated chain. Heights keep their density window.
+
+**Conversion.** Button (and its two siblings), text-field, textarea, select, and the checkbox, radio and switch rows bind the `space.*` step their old `size.*` token resolved to: pixel-identical at comfortable, held by a literal table in `test.ts`. Button's steps live in `components/button-spacing.ts`, a data-only module, so the studio's button specimen can read them without importing a def (an ungated def import puts every def's prose into the web bundle; `lint-us-english` caught exactly that on the first build).
+
+**Tag (owner's mockup, a real Figma file).** Padding 8/12/16, icon→label 6/8/12, label→check 4/6/8 at small/medium/large. The label and check sit in a nested `labelCheck` row, the mockup's own nesting, so the two gaps can differ. A dismissible tag's label row has a 0 trailing inset (`padding.inlineEnd`, a new `PaddingDef` field, → `size.{size}.{type}.padding-end`), so the label runs to the × slot; that 0 is not density-following. Minimum width is 1.5 × the height rounded to the nearest 8 (`minWidthRatio` on the part, `ratioMinWidth`): 56/64/88 at comfortable, 40/56/64 compact, 64/88/104 spacious. Figma cannot bind a computed value, so `applyMinWidthRatio` writes a per-size literal `minWidth` from the brand's heights before projection, Button's #1667 route; a brand change reaches it on a rebuild. The check now widens a tag by 30px at medium (24 + the 6px gap), not 32.
+
+**Orderings.** #325 and #326 are literal rules in `test.ts` over every def that states a gap beside a padding (button ×3, text-field, select, tag), at every size and density after the step rule: 105 checks, none violated. A scope arm finds those defs structurally and fails on one without a rule.
+
+**Density table (px, old → new).** Comfortable is unchanged for every non-Tag component. The moves at compact and spacious come from replacing the rung window with the one-step rule:
+
+| component | size | key | compact | comfortable | spacious |
+|---|---|---|---|---|---|
+| button | small | `padding-x` | 8 → 12 | 16 → 16 | 16 → 20 |
+| button | small | `padding-x-visual` | 6 → 8 | 12 → 12 | 12 → 16 |
+| button | small | `padding-y` | 4 → 4 | 6 → 6 | 8 → 8 |
+| button | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| button | medium | `padding-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| button | medium | `padding-x-visual` | 12 → 8 | 12 → 12 | 16 → 16 |
+| button | medium | `padding-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| button | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| button | large | `padding-x` | 16 → 20 | 24 → 24 | 24 → 32 |
+| button | large | `padding-x-visual` | 12 → 12 | 16 → 16 | 16 → 20 |
+| button | large | `padding-y` | 8 → 6 | 8 → 8 | 16 → 12 |
+| button | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| text-field | (projected md) | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| text-field | (projected md) | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| text-field | (projected md) | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| text-field | small | `pad-x` | 8 → 12 | 16 → 16 | 16 → 20 |
+| text-field | small | `pad-y` | 4 → 4 | 6 → 6 | 8 → 8 |
+| text-field | medium | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| text-field | medium | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| text-field | large | `pad-x` | 16 → 20 | 24 → 24 | 24 → 32 |
+| text-field | large | `pad-y` | 8 → 6 | 8 → 8 | 16 → 12 |
+| textarea | (projected md) | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| textarea | (projected md) | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| textarea | small | `pad-x` | 8 → 12 | 16 → 16 | 16 → 20 |
+| textarea | small | `pad-y` | 4 → 4 | 6 → 6 | 8 → 8 |
+| textarea | medium | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| textarea | medium | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| textarea | large | `pad-x` | 16 → 20 | 24 → 24 | 24 → 32 |
+| textarea | large | `pad-y` | 8 → 6 | 8 → 8 | 16 → 12 |
+| select | (projected md) | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| select | (projected md) | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| select | (projected md) | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| checkbox-row | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| checkbox-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| checkbox-row | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| radio-row | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| radio-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| radio-row | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| switch-row | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| switch-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| tag | small | `padding-x` | 8 → 6 | 16 → 8 | 16 → 12 |
+| tag | small | `gap` | 4 → 4 | 8 → 6 | 8 → 8 |
+| tag | small | `check-gap` | 4 → 4 (gap floor) | 8 → 4 | 8 → 6 |
+| tag | small | `select.padding-end` | 8 → 6 | 16 → 8 | 16 → 12 |
+| tag | small | `dismissible.padding-end` | 8 → 0 | 16 → 0 | 16 → 0 |
+| tag | medium | `padding-x` | 16 → 8 | 16 → 12 | 24 → 16 |
+| tag | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| tag | medium | `check-gap` | 8 → 4 | 8 → 6 | 12 → 8 |
+| tag | medium | `select.padding-end` | 16 → 8 | 16 → 12 | 24 → 16 |
+| tag | medium | `dismissible.padding-end` | 16 → 0 | 16 → 0 | 24 → 0 |
+| tag | large | `padding-x` | 16 → 12 | 24 → 16 | 24 → 20 |
+| tag | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| tag | large | `check-gap` | 8 → 6 | 12 → 8 | 12 → 12 |
+| tag | large | `select.padding-end` | 16 → 12 | 24 → 16 | 24 → 20 |
+| tag | large | `dismissible.padding-end` | 16 → 0 | 24 → 0 | 24 → 0 |
+
+Tag's old values are what it bound before: the shared `padding-x` on both sides of the row (so also before the × slot) and one `gap` for both icon→label and label→check. Tag's minimum width, old (= height) → new: compact 28/36/44 → 40/56/64, comfortable 36/44/56 → 56/64/88, spacious 44/56/68 → 64/88/104 (small/medium/large).
+
+**Gate changes, and why.**
+- `lint-rung-names`: a size-keyed `space.*` binding is a spacing family (`space:<key>`), ordered by the step's multiplier (the key read as a number), excluded from the default-is-`md` rule. `textarea` is admitted in a new `SPACING_ONLY_LADDER` (its ladder binds spacing only), both directions.
+- `materialization-renames`: a pure deletion had no register; it could only surface as an unaccounted removal. `MATERIALIZATION_DELETIONS` records it with the decision in `why`, evaluated over the whole before-set, contradicted if a claimed name is still emitted while the emission moved.
+- `lint-component-surface` and `lint-paint` baselines accepted: bindings moved from `size/*` to `space/*`, Tag gained a node; member and assignment counts unchanged.
+
+**Owner decisions on the held items** (`docs/28` §5.4.1–5.4.3, indexed).
+- **Gap floor: no gap below 4px at any density.** `densitySpacingStep` clamps a gap (a key whose last segment is `gap` or ends in `-gap`) at `GAP_FLOOR_PX` after the step; paddings are not floored, and the validator refuses a gap under 4px at comfortable. The only value it moves is compact small Tag's label→check, 2 → 4 (the table above); nothing else moves, and the orderings still hold (compact small Tag: both gaps 4, padding-x 6).
+- **The density step rule stands as written**, including compact small growing (Button padding-x 8 → 12, gap 4 → 6; row gaps 4 → 6) and spacious large block padding 16 → 12.
+- **Per-mode density changes heights only.** The lever stays. One sentence, the same in the density lever's description (shown on every per-mode Density knob), the studio's per-mode "Density & size" note and `docs/28`: "Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only." `test.ts` checks the lever and `docs/28`; the studio smoke suite checks every per-mode Density knob it meets (3 per run).
+
+**Independent review of 88d9a238** (approved on correctness; the seven non-Tag components' Figma plans byte-identical to main at comfortable across five brands). Folded in:
+- The deletion register gets check 2: on every run, no name a recorded deletion claims may be emitted by any brand. Without it a later PR could re-emit `size/md/gap` unseen, and a later rename of it would be written off (docs/34 shape 11). The same arm catches one brand's `size.json` restored by hand.
+- The deletion arm of the accounting is driven directly: honored, contradicted by a still-emitted name, and claimed twice by a deletion and a rename.
+- A def that states `padding-x-visual` must carry the #326 rule itself, with a fixture that must fail (Tag given an icon-side padding and a #325-only rule).
+- The studio's per-mode "Density & size" note says the decided sentence, and stale `size/md/gap` example names in comments now name `size/md/height`.
+
+**Mutations.** Each after a `wip:` commit, restored with `git checkout --` and a clean `git status`; every one fails a named assertion:
+
+| mutation | fails, by name |
+|---|---|
+| (a) `size.*.padding-x` re-emitted (`tree.ts`) | `spacing model: the size tier holds heights only …` · `D-density(b): no size rung carries a padding or gap leaf …` · `figma dims.size: variable count matches DTCG tree` · `contract: the COMMITTED baseline still matches the engine` (and `token-contract --check`) |
+| (b) density rule off at compact (`DENSITY_SPACE_SHIFT.compact = 0`) | `spacing model: density moves a step one position along the space ladder and clamps at both ends` · `spacing model: every def's padding and gaps, per size, at compact / comfortable / spacious …` |
+| (c) Tag medium padding-x back to 16 | `spacing model: every def's padding and gaps …` (tag@compact/comfortable/spacious) · `tag rendered width (nb / aurora / harbor / prism3, medium, comfortable) …` |
+| (d) Tag minimum width back to the height (`minWidthKey: size.{size}.height`) | `tag geometry: … no variable to its minimum width …` · `tag minimum width (owner decision L) …` · `tag rendered width (×4)` · plugin `tag min width: a one-letter medium tag is 64 × 44 …` (got 44 × 44) |
+| (e) dismissible right padding back to padding-x (`inlineEnd` removed) | `tag rendered width (×4)` (dismissible 92, want 80) |
+| (f) Button medium padding-x 16 → 12 (one step off) | `spacing model: every def's padding and gaps …` · `spacing ordering: #325 … #326 … hold for every rule …` (padding-x-visual 8 !< padding-x 8) · the `#1667 edges` arms (184 failures in all) |
+| (g) Tag's ordering rule dropped | `spacing ordering: every def that states a gap beside a padding has an ordering rule … NO RULE: tag` |
+| (h) gap floor removed (`densitySpacingStep` passes no floor) | `spacing model: every def's padding and gaps …` (tag@compact small 6/4/2) · `spacing model: the gap floor … (got 2) — UNDER: tag@compact size.small.check-gap: 2` |
+| (i) the per-mode sentence dropped from the density lever | `spacing model: "Spacing follows the brand’s density…" is in the density lever's description…` · `lever manifest: schema/lever-manifest.json is up to date` · studio smoke `per-mode density: every per-mode Density knob (3 met) says … MISSING: prism3 / Size & radius / Dark` |
+| (j) `size/md/gap` re-emitted for nb in the source (`tree.ts` + `emit-figma-dims.ts`, then regen) | `spacing model: the size tier holds heights only …` · `materialization deletions check 2: … STILL EMITTED: [delete:size-spacing-removed-spacing-model] nb size :: nbds/size/md/gap` · `lint-materialization-renames` (contradicted: still emitted) |
+| (k) the deletion contradiction arm neutered | `materialization deletions: a deletion whose name is still emitted is contradicted, by name ([])` |
+| (l) the #326 scope arm accepts any rule | `spacing ordering: a def that states padding-x-visual carries the #326 rule … the fixture … is caught: NOT caught` |
+
+**Traps.**
+- The studio must not reference `componentDefs` outside the `PRISM3_HOST === 'figma'` gate (`COMPONENT_CATALOGUE`); read spacing from `button-spacing.ts`.
+- `densitySpace(space.0, spacious)` is `space.025`, not `space.0`: a spacing that must stay 0 stays off `densitySpacing` rather than relying on the clamp.
+
+---
+
 ## (2026-09-29) — Prune: the executor reads nothing off an object it has removed
 
 **STATUS: PR open from `lane/prune-name-after-remove`, labeled DO NOT MERGE.** ENGINE 0.202.0 → **0.203.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). CONTRACT stands at 13.2.0.

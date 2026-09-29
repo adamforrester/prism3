@@ -1396,7 +1396,7 @@ const writeComponentSet = async (
   // type-filtered call returns only that type, and a plan binds FLOAT dimensions and COLOR paints.
   //
   // THE VARIABLE MAP IS KEYED BY TAIL, THE OTHER THREE BY NAME (#1097), and the asymmetry is real rather
-  // than an inconsistency to tidy. Variables carry the brand namespace (`nbds/size/md/gap`); styles do
+  // than an inconsistency to tidy. Variables carry the brand namespace (`nbds/size/md/height`); styles do
   // not (`label/md/emphasis` — a style drops both the root and the tier), and a component's name is not
   // a token path at all. A plan's bound variable names are root-relative — see `figmaVarName` for why the
   // plan stays brand-agnostic — so this is the place the two spaces meet on the plugin side.

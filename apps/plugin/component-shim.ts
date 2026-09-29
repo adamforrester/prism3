@@ -449,7 +449,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
    * TAIL, via `figma-names.ts`'s `tailOf`. That is the only reason one plan can bind into a `prism/` file
    * and an `nbds/` one.
    *
-   * So the shim presents `<root>/size/md/gap` while `opts.vars` holds the plan's `size/md/gap`, and the
+   * So the shim presents `<root>/size/md/height` while `opts.vars` holds the plan's `size/md/height`, and the
    * root is `zzclient` — DELIBERATELY FOREIGN, a root no corpus brand uses. `prism/` would work here and
    * prove less: it cannot tell tail-keyed resolution apart from a read path that happens to recognise the
    * engine's own default. A foreign root fails on anything that spells one.

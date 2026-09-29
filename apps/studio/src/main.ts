@@ -23,7 +23,7 @@ import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES } from '@prism3/engine/scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { previewSpec } from '@prism3/engine/preview';
@@ -37,6 +37,7 @@ import { isInverseRole } from '@prism3/engine/inverse-roles';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
 import { hostCommit } from './write-adapter';
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
@@ -2388,7 +2389,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   interactive: ['Interactive color & states.', 'Point actions at the palette that reads best, tune the interactive treatment (hover, inverse, neutral emphasis), and set the accessibility policy — icon contrast + the disabled strategy.'],
   typography: ['Set the type system.', 'Families, weights, and the type scale that shifts the semantic→primitive size mapping. The rem ladder is brand-invariant; the scale is the dial.'],
   elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
-  sizeRadius: ['Size & radius.', 'Component sizing (control height + paired padding, driven by density) and corner radius. Both go per-mode outside Light.'],
+  sizeRadius: ['Size & radius.', 'Component sizing (control height, driven by density) and corner radius. Both go per-mode outside Light. Each component sets its own padding, and density moves it one step on the spacing scale.'],
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
   motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
   preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
@@ -4703,7 +4704,11 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
     // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
     // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
     { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
-    { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
+    // Per mode, the note says what a mode's own density does and does not move (owner, 2026-09-29, docs/28
+    // §5.4.3); the sentence is the density lever's own, so the knob and the section read the same.
+    { title: 'Density & size', sub: perMode
+      ? 'Component sizing — control height per step. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.'
+      : 'Component sizing — control height per step. The density name stays stable; the heights shift, and each component’s padding and gaps move one step on the spacing scale.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
     // which is more use than a section that quietly vanished.
@@ -7614,10 +7619,18 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
   const labelWeight = (theme.typography.weightRolesByMode?.[currentMode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)!.value;
   const sizes = theme.dims.sizesByMode?.[currentMode] ?? theme.dims.sizes;
   const radius = rp.dims['radius.md'] ?? 4;
+  // Button's spacing is its own spec's (the spacing model): its comfortable `space.*` steps, moved one step for
+  // the brand's density, exactly as the Figma build materializes them. The brand's BASELINE density — a Figma
+  // component binds one space variable per side, so a mode's own density moves its heights, not this.
+  // Read from the data-only `button-spacing.ts`, never from `componentDefs`: an ungated reference to the defs
+  // would pull every def's prose into the web bundle (`COMPONENT_CATALOGUE`).
+  const spacePx = sizeRefPx(theme.dims.sizes);
   const list = el('div', 'btnl-list');
   for (const b of BUTTON_SIZES) {
-    const z = sizes.find((x) => x.name === b.step);
-    if (!z) continue;
+    const h = sizes.find((x) => x.name === b.step);
+    if (!h) continue;
+    const at = (k: string): number => { const key = `size.${b.size.toLowerCase()}.${k}`; return spacePx(densitySpacingStep(key, (BUTTON_SPACING as Record<string, string>)[key], theme.dims.density)) ?? 0; };
+    const z = { height: h.height, padX: at('padding-x'), padXVisual: at('padding-x-visual'), gap: at('gap') };
     const off = smaller && b.step === 'md';
     const iconPx = ICON_SIZES.find((i) => i.name === (off ? 'xs' : b.icon))?.px ?? 16;
     const labelPx = theme.typography.composites.find((c) => c.group === 'label' && c.variant === (off ? 'sm' : b.label))?.sizePx ?? 14;
@@ -7686,8 +7699,9 @@ const renderShadowSpecimen = (): HTMLElement => {
 };
 
 /** The control-size preview: the component-size tier (sm→xl) as mini control boxes at their resolved
- *  height + horizontal padding, so the DENSITY lever has a visible payoff (the preview components bind
- *  the space scale directly, not `size.*`, so nothing else shows the size tier). Mode-aware (D): reflects
+ *  height, so the DENSITY lever has a visible payoff (the preview components bind the space scale
+ *  directly, not `size.*`, so nothing else shows the size tier). Heights only: each component states its
+ *  own padding (the spacing model), shown on the button specimen. Mode-aware (D): reflects
  *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier.
  *  Fills a caller-owned node so it repaints beside the density control (#265). */
 const paintSizePreview = (into: HTMLElement): void => {
@@ -7699,8 +7713,8 @@ const paintSizePreview = (into: HTMLElement): void => {
     const cell = el('div', 'sz-cell');
     const box = el('div', 'sz-box', z.name);
     box.style.height = `${z.height}px`;
-    box.style.padding = `0 ${z.padX}px`;
-    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px · pad ${z.padX}/${z.padY}`), tokenPill(`size.${z.name}.height`));
+    box.style.padding = '0 8px';
+    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px`), tokenPill(`size.${z.name}.height`));
     list.append(cell);
   }
   into.append(list);

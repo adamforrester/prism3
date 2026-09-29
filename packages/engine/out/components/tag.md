@@ -56,7 +56,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 | `onClick` | function | — | no | The toggle a select tag fires. Suppressed while disabled or read-only. |
 | `onRemove` | function | — | no | Called when a dismissible tag's remove control is pressed, or when Delete or Backspace is pressed on the focused tag. |
 | `leadingIcon` | slot | — | no | An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type, on the same rungs as Button. Medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than it is tall. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type. The height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
 | `disabled` | boolean | `false` | no | Removes the tag from interaction and dims it. Don't disable every tag in a group; hide the group instead. |
 | `readOnly` | boolean | `false` | no | Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims. |
 
