@@ -7,6 +7,45 @@
 
 ---
 
+## (2026-09-29) — Style guide: one table at a time, yielding to Figma, a header that spans its table and the owner's HUG grid (#1778, #259)
+
+**STATUS: PR open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #259.** ENGINE 0.198.0 → **0.199.0** (rebased over #1776, which took 0.198.0; the orchestrator renumbers at net), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
+
+**Why.** The owner's first full live run drew 41 tables in about 4.7 minutes and held Figma and the plugin for all of it (#1778). While the basics are debugged, the owner wants to run one table, or a few, and work up to all of them. Two scope additions came from the owner mid-lane (2026-09-29), both recorded as `docs/45` §2 decisions 10 and 11.
+
+**What it does.**
+- **A `tables` filter.** `StyleGuideOptions.tables`, the agent-link arg (validated like its siblings; an empty list or an empty name is `bad-args`), and a *Tables* field under the panel's *Customize*: titles separated by commas. Matching is case-insensitive on the title as drawn ("Primary — nbds") or on the key. A name that matches nothing is reported by name with every title the run can draw, and the run is not a pass ("⚠ 1 drawn, 1 not found", "✗ no table matched").
+- **A filtered run covers only the tables it draws.** The stale/replaced candidate loop is scoped the way `types` already scoped it (#1749 review item 4): with `tables` set there are no candidates at all, so a skipped table is never stale, replaced, kept or deleted. The re-stack runs only on the pages the run drew on. On that page the tables keep their order, the one above does not move, and the ones below move by exactly the drawn table's change in height.
+- **Yielding (#1778).** `runStyleGuide` takes a fourth argument, `{ yieldTo?, onProgress? }`, kept off `StyleGuideOptions` because it never crosses the bridge. It reuses the component writer's `realYield` (#699/#724, now exported), yielding after every table and every `max(1, floor(28 / columns))` rows within one. `CELLS_PER_YIELD = 28` is ~0.9s at the ~32ms a cell the owner's run averaged (4.7 minutes over ~8,800 cells, the prism3 emission's 4,394 twice for two roots): proposed, and the live `tableMs` readings are what to calibrate it against.
+- **Progress.** A `style-guide-progress` message before the first table and after each. The panel's pending pill reads "Drawing table 7 of 22…" on the page row and the bar; the console logs `[prism3 #1778] style guide: table 7 of 22, <title>, <ms>ms`; an agent gets it as progress phase `table` (the bridge's `message` then reads `table 7/22`). The dispatcher treats it as progress, never as a verdict.
+- **The header spans its table (owner decision 10).** The `_Section-header` instance FILLs the wrapper, which hugs the grid, instead of keeping its component's 2,517px. FIXED at the grid's width is the fallback, and a wrapper left wider than its grid is named in the verdict.
+- **The owner's grid model (owner decision 11),** measured live on "↳ Style Guide Examples": every column and row track HUG, every cell FILL on both axes, every text `WIDTH_AND_HEIGHT` on one line. The FIXED column widths, the 360px description cap and `wrapTo` are gone; `docs/45` §6 keeps their history. The specimen's ground frame FILLs its track too (proposed: the owner's examples place the swatch instance itself), and the gap stays 0 where the examples use 2px (proposed, held for the owner).
+- **Counts agree with their number:** "✓ style guide: 1 table", "1 table created". A filtered run made "1 tables" common.
+
+**The shim.** `test-style-guide.ts`'s node shim now models the owner's grid: a HUG track is as wide as its widest cell's content (a FILL cell counts what it would hug), a FILL cell takes its track on both axes, a hugging grid is its tracks, and `resize` leaves a hugging or filling frame FIXED, as a drag does. A grid dragged wider spreads its extra evenly across HUG tracks. That share is the shim's own assumption, so the reflow test asserts only that the tracks fill the grid and every cell follows. The header component in the fixture is 2,517px FIXED, as the owner's is.
+
+**Traps for whoever works here next.**
+- **An uncached track model made the suite 8× slower** (278s against main's 33s). Every FILL cell's width is its column's widest content, and the fingerprint reads 1,750 cell widths in the 124-row table, plus a nested FILL layer's parent on every walk. The shim now caches each grid's tracks per *layout epoch*: every `N` is a proxy that bumps a counter on every write. The one blind spot, a write inside a nested object, is named beside it. The suite runs in ~60s under the lane's load.
+- **`setTimeout(0)` costs ~1.2ms in node.** The suite's ~70 runs yield thousands of times, so every run injects a `setImmediate` yield (`draw()` in the test). `realYield` itself is exercised only live, the same limit the component writer's header states.
+- **`pkill -f <file>` inside a command line that names `<file>` kills that command's own shell.** An edit chained after it never ran, and the next run measured the unedited file. Kill by PID, or keep the kill in its own call.
+- **Not checked offline:** the host's share of a dragged grid's width, a header FILLing in a hugging wrapper, and that the yields keep Figma responsive. All three are `docs/45` §7 live-checks.
+
+**Tests.** `test-style-guide.ts` sections 12–14 (literal, through the shim): the reflow; the filter on the two-root file (one table in place, the 42 others untouched with their grid and fingerprint, none stale; a semantic table put 50px off the stack is not re-flowed, because that page was not drawn on; two new rows move the 19 tables below by exactly 144px and leave the one above; any case, or a key; unknown names); the yields with a counting `yieldTo`. Section 2 asserts the owner-cell table, its grid and its header all at 2,828px; section 5 asserts HUG tracks, FILL cells and one-line text in all 22 tables, and the description column at its longest line (630 + 16 + 16 = 662). `test-agent-link.ts` covers the `tables` bad-args and the progress mapping; `test:verdict` covers the Tables field crossing the bridge and the page's pill counting "Drawing table 7 of 22…".
+
+**Mutations,** after a `wip:` commit, each restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| the filter ignored (draws everything) | "13: tables: ["Primary — nbds"] draws that one table", "13: every other table is untouched…", "13: the semantic page, which the filtered run did not draw on, is not re-stacked" |
+| the skipped tables treated as candidates (the `tables` scope removed) | "13: the tables a filtered run skips are not stale, not replaced, not deleted and not reported (stale 41, deleted 41, kept 1)" |
+| the per-row yield removed | "14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (1 yields…)" |
+| the per-table yield removed | "14: the host gets control back after every table (none after table 17, 21, 22)" |
+| the header left at its component width | "2: the table and its header are as wide as its grid, 2828px… (header 2517)", "12: the table and its header hug the grid…" |
+| a FIXED column track | "5: every column and row track of every table is HUG" (and the width arms in 2 and 5) |
+| a text cell left hugging | "5: every text cell FILLs its track, both axes (3372 of 3372 do not)", "12: every cell follows its track…" |
+
+---
+
 ## (2026-09-29) — Badge's neutral pairs are mode contracts, not example-brand measurements (#1745)
 
 **The gap.** Badge's accessibility lines rest on three neutral pairs, and `test.ts` measured each only in the five example brands. The engine contracted none of them: `border.secondary` carried `min: 0`, `inverse.foreground.tertiary` was a `self` surface, and `inverse.text.primary` is contracted against the inverse BAND, not the band's third step that Badge paints its bold neutral with. A client brand got no check. ENGINE 0.197.0 → **0.198.0** (MINOR; renumbered at net after #1749 took 0.197.0). CONTRACT stands at 13.2.0 (no token name moves).

@@ -124,6 +124,10 @@ export interface StyleGuideOptions {
   description?: boolean;
   /** Override the specimen chosen from each token's role. `auto` (default) chooses per row. */
   display?: 'auto' | SwatchType;
+  /** Draw only these tables (#1778), each named by its title as drawn ("Primary — nbds") or its key, in any
+   *  case; absent means every table. A name that matches no table is reported by name. A filtered run covers
+   *  only the tables it draws: no other table is stale, replaced or deleted by it. */
+  tables?: string[];
 }
 
 /** Messages the main thread sends TO the UI iframe. */
@@ -190,6 +194,12 @@ export type MainToUi =
    *  CALIBRATE the chunk size: the shim has no event loop, so that number cannot be gated and has to be
    *  observed. See `CHUNK` in `write-components.ts`. */
   | { type: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+  /** A style-guide run is UNDERWAY (#1778) — posted once before the first table (`done: 0`) and after each
+   *  table, so the pending pill reads "Drawing table 7 of 22…" while the executor yields to the host between
+   *  tables. Its own kind for the `component-progress` reason: a reading is not a verdict, and it must not
+   *  land in either action's result slot. `tableMs` is what the last table cost, the live run's calibration
+   *  data for the executor's yield spacing (`CELLS_PER_YIELD` in `style-guide.ts`); 0 on the first reading. */
+  | { type: 'style-guide-progress'; done: number; total: number; tableMs: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
    *

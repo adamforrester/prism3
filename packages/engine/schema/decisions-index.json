@@ -180,6 +180,13 @@
       "title": "the style-guide generator's coverage, layout, contrast column, rerun and cell components",
       "doc": "docs/45-style-guide-generator.md",
       "section": "2."
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "each table's header spans its table, and its grid hugs and reflows like the owner's examples",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
     }
   ]
 }
