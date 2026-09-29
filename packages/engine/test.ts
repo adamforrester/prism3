@@ -22508,6 +22508,154 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(disRows >= 40 && disMisses.length === 0,
     `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all ${disRows} brand×mode rows — misses: ${disMisses.join('; ') || 'none'}`);
 
+  // (4c) #1626 / #1763 — EVERY `on-fill` MEASURED AGAINST EVERY FILL STATE IT SITS ON. The mode contract
+  // gates `interactive.<c>.on-fill` (and its `inverse.` twin) against `fill.rest` only, so the four engaged
+  // fills were never measured against the label painted on them. This arm measures all five, for every
+  // on-fill role the engine emits (page and inverse ground, every family), in every mode of every corpus
+  // brand, prism3 and the NB master theme, from RESOLVED hexes — never a role's own `ratio`.
+  //
+  // The floor is AUTHORED here: `on-fill` is a TEXT ink (the button label), so 4.5:1 (SC 1.4.3). The same
+  // role also paints non-text marks — the switch's on thumb and the checkbox's checked mark, whose 1.4.11
+  // floor is 3:1 — but it is one role with one declared min, so the stricter bar governs; a role that
+  // declares any other min fails the drift arm below rather than silently moving this bar.
+  //
+  // What each state is held to:
+  //   rest              — a hard floor, no exemption.
+  //   hover / pressed   — MEASURED, EXEMPT: transient states, exempt from the ink contract by the owner
+  //                       (#1456 on the inverse band; #1626, 2026-09-26, on the page — "hover and pressed do
+  //                       not have to meet contrast" until the before/after comparison is decided).
+  //   focused / selected — HELD at the floor, against the pinned register below. These states persist (a
+  //                       checked checkbox, an on switch), so no exemption is claimed for them. Every one that
+  //                       misses today is written down as a LITERAL (measured 2026-09-29 at ENGINE 0.196.0),
+  //                       because the fix is a visible colour choice the engine's own mechanisms cannot make:
+  //                       in `dark` the fill window that clears its 3:1 floor AND keeps the near-white label
+  //                       at 4.5:1 is the rest step alone, so no re-step exists, and no single neutral ink
+  //                       clears rest and selected together (#1626 holds the measured options). A NEW miss
+  //                       fails by name; a pinned miss that moves or clears fails as stale — both directions,
+  //                       so the register cannot drift silently while the owner decides.
+  {
+    const ONFILL_FLOOR = 4.5;
+    const ONFILL_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
+    const TRANSIENT = new Set(['hover', 'pressed']);
+    // `brand mode role` → [focused, selected]; null = that state clears the floor. Literals, not a formula.
+    const ONFILL_KNOWN_MISSES: Record<string, [number | null, number | null]> = {
+      'nb light inverse.interactive.primary.on-fill': [3.33, 2.54],
+      'nb light inverse.interactive.destructive.on-fill': [3.33, 2.54],
+      'nb dark interactive.primary.on-fill': [3.59, 2.6],
+      'nb dark interactive.destructive.on-fill': [3.59, 2.6],
+      'nb dark inverse.interactive.primary.on-fill': [3.92, 3.03],
+      'nb dark inverse.interactive.destructive.on-fill': [3.92, 3.03],
+      'aurora light inverse.interactive.primary.on-fill': [3.3, 2.54],
+      'aurora light inverse.interactive.destructive.on-fill': [3.3, 2.54],
+      'aurora dark inverse.interactive.primary.on-fill': [3.92, 3.05],
+      'aurora dark inverse.interactive.destructive.on-fill': [3.92, 3.05],
+      'harbor light inverse.interactive.primary.on-fill': [3.32, 2.55],
+      'harbor light inverse.interactive.destructive.on-fill': [3.31, 2.54],
+      'harbor dark interactive.primary.on-fill': [3.62, 2.62],
+      'harbor dark inverse.interactive.primary.on-fill': [3.91, 3.03],
+      'harbor dark inverse.interactive.destructive.on-fill': [3.92, 3.04],
+      'wendys light inverse.interactive.primary.on-fill': [3.47, 2.66],
+      'wendys light inverse.interactive.destructive.on-fill': [3.32, 2.55],
+      'wendys dark interactive.primary.on-fill': [3.67, 2.54],
+      'wendys dark interactive.destructive.on-fill': [3.31, 2.41],
+      'wendys dark inverse.interactive.primary.on-fill': [null, 3.55],
+      'wendys dark inverse.interactive.destructive.on-fill': [3.9, 3.04],
+      'minimal light inverse.interactive.primary.on-fill': [3.59, 2.76],
+      'minimal light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'minimal dark interactive.primary.on-fill': [3.21, 2.32],
+      'minimal dark inverse.interactive.primary.on-fill': [4.36, 3.39],
+      'minimal dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
+      'minimal-levers light inverse.interactive.primary.on-fill': [3.59, 2.76],
+      'minimal-levers light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'minimal-levers dark interactive.primary.on-fill': [3.21, 2.32],
+      'minimal-levers dark inverse.interactive.primary.on-fill': [4.36, 3.39],
+      'minimal-levers dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
+      'minimal-bp2 light inverse.interactive.primary.on-fill': [3.59, 2.76],
+      'minimal-bp2 light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'minimal-bp2 dark interactive.primary.on-fill': [3.21, 2.32],
+      'minimal-bp2 dark inverse.interactive.primary.on-fill': [4.36, 3.39],
+      'minimal-bp2 dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
+      'minimal-weights light inverse.interactive.primary.on-fill': [3.59, 2.76],
+      'minimal-weights light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'minimal-weights dark interactive.primary.on-fill': [3.21, 2.32],
+      'minimal-weights dark inverse.interactive.primary.on-fill': [4.36, 3.39],
+      'minimal-weights dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
+      'minimal-compact light inverse.interactive.primary.on-fill': [3.59, 2.76],
+      'minimal-compact light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'minimal-compact dark interactive.primary.on-fill': [3.21, 2.32],
+      'minimal-compact dark inverse.interactive.primary.on-fill': [4.36, 3.39],
+      'minimal-compact dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
+      'minimal-weight-swap light inverse.interactive.primary.on-fill': [3.59, 2.76],
+      'minimal-weight-swap light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'minimal-weight-swap dark interactive.primary.on-fill': [3.21, 2.32],
+      'minimal-weight-swap dark inverse.interactive.primary.on-fill': [4.36, 3.39],
+      'minimal-weight-swap dark inverse.interactive.destructive.on-fill': [3.93, 3.06],
+      'prism3 light inverse.interactive.primary.on-fill': [3.31, 2.54],
+      'prism3 light inverse.interactive.destructive.on-fill': [3.3, 2.53],
+      'prism3 dark interactive.primary.on-fill': [3.6, 2.59],
+      'prism3 dark inverse.interactive.primary.on-fill': [3.91, 3.04],
+      'prism3 dark inverse.interactive.destructive.on-fill': [3.92, 3.05],
+      'NB-master light inverse.interactive.destructive.on-fill': [3.34, 2.56],
+    };
+    const ONFILL_ROLE = /^(inverse\.)?interactive\.[^.]+\.on-fill$/;
+    const restUnder: string[] = [], minDrift: string[] = [], unmeasured: string[] = [], newMisses: string[] = [], stale: string[] = [];
+    const visited = new Set<string>(), grounds = new Set<string>(), families = new Set<string>();
+    const perState: Record<string, number> = {};
+    let onRows = 0, onRoles = 0, transientUnder = 0;
+    const brandsForOnFill = [
+      ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
+      { id: 'prism3', theme: prism3 }, { id: 'NB-master', theme: master },
+    ];
+    for (const { id, theme } of brandsForOnFill)
+      for (const m of resolveAllModes(theme)) {
+        onRows++;
+        for (const k of Object.keys(m.roles).filter((r) => ONFILL_ROLE.test(r))) {
+          onRoles++;
+          const ink = m.roles[k];
+          const base = k.slice(0, -'on-fill'.length);
+          grounds.add(k.startsWith('inverse.') ? 'inverse' : 'page');
+          families.add(k.split('.').slice(-2)[0]);
+          if (ink.min !== ONFILL_FLOOR) minDrift.push(`${id} ${m.mode} ${k} declares min ${ink.min}`);
+          // The fill states the ENGINE emitted for this family — read off the role set, independent of
+          // ONFILL_STATES, so a state this arm stops measuring is reported by name rather than skipped.
+          for (const r of Object.keys(m.roles).filter((r) => r.startsWith(`${base}fill.`))) {
+            const st = r.slice(`${base}fill.`.length);
+            if (!ONFILL_STATES.includes(st)) unmeasured.push(`${id} ${m.mode} ${r}`);
+          }
+          const key = `${id} ${m.mode} ${k}`;
+          for (const st of ONFILL_STATES) {
+            const fill = m.roles[`${base}fill.${st}`];
+            if (!fill) { unmeasured.push(`${id} ${m.mode} ${base}fill.${st} MISSING`); continue; }
+            perState[st] = (perState[st] ?? 0) + 1;
+            const r = ratio(ink.hex, fill.hex);
+            if (st === 'rest') { if (r < ONFILL_FLOOR) restUnder.push(`${key} rest ${r}:1`); continue; }
+            if (TRANSIENT.has(st)) { if (r < ONFILL_FLOOR) transientUnder++; continue; }
+            const pinned = ONFILL_KNOWN_MISSES[key]?.[st === 'focused' ? 0 : 1] ?? null;
+            if (pinned !== null) visited.add(`${key}/${st}`);
+            if (pinned === null && r < ONFILL_FLOOR) newMisses.push(`${key} ${st} ${r}:1`);
+            else if (pinned !== null && r !== pinned) stale.push(`${key} ${st} pinned ${pinned}:1, now ${r}:1`);
+          }
+        }
+      }
+    for (const [key, pair] of Object.entries(ONFILL_KNOWN_MISSES))
+      (['focused', 'selected'] as const).forEach((st, i) => {
+        if (pair[i] !== null && !visited.has(`${key}/${st}`)) stale.push(`${key} ${st} pinned ${pair[i]}:1, not measured`);
+      });
+    ok(onRows >= 40 && grounds.size === 2 && ['primary', 'destructive', 'neutral'].every((f) => families.has(f))
+      && ONFILL_STATES.every((st) => (perState[st] ?? 0) === onRoles),
+      `#1626 on-fill × fill-state represented: ${onRoles} on-fill roles across ${onRows} brand×mode rows, page and inverse ground (${[...grounds].sort().join('/')}), families ${[...families].sort().join('/')}, every state measured once per role (${ONFILL_STATES.map((s) => `${s}=${perState[s] ?? 0}`).join(', ')}); ${transientUnder} hover/pressed pairs under ${ONFILL_FLOOR}:1, exempt`);
+    ok(unmeasured.length === 0,
+      `#1626 every fill state the engine emits under an on-fill's family is measured against that on-fill — unmeasured: ${unmeasured.slice(0, 6).join('; ') || 'none'}${unmeasured.length > 6 ? ` (+${unmeasured.length - 6})` : ''}`);
+    ok(minDrift.length === 0,
+      `#1626 every on-fill role declares the ${ONFILL_FLOOR}:1 text floor this arm measures by — drift: ${minDrift.slice(0, 6).join('; ') || 'none'}`);
+    ok(restUnder.length === 0,
+      `#1626 every on-fill clears ${ONFILL_FLOOR}:1 on its rest fill (hard floor) — under: ${restUnder.slice(0, 6).join('; ') || 'none'}`);
+    ok(newMisses.length === 0,
+      `#1626 no on-fill falls under ${ONFILL_FLOOR}:1 on a focused or selected fill outside the pinned register — a new miss is a regression: ${newMisses.slice(0, 6).join('; ') || 'none'}${newMisses.length > 6 ? ` (+${newMisses.length - 6})` : ''}`);
+    ok(stale.length === 0,
+      `#1626 / #1763 the pinned focused/selected misses still measure exactly as written — a moved or cleared entry means the register is stale: ${stale.slice(0, 6).join('; ') || 'none'}${stale.length > 6 ? ` (+${stale.length - 6})` : ''}`);
+  }
+
   // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
   // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
   const set = figmaAnatomySet(sc);

@@ -7,6 +7,27 @@
 
 ---
 
+## (2026-09-29) — On-fill: the label measured on every interactive fill state; the fix held for the owner (#1626, #1763)
+
+**What landed.** A `test.ts` arm, `(4c) #1626`, measures every `on-fill` role the engine emits (page and inverse ground, every family) against all five fill states (`rest`, `hover`, `pressed`, `focused`, `selected`) in every mode of every corpus brand, prism3 and the NB master theme, from resolved hexes. The floor is authored in the test at 4.5:1, because `on-fill` is a text ink. Rest is a hard floor. Hover and pressed are measured and exempt, by the owner's standing position (#1456 on the inverse band; the #1626 comment of 2026-09-26 on the page). Focused and selected persist, so they are held at the floor against a pinned register of today's misses, written as literals. The arm fails in both directions: a new miss fails as a regression, and a pinned entry that moves or clears fails as stale. It also fails if the engine emits a fill state the arm does not measure, or if an `on-fill` declares a min other than 4.5. No engine code or emitted artifact changed, so ENGINE stays at 0.196.0 and CONTRACT at 13.2.0.
+
+**What did not land, and why.** The brief asked for the failures fixed through an existing engine mechanism and the #1763 exemption removed. No mechanism reaches it, measured across the corpus, prism3 and the NB master theme:
+- **Re-step the fill (page, dark).** The walk would have to count steps where the fill clears its 3:1 floor on the page *and* the near-white label clears 4.5:1. That window is the rest step alone (nb, harbor, wendys primary, prism3) or rest plus one darker step (minimal, wendys destructive). Neither direction supplies the two or four qualifying rungs a state needs.
+- **Re-pick one ink over rest + focused + selected.** The best of `onColor`'s candidates is pure black, at 3.55–4.23:1 for primary. Wendys destructive is the one row it clears (4.57:1).
+Every working option changes a visible color, so it is the owner's call. The measured options: a per-state ink (page dark focused 4.94–5.86, selected 6.91–8.05; needs new token names, a MINOR contract bump); painting focused/selected on `fill.rest` (4.59–5.53; the checked checkbox, the on switch and a focused button take the rest color in every mode); on the inverse band, the existing strict-contrast setting (10.75–19.60 at every state, neutral label) or a brand ink re-picked to clear every state (selected 4.56–5.25, but rest moves to a deeper brand step, 600–650 light and 300–350 dark). A before/after comparison page, which the owner asked for on #1626, shows every failing case under each option. The #1763 switch exemption (`darkOnGap === 10`) stays until one is chosen.
+
+**The numbers.** 113 focused or selected pairs miss 4.5:1 across 57 brand × mode × role rows. Page ground, `dark` only: primary everywhere but aurora (focused 3.21–3.67, selected 2.32–2.62), destructive in nb (3.59 / 2.60) and wendys (3.31 / 2.41). Inverse band, light and dark: primary and destructive in every brand (focused 3.30–4.36, selected 2.53–3.55), from the #1456 stepped neutral fills; the NB master theme's primary inverse ink is overridden to `neutral.950` and clears. HC modes clear everywhere. The switch's on thumb and the checkbox's checked mark are the `primary` selected pairs, so they miss the 3:1 glyph floor too.
+
+**Mutations** (committed first, restored from HEAD):
+- M1, focused/selected added to the transient set (the arm disabled): `#1626 / #1763 the pinned focused/selected misses still measure exactly as written` fails, every entry "not measured".
+- M2, `selected` dropped from the measured states: `#1626 every fill state the engine emits … is measured` fails naming each `fill.selected`, and the stale arm fails too.
+- M3, the `nb dark interactive.primary.on-fill` register row deleted (the exemption removed): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill outside the pinned register` fails on `nb dark … focused 3.59:1; … selected 2.6:1`.
+- M4, subject: `modes.ts` walks `selected` six rungs: the stale arm fails (`nb dark … selected pinned 2.6:1, now 1.92:1`, and so on), beside the existing #1763 aurora literal.
+
+**Trap for whoever re-verifies.** The register is keyed by the corpus id's first word, so `minimal`'s five variants each carry their own rows. They share one palette and today measure identically. A new corpus member with any on-fill miss fails the arm until its rows are added, which is the intent.
+
+---
+
 ## (2026-09-28) — Veil: directional gradient washes, and component-level gradient paint (#1318)
 
 **Owner-decided (three decisions on #1318).** Veil gains a variant axis `direction` (`full | from-top | from-bottom | from-left | from-right`, default `full`), so the set goes from 6 to 30 members. A directional member is a two-stop linear gradient: the (value, intensity) role at full strength on the named edge, fading to clear at the opposite edge. The clear end is a role per polarity, `veil.dark.clear` and `veil.light.clear`. ENGINE 0.195.0 → **0.196.0** (renumbered at net after #1757 and #1765 took 0.194.0 and 0.195.0); CONTRACT 13.1.0 → **13.2.0** (MINOR, three adds).
