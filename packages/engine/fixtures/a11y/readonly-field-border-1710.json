@@ -1,5 +1,6 @@
 {
   "issue": 1710,
+  "readBy": "Nothing. This file is not read by any gate, test or build: it is the measurement record behind the owner's #1710 decision (option A, `field.border.rest`, 2026-09-29), kept so the options can be re-checked. The live check is the #1710 block in packages/engine/test.ts.",
   "measured": "2026-09-29",
   "engineVersion": "0.196.0",
   "what": "Candidate borders for the read-only member of text-field, textarea and select, measured against the two page grounds a field sits on. The default field.fill is transparent, so the read-only fill is the ground. Ratios are WCAG 2.x contrast, recomputed from the resolved hexes; the floor is 3:1 (SC 1.4.11).",
