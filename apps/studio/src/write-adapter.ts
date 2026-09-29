@@ -215,6 +215,7 @@ export type StyleGuideOptionsMsg = {
   fontDisplay?: 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
   paragraphSpacing?: boolean;
   textDecoration?: boolean;
+  titleCell?: boolean;
 };
 /** Kept in sync with `messages.ts` `UiToMain` (`style-guide`, #259). */
 type UiStyleGuideMsg = { type: 'style-guide'; options?: StyleGuideOptionsMsg };

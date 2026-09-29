@@ -2934,7 +2934,9 @@
  * fields and agent-link args (`pixels`, `rem`, `dimensionDisplay`, `fontDisplay`, `paragraphSpacing`,
  * `textDecoration`). A plugin behavior change (principle 5) → ENGINE bump; no engine emission or projected surface
  * moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 13.2.0. Design record:
- * `docs/45-style-guide-generator.md` §6, "How phase 2 decides".
+ * `docs/45-style-guide-generator.md` §6, "How phase 2 decides". In the same release (owner decision 15): a title
+ * cell on every table type (`titleCell`), a leading "Name" column with the path humanized ("Text Primary"), a
+ * designer's edit kept on rerun, and the title column left out of the superseded-table fingerprint.
  *
  * 0.199.0 — #1778 + #259 (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an

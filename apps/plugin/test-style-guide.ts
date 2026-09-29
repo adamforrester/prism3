@@ -59,6 +59,8 @@
  *      pinned; px and REM at 16px; ramp order; a font variable's one property bound; the fluid type-sets sizes side by
  *      side; the text-style table in the file's order with its style applied; the toggled columns; a rerun in place;
  *      the tables filter; the phase boundary; a refused binding named.
+ *  20. THE TITLE CELL (owner decision 15): off by default; humanized defaults; an edit survives reruns while an unedited
+ *      title follows a rename; a title edit is not an edit to the table when a superseded table is judged.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -167,7 +169,9 @@
  *     REM at 10px → "16: its value reads px and REM at a 16px base…" and ten more; a lexical sort → "16: the space scale
  *     in ramp order…", "16: a ramp stored 16, 4, 100, 2…"; the text style not applied → "18: body/lg/default's specimen
  *     is "Abc 123" with its text style applied…"; the paragraph-spacing column always shown → "18: the text-style
- *     table…", "18: toggled off, the two columns are gone…".
+ *     table…", "18: toggled off, the two columns are gone…"; (title cell) the edit not preserved → "20: a hand-edited title
+ *     survives a rerun…"; the title column left in the fingerprint → "20: a superseded table whose only change is a
+ *     retitled row is deleted, unedited"; the humanizer returning the raw path → "20: humanized: …" and four more.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -181,7 +185,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy, humanizeName } from './src/style-guide';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
@@ -1738,6 +1742,55 @@ const main = async (): Promise<void> => {
     ok(refused.unbound === 17 && !v.ok && v.summary.includes('6 type=radius specimens are not bound to their variable') && v.summary.includes('11 font weight specimens are not bound to their variable'),
       `19: a binding the host refuses is counted and named, and is not a pass: ${refused.unbound} unbound — "${v.headline}"`);
     ok(v.headline === '⚠ 17 specimens unbound', `19: its headline counts specimens, not swatches: "${v.headline}"`);
+  }
+
+  console.log('20. the title cell, on every table type (owner decision 15)');
+  {
+    ok([...tablesOn(p2.sem), ...tablesOn(p2.prim), ...tablesOn(f.sem), ...tablesOn(f.prim)].every((w) => headerRow(w)[0] === 'Token'), '20: off by default: every table leads with Token, no Name column');
+    // THE DEFAULT: the path below the table's shared prefix, Title Case, size words upper-cased.
+    ok(humanizeName(['text', 'primary']) === 'Text Primary' && humanizeName(['display', 'xl', 'emphasis']) === 'Display XL Emphasis'
+      && humanizeName(['050'], 'space') === 'Space 050' && humanizeName(['xs', 'padding-x']) === 'XS Padding X' && humanizeName(['display', '2xl', 'strong']) === 'Display 2XL Strong',
+      `20: humanized: "Text Primary", "Display XL Emphasis", "Space 050", "XS Padding X", "Display 2XL Strong" (${humanizeName(['display', 'xl', 'emphasis'])})`);
+    /** The row whose Token cell (column 1, after Name) reads `token`. */
+    const rowBy = (g: N, token: string): number => g.children.find((k) => k.gridCol === 1 && textIn(k) === token)?.gridRow ?? -1;
+    const nameOf = (w: N, token: string): string => { const g = gridOf(w); return textIn(cellAt(g, rowBy(g, token), 0)); };
+    const c20 = await fullFile();
+    await draw(c20.api, contract, { titleCell: true, collections: ['color'] });
+    const text20 = tableFrame(c20.sem, 'Text')!;
+    const tn = cellAt(gridOf(text20), rowBy(gridOf(text20), 'primary'), 0);
+    ok(JSON.stringify(headerRow(text20).slice(0, 3)) === JSON.stringify(['Name', 'Token', 'light']) && textIn(tn) === 'Text Primary'
+      && tn?.mainComponent?.name === 'color=white, textAlign=left, type=default, padding=default' && tn.lsh === 'FILL' && tn.layoutSizingVertical === 'FILL'
+      && tn.findOne((k) => k.type === 'TEXT')?.textAutoResize === 'WIDTH_AND_HEIGHT',
+      `20: on, a color table leads with Name: text/primary reads "Text Primary" in a default text cell that FILLs its track, on one line (${headerRow(text20).slice(0, 3).join(' · ')}; "${textIn(tn)}")`);
+    ok(nameOf(tableFrame(c20.sem, 'Inverse')!, 'text/primary') === 'Inverse Text Primary', `20: an inverse role reads "Inverse Text Primary" (${nameOf(tableFrame(c20.sem, 'Inverse')!, 'text/primary')})`);
+    const t20 = await phase2File();
+    await draw(t20.api, contract, { titleCell: true });
+    const ts20 = tableFrame(t20.sem, 'Text styles')!;
+    const space20 = tableFrame(t20.sem, 'Space')!;
+    ok(headerRow(ts20)[0] === 'Name' && nameOf(ts20, 'display/3xl/emphasis') === 'Display 3XL Emphasis' && nameOf(space20, '050') === 'Space 050'
+      && nameOf(tableFrame(t20.sem, 'Size')!, 'xs/height') === 'XS Height' && nameOf(tableFrame(t20.prim, 'Font size (core)')!, '16') === 'Size 16',
+      `20: a text style reads "Display 3XL Emphasis", a dimension "Space 050" and "XS Height", a font size "Size 16" (${nameOf(ts20, 'display/3xl/emphasis')}, ${nameOf(space20, '050')})`);
+    // A DESIGNER'S EDIT SURVIVES; an unedited title follows a rename.
+    const titleText = (w: N, token: string): N => cellAt(gridOf(w), rowBy(gridOf(w), token), 0)!.findOne((k) => k.type === 'TEXT')!;
+    titleText(space20, '050').characters = 'Gutter small';
+    t20.vars.find((v) => v.name === 'pds3/space/025')!.name = 'pds3/space/020';
+    await draw(t20.api, contract, { titleCell: true });
+    const sp = tableFrame(t20.sem, 'Space')!;
+    ok(nameOf(sp, '050') === 'Gutter small' && nameOf(sp, '020') === 'Space 020', `20: a hand-edited title survives a rerun ("${nameOf(sp, '050')}"), an unedited one follows its renamed token ("${nameOf(sp, '020')}")`);
+    await draw(t20.api, contract, { types: ['dimension'] });
+    await draw(t20.api, contract, { titleCell: true });
+    ok(nameOf(tableFrame(t20.sem, 'Space')!, '050') === 'Gutter small', '20: the edit survives a run drawn without the title column, and returns with it');
+    // A TITLE EDIT IS NOT AN EDIT TO THE TABLE: a superseded table whose only change is a title is deleted, unedited;
+    // one with a value retyped is kept.
+    titleText(tableFrame(t20.sem, 'Radius')!, 'md').characters = 'Medium corner, for cards';
+    const dv = gridOf(tableFrame(t20.prim, 'Density')!);
+    const dText = cellAt(dv, rowBy(dv, 'space/gap'), 3)!.findOne((k) => k.type === 'TEXT')!;
+    dText.characters = String(dText.characters).replace('8px', '9px');
+    for (let i = t20.vars.length - 1; i >= 0; i--) if (/^pds3\/radius\/|^density\//.test(t20.vars[i].name)) t20.vars.splice(i, 1);
+    const sup = await draw(t20.api, contract, { titleCell: true });
+    ok(sup.deleted.includes('Style guide — Radius') && !tableFrame(t20.sem, 'Radius'),
+      `20: a superseded table whose only change is a retitled row is deleted, unedited (deleted ${JSON.stringify(sup.deleted)}; kept ${JSON.stringify(sup.kept)})`);
+    ok(JSON.stringify(sup.kept) === JSON.stringify([{ name: 'Style guide — Density', reason: 'edited' }]), `20: one with a value retyped is still kept as edited (${JSON.stringify(sup.kept)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

@@ -252,7 +252,7 @@ section('style-guide — tables reach the handler; a table reading is progress, 
   ok(!posted.some((m) => m.type === 'style-guide-progress'), 'style-guide: an agent run\'s table readings are not forwarded to the panel as verdicts');
 
   // #259 phase 2: the dimension, font-variable and text-style options reach the handler as sent.
-  const p2args = { types: ['dimension', 'typography'], pixels: false, rem: true, dimensionDisplay: 'radius', fontDisplay: 'letterSpacing', paragraphSpacing: true, textDecoration: false };
+  const p2args = { types: ['dimension', 'typography'], pixels: false, rem: true, dimensionDisplay: 'radius', fontDisplay: 'letterSpacing', paragraphSpacing: true, textDecoration: false, titleCell: true };
   actions.styleGuide = async (...a: unknown[]) => {
     got = a[0];
     (a[1] as { post(m: unknown): void }).post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '' });
@@ -414,7 +414,7 @@ section('failures — answered, never silent');
   const rf = (await read(sf.id)) as AgentResult;
   ok(rf.ok === false && rf.error?.code === 'bad-args' && calls.length === 0, 'style-guide with valueFormat cmyk → bad-args');
   for (const [args, what, re] of [[{ dimensionDisplay: 'bar' }, 'dimensionDisplay bar', /args\.dimensionDisplay/], [{ fontDisplay: 'color' }, 'fontDisplay color', /args\.fontDisplay/],
-    [{ rem: 'yes' }, 'rem as a string', /args\.rem/], [{ textDecoration: 1 }, 'textDecoration as a number', /args\.textDecoration/]] as const) {
+    [{ rem: 'yes' }, 'rem as a string', /args\.rem/], [{ textDecoration: 1 }, 'textDecoration as a number', /args\.textDecoration/], [{ titleCell: 'on' }, 'titleCell as a string', /args\.titleCell/]] as const) {
     calls.length = 0;
     const sb = await send('style-guide', args);
     await tick();

@@ -157,6 +157,8 @@ export interface SgRow {
   name: string;
   /** The name as the table prints it — the collection's shared prefix removed. */
   token: string;
+  /** The title cell's generated default (#259, owner decision 15): the path humanized, "Text Primary". */
+  label: string;
   description: string;
   display: SwatchType;
   cells: SgCell[];
@@ -453,6 +455,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
           token: display(v),
           description: v.description ?? '',
           display: options.display && options.display !== 'auto' ? options.display : auto,
+          label: humanizeName(segs.slice(prefix.length), prefix[prefix.length - 1]),
           cells,
         };
       });
@@ -493,6 +496,8 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
     const col = catalog.collections.find((c) => c.id === t.collectionId);
     if (col) t.title = `${t.title} (${col.name})`;
   }
+  // THE TITLE CELL (owner decision 15, 2026-09-29): a leading Name column on every table type, when asked for.
+  if (options.titleCell) for (const t of tables) t.columns.unshift('Name');
   return narrow(tables, notes, options.tables);
 };
 
@@ -641,7 +646,7 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
               : type === 'fontWeight' ? formatWeight(num) : formatLength(num, options);
             return { modeId: m.modeId, modeName: m.name, value, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
           });
-          return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
+          return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
         }));
         const n = rows.length;
         const k = mine.filter((m) => referenced.has(m.v.id)).length;
@@ -757,7 +762,7 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
       ...(options.paragraphSpacing ? [{ value: formatLength(s.paragraphSpacing ?? 0, options), alias: boundVar(s, 'paragraphSpacing')?.name ?? null }] : []),
       ...(options.textDecoration ? [{ value: sentence((s.textDecoration ?? 'NONE').toLowerCase()), alias: null }] : []),
     ];
-    return { variableId: s.id, name: s.name, token: s.name.split('/').slice(prefix.length).join('/'), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
+    return { variableId: s.id, name: s.name, token: s.name.split('/').slice(prefix.length).join('/'), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
   });
   const n = rows.length;
   return [{
@@ -774,6 +779,20 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
       ...(options.description === false ? [] : ['Description'])],
     rows,
   }];
+};
+
+/** A size word the humanized name keeps upper-case: xs, sm, md, lg, xl, 2xl, 3xl, xxl, 2xs (proposed, owner to confirm). */
+const SIZE_WORD = /^(\d*x{1,3}[sl]|sm|md|lg)$/i;
+/**
+ * THE TITLE CELL'S DEFAULT (owner decision 15, proposed rules): a token's path, below the table's shared prefix (the
+ * root or namespace and the collection's path), in Title Case, a word per path segment and per hyphen, size words
+ * upper-cased: `text/primary` → "Text Primary", `display/xl/emphasis` → "Display XL Emphasis", `on-brand` → "On Brand".
+ * A single step (`050` in `pds3/space`) keeps the last prefix segment, so it reads "Space 050", not "050".
+ */
+export const humanizeName = (segs: readonly string[], context?: string): string => {
+  const parts = segs.length === 1 && context ? [context, ...segs] : [...segs];
+  return parts.flatMap((p) => p.split(/[-_\s]+/)).filter(Boolean)
+    .map((w) => (SIZE_WORD.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 };
 
 /**
@@ -1016,6 +1035,13 @@ const PRINT_KEY = 'prism3-style-guide-print';
  *  duplicate and the id does not, so the frame id tells the generator's own frame from a designer's copy of it; the
  *  page id tells a table left on its page from one moved to another page at the same x and y. */
 const MARK_KEY = 'prism3-style-guide-mark';
+/** On a title cell (owner decision 15): the variable or style ID of its row, so its text is found again on rerun. */
+export const NAME_CELL_KEY = 'prism3-style-guide-name';
+/** On a table: `{ <row ID>: { auto, text } }`, the generated default and the text shown, per row, the last time the
+ *  title column was drawn. A cell whose text is not its `auto` is a designer's edit, and survives the rerun. */
+const NAMES_KEY = 'prism3-style-guide-names';
+/** The `NAME_CELL_KEY` value on the title column's header cell, which holds no row. */
+const NAME_HEADER = '#header';
 const AUTO_LAYOUT = new Set(['HORIZONTAL', 'VERTICAL']);
 /** Set a node's horizontal sizing where the host allows it: HUG and FILL throw on a node outside auto layout. */
 const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
@@ -1098,7 +1124,16 @@ const FONT_FIELDS = ['fontName', 'fontSize', 'fontWeight', 'textStyleId'] as con
  */
 const fingerprintOf = async (wrap: SgNode): Promise<string> => {
   const parts: string[] = [];
-  const walk = async (n: SgNode, depth: number): Promise<void> => {
+  // A TITLE CELL IS NOT AN EDIT (owner decision 15): a designer renames rows there, so a table with a title column
+  // leaves the title column out (its cells and its "Name" header, which fills the column), and with it the widths that follow the title column's width: the table's own, its
+  // grid's and its header's (all hug or fill to the grid). A table without a title column reads exactly as before,
+  // so a fingerprint recorded before the title cell still matches.
+  const titled = !!wrap.findOne?.((n) => !!(n as SgNode).getPluginData?.(NAME_CELL_KEY));
+  const walk = async (n: SgNode, depth: number, inHeader = false): Promise<void> => {
+    if (titled && n.getPluginData?.(NAME_CELL_KEY)) return;
+    const part = n.getPluginData?.(PART_KEY);
+    const header = inHeader || part === 'header';
+    const w = titled && (depth === 0 || part === 'table' || header) ? '' : Math.round(n.width ?? 0);
     const modes = n.explicitVariableModes && typeof n.explicitVariableModes === 'object'
       ? Object.entries(n.explicitVariableModes as Record<string, unknown>).map(([k, v]) => `${k}=${String(v)}`).sort().join(',') : '';
     const fields = FINGERPRINT_FIELDS.map((k) => stable(read(n, k)));
@@ -1111,9 +1146,9 @@ const fingerprintOf = async (wrap: SgNode): Promise<string> => {
       const m = (n.getMainComponentAsync ? await n.getMainComponentAsync().catch(() => null) : read(n, 'mainComponent')) as { id?: unknown } | null | undefined;
       main = `${String(m?.id ?? '')}:${stable(read(n, 'componentProperties'))}`;
     }
-    parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', Math.round(n.width ?? 0), Math.round(n.height ?? 0),
+    parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', w, Math.round(n.height ?? 0),
       typeof n.characters === 'string' ? n.characters : '', paintsKey(n.fills), paintsKey(n.strokes), modes, ...fields, fontKey, main].join('\u241f'));
-    for (const c of (n.children ?? []) as SgNode[]) await walk(c, depth + 1);
+    for (const c of (n.children ?? []) as SgNode[]) await walk(c, depth + 1, header);
   };
   await walk(wrap, 0);
   const s = parts.join('\n');
@@ -1346,6 +1381,23 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
 
     // The table's height before this run, which a filtered run's re-stack moves the tables below it by (#1778).
     const before = created ? 0 : num(wrap.height);
+    // THE TITLE CELLS' TEXT (owner decision 15), read before the grid goes: a cell a designer edited (its text is not
+    // the default the generator wrote) keeps its text. A table drawn last without the column keeps its record.
+    type NameRecord = Record<string, { auto: string; text: string }>;
+    const names = (() => { try { return JSON.parse(wrap.getPluginData?.(NAMES_KEY) || '{}') as NameRecord; } catch { return {} as NameRecord; } })();
+    const liveNames = new Map<string, string>();
+    for (const g of (wrap.children ?? []) as SgNode[]) if (g.getPluginData?.(PART_KEY) === 'table') {
+      for (const cell of (g.findAll?.((n) => !!(n as SgNode).getPluginData?.(NAME_CELL_KEY)) ?? []) as SgNode[]) {
+        const t = byName(cell, 'Text') ?? textNodes(cell)[0];
+        const id = cell.getPluginData!(NAME_CELL_KEY);
+        if (id !== NAME_HEADER && t && typeof t.characters === 'string') liveNames.set(id, t.characters);
+      }
+    }
+    const nameFor = (row: SgRow): string => {
+      const rec = Object.prototype.hasOwnProperty.call(names, row.variableId) ? names[row.variableId] : undefined;
+      const text = liveNames.get(row.variableId) ?? rec?.text;
+      return rec && text !== undefined && text !== rec.auto ? text : row.label;
+    };
     // The grid is rebuilt every run: the values are static text, refreshed here.
     for (const c of (wrap.children ?? []) as SgNode[]) if (c.getPluginData?.(PART_KEY) === 'table') c.remove?.();
     const grid = api.createFrame();
@@ -1448,12 +1500,24 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       fit(inst);
       place(inst, r, c);
     };
-    for (let c = 0; c < t.columns.length; c++) place(await textCell('header', headerColor, t.columns[c]), 0, c);
+    for (let c = 0; c < t.columns.length; c++) {
+      const h = await textCell('header', headerColor, t.columns[c]);
+      // The Name column's header is part of the title column: its width follows the titles, so the fingerprint skips it.
+      if (options.titleCell && c === 0) h?.setPluginData?.(NAME_CELL_KEY, NAME_HEADER);
+      place(h, 0, c);
+    }
     // YIELD WITHIN A BIG TABLE (#1778): whole rows at a time, about `CELLS_PER_YIELD` cells between yields.
     const rowsPerYield = Math.max(1, Math.floor(CELLS_PER_YIELD / t.columns.length));
     for (let r = 0; r < t.rows.length; r++) {
       const row = t.rows[r];
       let c = 0;
+      if (options.titleCell) {
+        const shown = nameFor(row);
+        const cell = await textCell('default', 'white', shown);
+        cell?.setPluginData?.(NAME_CELL_KEY, row.variableId);
+        place(cell, r + 1, c++);
+        names[row.variableId] = { auto: row.label, text: shown };
+      }
       place(await textCell('default', 'white', row.token), r + 1, c++);
       // PHASE 2 (#259): a dimension, font-variable or text-style row. A specimen and a value per mode, then the values
       // printed once (a text style's family, weight, letter spacing and its toggled columns). No contrast column.
@@ -1494,6 +1558,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (header && !sizing(header, 'FILL')) setWidth(header, grid.width ?? 0);
     if (header && !near(num(wrap.width), num(grid.width))) misses.push(`${t.title}: the header did not take the table's width, so the table is ${Math.round(num(wrap.width))}px wide around a ${Math.round(num(grid.width))}px grid`);
 
+    if (options.titleCell) wrap.setPluginData?.(NAMES_KEY, JSON.stringify(names));
     const after = snapshotOf(t);
     const was = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));

@@ -147,6 +147,9 @@ export interface StyleGuideOptions {
   paragraphSpacing?: boolean;
   /** Add a text-decoration column to the text-style table. Default off. */
   textDecoration?: boolean;
+  /** Add a leading "Name" column on every table: a readable name per row ("Text Primary") a designer can edit, kept
+   *  on rerun (owner decision 15). Default off (proposed). */
+  titleCell?: boolean;
 }
 
 /** Messages the main thread sends TO the UI iframe. */

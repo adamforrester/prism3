@@ -5263,6 +5263,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
     knob('Paragraph spacing', toggleField(styleGuideOptions.paragraphSpacing ?? false, (on) => { styleGuideOptions.paragraphSpacing = on; }), 'Add a paragraph-spacing column to the text-style table.'),
     knob('Text decoration', toggleField(styleGuideOptions.textDecoration ?? false, (on) => { styleGuideOptions.textDecoration = on; }), 'Add a text-decoration column to the text-style table.'),
+    knob('Title cell', toggleField(styleGuideOptions.titleCell ?? false, (on) => { styleGuideOptions.titleCell = on; }), 'Add a leading Name column to every table, “Text Primary” for text/primary. An edited name is kept on the next run.'),
     knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'),
   );
   sec.append(det);
