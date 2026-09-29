@@ -27,6 +27,8 @@
  * *verified contract* — a property Specs-CLI-style observed-value specs can't have.
  */
 import { normalizeRef, tokenPaths, isPrimitiveRef } from './eval';
+// The space ladder `densitySpacing` binds to (the spacing model). `scale.ts` is a leaf module: no cycle.
+import { SPACE_LADDER } from './scale';
 // #1602 — type-only (erased at runtime, so no cycle and no plugin-bundle weight) for the weightIntent
 // category. `theme.ts` imports nothing back from here.
 import type { TypeGroup } from './theme';
@@ -103,6 +105,13 @@ export type PaddingDef = {
   block: string;
   inlineLabel: string;
   inlineVisual?: string;
+  /** The TRAILING inline side's key, when it is not the label side's (the spacing model, 2026-09-29). Tag's
+   *  label row ends flush against a dismissible tag's × slot, so its trailing inset is 0 there and the label
+   *  side's inset elsewhere; the key carries the axis that decides it (`size.{size}.{type}.padding-end`) and
+   *  must resolve at every coordinate, like any other binding key. When present it replaces `inlineLabel` on
+   *  the trailing side; a def that also declares `inlineVisual` is refused (the two rules would both claim
+   *  that side). */
+  inlineEnd?: string;
 };
 
 /**
@@ -575,6 +584,19 @@ export type PartDef = {
    *  Refused on a non-`box` kind, on a `box` with no `layout`, beside the literal `minWidth` (two floors on one
    *  axis), and beside a bound `width` or `size` (a bound width already fixes the axis). */
   minWidthKey?: string;
+  /** For `box` parts: the minimum width as a MULTIPLE OF THE BOX'S OWN BOUND HEIGHT, rounded to the nearest
+   *  8px (`ratioMinWidth`). Tag's floor (owner, 2026-09-29): 1.5 × the tag's height, so 56/64/88 at
+   *  small/medium/large on comfortable density, and the number follows the height at every other density.
+   *
+   *  A COMPUTED value, and Figma binds a variable, not an expression, so the floor reaches Figma the way
+   *  Button's does (#1667): `applyMinWidthRatio` writes the per-size literal `minWidth` from the brand's
+   *  resolved heights before projection and drops this field. A brand change reaches the floor on a rebuild.
+   *  Code reads it as `min-inline-size`, computed from the height. A def projected with no brand in hand has
+   *  no floor, as Button has none.
+   *
+   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height`, beside `minWidth` or
+   *  `minWidthKey` (two floors on one axis), and when not a positive number. */
+  minWidthRatio?: number;
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -1393,6 +1415,15 @@ export type ComponentDef = {
    *  whose values are the intents. Validated in `validateComponentDef`. */
   weightIntent?: { axis: VariantAxis; group: TypeGroup };
 
+  /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
+   *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
+   *  projection, `applySpacingDensity` moves each one step down the space ladder at compact and one step up
+   *  at spacious (`densitySpace` in `scale.ts`, clamped at the ends). `{size}` expands over the def's size
+   *  values (`variants.size`, else `props.size`). A spacing that must not move with density — a 0px inset, a
+   *  stack gap the def fixes — stays off the list. Validated: every expanded key is bound, to a step of the
+   *  space ladder. */
+  densitySpacing?: string[];
+
   // ---- accessibility (§15) ----
   accessibility: {
     role?: string;
@@ -1671,6 +1702,9 @@ export const validateComponentDef = (
 
   // the paint grammar (#758). Optional; when present, every placeholder must name something.
   if (def.paintKeys) errors.push(...paintKeyErrors(def));
+
+  // the spacing that follows density (the spacing model). Optional; when present, every key binds a ladder step.
+  if (def.densitySpacing) errors.push(...densitySpacingErrors(def));
 
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
@@ -3307,6 +3341,37 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
  * directly: anatomy names a SLOT the component already binds, so a typo here fails even before
  * a tree is supplied, and the binding's own resolution is checked once, in one place.
  */
+/** The size values a def's `{size}` placeholder expands over for `densitySpacing`: `variants.size` when the def
+ *  projects a size axis, else the code-API `props.size` values (text-field and textarea project one size and
+ *  keep their ladder as a prop). */
+export const densitySizeValues = (def: ComponentDef): string[] =>
+  (def.variants as Record<string, string[] | undefined> | undefined)?.size ?? def.props.find((p) => p.name === 'size')?.values ?? [];
+
+/** Every `tokens` key `densitySpacing` names, with `{size}` expanded. */
+export const densitySpacingKeys = (def: ComponentDef): string[] =>
+  (def.densitySpacing ?? []).flatMap((k) => (k.includes('{size}') ? densitySizeValues(def).map((v) => k.replace('{size}', v)) : [k]));
+
+/** `densitySpacing`'s rules: each expanded key is bound, to a step of the space ladder, and no key is named
+ *  twice. The ladder is read from `scale.ts` so a step the scale does not hold is refused here, not at the
+ *  first projection that tries to move it. */
+const densitySpacingErrors = (def: ComponentDef): string[] => {
+  const e: string[] = [];
+  const keys = densitySpacingKeys(def);
+  if ((def.densitySpacing ?? []).some((k) => k.includes('{size}')) && !densitySizeValues(def).length)
+    e.push(`densitySpacing uses '{size}' but the def declares no size values (variants.size or props.size) — the key expands to nothing`);
+  const seen = new Set<string>();
+  for (const k of keys) {
+    if (seen.has(k)) e.push(`densitySpacing names '${k}' twice`);
+    seen.add(k);
+    const ref = def.tokens?.[k];
+    if (ref === undefined) { e.push(`densitySpacing names '${k}', which is not a slot in tokens`); continue; }
+    const m = /^space\.([0-9]+)$/.exec(ref);
+    if (!m || !SPACE_LADDER.includes(m[1]))
+      e.push(`densitySpacing names '${k}' → '${ref}', which is not a step of the space ladder — density moves a spacing one step along space.*, so it must bind one`);
+  }
+  return e;
+};
+
 const anatomyErrors = (def: ComponentDef): string[] => {
   const e: string[] = [];
   const a = def.anatomy!;
@@ -3401,7 +3466,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -4134,6 +4199,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' declares both 'minWidthKey' and a literal 'minWidth' — two floors on one axis, so one of them is not the floor`);
     if (p.minWidthKey !== undefined && (p.width !== undefined || p.size !== undefined))
       e.push(`anatomy part '${n}' declares 'minWidthKey' alongside a bound '${p.width !== undefined ? 'width' : 'size'}' — a bound width already fixes the axis, so the floor states the width twice`);
+    // ---- `minWidthRatio`, a floor COMPUTED from the box's bound height (the spacing model, 2026-09-29) ----
+    if (p.minWidthRatio !== undefined) {
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidthRatio' — only a 'box' becomes an auto-layout frame that can carry a minimum width`);
+      else if (!p.layout)
+        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so the floor would be silently dropped`);
+      if (p.height === undefined)
+        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
+      if (p.minWidth !== undefined || p.minWidthKey !== undefined)
+        e.push(`anatomy part '${n}' declares 'minWidthRatio' beside '${p.minWidth !== undefined ? 'minWidth' : 'minWidthKey'}' — two floors on one axis, so one of them is not the floor`);
+      if (!(typeof p.minWidthRatio === 'number' && p.minWidthRatio > 0))
+        e.push(`anatomy part '${n}' declares a 'minWidthRatio' that is not a positive number`);
+    }
+    // ---- `padding.inlineEnd`, the trailing side's own key (the spacing model, 2026-09-29) ----
+    if (p.padding?.inlineEnd !== undefined && p.padding.inlineVisual !== undefined)
+      e.push(`anatomy part '${n}' declares both 'padding.inlineVisual' and 'padding.inlineEnd' — the slot-aware rule and the trailing-side key would both claim the trailing inset`);
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the

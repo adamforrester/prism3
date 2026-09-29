@@ -53,6 +53,15 @@ Binding a raw primitive throws all of that away and is the #1 source of drift.
 *Exception:* `opacity.*`, `motion.*`, and `shadow.*` are consumable directly — their
 semantic layer is thin (the `.ai.json` marks them `consume: "Consumable …"`).
 
+**Size is for size, space is for space.** `size.*` holds control heights only
+(`size.md.height`, and `size.md.min-height` for the 44px target floor). Every padding and gap
+is a `space.*` step, and each component's spec states which one per size: a medium Button is
+`space.200` on the label side, `space.150` on the icon side and `space.100` between icon and
+label at comfortable density. There is no per-component spacing token and no `size.*` padding.
+The brand's density moves every one of those steps one position along the space scale (down at
+compact, up at spacious), so read the spec's step and apply the brand's density rather than
+copying a comfortable px value.
+
 **3. Let modes resolve — don't hardcode a mode's value.**
 A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
 carried in the role's `mode_overrides`. Bind the **role**; the mode drives the value. Never

@@ -287,6 +287,16 @@ const LADDER_STATED_ONCE: Record<string, string> = {
  * enum — so the follow actually lands a rung, and those nested defs are themselves checked by this gate.
  * Both directions, the same as the lists above.
  */
+/**
+ * Defs whose size ladder binds SPACING ONLY (the spacing model, 2026-09-29): every size-keyed binding is a
+ * `space.*` step, so the default reaches no tier rung and arm 3 has nothing to compare. Admitted by name with
+ * the reason, both directions: an admitted def that binds a tier rung at its default is stale, and a def whose
+ * default reaches only spacing and is not admitted fails as before.
+ */
+const SPACING_ONLY_LADDER: Record<string, string> = {
+  textarea: 'its size ladder is padding only (`size.{small,medium,large}.pad-*`, a code-API prop; brief §4 "typography and padding only", and the type is the projected `md`), and padding is a `space.*` step since the spacing model, so no size key reaches a tier rung',
+};
+
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
@@ -348,6 +358,15 @@ const enumOf = (def: ComponentDef): { values: string[]; default?: string; varian
  * are compared independently because each is its own ladder against its own tier.
  */
 type Binding = { key: string; value: string; ref: string; family: string; rung: string };
+/** A SPACING family (the spacing model, 2026-09-29, `docs/28` §5.4): a size-keyed padding or gap binds a
+ *  `space.*` step the def states itself, not a rung of the `size.*` tier, so there is no rung NAME to compare
+ *  with the enum — the #756 offset cannot arise. What can still go wrong is the ladder inverting (a larger size
+ *  with less padding), so these bind a family per key tail (`space:padding-x`) and arm 2's ordering check runs
+ *  over them with the step's multiplier as its rank. The multiplier is the key read as a number (`space.150` is
+ *  1.5×), the scale's own naming rule — not `scale.ts`'s ladder, which the def's steps come from. Arm 3 (the
+ *  default is `md`) does not apply: a spacing step has no `md`. */
+const SPACE_FAMILY = 'space:';
+const spaceRank = (rung: string): number => Number(rung);
 const bindingsOf = (def: ComponentDef): { parsed: Binding[]; rungless: string[] } => {
   const parsed: Binding[] = [];
   const rungless: string[] = [];
@@ -355,6 +374,8 @@ const bindingsOf = (def: ComponentDef): { parsed: Binding[]; rungless: string[] 
     const k = /^size\.([^.]+)(?:\.(.+))?$/.exec(key);
     if (!k) continue;
     const r = String(ref);
+    const sp = /^space\.([0-9]+)$/.exec(r);
+    if (sp) { parsed.push({ key, ref: r, value: k[1], rung: sp[1], family: `${SPACE_FAMILY}${k[2] ?? ''}` }); continue; }
     // The rung as a whole dot-delimited segment, so a substring inside a longer word cannot match.
     const seg = r.split('.');
     const at = seg.findIndex((s) => RUNG_ORDER.includes(s));
@@ -476,7 +497,7 @@ for (const def of componentDefs) {
       if (rs.size > 1)
         failures.push(`${def.id}: size '${v}' reaches ${rs.size} different rungs (${[...rs].join(', ')}) within one tier family '${family}' — two bindings for one size that disagree about which rung it is.`);
     }
-    const seq = rows.map((r) => RUNG_ORDER.indexOf(r.rung));
+    const seq = rows.map((r) => (family.startsWith(SPACE_FAMILY) ? spaceRank(r.rung) : RUNG_ORDER.indexOf(r.rung)));
     for (let i = 1; i < seq.length; i++)
       if (seq[i] < seq[i - 1])
         failures.push(`${def.id}: in tier family '${family}' the enum walks '${rows[i - 1].value}' → ${rows[i - 1].rung} then '${rows[i].value}' → ${rows[i].rung}, which goes DOWN the tier. Every line resolves; the ladder is inverted. (${rows.map((r) => `${r.value}→${r.rung}`).join(', ')})`);
@@ -496,12 +517,19 @@ for (const def of componentDefs) {
     // offset (icon → `xs` or lower) BOTH fail BY NAME. The invariant changed shape; it did not disappear.
     const defaultFamilies = new Map<string, Set<string>>();
     for (const b of parsed) {
-      if (b.value !== dflt) continue;
+      if (b.value !== dflt || b.family.startsWith(SPACE_FAMILY)) continue;
       if (!defaultFamilies.has(b.family)) defaultFamilies.set(b.family, new Set());
       defaultFamilies.get(b.family)!.add(b.rung);
     }
     defaultFamiliesByDef.set(def.id, new Set(defaultFamilies.keys()));
-    if (!defaultFamilies.size)
+    const spacingOnly = def.id in SPACING_ONLY_LADDER;
+    if (spacingOnly && defaultFamilies.size)
+      failures.push(`${def.id}: admitted in SPACING_ONLY_LADDER, but its default '${dflt}' reaches tier family(ies) ${[...defaultFamilies.keys()].join(', ')}. The admission is STALE — remove it in the same PR and let arm 3 check the default.`);
+    else if (spacingOnly && !parsed.some((b) => b.value === dflt))
+      failures.push(`${def.id}: admitted in SPACING_ONLY_LADDER, but no binding at all reaches its default '${dflt}' — not even a spacing step.`);
+    else if (spacingOnly)
+      notes.push(`${def.id}: [${values.join(', ')}] default '${dflt}' — spacing-only ladder; admitted: ${SPACING_ONLY_LADDER[def.id]}`);
+    else if (!defaultFamilies.size)
       failures.push(`${def.id}: size defaults to '${dflt}' and no binding reaches it, so the default rung cannot be checked.`);
     for (const [family, rungs] of defaultFamilies) {
       const want = expectedDefaultRung(def.id, family);

@@ -180,6 +180,13 @@
       "title": "the style-guide generator's coverage, layout, contrast column, rerun and cell components",
       "doc": "docs/45-style-guide-generator.md",
       "section": "2."
+    },
+    {
+      "date": "2026-09-29",
+      "issue": null,
+      "title": "size is for size, space is for space — a component states its own spacing, and density moves it one step",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.4"
     }
   ]
 }

@@ -105,10 +105,11 @@ export type FigmaDimsCollections = {
 //   dimension    → fine-grid primitives (REF TIER, hidden from publishing).
 //   space        → spacing rhythm, aliased. Scope: GAP.
 //   radius       → t-shirt ramp (none/sm/md/lg/round). Scope: CORNER_RADIUS.
-//   size         → component tier — one FLOAT per (t-shirt, prop) pair. `<t>/height`
-//                  aliases dimension (WIDTH_HEIGHT scope); `<t>/padding-x` and
-//                  `<t>/padding-y` alias space (GAP scope). Names use `/` between
-//                  t-shirt and prop (`md/height`), matching the colour/font convention.
+//   size         → component tier — one FLOAT per (t-shirt, prop) pair. `<t>/height` and
+//                  `md/min-height` alias dimension (WIDTH_HEIGHT scope). Dimensions only:
+//                  padding and gaps bind `space/*` directly (the spacing model, 2026-09-29).
+//                  Names use `/` between t-shirt and prop (`md/height`), matching the
+//                  colour/font convention.
 //   icon         → artboard ladder (#324), its own collection (not a `size/` sub-branch)
 //                  since an icon size is chosen independently of its control. Scope: WIDTH_HEIGHT.
 //   control      → control-box ladder (#900) — `<rung>/height` (a checkbox square, a radio circle,
@@ -222,22 +223,21 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     ...radiusModes.map((mode) => ({ $collection: 'radius', $mode: mode, variables: radiusVarsFor(mode) })),
   ];
 
-  // size — nested { <tShirt>: { height, padding-x, padding-y } }. Emit one FLOAT
-  // per leaf; height aliases dimension, padding aliases space.
+  // size — nested { <tShirt>: { height } }, plus `md.min-height`. Emit one FLOAT per leaf, aliasing
+  // dimension. No padding: a component binds its spacing from `space/*` (the spacing model).
   const sizeVars: FigmaVar[] = [];
   for (const t of byNumericKey(Object.keys(brand.size))) {
     // `min-height` (#1437) is the interactive target-size floor, present on `md` only; the `if (!leaf)`
-    // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), so it takes the
-    // height scopes, not the padding ones.
-    for (const prop of ['height', 'min-height', 'padding-x', 'padding-x-visual', 'padding-y', 'gap']) {
+    // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), like `height`.
+    for (const prop of ['height', 'min-height']) {
       const leaf = brand.size[t][prop];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       sizeVars.push({
         name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
-        scopes: prop === 'height' || prop === 'min-height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
-        description: figmaSizeDescription(prop, pxFromValue(tree, leaf.$value), brand.size[t]['padding-x'] ? pxFromValue(tree, brand.size[t]['padding-x'].$value) : undefined),
+        scopes: SIZE_HEIGHT_SCOPES,
+        description: figmaSizeDescription(prop, pxFromValue(tree, leaf.$value)),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
       });

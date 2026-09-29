@@ -164,7 +164,7 @@ if (isMain) {
     console.log(`  dimension: ${stats.dimLeaves} grid primitives, ${stats.spaceTokens} space + ${stats.radiusTokens} radius + ${stats.sizeSteps} component sizes`);
     console.log(`    space (${theme.dims.spaceBase}px rhythm): ${theme.dims.space.filter((s) => s.key !== '0').map((s) => `${s.key}=${s.px}`).join(' ')}`);
     console.log(`    radius (scale ${theme.dims.radiusScaleValue}): ${theme.dims.radius.map((r) => `${r.name}=${r.px}`).join(' ')}`);
-    console.log(`    sizes (${theme.dims.density}): ${theme.dims.sizes.map((z) => `${z.name}=${z.height}h/${z.padX}×${z.padY}pad`).join(' ')}`);
+    console.log(`    sizes (${theme.dims.density}): ${theme.dims.sizes.map((z) => `${z.name}=${z.height}h`).join(' ')}`);
     console.log(`  typography: ${stats.fontSizes} size primitives (${theme.typography.sizesPx[0]}–${theme.typography.sizesPx[theme.typography.sizesPx.length - 1]}px, rem), ${stats.fontWeights} weights + ${theme.typography.weightRoles.length} roles (${theme.typography.weightRoles.map((w) => `${w.role}=${w.value}`).join(' ')}), ${theme.typography.lineHeights.length} line-heights, ${theme.typography.letterSpacings.length} tracking`);
     console.log(`    families: ${theme.typography.families.map((f) => `${f.group}=${f.stack[0]}`).join(' ')}${theme.typography.families[0].variable ? ' [variable]' : ''} · scale '${theme.typography.typeScale}'`);
     {
@@ -203,8 +203,8 @@ if (isMain) {
     for (const s of theme.dims.space) md.push(`| space.${s.key} | ${s.px} | ${s.mult}× |`);
     md.push('', `Radius — scale \`${theme.dims.radiusScaleValue}\`:`, '', '| token | px |', '|---|---|');
     for (const r of theme.dims.radius) md.push(`| radius.${r.name} | ${r.px}${r.pill ? ' (pill)' : ''} |`);
-    md.push('', `Component sizes — t-shirt, density \`${theme.dims.density}\` (height + paired padding from the shared scales):`, '', '| size | height | padding-x | padding-y |', '|---|---|---|---|');
-    for (const z of theme.dims.sizes) md.push(`| size.${z.name} | ${z.height}px | ${z.padX}px | ${z.padY}px |`);
+    md.push('', `Component sizes — t-shirt, density \`${theme.dims.density}\` (control heights; each component states its own padding and gaps as \`space.*\` steps, which density moves one step):`, '', '| size | height |', '|---|---|');
+    for (const z of theme.dims.sizes) md.push(`| size.${z.name} | ${z.height}px |`);
     md.push('');
   }
 

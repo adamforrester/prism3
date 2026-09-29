@@ -144,6 +144,9 @@ export const radioRow: ComponentDef = {
   // them here with nothing selection-dependent left to resolve would be unreachable keys.
   paintKeys: ['{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
+  densitySpacing: ['size.{size}.gap'],
+
   tokens: {
     // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL. Every color binding for the ring, the inner dot, the
     // focus ring and the border MOVED to `radio-control` with the painted surface itself. The label sits
@@ -162,11 +165,12 @@ export const radioRow: ComponentDef = {
     'pad-y': 'space.150',
     'pad-x': 'space.0',
 
-    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. `min-height` is the code projection's floor; Figma
+    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
+    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height` is the code projection's floor; Figma
     // has no floor, so the row hugs its children and the key stays bound only for code (see `codeOnly`).
-    'size.small.gap': 'size.sm.gap',
-    'size.medium.gap': 'size.md.gap',
-    'size.large.gap': 'size.lg.gap',
+    'size.small.gap': 'space.100',
+    'size.medium.gap': 'space.100',
+    'size.large.gap': 'space.150',
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
     'size.large.min-height': 'size.lg.height',

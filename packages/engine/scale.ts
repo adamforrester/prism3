@@ -5,9 +5,11 @@
  * Three Curtis tiers show up here:
  *   - reference : `dimension` grid (fine substrate) + `space` scale (8px rhythm,
  *                 numbered by multiplier — space.100 = 1×spaceBase, density-free)
- *   - component : `size` (control heights + paired padding) — t-shirt named,
+ *   - component : `size` (control heights, dimensions only) — t-shirt named,
  *                 the layer DENSITY acts on (compact `md` resolves smaller, name
- *                 unchanged), the layer that gives cross-component consistency
+ *                 unchanged), the layer that gives cross-component consistency.
+ *                 Padding and gaps are `space.*` steps a component's def states
+ *                 itself; density moves them one step (`densitySpace`)
  *   - radius    : a small bounded ramp, t-shirt named (genuinely semantic there)
  *
  * Taxonomy POV (knowledge-base 02/22/24): numbered-multiplier beats t-shirt for
@@ -90,20 +92,28 @@ export const DEFAULT_MIN_WIDTH_MULTIPLIER = 2.25;
  *  product that is already on the grid (36 × 2 = 72) from rounding a whole step up on float noise. */
 export const buttonMinWidth = (height: number, multiplier: number): number =>
   Math.ceil((height * multiplier) / SPACE_BASE - 1e-9) * SPACE_BASE;
-/** A def's `size.<step>.<key>` or `icon.size.<step>` token ref → its px on a brand's ladder (#1667), for
- *  the literals `applyButtonLayout` writes (the floor, the pinned icons' inset and reserve). `sizes` is the
- *  brand's baseline-density ladder; the icon ladder is fixed across brands (`ICON_SIZES`). */
+/** A def's `size.<step>.height`, `icon.size.<step>` or `space.<key>` token ref → its px on a brand's ladder
+ *  (#1667), for the literals the materializers write (Button's floor and pinned icons' inset and reserve, Tag's
+ *  floor). `sizes` is the brand's baseline-density ladder; the icon ladder is fixed across brands (`ICON_SIZES`),
+ *  and the space scale is density-free, so a `space.*` ref resolves the same everywhere. A def's spacing reaches
+ *  this AFTER `applySpacingDensity` has moved it for the brand's density. */
 export const sizeRefPx = (sizes: SizeStep[]) => (ref: string): number | undefined => {
   const icon = /^icon\.size\.([^.]+)$/.exec(ref);
   if (icon) return ICON_SIZES.find((i) => i.name === icon[1])?.px;
-  const m = /^size\.([^.]+)\.(height|padding-x|padding-x-visual|padding-y|gap)$/.exec(ref);
-  const z = m ? sizes.find((s) => s.name === m[1]) : undefined;
-  if (!m || !z) return undefined;
-  return ({ height: z.height, 'padding-x': z.padX, 'padding-x-visual': z.padXVisual, 'padding-y': z.padY, gap: z.gap } as Record<string, number>)[m[2]];
+  const sp = /^space\.([0-9]+)$/.exec(ref);
+  if (sp) return spaceScale(SPACE_BASE).find((s) => s.key === sp[1])?.px;
+  const m = /^size\.([^.]+)\.height$/.exec(ref);
+  return m ? sizes.find((s) => s.name === m[1])?.height : undefined;
 };
+/** A floor stated as a multiple of a control's height, rounded to the NEAREST multiple of the 8px grid (Tag's
+ *  minimum width, owner decision 2026-09-29: 1.5 × the height). Nearest, not up — Button's `buttonMinWidth`
+ *  rounds up because its floor is a promise about the ratio; this one is a proportion the owner read off a
+ *  mockup (36/44/56 → 56/64/88). A tie rounds up (84 → 88); the epsilon keeps float noise from deciding one. */
+export const ratioMinWidth = (height: number, ratio: number): number =>
+  Math.round((height * ratio) / SPACE_BASE + 1e-9) * SPACE_BASE;
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
-export type SizeStep = { name: string; height: number; padX: number; padY: number; padXVisual: number; gap: number };
+export type SizeStep = { name: string; height: number };
 
 /** The primitive dimension grid (px): fine sub-steps for borders/hairlines, a
  *  base / 1.5×base / 2×base shoulder, then a `base`-spaced ladder to `max`. */
@@ -128,8 +138,49 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
     return { key: k, mult, px: Math.round(mult * spaceBase) };
   });
 
-// Component-size ladder. A "size" is a CONTRACT (height + horizontal/vertical padding) every
-// component opts into — guaranteeing a `md` button, input and select agree.
+// ---------------------------------------------------------------------------
+// THE SPACING MODEL (2026-09-29, owner-decided): "size is for size, space is for space".
+//
+// `size.*` holds DIMENSIONS only — a control's height per rung, shared so a medium button, field and tag
+// line up. Every padding and gap is a `space.*` step, and a component's def states its own spacing per size
+// (`ComponentDef.densitySpacing` names which of its `tokens` entries those are). The shared scale used to
+// carry `size.<rung>.{padding-x,padding-x-visual,padding-y,gap}` beside the height; those are gone
+// (CONTRACT 14.0.0), and with them the ratios that derived padding from the rung. The spec is where a
+// component's spacing lives, not a token name — see the decision record, `docs/28-component-anatomy-schema.md` §5.4.
+//
+// DENSITY FOLLOWS BY RULE. A def states its COMFORTABLE step. At generation time (`applySpacingDensity`,
+// before projection) compact moves every density-following step ONE STEP DOWN this ladder and spacious ONE
+// STEP UP. "One step" is one position in `SPACE_KEYS` as written — 0, 025, 050, 075, 100, 150, 200, 250,
+// 300, 400, … — so 16px (`space.200`) goes to 12px (`space.150`) at compact and 20px (`space.250`) at
+// spacious, and 32px (`space.400`) goes to 24px and 40px. The steps are the ladder's own, not a px delta:
+// the ladder is finer at the small end (2px apart below 8) and coarser above 24 (8px apart), and a rule
+// on px would mint values the scale does not hold.
+//
+// THE ENDS CLAMP. Compact at `space.0` stays `space.0`, and spacious at `space.1200` stays `space.1200`;
+// the rule never leaves the ladder and never wraps. Stated because it is a choice: a step past the end has
+// no value to name. No def states a density-following `space.0` or `space.1200` today, and a spacing that
+// must stay 0 at every density (Tag's dismissible trailing inset) is kept OUT of `densitySpacing` rather
+// than relying on the clamp, since spacious would move it to 2px.
+//
+// Heights keep their own density window (`componentSizes`, below). This rule replaces the window padding
+// used to ride on.
+/** The space ladder "one step" is measured on, in order. */
+export const SPACE_LADDER: readonly string[] = SPACE_KEYS;
+/** How many ladder steps each density moves a comfortable spacing step. */
+export const DENSITY_SPACE_SHIFT: Record<Density, number> = { compact: -1, comfortable: 0, spacious: 1 };
+/** A def's comfortable `space.<key>` ref, moved for `density`: one step down at compact, one up at spacious,
+ *  clamped at both ends of `SPACE_LADDER`. Throws on a ref that is not a step of the ladder — a
+ *  density-following binding off the scale has no "one step" to take. */
+export const densitySpace = (ref: string, density: Density): string => {
+  const m = /^space\.([0-9]+)$/.exec(ref);
+  const i = m ? SPACE_KEYS.indexOf(m[1]) : -1;
+  if (i < 0) throw new Error(`densitySpace: '${ref}' is not a step of the space ladder (${SPACE_KEYS.map((k) => `space.${k}`).join(', ')}), so density has no step to move it`);
+  const j = Math.min(SPACE_KEYS.length - 1, Math.max(0, i + DENSITY_SPACE_SHIFT[density]));
+  return `space.${SPACE_KEYS[j]}`;
+};
+
+// Component-size ladder. A "size" is a CONTRACT (a control height) every component opts into — guaranteeing
+// a `md` button, input and select agree. Spacing is not part of it (the spacing model, above).
 //
 // SEVEN rungs, of which a density NAMES five. `comfortable` takes the middle five (1–5, the
 // reference ladder); `compact` slides the window down one rung, `spacious` up one. The window
@@ -141,89 +192,38 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
 // unusual one. The two outer rungs exist so the window has somewhere to go; they are named
 // only at the density that reaches them.
 //
-// HEIGHT IS PX; PADDING IS A spaceBase MULTIPLE — and the split arrived with #1207, replacing
-// a single `h` multiplier. It is not a refactor: the decided ladder (36/44/56 for a default
-// brand's small/medium/large, Prism 2's scale, so the DEFAULT control clears the 44px enhanced
-// touch target of WCAG 2.2 SC 2.5.5 AAA) is not expressible as spaceBase multiples. 36 and 44
-// are 4.5x and 5.5x of 8, and the old comment's claim — "heights and paddings both land on the
-// shared scales" — would have become false while the code went on asserting it in its type.
-// Neither 36 nor 44 is on the space scale (…24, 32, 40, 48…); both are on the `dimension` grid,
-// which is what the emitted leaf has always aliased (`size.md.height → {…dimension.44}`, never
-// a `space.*` ref). So the px ladder states what was already true of the output.
-//
-// `CONTROL_RUNGS` and `ICON_SIZES` are px ladders for the same reason, spelled out at each: a
-// box is anchored to what it contains, not to the spacing rhythm. Padding is spacing and stays
-// a multiple. The one behavior this changes is at a non-default `spaceBase`, where heights no
-// longer scale — unreachable through any brand input, since `SPACE_BASE` is locked at 8 and
-// `brandTheme` passes exactly that (theme.ts `const spaceBase = SPACE_BASE`). `test.ts` still
-// sweeps bases 4/8/12 for the padding contracts, which do scale.
+// HEIGHT IS PX (#1207): the decided ladder (36/44/56 for a default brand's small/medium/large,
+// Prism 2's scale, so the DEFAULT control clears the 44px enhanced touch target of WCAG 2.2 SC 2.5.5
+// AAA) is not expressible as spaceBase multiples — 36 and 44 are 4.5x and 5.5x of 8. Both are on the
+// `dimension` grid, which is what the emitted leaf aliases (`size.md.height → {…dimension.44}`).
 //
 // WHY THESE SEVEN. The three middle rungs are decided (#1207). The other four are cut so the
 // ARRAY's increments never shrink — 4, 8, 8, 12, 12, 12 — because every density is a window
 // onto this one array, and a dip anywhere in it surfaces as a wobbly ladder at whichever
 // density's window straddles the dip. The floor stays at exactly `MIN_TARGET_PX`, which is what
 // keeps the SC 2.5.8 assertion in `test.ts` load-bearing rather than slack. No component def
-// binds `size.xs.*` or `size.xl.*` — the corpus binds sm/md/lg only — so the two outer rungs
-// moved with nothing downstream to reconcile.
-const SIZE_RUNGS: { px: number; x: number; y: number }[] = [
-  { px: 24, x: 1, y: 0.25 },  // compact floor — named `xs` only at compact; ON `MIN_TARGET_PX`
-  { px: 28, x: 1, y: 0.5 },   // comfortable `xs`
-  { px: 36, x: 2, y: 0.75 },  // comfortable `sm` — decided (#1207)
-  { px: 44, x: 2, y: 1 },     // comfortable `md` — decided (#1207); the 44px AAA target
-  { px: 56, x: 3, y: 1 },     // comfortable `lg` — decided (#1207)
-  { px: 68, x: 3, y: 2 },     // comfortable `xl`
-  { px: 80, x: 4, y: 2 },     // spacious ceiling — named `xl` only at spacious
+// binds `size.xs.*` or `size.xl.*` — the corpus binds sm/md/lg only.
+const SIZE_RUNGS: number[] = [
+  24,  // compact floor — named `xs` only at compact; ON `MIN_TARGET_PX`
+  28,  // comfortable `xs`
+  36,  // comfortable `sm` — decided (#1207)
+  44,  // comfortable `md` — decided (#1207); the 44px AAA target
+  56,  // comfortable `lg` — decided (#1207)
+  68,  // comfortable `xl`
+  80,  // spacious ceiling — named `xl` only at spacious
 ];
 const SIZE_NAMES = ['xs', 'sm', 'md', 'lg', 'xl'];
 /** Where each density's five-name window starts in SIZE_RUNGS. */
 const DENSITY_START: Record<Density, number> = { compact: 0, comfortable: 1, spacious: 2 };
 
-/** Component sizes for a density. DENSITY lives here, not on the space scale:
- *  'compact' resolves each step to the next-smaller rung's metrics while keeping
- *  the name — so `size.md` stays `md` but renders tighter. The window (not a clamped
- *  shift) is what guarantees the five names stay five distinct, increasing heights. */
-export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
+/** Component sizes for a density. DENSITY acts on heights through the window: 'compact' resolves each step
+ *  to the next-smaller rung while keeping the name — so `size.md` stays `md` but renders shorter. The window
+ *  (not a clamped shift) is what guarantees the five names stay five distinct, increasing heights.
+ *  `spaceBase` is accepted for the callers' signature and no longer read: heights are px, and spacing moved
+ *  to the defs (the spacing model, above). */
+export const componentSizes = (density: Density, _spaceBase = 8): SizeStep[] => {
   const start = DENSITY_START[density];
-  const space = spaceScale(spaceBase).map((sp) => sp.px);
-  const snapToSpace = (v: number): number => space.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
-  return SIZE_NAMES.map((name, i) => {
-    const src = SIZE_RUNGS[start + i];
-    const padX = Math.round(src.x * spaceBase);
-    // The horizontal model, left edge inward: [padXVisual][icon][gap][label][padX].
-    //
-    // Three values, one ordering, which is the whole optical story in a line:
-    //
-    //     gap  <  padXVisual  <  padX
-    //
-    //   · `gap` (#325) is tightest — PROXIMITY. Everything inside the control must sit closer to its
-    //     neighbours than to the control's own edge, or the icon and label stop reading as one unit
-    //     and start reading as two things that happen to share a box.
-    //   · `padXVisual` (#326) sits between — an icon's own bounding box already contributes apparent
-    //     space, so equal numeric padding reads as TOO MUCH on the visual side. Three independent
-    //     systems converge here, which is what makes it field consensus rather than one vendor's
-    //     house style: Material 3 (`leading-space` 24 vs `with-leading-icon-leading-space` 16),
-    //     Spectrum (`edge-to-text` vs `edge-to-visual`, separate scales), Carbon (a 1px ghost nudge).
-    //   · `padX` is loosest — plain text carries no bounding-box bonus.
-    //
-    // The RATIOS are tuning knobs; the ORDERING is the contract, and it is what `test.ts` asserts
-    // across every density × spaceBase × size rather than the literal numbers.
-    //
-    // Why these fractions specifically:
-    //   · gap = half. A third rounds to 2px at the smallest step — a rendering accident, not a gap.
-    //   · padXVisual = two-thirds, SNAPPED to the space scale, rather than Material's fixed 8px step:
-    //     a fixed step collapses at the small end (padX 8 − 8 = 0, no padding at all), while a ratio
-    //     holds its shape at every size and rhythm. Snapping keeps it ON the scale, so the emitted
-    //     token aliases `space.*` like its siblings instead of minting an off-scale literal.
-    //     At lg/comfortable this lands on 24/16 — Material's pair exactly, arrived at independently.
-    return {
-      name,
-      height: src.px,
-      padX,
-      padXVisual: snapToSpace((padX * 2) / 3),
-      padY: Math.round(src.y * spaceBase),
-      gap: Math.round(padX / 2),
-    };
-  });
+  return SIZE_NAMES.map((name, i) => ({ name, height: SIZE_RUNGS[start + i] }));
 };
 
 // ---------------------------------------------------------------------------
