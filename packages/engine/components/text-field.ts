@@ -168,6 +168,10 @@ export const textField: ComponentDef = {
   // ink rendered dim at the `empty` state), and the bare `label` is the value ink in every other state.
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder
+  // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
+  densitySpacing: ['pad-x', 'pad-y', 'gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+
   tokens: {
     // ── GEOMETRY (bare keys — the SINGLE PROJECTED SIZE, the `md` rung, mirroring select) ──────────
     'radius': 'radius.sm',
@@ -175,9 +179,9 @@ export const textField: ComponentDef = {
     // so the input control meets the WCAG 2.5.5 enhanced target at every density. A field control IS the
     // tap target. The code-API `size.{small,medium,large}.height` rungs below stay on the plain height.
     'min-height': 'size.md.min-height',
-    'pad-x': 'size.md.padding-x',
-    'pad-y': 'size.md.padding-y',
-    'gap': 'size.md.gap',
+    'pad-x': 'space.200',
+    'pad-y': 'space.100',
+    'gap': 'space.100',
     // The stack spacing between label, control and message.
     'root-gap': 'space.100',
     // The leading and trailing glyphs share one artboard rung.
@@ -297,14 +301,14 @@ export const textField: ComponentDef = {
     // in `anatomy.codeOnly`. Unreferenced by the anatomy (which binds the bare `md` keys), which is fine —
     // `anatomyErrors` requires the keys the anatomy names to exist, not the reverse.
     'size.small.height': 'size.sm.height',
-    'size.small.pad-x': 'size.sm.padding-x',
-    'size.small.pad-y': 'size.sm.padding-y',
+    'size.small.pad-x': 'space.200',
+    'size.small.pad-y': 'space.075',
     'size.medium.height': 'size.md.height',
-    'size.medium.pad-x': 'size.md.padding-x',
-    'size.medium.pad-y': 'size.md.padding-y',
+    'size.medium.pad-x': 'space.200',
+    'size.medium.pad-y': 'space.100',
     'size.large.height': 'size.lg.height',
-    'size.large.pad-x': 'size.lg.padding-x',
-    'size.large.pad-y': 'size.lg.padding-y',
+    'size.large.pad-x': 'space.300',
+    'size.large.pad-y': 'space.100',
   },
 
   // ── ANATOMY (#1494) — a column composing the two nested field parts around the input control ─────

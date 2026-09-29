@@ -9,7 +9,7 @@
 
 ## (2026-09-29) — Paste-path theme cleanup: read nothing off an object after removing it (#1790)
 
-**STATUS: PR open from `lane/cleanup-read-after-remove`, labeled DO NOT MERGE.** ENGINE 0.203.0 → **0.208.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). 0.208.0 rather than 0.204.0 because open lanes already hold 0.205.0 (#1788), 0.206.0 (#1792) and 0.207.0 (#1793); the rule is the next free minor above `main` and every open branch at push time. CONTRACT stands at 13.2.0. Fixes #1790.
+**STATUS: PR open from `lane/cleanup-read-after-remove`, labeled DO NOT MERGE.** ENGINE 0.203.0 → **0.208.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). 0.208.0 because `main` carries 0.207.0 (#1793, after #1792's 0.206.0) and an open lane holds 0.205.0 (#1788); the rule is the next free minor above `main` and every open branch at push time. CONTRACT stands at 14.0.0 (#1792's). Fixes #1790.
 
 **The defect.** `runCleanupTheme` in `apps/plugin/src/mcp-steps.ts`, the `use_figma` scratch-file wipe, had the shape #1791 fixed in the prune executor, at three sites. It pushed `collection ${c.name} (…)` right after `(c.real ?? c).remove()`. It pushed `${kind} style ${s.name}` right after `s.remove()`. And it read the variable list once, up front, then on every later collection filtered it by `v.variableCollectionId`, which, once one collection was gone, read that property off the variables Figma had removed along with it. The host throws on each (`in get_name: The style with id "S:…" does not exist`). No test caught any of them because the `test-mcp-paste.ts` shim's `remove()` only filtered the object out of its lists and left it readable.
 
@@ -24,6 +24,141 @@
 **Mutations (on a `wip:` commit, each restored by `git checkout --`).** Restoring the collection-name read off the removed object fails `cleanup read-after-remove/live` and `/ledger: … completes without touching a removed object (threw "in get_name: The variable collection with id …")`. Restoring the style-name read fails both with `The style with id "S:text:17"`. Restoring the live variable list fails both with `in get_variableCollectionId: The variable with id "VariableID:3"`, which is `acme/color/a`, removed with `acme color`. The whole pre-fix function fails 17 assertions. The existing `cleanup` arm also fails under each, as `the section threw`. On the shim side, dropping the cascade fails `shim premise: removing a collection kills its variables …` (and only that), and making the proxy's `get` permissive fails all four premise assertions.
 
 **Trap for whoever re-verifies.** `runCleanupTheme` has no try/catch (unlike `writeStep`), so a regression surfaces as a rejected `runScript`, not as `r.threw`. The new arm catches the rejection itself so it can name it; a future arm that awaits the script bare will end its section on the throw and report only `the section threw`.
+
+---
+
+## (2026-09-29) — Font preload: a face is unavailable only when the #499 resolver finds no spelling of it (#1789)
+
+**STATUS: PR open from `lane/font-preload-resolve`, labeled DO NOT MERGE.** ENGINE 0.206.0 → **0.207.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). Branched at 0.203.0 and merged `main` after #1792 landed 0.206.0; 0.204.0 and 0.205.0 are skipped because open lanes held them. CONTRACT stands at 14.0.0. Closes #1789.
+
+**The live report.** Re-applying the prism3 example brand on a real Figma test file read `12 font styles name-resolved, ⚠️ 1 typeface unavailable (Playfair Display|Semi Bold Italic)`. That Figma's Playfair ships `SemiBold Italic`. The engine emits one guess per weight (`Semi Bold Italic`), and the text-style pass corrects it through `resolveFontStyle` (#499), so the styles were right. The preload (`apps/plugin/src/preload-fonts.ts`, #680) tested `available.has("family|style")` by exact string and never asked the resolver, so the same apply both fixed the face and warned it was missing.
+
+**The fix.** `preloadFonts` now groups the host's font list by family and resolves each candidate's style with the same `resolveFontStyle`. It loads the RESOLVED face and records a named face as unavailable only when the resolver returns `undefined` (the family lacks the weight under every spelling, or the family is absent). The entry names the face as ASKED FOR, matching the text-style pass's skip reason. Without a host list, nothing changes: the candidate is loaded as named and the load itself is the test.
+
+**Decisions.** *Origins:* every origin resolves the same way. A `file` face spelled differently from the host (a file made against another font version) now loads the real face instead of being reported. A `crossed` pair that exists only under another spelling now loads instead of counting as a miss. Crossed pairs are still never reported. The origin decides whether a miss is reported, never how a face is looked up, and one lookup path is simpler to hold correct than three. *Dedup:* two candidates that resolve to one face load it once, and a repeat inherits the load's OUTCOME rather than being skipped: if the load failed, every named candidate for that face is still reported under its own origin, with no second attempt. That keeps the dedupe independent of candidate order. With a plain `Set` it was correct only because `facesToPreload` puts named candidates before crossed ones, and nothing tied the two together (found in independent review). The loading half is now `loadPreloadCandidates(candidates, api)`, exported so a test can feed an order `facesToPreload` never produces. The common re-apply needs the load-once part: the theme asks for `Semi Bold Italic` and the file already holds `SemiBold Italic`, because the previous text-style pass wrote it. *The verdict count:* "N font styles name-resolved" stays `ts.resolvedStyles`, the text-style pass's count. It counts STYLES whose baked name was corrected. The preload resolves candidate FACES, including file and crossed pairs and theme faces the text-style pass resolves again, so adding the two would count one correction twice, in a unit the sentence does not name. No new field on `FontPreloadResult`: `loaded` and `unavailable` already carry what the verdict shows.
+
+**Test.** A new `#1789` block in `apps/plugin/test-write-typography.ts` takes the real prism3 plan rows spelled `Playfair Display|Semi Bold Italic` (a reachability assertion pins the literal count of rows the engine emits with that guess: `=== 12`). Against a host list spelled `SemiBold Italic`, it asserts `unavailable` is `[]` and the host saw exactly one load, `[{"family":"Playfair Display","style":"SemiBold Italic"}]`. A Playfair with no 600 under any spelling still yields exactly `[{"face":"Playfair Display|Semi Bold Italic","origin":"theme","reason":"not available in this Figma"}]` with zero loads. A Figma with no Playfair at all is still reported too. Two more arms cover the theme-plus-file dedup (one load) and a `file` face `Semi Bold` loading the host's `SemiBold`. A crossed-first arm feeds `[crossed SemiBold Italic, theme Semi Bold Italic]` against a list that offers the face and a load that throws. It asserts `unavailable` is exactly `[{"face":"Playfair Display|Semi Bold Italic","origin":"theme","reason":"load refused: Playfair Display SemiBold Italic"}]`, `crossedMisses` 1, and exactly one load attempt. Every expectation is a literal, never computed with `resolveFontStyle` (docs/34 shape 1).
+
+**Mutations (on a `wip:` commit, restored by `git checkout --`).** Restoring `origin/main`'s `preload-fonts.ts`, the exact-match check, fails 4 arms by name: `#1789 a host spelling it 'SemiBold Italic' gives NO unavailable entry for a plan face 'Semi Bold Italic'` (got the live report's entry), `...and exactly one load, of the RESOLVED name` (got 0 loads), the dedup arm, and the file-spelling arm. The genuinely-absent arms stay green under both code paths, as they should. Dropping the resolved-face dedup line fails only `#1789 a theme face and a file face that resolve to the same real face load it ONCE` (got two loads). After review: reverting `tried` to a plain `Set` (skip a repeat, remember nothing) fails exactly `#1789 a named face whose load already failed under an earlier CROSSED candidate is still reported (got [], crossedMisses 1)`. Ignoring the stored outcome (reloading every repeat) fails `...load it ONCE` and `#1789 ...with no second load attempt for that face (… attempted 2)`.
+
+**Doc fix in passing.** `FontPreloadResult.attempted` claimed `loaded + unavailable.length + crossedMisses`. That already failed before this PR, because a miss against the host list is reported without a load. It now reads as distinct resolved faces passed to `loadFontAsync`.
+
+---
+
+## (2026-09-29) — Spacing model: size is for size, space is for space (and Tag's spacing from the owner's mockup)
+
+**STATUS: PR open from `lane/spacing-model`, labeled DO NOT MERGE.** ENGINE 0.203.0 → **0.206.0** (0.204.0 and 0.205.0 are taken on the style-guide lane's branch, #1788). CONTRACT 13.2.0 → **14.0.0** (MAJOR: 20 guaranteed paths removed, zero consumers confirmed by the owner). Decision record: `docs/28` §5.4, indexed in `docs/42` and `schema/decisions-index.json`.
+
+**The model (owner-decided).** `size.*` holds dimensions only: control heights per rung (and `size.md.min-height`), shared so a medium button, field and tag line up. `control.size.*` and `icon.size.*` are unchanged. Every padding and gap is a `space.*` step. A component's def states its own spacing per size at comfortable density and names those keys in `densitySpacing` (new `ComponentDef` field, validated: each key bound, to a step of the ladder). No per-component tokens.
+
+**What was removed.** `size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}` from DTCG, the Figma `size` collection, `emit-dtcg`'s size table, `visualize`, the Figma descriptions, and `SizeStep` itself (`componentSizes` returns heights only). `token-contract --check` showed exactly those 20 paths; accepted after the bump. `docs/30` carries the break.
+
+**Density follows by rule.** `densitySpace` (`scale.ts`) moves a comfortable step one position along `SPACE_LADDER` (`0, 025, 050, 075, 100, 150, 200, 250, 300, 400, …`): down at compact, up at spacious, clamped at both ends. `applySpacingDensity` (`anatomy-figma.ts`) applies it before projection, between the outline family and the button layout, in `materializeForBrand` and in `lint-lever-sweep`'s restated chain. Heights keep their density window.
+
+**Conversion.** Button (and its two siblings), text-field, textarea, select, and the checkbox, radio and switch rows bind the `space.*` step their old `size.*` token resolved to: pixel-identical at comfortable, held by a literal table in `test.ts`. Button's steps live in `components/button-spacing.ts`, a data-only module, so the studio's button specimen can read them without importing a def (an ungated def import puts every def's prose into the web bundle; `lint-us-english` caught exactly that on the first build).
+
+**Tag (owner's mockup, a real Figma file).** Padding 8/12/16, icon→label 6/8/12, label→check 4/6/8 at small/medium/large. The label and check sit in a nested `labelCheck` row, the mockup's own nesting, so the two gaps can differ. A dismissible tag's label row has a 0 trailing inset (`padding.inlineEnd`, a new `PaddingDef` field, → `size.{size}.{type}.padding-end`), so the label runs to the × slot; that 0 is not density-following. Minimum width is 1.5 × the height rounded to the nearest 8 (`minWidthRatio` on the part, `ratioMinWidth`): 56/64/88 at comfortable, 40/56/64 compact, 64/88/104 spacious. Figma cannot bind a computed value, so `applyMinWidthRatio` writes a per-size literal `minWidth` from the brand's heights before projection, Button's #1667 route; a brand change reaches it on a rebuild. The check now widens a tag by 30px at medium (24 + the 6px gap), not 32.
+
+**Orderings.** #325 and #326 are literal rules in `test.ts` over every def that states a gap beside a padding (button ×3, text-field, select, tag), at every size and density after the step rule: 105 checks, none violated. A scope arm finds those defs structurally and fails on one without a rule.
+
+**Density table (px, old → new).** Comfortable is unchanged for every non-Tag component. The moves at compact and spacious come from replacing the rung window with the one-step rule:
+
+| component | size | key | compact | comfortable | spacious |
+|---|---|---|---|---|---|
+| button | small | `padding-x` | 8 → 12 | 16 → 16 | 16 → 20 |
+| button | small | `padding-x-visual` | 6 → 8 | 12 → 12 | 12 → 16 |
+| button | small | `padding-y` | 4 → 4 | 6 → 6 | 8 → 8 |
+| button | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| button | medium | `padding-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| button | medium | `padding-x-visual` | 12 → 8 | 12 → 12 | 16 → 16 |
+| button | medium | `padding-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| button | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| button | large | `padding-x` | 16 → 20 | 24 → 24 | 24 → 32 |
+| button | large | `padding-x-visual` | 12 → 12 | 16 → 16 | 16 → 20 |
+| button | large | `padding-y` | 8 → 6 | 8 → 8 | 16 → 12 |
+| button | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| text-field | (projected md) | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| text-field | (projected md) | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| text-field | (projected md) | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| text-field | small | `pad-x` | 8 → 12 | 16 → 16 | 16 → 20 |
+| text-field | small | `pad-y` | 4 → 4 | 6 → 6 | 8 → 8 |
+| text-field | medium | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| text-field | medium | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| text-field | large | `pad-x` | 16 → 20 | 24 → 24 | 24 → 32 |
+| text-field | large | `pad-y` | 8 → 6 | 8 → 8 | 16 → 12 |
+| textarea | (projected md) | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| textarea | (projected md) | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| textarea | small | `pad-x` | 8 → 12 | 16 → 16 | 16 → 20 |
+| textarea | small | `pad-y` | 4 → 4 | 6 → 6 | 8 → 8 |
+| textarea | medium | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| textarea | medium | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| textarea | large | `pad-x` | 16 → 20 | 24 → 24 | 24 → 32 |
+| textarea | large | `pad-y` | 8 → 6 | 8 → 8 | 16 → 12 |
+| select | (projected md) | `pad-x` | 16 → 12 | 16 → 16 | 24 → 20 |
+| select | (projected md) | `pad-y` | 6 → 6 | 8 → 8 | 8 → 12 |
+| select | (projected md) | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| checkbox-row | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| checkbox-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| checkbox-row | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| radio-row | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| radio-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| radio-row | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| switch-row | small | `gap` | 4 → 6 | 8 → 8 | 8 → 12 |
+| switch-row | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| tag | small | `padding-x` | 8 → 6 | 16 → 8 | 16 → 12 |
+| tag | small | `gap` | 4 → 4 | 8 → 6 | 8 → 8 |
+| tag | small | `check-gap` | 4 → 4 (gap floor) | 8 → 4 | 8 → 6 |
+| tag | small | `select.padding-end` | 8 → 6 | 16 → 8 | 16 → 12 |
+| tag | small | `dismissible.padding-end` | 8 → 0 | 16 → 0 | 16 → 0 |
+| tag | medium | `padding-x` | 16 → 8 | 16 → 12 | 24 → 16 |
+| tag | medium | `gap` | 8 → 6 | 8 → 8 | 12 → 12 |
+| tag | medium | `check-gap` | 8 → 4 | 8 → 6 | 12 → 8 |
+| tag | medium | `select.padding-end` | 16 → 8 | 16 → 12 | 24 → 16 |
+| tag | medium | `dismissible.padding-end` | 16 → 0 | 16 → 0 | 24 → 0 |
+| tag | large | `padding-x` | 16 → 12 | 24 → 16 | 24 → 20 |
+| tag | large | `gap` | 8 → 8 | 12 → 12 | 12 → 16 |
+| tag | large | `check-gap` | 8 → 6 | 12 → 8 | 12 → 12 |
+| tag | large | `select.padding-end` | 16 → 12 | 24 → 16 | 24 → 20 |
+| tag | large | `dismissible.padding-end` | 16 → 0 | 24 → 0 | 24 → 0 |
+
+Tag's old values are what it bound before: the shared `padding-x` on both sides of the row (so also before the × slot) and one `gap` for both icon→label and label→check. Tag's minimum width, old (= height) → new: compact 28/36/44 → 40/56/64, comfortable 36/44/56 → 56/64/88, spacious 44/56/68 → 64/88/104 (small/medium/large).
+
+**Gate changes, and why.**
+- `lint-rung-names`: a size-keyed `space.*` binding is a spacing family (`space:<key>`), ordered by the step's multiplier (the key read as a number), excluded from the default-is-`md` rule. `textarea` is admitted in a new `SPACING_ONLY_LADDER` (its ladder binds spacing only), both directions.
+- `materialization-renames`: a pure deletion had no register; it could only surface as an unaccounted removal. `MATERIALIZATION_DELETIONS` records it with the decision in `why`, evaluated over the whole before-set, contradicted if a claimed name is still emitted while the emission moved.
+- `lint-component-surface` and `lint-paint` baselines accepted: bindings moved from `size/*` to `space/*`, Tag gained a node; member and assignment counts unchanged.
+
+**Owner decisions on the held items** (`docs/28` §5.4.1–5.4.3, indexed).
+- **Gap floor: no gap below 4px at any density.** `densitySpacingStep` clamps a gap (a key whose last segment is `gap` or ends in `-gap`) at `GAP_FLOOR_PX` after the step; paddings are not floored, and the validator refuses a gap under 4px at comfortable. The only value it moves is compact small Tag's label→check, 2 → 4 (the table above); nothing else moves, and the orderings still hold (compact small Tag: both gaps 4, padding-x 6).
+- **The density step rule stands as written**, including compact small growing (Button padding-x 8 → 12, gap 4 → 6; row gaps 4 → 6) and spacious large block padding 16 → 12.
+- **Per-mode density changes heights only.** The lever stays. One sentence, the same in the density lever's description (shown on every per-mode Density knob), the studio's per-mode "Density & size" note and `docs/28`: "Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only." `test.ts` checks the lever and `docs/28`; the studio smoke suite checks every per-mode Density knob it meets (3 per run).
+
+**Independent review of 88d9a238** (approved on correctness; the seven non-Tag components' Figma plans byte-identical to main at comfortable across five brands). Folded in:
+- The deletion register gets check 2: on every run, no name a recorded deletion claims may be emitted by any brand. Without it a later PR could re-emit `size/md/gap` unseen, and a later rename of it would be written off (docs/34 shape 11). The same arm catches one brand's `size.json` restored by hand.
+- The deletion arm of the accounting is driven directly: honored, contradicted by a still-emitted name, and claimed twice by a deletion and a rename.
+- A def that states `padding-x-visual` must carry the #326 rule itself, with a fixture that must fail (Tag given an icon-side padding and a #325-only rule).
+- The studio's per-mode "Density & size" note says the decided sentence, and stale `size/md/gap` example names in comments now name `size/md/height`.
+
+**Mutations.** Each after a `wip:` commit, restored with `git checkout --` and a clean `git status`; every one fails a named assertion:
+
+| mutation | fails, by name |
+|---|---|
+| (a) `size.*.padding-x` re-emitted (`tree.ts`) | `spacing model: the size tier holds heights only …` · `D-density(b): no size rung carries a padding or gap leaf …` · `figma dims.size: variable count matches DTCG tree` · `contract: the COMMITTED baseline still matches the engine` (and `token-contract --check`) |
+| (b) density rule off at compact (`DENSITY_SPACE_SHIFT.compact = 0`) | `spacing model: density moves a step one position along the space ladder and clamps at both ends` · `spacing model: every def's padding and gaps, per size, at compact / comfortable / spacious …` |
+| (c) Tag medium padding-x back to 16 | `spacing model: every def's padding and gaps …` (tag@compact/comfortable/spacious) · `tag rendered width (nb / aurora / harbor / prism3, medium, comfortable) …` |
+| (d) Tag minimum width back to the height (`minWidthKey: size.{size}.height`) | `tag geometry: … no variable to its minimum width …` · `tag minimum width (owner decision L) …` · `tag rendered width (×4)` · plugin `tag min width: a one-letter medium tag is 64 × 44 …` (got 44 × 44) |
+| (e) dismissible right padding back to padding-x (`inlineEnd` removed) | `tag rendered width (×4)` (dismissible 92, want 80) |
+| (f) Button medium padding-x 16 → 12 (one step off) | `spacing model: every def's padding and gaps …` · `spacing ordering: #325 … #326 … hold for every rule …` (padding-x-visual 8 !< padding-x 8) · the `#1667 edges` arms (184 failures in all) |
+| (g) Tag's ordering rule dropped | `spacing ordering: every def that states a gap beside a padding has an ordering rule … NO RULE: tag` |
+| (h) gap floor removed (`densitySpacingStep` passes no floor) | `spacing model: every def's padding and gaps …` (tag@compact small 6/4/2) · `spacing model: the gap floor … (got 2) — UNDER: tag@compact size.small.check-gap: 2` |
+| (i) the per-mode sentence dropped from the density lever | `spacing model: "Spacing follows the brand’s density…" is in the density lever's description…` · `lever manifest: schema/lever-manifest.json is up to date` · studio smoke `per-mode density: every per-mode Density knob (3 met) says … MISSING: prism3 / Size & radius / Dark` |
+| (j) `size/md/gap` re-emitted for nb in the source (`tree.ts` + `emit-figma-dims.ts`, then regen) | `spacing model: the size tier holds heights only …` · `materialization deletions check 2: … STILL EMITTED: [delete:size-spacing-removed-spacing-model] nb size :: nbds/size/md/gap` · `lint-materialization-renames` (contradicted: still emitted) |
+| (k) the deletion contradiction arm neutered | `materialization deletions: a deletion whose name is still emitted is contradicted, by name ([])` |
+| (l) the #326 scope arm accepts any rule | `spacing ordering: a def that states padding-x-visual carries the #326 rule … the fixture … is caught: NOT caught` |
+
+**Traps.**
+- The studio must not reference `componentDefs` outside the `PRISM3_HOST === 'figma'` gate (`COMPONENT_CATALOGUE`); read spacing from `button-spacing.ts`.
+- `densitySpace(space.0, spacious)` is `space.025`, not `space.0`: a spacing that must stay 0 stays off `densitySpacing` rather than relying on the clamp.
 
 ---
 

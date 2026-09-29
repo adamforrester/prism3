@@ -36,6 +36,11 @@
  * 18px/emphasis and `size.large.type` binds it.)
  */
 import { ComponentDef } from '../component-schema';
+import { BUTTON_SPACING } from '../button-spacing';
+
+/** One size's spacing entries from `BUTTON_SPACING`, spread beside that size's height and type. */
+const BUTTON_SPACING_AT = Object.fromEntries(['small', 'medium', 'large'].map((sz) =>
+  [sz, Object.fromEntries(Object.entries(BUTTON_SPACING).filter(([k]) => k.startsWith(`size.${sz}.`)))])) as Record<string, Record<string, string>>;
 
 type IntentFamily = 'primary' | 'neutral' | 'destructive';
 
@@ -257,6 +262,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   // and it stays in the projector where it can be expressed.
   paintKeys: ['{appearance}.{slot}.{state}', '{appearance}.{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
+  densitySpacing: ['size.{size}.padding-x', 'size.{size}.padding-x-visual', 'size.{size}.padding-y', 'size.{size}.gap'],
+
   tokens: {
     // base (variant-independent)
     'radius': 'radius.md',
@@ -282,9 +290,26 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
-    // per-size geometry + label type. `padding-x` is the LABEL side and `padding-x-visual` the
-    // slot side (#326) — the split is why a leading icon doesn't read loose; `gap` (#325) is the
-    // label↔visual space.
+    // per-size geometry + label type. The height is the shared `size.*` rung; the spacing is this spec's
+    // own, as `space.*` steps at COMFORTABLE density (the spacing model, 2026-09-29), and density moves each
+    // one step along the space ladder (`densitySpacing` below). The horizontal model, left edge inward:
+    // [padding-x-visual][icon][gap][label][padding-x]. Three values, one ordering:
+    //
+    //     gap  <  padding-x-visual  <  padding-x
+    //
+    //   · `gap` (#325) is tightest — PROXIMITY. The icon and label must sit closer to each other than to the
+    //     button's edge, or they read as two things sharing a box.
+    //   · `padding-x-visual` (#326) sits between — an icon's own bounding box already adds apparent space,
+    //     so equal numeric padding reads as TOO MUCH on the icon side. Material 3 (`leading-space` 24 vs
+    //     `with-leading-icon-leading-space` 16), Spectrum (`edge-to-text` vs `edge-to-visual`) and Carbon
+    //     converge on it.
+    //   · `padding-x` is loosest — plain text carries no bounding-box bonus.
+    //
+    // The ordering is the contract, asserted over every def at every density after the step rule
+    // (`test.ts`, "spacing ordering"). The steps are the ones the shared scale used to derive
+    // (gap = half of padding-x, the icon side two-thirds snapped to the scale), kept pixel-identical at
+    // comfortable: small 16/12/8, medium 16/12/8, large 24/16/12, with 6/8/8 block padding. The steps live in
+    // `button-spacing.ts` (data only, so the studio can read them without importing a def).
     //
     // `icon` — THE ONE-RUNG OFFSET (#1350, OWNER-DECIDED 2026-09-08). The control rung binds a glyph
     // artboard ONE RUNG BELOW its own rung: small→xs (16), medium→sm (20), large→md (24). This is
@@ -300,24 +325,15 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // as a one-rung offset rather than an equality, and still FAIL BY NAME if the button icon drifts
     // to any rung other than exactly one below `md` (docs/34 — the invariant changed shape, it did not
     // disappear).
-    'size.small.padding-x': 'size.sm.padding-x',
-    'size.small.padding-x-visual': 'size.sm.padding-x-visual',
-    'size.small.padding-y': 'size.sm.padding-y',
-    'size.small.gap': 'size.sm.gap',
+    ...(BUTTON_SPACING_AT['small']),
     'size.small.height': 'size.sm.height',
     'size.small.icon': 'icon.size.xs',
     'size.small.type': 'type.label.sm.emphasis',
-    'size.medium.padding-x': 'size.md.padding-x',
-    'size.medium.padding-x-visual': 'size.md.padding-x-visual',
-    'size.medium.padding-y': 'size.md.padding-y',
-    'size.medium.gap': 'size.md.gap',
+    ...(BUTTON_SPACING_AT['medium']),
     'size.medium.height': 'size.md.height',
     'size.medium.icon': 'icon.size.sm',
     'size.medium.type': 'type.label.md.emphasis',
-    'size.large.padding-x': 'size.lg.padding-x',
-    'size.large.padding-x-visual': 'size.lg.padding-x-visual',
-    'size.large.padding-y': 'size.lg.padding-y',
-    'size.large.gap': 'size.lg.gap',
+    ...(BUTTON_SPACING_AT['large']),
     'size.large.height': 'size.lg.height',
     'size.large.icon': 'icon.size.md',
     // RESOLVED #1260 (owner target 2026-09-17): a large button's label is 18px at emphasis (600),

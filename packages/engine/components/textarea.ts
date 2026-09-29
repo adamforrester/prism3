@@ -37,12 +37,10 @@
  *
  * ── THE RUNG OFFSET, WHERE I MET IT (#756, `docs/28` §5.2, `docs/40` §7 step 2) ──────────────────
  *
- * `size.small.pad-x → size.sm.padding-x` and its two siblings: the def's enum is the component
- * vocabulary (`small/medium/large`), the ref is the engine's tier (`sm/md/lg`), and the engine's
- * names win. This is **not a new offset** — it is `text-field`'s exactly, inherited along with the
- * substrate it belongs to, and it agrees on every value. Recorded because the rule is that the
- * author records it where they meet it, and "the parent already did" is how the next def stops
- * doing so. Default `medium` → `md`, per the rule rather than this def's judgment.
+ * The size ladder is padding only, and since the spacing model (2026-09-29) padding is this def's own
+ * `space.*` steps (text-field's, value for value) rather than a rung of the shared `size.*` tier, so no
+ * rung name is met here any more. It was `size.small.pad-x → size.sm.padding-x` and its siblings, where
+ * the engine's names won. Default `medium`, the projected `md` field.
  *
  * ── WHY `size` IS IN `props` AT ALL, WHEN THE BRIEF INHERITS IT ─────────────────────────────────
  *
@@ -165,6 +163,10 @@ export const textarea: ComponentDef = {
   // templates cannot coexist).
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder
+  // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
+  densitySpacing: ['pad-x', 'pad-y', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+
   // INPUT CHROME ONLY, same composition call as the substrate — label and message color/type live in
   // `field-label` / `field-message` and are composed, not re-declared here.
   //
@@ -249,8 +251,8 @@ export const textarea: ComponentDef = {
     // Geometry. Padding only — see the header. The BARE keys are the projected `md` rung (text-field's
     // shape); the `size.{small,medium,large}.*` keys below are the code-API ladder, not projected.
     'radius': 'radius.sm',
-    'pad-x': 'size.md.padding-x',
-    'pad-y': 'size.md.padding-y',
+    'pad-x': 'space.200',
+    'pad-y': 'space.100',
     // The stack spacing between label, control and message — text-field's.
     'root-gap': 'space.100',
     // 1px field hairline, text-field's edge weight.
@@ -274,12 +276,12 @@ export const textarea: ComponentDef = {
     'counter-type': 'type.caption.md.default',
     'indicator': 'color.text.secondary',
     'disabled.indicator': 'color.disabled.text',
-    'size.small.pad-x': 'size.sm.padding-x',
-    'size.small.pad-y': 'size.sm.padding-y',
-    'size.medium.pad-x': 'size.md.padding-x',
-    'size.medium.pad-y': 'size.md.padding-y',
-    'size.large.pad-x': 'size.lg.padding-x',
-    'size.large.pad-y': 'size.lg.padding-y',
+    'size.small.pad-x': 'space.200',
+    'size.small.pad-y': 'space.075',
+    'size.medium.pad-x': 'space.200',
+    'size.medium.pad-y': 'space.100',
+    'size.large.pad-x': 'space.300',
+    'size.large.pad-y': 'space.100',
   },
 
   // ── ANATOMY — text-field's column, with a control that HUGS its reserved rows ──────────────────

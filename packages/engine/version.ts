@@ -2935,7 +2935,33 @@
  * `remove()`. The `test-mcp-paste.ts` shim now treats a removed object as dead, as `test-prune.ts`'s does
  * (shared helpers in `apps/plugin/removal-shim.ts`). A PLUGIN write-path behavior change (principle 5) →
  * ENGINE bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen.
- * CONTRACT STANDS at 13.2.0 (no token name moves).
+ * CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
+ * 0.207.0 — #1789: the plugin's font preload warned "1 typeface unavailable (Playfair Display|Semi Bold
+ * Italic)" on a Figma whose Playfair ships `SemiBold Italic`, in the same apply whose text-style pass wrote
+ * that style correctly. `preloadFonts` tested each candidate by exact `family|style` and never ran the #499
+ * resolver. It now resolves every candidate's style against its family's real styles with the same
+ * `resolveFontStyle`, loads the RESOLVED face (once, however many candidates resolve to it; a failed load is
+ * still reported for every named candidate of that face, in any candidate order), and reports a named face
+ * unavailable only when the resolver or the load says so. Every origin (theme, file, crossed)
+ * resolves the same way; the origin still decides only whether a miss is reported. The verdict's "N font
+ * styles name-resolved" stays the text-style pass's count. A PLUGIN write-path behavior change (principle 5)
+ * → ENGINE bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen.
+ * CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
+ * 0.206.0 — the spacing model (owner-decided 2026-09-29, "size is for size, space is for space"; decision
+ * record `docs/28` §5.4). `size.*` holds dimensions only: the shared scale stops emitting
+ * `size.<rung>.{padding-x,padding-x-visual,padding-y,gap}` (CONTRACT 14.0.0, below), and every component states
+ * its own padding and gaps as `space.*` steps at comfortable density (`ComponentDef.densitySpacing`). Density
+ * follows by rule: `applySpacingDensity` moves each named step one step down the space ladder at compact and
+ * one up at spacious, clamped at the ends, and no gap goes below 4px (`GAP_FLOOR_PX`). Button, text-field, textarea, select and the checkbox, radio and
+ * switch rows are pixel-identical at comfortable; their compact and spacious spacing moves (the per-size table
+ * is in the PR and the progress entry). Tag takes the owner's mockup values (padding 8/12/16, icon→label
+ * 6/8/12, label→check 4/6/8), a nested label-and-check row, a 0 trailing inset before the dismissible × slot,
+ * and a minimum width of 1.5 × its height rounded to the nearest 8px (`minWidthRatio`, written into Figma as
+ * a per-size literal by `applyMinWidthRatio`). The #325/#326 orderings move from the shared scale to a rule
+ * asserted over every def at every density. Emitted trees, the Figma `size` collection and the projected
+ * component surface all move → ENGINE bump.
  *
  * 0.203.0 — the plugin's confirmed prune stopped after its first style: `applyPrunePlan` read `.name` off
  * each style (and each variable) right after calling its `remove()`, and the host throws on any read of a
@@ -4666,6 +4692,15 @@ export const ENGINE_VERSION = '0.208.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 14.0.0 — the spacing model (owner-decided MAJOR 2026-09-29, zero consumers confirmed): REMOVE the shared
+ * size scale's spacing tokens, `size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}` — 20 guaranteed
+ * paths, gone from DTCG, the Figma `size` collection and every other emission. `size.*` now holds control
+ * heights (and `size.md.min-height`) only. A component's padding and gaps are `space.*` steps its own def
+ * states, and density moves them one step (`applySpacingDensity`); no per-component token replaces them, so
+ * there is no `replacedBy` and no DEPRECATIONS entry: the migration is "bind the `space.*` step the
+ * component's spec names". A guaranteed removal with no migration path: 13.2.0 → 14.0.0. Nothing is added or
+ * retyped. Recorded in `docs/30` and `docs/28` §5.4.
+ *
  * 13.2.0 — #1318 adds THREE guaranteed names: `color.veil.dark.clear` and `color.veil.light.clear`, the clear
  * ends a directional veil fades to (0% black and 0% white, appearance-invariant and fill-only like the other
  * veil roles), and `core.palette.white-alpha.0`, the 0%-white primitive the light one aliases. The dark one
@@ -4743,7 +4778,7 @@ export const ENGINE_VERSION = '0.208.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '13.2.0';
+export const CONTRACT_VERSION = '14.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

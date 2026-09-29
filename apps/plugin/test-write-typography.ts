@@ -34,7 +34,7 @@ import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
 import type { VarCollectionApplyResult as VarApplyResult } from './src/write-figma';
-import { preloadFonts, facesToPreload } from './src/preload-fonts';
+import { preloadFonts, facesToPreload, loadPreloadCandidates } from './src/preload-fonts';
 import type { FontPreloadApi } from './src/preload-fonts';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 
@@ -680,6 +680,89 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
   const again = await applyTextStylePlan(p3Text, p3Styles);
   ok(cut('title/strong') === 'SemiBold Italic' && again.created === 0,
     `#1296 a re-apply lands on the same 'SemiBold Italic' with no new styles (got ${JSON.stringify(cut('title/strong'))}, +${again.created})`);
+}
+
+// =============================================================================================
+// #1789 — THE PRELOAD RESOLVES A STYLE'S SPELLING BEFORE CALLING THE FACE UNAVAILABLE
+// =============================================================================================
+// A live apply of the prism3 example brand reported "1 typeface unavailable (Playfair Display|Semi Bold
+// Italic)" on a Figma whose Playfair ships `SemiBold Italic`. The text-style pass resolved the same row
+// (#499) and wrote the style correctly; only the preload's exact `family|style` test was wrong. Every
+// expectation below is a LITERAL face or count — never computed with `resolveFontStyle`, which would pass
+// with the resolver removed from the preload (docs/34 shape 1).
+{
+  const p3Plan = buildTextStylePlan(brandTheme(exampleBrands()['prism3'] as BrandInput));
+  // The engine's own guess for Playfair 600 italic, taken from the real plan so the fixture is the row
+  // the live run reported, not a hand-built stand-in.
+  const semiBoldItalicRows = p3Plan.filter((r) => r.fontFamilyPrimary === 'Playfair Display' && r.fontStyle === 'Semi Bold Italic');
+  ok(semiBoldItalicRows.length === 12,
+    `#1789 reachable: the prism3 plan still emits Playfair Display|Semi Bold Italic (${semiBoldItalicRows.length} rows) — the spelling the live run warned about`);
+  /** A host whose font list is exactly `list` (family → styles) and whose loads succeed for those faces only. */
+  const listHost = (list: Record<string, string[]>, fileStyles: { name: string; fontName: FontName }[] = []) => {
+    const loads: FontName[] = [];
+    const api: FontPreloadApi = {
+      async getLocalTextStylesAsync() { return fileStyles; },
+      async loadFontAsync(fn: FontName) {
+        if (!(list[fn.family] ?? []).includes(fn.style)) throw new Error(`font not available: ${fn.family}|${fn.style}`);
+        loads.push(fn);
+      },
+      async listAvailableFontsAsync() { return Object.entries(list).flatMap(([family, styles]) => styles.map((style) => ({ fontName: { family, style } }))); },
+    };
+    return { api, loads };
+  };
+  const PLAYFAIR_TIGHT = ['Regular', 'Italic', 'SemiBold', 'SemiBold Italic', 'Bold', 'Bold Italic'];
+
+  // THE REPORTED CASE: host spells it `SemiBold Italic`, the plan asks for `Semi Bold Italic`.
+  const tight = listHost({ 'Playfair Display': PLAYFAIR_TIGHT });
+  const tightPre = await preloadFonts(semiBoldItalicRows, tight.api);
+  ok(tightPre.unavailable.length === 0,
+    `#1789 a host spelling it 'SemiBold Italic' gives NO unavailable entry for a plan face 'Semi Bold Italic' (got ${JSON.stringify(tightPre.unavailable)})`);
+  ok(JSON.stringify(tight.loads) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold Italic' }]) && tightPre.loaded === 1,
+    `#1789 ...and exactly one load, of the RESOLVED name Playfair Display|SemiBold Italic (got ${JSON.stringify(tight.loads)}, loaded ${tightPre.loaded})`);
+
+  // A GENUINELY ABSENT STYLE is still reported: this Playfair has no 600 under any spelling.
+  const noSemi = listHost({ 'Playfair Display': ['Regular', 'Italic', 'Bold', 'Bold Italic'] });
+  const noSemiPre = await preloadFonts(semiBoldItalicRows, noSemi.api);
+  ok(JSON.stringify(noSemiPre.unavailable) === JSON.stringify([{ face: 'Playfair Display|Semi Bold Italic', origin: 'theme', reason: 'not available in this Figma' }]) && noSemi.loads.length === 0,
+    `#1789 a family lacking the weight under every spelling is still reported, as the face ASKED FOR, with no load (got ${JSON.stringify(noSemiPre.unavailable)}, ${noSemi.loads.length} loads)`);
+  // ...and so is an absent family.
+  const noFamily = listHost({ Inter: ['Regular', 'Semi Bold'] });
+  const noFamilyPre = await preloadFonts(semiBoldItalicRows, noFamily.api);
+  ok(JSON.stringify(noFamilyPre.unavailable.map((u) => u.face)) === JSON.stringify(['Playfair Display|Semi Bold Italic']) && noFamily.loads.length === 0,
+    `#1789 a family this Figma lacks entirely is still reported (got ${JSON.stringify(noFamilyPre.unavailable.map((u) => u.face))})`);
+
+  // THE FILE ALREADY HOLDS THE RESOLVED FACE — the common re-apply, since the text-style pass wrote it.
+  // The theme's 'Semi Bold Italic' and the file's 'SemiBold Italic' are one face and load once.
+  const reapply = listHost({ 'Playfair Display': PLAYFAIR_TIGHT }, [{ name: 'title/lg/strong', fontName: { family: 'Playfair Display', style: 'SemiBold Italic' } }]);
+  const reapplyPre = await preloadFonts(semiBoldItalicRows, reapply.api);
+  ok(JSON.stringify(reapply.loads) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold Italic' }]) && reapplyPre.unavailable.length === 0,
+    `#1789 a theme face and a file face that resolve to the same real face load it ONCE (got ${JSON.stringify(reapply.loads)})`);
+
+  // A FILE face spelled differently from the host resolves the same way — origin decides reporting, not lookup.
+  const fileSpelled = listHost({ 'Playfair Display': PLAYFAIR_TIGHT }, [{ name: 'legacy', fontName: { family: 'Playfair Display', style: 'Semi Bold' } }]);
+  const fileSpelledPre = await preloadFonts([], fileSpelled.api);
+  ok(JSON.stringify(fileSpelled.loads) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold' }]) && fileSpelledPre.unavailable.length === 0,
+    `#1789 a FILE face 'Semi Bold' loads the host's 'SemiBold' and is not reported (got ${JSON.stringify(fileSpelled.loads)}, ${JSON.stringify(fileSpelledPre.unavailable)})`);
+
+  // THE DEDUPE HOLDS THE OUTCOME, NOT JUST "SEEN" — independent of candidate order. `facesToPreload` puts
+  // named candidates first, and a Set-only dedupe was correct only because of that. Fed crossed-first,
+  // with a face the list offers but whose load throws, the crossed candidate makes the one attempt; the
+  // theme candidate that resolves to the same face must still be REPORTED, without a second attempt.
+  const attempts: FontName[] = [];
+  const crossedFirst = await loadPreloadCandidates(
+    [
+      { face: { family: 'Playfair Display', style: 'SemiBold Italic' }, origin: 'crossed' },
+      { face: { family: 'Playfair Display', style: 'Semi Bold Italic' }, origin: 'theme' },
+    ],
+    {
+      async loadFontAsync(fn: FontName) { attempts.push(fn); throw new Error('load refused: Playfair Display SemiBold Italic'); },
+      async listAvailableFontsAsync() { return PLAYFAIR_TIGHT.map((style) => ({ fontName: { family: 'Playfair Display', style } })); },
+    },
+  );
+  ok(JSON.stringify(crossedFirst.unavailable) === JSON.stringify([{ face: 'Playfair Display|Semi Bold Italic', origin: 'theme', reason: 'load refused: Playfair Display SemiBold Italic' }]) && crossedFirst.crossedMisses === 1,
+    `#1789 a named face whose load already failed under an earlier CROSSED candidate is still reported (got ${JSON.stringify(crossedFirst.unavailable)}, crossedMisses ${crossedFirst.crossedMisses})`);
+  ok(JSON.stringify(attempts) === JSON.stringify([{ family: 'Playfair Display', style: 'SemiBold Italic' }]) && crossedFirst.attempted === 1 && crossedFirst.loaded === 0,
+    `#1789 ...with no second load attempt for that face (got ${JSON.stringify(attempts)}, attempted ${crossedFirst.attempted})`);
 }
 
 console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

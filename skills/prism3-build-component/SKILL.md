@@ -164,6 +164,17 @@ gap while its fill changes across nine intent×appearance coordinates. Anatomy r
 **binding keys** in `tokens`, never raw token refs, so a `{size}` in a key expands over the
 size axis and one indirection keeps the def brand-invariant.
 
+**Spacing: size is for size, space is for space** (`docs/28` §5.4). Bind a height to the shared
+`size.<rung>.height`, so a medium button, field and tag line up. Bind every padding and gap to a
+`space.*` step your spec states per size at COMFORTABLE density (`'size.medium.padding-x':
+'space.200'`), and list those keys in `densitySpacing` (`'size.{size}.padding-x'`). Density then
+moves each listed step one position along the space scale before projection
+(`applySpacingDensity`: down at compact, up at spacious, clamped at the ends). Leave a spacing
+off the list when it must not move: a 0 inset, a stack gap the spec fixes. Never mint a
+per-component spacing token. Two orderings hold at every density, and `packages/engine/test.ts` asserts them per
+def as literal rules, so add yours there: a gap is tighter than the padding beside it (#325),
+and an icon-side inset sits between them (#326: gap < icon-side padding < label-side padding).
+
 ## 2. Materialized anatomy — the part tree
 
 Every part declares a `kind` from a closed vocabulary (`packages/engine/component-schema.ts`,

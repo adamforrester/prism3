@@ -626,22 +626,15 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     radius[r.name] = leaf;
   }
-  // component tier: each size binds a height + paired padding from the shared
-  // scales, so a `md` control is identical across components. DENSITY acts here.
-  const spacePad = (px: number, name: string): Token => {
-    const key = spaceKeyOf.get(px);
-    return key ? dimAlias(`${root}.space.${key}`, name, { px }) : dimLeaf(px, name);
-  };
-  // component tier is MODE-VARYING on the density lever (Phase D — same seam as radius): a customizable
-  // mode may run a different density, re-deriving `sizes`. A size sub-leaf (height / padding-x / padding-y)
-  // whose per-mode px DIFFERS from light carries a `$extensions.prism3.modes.<mode>` override — height
-  // aliases the dimension grid on-grid (else literal); padding aliases the space scale on-scale (else
-  // literal), mirroring their light branches. Absent maps ⇒ byte-identical.
+  // component tier: each size is a control HEIGHT, shared so a `md` control is the same height across
+  // components. DENSITY acts here. Dimensions only (the spacing model, 2026-09-29): padding and gaps are
+  // `space.*` steps a component's def states itself, and density moves them one step (`scale.ts`).
+  //
+  // The tier is MODE-VARYING on the density lever (Phase D — same seam as radius): a customizable mode may
+  // run a different density, re-deriving `sizes`. A height whose per-mode px DIFFERS from light carries a
+  // `$extensions.prism3.modes.<mode>` override aliasing the dimension grid on-grid (else a literal),
+  // mirroring its light branch. Absent maps ⇒ byte-identical.
   const sizesByMode = theme.dims.sizesByMode ?? {};
-  const spaceModeOverride = (px: number, note: string): Record<string, unknown> => {
-    const key = spaceKeyOf.get(px);
-    return key ? { $value: `{${root}.space.${key}}`, px, note } : { $value: `${px}px`, px, note };
-  };
   // Build the per-mode override map for one size sub-leaf (a rung whose per-mode px differs from light).
   const sizeModes = (sizeName: string, field: string, ownPx: number, pick: (z: SizeStep) => number, ov: (px: number, note: string) => Record<string, unknown>): Record<string, unknown> | undefined => {
     const modeOverrides: Record<string, unknown> = {};
@@ -657,25 +650,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const heightLeaf = gridSet.has(z.height)
       ? dimAlias(`${root}.${CORE_TIER}.dimension.${z.height}`, `size.${z.name} control height — ${z.height}px (density: ${theme.dims.density})`, { px: z.height, density: theme.dims.density })
       : dimLeaf(z.height, `size.${z.name} control height — ${z.height}px`);
-    const padXLeaf = spacePad(z.padX, `size.${z.name} horizontal inset — ${z.padX}px (density: ${theme.dims.density})`);
-    const padYLeaf = spacePad(z.padY, `size.${z.name} vertical inset — ${z.padY}px (density: ${theme.dims.density})`);
     const hMods = sizeModes(z.name, 'height', z.height, (s) => s.height, gridStepOverride);
-    const pxMods = sizeModes(z.name, 'padding-x', z.padX, (s) => s.padX, spaceModeOverride);
-    const pyMods = sizeModes(z.name, 'padding-y', z.padY, (s) => s.padY, spaceModeOverride);
-    // gap rides the same per-mode density seam as padding — a mode at a different density re-derives
-    // its ladder, so its gap moves with its padX (#325).
-    // #326 — the visual-side inset, additive: `padding-x` keeps its meaning (the label side) so no
-    // existing binding moves, and this is opt-in until the anatomy block maps which side is which.
-    const padXVisLeaf = spacePad(z.padXVisual, `size.${z.name} horizontal inset on the visual side — ${z.padXVisual}px (an icon's own box adds apparent space, so it insets less than the ${z.padX}px label side)`);
-    const pxvMods = sizeModes(z.name, 'padding-x-visual', z.padXVisual, (s) => s.padXVisual, spaceModeOverride);
-    if (pxvMods) padXVisLeaf.$extensions.prism3.modes = pxvMods;
-    const gapLeaf = spacePad(z.gap, `size.${z.name} label↔visual gap — ${z.gap}px (density: ${theme.dims.density})`);
-    const gMods = sizeModes(z.name, 'gap', z.gap, (s) => s.gap, spaceModeOverride);
-    if (gMods) gapLeaf.$extensions.prism3.modes = gMods;
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
-    if (pxMods) padXLeaf.$extensions.prism3.modes = pxMods;
-    if (pyMods) padYLeaf.$extensions.prism3.modes = pyMods;
-    size[z.name] = { height: heightLeaf, 'padding-x': padXLeaf, 'padding-x-visual': padXVisLeaf, 'padding-y': padYLeaf, gap: gapLeaf };
+    size[z.name] = { height: heightLeaf };
   }
 
   // ── size.md.min-height — the INTERACTIVE TARGET-SIZE FLOOR (#1437, WCAG 2.2 SC 2.5.5 Enhanced) ────
