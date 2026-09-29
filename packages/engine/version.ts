@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.203.0 — the plugin's confirmed prune stopped after its first style: `applyPrunePlan` read `.name` off
+ * each style (and each variable) right after calling its `remove()`, and the host throws on any read of a
+ * removed object (`in get_name: The style with id "S:…" does not exist`, seen live on a real Figma test
+ * file at 0.202.0 after 1 variable, 6 modes and one text style had gone). The collection arm had the same
+ * shape one line later (it listed the file's collection names after removing the stranded ones). The
+ * executor now reads every name, id and collection id it matches on before the first `remove()`, and removes
+ * each object at most once. The test shim now throws the host's error on a read of a removed object, which
+ * it never did before, so nothing caught this. A PLUGIN write-path behavior change (principle 5) → ENGINE
+ * bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT
+ * STANDS at 13.2.0 (no token name moves).
+ *
  * 0.202.0 — #1626 / #1763 (owner-decided 2026-09-29, "rest fill + deeper inverse ink"): the `on-fill` label
  * is measured against every interactive fill state it sits on. On the page, `interactive.<c>.fill.focused` and
  * `.fill.selected` resolve to the rest step in every mode (they used to walk like hover/pressed, and in `dark`
@@ -4201,7 +4212,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.202.0';
+export const ENGINE_VERSION = '0.203.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
