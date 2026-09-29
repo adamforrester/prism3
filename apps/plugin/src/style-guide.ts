@@ -862,10 +862,36 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     return inst;
   };
 
-  // The specimen: a ground frame bound to the ground variable (or plain white), the swatch inside it bound to
-  // the token, and BOTH pinned to the column's mode so the binding resolves in that mode, live. The ground is
-  // the grid cell; the swatch keeps its component's fixed size inside it.
+  // THE SPECIMEN DEPENDS ON THE ROLE (owner decision 13, 2026-09-29, #259). The swatch member is the one the row's
+  // display names (`autoDisplay`, or the Display override): letters for a text role, an outlined shape for a border,
+  // the glyph for an icon, the checkerboard for a translucent value, the filled square otherwise. Its paint (the
+  // stroke, for a border) is bound to the token, it pins the column's mode, and it keeps its component's size,
+  // FIXED on both axes: it never stretches with the column.
+  //   • A SEMANTIC row draws it on a GROUND: a frame bound to the ground variable the contrast column measures
+  //     against (or plain white where the role has none), pinned to the same mode. The ground is the grid cell and
+  //     FILLs its track, so the ground reaches the cell's edges.
+  //   • A PRIMITIVE (palette) row has no ground: nothing is measured against one, so the swatch is the cell itself.
   const unboundIn = new Map<string, number>();
+  const swatchOf = (row: SgRow, cell: SgCell, collection: unknown): { inst: SgNode; w: number; h: number } | null => {
+    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
+    if (!v?.createInstance) return null;
+    const inst = v.createInstance() as SgNode;
+    const target = bindTarget(inst, row.display);
+    const variable = variableById.get(row.variableId);
+    if (target && variable) {
+      const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
+      if (row.display === 'border') target.strokes = [paint];
+      else target.fills = [paint];
+    } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
+    inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
+    return { inst, w: num(v.width), h: num(v.height) };
+  };
+  /** FIXED at the member's own size — set once the swatch is in its parent, which the host requires. */
+  const keepSize = ({ inst, w, h }: { inst: SgNode; w: number; h: number }): void => {
+    sizing(inst, 'FIXED');
+    try { inst.layoutSizingVertical = 'FIXED'; } catch { /* a host that refuses it leaves the instance as created */ }
+    if (w > 0 && h > 0) inst.resize?.(w, h);
+  };
   const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
     const ground = api.createFrame();
     ground.name = 'Ground';
@@ -876,26 +902,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const groundVariable = cell.groundId ? variableById.get(cell.groundId) : undefined;
     ground.fills = groundVariable ? [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groundVariable)] : WHITE;
     ground.setExplicitVariableModeForCollection?.(collection, cell.modeId);
-    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
-    if (v?.createInstance) {
-      const inst = v.createInstance() as SgNode;
-      const target = bindTarget(inst, row.display);
-      const variable = variableById.get(row.variableId);
-      if (target && variable) {
-        const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
-        if (row.display === 'border') target.strokes = [paint];
-        else target.fills = [paint];
-      } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
-      inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
-      ground.appendChild?.(inst);
-      // THE SWATCH KEEPS ITS COMPONENT'S SIZE (owner decision, 2026-09-29, #259): FIXED on both axes at the
-      // member's own width and height, as `_style-guide-swatches` sits in the owner's examples. The ground is the
-      // cell and FILLs the track; the swatch inside it never stretches with the column.
-      const [w, h] = [num(v.width), num(v.height)];
-      sizing(inst, 'FIXED');
-      try { inst.layoutSizingVertical = 'FIXED'; } catch { /* a host that refuses it leaves the instance as created */ }
-      if (w > 0 && h > 0) inst.resize?.(w, h);
-    }
+    const sw = swatchOf(row, cell, collection);
+    if (sw) { ground.appendChild?.(sw.inst); keepSize(sw); }
     return ground;
   };
 
@@ -1000,7 +1008,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     wrap.appendChild?.(grid);
 
     // A cell FILLs its track, both axes: a text cell hugs its words (`fit`), and the track takes that width; the
-    // specimen's ground fills the track too, so the ground reaches the cell's edges however wide the column is.
+    // specimen's ground fills the track too, so the ground reaches the cell's edges however wide the column is. A
+    // palette row's swatch is the one cell that does not: it keeps its component's size (decision 13).
     const place = (n: SgNode | null, r: number, c: number): void => {
       if (!n) return;
       grid.appendChildAt?.(n, r, c);
@@ -1015,7 +1024,12 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       let c = 0;
       place(await textCell('default', 'white', row.token), r + 1, c++);
       for (const cell of row.cells) {
-        place(specimen(row, cell, collection), r + 1, c++);
+        if (t.kind === 'primitive') {
+          // A palette row: the swatch alone, at its own size, in the cell (decision 13).
+          const sw = swatchOf(row, cell, collection);
+          if (sw) { grid.appendChildAt?.(sw.inst, r + 1, c); keepSize(sw); }
+          c++;
+        } else place(specimen(row, cell, collection), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);

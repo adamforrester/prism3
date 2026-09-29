@@ -36,7 +36,9 @@
  *      fingerprint and a duplicate of one are kept and reported apart; a frame the generator did not make is
  *      never touched, whatever its name. The edits are made to the shim's nodes here, never through the plugin;
  *  12. THE OWNER'S GRID MODEL (owner decisions, 2026-09-29): HUG tracks 2px apart, every cell FILL on both axes, the
- *      swatch FIXED at its component's size inside its cell, text on one line; the header spans its table, not the
+ *      swatch FIXED at its component's size (section 5 checks the specimen by role: a palette row's bare swatch with no
+ *      ground; letters for a text role, the outline for a border and the filled square for a fill, each on its
+ *      ground), text on one line; the header spans its table, not the
  *      header component's 2,517px; a grid dragged wider keeps every cell as wide as its track, and the table and its
  *      header follow the grid. Whether the HUG tracks take up the extra width is NOT asserted: the typings define HUG
  *      as CSS `fit-content(100%)`, which does not grow past its content, so that is a live-check (docs/45 §7);
@@ -145,11 +147,13 @@
  *     fail; the swatch's FIXED sizing dropped → "5: every swatch keeps its component's 48 × 48, FIXED…" fails; the
  *     filtered run's gap-closing re-stack restored → "13: a filtered run whose table keeps its height moves no
  *     table…", "13: a table a designer moved and a table with no position record are left alone…" and "13:
- *     shrinking back by 148px…" fail; the header-width miss dropped → "10: a header the host will not size…" fails;
+ *     shrinking back by 100px…" fail; the header-width miss dropped → "10: a header the host will not size…" fails;
  *     the row clause of the track read-back dropped → "10: a grid that did not keep its hugging ROW tracks…" fails; the title list uncapped → "13: an unknown
  *     name is reported by name, with the first 8 titles…" fails; the renamed-table note dropped → "13: a filtered
  *     run that draws a renamed group's new table says the old one stays…" fails; the gate's refusal removed → "15: a
  *     run asked for from the agent link while a panel run is mid-yield is refused…" fails.
+ *   - (owner decision 13 as clarified 2026-09-29: the specimen by role) a ground on a palette row → "5: a palette row has
+ *     no ground frame…" fails; a filled square for a text role → "5: a text.* row draws letters…" fails.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -739,7 +743,9 @@ const main = async (): Promise<void> => {
     const grids = [...tablesOn(f.sem), ...tablesOn(f.prim)].map(gridOf);
     const notHug = grids.flatMap((x) => [...x.gridColumnSizes, ...x.gridRowSizes].filter((s) => s.type !== 'HUG').map((s) => `${x.parent?.name}: ${s.type}`));
     ok(grids.length === 22 && notHug.length === 0, `5: every column and row track of every table is HUG (${notHug.slice(0, 3).join('; ')})`);
-    const textCells = grids.flatMap((x) => x.children.filter((k) => k.type === 'INSTANCE'));
+    // A palette row's swatch sits in the grid itself (decision 13), so the text cells are the instances of any other set.
+    const isSwatch = (k: N): boolean => k.mainComponent?.parent?.name === '_style-guide-swatches';
+    const textCells = grids.flatMap((x) => x.children.filter((k) => k.type === 'INSTANCE' && !isSwatch(k)));
     const hugging = textCells.filter((k) => k.lsh !== 'FILL' || k.layoutSizingVertical !== 'FILL');
     ok(textCells.length > 0 && hugging.length === 0, `5: every text cell FILLs its track, both axes (${hugging.length} of ${textCells.length} do not)`);
     const grounds = grids.flatMap((x) => x.children.filter((k) => k.name === 'Ground'));
@@ -778,8 +784,39 @@ const main = async (): Promise<void> => {
     ok(boundId(cellAt(icon, rowOf(icon, 'on-brand'), 1)?.fills) === idOf('pds3/color/foreground/brand'), '5: icon/on-brand is drawn on foreground/brand');
     const neutral = gridOf(tableFrame(f.prim, 'Neutral')!);
     const nr = rowOf(neutral, '050');
-    ok(boundId(cellAt(neutral, nr, 1)?.children[0]?.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/core/palette/neutral/050'), '5: a primitive swatch is bound to its step');
-    ok(cellAt(neutral, nr, 1)?.children[0]?.explicitVariableModes['VariableCollectionId:core'] === 'core:0', '5: a primitive swatch pins its one mode');
+    ok(boundId(cellAt(neutral, nr, 1)?.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/core/palette/neutral/050'), '5: a primitive swatch is bound to its step');
+    ok(cellAt(neutral, nr, 1)?.explicitVariableModes['VariableCollectionId:core'] === 'core:0', '5: a primitive swatch pins its one mode');
+
+    // THE SPECIMEN BY ROLE (owner decision 13, 2026-09-29). A palette row: no ground, its cell the type=default swatch at
+    // its component's 48 × 48, FIXED, in every primitive table (the alpha palettes draw type=transparency the same way).
+    const pal = cellAt(neutral, nr, 1);
+    const primGrounds = tablesOn(f.prim).flatMap((w) => gridOf(w).findAll((k) => k.name === 'Ground'));
+    const primSwatches = tablesOn(f.prim).flatMap((w) => gridOf(w).children.filter((k) => k.gridRow! > 0 && k.gridCol === 1));
+    ok(pal?.type === 'INSTANCE' && pal.mainComponent?.name === 'type=default' && pal.lsh === 'FIXED' && pal.layoutSizingVertical === 'FIXED' && pal.width === 48 && pal.height === 48
+      && primGrounds.length === 0 && primSwatches.length > 0 && primSwatches.every((k) => k.type === 'INSTANCE' && k.width === 48 && k.height === 48),
+      `5: a palette row has no ground frame: its cell is the type=default swatch, 48 × 48 and FIXED (${pal?.name} ${pal?.mainComponent?.name} ${pal?.width}×${pal?.height}; ${primGrounds.length} grounds in the primitive tables)`);
+    // A text role: letters, the type=text member, its "Aa" fill bound to the token, directly on its ground. No filled square.
+    const tcell = cellAt(g, r, 1)!;
+    const tsw = tcell.children[0];
+    const letters = tsw?.findOne((k) => k.name === 'Specimen');
+    const squares = tsw ? [tsw, ...tsw.findAll(() => true)].filter((k) => k.type !== 'TEXT' && Array.isArray(k.fills) && (k.fills as unknown[]).length > 0) : [];
+    ok(tcell.name === 'Ground' && boundId(tcell.fills) === idOf('pds3/color/background/primary') && tsw?.mainComponent?.name === 'type=text'
+      && letters?.type === 'TEXT' && letters.characters === 'Aa' && boundId(letters.fills) === idOf('pds3/color/text/primary') && squares.length === 0,
+      `5: a text.* row draws letters, the type=text member with its "Aa" fill bound to the token, on its ground, with no filled square (${tsw?.mainComponent?.name}, ${letters?.type} "${letters?.characters}", ${squares.length} filled shapes)`);
+    // A border role: the type=border member, its stroke bound to the token, on its ground.
+    const bcell = cellAt(gridOf(tableFrame(f.sem, 'Border')!), 1, 1)!;
+    const bsw = bcell.children[0];
+    const firstBorder = f.vars.filter((v) => v.name.startsWith('pds3/color/border/'))[0].name;
+    ok(bcell.name === 'Ground' && bsw?.mainComponent?.name === 'type=border' && boundId(bsw.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(firstBorder)
+      && boundId(bsw.findOne((k) => k.name === 'Specimen')?.fills) === undefined,
+      `5: a border.* row draws the type=border member, its stroke bound to the token and not its fill, on its ground (${bsw?.mainComponent?.name})`);
+    // A fill role: the type=default swatch, 48 × 48, its fill bound to the token, on its ground.
+    const bgG = gridOf(tableFrame(f.sem, 'Background')!);
+    const fcell = cellAt(bgG, rowOf(bgG, 'secondary'), 1)!;
+    const fsw = fcell.children[0];
+    ok(fcell.name === 'Ground' && fcell.lsh === 'FILL' && fsw?.mainComponent?.name === 'type=default' && fsw.width === 48 && fsw.height === 48
+      && boundId(fsw.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/color/background/secondary'),
+      `5: a fill row keeps its 48 × 48 swatch on its ground (${fcell.name}, ${fsw?.mainComponent?.name} ${fsw?.width}×${fsw?.height})`);
     const border = gridOf(tableFrame(f.sem, 'Border')!);
     const bs = cellAt(border, 1, 1)?.children[0];
     ok(bs?.mainComponent?.name === 'type=border' && boundId(bs?.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(f.vars.filter((v) => v.name.startsWith('pds3/color/border/'))[0].name), '5: a border role binds the stroke');
@@ -1073,8 +1110,10 @@ const main = async (): Promise<void> => {
     };
     const valueCell = (t: N): N => cellAt(gridOf(t), 1, 2)!;
     const valueText = (t: N): N => valueCell(t).findOne((k) => k.type === 'TEXT')!;
+    // The specimen cell. A palette row has no ground (decision 13), so its cell IS the swatch; section 5 asserts that,
+    // and this reads a ground's swatch too, so these arms still run (and still mean an edit) if it ever regresses.
     const ground = (t: N): N => cellAt(gridOf(t), 1, 1)!;
-    const swatch = (t: N): N => ground(t).children[0];
+    const swatch = (t: N): N => { const c = ground(t); return c.name === 'Ground' ? c.children[0] : c; };
 
     // THE CONTROL: the same run with nothing touched deletes the table, so every "kept" below is the edit's doing.
     const a = await afterEdit(() => {});
@@ -1289,7 +1328,7 @@ const main = async (): Promise<void> => {
     ok(textNb.y === snap.get(textNb)!.y && !textNb.pluginData[AT], `13: the semantic page, which the filtered run did not draw on, is not re-stacked (Text — nbds at ${textNb.y}, left at ${snap.get(textNb)!.y})`);
     ok(styleGuideSummary(r1).ok && styleGuideSummary(r1).headline === '✓ style guide: 1 table', `13: the verdict counts the one table (${styleGuideSummary(r1).headline})`);
 
-    // GROWTH, then SHRINKAGE: two new steps grow the table by 2 × (72 + 2) = 148px, and removing them shrinks it back.
+    // GROWTH, then SHRINKAGE: two new steps grow the table by 2 × (48 + 2) = 100px — a palette row is its bare 48px swatch (decision 13) and the 2px gap, and removing them shrinks it back.
     // The tables below it in its column that sit where the generator left them move by exactly that, their records with
     // them; Accent (moved aside by hand) and Warning (no record) do not move and gain no record, and the gap Accent left
     // stays open. Nothing above it and nothing on the other page moves.
@@ -1303,9 +1342,9 @@ const main = async (): Promise<void> => {
     await draw(f13.api, contract, { tables: [PRIMARY] });
     const shiftOf = (n: N): number => n.y - at0.get(n)!.y;
     const inStep = (n: N): boolean => n.pluginData[AT] === `${n.x},${n.y}`;
-    ok(target.height - h0 === 148, `13: two new steps grow ${PRIMARY} by 2 × (72 + 2) = 148px (got ${target.height - h0})`);
-    ok(below.length === 17 && below.every((n) => shiftOf(n) === 148 && inStep(n)),
-      `13: a filtered run moves only the tables below its table, in its column and where the generator left them, by exactly its growth, 148px, each record moved with it (${below.length} tables: ${[...new Set(below.map(shiftOf))].join(', ')})`);
+    ok(target.height - h0 === 100, `13: two new steps grow ${PRIMARY} by 2 × (48 + 2) = 100px (got ${target.height - h0})`);
+    ok(below.length === 17 && below.every((n) => shiftOf(n) === 100 && inStep(n)),
+      `13: a filtered run moves only the tables below its table, in its column and where the generator left them, by exactly its growth, 100px, each record moved with it (${below.length} tables: ${[...new Set(below.map(shiftOf))].join(', ')})`);
     ok(accent.x === at0.get(accent)!.x && accent.y === at0.get(accent)!.y && accent.pluginData[AT] === at0.get(accent)!.at
       && warning.y === at0.get(warning)!.y && !warning.pluginData[AT],
       `13: a table a designer moved and a table with no position record are left alone, and neither gains a record (Accent +${shiftOf(accent)}, Warning +${shiftOf(warning)}, Warning's record "${warning.pluginData[AT] ?? ''}")`);
@@ -1314,7 +1353,7 @@ const main = async (): Promise<void> => {
     for (const st of steps) f13.vars.splice(f13.vars.indexOf(st), 1);
     await draw(f13.api, contract, { tables: [PRIMARY] });
     ok(target.height === h0 && below.every((n) => shiftOf(n) === 0 && inStep(n)) && shiftOf(accent) === 0 && shiftOf(warning) === 0 && !warning.pluginData[AT],
-      `13: shrinking back by 148px moves the same 17 tables up by exactly that, and leaves Accent and Warning where they are (${[...new Set(below.map(shiftOf))].join(', ')})`);
+      `13: shrinking back by 100px moves the same 17 tables up by exactly that, and leaves Accent and Warning where they are (${[...new Set(below.map(shiftOf))].join(', ')})`);
 
     // NAMED IN ANY CASE, OR BY KEY.
     const r3 = await draw(f13.api, contract, { tables: ['primary — NBDS', 'color|variablecollectionid:color|pds3/color/text'] });

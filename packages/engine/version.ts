@@ -2937,7 +2937,8 @@
  * stamp-only regen. CONTRACT STANDS at 13.2.0. Design record: `docs/45-style-guide-generator.md`. In the same
  * release (review round, owner decisions 12/13): a 2px track gap, the swatch FIXED at its component's size in its
  * cell, a filtered run that moves only the tables below the ones it redrew, and one style-guide run at a time
- * across the panel and the agent link (#1785).
+ * across the panel and the agent link (#1785). Owner decision 13, clarified: the specimen by role, with a ground
+ * only where it must sit on something — a palette row's swatch sits in its cell with no ground.
  *
  * 0.198.0 — #1745: Badge's three NEUTRAL pairs become mode contracts instead of example-brand measurements, so
  * every brand the engine generates is checked, not only the corpus. `border.secondary` is contracted against
