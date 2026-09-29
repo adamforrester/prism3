@@ -456,6 +456,39 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
     && rafShim.liveStyleNames('paint').size === 0
     && [...rafShim.liveStyleNames('grid')].join(',') === 'Grid / md',
     'read-after-remove: every planned style is gone in every kind, and every other style is live');
+
+  // --- duplicate groups: an object two plan groups both name is removed ONCE, the second naming a miss ---
+  // Two text groups name `display/2xl`; two variable groups for `color` name `nbds/color/old`. The shim's
+  // second `remove()` throws, as the host has nothing left to remove, so an executor without the
+  // removed-once guard throws here rather than double-counting quietly.
+  const dupVars = [new RVar('V:11', 'nbds/color/old', 'C:11'), new RVar('V:12', 'nbds/color/keep', 'C:11')];
+  const dupStyles = [new RStyle('display/2xl'), new RStyle('display/xl')];
+  const dupShim = new PruneShim([new RColl('C:11', 'color')], dupVars, { text: dupStyles, effect: [], paint: [], grid: [] });
+  let dupRes: Awaited<ReturnType<typeof applyPrunePlan>> | undefined;
+  const dupThrown = await applyPrunePlan(
+    {
+      variables: [
+        { collection: 'color', names: ['nbds/color/old'] },
+        { collection: 'color', names: ['nbds/color/old'] },
+      ],
+      collections: [],
+      modes: [],
+      styles: [
+        { kind: 'text', names: ['display/2xl'], byProvenance: [] },
+        { kind: 'text', names: ['display/2xl'], byProvenance: [] },
+      ],
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies PruneApi
+    dupShim as any as PruneApi,
+  ).then((r) => { dupRes = r; return ''; }, (e: Error) => e.message);
+  ok(dupThrown === '',
+    `duplicate groups: a style named by two text groups and a variable named by two groups for one collection are each removed without a second remove()${dupThrown ? ` (threw "${dupThrown}")` : ''}`);
+  ok(dupRes?.styles === 1 && dupRes?.variables === 1,
+    `duplicate groups: each is counted once — 1 style, 1 variable (got ${dupRes ? `${dupRes.styles}/${dupRes.variables}` : 'no result'})`);
+  ok(dupRes?.misses.join(',') === 'var:color/nbds/color/old,text-style:display/2xl',
+    `duplicate groups: the second naming of each is a miss, "var:color/nbds/color/old,text-style:display/2xl" (got "${dupRes ? dupRes.misses.join(',') : 'no result'}")`);
+  ok(dupStyles[0].removed && !dupStyles[1].removed && dupVars[0].removed && !dupVars[1].removed,
+    'duplicate groups: the named style and variable are gone, and their neighbors are live');
 }
 
 // =============================================================================================

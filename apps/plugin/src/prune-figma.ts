@@ -468,7 +468,11 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
   const misses: string[] = [];
 
   // Every property the executor matches on, read BEFORE the first `remove()` (see above). `gone` marks what
-  // this run removed, so an object two plan groups both name is removed once and never read again.
+  // this run removed, so an object two plan groups both name is removed once and never read again; the
+  // second naming is a miss. For STYLES this is purely defensive: `computePrunePlan` emits one group per
+  // kind. For VARIABLES the detector emits one group per collection ENTRY, and the lookup below is by
+  // name, so two groups resolve to one collection only if the file holds two collections of the same name.
+  // Pinned either way by the `duplicate groups` arm of `test-prune.ts`.
   const liveColls = collections.map((obj) => ({ obj, id: obj.id, name: obj.name }));
   const liveVars = vars.map((obj) => ({ obj, name: obj.name, collectionId: obj.variableCollectionId, gone: false }));
   const liveStyles = Object.fromEntries(
