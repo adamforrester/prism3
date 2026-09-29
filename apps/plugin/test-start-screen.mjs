@@ -36,6 +36,12 @@
  * makes the start screen appear more often, so this is the one that fails if the trigger is too eager,
  * and it is written to fail loudly rather than by omission — it asserts the editor is present, not
  * merely that `.startview` is absent, because "nothing rendered at all" would satisfy the weaker form.
+ *
+ * ── AND §8, A SECOND SUBJECT IN THE SAME HARNESS (#1041) ────────────────────────────────────────
+ *
+ * The rendered legibility of this bundle — the only artifact whose shell once opted into `dark`, and the
+ * only one with the plugin-only Components page. It lives here because this file already boots the panel
+ * at the plugin's own sizes; its reasoning is at the section.
  */
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
@@ -61,9 +67,26 @@ try {
   process.exit(1);
 }
 
-const server = createServer((_req, res) => {
+/** Figma's theme injection, stubbed (§8). With `themeColors: true` Figma marks the iframe's `<html>` with
+ *  `figma-light` / `figma-dark` and defines `--figma-color-*` on it before the page's own scripts run. Done
+ *  here in the SERVED document, as Figma does it, rather than from an init script — which runs before
+ *  `<html>` exists. `?figma=<theme>` selects one; no query serves the bundle byte-for-byte, as every other
+ *  section of this file expects. */
+const FIGMA_THEMES = {
+  light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
+  dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
+};
+const themed = (theme) => {
+  const t = FIGMA_THEMES[theme];
+  const style = `<style id="figma-style">:root{${Object.entries(t.vars).map(([k, v]) => `${k}:${v}`).join(';')}}</style>`;
+  const out = html.replace(/<html([^>]*)>/, `<html$1 class="${t.cls}">`).replace(/<head>/, `<head>${style}`);
+  if (out === html) throw new Error('the Figma theme stub did not apply — dist/ui.html has no <html>/<head> to inject into');
+  return out;
+};
+const server = createServer((req, res) => {
+  const theme = new URL(req.url, 'http://x').searchParams.get('figma');
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-  res.end(html);
+  res.end(theme && FIGMA_THEMES[theme] ? themed(theme) : html);
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
@@ -277,6 +300,264 @@ console.log('\n7. the host reports absence rather than staying silent');
   ok(/restore-input-empty/.test(body), 'restoreToUi posts restore-input-empty on absence');
   ok(/else postToUi/.test(body), 'and it is the ELSE of the found-a-brand branch, so the two are exclusive');
   ok(/restore-input-error/.test(body), 'with the refusal arm still present — three outcomes, total over the read');
+}
+
+// ── §8 — the built panel is LEGIBLE, in both schemes and both Figma themes (#1041) ─────────────
+//
+// WHY HERE. `apps/studio/test-smoke.mjs` measures what the web bundle renders, and it cannot see this
+// artifact: the web shell declares no `color-scheme`, so the UA resolves light whatever the host
+// prefers, and #1031's defect — the UA supplying near-white field ink over a light field, 1.11:1 in
+// Figma's dark theme — needs a shell that opts into dark. THIS shell is the one that did. It is also
+// the only bundle with the Components page (`figmaOnly`), which no studio sweep can reach. This file
+// already boots `dist/ui.html` at the plugin's own sizes, so the missing thing was the measurement,
+// not a harness (#1041's review comment).
+//
+// TWO ARMS, and the split is the one #1046 settled by mutation for the studio shell:
+//   · DIRECT — the shell's RESOLVED `color-scheme` must not name `dark`. This is the arm that fails the
+//     moment `color-scheme: light dark` comes back to `src/ui/index.html`. A ratio walk alone would NOT:
+//     every control now carries an author `color`, so re-opting into dark moves no ratio (measured at
+//     15.97:1 in both schemes on #1041), and the regression would sit green until some later control
+//     omitted its `color`.
+//   · RATIO — every rendered text node and form control against the bar the studio sweep holds the same
+//     node to: chrome at WCAG 1.4.3 (4.5:1, 3:1 large), a field's caret at 1.4.11's 3:1, specimens at
+//     the 2.0:1 "invisible" floor they keep in the studio until #779's specimen-contract decision. That is
+//     the compound tripwire for a new control that omits `color`, and the one place the plugin-only
+//     page is measured at all.
+//
+// THE FIGMA THEME IS STUBBED, BOTH WAYS. Figma injects `--figma-color-*` custom properties into the
+// iframe (`themeColors: true` in `src/main.ts`) and marks `<html>` with `figma-light` / `figma-dark`.
+// They are not UA-resolved, so #1031's fix did not touch them, and the shell's `body` reads two of them.
+// A harness that never sets them measures a panel no designer sees; this one sets Figma's own light and
+// dark values for the two the shell reads, crossed with the emulated OS scheme, because the two are set
+// independently on a real machine.
+//
+// THE PROBE IS A SECOND COPY of `LEGIBILITY_PROBE` in `apps/studio/test-smoke.mjs`, deliberately: that
+// file runs its sweep on import, so it cannot export the function, and moving the probe into a shared
+// module would restructure the studio's gate in a lane about the plugin's. The two must agree on what
+// "drawn" means — in particular, NEITHER carries the old `op < 0.02` carve-out (#1069): a node at
+// near-zero opacity is measured, composites to ~1:1, and fails.
+console.log('\n8. the built panel is legible in both schemes and both Figma themes (#1041)');
+{
+  const LEGIBILITY = () => {
+    const parse = (s) => {
+      const m = /rgba?\(([^)]+)\)/.exec(s);
+      if (!m) return null;
+      const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+      return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+    };
+    const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+    const lum = (c) => {
+      const f = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const groundOf = (el) => {
+      let acc = null;
+      for (let n = el; n; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        const c = parse(cs.backgroundColor);
+        if (c && c.a > 0) {
+          const layer = { ...c, a: c.a * Number(cs.opacity) };
+          acc = acc ? over(acc, layer) : layer;
+          if (acc.a >= 0.999) return { ...acc, a: 1 };
+        }
+      }
+      const white = { r: 255, g: 255, b: 255, a: 1 };
+      return acc ? over(acc, white) : white;
+    };
+    const drawn = (el, cs) => {
+      if (cs.visibility === 'hidden' || cs.display === 'none') return null;
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return null;
+      let op = 1;
+      for (let n = el; n; n = n.parentElement) op *= Number(getComputedStyle(n).opacity);
+      return op;
+    };
+    const round = (n) => Math.round(n * 100) / 100;
+    const name = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().replace(/\s+/g, '.') || '-'}`;
+    const classify = (el, cs) => ({ px: parseFloat(cs.fontSize), weight: Number(cs.fontWeight), specimen: el.closest('[data-specimen]') !== null });
+    const text = [];
+    for (const el of document.querySelectorAll('*')) {
+      if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+      const cs = getComputedStyle(el);
+      const op = drawn(el, cs);
+      if (op === null) continue;
+      const col = parse(cs.color);
+      if (!col) continue;
+      const ground = groundOf(el);
+      text.push({
+        ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)), op: round(op), cls: name(el),
+        text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 40),
+        inlineInk: (() => { for (let n = el; n; n = n.parentElement) if (n.style?.color) return true; return false; })(),
+        shared: el.closest('#app') !== null,
+        ...classify(el, cs),
+      });
+    }
+    const CHROMELESS = new Set(['checkbox', 'radio', 'range', 'color', 'file', 'image', 'hidden', 'submit', 'reset', 'button']);
+    const fields = [];
+    for (const el of document.querySelectorAll('input, textarea, select')) {
+      if (el.tagName === 'INPUT' && CHROMELESS.has(el.type)) continue;
+      const cs = getComputedStyle(el);
+      const op = drawn(el, cs);
+      if (op === null) continue;
+      const col = parse(cs.color);
+      if (!col) continue;
+      const ground = groundOf(el);
+      const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor);
+      fields.push({
+        ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
+        caretRatio: caret && caret.a > 0 ? round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)) : null,
+        op: round(op), cls: name(el), text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
+        ...classify(el, cs),
+      });
+    }
+    return { text, fields, colorScheme: getComputedStyle(document.documentElement).colorScheme };
+  };
+
+  // The bars, AUTHORED here as WCAG states them — not imported from the studio suite, so a change to one
+  // side's number is a disagreement, not a silent shared move.
+  const TEXT_MIN = 4.5, LARGE_TEXT_MIN = 3, CARET_MIN = 3, SPECIMEN_FLOOR = 2.0;
+  const isLarge = (r) => r.px >= 24 || (r.px >= 18.66 && r.weight >= 700);
+  const barOf = (r) => (r.specimen ? SPECIMEN_FLOOR : isLarge(r) ? LARGE_TEXT_MIN : TEXT_MIN);
+  const caretBarOf = (f) => (f.specimen ? SPECIMEN_FLOOR : CARET_MIN);
+  // Non-empty floors. A state that measured almost nothing fails naming itself rather than passing as
+  // "every one of 0 nodes clears 4.5:1" — #779's first defect, which this file would otherwise repeat.
+  // Held, not hidden (#1770) — the same entry, for the same node, as `KNOWN_FINDINGS` in the studio
+  // suite, which states the rules. Held to the specimen floor, matched by class AND text, and required to
+  // still reproduce, so fixing the node turns this red until the entry is deleted.
+  const KNOWN = [{ cls: 'span.mctx-always', text: 'always', issue: '#1770' }];
+  const knownOf = (r) => KNOWN.find((k) => k.cls === r.cls && k.text === r.text) ?? null;
+  const knownSeen = [];
+  const STATE_TEXT_FLOOR = 10;
+  const SWEEP_TEXT_FLOOR = 2000;
+  const SWEEP_FIELD_FLOOR = 20;
+
+  // The panel's sizes, READ from the host source rather than restated, so a change to either is a
+  // change to what this measures.
+  const hostSrc = readFileSync(resolve(REPO, 'apps/plugin/src/main.ts'), 'utf8');
+  const sizeOf = (nm) => {
+    const m = new RegExp(`const ${nm} = \\{ width: (\\d+), height: (\\d+) \\}`).exec(hostSrc);
+    return m ? { width: Number(m[1]), height: Number(m[2]) } : null;
+  };
+  const DEFAULT = sizeOf('DEFAULT_SIZE'), MIN = sizeOf('MIN_SIZE');
+  ok(DEFAULT !== null && MIN !== null, `read the panel's sizes from src/main.ts — default ${DEFAULT?.width}×${DEFAULT?.height}, min ${MIN?.width}×${MIN?.height}`);
+
+  const openThemed = async (viewport, scheme, theme) => {
+    const context = await browser.newContext({ viewport, colorScheme: scheme });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.goto(`${ORIGIN}/?figma=${theme}`, { waitUntil: 'load' });
+    await page.waitForSelector('#app', { state: 'attached' });
+    // The stub LANDED — read back from the rendered document, not assumed from the request (docs/34
+    // shape 19: a mutation of the environment that did not apply looks exactly like a clean run).
+    const got = await page.evaluate(() => ({
+      cls: document.documentElement.className,
+      bg: getComputedStyle(document.documentElement).getPropertyValue('--figma-color-bg').trim(),
+    }));
+    ok(got.cls.includes(FIGMA_THEMES[theme].cls) && got.bg === FIGMA_THEMES[theme].vars['--figma-color-bg'],
+      `${scheme} scheme / Figma ${theme}: the panel carries Figma's ${theme} theme (class "${got.cls}", --figma-color-bg ${got.bg || 'unset'})`);
+    return { context, page, errors };
+  };
+  // Finite running animations finish first — what stays on screen, not a frame of a transition (#1069).
+  const settle = (page) => page.evaluate(() => Promise.all(document.getAnimations()
+    .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime))
+    .map((a) => a.finished.catch(() => null))));
+
+  let textTotal = 0, fieldTotal = 0, worst = { ratio: Infinity, where: '' };
+  const pagesSeen = new Set();
+  const measure = async (page, where) => {
+    await settle(page);
+    const m = await page.evaluate(LEGIBILITY);
+    textTotal += m.text.length; fieldTotal += m.fields.length;
+    for (const r of m.text.filter((x) => !x.specimen)) if (r.ratio < worst.ratio) worst = { ratio: r.ratio, where: `${where} — ${r.cls} "${r.text}"` };
+    ok(!/\bdark\b/.test(m.colorScheme),
+      `${where}: the shell resolves a light-only color-scheme ("${m.colorScheme}") — opting into dark hands the UA the field ink, caret and option lists over surfaces painted from light tokens (#1031)`);
+    ok(m.text.length >= STATE_TEXT_FLOOR, `${where}: measured ${m.text.length} text nodes (floor ${STATE_TEXT_FLOOR})`);
+    for (const r of m.text) if (knownOf(r)) knownSeen.push({ ...r, where });
+    const textBar = (r) => (knownOf(r) ? SPECIMEN_FLOOR : barOf(r));
+    const textUnder = m.text.filter((r) => r.ratio < textBar(r));
+    ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
+      textUnder.length ? ` — ${textUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${textBar(u)}:1)`).join(' | ')}` : ''}`);
+    const fieldUnder = m.fields.filter((f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio < caretBarOf(f)));
+    ok(fieldUnder.length === 0, `${where}: every one of ${m.fields.length} form control(s) inks its value at its text bar and its caret at ${CARET_MIN}:1${
+      fieldUnder.length ? ` — ${fieldUnder.slice(0, 3).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.caretRatio}:1 (needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
+    // The marker audit, as in the studio sweep: inside the SHARED UI (`#app`), inline ink is what
+    // specimens paint with and chrome does not, so an unmarked inline-inked node there is a specimen held
+    // to AA or chrome someone mis-classified. Scoped to `#app` because the plugin's own entry mounts one
+    // piece of chrome beside it — the Agent link chip (`src/agent-link-ui.ts`), inked inline by design and
+    // held to the chrome bar like any other chrome node.
+    const unmarked = m.text.filter((r) => r.shared && r.inlineInk && !r.specimen);
+    ok(unmarked.length === 0, `${where}: every inline-inked text node is marked data-specimen${unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}` : ''}`);
+    return m;
+  };
+  // The brand menu's three controls BY IDENTITY — the surface #1031's 1.11:1 lived on, in this bundle.
+  // A pass that never opens it is a clean report over a corpus that excludes the defect (docs/34 shape 9),
+  // which is the first of the two reasons the studio suite missed #1031.
+  const BRANDMENU_CONTROLS = ['input.bm-in', 'input.bm-in.mono', 'textarea.bm-ta'];
+  const measureBrandMenu = async (page, where) => {
+    await page.locator('.brandsel').click();
+    await page.waitForSelector('.brandmenu .bm-in');
+    await page.locator('.brandmenu .bm-item').filter({ hasText: 'Import design.md' }).click();
+    await page.waitForSelector('.brandmenu .bm-ta');
+    // Typed into, so the Name row measures glyphs that are on screen rather than an empty field.
+    await page.fill('.brandmenu .bm-in', 'plugin-brand');
+    const m = await measure(page, where);
+    const seen = new Set(m.fields.map((f) => f.cls));
+    for (const want of BRANDMENU_CONTROLS) ok(seen.has(want), `${where}: ${want} is mounted and was measured`);
+  };
+
+  if (DEFAULT && MIN) {
+    for (const scheme of ['light', 'dark']) {
+      for (const theme of ['light', 'dark']) {
+        const tag = `${scheme} scheme / Figma ${theme}`;
+        // DEFAULT size: the start moment, then every rail destination THIS host offers — read from the
+        // rendered rail, so the plugin-only Components page is in the set without being named here.
+        const { context, page, errors } = await openThemed(DEFAULT, scheme, theme);
+        await post(page, { type: 'restore-input-empty' });
+        await waitStart(page, true);
+        await measure(page, `${tag} / start screen`);
+        await page.locator('.start-chip').first().click();
+        await waitStart(page, false);
+        await page.waitForSelector('.stage.active');
+        const labels = (await page.locator('.stage .stage-t b').allTextContents()).map((s) => s.trim());
+        for (const label of labels) {
+          await page.locator('.stage').filter({ has: page.locator('.stage-t b', { hasText: label }) }).first().click();
+          await page.waitForFunction((l) => document.querySelector('.stage.active .stage-t b')?.textContent === l, label);
+          await page.evaluate(() => document.fonts.ready);
+          pagesSeen.add(label);
+          await measure(page, `${tag} / ${label}`);
+        }
+        await measureBrandMenu(page, `${tag} / brand menu`);
+        ok(errors.length === 0, `${tag}: no console errors across the sweep (${errors.slice(0, 1).join('') || 'none'})`);
+        await context.close();
+        // MIN size: what renders at the floor is not a subset of the default (#1041) — the rail folds
+        // away and the start column reflows — so the two surfaces a designer lands on are measured there.
+        const small = await openThemed(MIN, scheme, theme);
+        await post(small.page, { type: 'restore-input-empty' });
+        await waitStart(small.page, true);
+        await measure(small.page, `${tag} / start screen @ ${MIN.width}×${MIN.height}`);
+        await small.page.locator('.start-chip').first().click();
+        await waitStart(small.page, false);
+        await measure(small.page, `${tag} / editor @ ${MIN.width}×${MIN.height}`);
+        await small.context.close();
+      }
+    }
+  }
+  for (const k of KNOWN) {
+    const seen = knownSeen.filter((r) => knownOf(r) === k);
+    const cleared = seen.filter((r) => r.ratio >= barOf(r));
+    ok(seen.length > 0 && cleared.length === 0,
+      `known finding ${k.issue} (${k.cls} "${k.text}") still reproduces — ${seen.length} sighting(s)${
+        !seen.length ? ' — NEVER SEEN: delete the entry' : cleared.length ? ` — now CLEARS its bar (${cleared[0].where}, ${cleared[0].ratio}:1): the defect is fixed, delete the entry` : ''}`);
+  }
+  // REPRESENTED, not counted: the one page only this bundle has must be among those measured.
+  ok(pagesSeen.has('Components'), `the plugin-only Components page was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
+  ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
+  ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
+  console.log(`  ${pagesSeen.size} rail pages × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
+  console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
 }
 
 await browser.close();

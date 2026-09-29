@@ -147,15 +147,29 @@ const LEGIBILITY_PROBE = (rootSel) => {
   if (!root) return { text: [], fields: [], rootFound: false };
   const round = (n) => Math.round(n * 100) / 100;
   const name = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().replace(/\s+/g, '.') || '-'}`;
-  /** Drawn at all? Shared by both walks so they agree on what "rendered" means. */
+  /** Laid out at all? Shared by both walks so they agree on what "rendered" means. Returns the
+   *  effective opacity of a node that takes up space, or `null` for one that is not drawn.
+   *
+   *  NO OPACITY CARVE-OUT (#1069). This used to return 0 — "not drawn" — for any node whose opacity
+   *  chain multiplied out under 0.02, on the theory that such a node was "a collapsed panel
+   *  mid-transition". The theory had no referent: the stylesheet transitions no opacity at all, and a
+   *  census over the whole sweep, taken when this landed, found no text node under 0.5 before or after
+   *  animations settle.
+   *  What the carve-out did do was excuse the extreme of the defect this probe exists for — every nav
+   *  label at `opacity: .011`, invisible on screen, measured by nothing, while the summary printed
+   *  "lowest rendered contrast anywhere: 3.04:1". A node at near-zero opacity composites to ~1:1 and
+   *  fails every bar below, which is the verdict it deserves.
+   *
+   *  "Mid-transition" is handled where it belongs, by WAITING for it: `settle()` in the harness lets
+   *  every finite running animation finish before the probe runs. A node that is still near-invisible
+   *  after that is not in motion; it is shipped invisible. */
   const drawn = (el, cs) => {
-    if (cs.visibility === 'hidden' || cs.display === 'none') return 0;
+    if (cs.visibility === 'hidden' || cs.display === 'none') return null;
     const r = el.getBoundingClientRect();
-    if (r.width < 1 || r.height < 1) return 0;
+    if (r.width < 1 || r.height < 1) return null;
     let op = 1;
     for (let n = el; n; n = n.parentElement) op *= Number(getComputedStyle(n).opacity);
-    // Effectively invisible by intent (a collapsed panel mid-transition) — not a legibility finding.
-    return op < 0.02 ? 0 : op;
+    return op;
   };
 
   const text = [];
@@ -165,7 +179,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
     if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
     const cs = getComputedStyle(el);
     const op = drawn(el, cs);
-    if (!op) continue;
+    if (op === null) continue;
     const col = parse(cs.color);
     if (!col) continue;
     const ground = groundOf(el);
@@ -179,6 +193,9 @@ const LEGIBILITY_PROBE = (rootSel) => {
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
       cls: name(el),
       text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 44),
+      // The opacity chain, reported so a failure can say WHY the ratio is low (#1069): a faded node
+      // and a mis-inked one fail the same bar and want different fixes.
+      op: round(op),
       // What classifies the node (#779): its size and weight decide WCAG's normal/large bar, and the render
       // site's own `data-specimen` decides whether it is chrome at all. `inlineInk` is NOT a classifier —
       // it is the audit of the marker, compared against it below.
@@ -206,7 +223,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
     if (el.tagName === 'INPUT' && CHROMELESS.has(el.type)) continue;
     const cs = getComputedStyle(el);
     const op = drawn(el, cs);
-    if (!op) continue;
+    if (op === null) continue;
     const col = parse(cs.color);
     if (!col) continue;
     const ground = groundOf(el);
@@ -218,6 +235,12 @@ const LEGIBILITY_PROBE = (rootSel) => {
       caretRatio: caret && caret.a > 0 ? round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)) : null,
       cls: name(el),
       text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
+      op: round(op),
+      // The same classifiers the text walk records (#779): a field's value is text, so it takes the
+      // text bar by size and weight, and a field inside a specimen stays on the specimen floor.
+      px: parseFloat(cs.fontSize),
+      weight: Number(cs.fontWeight),
+      specimen: el.closest('[data-specimen]') !== null,
     });
   }
   return { text, fields, rootFound: true };
@@ -255,7 +278,8 @@ const CONTRAST_FLOOR = 2.0;
  *  - CHROME — the studio's own text — is held to WCAG 1.4.3: 4.5:1, or 3:1 for large text (≥ 24px, or
  *    ≥ 18.66px at weight ≥ 700; 18pt / 14pt bold). `.mo-playnote`'s 3.12 fails it.
  *  - SPECIMENS stay on `CONTRAST_FLOOR`, the "invisible" band. Holding each to the contract it previews
- *    needs a map from specimen to contract, which is a decision this file does not make on its own.
+ *    needs a map from specimen to contract, which is a decision this file does not make on its own —
+ *    held for the owner as #1774 (paired specimens, below, are the mechanical half of it).
  *
  * AND THE MARKER IS AUDITED, because a specimen someone forgot to mark would be held to AA and fail
  * loudly — fine — but chrome someone MIS-marked would silently drop to 2.0. So every text node whose ink
@@ -270,6 +294,42 @@ const CHROME_TEXT_MIN = 4.5;
 const CHROME_LARGE_TEXT_MIN = 3;
 const isLargeText = (r) => r.px >= 24 || (r.px >= 18.66 && r.weight >= 700);
 const barOf = (r) => (r.specimen ? CONTRAST_FLOOR : isLargeText(r) ? CHROME_LARGE_TEXT_MIN : CHROME_TEXT_MIN);
+
+/**
+ * FORM CONTROLS TAKE THE SAME SPLIT (#779, the walk the split above did not reach).
+ *
+ * The chrome/specimen split landed on the TEXT walk only; the form-control walk #1031 added kept the 2.0
+ * "invisible" floor for everything it measured. #1031's own defect sat at 1.11:1, so 2.0 caught the case
+ * it was written for — but the studio's Name field inked at 3:1 would have passed, and that is chrome
+ * text a designer types into, held to less than the caption beside it. A field's VALUE is text, so it
+ * takes `barOf` by its own size and weight. The CARET is not text: it is the visual indicator of a
+ * component's state, WCAG 1.4.11's 3:1. A field inside a specimen stays on the specimen floor for both.
+ */
+const CHROME_CARET_MIN = 3;
+
+/**
+ * KNOWN FINDINGS — HELD, NOT HIDDEN. A node listed here failed its real bar when the bar was raised, and
+ * the fix is a visual or policy choice that is the owner's (CLAUDE.md principle 6), so it is filed rather
+ * than tuned away (docs/34 shape 14: "when raising it turns other surfaces red, those are findings").
+ *
+ * Three rules keep this from becoming the tuning it stands in for:
+ *  - a listed node is still held to `CONTRAST_FLOOR`, so it is no looser than it was before the raise;
+ *  - it is matched by class AND text, so a sibling that regresses is not excused by it;
+ *  - it must still REPRODUCE: the arm below fails the moment every sighting clears its real bar, so the
+ *    entry comes out in the PR that fixes the node and cannot outlive the defect. It also fails when the
+ *    node is never seen, since an exception for something absent is a hole with a label on it.
+ */
+const KNOWN_FINDINGS = [
+  // The brand menu's locked Light row: a legal `--faint` (5.13:1) faded through `.mctx-opt.fixed`'s
+  // `opacity: .72`, rendering at 2.95:1 — #555's `.mo-playnote` shape. Fix options are measured on the issue.
+  { cls: 'span.mctx-always', text: 'always', issue: '#1770' },
+];
+const knownOf = (r) => KNOWN_FINDINGS.find((k) => k.cls === r.cls && k.text === r.text) ?? null;
+/** Every sighting of a known finding, so the reproduce arm can judge them after the popover loop. */
+const knownSightings = [];
+const caretBarOf = (f) => (f.specimen ? CONTRAST_FLOOR : CHROME_CARET_MIN);
+const fieldFails = (f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio !== undefined && f.caretRatio < caretBarOf(f));
+const describeField = (u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.caretRatio}:1 (${u.px}px/${u.weight}, op ${u.op}; needs ${barOf(u)}:1, caret ${caretBarOf(u)}:1)`;
 
 /**
  * PAIRED SPECIMENS ARE HELD TO THE CONTRACT OF THE PAIR THEY PREVIEW (#1652).
@@ -296,7 +356,7 @@ const barOf = (r) => (r.specimen ? CONTRAST_FLOOR : isLargeText(r) ? CHROME_LARG
  *    governs), and distinction from rest, the one invariant #1281 keeps gated. If the owner ever floors
  *    pressed, that number is read here and the node is held to it; nothing in this file has to move;
  *  - hover is held to its declared hover min (#1281 keeps hover a UI contract; #1694 net); anything else stays
- *    on `CONTRAST_FLOOR`, #779's open decision.
+ *    on `CONTRAST_FLOOR`, #779's open decision (#1774).
  *
  * A node is only classified once its claim is PROVEN: the ink is the fill family's own `on-fill`, the fill
  * is the state its column is labeled, and both rendered colors equal the emitted ones. A specimen that
@@ -456,6 +516,15 @@ const gotoPage = async (page, label) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
+/** Let every FINITE running animation finish before anything is measured (#1069) — the wait the old
+ *  `op < 0.02` carve-out stood in for by presuming. A real condition, not a duration: it resolves the
+ *  moment the last transition or keyframe run ends, and at once when nothing is moving. Infinite and
+ *  paused animations are left out, since neither ever finishes; a node faded by one of those is
+ *  measured as it is drawn, which is what a reader would see. */
+const settle = (page) => page.evaluate(() => Promise.all(document.getAnimations()
+  .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming?.().endTime))
+  .map((a) => a.finished.catch(() => null))));
+
 /** Same contract for the mode bar: the wait is "the bar says this mode is selected". */
 const selectMode = async (page, label) => {
   await page.locator('.mctx-b').filter({ hasText: label }).first().click();
@@ -503,6 +572,8 @@ let specimensMeasured = 0;
 let worstChrome = Infinity;
 let worstChromeWhere = '';
 let fieldsMeasured = 0;
+let worstField = Infinity;
+let worstFieldWhere = '';
 let statesVisited = 0;
 /** Paired specimens by class (#1652), and the brand × mode cells that previewed an exempt one. */
 const pairedByClass = { contracted: 0, exempt: 0, unmapped: 0 };
@@ -616,6 +687,8 @@ for (const brand of BRANDS) {
       }
 
       // --- rendered contrast -------------------------------------------------------------------
+      // Settled first (#1069): the probe measures what stays on screen, not a frame of a transition.
+      await settle(page);
       const probe = await page.evaluate(LEGIBILITY_PROBE);
       const rows = probe.text;
       nodesMeasured += rows.length;
@@ -630,7 +703,7 @@ for (const brand of BRANDS) {
       const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR);
       for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
       ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${
-        under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
+        under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
       // Chrome at its real bar (#779). Reported per node with the bar it missed, so a large-text pass
       // and a normal-text failure are never read as the same thing.
       const chrome = rows.filter((r) => !r.specimen);
@@ -638,7 +711,7 @@ for (const brand of BRANDS) {
       for (const r of chrome) if (r.ratio < worstChrome) { worstChrome = r.ratio; worstChromeWhere = `${where} — ${r.cls} "${r.text}"`; }
       const chromeUnder = chrome.filter((r) => r.ratio < barOf(r));
       ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large)${
-        chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
+        chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
       const unmarked = rows.filter((r) => r.inlineInk && !r.specimen);
       ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${
         unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}: wrap it in specimen() where it is painted, or it is held to the chrome bar as if the studio chose that color` : ''}`);
@@ -676,10 +749,11 @@ for (const brand of BRANDS) {
       // read-only note, so zero fields is a legitimate state and a floor would fail on the app being
       // right. "Did it look?" is asserted once over the sweep total below, and named per-surface in
       // the overlay section — where a count IS the coverage claim.
-      const fieldsUnder = probe.fields.filter((f) => f.ratio < CONTRAST_FLOOR || (f.caretRatio !== null && f.caretRatio < CONTRAST_FLOOR));
+      const fieldsUnder = probe.fields.filter(fieldFails);
       for (const f of probe.fields) if (f.ratio < worstRatio) { worstRatio = f.ratio; worstWhere = `${where} — ${f.cls} ${f.text}`; }
-      ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value and caret over ${CONTRAST_FLOOR}:1${
-        fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1 (caret ${u.caretRatio}:1)`).join(' | ')}` : ''}`);
+      for (const f of probe.fields) if (!f.specimen && f.ratio < worstField) { worstField = f.ratio; worstFieldWhere = `${where} — ${f.cls} ${f.text}`; }
+      ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value at its text bar (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) and its caret at ${CHROME_CARET_MIN}:1${
+        fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map(describeField).join(' | ')}` : ''}`);
     }
   }
   console.log(`  ${brand}: ${pages.length} pages × ${modes.length} modes swept (${pages.join(', ')})`);
@@ -721,6 +795,8 @@ console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (specimen floo
 console.log(`    ${worstWhere}`);
 console.log(`  Lowest chrome text: ${worstChrome}:1 (bar ${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) — ${specimensMeasured} of ${nodesMeasured} nodes are specimens`);
 console.log(`    ${worstChromeWhere}`);
+console.log(`  Lowest chrome form-control ink: ${worstField}:1 (bar ${CHROME_TEXT_MIN}:1, caret ${CHROME_CARET_MIN}:1)`);
+console.log(`    ${worstFieldWhere}`);
 console.log(`  Lowest exempt pressed specimen: ${worstExempt}:1 (declared pressed min ${PRESSED_MIN}, smoke floor ${CONTRAST_FLOOR.toFixed(1)}:1 — #1281/#1456, not a finding)`);
 console.log(`    ${worstExemptWhere}`);
 console.log(`  Paired specimens: ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (#779) across ${modeCells.size} brand × mode cells.`);
@@ -1370,11 +1446,11 @@ ok(rampChecks >= 2 * 3 * 6, `${rampChecks} displayed durations compared against 
 // and nowhere else.
 //
 // What none of this can cover is the artifact where the defect actually lived: `apps/plugin/dist/ui.html`,
-// built by another workspace. Its shell is the one that WAS opted in, and #1031 turned that off — but
-// nothing stops it coming back, and nothing here would see it. Filed as #1041, not papered over. Note the
-// correction that issue took in review: `apps/plugin/test-build-verdict.mjs` DOES launch Chromium and
-// navigate to that file, so the gap is an absent assertion inside a harness that already renders the
-// subject, not an absent harness — a smaller and much cheaper thing than "no gate renders it" claimed.
+// built by another workspace. Its shell is the one that WAS opted in, and #1031 turned that off. That
+// bundle is measured by `apps/plugin/test-start-screen.mjs` §8 (#1041): the same direct `color-scheme`
+// arm, the same bars, both emulated schemes crossed with Figma's stubbed light and dark themes, every rail
+// page that host offers, and this popover — so a `light dark` opt-in coming back to the plugin shell
+// fails there by name, and nothing in this file claims to see it.
 console.log(`\nBrand-menu popover (#1031)\n${'='.repeat(78)}`);
 
 let menuFields = 0;
@@ -1400,6 +1476,7 @@ for (const brand of BRANDS) {
     const resolved = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
     ok(resolved === 'normal' || resolved === 'light',
       `${where}: the shell resolves a light-only color-scheme (resolved "${resolved}") — the studio paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
+    await settle(page);
     const probe = await page.evaluate(LEGIBILITY_PROBE, '.brandmenu');
     ok(probe.rootFound, `${where}: the popover is mounted and was measured`);
     // WHICH controls, not how many. A count of three passes the day Namespace stops rendering and some
@@ -1416,10 +1493,18 @@ for (const brand of BRANDS) {
       `${where}: measured ${probe.text.length} text node(s) inside the popover (floor ${BRANDMENU_TEXT_FLOOR})`);
     menuFields += probe.fields.length;
 
-    const bad = [...probe.fields, ...probe.text].filter((r) => r.ratio < CONTRAST_FLOOR || (r.caretRatio != null && r.caretRatio < CONTRAST_FLOOR));
+    // At the bars the sweep holds the same nodes to (#779) — the popover is chrome, and it was the one
+    // surface still judged against the 2.0 "invisible" floor after the sweep's own split.
+    // A known finding (#1770) is held to the specimen floor here and judged on its own arm below.
+    for (const r of probe.text) if (knownOf(r)) knownSightings.push({ ...r, where });
+    const textBar = (r) => (knownOf(r) ? CONTRAST_FLOOR : barOf(r));
+    const bad = [
+      ...probe.fields.filter(fieldFails).map(describeField),
+      ...probe.text.filter((r) => r.ratio < textBar(r)).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${textBar(u)}:1)`),
+    ];
     for (const r of [...probe.fields, ...probe.text]) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} ${r.text}`; }
-    ok(bad.length === 0, `${where}: every one of ${probe.fields.length} control(s) and ${probe.text.length} text node(s) clears ${CONTRAST_FLOOR}:1${
-      bad.length ? ` — ${bad.slice(0, 4).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1${u.caretRatio != null ? ` (caret ${u.caretRatio}:1)` : ''}`).join(' | ')}` : ''}`);
+    ok(bad.length === 0, `${where}: every one of ${probe.fields.length} control(s) and ${probe.text.length} text node(s) meets its bar — text ${CHROME_TEXT_MIN}:1 (${CHROME_LARGE_TEXT_MIN}:1 large), caret ${CHROME_CARET_MIN}:1, specimens ${CONTRAST_FLOOR}:1${
+      bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
     // The Name field must show what was typed — a legible field that lost the value is the same
     // report ("I cannot read what I typed") from the other direction.
     ok(await page.inputValue('.brandmenu .bm-in') === 'smoke-brand', `${where}: the Name field holds what was typed`);
@@ -1430,6 +1515,16 @@ for (const brand of BRANDS) {
 }
 ok(menuFields >= BRANDS.length * 2 * BRANDMENU_FIELD_FLOOR,
   `${menuFields} popover controls measured across ${BRANDS.length} brands × 2 color schemes`);
+// The known findings still REPRODUCE — seen, and still under the bar they are excused from. A fix to the
+// node turns this red on purpose: delete its KNOWN_FINDINGS entry in the same PR.
+for (const k of KNOWN_FINDINGS) {
+  const seen = knownSightings.filter((r) => knownOf(r) === k);
+  const cleared = seen.filter((r) => r.ratio >= barOf(r));
+  ok(seen.length > 0 && cleared.length === 0,
+    `known finding ${k.issue} (${k.cls} "${k.text}") still reproduces — ${seen.length} sighting(s), lowest ${seen.length ? Math.min(...seen.map((r) => r.ratio)) : 'n/a'}:1 against its ${seen.length ? barOf(seen[0]) : '?'}:1 bar${
+      !seen.length ? ' — NEVER SEEN: the node moved or was removed, so the exception excuses nothing; delete the entry'
+        : cleared.length ? ` — ${cleared.length} sighting(s) now CLEAR the bar (${cleared[0].where}, ${cleared[0].ratio}:1): the defect is fixed, delete the entry` : ''}`);
+}
 console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover controls measured.`);
 
 // =============================================================================================
