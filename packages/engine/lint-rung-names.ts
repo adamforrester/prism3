@@ -150,7 +150,9 @@
  *
  * `MUST_COVER` names every def carrying a size axis today, so a def that stops being covered — by
  * being deleted, or by having its axis quietly dropped — fails rather than shrinking the set the gate
- * reports clean over. A count would read that as a pass (`docs/34`).
+ * reports clean over. A count would read that as a pass (`docs/34`). The list is checked in both
+ * directions (#1724): a def the run checks that `MUST_COVER` does not name fails as unpromised, so the
+ * floor cannot fall behind the corpus the way it did while four size-axis defs sat outside it.
  *
  * `focus-ring` and `field-message` declare no size axis and bind no `size.*` key. They are ADMITTED by
  * name in `NO_SIZE_AXIS` rather than skipped silently, and in both directions: a def listed there that
@@ -304,9 +306,24 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
 
 /**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
- * merely counts. Every def carrying a size axis today.
+ * merely counts. Every def carrying a size axis today — the button and icon-button siblings, the three
+ * control atoms and `spinner` included (#1724), since each is checked by its own name and each could stop
+ * being reached on its own.
+ *
+ * A literal, not derived from `componentDefs`: a floor computed from what the run reached agrees with
+ * every run. And it is checked in BOTH directions (`docs/34`, #387): forward, a listed def the run did not
+ * check fails; conversely, a def the run checked that is not listed fails too. The converse is what keeps
+ * this list whole — the forward half alone let four size-axis defs sit unlisted, each droppable in silence.
  */
-const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field', 'textarea', 'checkbox-row', 'checkbox-group', 'radio-row', 'radio-group', 'switch-row'];
+const MUST_COVER = [
+  'icon', 'spinner',
+  'button', 'button-destructive', 'button-neutral',
+  'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'field-label', 'text-field', 'textarea', 'tag',
+  'checkbox-control', 'checkbox-row', 'checkbox-group',
+  'radio-control', 'radio-row', 'radio-group',
+  'switch-control', 'switch-row',
+];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
 const tierPaths = (tree: Record<string, unknown>): Set<string> => {
@@ -550,6 +567,12 @@ for (const def of componentDefs) {
 for (const m of MUST_COVER)
   if (!covered.has(m))
     failures.push(`SCOPE NOT REPRESENTED: '${m}' carries a size axis and this run checked none of it. If its axis was legitimately removed, move it to NO_SIZE_AXIS with a reason in the same PR; otherwise a clean run here means nothing.`);
+
+// The converse (#1724): every def the run checked is promised. Without it the floor only polices defs
+// someone remembered to list, and a new size-axis def is covered today and droppable tomorrow.
+for (const id of covered)
+  if (!MUST_COVER.includes(id))
+    failures.push(`SCOPE NOT PROMISED: '${id}' carries a size axis and this run checked it, but MUST_COVER does not list it. Add it there in the same PR, or a later change that stops this gate reaching it passes in silence.`);
 
 for (const id of Object.keys(NO_SIZE_AXIS))
   if (!componentDefs.some((d) => d.id === id))
