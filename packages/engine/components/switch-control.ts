@@ -97,7 +97,7 @@
  * handle). Measured over the token-contract corpus, prism3 and the NB master theme, every mode:
  *
  *   off thumb on off track   12.36–21:1   (NB master light 14.05:1, prism3 light 14.04:1)
- *   off track vs on track     5.70–18.21:1 (NB master light 8.54:1,  prism3 light 10.90:1)
+ *   off track vs on track     3.22–14.01:1 (NB master light 14.01:1, prism3 light 5.65:1)
  *   off border vs the page   15.98–21:1
  *
  * High-contrast modes flatten every background step to the page, so the off track is page-colored
@@ -117,11 +117,15 @@
  *
  * The two glyph inks. Each glyph sits ON the thumb, so its ink is the INVERSE of the thumb's: the off
  * thumb is the dark `neutral.border.rest`, so `off.icon` is the light `background.tertiary` (the
- * off-track color — the off-thumb pairing read the other way, 12.36–21:1); the on thumb is the light
- * `primary.on-fill`, so `on.icon` is the dark `primary.fill.selected` (the on-track color — the on-thumb
- * pairing read the other way, 10.03–18.21:1 in light and high-contrast modes). IN DARK MODES THE ON PAIR
- * MEASURES 2.32–2.62:1 in every brand but aurora — `on-fill` is gated against `fill.rest`, not the lighter
- * `fill.selected` it sits on here. The on arm is unchanged by owner decision; filed as #1763.
+ * off-track color — the off-thumb pairing read the other way, 12.36–21:1); the on thumb is
+ * `primary.on-fill`, so `on.icon` is `primary.fill.selected` (the on-track color — the on-thumb pairing
+ * read the other way, 4.56–19.36:1 in every mode; prism3 light 7.82:1, dark 4.58:1). Before #1763 the dark
+ * modes measured 2.32–2.62:1 here: `fill.selected` walked a lighter step than the `fill.rest` the ink is
+ * gated against. Since 2026-09-29 (owner) `fill.selected` takes the rest step, so the on track is the brand's
+ * rest fill and the pair clears in every mode. The cost, measured: in `dark` the on track sits closer to the
+ * dark off track: 3.22–14.01:1 across modes (minimal dark 3.22:1), after #1773 gated every page fill against
+ * `background.tertiary` too — it read 2.71:1 in prism3 dark and wendys dark before that. Thumb position still
+ * carries the state.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -192,21 +196,21 @@ export const switchControl: ComponentDef = {
     // the thumb at the same ratio (the off-thumb pairing read the other way round).
     'off.icon': 'color.background.tertiary',
 
-    // ── THE ON TRACK — the brief's "stark track-color contrast". `on-fill` is contract-checked against
-    // `fill.rest`, not the `fill.selected` it sits on here (#1763).
-    // NO STRUCTURAL BORDER (#1011): a fill at 6.91–18.21:1 against the page IS the boundary, so a
+    // ── THE ON TRACK — the brief's "stark track-color contrast". `fill.selected` resolves to the rest step
+    // (#1763), the step `on-fill` is contract-checked against, so the thumb clears 4.5:1 in every mode.
+    // NO STRUCTURAL BORDER (#1011): a fill at 3.91–19.36:1 against the page IS the boundary, so a
     // same-family border beside it can only agree invisibly or disagree visibly — the asymmetry with the
     // off track that `switch.ts`'s contested note documents as the trap not to "fix for consistency".
     'on.fill': 'color.interactive.primary.fill.selected',
     'on.fill.hover': 'color.interactive.primary.fill.hover',
     'on.fill.pressed': 'color.interactive.primary.fill.pressed',
     'on.border.error': 'color.border.danger',
-    // The ON thumb — light on a dark track (10.03–18.21:1 in light and high-contrast modes; 2.32–2.62:1 in
-    // dark modes outside aurora, where `on-fill` is gated against `fill.rest` rather than this step — #1763).
+    // The ON thumb — `primary.on-fill` on the on track, 4.56–19.36:1 in every mode (#1763: 2.32–2.62:1 in
+    // dark before `fill.selected` took the rest step).
     'on.indicator': 'color.interactive.primary.on-fill',
     // The ON glyph (the check) — the INVERSE of the on thumb's light ink, so a dark check on the light
     // thumb. `primary.fill.selected` is the on-track color, so the check clears the thumb at exactly the
-    // on-thumb ratio (the same pairing read the other way round, dark-mode gap included — #1763).
+    // on-thumb ratio (the same pairing read the other way round).
     'on.icon': 'color.interactive.primary.fill.selected',
 
     // ── FOCUS RING — on the TRACK, never the thumb (the thumb moves). The CONTROL ring

@@ -21,7 +21,7 @@
  */
 import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
@@ -2788,7 +2788,7 @@ const edgeOf = (roles: RoleMap, prefix: string, state = 'rest'): string =>
  *  the one row this parameter exists for unable to reach its own pressed color: the border row's edge
  *  moves on press and its wash never does. */
 const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string,
-                   o: { ink?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
+                   o: { ink?: string; pressedInk?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const ink = o.ink ?? edge;
   const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); specimen(b).style.color = ink;
@@ -2798,6 +2798,13 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
   if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
   if (pressedWash) b.style.setProperty('--ibtn-pbg', pressedWash);
   if (pressedWash || o.pressedEdge) wirePress(b);
+  // #812 — a held press swaps the ink too, when the caller names the pressed ink, so the pressed state
+  // previews the pair a component binds (`text.pressed` on the pressed wash) rather than the rest ink
+  // carried onto a fill it is never drawn on.
+  if (o.pressedInk && (pressedWash || o.pressedEdge)) {
+    const restInk = ink, pressedInk = o.pressedInk;
+    b.onclick = (e) => { e.preventDefault(); b.style.color = b.classList.toggle('is-pressed') ? pressedInk : restInk; };
+  }
   // #1617 — the glyph draws from its OWN role (`interactive.<c>.icon.*`) when the caller passes one, so a
   // label/icon divergence is visible here rather than masked by painting both with the label ink.
   b.append(document.createTextNode('Outline'), iconEl('arrow', o.icon ?? ink));
@@ -2961,7 +2968,20 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   // Border row made them independently pinnable; painting both from the ink would have shown this row's
   // wash inside a border that silently ignored the neighboring row's override.
   const edge = edgeOf(roles, `interactive.${col.name}`);
-  const ink = roles[`interactive.${col.name}.text.rest`]?.hex;
+  // #812 — the ink is the HOVER text, because that is the pair a component draws on this wash: the Button
+  // binds `outline.label.hover` to `interactive.<c>.text.hover` over `outline.overlay.hover`. The row used to
+  // paint `text.rest` here, a pair no component renders (aurora Dark primary: 3.83:1, where the shipped pair
+  // is 5.35:1). Pressed swaps to `text.pressed` on the pressed wash, the Button's pressed pair.
+  const hoverInk = roles[`interactive.${col.name}.text.hover`];
+  const pressedInk = roles[`interactive.${col.name}.text.pressed`];
+  const pressed = roles[`interactive.${col.name}.overlay.pressed`];
+  // The receipt is for the pair ON SCREEN: the hover ink over the hover wash composited onto the ground the
+  // wash declares, held to the hover ink's own contract. Neither half is the wash role's own `ratio`, which
+  // rates `text.primary` (its `legibleFor`) and would put a pass beside any ink.
+  const ground = (r.against ? roles[r.against]?.hex : undefined) ?? roles['background.primary']?.hex;
+  const badge = hoverInk && ground && (hoverInk.min ?? 0) > 0
+    ? contrastBadge(contrast(hexToRgb(hoverInk.hex), composite(hexToRgb(ground), hexToRgb(r.hex), r.alpha ?? 1)), hoverInk.min!)
+    : undefined;
   return iRow({
     swatchBg: washCss(roles, r), label: 'Overlay wash',
     select: roleSourceSelect(roles, `interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
@@ -2973,8 +2993,8 @@ const overlayRow = (col: ICol): HTMLElement | null => {
     desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — a neutral alpha primitive composited over the page surface it is measured against, so there is no ramp step to swap in.',
     // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
     // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
-    example: iExample(exOutline(edge, rgbaOf(r), false, undefined,
-      roles[`interactive.${col.name}.overlay.pressed`] ? rgbaOf(roles[`interactive.${col.name}.overlay.pressed`]!) : undefined, { ink })),
+    example: iExample(exOutline(edge, rgbaOf(r), false, undefined, pressed ? rgbaOf(pressed) : undefined,
+      { ink: hoverInk?.hex, pressedInk: pressedInk?.hex }), badge),
     states: iStates(roles, nPal, [['Hover', `interactive.${col.name}.overlay.hover`], ['Pressed', `interactive.${col.name}.overlay.pressed`]]),
   });
 };
@@ -3550,11 +3570,15 @@ const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => 
   const wireOn = modes.includes('wireframe');
   menu.append(el('div', 'mctx-mcap', 'Modes this brand generates'));
 
-  // #57 — Light is the forced base mode; render the row as clearly LOCKED (muted, grayed check, no hover)
-  // rather than a live checkbox that can't be unticked.
+  // #57 — Light is the forced base mode; render the row as clearly LOCKED (grayed check, no hover, a lock
+  // glyph) rather than a live checkbox that can't be unticked. #1770: the lock is SAID by the glyph, not by
+  // fading the row — the fade took a legal `--faint` "always" (5.13:1) down to 2.95:1. The glyph is named
+  // for assistive tech; the row's title carries the reason.
   const lightRow = el('div', 'mctx-opt on fixed');
   lightRow.title = 'Light is always generated — it’s the base mode, so it can’t be turned off.';
-  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), el('span', 'mctx-always', 'always'));
+  const lock = iconEl('lock', 'currentColor');
+  lock.setAttribute('class', 'mctx-lock'); lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', 'Locked');
+  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), lock, el('span', 'mctx-always', 'always'));
   menu.append(lightRow);
 
   const opt = (label: string, on: boolean, title: string, toggle: () => void): void => {
@@ -8232,6 +8256,7 @@ const ICON_PATH: Record<string, string> = {
   triangle: '<path d="M12 4l9 16H3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.01"/>',
   x: '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
   info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.01"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
 };
 const iconEl = (name: string, stroke: string): SVGElement => {
   const svg = document.createElementNS(SVGNS, 'svg');

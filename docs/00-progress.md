@@ -9,7 +9,7 @@
 
 ## (2026-09-29) — Style guide, phase 2: dimension, font-variable and text-style tables (#259)
 
-**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE 0.199.0 → **0.200.0** (the orchestrator renumbers at net), a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
+**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE **0.205.0** (0.200.0 until main, at 0.203.0, was merged into the branch; #1784's release is 0.204.0 here), a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
 
 **Why.** Phase 2 of the owner's plan (#259, `docs/45` §5): the tables for dimension and typography, the owner's REM and pixel options, and the spacing cell set that phase 1 built and nothing read.
 
@@ -104,7 +104,7 @@ Each mutation's diff was checked non-empty, and every run executed the whole sui
 
 ## (2026-09-29) — Style guide: one table at a time, yielding to Figma, one run at a time, a header that spans its table and the owner's HUG grid (#1778, #1785, #259)
 
-**STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE 0.198.0 → **0.199.0** (rebased over #1776, which took 0.198.0; the orchestrator renumbers at net), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
+**STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE **0.204.0** (0.199.0 on its own branch; renumbered on #1788's branch above main's 0.203.0 when main was merged in), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
 
 **Why.** The owner's first full live run drew 41 tables in about 4.7 minutes and held Figma and the plugin for all of it (#1778). While the basics are debugged, the owner wants to run one table, or a few, and work up to all of them. Two scope additions came from the owner mid-lane (2026-09-29), both recorded as `docs/45` §2 decisions 10 and 11.
 
@@ -183,6 +183,530 @@ A palette row is now 48px, its bare swatch, where it was 72 inside a ground, so 
 |---|---|
 | a ground on a palette row (primitive rows drawn through `specimen`) | "5: a palette row has no ground frame: its cell is the type=default swatch, 48 × 48 and FIXED (Ground … 168 grounds in the primitive tables)", "13: two new steps grow Primary — nbds by 2 × (48 + 2) = 100px (got 148)" |
 | a filled square for a text role (`autoDisplay` never returns `text`) | "5: a text.* row draws letters, the type=text member with its "Aa" fill bound to the token, on its ground, with no filled square (type=default…)", "5: text/primary uses the text swatch", "3: a text role draws the text swatch", "2: the adopted type=Text swatch is used for a text role" |
+## (2026-09-29) — Prune: the executor reads nothing off an object it has removed
+
+**STATUS: PR open from `lane/prune-name-after-remove`, labeled DO NOT MERGE.** ENGINE 0.202.0 → **0.203.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). CONTRACT stands at 13.2.0.
+
+**The live failure.** An agent-link `prune` with `confirm: true`, on a real Figma test file at 0.202.0, reported `prune failed: in get_name: The style with id "S:…" does not exist` after removing 1 variable, 6 modes and exactly one text style; 58 styles were left. `applyPrunePlan`'s style loop did `s.remove(); found.add(s.name)`, and the host throws on any read of a removed style. The variable loop had the same order (`v.remove(); found.add(v.name)`). It did not throw live, but the Plugin API gives no guarantee, so it is fixed the same way. Checking the other removal paths turned up a third instance: after removing the stranded collections, the executor listed the file's collection names off the same objects to compute misses, which reads `.name` off each one it just removed. The mode path is clean: `removeMode` leaves the collection live, and the detector never offers a mode in a stranded collection. `main.ts` reads only the counts `applyPrunePlan` returns.
+
+**Why no test caught it.** The shim's `remove()` set a flag and left the object readable, so a read after `remove()` passed in Node and threw in Figma. The existing synthetic executor arm already removes four styles, so it would have caught this against a shim that behaved like the host.
+
+**The fix.** `applyPrunePlan` reads every name, id and collection id it matches on once, before the first `remove()`, and removes each object at most once (a `gone` flag, so two plan groups naming the same object cannot remove it twice or read it after). The shim in `apps/plugin/test-prune.ts` now throws the host's error, `in get_<prop>: The <style|variable|variable collection> with id "…" does not exist`, on any read or write of a removed object except `id` and `removed`, and on a second `remove()`. A removed collection takes its variables with it, as Figma does. The new `read-after-remove` arm pins three shim premises (a removed style, variable and collection each throw that message, typed as literals) and prunes 5 styles across all 4 kinds, 3 variables and 1 stranded collection, with removed items interleaved with survivors in every list. It asserts no throw, the exact counts, no misses, and the exact survivor sets.
+
+**Mutations (each on a `wip:` commit, restored by `git checkout --`).** Restoring the original style loop fails `read-after-remove: … completes without touching a removed object (threw "in get_name: The style with id "S:0002," does not exist")` plus three dependent arms, which reproduces the live message. Restoring the original variable loop fails the same arm with `The variable with id "V:1"`. Reverting the collection-names read to the live objects fails it with `The variable collection with id "C:2"`. Removing the style shim's invalidation fails `shim premise: reading .name off a removed style throws the host's error`.
+
+**The removed-once guard, pinned after review.** An orchestrator mutation dropping `!s.gone` from the style loop left the file green: nothing named one object twice. The `duplicate groups` arm now does: two text groups name one style, and two variable groups for one collection name one variable. It asserts no throw, a count of 1 each, the second naming as the misses `var:color/nbds/color/old,text-style:display/2xl`, and the neighbors live. Dropping `!s.gone` fails it with `threw "in get_remove: The style with id "S:000b," does not exist"`, and dropping `!v.gone` fails it with `The variable with id "V:11"`. For styles the guard is purely defensive, since the detector emits one group per kind. For variables it is reachable only when a file holds two collections of the same name, because the executor looks collections up by name.
+
+**Placement trap.** The new arm runs before the synthetic executor arm. That arm awaits `applyPrunePlan` unguarded, so a regression now throws out of it and ends the run. Placed after it, the new arm would never report by name.
+
+**Filed, not fixed.** `runCleanupTheme` in `apps/plugin/src/mcp-steps.ts` has the same shape: it reads `s.name` and `c.name` after `remove()`, and reads `variableCollectionId` on variables of a collection removed on an earlier iteration. Its shim in `test-mcp-paste.ts` does not invalidate either. That is #1790.
+
+---
+
+## (2026-09-29) — Materialise: every brand's paste payloads inside the budget, and the chunked alias passes executed in a test (#1786)
+
+**STATUS: PR open from `lane/materialise-chunk-coverage`, labeled DO NOT MERGE.** Test and tooling only. **No ENGINE bump**: the CLI prints the same bytes for every committed brand (all 44 payloads across the 4 committed trees compared against `HEAD`'s `materialise-to-figma.ts`: 0 differ), nothing under `out/` moves, and the component surface is untouched, so nothing a consumer can observe changed (`version.ts` header, #1252). CONTRACT stands. Output impact: **byte-identical**. Closes #1786.
+
+**What the budget arm measured, and what it now measures.** The arm `materialise: pass '<name>' is inside the figma_execute budget` read `passPayloads('nb', …)` only. Before #1767 chunked `color-aliases`, prism3's and wendys' single payloads were over the 45,000 B ceiling on main (46,436 and 45,101 B, measured at 7f00078f in #1786), and no arm read them. Unchunked on this PR's base trees they would be 46,740 and 45,396 B (nb 45,144, aurora 45,196; measured here from `colorAliasesJs` over the committed trees), which is why the pass is chunked in every brand. It is replaced by one `materialise budget: <brand>` arm per brand, each stating that brand's largest payload. The brand set is authored by name and checked both ways against the directories: the listed committed brands must equal `out/figma/*` exactly, and every `examples/*.design.md` stem must be listed. Today: nb, prism3, aurora, wendys (committed trees, read from disk) and harbor, nb-redesign (briefs the plugin emits with no committed tree). Largest payloads: nb 41,990 (`color-aliases` 1/2), prism3 41,927 (`color-create` 1/2), aurora 41,982, wendys 41,929, harbor 41,847, nb-redesign 41,939. The ceiling is written in the test, not read from the CLI's `BUDGET` or `COLOR_CHUNK_BYTES` (42,000), so a packer budget raised past the transport fails the arm instead of moving it.
+
+**The diagnosis that made the brief brands reachable.** `materialise-to-figma.ts` reads only `out/figma/<brand>/`, so harbor and nb-redesign had no paste payloads at all as far as any test could see. `registerFigmaTree(id, artifacts)` holds `figmaArtifacts(theme)` in memory under an id, and every disk read in the module now goes through one `has`/`load` pair, so every pass runs on a registered brand unchanged. It refuses an id with a committed tree, so a registration can never shadow the artifact the CLI prints.
+
+**The chunks, executed.** Two `materialise chunks execute: <brand>` arms per brand, in a stateful Variables shim where `palette`, every `color-create` chunk and `dims-create` run first (so every alias target was made by the pass that makes it in Figma, not placed by hand), then every `color-aliases` chunk in paste order: (1) every (variable, mode) the emitted `color.<mode>.json` gives an alias is aliased **exactly once**, to the target and opacity variable that file names, with no alias written anywhere the file names none, and no misses (1,072 mode-aliases for each four-mode brand, 268 for nb-redesign's light-only one); (2) the colour collection after the chunks equals the collection after the unchunked `colorAliasesJs` payload, with the same bound, expected, miss and alias-write counts. Arm (1)'s EXPECTED is read from the emitted files, not from the write plan; arm (2) shares the program with the chunks by design, so it checks the packer's partition only.
+
+**`colorAliasesJs` is kept, and its docstring was wrong.** It said "the SAME string the CLI prints"; the CLI prints `colorAliasesChunks`, which is byte-identical to it only when every row fits one chunk (nb-redesign today; none of the four committed trees). Its only readers are in `test.ts`: #1672's `solid-tint` fixture (a plan no committed brand emits) and the new reference run, so it stays, with a docstring that says so.
+
+**Review round (independent review of #1787 at 133892b5; no blockers).** Four items fixed on top, as new commits. (1) `registerFigmaTree`'s refusal of a committed id was untested, so deleting the `throw` left everything green; the arm `materialise budget: registerFigmaTree refuses 'nb'…` now holds it. It offers nb's own committed files rather than `[]`: with the refusal gone, an empty tree would shadow nb for every later arm, and an unguarded nb arm further down (the `verify` wiring) then crashes the suite before the failure prints. Measured: the `[]` form exited 1 with no named failure. (2) A pass that threw for one brand crashed the suite with an unnamed `TypeError` and skipped every later assertion. The budget loop and the execution loop now catch per brand and fail that brand's named arm with the error. (3) The overrun figures above were reworded: the overrun predates #1767's chunking. (4) The test now notes that nb-redesign, being single-mode, cannot see a mode-crossing defect.
+
+**Traps.**
+- nb-redesign has 10 payloads to the others' 11, and fits `color-aliases` in one chunk: it is light-only. For the same reason it cannot catch a mode-crossing mutation (one mode's target bound in every mode); the four-mode brands do.
+- The #1672 wash arm still drives the unchunked `colorAliasesJs` on a hand-made shim. With `registerFigmaTree` it could run the real chunks instead; left as it is, because that arm's subject is the wash value shape, not the transport.
+
+---
+
+## (2026-09-29) — On-fill: the label clears 4.5:1 on every persistent fill state (#1626, #1763)
+
+**Owner-decided (2026-09-29, after the before/after comparison page): "rest fill + deeper inverse ink".** ENGINE 0.201.0 → **0.202.0** (renumbered at net after #1749, #1776, #1772, #1767 and #1783 took 0.197.0–0.201.0); CONTRACT stands at 13.2.0, since no token name moves.
+
+**What was wrong.** `interactive.<c>.on-fill` (and its `inverse.` twin) was gated against `fill.rest` only. The engaged fills were never measured against the label on them, and 113 focused or selected pairs missed 4.5:1 across the token-contract corpus, prism3 and the NB master theme:
+- Page ground, `dark` only: primary everywhere but aurora (focused 3.21–3.67, selected 2.32–2.62), destructive in nb (3.59 / 2.60) and wendys (3.31 / 2.41). The selected pair is the switch's on thumb and the checkbox's checked mark (#1763), under even the 3:1 glyph floor.
+- Inverse band, light and dark: primary and destructive in every brand (focused 3.30–4.36, selected 2.53–3.55), from the #1456 stepped neutral fills.
+
+**Why no mechanism reached it, which is why this went to the owner.** On the page in `dark`, the steps where the fill clears its 3:1 floor and the near-white label clears 4.5:1 are the rest step alone (nb, harbor, wendys primary, prism3), or rest plus one darker step (minimal, wendys destructive), so no re-step exists. No single neutral ink clears rest and selected together either: pure black reaches 3.55–4.23:1 for primary.
+
+**The change.**
+- **Page:** `fillStateCand` returns the rest step for `focused` and `selected`, in every mode. Hover and pressed still walk. The focus ring marks focus, and the role names stay.
+- **Inverse:** `brandOnFill` takes the other fills the ink is painted on, and picks the first step, from the least-contrasting end, that clears 4.5:1 on all five state fills. It falls back to the rest-only pick if no step does. The pick is deeper at rest too: prism3 primary goes from 500 to 650 in light and 350 in dark; wendys primary lands on 600 and 300. The inverse on-fill `$description` now says "on every state of the white / black fill, rest through selected".
+- Hover and pressed stay exempt by the owner's earlier call (#1456, #1626). On the inverse band they clear anyway, because the one ink has to clear selected, which is pressed's fill. On the page in `dark` they still dip (3.21–3.67 / 2.32–2.62).
+
+**Before → after** (ink on fill, ratio):
+- prism3 dark, page `primary` selected: `neutral.025 #f7f7f7` on `primary.350 #7398f8`, 2.59 → on `primary.550 #294cfd`, 5.53.
+- prism3 light, inverse primary: `primary.500 #3d68fc` → `primary.650 #1914e2`. Rest on white 4.58 → 9.38; selected on `neutral.200 #c0c1c2` 2.54 → 5.20.
+- prism3 dark, inverse primary: `primary.500 #3d68fc` → `primary.350 #7398f8`. Rest on black 4.58 → 7.58; selected on `neutral.800 #2c2c2e` 3.04 → 5.03.
+- NB master (light only): page `primary` selected `#34383d` 11.80 → `#0b0e10` 19.36. Inverse destructive `primary.450 #d53c43` → `primary.650 #91001a`: rest 4.61 → 9.46, selected 2.56 → 5.25. Inverse primary is overridden to `neutral.950` and holds at 18.08 / 10.77.
+
+**Gates.**
+- `test.ts` `(4c) #1626` measures every emitted `on-fill` against all five fill states, in every mode of every corpus brand, prism3 and the NB master theme. The floor is authored in the test at 4.5:1. Rest and focused/selected must clear it with no register (the 113-entry pinned register from the first commit of this PR is gone). Hover/pressed are measured and exempt, and counted in the represented line. It also fails on any emitted fill state it does not measure, and on any `on-fill` that declares a min other than 4.5.
+- The #1763 exemption (`darkOnGap === 10`) is removed. The switch arm now holds on thumb and on glyph at 3:1 in every mode, `dark` included. A new arm pins the dark literals for the switch's on thumb and, through `checkbox-control`'s own bindings, the checked mark: nb 5.24, aurora 4.60, harbor 5.23, wendys 5.49, minimal 4.63, prism3 5.53:1.
+- `#1244` "most vivid" now requires the neighbor toward the fill to fail on at least one of the five state fills, read off the emitted tree. A rest-only neighbor check would call the new pick "too far".
+- `#1354` literals moved with the on track: NB master light `#0b0e10`, 14.01:1 off vs on; prism3 light `#1e1eff`, 5.65:1.
+
+**Fallout, measured.**
+- `lint-paint` and `lint-component-surface` pass without a re-accept: the defs bind the same role names, and the surface baseline is brand-independent.
+- `token-contract --accept` moved only the informational `engineVersion` field.
+- `.ai.json` `when_to_use` for `fill.focused` / `fill.selected` drops its generated "drops below 4.5:1 in dark mode" clause.
+- Emitted paths that moved: page `fill.focused` / `fill.selected`, inverse `fill.*` descriptions (the label notes), and inverse `on-fill`. No `text.*`, `icon.*` or `border.*` role moved, so #1367's pairs are untouched.
+- Radio's checked dot (`fill.selected` on the page) is now 3.30–10.03:1 corpus-wide, still above 3:1. Its prose, and the tag and switch prose, are updated.
+- **For the owner:** in `dark` the switch's on track now sits closer to the dark off track, at 2.71–14.01:1 across modes (prism3 dark and wendys dark both 2.71:1, from 5.70 minimum before). No gate requires off vs on track at 3:1, since thumb position carries the state, but it is a visible cost of the decision.
+
+**Review follow-ups (independent review of #1773 at 18287261).**
+- **A `fill.rest` override left focused/selected behind.** The override layer rewrites one role, and `on-fill` re-picks against the overridden rest (the pre-derivation `asGround` path), so the two twins stayed on the derived step. Repro: prism3 dark with rest overridden to `primary.300` gave on-fill `neutral.950` at 3.28:1 on selected, with no warning. `withFillStateTwins` now carries a page `fill.rest` override to `fill.focused` / `fill.selected` unless a twin has its own override, beside `withIconTwins`. The inverse band is not matched. The test pins all three on `#86a7f7` with the ink at 8.22:1. No corpus brand overrides `fill.rest`, so `out/` does not move.
+- **The selected fill on darker dark-mode surfaces (measured for the owner; decided below as option 2).** The radio's checked dot, the checkbox's checked box and the switch's on track all bind `interactive.primary.fill.selected`, which is now the rest step. The rest fill is gated at 3:1 against `background.secondary`, the floor every page fill uses, so on `background.tertiary` in `dark` it misses 1.4.11:
+
+  | brand | mode | before (selected step) P / S / T | after (rest step) P / S / T |
+  |---|---|---|---|
+  | nb | dark | red.350 6.97 / 6.44 / 5.73 | red.550 3.46 / 3.20 / **2.85** |
+  | aurora | dark | accent.300 7.95 / 7.32 / 6.57 | accent.500 4.26 / 3.92 / 3.52 |
+  | harbor | dark | primary.350 6.91 / 6.37 / 5.70 | primary.550 3.46 / 3.19 / **2.86** |
+  | wendys | dark | primary.300 7.14 / 6.59 / 5.87 | primary.500 3.30 / 3.05 / **2.71** |
+  | minimal | dark | primary.300 7.80 / 7.21 / 6.42 | primary.500 3.91 / 3.61 / 3.22 |
+  | prism3 | dark | primary.350 7.01 / 6.46 / 5.80 | primary.550 3.28 / 3.03 / **2.71** |
+  | nb | light | red.750 12.08 / 9.94 / 8.78 | red.550 5.62 / 4.62 / 4.08 |
+  | aurora | light | accent.700 10.03 / 8.27 / 7.26 | accent.500 4.56 / 3.76 / 3.30 |
+  | harbor | light | primary.800 11.49 / 10.11 / 8.88 | primary.600 5.59 / 4.91 / 4.32 |
+  | wendys | light | primary.700 11.42 / 9.41 / 8.25 | primary.500 5.88 / 4.85 / 4.25 |
+  | minimal | light | primary.700 10.29 / 8.48 / 7.44 | primary.500 4.97 / 4.10 / 3.59 |
+  | prism3 | light | primary.800 15.08 / 12.42 / 10.90 | primary.600 7.82 / 6.44 / 5.65 |
+  | NB master | light | brand-neutral.750 11.80 / 9.72 / 8.54 | brand-neutral.950 19.36 / 15.95 / 14.01 |
+
+  P, S and T are `background.primary`, `.secondary` and `.tertiary`. HC modes flatten the tiers and measure 8.44–10.03 after. A filled button at rest already sits at these same numbers on a tertiary card; the selected controls now share them. The options are for the owner:
+  1. Accept, and document `background.secondary` as the darkest tier a filled control is contracted on.
+  2. Gate every page interactive fill against `background.tertiary`, the #1352 pattern for destructive ink. Measured in `dark`: rest moves one step lighter in nb, harbor, wendys and prism3 (red.500, primary.500, primary.450, primary.500; 3.32–3.51:1 on tertiary; aurora and minimal already clear). The label escalates to pure white at 4.58–4.80:1. This moves every dark filled button.
+  3. Rebind only the radio dot, the one of the three drawn straight on the page with no fill of its own, to a role gated against `background.tertiary`. No primary role at 3:1 against tertiary exists today, and the primary border/icon inks are #1367's pairs, so this needs a new role or #1367 first.
+- Nits: the radio prose says 3.28–10.03 (prism3 dark 3.28) and names the tertiary gap; the switch low of 2.71 names prism3 dark and wendys dark.
+- `.ai.json` `when_to_use` for page `fill.selected` read "selectable rows when selected / active" (the shared `STATE_WHEN` in `ai-metadata.ts`). A draft replacement went to the owner; shipped below.
+
+**Owner decisions on the review (2026-09-29).**
+- **Option 2: every page interactive fill clears 3:1 against `background.tertiary` too** (the #1352 pattern). `modes.ts` `restFill` passes `background.tertiary` as `pickBrand`'s `alsoClear` for the page `fill.rest` of primary, destructive and every declared palette. The solver takes the nearest step to the anchor that clears the floor (`background.secondary`) and the tertiary tier. Focused and selected are the rest step, so they follow; hover and pressed keep their walk and their exemption. An authored pin stays `exact` (#331). The recorded `against` stays the floor; `test.ts` measures the tertiary arm. The neutral fill is not a solver pick (subtle has no floor, strong is a fixed step); measured with `neutralEmphasis: 'strong'` on prism3 and the NB master theme, it clears both tiers in every mode. The inverse band is untouched.
+
+  Rest fills that moved (before → after, on `background.secondary` / `.tertiary`, and the label):
+
+  | brand | mode | family | before | after |
+  |---|---|---|---|---|
+  | nb | dark | primary, destructive | red.550 `#cf0b2c` · 3.20 / 2.85 · `neutral.025` 5.24 | red.500 `#d53d44` · 3.92 / 3.49 · `white` 4.58 |
+  | harbor | dark | primary | primary.550 `#297272` · 3.19 / 2.86 · `neutral.025` 5.23 | primary.500 `#437f7f` · 3.91 / 3.50 · `white` 4.58 |
+  | wendys | dark | primary | primary.500 `#c8102e` · 3.05 / 2.71 · `neutral.025` 5.49 | primary.450 `#ce3d44` · 3.73 / 3.32 · `white` 4.80 |
+  | prism3 | dark | primary | primary.550 `#294cfd` · 3.03 / 2.71 · `neutral.025` 5.53 | primary.500 `#3d68fc` · 3.91 / 3.51 · **`black`** 4.58 |
+  | harbor | light | destructive | danger.500 `#cd4840` · 3.31 / 2.91 · `white` 4.57 | danger.550 `#b83d36` · 4.04 / 3.56 · `white` 5.59 |
+
+  Aurora and minimal already cleared. Harbor's light destructive fill moved too, because it read 2.91:1 on tertiary. **prism3 dark's label turned pure black, not white** (since resolved: the owner's tie rule below makes it white). Neither softened ink clears 4.5:1 on `#3d68fc` (025 at 4.28:1; 950 falls short too), so `onColor` escalates to the better pure extreme: black 4.584 against white 4.581, a 0.003 margin. That is the existing mechanism's output, so it ships, but the owner expected white. A brand-level tie-break toward the light extreme in dark modes would be a new rule and is left to the owner. The softening pin in `test.ts` now reads "softened unless neither softened ink clears 4.5:1 on the fill", recomputed from the theme's neutral 025/950 (a synthetic brand there hit the same escalation).
+
+  `test.ts` holds a literal [P, S, T] table for the radio's checked dot, the checkbox's checked box and the switch's on track, each read through its own def binding, in every mode of the five distinct corpus palettes, prism3 and the NB master theme (225 cells, all ≥ 3:1; the tertiary minimum is 3.22, minimal dark). The #1763 dark literals moved to nb 4.58, aurora 4.60, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58. The switch's off track vs on track is 3.22–14.01:1 now (it was 2.71 before the gate). No `text.*`, `icon.*` or `border.*` value moved, so #1367 is untouched.
+- **The `.ai.json` guidance for page `fill.selected` ships as written:** "The fill of a filled `<color>` interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline." `describeInteractive` now takes `inverse` and switches the lead sentence for page `fill.selected` only. The shared `STATE_WHEN.selected` is unchanged, so every other role, the inverse `fill.selected` included, keeps its wording. The generated label note still follows.
+
+**Owner decision on the prism3 dark label (2026-09-29): prefer white on a near-tie in dark-family modes.** `modes.ts` `pureExtremeInk`: when pure white and pure black both clear 4.5:1 on the fill and sit within 0.05:1 of each other (`EXTREME_TIE`), `dark` and `hc-dark` take white; otherwise the higher ratio wins, as before, and light-family modes are unchanged.
+
+It was first scoped to the interactive `on-fill`, page and inverse. Applied to every `onColor` caller, it also moves 42 semantic `text.on-<status>` / `icon.on-<status>` cells black → white in `dark`, which went beyond the decision as worded, so it went back to the owner. The owner extended it the same day; see below.
+
+Cells that moved, all in `dark`, black → white:
+
+| brand | role | before | after |
+|---|---|---|---|
+| prism3 | page primary on-fill | 4.584 | 4.581 |
+| prism3 | page destructive on-fill | 4.596 | 4.569 |
+| aurora | page primary and destructive on-fill | 4.601 | 4.565 / 4.564 |
+| harbor | page destructive on-fill | 4.597 | 4.568 |
+| minimal (all six fixtures) | page destructive on-fill | 4.601 | 4.564 |
+
+No other cell moved. The #1763 aurora dark literal moved 4.60 → 4.56. `test.ts` pins the prism3 dark label as white at 4.58:1 on `#3d68fc`. It holds a light-mode near-tie on the same fill taking black, the higher ratio, and a fill where white is under 4.5:1 (`#7398f8`) taking black in a dark-family mode. The "softened unless…" pin's comment now names the tie rule; its assertion was already color-agnostic.
+
+**Owner decision (2026-09-29): the tie rule reaches the status on-colors.** `onColor` now applies `pureExtremeInk`'s dark-family tie rule for every caller, so the semantic `text.on-<status>` / `icon.on-<status>` inks on the solid status fills follow the interactive `on-fill`. The `tieToWhite` switch is gone from `onColor` and `pureExtremeInk`, since no caller opts out. Exactly 42 cells move, all in `dark`, all black → white, all still at or above 4.5:1. Each row is `text.on-*` and `icon.on-*`; the six minimal fixtures share one palette and each moves the same four cells:
+
+| brand | status fill | black (before) | white (after) |
+|---|---|---|---|
+| nb | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| aurora | on-brand on primary.500 `#7269ca` | 4.589 | 4.576 |
+| aurora | on-danger on danger.500 `#c94c44` | 4.601 | 4.564 |
+| aurora | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| harbor | on-danger on danger.500 `#cd4840` | 4.597 | 4.568 |
+| harbor | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| wendys | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| minimal (×6 fixtures) | on-danger on danger.500 `#c94c44` | 4.601 | 4.564 |
+| minimal (×6 fixtures) | on-info on info.500 `#317bb2` | 4.607 | 4.559 |
+| prism3 | on-success on success.500 `#2e8554` | 4.599 | 4.566 |
+| prism3 | on-danger on danger.500 `#d24241` | 4.596 | 4.569 |
+
+That is 2 (nb) + 6 (aurora) + 4 (harbor) + 2 (wendys) + 24 (minimal) + 4 (prism3) = 42. No other role moved: measured role by role over the corpus, prism3, the NB master theme and every example brief, before and after. `on-warning` is served by the same picker and did not move in any brand, since none of its fills sits in the tie. No `text.*`, `icon.*` or `border.*` value outside `text.on-*` / `icon.on-*` moved, so #1367's pairs are untouched. The NB fixture's recorded divergence for dark `text|icon/on-info` moves from `palette/black` to `palette/white` in `test.ts` (NB authored `neutral/950`, so it stays a divergence).
+
+**Re-review follow-ups (independent re-review of 18287261..faafdf10).**
+- **S1: a pinned anchor skipped the tertiary gate silently.** An authored anchor is `exact` (#331), so `pickBrand` returns it without reading `alsoClear`. Repro: the minimal brand with `modeAnchors.dark.primary: 550` emits primary.550 `#3661b5` at 3.02:1 on the floor and 2.69:1 on `background.tertiary`, and nothing reported the second number. The pin stands, as author intent. The miss is now reported the way a missed override is. An override that misses its contract lands in `ModeResult.warnings` and fails a mode check, because its role's `ratio` falls under `min` and `tree.ts` counts every role with a `min`. So overrides DO count in `modeChecks` / `modePass`, and the tier miss does both:
+  - `resolveMode` ends with a tier check over every family whose page `fill.rest` came through `restFill` (primary, destructive, declared palettes), measured on the final value after the override pass.
+  - Each check is a `tierChecks` entry on `ModeResult`, and `tree.ts` counts it into `modeChecks` / `modePass`. A miss is also a `warnings` entry with `against: 'background.tertiary'`, a new optional field on `OverrideWarning`.
+  - The repro now reports one tier warning at 2.69:1 and 883/884 mode checks. The unpinned brand reports 884/884.
+  - Every brand gains 2 passing checks per mode (primary and destructive): the wendys fidelity report reads 884/884, from 876/876. No corpus brand, example or fixture misses, so no emitted value moves.
+  - The check also covers the fallback where no step clears both grounds and `pickBrand` returns the anchor, which was silent in the same way.
+- **S2: the tie rule lowers the dark hover / pressed label (documented, not changed).** Hover and pressed are exempt from the label floor (#1456, #1626), and `.ai.json` says so on each: "on this fill it drops below 4.5:1 in dark mode". The trade, for the six labels the rule moved (the label on the dark hover / pressed fill, black before → white after):
+
+  | brand | family | hover | pressed |
+  |---|---|---|---|
+  | prism3 | primary | 6.45 → **3.25** | 8.88 → **2.36** |
+  | prism3 | destructive | 6.34 → 3.31 | 8.75 → 2.40 |
+  | aurora | primary | 6.27 → 3.35 | 8.59 → 2.44 |
+  | aurora | destructive | 6.35 → 3.31 | 8.70 → 2.41 |
+  | harbor | destructive | 6.31 → 3.33 | 8.67 → 2.42 |
+  | minimal (×6) | destructive | 6.35 → 3.31 | 8.70 → 2.41 |
+
+  The lowest is prism3 dark primary: hover 3.25, pressed 2.36. Before the rule, the lowest of these six was hover 6.27, pressed 8.59. The dark labels that were already white sit in the same range: nb primary and destructive 3.25 / 2.40, harbor primary 3.28 / 2.41, wendys primary 3.26 / 2.28 (the corpus low), and wendys destructive 3.31 / 2.41. So the rule brings these six into line with the rest of the corpus. It still cuts the label by about half on hover and about three quarters on pressed.
+- **S3: two missing tests.** `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio` holds `#767676` (white 4.542, black 4.623, gap 0.081) at black. `#1626 an explicit fill.selected override beats the carried fill.rest override` holds prism3 dark with rest → primary.300 and selected → primary.600 at `#86a7f7` / `#86a7f7` / `#1e1eff`.
+- **NITs.**
+  - The both-clear guard is unreachable at the engine's 4.5:1 on-fill floor. Two inks within 0.05:1 of each other both sit at 4.558:1 or above, since white and black meet at 4.583. The guard protects a raised floor, so it stays, and `#1773 tie rule: when an extreme misses the floor …` witnesses it at a synthetic 7:1 on `#3d68fc`, where it must keep black.
+  - `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording` is the witness for the `!inverse` scope. The page wording has its own line beside it.
+  - The broken sentence in the `version.ts` 0.197.0 entry ("… decision. Emitted / A `fill.rest` override …") is fixed.
+
+ENGINE stays at 0.197.0: this is the same unmerged PR, and the orchestrator renumbers at net. CONTRACT stands at 13.2.0.
+
+**Mutations** (committed first, restored from HEAD):
+- MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.
+- MB, the inverse re-pick disabled (`alsoClear` emptied): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb light inverse focused 3.33:1, …). The `#1244` arm does not fire here: a rest-only pick is shallower, not too far. `(4c)` is the arm that holds it.
+- MD, `withFillStateTwins` removed from the override pass: `#1626 a fill.rest override carries to focused and selected` fails (focused and selected `#294cfd`, on-fill 3.28:1).
+- ME, the tertiary gate removed (`restFill` passes no `alsoClear`): `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on … .tertiary` (nb dark on tertiary 2.85:1, …) and `#1763 dark mode: … pinned literals` (nb 5.24 against 4.58, …).
+- MF, the dark-family tie rule removed from `pureExtremeInk`: `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc` fails (got `#000000`), with `#1763 dark mode: … pinned literals` (aurora 4.6 against 4.56).
+- MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
+- MG, the tie rule off for the status on-colors only (`onColor` takes the higher ratio at the `on-<status>` call site): `#1773 tie rule on the status on-colors: … take white at the pinned literals` fails (nb dark `text.on-info` `#000000`, …), with `figma color.dark: every alias targets the same palette var as the fixture` (NB `on-info` back to `palette/black`) and `aurora.design.md → byte-identical to out/aurora.tokens.json`.
+- MH, the tier check's report removed (no `tierChecks`, no warning): `#1773 a pinned anchor that misses background.tertiary is reported` fails (0 tier warnings, 0 failed mode checks).
+- MI, `EXTREME_TIE = 0.2`: `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio` fails (`#767676` got white), with the NB `on-warning` divergence arm (on amber.500 `#b36203` black leads white by 0.16, 4.665 vs 4.501, so a 0.2 tie flips it).
+- MJ, the explicit-twin precedence removed from `withFillStateTwins`: `#1626 an explicit fill.selected override beats the carried fill.rest override` fails (selected `#86a7f7`).
+- MK, the both-clear guard dropped from `pureExtremeInk`: `#1773 tie rule: when an extreme misses the floor (7:1 on #3d68fc …)` fails (got white).
+- ML, the `!inverse` scope dropped in `describeInteractive`: `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording` fails.
+- The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
+
+---
+
+## (2026-09-29) — Status field borders clear 3:1 on the hover wash (#1782)
+
+**STATUS: PR open from `lane/status-border-hover`, labeled DO NOT MERGE. Closes #1782.** ENGINE 0.200.0 → **0.201.0** (renumbered at net after #1772 and #1767 took 0.199.0 and 0.200.0; the #1710 sweep's status × hover exclusion is removed in this merge, since this gate now covers it). Emitted values move; CONTRACT stands at 13.2.0 (no token name, no projected member; stamp-only accept). No new regen artifact.
+
+**The defect.** At `state=hover`, `text-field`, `textarea` and `select` fill the control with the translucent `interactive.neutral.overlay.hover` wash (10% black on light, 10% white on dark). A non-default status keeps its status border there (`border.danger` / `.warning` / `.success`). Those roles were contracted at 3:1 against `background.primary` only. Against the wash composited over `background.secondary`, the 500 anchor measured 2.64–3.00:1: 132 members in 44 brand × mode × stroke × ground cells, found by #1772's extension of the #1710 sweep.
+
+**The fix is an existing mechanism, not a new rule.** `pickBrand` already takes `alsoClear`, the extra grounds a role must also clear. The semantic inks use it for their own `-subtle` tint. The three field status borders now pass three extra grounds: `background.secondary` (the field's darkest permissible ground since #1341), and the hover wash composited over each page ground. The anchor stays 500 wherever it clears all of them. `border.brand` and `border.info` are not field statuses and keep the page-only contract. A brand that opts out of the wash (`outlineInteraction` none / solid-tint) adds only `background.secondary`.
+
+**Owner decisions (2026-09-29).**
+1. **HC keeps its own 4.5:1 floor on the extra grounds.** `alsoClear` applies the role's own floor, `nonTextMin`, which is 4.5 in HC. On the wash the HC 500s measured 3.6–3.9:1, which clears SC 1.4.11's 3:1. So the HC moves come from this decision, not from WCAG. The neutral `field.border.hover` already clears 5.3:1 on the same wash in HC.
+2. **A status border never takes `border.focus`'s color.** The first cut put nb dark `border.danger` on red.450, the step `border.focus` already held there, so an errored field and a focused field shared an edge color. The solver now resolves the focus ring first and passes its value to the three status borders as `pickBrand`'s new `avoid`. An avoided step counts as a miss, so the pick moves at least one ramp step off the ring, to the nearest step that still clears every ground. The comparison is by emitted hex, not by palette, so it also holds in wireframe, where every chromatic role collapses onto the neutral ramp the ring uses. It applies to all three statuses. Warning and success did not collide in any corpus brand, but they share the ring's ramp wherever a brand maps them onto the action palette, and always in wireframe.
+
+**Decision 2 moved one value.** The rule was measured across every corpus brand × mode, prism3 and the NB master, and in a wireframe variant of each. The only collision was nb dark danger, which moved one step further:
+
+| brand / mode | role | before | after | page | `background.secondary` | wash on page | wash on secondary | `border.focus` |
+|---|---|---|---|---|---|---|---|---|
+| nb / dark | `border.danger` | red.450 `#da5657` (5.05 / 4.66 / 3.97 / 3.53) | red.400 `#de6c69` | 5.98 | 5.52 | 4.70 | 4.18 | red.450, unchanged |
+
+NB's authored red.500 measures 2.96:1 on the washed secondary, so 500 is a WCAG miss and 450 is the focus step, which leaves 400. `border.focus` and every inverse border are byte-unchanged, checked across the corpus.
+
+**The alpha is the one the brand's dialect ships (review S1).** The wash primitive ships as 8-digit hex in the hex dialect (`#0000001a`, so 10% renders at 26/255 = 0.102) and as `rgba(0, 0, 0, 0.1)` / Figma `a: 0.1` in NB's rgb dialect. The first cut composited everything at 26/255. For hex brands that was right. At the nominal 0.1, aurora and wendys light cleared 3:1 in the engine but measured 2.99–3.00:1 in the emitted tokens. For NB it held the border to a darker wash than NB ships: nb dark warning at 500 measured 2.999:1 at 0.102 and 3.02:1 at the shipped 0.1, so its move to 450 came from that difference alone. A new `emittedAlpha(a, colorFormat)` in `color.ts` is now the one quantization rule. `tree.ts` writes through it, byte-identically, and `modes.ts` composites through it. nb dark warning returns to amber.500, NB's authored step, and its divergence row is gone. The gate still parses the alpha back out of the emitted `$value` and never imports `emittedAlpha`, so the two cannot agree by construction.
+
+**What moves: 103 role-modes across the corpus and prism3. The NB master theme has none.**
+- **Light:** one rung darker (500 → 550) where 500 missed. That is all three statuses in harbor and prism3, nb warning, danger in aurora and the minimal fixtures, and wendys success (14 role-modes).
+- **Dark:** one rung lighter (500 → 450) for all three statuses in every washed brand, except nb warning (stays 500, see S1) and nb danger (→ 400, see decision 2).
+- **HC:** hc-light moves to 600 (danger, warning) or 550–600 (success); hc-dark moves to 400–450 (decision 1).
+- **NB master theme:** it has no wash, and 500 already clears `background.secondary`, so nothing moves.
+
+**NB fixture: nine divergences, group seven of `NB_KNOWN_DIVERGENCES`. Each row states its reason (review S2).** The earlier rationale called every row "a real non-text contrast miss", which was false for six of them. Measured at the shipped 0.1, on the authored step's worst ground (the wash over `background.secondary`):
+- **WCAG miss (3):** light warning amber.500 at 2.96, dark danger red.500 at 2.96 (and 450 is the focus step, see decision 2), and dark success green.500 at 2.78.
+- **The HC 4.5 floor, owner decision 1 (6):** hc-light danger 3.66, warning 3.59, success 3.90; hc-dark danger 3.82, warning 3.89, success (authored 450) 4.26. All of these clear 3:1.
+
+**The gate (`test.ts`, `a11y(#1782)`), standalone by design.** It walks the projected hover members with a non-default status for the three pinned defs. It recomputes contrast from resolved hexes against two literal page grounds, outside and inside, with the wash composited at the alpha parsed from the emitted primitive. The floor is a literal 3. It never reads the roles' `ratio`, `against` or `min`, and never imports the engine's ground list. Representation arms fail if a def × status drops out of the projection, if the cell count falls short, or if no member composites a real wash. #1772's #1710 sweep holds this coordinate out with a pointer here. Whichever of the two lands second deletes that exclusion. This round adds two arms:
+- **`a11y(#1782) HC` (review S3).** A literal 4.5:1 floor on both page grounds, outside and inside, in hc-light and hc-dark of every corpus brand (396 cells), with a representation arm requiring both HC modes and a real wash. The 3:1 arm could not see decision 1: dropping the extra grounds in HC leaves every HC 500 at 3.6–3.9:1, above 3.
+- **`a11y(#1782) status ≠ focus` (decision 2).** Resolved hex of each status border against `border.focus`'s, in every brand × mode of the corpus, prism3 and the NB master, each also with wireframe added (306 pairs, 44 of them on the ring's own ramp). It never reads `avoid`.
+- **Shared imports (review N1).** The gate imports `contrast` and `composite` from `color.ts`, the same functions the engine picks with. This is the standing pattern for contrast gates and is noted in the gate's header. The formula is the definition being measured. Everything that decides the answer (grounds, floors, alpha, focus value) is independent.
+
+**Mutations, each failing by name.** Each was committed first and restored from HEAD, with the diff checked non-empty before the run:
+- `border.danger` back to page-only (danger removed from `FIELD_STATUS_BORDERS`) → `a11y(#1782)` fires. (Round 1: 57 members in 19 cells.)
+- The wash ground dropped from the engine's `alsoClear` → `a11y(#1782)` fires. (Round 1: 132 members in 44 cells.)
+- The wash ground dropped from the gate's own measurement, with the engine fix also reverted → **zero** `a11y(#1782)` failures (round 1). This shows the inside arm is the one that catches the defect.
+- **Decision 2:** `avoid` removed from the status-border call → `a11y(#1782) status ≠ focus` fires with 8 collisions. One is in a shipped mode (nb dark danger = red.450), and the NB fixture's `color/border/danger` row also reports CHANGED. The other seven are in wireframe only: nb warning, wendys danger and warning, and minimal-levers danger, warning and success. This measured answer to "can warning or success collide?" is yes, in wireframe. No other check catches those seven, so the new arm is necessary, not just sufficient.
+- **S1, hex dialect:** the wash composited at a hard-coded 0.1 → `a11y(#1782)` fires, 9 cells, including aurora light danger 3.00 and wendys light success 2.99. `a11y(#1782) HC` also fires, 4 cells (harbor and prism3 hc-dark warning, 4.49–4.50).
+- **S1, rgb dialect:** a hard-coded 26/255 → the NB fixture's `figma color.dark` alias and value rows fire for `color/border/warning`. `a11y(#1782)` stays silent here, correctly: a darker wash than the one shipped only over-tightens the pick. It never lets a border under 3:1, so the gate that catches an over-strict alpha is the NB byte comparison.
+- **S3:** the extra grounds dropped in HC only → `a11y(#1782) HC` fires, 360 members in 120 cells. The 3:1 arm stays **silent** (0 failures), which is the gap S3 named. The NB fixture's hc-light and hc-dark rows fire too, but only for NB, so the HC arm is the only check for every other brand.
+
+**Trap for whoever re-measures this.** Measure at the alpha the brand's dialect ships, not at a single "real" alpha. For the hex dialect that is 0.102, and for NB it is 0.1. Using either one for every brand gets a different brand wrong.
+
+---
+
+## (2026-09-29) — Tag: Select and Dismissible types; Badge: a smaller radius for status labels, and its `genre` axis renamed `type` (#1741, #1743)
+
+**STATUS: PR open from `lane/tag-badge-rework`, labeled DO NOT MERGE.** The owner's decisions of 2026-09-28 on Tag and Badge. ENGINE 0.199.0 → **0.200.0** (MINOR: Tag's and Badge's projected members move; the orchestrator renumbers). CONTRACT stands at 13.1.0 (stamp-only accept: `border-width.thick` and `radius.sm` already exist). No new regen artifact. Closes #1741 and #1743; part of #1758 (min width and truncation).
+
+**The diagnosis that the owner's decision rested on, and did not hold.** Decision E names `interactive.primary.subtle-fill.selected` for the selected tint "(it exists)". It exists only under the `outlineInteraction: solid-tint` lever (`modes.ts`, `outlineFillFamily`), and no corpus brand sets that lever, so in every committed brand the role is absent and a def binding it would miss everywhere. The owner's NB Figma file runs at solid-tint, which is presumably where it was seen. The def binds the page-ground wash `interactive.primary.overlay.selected` instead, which `applyOutlineInteraction` repoints to exactly `subtle-fill.selected` on a solid-tint brand (`test.ts` holds that repoint by name). On the default lever it is a 20% neutral wash, not a primary tint; under `none` the entry is dropped and a selected tag keeps its 2px outline and check. **Held for the owner**, with three options: accept the lever-following binding; emit `subtle-fill.selected` in every brand (a new guaranteed name, CONTRACT MINOR); or bind another role.
+
+**Tag, as built.**
+- **`type` (`select | dismissible`) is a `VARIANT_AXES` name** (shared with Badge, below), argued in the list's header against `selection`, `appearance`, `style` and `shape`, and registered in `lint-axis-values` as `disjoint` from Badge's canonical set. The code prop of the same name replaces `interaction`; `codeOnly` names it the component's own prop, never the HTML `type` attribute and never forwarded to the element. The plain clickable tag is dropped.
+- **The set is 45 members** (2 × 2 × 3 × 5 = 60, less the 15 `dismissible × selected`, removed through `excludeCoordinates`). It was 30.
+- **Select:** the optional leading icon, and a check mark on the TRAILING side of the label behind a new `check mark` boolean (prop `showCheck`, default on), present only at `selection=selected`. No × on any select member.
+- **Dismissible:** a plain `close` glyph in a square trailing slot bound to `size.{size}.height` on both sides (44 at medium on comfortable), replacing the nested IconButton.Neutral. The slot sits outside a new `content` box that carries the label-side inset, so it is flush with the pill's end. Whether the whole tag or only the slot is the hit target is open; `codeOnly` states both.
+- **Minimum width = height**, per size, bound through a new `PartDef.minWidthKey` (the width twin of `minHeight`), so it follows density. A literal would be 44 on a compact brand whose medium tag is 36 tall.
+- **Selected:** the tint above plus `interactive.primary.border.*` at `border-width.thick` (2px), through a `{selection}.border-width` stroke key; the unselected edge stays `hairline`. Both are inside strokes, so the weight change moves no box. The label type binding is the same at both selections. The label and check keep the unselected neutral ink: the primary ink fails 4.5:1 on the tint (below).
+- **No truncation (#1758):** `codeOnly`'s text-expansion entry now wraps and says why a `title` does not qualify; `docs.dont` gains the rule.
+- **The selection system pattern** (tint + 2px outline + constant label weight) is written into `skills/prism3-build-component` §5 as the idiom for segmented controls, selectable cards and list options.
+
+**Badge.** The surface's corner is keyed per type (`{type}.radius`): `status.radius` → `radius.sm` (2px nb/prism3/harbor/wendys, 4px aurora), `count.radius` and `dot.radius` → `radius.round`. The hook entry in `notes.contested` now names the shape difference and Tag's glyph remove control.
+
+**Schema (#1743 option (a)).** A boolean now COMPOSES with a VARIANT `presentWhen` on its part: the gate decides which members carry the node, the boolean toggles it there, and a member with no node ignores the property (Figma's own behavior for a set property). A STATE gate (`when`, or `presentWhen`'s `state` key) is still refused by name. `present()` evaluates the variant gate for a boolean part; the #1331 arm (b) now proves the composition on select's projection (node only at `status=error`, carrying its switch) and keeps a refusal arm for the state gate.
+
+**`lint-hit-target` (#1741).** `INNER_TARGETS` measures a part inside a control that is, or may be, a target of its own, through the part's own `size` binding (`tag.dismiss` → `size.medium.height`, 44px); and every `nest` part of an INTERACTIVE control that nests another INTERACTIVE control must be listed there, or the gate fails. Both the stale-entry and binding-moved cases fail by name.
+
+**Contrast, measured in 20 cells (5 brands × 4 modes), translucent grounds composited over the page, literal floors.** Selected label on the tint ≥ 4.5 (lowest 10.04 overlay-neutral, 10.19 solid-tint). Check mark on the tint ≥ 3 (same numbers). Selected outline against the page ≥ 3 (rest 4.56 aurora/light, hover 6.80, pressed 9.23). The × against its ground ≥ 3 in every state: rest and focus-visible 15.98, hover 12.80, pressed 10.04, disabled 3.51 (on the page; a disabled tag has no fill). Unselected unchanged (label 15.98, edge 15.98). **The pairs the def does NOT bind, measured to justify the ink choice:** `interactive.primary.text.rest` on the tint fails in 11 of 20 cells on overlay-neutral (lowest 2.70, aurora/dark) and 13 of 20 on solid-tint (lowest 3.02, aurora/light); the engine's own solid-tint pairing, `interactive.primary.text.pressed`, clears 6.64.
+
+**Scope addition (owner, 2026-09-28): Badge's `genre` axis is renamed `type`**, so Badge and Tag use one name for "which kind of this component". `VARIANT_AXES` loses `genre` and gains `type`, so the count is unchanged; the list's header now argues one `type` case covering both defs. The values stay `status | count | dot`. The prop, the paint grammar (`{tone}.{type}.{emphasis}.{slot}`), the geometry keys (`{type}.pad-x`, `{type}.pad-y`, `{type}.radius`), `excludeCoordinates`, the presence gates and the Figma variant property move with it. In `lint-axis-values` the two `type` sets are Badge's `canonical` and Tag's `disjoint` (no value is shared). Badge's shipped prose says "type" where it said "genre"; its `notes.evolution` keeps the `genre` history and records the rename. **No emitted token name carries "genre"**, so `token-contract --check` reports no change and CONTRACT stays at 13.1.0. The component surface and paint census move for Badge, because the member names (`genre=` → `type=`) and the census keys changed; both were re-accepted. `docs/42` has no Badge row to update (its one "genre" is the English word, as it is in the other lints the note named). Older progress entries and `version.ts` history are left as written.
+
+**Traps.**
+- `lint-glyph-geometry` reads a vector's gate from the PART, not its parent: a × inside a gated slot with no gate of its own is counted as due at every member. The glyph restates its slot's gate.
+- `test.ts`'s #910 arm refuses to cover an AND-composed gate on two axes. The check gates on `selection` alone; the exclusion makes `type=select` implicit.
+- The `#1009` centering exemption for Tag could no longer say "the label never wraps" (it wraps in code now). It rests on the Figma projection (fixed one-line height) and holds the code-side alignment for the owner.
+- The offline shim now honors a BOUND `minWidth`; no real Figma host has been checked for a variable bound to an auto-layout `minWidth`, or for a boolean property some members have no node for.
+
+**Mutations, committed before each, restored from HEAD, diff asserted non-empty, each failing by name.**
+- M1 `excludeCoordinates` removed → **`tag projects to Figma: exactly 45 members`** (got 60); `lint-component-surface` `surface/tag: 60 projected member(s), baseline 45`; `lint-paint` census.
+- M2 the × slot's and glyph's `type` gates removed (× on every select member) → **`tag: no select member carries the × slot`**; `lint-glyph-geometry` `tag.dismissGlyph: the def draws its fixed 'close' at {} and FIXED_GLYPH records {"type":["dismissible"]}`.
+- M3 check moved before the label → **`tag check mark: on every selected member it is the last cell …`**. M4 the `check mark` default flipped off → the same arm (the property default is literal `true`).
+- M5 the × slot bound to `size.{size}.icon` → **`tag geometry: …`**; `lint-hit-target` `tag.dismiss/medium: the part binds 'size.medium.icon' as its side, not 'size.medium.height'`.
+- M6 `minWidthKey` removed → **`tag geometry: …`**.
+- M7 `selected.border-width` → `hairline` → **`tag rest (selected, small|medium|large)`**.
+- M8 the label type keyed per selection (selected → `type.label.lg.emphasis`) → **`tag label weight is constant (small|medium|large)`**, plus the rest pins.
+- M9 `selected.overlay` → `overlay.hover` → **`tag rest (selected, …)`** ×3 and **`tag selected tint: on a solid-tint brand it binds interactive.primary.subtle-fill.selected`**.
+- M10 `selected.label` → `interactive.primary.text.rest` → **`tag contrast (selected label on the tint)`** on both levers (2.70 / 3.02). M11 `selected.icon` → `interactive.primary.icon.rest` → **`tag contrast (check mark on the tint)`** (overlay-neutral 2.70; it clears 3.02 on solid-tint, so only one lever fires).
+- M12 `selected.border` → `interactive.neutral.fill.rest` → **`tag contrast (selected outline against the page)`**. M13 `disabled.icon` → `disabled.fill` → **`tag contrast (× glyph at disabled)`**. M14 `unselected.icon.hover` → `interactive.neutral.fill.hover` → **`tag contrast (× glyph at hover)`**.
+- M15 Badge `status.radius` → `radius.round` → **`badge corner`**, `badge rest (…)` ×10 and **`tag vs badge at rest (…)`** ×30 (the shape half). M16 `count.radius` → `radius.sm` → **`badge corner`**.
+- M17 a nested `icon-button-neutral` part added to Tag → `lint-hit-target` **`tag.remove: nests the interactive control 'icon-button-neutral', a second target inside 'tag', and INNER_TARGETS does not list it`**.
+- M18 type values `dismissible` → `dismiss` → `lint-axis-values` `1 axis value set(s) no register entry declares`.
+- M19 the text-expansion line back to "truncates with an ellipsis, paired with a title" → **`tag text expansion: a long label wraps and is never truncated`**. M20 option (2) cut from the hit-target line → **`tag dismissible hit target: the code guidance states both options`**.
+- M21 × glyph `close` → `minus` → `lint-glyph-geometry` `tag.dismissGlyph: the def draws glyph 'minus' and FIXED_GLYPH records 'close'`.
+- M22 `present()`'s variant gate for boolean parts reverted → **`#1743 a boolean on a VARIANT-gated part composes`** and **`tag check mark …`** (the check appears on unselected members).
+- M23 (the rename) Badge's axis put back to `genre` (with `genre` back in `VARIANT_AXES`) → **`badge type rename: every member is keyed type=status|count|dot and none genre=`**, `badge type: …`, `badge projects to Figma …`, `badge corner`, `badge rest (…)`, 16 in all; `lint-axis-values` stale `type: [status, count, dot]`. The first run of this mutation CRASHED the suite with no summary: Tag's cross arm called the projector at `{ type: 'status' }`, which throws on a badge without that axis. `badgeAt` now catches the refusal and the arms fail by name; the rerun executed all 2803 assertion sites.
+
+**Held for owner** (in the PR body): the tint role (above); the selected label/check ink staying neutral; selected hover/pressed (the tint holds, the edge steps); whether an unselected select tag reserves the check's width (today it does not, so a toggle reflows the group, against decision E's "nothing reflows"); the dismissible hit target (open by decision); the × glyph size (the tag's icon rung, 24 at medium); the full trailing inset before the × slot; a dismissible tag keeping the optional leading icon; code-side vertical alignment of glyphs on a wrapped label; the `check mark` / `showCheck` names.
+
+**Review round (same PR, same version 0.200.0).** An independent review found one blocking defect and five smaller ones. All six are fixed here.
+- **B1: the × slot's hit-target entry could be deleted with every gate green.** `lint-hit-target`'s unseen-nest arm reads `kind === 'nest'` parts only, and the × slot is a `box` with `role: 'presentation'`, so the hand-written `INNER_TARGETS['tag.dismiss']` was its own only witness. That is docs/34 shape 1, inside the fix for #1741. **The fix is a new `PartDef.innerTarget: true` marker**, and the gate now compares the marks and the list in both directions:
+  - a marked part of an interactive def that `INNER_TARGETS` does not list fails;
+  - an entry naming a part that is neither marked nor a nested interactive control fails;
+  - a mark on a def the gate does not measure fails.
+
+  It is a new field and not a `role` value, because `role: 'target'` is the single a11y node and the schema requires exactly one. `component-schema.ts` refuses the marker on the role target, on the root, on an `absolute` part, on a part binding neither `size` nor `height`, and with any value other than `true`. Nothing in the projector reads it, so no baseline moves.
+- **S1: false shipped prose.** Four places said selecting a tag never reflows: the description, the label note, the skill's §5 selection pattern ("so the two members are one size"), and their emitted copies. With the check on, which is the default, a selected tag is one glyph plus one gap wider. The prose now states what is built: the label keeps its weight, so its own width does not change, and the check mark, when shown, adds its width and one gap. The skill adds that a check present only while selected makes a row reflow unless the component reserves the width, and that this is open for Tag. **The behavior is unchanged; reserving the width stays an owner question.** `test.ts` pins it with `tag selected width (nb|aurora|harbor|prism3, medium)`. It uses its own model of Figma's hugging row over the plan, with px from each brand's tree and a fixed 30px label. EXPECTED is the literal 32 (a 24px glyph plus an 8px gap), and with the switch off the two members are one width. If the owner reserves the width, this arm flips deliberately.
+- **S2: the × was never held on the trailing side.** A new arm, `tag × slot`, asserts that on all 15 dismissible members the slot is the last flow cell of the pill, right after the label row.
+- **N1: the shim's bound-floor code was never exercised.** Its synthetic `varValue` puts `size/md/height` at 8px, below any content. The shim gains a `varPx` option: per-name px carried into a bound dimension. A new `test-write-components.ts` block builds a one-letter tag at NB's medium px and asserts `tag min width`: 44 × 44 over a 38px label row. **Found on the way, and filed as #1769:** the shim's hugging row leaves `itemSpacing` out of its width, so a shim-side "glyph plus gap" assertion could not be written. That is why S1's arm lives in `test.ts`.
+- **N2:**
+  - Badge's `notes.contested` said "`genre` defaults to `status`". It now says `type`.
+  - `figmaPropertyErrors` now refuses a boolean whose variant `presentWhen` lands only on coordinates `excludeCoordinates` removes. Before, that validated clean and projected a Figma switch wired to no node. It is pinned as `#1743 a boolean whose VARIANT gate lands only on excluded coordinates`.
+- **Baselines.** None re-accepted. `lint-component-surface` and `lint-paint` pass unchanged: the marker projects nothing, and only prose moved. `out/components/tag.md`, `components.ai.json` and `schema/component-maintainer.json` move with the prose.
+- **Mutations this round** (each committed first, restored from HEAD, diff asserted non-empty):
+  - R1: the `tag.dismiss` line deleted from `INNER_TARGETS` → `lint-hit-target` **`tag.dismiss: the def marks it innerTarget, … INNER_TARGETS does not list it`**.
+  - R2: `innerTarget` removed from the × slot → `lint-hit-target` **`INNER_TARGETS names 'tag.dismiss', and the def does not mark that part innerTarget`**, and `test.ts` **`tag innerTarget`**.
+  - R3: the role-target refusal for the marker disabled → **`tag innerTarget`**.
+  - R4: the check mark present at both selections (the width reserved) → **`tag selected width (nb|aurora|harbor|prism3, medium)`**, measured 94 = 94. The `tag check mark` and `tag rest (unselected, …)` arms fire too, and `tag innerTarget` fires because the def stops validating (`footprintVaries: selection` gates nothing).
+  - R5: `dismiss` moved before `content` → **`tag × slot`**.
+  - R6: the shim's `boundFloor` zeroed → plugin **`tag min width`**, measured 38 × 44.
+  - R7: the excluded-gate refusal disabled → **`#1743 a boolean whose VARIANT gate lands only on excluded coordinates`**.
+
+**The owner's Tag decisions of 2026-09-29 (same PR, same version).** Three are built and one is held.
+- **Built: the check widens the tag.** It stays as built, so `tag selected width` (+32px at medium) now pins an owner decision, and its message says so. The reservation item leaves `notes.contested` for `notes.evolution`, and the skill's selection pattern states it.
+- **Built: the Figma switch is `Check icon`** (it was `check mark`). It toggles only the Select check. The Dismissible × has no switch because it is the tag's action. The code prop stays `showCheck`. The component surface was re-accepted for `tag`, `tag@outline-solid-tint` and `tag@outline-none`: the member count holds at 45, and the plan digest moves because the property name is in the plan.
+- **Built: selected hover and pressed keep the tint, and the 2px outline steps darker.** This is pinned by a new arm, `tag selected hover|pressed (owner decision 2026-09-29)`, and the item leaves `notes.contested`.
+- **HELD: one `interactive.primary.subtle-fill.selected` emitted in every brand, with Tag bound to it.** This stopped on the orchestrator's own stop condition.
+  - **What `none` omits by design.** `outlineInteraction: 'none'` omits every outline/text fill. The lever's description (`levers.ts`) reads "How outline/text controls express hover/pressed/selected … none = omit", and `token-contract.ts` demotes all 27 `overlay.*` paths to `brandDependent` because `minimal-levers` pulls `none`.
+  - **Why the role would be the first exception.** A guaranteed role has to be emitted by `minimal-levers` too, so a CONTRACT MINOR puts a selected outline fill on every `none` brand, the first outline fill that lever would not omit. Today a selected tag on a `none` brand keeps only its outline and check.
+  - **Why it wasn't half-built.** Binding the tag to a role absent under `none` would trip `lint-lever-sweep`, and a `brandDependent` role would not be the CONTRACT MINOR the decision asked for.
+  - **What the role would be, measured** (the solid-tint derivation of the selected step on the page ground: the primary fill at `opacity.30`, composited over `background.primary`):
+    - prism3 light: `#1e1eff` at 30% → `#bcbcff`, label 10.84:1, check 10.84:1
+    - NB light: `#cf0b2c` at 30% → `#f1b6c0`, label 11.26:1, check 11.26:1
+    - Across prism3's and NB's four modes, the lowest is 10.84.
+- **Mutations** (committed first, restored from HEAD):
+  - D3: the property renamed back to `check mark` → **`tag check mark: … behind a 'Check icon' switch`**, plus `lint-component-surface` `surface/tag` ×3.
+  - D4: the selected hover edge key dropped → **`tag selected hover (owner decision 2026-09-29)`**, plus `tag contrast (selected outline against the page.hover)`.
+  - The tint and emission mutations were not run, because that decision is held.
+
+**The held tint, answered (owner, 2026-09-29: "(b) respect `none`").** Built on the same version.
+- **Emission (`modes.ts`).** Every brand whose `outlineInteraction` is not `none` emits `interactive.primary.subtle-fill.selected`.
+  - Solid-tint brands carry the whole family, as before.
+  - Overlay-neutral brands carry that one leaf, on the page ground. `settleSolidTint` makes it with a new `only` argument, so the step is chosen by the full rule (hover's guards first, then selected one step above) and matches the solid-tint value exactly. `test.ts` asserts the equality for NB.
+  - `none` brands emit nothing.
+  - The branch tests the lever directly, as the existing solid-tint branch does. That keeps (10h) independent of `outlineFillFamily`.
+- **Contract.** The role is `brandDependent` (absent under `minimal-levers`), so `token-contract --check` moved no guaranteed path. The accept rewrote informational counts only, and CONTRACT stays at 13.1.0.
+- **Tag.** `selected.overlay` binds the new role. `applyOutlineInteraction` drops a bound subtle fill under `none`, the same way it drops a wash, so on `none` a selected tag has no fill and keeps its 2px outline and check. `lint-lever-sweep` stays green.
+- **The contrast contract**, all in `test.ts` against literal floors: selected label ≥ 4.5:1 and check ≥ 3:1 on the tint.
+  - 20 corpus cells on the default lever, and the same 20 on solid-tint.
+  - 12 cells across three synthetic brands (pale yellow, mid red, near-black navy × 4 modes).
+  - The neutral ink's lowest is 10.19:1.
+  - The primary ink would fail in 13 of 20 cells (lowest 3.02:1), so the ink stays neutral.
+- **Measured:**
+  - prism3 light: `#1e1eff` at 30% over `#ffffff` → `#bcbcff`, label and check 10.84:1.
+  - NB light: `#cf0b2c` at 30% → `#f1b6c0`, label and check 11.26:1.
+- **What a newly emitted role touched in an overlay-neutral brand.** Each item is a place that had only ever seen a synthetic solid-tint theme (#1112):
+  - `INVERSE_GAPS` gains the leaf. It is undecided and narrow: Tag has no inverse variant, so no band twin was emitted.
+  - The `.ai.json` sidecar named `inverse.interactive.primary.subtle-fill.*`, which does not exist on these brands. It now names the twin only when the brand emits it (`Ctx.has`).
+  - The Figma description pointed at the inverse wash, and at 108 characters it broke the 100 ceiling. That clause is dropped.
+  - The Figma generalise and wireframe arms assumed every color variable aliases a palette step. A tint aliases its fill variable at an opacity (#1646), so both arms now follow it to the fill.
+  - The `materialise` arm now expects exactly one alias-opacity row.
+  - The plugin's `test-write.ts` and `test-readback.ts` wrote NB's color plan into a file with no opacity axis. The tint's alias then named a miss, correctly: that is the "color before opacity" arm. The arms now write the opacity collection first, the order Apply Theme uses, so the collection count they pin is three.
+  - Emitted trees, overlays, Figma color files and sidecars move for every overlay-neutral brand. The component surface was re-accepted for `tag` ×3: the default binding moved, and the `codeOnly` tint line is part of every plan. The paint census was re-accepted for `tag.set` and `tag.grid`.
+- **Mutations** (committed first, restored from HEAD):
+  - T1: the tint bound back to `overlay.selected` → **`tag selected tint: binds … on overlay-neutral and solid-tint, and nothing on none`**, plus `tag rest (selected, …)` ×3 and `tag selected hover|pressed`.
+  - T2: the overlay-neutral emission removed → **`#288 the default (overlay-neutral) emits exactly one subtle fill`**, `tag contrast (selected label | check mark on the tint)`, `tag contrast (synthetic brands)`, (10h) `MISSING`, and `INVERSE_GAPS` stale.
+  - T3a: `none` keeps the binding → **`tag on an outlineInteraction none brand: all 15 selected members have no fill`**, plus `#1608 … @ none` ×2 and `lint-lever-sweep` (b) ×3.
+  - T3b: the role emitted under `none` → **`outline method 'none' emits ONLY that family`** (every corpus brand) and `#288 outlineInteraction=none still emits no subtle-fill`.
+
+**Re-review of `06a9c279..767aae35` (same version).** The reviewer confirmed the tint values, the contract class and the plugin write order. The fixes:
+- **Blocking: a stray scratch script, `fp.mts`, was committed at the repo root.** It was written through a relative path (`../../fp.mts`) from `apps/plugin/`, which is the worktree root and not the scratchpad, and `git add -A` took it. It is deleted, and no other file outside the intended set is in the diff against `main`. **The trap for the next agent:** write scratch files by absolute scratchpad path, and read `git status` before an `add -A`.
+- **The sidecar listed the tint as a primitive.** Its `$value` is a literal composite, so the primitive walk took it and told agents "private primitive — prefer a semantic token" about the token Tag binds. A leaf that is a semantic color role is now skipped there. This was latent on the solid-tint path (#1112).
+- **`mode_overrides` named the opaque fill's palette step for a tinted wash.** For aurora light that was `{ads.core.palette.accent.500}`, not the 30% tint, so an agent read the wrong color. A tinted role now states `{ color: <fill role>, opacity: <opacity token> }`, the pair the tree carries in `$extensions.prism3.tint`.
+  - This changes a field's value shape, so the sidecar schema moves **0.3 → 0.4** (`AI_METADATA_SCHEMA` and `schema/ai-metadata.schema.json`, which gains a `tintReference` def).
+  - The sidecar path gate resolves both halves.
+- **The tint's prose** (`when_to_use` in the sidecar, and the tree's `$description`) said it sat behind an outline or text control whose label is `interactive.primary.text.pressed`. That is true on solid-tint and not true for Tag. The selected state now names both users, and it presents the pressed ink as the one the recorded ratio is measured with.
+- **Untested refusals.** Each `innerTarget` refusal now has its own named synthetic case:
+  - a non-`true` value, the role target, the root, an `absolute` part, no bound side, and a height alone.
+  - `lint-hit-target`'s representation arms move into a pure `markFailures` with a self-check of five synthetic cases (four fire, one is clean).
+- **Nit: a height-only side.** The marker now needs `size`, or both `width` and `height`, and the gate measures every bound side against the key. Before, a slot 4 wide and 44 tall would have cleared.
+- **Mutations** (committed first, restored from HEAD, each failing by name):
+  - F1: the primitive skip removed → **`sidecar (nb|aurora): no semantic color role is listed under primitives`**.
+  - F2: `mode_overrides` back to the palette step → **`sidecar (nb|aurora): the selected tint's mode_overrides state the fill role at the opacity token`**.
+  - Ra, Rb, Rc: the non-`true`, root and `absolute` refusals disabled → **`tag innerTarget refused on a value other than true | the anatomy root | an absolute part`**.
+  - Rd: the lint arm for a mark on an unmeasured def disabled → `lint-hit-target` **`markFailures, a mark on a def the gate does not measure`**.
+  - Rn: a height-only side admitted → **`tag innerTarget refused on a part bound on its height alone`**.
+- **Scratch-runner collision.** A mutation runner named `mut.py` in the shared scratchpad was overwritten by another lane's script of the same name. It was caught when a batch printed another worktree's status. The other lane's script skipped every mutation on an unknown argument, so nothing was written anywhere. The batch was rerun under a lane-specific name.
+
+**Merged with `main` at ENGINE 0.199.0 / CONTRACT 13.2.0 (a merge commit, no rebase; renumbered 0.195.0 → 0.200.0).** Seven PRs landed under this branch: #1765 (switch `State icon`), #1766 (veil gradients), #1749 (style guide), #1771 (outline-hover gate), #1776 (Badge neutral contract), #1777 (a11y gates) and #1772 (read-only border). The heading is re-dated 2026-09-29 so the entry stays first under `lint-progress-order`.
+- **The substantive conflict: two rules for a boolean over a `presentWhen`-gated part.** #1765 admitted two or more gated parts only when they PARTITION one variant axis (every value covered, none twice), and let such a part fall through to the variant gate in `present()`. This branch admitted one part on a variant gate (Tag's `Check icon`), refused a state gate, and refused a gate that lands only on excluded coordinates. **One rule replaces both** (the orchestrator's technical call), in `figmaPropertyErrors`:
+  - VARIANT gates only: `when`, or `presentWhen` on `state`, is refused by name (both sides' refusal kept);
+  - the targeted parts' gates are DISJOINT: no member the set keeps builds two of them, and an ungated part builds at every member, so it overlaps any gated sibling;
+  - at least one member the set keeps builds a node (this branch's excluded-coordinates refusal, generalized from one part to the list);
+  - coverage of an axis is NOT required: a member with no node has nothing to toggle.
+  The members are enumerated in the check from the declaration with its own matcher, like the exclusion refusals beside it.
+- **The projector keeps one path.** `present()` evaluates the variant gate for every boolean part in its first branch, before the `leadingVisual`/`trailingVisual` and `optional` lines, so an optional or slot-named boolean part is never dropped ahead of its gate. #1765's fall-through, and the `|| booleanParts.has(name)` tail it needed, are gone; the tail was unreachable once the first branch returns for every boolean part.
+- **Tests.** Every refusal test from both sides is kept. #1765's partition arms are adapted: a boolean over ONE gated glyph is now admitted, and the arm projects it (the check on the 12 `selection=on` members, no node on the 12 `off` ones); the doubled-value, mixed gated/ungated and `{on}`+`{on}` arms still refuse, now by the overlap message. Switch still projects 24 members with one glyph node each under `State icon`, and Tag 45 members with the check only on selected select members under `Check icon`.
+- **Other conflicts.** `out/**`, `token-contract.json` and `tokens.html` took main's side, then regen. `VARIANT_AXES` is main's list with `genre` → `type` (this branch) and `direction` (#1766) kept, 20 names; the header keeps this branch's `type` section and #1766's `direction` section, and #1766's `genre` paragraph is dropped. `test.ts` keeps #1776's neutral-pair block ahead of this branch's Tag block. `version.ts` and this file keep both sides' entries, this one first. The build-component skill's two descriptions of the boolean rule are now one statement.
+- **One break only the merge could produce: the `color-aliases` materialise payload.** `test.ts`'s `materialise: pass 'color-aliases' is inside the figma_execute budget` failed at 45,144 bytes for nb. Neither side was over on its own (44,813 here, 44,840 on main, measured from each tree's committed `out/figma`): both added colour variables, and the pass was a single payload with nowhere to grow. It is now packed by bytes into chunks, `colorAliasesChunks`, the same rule `color-create` has used since #906; nb, prism3 and aurora each paste it as 2 (the largest chunk 41,990 bytes). Three new `test.ts` arms hold the packer: every chunk non-empty and inside the budget, a forced split at 6,000 bytes, and every one of the 268 colour variables in exactly one chunk, counted against the committed `color.light.json` rather than the packer's input. `docs/10` says the pass is chunked. **Trap:** the budget arm reads nb only; prism3's single payload was already 46,409 bytes on this branch, over the ceiling with no gate reading it. Chunking fixes it, but the arm's scope is still one brand: filed as #1786.
+- **Two literal counts collided in the plugin's style-guide test (#1749).** `test-style-guide.ts` pinned prism3's semantic color rows at 267 and the unbound plain swatches at 296 (74 roles × 4 modes). The merged emission carries this branch's `interactive.primary.subtle-fill.selected` in prism3 too, so the counts are re-derived from the merged tree, not picked from either side: 268 rows (`out/figma/prism3/color.light.json` has 268 variables, 267 on main, the one addition being that role) and 300 unbound (75 × 4). The first verify run failed exactly these three arms by name (`3: every color variable is a row`, `9: unbound swatches are not a pass`, `9: the summary counts them per variant`).
+- **Badge prose.** #1776 left Badge's shipped text to this PR (#1775). No `genre` came back through the merge (checked in the def, the emitted component docs and the sidecars).
+- **Mutations** (the merge committed first, each restored from HEAD, diff asserted non-empty, each failing by name):
+  - X1: the disjointness refusal disabled → **`#1354 MUTATION: two gated glyphs both gated to selection=on are refused BY NAME`**, **`… a gated glyph mixed with an ungated one …`** and **`… two gated glyphs that BOTH exist at selection=on …`** (3 failures).
+  - X2: the at-least-one-member refusal disabled → **`#1743 a boolean whose VARIANT gate lands only on excluded coordinates is refused BY NAME`** (1).
+  - X3: `present()`'s gate for boolean parts read as always true → **`tag check mark: … no unselected member has one`**, `tag rest (unselected, …)` ×3, `tag selected width (…)` ×4, `#910 tag: 'check' is NOT in the tree at selection=unselected`, **`#1354 both glyph nodes (12 checks, 12 X's — one per member)`** (on=24, off=24), the #910 switch arms and `#1743 a boolean over ONE presentWhen-gated glyph is admitted` (18 in all).
+  - X4: `color-aliases` back to one payload → **`materialise: pass 'color-aliases' is inside the figma_execute budget (45144 bytes)`** (1).
+
+---
+
+## (2026-09-29) — A11y: the read-only field keeps the editable field's border, 3:1 on its ground (#1710)
+
+**Owner-decided (2026-09-29): option A.** Read-only uses `field.border.rest`, the same border as an editable field, in every mode. Read-only is carried by its semantics and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.
+
+**Built.** `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to `color.field.border.rest`. The key stays explicit rather than falling through to the bare `border`, so the state names its boundary. The read-only border now measures 3.16–4.63:1 on `background.secondary` and 3.51–4.63:1 on `background.primary` across all 45 cells: light 3.16–3.32, dark 3.23–3.27, HC 4.54–4.63. The #1710 gate below passes unedited. The two pins that named the old role now assert `color.field.border.rest` / `color/field/border/rest` literally. The defs' "quieter boundary" prose is gone. Their SC 1.4.11 lines now say what is gated: the rest, hover and read-only borders on `background.secondary`. They make no claim for the focus or status borders, which this gate does not measure. Each def's `notes.evolution` records the decision. `docs/20`'s text-field binding line is updated. ENGINE 0.198.0 → 0.199.0 (MINOR; renumbered at net after #1749 and #1776 took 0.197.0 and 0.198.0). The projected read-only members' stroke moves, so the `component-surface` and `paint-census` baselines were re-accepted. The census moves for exactly `text-field`, `textarea` and `select` (set and grid, same assignment counts). The surface moves for those three defs and their two `outlineInteraction` projections each (still 24 members). CONTRACT stands at 13.2.0; `token-contract.json` moves only its `engineVersion` stamp.
+
+**The measurement that led to the decision** (the first commit of this PR stopped here).
+
+**Where it binds.** Three defs project a read-only member: `text-field`, `textarea` and `select` (#1709 landed, so select has it). Each bound `border.read-only` → `color.border.secondary` over `fill` → `color.field.fill`. The projected read-only control stroked `color/border/secondary` and fills `color/field/fill`, read off `figmaAnatomySet` for all three. `field.fill` is transparent by default (#1341), so the read-only fill is the page ground the field sits on.
+
+**Measured, every brand × mode.** The brands are `corpus()` (nb, aurora, harbor, wendys, six minimal fixtures), plus prism3 and the NB master theme. Literal hexes and ratios are in `packages/engine/fixtures/a11y/readonly-field-border-1710.json`. `border.secondary` fell under 3:1 on `background.secondary` in **light only**, in all 12 brands: 2.69 (nb, aurora) to 2.81 (harbor), NB master 2.72. It passed in dark (3.88–3.95) and HC (9.84–10.14). Status borders at the read-only coordinate (`border.danger` / `warning` / `success`) clear 3:1 on both grounds everywhere.
+
+**Why this is a design decision, not a mechanical fix.** The existing mechanism is `field.border.rest`: `pickMinPass` on `background.secondary` at 3:1, so it is the least-contrast neutral step that clears the floor. Two facts follow:
+- In light, a read-only border quieter than the rest border cannot clear 3:1. The quietest passing step is the rest border.
+- In dark and HC, `border.secondary` is already stronger than `field.border.rest`: on `background.secondary` it measures 3.88–3.95 against the rest border's 3.23–3.27 in dark, and 9.84–10.14 against 4.54–4.63 in HC. The def comment "read-only's quieter boundary" holds only in light.
+
+So rebinding to the contracted role changes what read-only looks like in every mode. In light it becomes identical to `filled`. In dark and HC it gets quieter. That is the owner's call.
+
+**Options (minimum on `background.secondary` across the 45 cells; floor 3:1):**
+- **A. `field.border.rest`**: 3.16, no failures. Read-only is pixel-identical to `filled` in every mode, and quieter than today in dark and HC. No new name.
+- **B. `field.border.hover`**: 4.52, no failures. Louder than rest, so read-only reads as more emphatic than an editable field.
+- **C. `border.tertiary`**: 5.48, no failures. The strongest neutral edge: HC resolves to the 950/025 extreme.
+- **D. `interactive.neutral.border.rest`**: 14.05, no failures. The near-black outline-button edge.
+- **E. Add a 3:1 floor on `background.secondary` to `border.secondary` itself.** Equals A in light and keeps today's values in dark and HC. It moves a global divider role that `badge` also binds (the badge lane is in flight).
+- **F. Mint `field.border.read-only`.** A new guaranteed name (CONTRACT MINOR). Under 3:1 in light it can only equal A or be stronger.
+- **G. Keep the border and give read-only an opaque fill.** On an opaque `background.primary` fill `border.secondary` measures 3.20–3.30 inside the control but stays 2.69–2.81 against a `background.secondary` page outside it. The gate below requires both sides, so G alone does not pass it.
+- **H. Issue option 2: read-only needs no 3:1 boundary.** Correct the "control boundary ≥3:1" claim in the three defs instead. Ruled out: `border.primary` (1.13).
+
+**The gate** is `test.ts`, `a11y(#1710): every projected read-only field member's border clears 3:1 (SC 1.4.11) on its read-only fill and page ground, every corpus brand × mode × status`. It walks every stroked node of every projected `state=read-only` member, of every def whose state axis carries `read-only`. It then recomputes the contrast from resolved hexes against the literal page grounds `background.primary` and `background.secondary`. It checks both the outside edge and the fill inside, with the fill composited over the ground at its real alpha, read from the emitted primitive. It never reads the role's `against`/`min`: `border.secondary` declares `against: background.primary, min: 0`, so reading the declaration would pass it (docs/34 shape 1, the #573 instance). Two sibling assertions keep the sweep from going quiet. One pins text-field, textarea and select by name. The other requires all four mode names and a cell floor (shape 15). Before the rebind it failed in 12 cells × 3 defs = 36 members; after it, 0.
+
+**Mutations.** Each was committed first and restored from HEAD.
+- Each def's read-only border set back to `color.border.secondary`, one at a time. The #1710 gate fails naming only that def, in the 12 light cells. text-field also fails its pin (`component: TextField read-only stays full-contrast (text.primary + field.border.rest) …`), and select fails `#1699/#1710 select's read-only member draws the editable field border …`. textarea has no pin; the gate is its only guard.
+- `read-only` dropped from select's projected state axis. The representation arm fails by name (`… — missing: select`) and the main gate stays green, so without that arm the sweep would have shrunk silently.
+
+### Review round (independent review of #1772 at 5ba93331; no blockers)
+
+- **A fill-framed def was dropped silently.** A discovered def whose read-only member drew no stroked node contributed zero paints and stayed green. The cell floor (`brands × 3 × 2`) also ignored modes and statuses. Now every discovered member in a swept state, at every status, must draw at least one stroked boundary node, or `a11y(#1710): every discovered field member in a swept state … draws a stroked boundary` fails and names it. A discovered pinned def must also project every swept state. A pinned def that is not discovered at all (no `read-only` on its axis) fails the representation arm. The floor is now exact: every mode × stroked member × ground, so a skipped cell fails it.
+- **The prose overclaimed hover.** The defs' SC 1.4.11 lines said the hover border is gated, and nothing gated a def's hover binding. The sweep now covers `rest`, `hover` and `filled` as well as `read-only` (`RO_SWEPT`). `read-only` keeps its assertion name; the other three states fail under `a11y(#1710): every projected rest / hover / filled field member's border clears 3:1 …`.
+- **What the hover sweep found, filed rather than fixed.** At hover the control's fill is the translucent overlay wash. Against that washed ground the status borders (`border.danger` / `warning` / `success`, contracted against the page alone) measure 2.64–3.00:1, in 132 members across 44 cells. That is a pre-existing defect outside #1710, filed as **#1782**. The sweep holds out exactly that coordinate (non-default status × hover), counts it, and names #1782 beside the exclusion. The neutral hover border clears 3:1 against the wash everywhere.
+- **One absent fill is allowed, and counted.** Brands whose `outlineInteraction` lever opts out of overlay tokens (`none`, `solid-tint`: `minimal-levers` and the NB master theme) emit no hover wash by design. The hover member then paints no fill and is measured on the bare ground, with the count printed in the floor assertion. Any other absent or unresolvable fill is a failure.
+- **Nit.** The fixture's first field now says nothing reads it.
+- **Mutations** (each committed first, confirmed applied, restored from HEAD):
+  - textarea's control made fill-framed (`paintSlots` without `border`, no `strokeWidth`): `… every discovered field member in a swept state … draws a stroked boundary …` names 13 textarea members, and the representation arm names textarea.
+  - textarea `border.hover` → `color.border.secondary`: `… every projected rest / hover / filled field member's border clears 3:1 …` names 32 textarea hover cells.
+  - Each def's `border.read-only` back to `color.border.secondary`: the read-only arm names only that def, 12 light cells each, plus text-field's and select's pins.
+  - `read-only` dropped from select's axis: the representation arm names select.
+  - The #1782 exclusion disabled: the rest / hover / filled arm names the 132 status × hover members across all three defs.
+
+---
+
+## (2026-09-29) — Rendered contrast: no opacity carve-out, real bars for the popover and form controls, and a legibility pass over the plugin bundle (#1069, #779, #1041)
+
+Gate-integrity work on the two browser suites that measure what renders. No engine or UI code changed, so there is no version bump: `ENGINE_VERSION` and `CONTRACT_VERSION` stand.
+
+**#1069 — the `op < 0.02` carve-out is gone.** `LEGIBILITY_PROBE`'s `drawn()` dropped any node whose opacity chain multiplied out under 0.02, "presumed mid-transition". The presumption had no referent. `styles.css` transitions no opacity at all, and a census over the whole sweep (every page × mode × brand, before and after animations settle) found no text node under 0.5. What the carve-out did do was excuse #1069's mutation, every nav label at `opacity: .011`. Now every laid-out node is measured, and a near-invisible one composites to ~1:1 and fails. The "mid-transition" case is handled by waiting instead of presuming: `settle()` resolves once every finite running animation has finished (a real condition, in keeping with the file's no-sleeps rule; the Motion page's eight one-shot trace animations are the only ones in the sweep). Rows now carry `op`, so a failure says whether a low ratio was faded or mis-inked.
+
+**#779 — the split reaches the two arms #1653 left on the 2.0 floor.** #1653 held the sweep's chrome text to WCAG 1.4.3. The form-control walk and the brand-menu popover arm stayed on the "invisible" floor, which is the shape-14 fix applied in one place and left standing in its siblings. Field values now take `barOf` by their own size and weight. The caret takes 1.4.11's 3:1. Specimens stay at 2.0.
+- The field walk caught nothing: the lowest chrome field is 10.77:1, now printed every run.
+- **The popover caught one real node.** `span.mctx-always` "always", in the brand menu's locked Light row, renders at **2.95:1** in every brand and both schemes. It is a legal `--faint` (5.13:1) faded through `.mctx-opt.fixed{opacity:.72}`, which is `.mo-playnote`'s shape exactly. Every fix is a visual or policy choice, so it is filed as **#1770** with the options measured, not tuned away.
+- The node is held as a `KNOWN_FINDINGS` entry under three rules. It is still judged at 2.0, so no looser than before. It is matched by class and text. And an arm requires it to still reproduce: it fails when the node is never seen, and it fails when every sighting clears the real bar. So the entry has to leave in the PR that fixes the row.
+- The one decision #779 still carried is which contract each unpaired specimen is held to. It moved to **#1774**, so #779 can close on the mechanical work.
+
+**#1041 — `test-start-screen.mjs` §8 measures `apps/plugin/dist/ui.html`.** It is a second subject in the harness that already boots the panel at the host's sizes. Those sizes are read from `src/main.ts`, not restated. There are two arms, split the way #1046 settled by mutation:
+- **Direct.** The shell's resolved `color-scheme` must not name `dark`. This is the arm that fails if `light dark` comes back.
+- **Ratio.** Every text node and form control at the smoke suite's bars. It covers both emulated schemes crossed with Figma's light and dark themes, at the default size on every rail page this host offers (the plugin-only Components page included, asserted by name) plus the brand menu, and at `MIN_SIZE` on the start screen and the editor.
+- **The Figma theme is stubbed in the SERVED document**, as Figma injects it: the `figma-dark` class on `<html>` and the `--figma-color-*` values. The first draft used `addInitScript`, which runs before `<html>` exists. It threw on every boot, and the stub silently did not apply. An arm now reads the class and `--figma-color-bg` back from the rendered page.
+- **The inline-ink marker audit is scoped to `#app`.** The plugin entry mounts one piece of chrome beside the shared UI, the Agent link chip, and it is inked inline by the owner's design. It is still held to the chrome bar (15.3:1).
+- The probe is a second copy of the studio's, deliberately. `test-smoke.mjs` runs on import and cannot export it, and extracting a shared module would restructure the studio's gate from a plugin lane. The header says the two must agree, and neither carries the carve-out.
+
+**#812 — held.** The Overlay wash specimen paints `text.rest` on the hover wash. The Button def binds `text.hover` there, and the overlay role's own contract is `text.primary`. So the badge's number depends on which pair the row previews, and that is a visible choice. All three options are measured on #812 across prism3 / aurora / harbor / the nb fixture × light and dark (plus HC):
+- A: the role's contract, 12.80–15.51, all pass. It would put a ✓ beside a 3.6:1 specimen.
+- B: the drawn pair, 3.64–4.48 on primary in light and dark, failing.
+- C: the shipped pair, 5.35 or higher, all pass. It requires repainting the specimen.
+The NB master theme is `solid-tint`, so the row does not render for it.
+
+**Mutations** (each run on a committed tree and restored from HEAD by a trap, with the diff asserted non-empty and the shell mutations checked in the built `dist/ui.html`):
+- M1, `.stage-t b{opacity:.011}` (#1069's replay): studio `…every one of N chrome text nodes meets WCAG 1.4.3 — b.- "Palettes" at 1.02:1 (13.5px/600, op 0.01, needs 4.5:1)` and `…clears 2:1` in all 108 states. Plugin `…every one of N text nodes meets its bar` on every rail page.
+- M1c, the same with the carve-out restored: studio **green, 2532 assertions**. That proves the carve-out's removal is why M1 fires (docs/34 shape 19's necessity check).
+- M2, the studio probe's selector matching nothing: `the contrast probe measured 0 text nodes (floor 20)` per state, `the sweep measured 0 text nodes in total (floor 8000)`, `measured 0 text node(s) inside the popover (floor 6)`, and the known-finding arm `NEVER SEEN`.
+- M2p, the same in the plugin copy: `measured 0 text nodes (floor 10)` ×56, `measured 0 text nodes across the panel sweep (floor 2000)`, and `known finding #1770 … NEVER SEEN`.
+- M3, the brand menu's Name field inked at `#949494`: studio popover arm `input.bm-in … at 2.73:1 … needs 4.5:1` in all six brand × scheme cells, and the plugin brand-menu field arm in all four scheme × theme cells. 2.73 clears the old 2.0 floor, so it was green before. Its first studio run crashed in §2 (the Export click timed out at load average ~9 with other lanes running); the rerun was clean.
+- M4, `color-scheme: light dark` restored in `src/ui/index.html`: plugin `the shell resolves a light-only color-scheme ("light dark")` on all 56 measurements.
+- M5, M4 plus `.brandmenu .bm-in{color:revert!important}`: M4's 56, plus the dark-scheme brand-menu field arm at **1.11:1**, #1031's own number.
+- M6, `.mctx-opt.fixed{opacity:1}` (fixing #1770): `known finding #1770 … now CLEAR the bar (… 5.13:1): the defect is fixed, delete the entry` in both suites.
+- M7, the Figma stub not served: `the panel carries Figma's dark theme (class "", --figma-color-bg unset)` in all four combinations.
+
+**Not done here:** the specimen contract map (#1774). The plugin pass sweeps each rail page in the brand's first mode only. The studio sweep covers every mode of the shared pages, but the Components page in any other mode is measured by nothing.
+
+### Round 2 — owner decisions on #812 and #1770, and the independent review
+
+**#812, option C (owner-decided).** The Overlay wash specimen now inks `interactive.<c>.text.hover`, the pair the Button binds (`outline.label.hover` over `outline.overlay.hover`). A held press swaps the ink to `text.pressed` on the pressed wash, the Button's pressed pair; `exOutline` gained a `pressedInk` option for it. The row carries a receipt like its siblings: the hover ink on the hover wash, composited over the ground the wash declares and held to `text.hover`'s own `min`. The wash role's own `ratio` rates `text.primary` (its `legibleFor`), so it is deliberately not what the receipt shows. Across the corpus the badge reads 5.35:1 or higher. Smoke §2a-ii gains three arms per row, in both customizable modes. The oracle is the committed emission's `text.hover` hex and `min`, and the actual is the ink and wash the specimen renders, composited in Node:
+- the ink is the emitted hover ink;
+- the badge's printed ratio equals the rendered ratio;
+- the rendered pair clears `text.hover`'s contract.
+
+**#1770 (owner-decided): locked, not faded.** `.mctx-opt.fixed` loses its `opacity: .72`. A 13px lock glyph (`ICON_PATH.lock`, `role="img"`, `aria-label="Locked"`) marks the row, and the row's title still carries the reason. "always" keeps `--faint` at full strength, 5.13:1 on the popover. I read "full ink" as unfaded, not re-inked to `--ink2`; the glyph now carries the lock. The #1770 exception is deleted from both suites. The node is held to the chrome bar like everything else, and smoke §4 asserts both that the locked row's "always" was measured and that the glyph has an accessible name. The brand menu is shared, so the plugin bundle carries the same change.
+
+**No `ENGINE_VERSION` bump, deliberately.** version.ts defines the engine surface as the emitted trees plus the projected component surface. Both changes are studio UI, which ships in the web and plugin bundles, not in either surface. `regen --check`, `lint-emission-version` and `lint-component-surface` agree.
+
+**Review of 91c806d2, folded in:**
+- **BLOCKING — the probes skipped any color they could not parse.** `parse()` read only `rgb[a]()`. Chrome serializes a `color-mix()` in sRGB as `color(srgb …)` and `oklch()` in its own notation, so `if (!col) continue` dropped the node uncounted, #1069 by another route. The reviewer's `color-mix` ink on the nav labels left both suites green with 10 labels gone from the count. Both copies now parse `color(srgb r g b / a)` and convert anything else through the browser itself (relative color syntax on a scratch node). A color that still cannot be read is recorded and FAILS by name, counted and printed as "Unparsed colors: N".
+- It was also wrong on the GROUND: `styles.css` sets `--ok-tint` / `--danger-tint` with `color-mix`, so every `.cbadge` and `.genview-chip.ok` background had been skipped in `groundOf` and its text composited against the wrong layer. The sweep's old lowest chrome node, `span.cb-mark` "✓" at 4.53:1, was that miscompositing. Measured correctly, the lowest is `div.sg-callout` at 4.54:1.
+- **SHOULD-FIX — `settle()` had no cap.** A 1000s transition hung §8 silently, and CI sets no timeout. The wait now races a 5s cap (`SETTLE_CAP_MS`, far above the studio's longest animation, the Motion page's 1.2s trace), and a tripped cap fails naming the animation and its target.
+- **NIT — a caret-only failure named the 4.5:1 text bar.** The plugin message now names both bars.
+- **NIT — `caret-color: transparent` read as "no caret".** On an editable field (not read-only, not disabled, not a `<select>`) it is an invisible caret. It is now measured as the ground against itself, 1:1, and fails the 3:1 caret bar.
+
+**Round-2 mutations** (restored from HEAD by a trap, with the diff asserted non-empty):
+- N1, the fade restored on the locked row: studio popover arm `span.mctx-always "always" at 2.95:1 (10px/400, op 0.72, needs 4.5:1)` ×6; plugin brand-menu text arm ×4.
+- N2, the specimen back to `text.rest`: studio `the specimen inks the Button's hover pair — #e0695e, emitted … text.hover #e69086`, `the specimen carries a contrast receipt for the pair on screen — badge 5.35:1, rendered 3.83:1`, and `the hover pair clears text.hover's own contract — 3.83:1 against 4.5:1`. Plugin §8 does not check the pairing, only legibility, so it stays green.
+- N3, the review's `color-mix(in srgb,#000 6%,#fff)` ink on `.stage-t b, .bm-item`: studio chrome and floor arms at 1.03:1 in every state plus the popover arm; plugin text arm on every rail page.
+- N3b, N3 with both parsers put back to `rgb()`-only: `every computed color the probe met was parsed — N not: b.- color "color(srgb …)"` in both suites. Without the unparsed arm, that run is the review's green.
+- N4, `animation: rvw 1000s` on the nav subtitles: `every finite animation settles within 5000ms before measuring — still running: rvw on small.-` in both suites.
+- N5, `caret-color: transparent` on the brand menu's fields: the caret arm at 1:1 against 3:1, in both suites.
 
 ---
 

@@ -55,6 +55,10 @@ export type InverseGap = {
 
 export const INVERSE_GAPS: InverseGap[] = [
   {
+    paths: ['color.interactive.primary.subtle-fill.selected'],
+    reason: 'UNDECIDED, and narrow. On an overlay-neutral brand this is the one subtle fill emitted (owner, 2026-09-29): the selected tint a selectable control binds, on the PAGE ground. Its only binder, Tag, has no inverse variant, so no band twin was emitted. A solid-tint brand carries `inverse.interactive.primary.subtle-fill.selected` inside its full family, which is the shape a band twin would take here once a selectable control gains an inverse variant.',
+  },
+  {
     paths: [
       'color.text.on-brand', 'color.text.on-danger', 'color.text.on-info',
       'color.text.on-success', 'color.text.on-warning',

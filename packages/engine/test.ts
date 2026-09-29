@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimen
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
@@ -30,6 +30,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
+import type { FigmaCollectionFile } from './emit-figma';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
@@ -46,7 +47,7 @@ import {
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, colorAliasesJs, verifyJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
+import { aliasRows, colorAliasesJs, colorAliasesChunks, verifyJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport, registerFigmaTree } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
@@ -1259,9 +1260,9 @@ for (const b of brands) {
       ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
       ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
       // WENDYS EARNS ITS PLACE rather than padding the list: it is the brand that does NOT land on the
-      // same indices as the others (500 / 350 against 550 / 400), so it is the one that would expose a
-      // rule quietly relying on "every brand lands at the same step". Its boundary neighbours measure
-      // 3.95 and 4.06 — both under the floor — so the most-vivid arm is exercised on a brand where the
+      // same indices as the others (600 / 300 against 650 / 350 since #1626 re-picked against every state
+      // fill; 500 / 350 against 550 / 400 before), so it is the one that would expose a rule quietly relying
+      // on "every brand lands at the same step" — the most-vivid arm is exercised on a brand where the
       // answer differs, not just confirmed three more times on brands that agree.
       ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
     ];
@@ -1316,8 +1317,15 @@ for (const b of brands) {
           // one step toward the fill = lighter on a light fill, darker on a dark one
           const toward = [...ramp].sort((a: any, b: any) => (fillIsLight ? a.num - b.num : b.num - a.num))
             .filter((st: any) => (fillIsLight ? st.num < chosen?.num : st.num > chosen?.num)).pop();
-          if (chosen && toward && contrast(toward.rgb, rgb255(fill)) >= FLOOR)
-            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears (${contrast(toward.rgb, rgb255(fill)).toFixed(2)}:1)`);
+          // #1626 (owner, 2026-09-29): the ink must clear EVERY state fill of the inverse button, rest through
+          // selected, so "most vivid that passes" means the neighbour toward the fill must fail on at least
+          // ONE of the five. Read off the emitted tree, not the producer: a rest-only neighbour check here
+          // would call the new, deeper pick "too far" and pass a revert to the rest-only rule.
+          const stateFills = ['rest', 'hover', 'pressed', 'focused', 'selected']
+            .map((st) => hexAt(tree, `color.inverse.interactive.primary.fill.${st}`, mode)).filter((h): h is string => !!h);
+          const worst = (rgb: any) => Math.min(...stateFills.map((h) => contrast(rgb, rgb255(h))));
+          if (chosen && toward && stateFills.length === 5 && worst(toward.rgb) >= FLOOR)
+            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears every state (worst ${worst(toward.rgb).toFixed(2)}:1)`);
         }
       }
     }
@@ -1332,7 +1340,7 @@ for (const b of brands) {
       '#1244 …and hc-light / hc-dark keep their MAX-EXTREME ink rather than the brand step — HC exists for low-vision users, and a brand step there clears the 4.5 floor while dropping ~73% of the contrast, which a flat-floor arm cannot distinguish from the fix'
       + (hcWeak.length ? ` — WEAKENED: ${hcWeak.join('; ')}` : ''));
     ok(notVivid.length === 0,
-      '#1244 …and it is the MOST VIVID passing step, not merely a passing one — the step one closer to the fill must FAIL the floor, or the selector is being unnecessarily extreme'
+      '#1244 / #1626 …and it is the MOST VIVID step that clears every state fill, not merely a passing one — the step one closer to the fill must FAIL the floor on at least one state, or the selector is being unnecessarily extreme'
       + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));
   }
 
@@ -1568,11 +1576,13 @@ for (const b of brands) {
     // destructive, neutral, and a declared interactive palette (an nb variant carrying `accent`, so the
     // declared-palette category is represented, not assumed). Ratios recomputed from emitted hexes.
     //
-    // The PAGE ground is measured too, in every mode but `dark`: there the page fill steps LIGHTER under an
-    // already-neutral near-white label (primary and destructive, lever ON or OFF, down to ~2.4:1). The lever's
-    // mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the page ink already IS
-    // the neutral extreme; fixing it means re-picking the ink per state or re-stepping the fill, a design call
-    // held in #1626. Excluding that one mode is named here and asserted as represented below, not silent.
+    // The PAGE ground is measured too, in every mode but `dark`: there the page HOVER / PRESSED fills step
+    // LIGHTER under an already-neutral near-white label (primary and destructive, lever ON or OFF, down to
+    // ~2.4:1). The lever's mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the
+    // page ink already IS the neutral extreme. #1626 (owner, 2026-09-29) settled the persistent states by
+    // putting focused / selected on the rest step, and kept hover / pressed exempt; the `(4c) #1626` arm holds
+    // every page focused/selected pair in `dark` too. Excluding that one mode here is named and asserted as
+    // represented below, not silent.
     const strictDips: string[] = [];
     const strictSeen = new Set<string>();
     let strictCells = 0;
@@ -1730,7 +1740,17 @@ for (const b of brands) {
 
     ok(keysOf(tintRoles(nbTheme())).length > 0, '#288 solid-tint emits subtle-fill roles (it emitted NOTHING before)');
     ok(keysOf(noneRoles(nbTheme())).length === 0, '#288 outlineInteraction=none still emits no subtle-fill');
-    ok(keysOf(resolveAllModes(nbTheme())).length === 0, '#288 the default (overlay-neutral) emits no subtle-fill — existing artifacts unmoved');
+    // Since 2026-09-29 (owner: the selected tint, "respect none") the default emits exactly ONE subtle fill,
+    // `interactive.primary.subtle-fill.selected` on the page ground, in every mode — and at the very value a
+    // solid-tint brand carries, so the leaf is one role under two levers rather than two derivations.
+    const defModes = resolveAllModes(nbTheme());
+    const defKeys = [...new Set(keysOf(defModes))];
+    const tintSame = defModes.every((m, i) => {
+      const a = m.roles['interactive.primary.subtle-fill.selected'], b = tintRoles(nbTheme())[i].roles['interactive.primary.subtle-fill.selected'];
+      return !!a && !!b && a.hex === b.hex && a.alpha === b.alpha;
+    });
+    ok(JSON.stringify(defKeys) === '["interactive.primary.subtle-fill.selected"]' && defModes.every((m) => !!m.roles['interactive.primary.subtle-fill.selected']) && tintSame,
+      `#288 the default (overlay-neutral) emits exactly one subtle fill, interactive.primary.subtle-fill.selected, in every mode, equal to the solid-tint value (got [${defKeys.join(', ')}], same as solid-tint: ${tintSame})`);
 
     // #898 — the inverse/dark-band surface may name a NON-neutral palette (a brand-navy hero), not just
     // a neutral step. Bare number / white / black stay NEUTRAL (back-compat); `{ palette, step }` names
@@ -2997,8 +3017,11 @@ for (const b of brands) {
   // red rather than quiet, which is the only reason it is safe to write as a `find`.
   const bg = rows.find(([n]) => n === nbVar('color/background/primary'));
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
-  // A brand without `solid-tint` carries no wash, so no row gains the opacity element (#1672: byte-identical).
-  ok(rows.every((r) => r.length === 2), 'materialise: a brand with no tinted wash carries no alias opacity in any row');
+  // A brand without `solid-tint` carries ONE tinted wash since 2026-09-29 — the selected primary subtle fill a
+  // selectable control binds — so exactly that row gains the opacity element, and no other (#1672).
+  const withOpacity = rows.filter((r) => r.length !== 2).map(([n]) => n);
+  ok(JSON.stringify(withOpacity) === JSON.stringify([nbVar('color/interactive/primary/subtle-fill/selected')]),
+    `materialise: an overlay-neutral brand carries alias opacity on exactly one row, the selected primary subtle fill (got ${JSON.stringify(withOpacity)})`);
 }
 
 // #1672 — the paste path writes a TINTED WASH's alias opacity. `color-aliases` used to bind each
@@ -4753,7 +4776,7 @@ for (const b of brands) {
 // untouched. Motion is DTCG + web only (not a Figma variable), so buildFigmaFont is unaffected.
 // ---- BADGE — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations --------
 // Written from the decisions, not read back from the def: static (no states), one component switched by a
-// `genre` prop with the literal values status | count | dot, an `emphasis` prop subtle | bold that only the
+// `type` prop (renamed from `genre`, owner 2026-09-28) with the literal values status | count | dot, an `emphasis` prop subtle | bold that only the
 // status label carries both of, both accessibility contracts stated, and NO interactive binding — every color
 // ref is in the literal family list below. The paint table is literal too: each member's fill, ink and edge
 // is pinned against it. The contrast arms then measure what the DEF binds, member by member from that table,
@@ -4802,9 +4825,10 @@ for (const b of brands) {
     `badge paints a fill and a 1px edge, and no overlay — the edge weight is the tier's 1px border width (${JSON.stringify(slots)}, ${surfacePart?.strokeWidth} → ${badgeDef.tokens[surfacePart?.strokeWidth]})`);
   ok(JSON.stringify(badgeDef.states) === '[]',
     `badge is static: no states (${JSON.stringify(badgeDef.states)})`);
-  const genre = badgeDef.props.find((p) => p.name === 'genre');
-  ok(JSON.stringify(genre?.values) === JSON.stringify(['status', 'count', 'dot']) && genre?.default === 'status',
-    `badge genre: the values are status | count | dot, default status (${JSON.stringify(genre?.values)}, ${genre?.default})`);
+  const kind = badgeDef.props.find((p) => p.name === 'type');
+  ok(JSON.stringify(kind?.values) === JSON.stringify(['status', 'count', 'dot']) && kind?.default === 'status'
+    && JSON.stringify(badgeDef.variants?.type) === JSON.stringify(['status', 'count', 'dot']) && !badgeDef.props.some((p) => p.name === 'genre'),
+    `badge type: the prop and the axis are status | count | dot, default status, and no genre prop remains (${JSON.stringify(kind?.values)}, ${kind?.default})`);
   const emphasis = badgeDef.props.find((p) => p.name === 'emphasis');
   ok(JSON.stringify(emphasis?.values) === JSON.stringify(['subtle', 'bold']) && emphasis?.default === 'subtle'
     && JSON.stringify(badgeDef.variants?.emphasis) === JSON.stringify(['subtle', 'bold']),
@@ -4821,7 +4845,7 @@ for (const b of brands) {
 
   // THE FIGMA SET (owner decisions, 2026-09-28). Read off the PROJECTED members, not the def's declarations:
   // 20 members — the status label at both emphases (10), the count and the dot bold only (5 each) — and NO
-  // member at `genre=count|dot` with `emphasis=subtle`. Each genre's member carries its own content: the status
+  // member at `type=count|dot` with `emphasis=subtle`. Each type's member carries its own content: the status
   // label reads "Status", the count reads a number and no label, the dot carries no text and a fixed square.
   // Every subtle member strokes and no bold member does, and the stroke weight is the bound 1px role.
   const badgeSet = figmaAnatomySet(badgeDef);
@@ -4830,29 +4854,50 @@ for (const b of brands) {
   const members = (badgeSet as any[]).map((m) => {
     const name = planComponentName(m);
     return {
-      name, genre: /genre=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
+      name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', emphasis: /emphasis=(\w+)/.exec(name)?.[1] ?? '(none)',
       texts: texts(m.root), parts: partNames(m.root), stroke: m.root.paints?.strokes as string | undefined, weight: m.root.bound?.strokeWeight as string | undefined,
     };
   });
-  const cell = (g: string, e: string) => members.filter((m) => m.genre === g && m.emphasis === e);
-  const badSubtle = members.filter((m) => (m.genre === 'count' || m.genre === 'dot') && m.emphasis === 'subtle');
+  const cell = (g: string, e: string) => members.filter((m) => m.type === g && m.emphasis === e);
+  const badSubtle = members.filter((m) => (m.type === 'count' || m.type === 'dot') && m.emphasis === 'subtle');
   ok(badgeSet.length === 20 && badSubtle.length === 0
     && cell('status', 'subtle').length === 5 && cell('status', 'bold').length === 5
     && cell('count', 'bold').length === 5 && cell('dot', 'bold').length === 5,
-    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at genre=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
+    `badge projects to Figma: exactly 20 members — status at subtle and bold, count and dot at bold only — and none at type=count|dot with emphasis=subtle (got ${badgeSet.length}: ${['status', 'count', 'dot'].flatMap((g) => ['subtle', 'bold'].map((e) => `${g}/${e} ${cell(g, e).length}`)).join(', ')}${badSubtle.length ? `; excluded members present: ${badSubtle.map((m) => m.name).join(' | ')}` : ''})`);
   const wrongContent = members.filter((m) => !(
-    m.genre === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
-      : m.genre === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
+    m.type === 'status' ? JSON.stringify(m.texts) === '["Status"]' && !m.parts.includes('count') && !m.parts.includes('dot')
+      : m.type === 'count' ? m.texts.length === 1 && /^[0-9]+\+?$/.test(m.texts[0]) && !m.parts.includes('text') && !m.parts.includes('dot')
         : m.texts.length === 0 && m.parts.includes('dot')));
   ok(wrongContent.length === 0,
-    `badge genre content: each member carries its genre's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
+    `badge type content: each member carries its type's own content${wrongContent.length ? ` — ${wrongContent.map((m) => `${m.name} [${m.texts.join('|') || '-'}]`).join('; ')}` : ''}`);
   const wrongEdge = members.filter((m) => (m.emphasis === 'subtle') !== (m.stroke !== undefined) || (m.stroke !== undefined && m.weight !== 'border-width/hairline'));
   ok(wrongEdge.length === 0,
     `badge edge: every subtle member strokes at border-width/hairline and no bold member strokes${wrongEdge.length ? ` — ${wrongEdge.map((m) => `${m.name} stroke ${m.stroke ?? 'none'} at ${m.weight ?? 'unbound'}`).join('; ')}` : ''}`);
+  // THE RENAME (owner, 2026-09-28): the Figma variant property is `type`, the name Tag's axis carries, and no member
+  // is still keyed `genre=`. Read off the projected member names, which are what a designer's panel shows.
+  const stillGenre = members.filter((m) => /genre=/.test(m.name) || !/(^|, )type=(status|count|dot)(,|$)/.test(m.name));
+  ok(stillGenre.length === 0,
+    `badge type rename: every member is keyed type=status|count|dot and none genre= (the name Tag uses)${stillGenre.length ? ` — ${stillGenre.slice(0, 3).map((m) => m.name).join(' | ')}` : ''}`);
+  // THE CORNER PER TYPE (owner decision, 2026-09-28): the status label takes the small radius, which scales per
+  // brand; the count and the dot stay fully round. Read off every projected member's bound corner.
+  const CORNER: Record<string, string> = { status: 'radius/sm', count: 'radius/round', dot: 'radius/round' };
+  const wrongCorner = (badgeSet as any[]).filter((m) => {
+    const g = /type=(\w+)/.exec(planComponentName(m))?.[1] ?? '(none)';
+    return ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => m.root.bound?.[c] !== CORNER[g]);
+  });
+  ok(wrongCorner.length === 0,
+    `badge corner: every status member binds radius/sm and every count and dot member radius/round${wrongCorner.length ? ` — wrong: ${wrongCorner.map((m) => `${planComponentName(m)} ${m.root.bound?.topLeftRadius}`).join('; ')}` : ''}`);
+  // The token behind radius/sm scales per brand: 2px in nb and prism3, 4px in aurora (the owner's figures).
+  const smPx = (['nb', 'prism3', 'aurora'] as const).map((b) => {
+    const built = buildTree(b === 'nb' ? nbTheme() : brandTheme(exampleBrands()[b] as BrandInput)).tree;
+    return [b, (built as any)[Object.keys(built)[0]]?.radius?.sm?.$extensions?.prism3?.px] as [string, number | undefined];
+  });
+  ok(JSON.stringify(smPx) === JSON.stringify([['nb', 2], ['prism3', 2], ['aurora', 4]]),
+    `badge corner: radius.sm is 2px in nb and prism3 and 4px in aurora (got ${JSON.stringify(smPx)})`);
   // The dot's size is its own fixed square, not the count's padding around nothing (the brief's ~6–12px dot).
   const dotPart: any = badgeDef.anatomy!.parts['dot'];
-  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"genre":["dot"]}',
-    `badge dot: a fixed square bound to control.size.sm.dot, present only at genre dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"type":["dot"]}',
+    `badge dot: a fixed square bound to control.size.sm.dot, present only at type dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
 
   const themes: [string, any][] = [
     ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
@@ -4875,7 +4920,7 @@ for (const b of brands) {
     }
     return { measured, low };
   };
-  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing genre: 15 members (status subtle 5,
+  // TEXT ON ITS FILL, 4.5:1, for every emphasis × tone × text-bearing type: 15 members (status subtle 5,
   // status bold 5, count bold 5), each in 20 cells.
   const TEXT_MEMBERS = Object.keys(PAINT).filter((m) => PAINT[m].label);
   ok(TEXT_MEMBERS.length === 15, `badge contrast covers 15 text-bearing members (got ${TEXT_MEMBERS.length})`);
@@ -5021,11 +5066,13 @@ for (const b of brands) {
   }
 }
 
-// ---- TAG — the owner's decisions of 2026-09-27, held here with literal expectations --------------------------
-// Written from the decisions, not read back from the def: interactive only (the five projected states), one
-// component switched by an `interaction` prop with the literal values clickable | selectable | removable, the
-// remove control a nested IconButton.Neutral named "Remove <label>", the group spacing bound to `space.100` and
-// measured at >= 8px, and every color ref in the interactive family (plus disabled and the focus ring).
+// ---- TAG — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations ---------
+// Written from the decisions, not read back from the def: interactive only (the five projected states), two
+// types on a `type` axis and prop with the literal values select | dismissible, no nested remove button (the ×
+// is a `close` glyph in a square slot the tag's height), a trailing and switchable check mark on a selected
+// select tag, a minimum width equal to the height, a selected tint + 2px primary outline at a constant label
+// weight, the group spacing bound to `space.100` and measured at >= 8px, and every color ref in the interactive
+// family (plus disabled and the focus ring).
 {
   const tagDef = componentDefs.find((d) => d.id === 'tag')!;
   ok(!!tagDef, 'tag: the def is registered');
@@ -5037,25 +5084,59 @@ for (const b of brands) {
   const projected = tagDef.figmaProperties?.stateAxis?.values ?? [];
   ok(['rest', 'hover', 'pressed', 'focus-visible', 'disabled'].every((st) => projected.includes(st)),
     `tag is interactive: the projected state axis carries rest, hover, pressed, focus-visible and disabled (${JSON.stringify(projected)})`);
-  const interaction = tagDef.props.find((p) => p.name === 'interaction');
-  ok(JSON.stringify(interaction?.values) === JSON.stringify(['clickable', 'selectable', 'removable']) && interaction?.default === 'clickable',
-    `tag interaction: the values are clickable | selectable | removable, default clickable (${JSON.stringify(interaction?.values)}, ${interaction?.default})`);
+  // TWO TYPES (owner, 2026-09-28): the `type` prop and the `type` axis, the same two literal values, `select`
+  // first; the three-interaction prop is gone.
+  const typeProp = tagDef.props.find((p) => p.name === 'type');
+  ok(JSON.stringify(typeProp?.values) === JSON.stringify(['select', 'dismissible']) && typeProp?.default === 'select'
+    && JSON.stringify(tagDef.variants?.type) === JSON.stringify(['select', 'dismissible'])
+    && !tagDef.props.some((p) => p.name === 'interaction'),
+    `tag type: the prop and the axis are select | dismissible, default select, and no interaction prop remains (prop ${JSON.stringify(typeProp?.values)}/${typeProp?.default}, axis ${JSON.stringify(tagDef.variants?.type)})`);
+  // The HTML `type` collision is named in the code guidance (owner: "a component prop, not the element's type attribute").
+  ok((tagDef.anatomy?.codeOnly ?? []).some((l) => /NOT the HTML type attribute/.test(l) && /never forwarded to the element/.test(l)),
+    'tag type: the code guidance says the prop is the component\'s own, NOT the HTML type attribute, and never forwarded to the element');
   const words = [...tagDef.aliases, ...tagDef.ai.triggerKeywords];
-  const missingWords = ['chip', 'filter tag', 'input tag', 'removable tag'].filter((w) => !words.includes(w));
+  const missingWords = ['chip', 'filter tag', 'input tag', 'removable tag', 'dismissible tag'].filter((w) => !words.includes(w));
   ok(tagDef.name === 'Tag' && tagDef.aliases[0] === 'chip' && missingWords.length === 0,
-    `tag naming: named Tag with chip as its first alias, and "filter tag", "input tag", "removable tag" carried${missingWords.length ? ` — missing ${missingWords.join(', ')}` : ''}`);
-  const remove = tagDef.anatomy!.parts.remove;
-  ok(remove?.kind === 'nest' && remove.nests === 'icon-button-neutral',
-    `tag: the remove control nests IconButton.Neutral, a button of its own (${remove?.kind} → ${remove?.nests})`);
-  // THE NESTED COORDINATE, literal (#1738 net): a ghost/filled swap on the remove button moved no named check
-  // before this, only the surface hash that the next `--accept` absorbs. The small circular ghost at rest.
-  const REMOVE_AT = { appearance: 'ghost', size: 'small', shape: 'circular', surface: 'default', state: 'rest' };
-  const removeAt = (remove?.nesting as { variant?: Record<string, string> } | undefined)?.variant ?? {};
-  ok(Object.keys(REMOVE_AT).length === Object.keys(removeAt).length && Object.entries(REMOVE_AT).every(([k, v]) => removeAt[k] === v),
-    `tag: the remove button nests IconButton.Neutral at ${JSON.stringify(REMOVE_AT)} (got ${JSON.stringify(removeAt)})`);
+    `tag naming: named Tag with chip as its first alias, and "filter tag", "input tag", "removable tag", "dismissible tag" carried${missingWords.length ? ` — missing ${missingWords.join(', ')}` : ''}`);
+  // THE × IS A GLYPH, NOT A NESTED BUTTON (owner, 2026-09-28; #1741): no `nest` part anywhere, the only
+  // composed component is the focus ring, and the × is the `close` vector inside the `dismiss` slot.
+  const tagParts = tagDef.anatomy!.parts;
+  const nests = Object.entries(tagParts).filter(([, p]) => p.kind === 'nest').map(([n]) => n);
+  ok(nests.length === 0 && JSON.stringify(tagDef.composition.composesWith) === '["focus-ring"]'
+    && tagParts.dismissGlyph?.kind === 'vector' && tagParts.dismissGlyph?.glyph === 'close'
+    && JSON.stringify(tagParts.dismiss?.children) === '["dismissGlyph"]',
+    `tag: the × is a plain close glyph in the dismiss slot, and nothing nests IconButton.Neutral (nests [${nests.join(', ')}], composesWith ${JSON.stringify(tagDef.composition.composesWith)}, × ${tagParts.dismissGlyph?.kind}/${tagParts.dismissGlyph?.glyph})`);
+  // THE × SLOT IS MARKED AS A TARGET INSIDE THE TAG (#1741), which `lint-hit-target.ts` reads; and the marker is
+  // validated: on the role target, or on a part with no bound side, it is refused by name.
+  const withPart = (name: string, patch: Record<string, unknown>) => ({ ...tagDef, anatomy: { ...tagDef.anatomy!, parts: { ...tagParts, [name]: { ...tagParts[name], ...patch } } } }) as ComponentDef;
+  const errsWith = (name: string, patch: Record<string, unknown>) => validateComponentDef(withPart(name, patch)).errors;
+  ok(tagParts.dismiss?.innerTarget === true && validateComponentDef(tagDef).errors.length === 0,
+    `tag innerTarget: the × slot carries the marker, and Tag validates clean (${validateComponentDef(tagDef).errors.join('; ') || 'no errors'})`);
+  // Each refusal on its own synthetic case, each assertion named for the refusal it pins.
+  const REFUSALS: [string, string, Record<string, unknown>, RegExp][] = [
+    ['a value other than true', 'dismiss', { innerTarget: 'yes' }, /'dismiss' declares innerTarget "yes"/],
+    ['the role target', 'container', { innerTarget: true }, /'container' claims role 'target' and innerTarget/],
+    ['the anatomy root', 'container', { innerTarget: true }, /'container' is the anatomy ROOT and declares innerTarget/],
+    ['an absolute part', 'focusRing', { innerTarget: true }, /'focusRing' is kind 'absolute' and declares innerTarget/],
+    ['a part with no bound side', 'content', { innerTarget: true }, /'content' declares innerTarget but binds neither 'size' nor both 'width' and 'height'/],
+    ['a part bound on its height alone', 'content', { innerTarget: true, height: 'size.{size}.height' }, /'content' declares innerTarget but binds neither 'size' nor both 'width' and 'height'/],
+  ];
+  for (const [what, part, patch, want] of REFUSALS) {
+    const errs = errsWith(part, patch);
+    ok(errs.some((e) => want.test(e)), `tag innerTarget refused on ${what} (${errs.join('; ') || 'no refusal'})`);
+  }
   const aria = tagDef.accessibility.aria;
-  ok(/Name the remove button "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
-    'tag aria: the remove button is named "Remove" followed by the label, never a bare "Remove" or "×"');
+  ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
+    'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
+  // THE HIT TARGET IS OPEN (owner decision C): the code guidance states both options and picks neither.
+  const hitLine = (tagDef.anatomy?.codeOnly ?? []).find((l) => /hit target is not decided yet/.test(l)) ?? '';
+  ok(/\(1\) The whole tag is one <button>/.test(hitLine) && /\(2\) Only the × slot is the button/.test(hitLine),
+    `tag dismissible hit target: the code guidance states both options, the whole tag and the × slot alone (${hitLine.slice(0, 80) || 'no line'})`);
+  // NO TRUNCATION (#1758): the code guidance wraps, and names neither an ellipsis nor a title as the fallback.
+  const expansion = (tagDef.anatomy?.codeOnly ?? []).find((l) => l.startsWith('text expansion')) ?? '';
+  ok(/never truncates/.test(expansion) && /WRAPS/.test(expansion) && !/truncates with an ellipsis/.test(expansion)
+    && !JSON.stringify(tagDef.docs).includes('Truncate a long label'),
+    `tag text expansion: a long label wraps and is never truncated (#1758) (${expansion.slice(0, 90) || 'no line'})`);
   // THE GROUP SPACING (owner decision 5): at least 8px, bound to a spacing token. Measured, not read: every
   // corpus brand at its own density, and harbor at all three densities, since the space scale moves with it.
   ok(tagDef.tokens['group-gap'] === 'space.100',
@@ -5076,9 +5157,144 @@ for (const b of brands) {
   ok(gapPx.length === 7 && narrow.length === 0,
     `tag group spacing is at least 8px in all ${gapPx.length} builds${narrow.length ? ` — ${narrow.map(([b, px]) => `${b} ${px ?? 'unresolved'}`).join('; ')}` : ''}`);
 
-  // THE CROSS-COMPONENT ARM (owner decision 3): at rest, for every Badge tone against every Tag selection, the
-  // two paint differently on the stated properties. Both sides are read from the PROJECTED rest members — what
-  // a designer sees — and each is held to its own literal table first, so neither side is the other's oracle.
+  // THE FIGMA SET, read off the PROJECTED members. 2 types × 2 selections × 3 sizes × 5 states = 60, less the
+  // 15 dismissible × selected members = 45, and none of those 15 exists.
+  const tagSet = figmaAnatomySet(tagDef, { swapTarget: 'FPO-default-icon' });
+  const findNode = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findNode(c, name)).find(Boolean));
+  const tagMembers = (tagSet as any[]).map((m) => {
+    const name = planComponentName(m);
+    return { plan: m, name, type: /type=(\w+)/.exec(name)?.[1] ?? '(none)', selection: /selection=(\w+)/.exec(name)?.[1] ?? '(none)', size: m.size as string, state: /state=([\w-]+)/.exec(name)?.[1] ?? '(none)', parts: planPartNames(m.root) };
+  });
+  const dismissSelected = tagMembers.filter((m) => m.type === 'dismissible' && m.selection === 'selected');
+  const countOf = (t: string, s: string) => tagMembers.filter((m) => m.type === t && m.selection === s).length;
+  ok(tagSet.length === 45 && dismissSelected.length === 0 && countOf('select', 'unselected') === 15 && countOf('select', 'selected') === 15 && countOf('dismissible', 'unselected') === 15,
+    `tag projects to Figma: exactly 45 members — select unselected and selected, dismissible unselected only — and none at type=dismissible, selection=selected (got ${tagSet.length}: select/unselected ${countOf('select', 'unselected')}, select/selected ${countOf('select', 'selected')}, dismissible/unselected ${countOf('dismissible', 'unselected')}${dismissSelected.length ? `; excluded members present: ${dismissSelected.map((m) => m.name).join(' | ')}` : ''})`);
+  // SELECT HAS NO × IN ANY MEMBER, and every dismissible member has it (owner decisions B and C).
+  const selectWithX = tagMembers.filter((m) => m.type === 'select' && (m.parts.includes('dismiss') || m.parts.includes('dismissGlyph')));
+  const dismissWithoutX = tagMembers.filter((m) => m.type === 'dismissible' && !(m.parts.includes('dismiss') && m.parts.includes('dismissGlyph')));
+  ok(selectWithX.length === 0 && dismissWithoutX.length === 0,
+    `tag: no select member carries the × slot, and every dismissible member does${selectWithX.length ? ` — select with ×: ${selectWithX.map((m) => m.name).join(' | ')}` : ''}${dismissWithoutX.length ? ` — dismissible without ×: ${dismissWithoutX.map((m) => m.name).join(' | ')}` : ''}`);
+  // THE × IS TRAILING (owner decision C): on every dismissible member the × slot is the LAST flow cell of the pill,
+  // right after the label row. The focus ring is drawn outside the flow and takes no cell, so it is skipped.
+  const dismissibles = tagMembers.filter((m) => m.type === 'dismissible');
+  const xWrong = dismissibles.filter((m) => {
+    const flow = ((m.plan.root.children ?? []) as any[]).filter((c) => !c.absoluteInset && !c.absoluteCenter).map((c) => c.name as string);
+    return !(flow[flow.length - 1] === 'dismiss' && flow.indexOf('content') === flow.length - 2);
+  });
+  ok(dismissibles.length === 15 && xWrong.length === 0,
+    `tag × slot: on all 15 dismissible members it is the last cell of the pill, after the label row${xWrong.length ? ` — wrong: ${xWrong.slice(0, 4).map((m) => `${m.name} [${((m.plan.root.children ?? []) as any[]).map((c) => c.name).join(', ')}]`).join(' | ')}` : ''} (${dismissibles.length} dismissible members)`);
+  // THE CHECK IS TRAILING AND OPTIONAL (owner decision B): on every selected member it is the LAST cell of the
+  // label row, after the label (never beside the leading icon), and it carries the `Check icon` switch (owner,
+  // 2026-09-29; it was `check mark`), which
+  // defaults ON; no unselected member has it.
+  const checkWrong = tagMembers.filter((m) => {
+    const content = findNode(m.plan.root, 'content');
+    const order = (content?.children ?? []).map((c: any) => c.name);
+    const check = findNode(m.plan.root, 'check');
+    if (m.selection === 'unselected') return !!check;
+    return !(order[order.length - 1] === 'check' && order.indexOf('label') === order.length - 2 && check?.visibleProp === 'Check icon' && check?.visible !== false);
+  });
+  const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'Check icon');
+  ok(checkWrong.length === 0 && checkProp?.type === 'BOOLEAN' && checkProp?.default === true,
+    `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'Check icon' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
+  // THE × SLOT IS SQUARE AT THE TAG'S HEIGHT, AND THE MINIMUM WIDTH IS THE HEIGHT (owner decisions C and D), per
+  // size, as the literal variable names the tier emits.
+  const HEIGHT_VAR: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
+  const geomWrong = tagMembers.filter((m) => {
+    const root = m.plan.root;
+    const want = HEIGHT_VAR[m.size];
+    if (root.bound?.height !== want || root.bound?.minWidth !== want) return true;
+    if (m.type !== 'dismissible') return false;
+    const slot = findNode(root, 'dismiss');
+    return !(slot?.bound?.width === want && slot?.bound?.height === want);
+  });
+  ok(geomWrong.length === 0,
+    `tag geometry: every member binds its height and its minimum width to ${JSON.stringify(HEIGHT_VAR)}, and every dismissible member's × slot binds both sides to the same height${geomWrong.length ? ` — wrong: ${geomWrong.slice(0, 4).map((m) => `${m.name} (height ${m.plan.root.bound?.height}, minWidth ${m.plan.root.bound?.minWidth}, slot ${JSON.stringify(findNode(m.plan.root, 'dismiss')?.bound ?? {})})`).join(' | ')}` : ''}`);
+
+  // THE SELECTED LOOK (owner decision E): a tint + a 2px primary outline, and the label weight CONSTANT. Each side
+  // held to its own literal row at rest, per size, on the projected members.
+  const TAG_REST: Record<string, { fill?: string; stroke: string; weight: string; label: string; check: boolean }> = {
+    unselected: { stroke: 'color/interactive/neutral/border/rest', weight: 'border-width/hairline', label: 'color/interactive/neutral/text/rest', check: false },
+    selected: { fill: 'color/interactive/primary/subtle-fill/selected', stroke: 'color/interactive/primary/border/rest', weight: 'border-width/thick', label: 'color/interactive/neutral/text/rest', check: true },
+  };
+  const LABEL_STYLE: Record<string, string> = { small: 'type.label.sm.emphasis', medium: 'type.label.md.emphasis', large: 'type.label.lg.emphasis' };
+  const restOf = (type: string, selection: string, size: string) => tagMembers.find((m) => m.type === type && m.selection === selection && m.size === size && m.state === 'rest')!;
+  for (const size of ['small', 'medium', 'large']) {
+    for (const [sel, want] of Object.entries(TAG_REST)) {
+      const m = restOf('select', sel, size);
+      const root = m.plan.root;
+      const label = findNode(root, 'label');
+      ok(root.paints?.fills === want.fill && root.paints?.strokes === want.stroke && root.bound?.strokeWeight === want.weight
+        && label?.paints?.fills === want.label && label?.textStyle === figmaTextStyleName(LABEL_STYLE[size]) && m.parts.includes('check') === want.check,
+        `tag rest (${sel}, ${size}): fill ${want.fill ?? 'none'}, edge ${want.stroke} at ${want.weight}, label ${want.label} in ${LABEL_STYLE[size]}, check mark ${want.check ? 'shown' : 'absent'} (got fill ${root.paints?.fills ?? 'none'}, edge ${root.paints?.strokes} at ${root.bound?.strokeWeight}, label ${label?.paints?.fills} in ${label?.textStyle}, check ${m.parts.includes('check')})`);
+    }
+    const a = findNode(restOf('select', 'unselected', size).plan.root, 'label')?.textStyle;
+    const b = findNode(restOf('select', 'selected', size).plan.root, 'label')?.textStyle;
+    ok(!!a && a === b, `tag label weight is constant (${size}): the selected label's text style equals the unselected one's, so the label keeps its width when selected (${a} / ${b})`);
+  }
+  // SELECTED HOVER AND PRESSED (owner, 2026-09-29): the tint holds and the 2px outline steps darker, on every size.
+  for (const [st, edge] of [['hover', 'color/interactive/primary/border/hover'], ['pressed', 'color/interactive/primary/border/pressed']] as const) {
+    const at = tagMembers.filter((m) => m.type === 'select' && m.selection === 'selected' && m.state === st);
+    const wrong = at.filter((m) => !(m.plan.root.paints?.fills === TAG_REST.selected.fill && m.plan.root.paints?.strokes === edge && m.plan.root.bound?.strokeWeight === 'border-width/thick'));
+    ok(at.length === 3 && wrong.length === 0,
+      `tag selected ${st} (owner decision 2026-09-29): the tint holds (${TAG_REST.selected.fill}) and the 2px outline steps to ${edge}, on all 3 sizes${wrong.length ? ` — wrong: ${wrong.map((m) => `${m.name} (fill ${m.plan.root.paints?.fills}, edge ${m.plan.root.paints?.strokes} at ${m.plan.root.bound?.strokeWeight})`).join(' | ')}` : ''}`);
+  }
+  // THE SELECTED TAG'S WIDTH — AN OWNER DECISION (2026-09-29: "let it widen"). The label keeps its width and
+  // the check mark adds a cell; the unselected tag does not reserve it. An independent model of Figma's
+  // hugging row over the PLAN — the flow children only (a hidden or absolutely placed node takes no cell), plus
+  // the padding, one gap between cells and the root's bound minWidth; the strokes are drawn inside and take no
+  // width — with each variable's px read from the brand's built tree and a label of a fixed 30px. EXPECTED is a
+  // literal: the check mark is a 24px glyph plus an 8px gap, 32px at medium in every corpus brand, and with the
+  // `Check icon` switch off the two members are one width. A change that reserves the check's width reverses
+  // the owner's decision, and fails here by name.
+  {
+    const LABEL_W = 30;
+    const CHECK_PLUS_GAP_MD = 32;
+    const widthBrands: [string, any][] = [['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any])];
+    for (const [b, th] of widthBrands) {
+      const built = buildTree(th).tree;
+      const root = Object.keys(built)[0];
+      const px = (v: string | undefined): number => {
+        if (!v) return 0;
+        let n: any = built[root];
+        for (const seg of v.split('/')) n = n?.[seg];
+        const x = n?.$extensions?.prism3?.px;
+        return typeof x === 'number' ? x : NaN;
+      };
+      const widthOf = (n: any): number => {
+        if (n.type === 'TEXT') return LABEL_W;
+        if (n.bound?.width) return px(n.bound.width);
+        const flow = (n.children ?? []).filter((c: any) => c.visible !== false && !c.absoluteInset && !c.absoluteCenter);
+        const content = flow.reduce((acc: number, c: any) => acc + widthOf(c), 0) + Math.max(0, flow.length - 1) * px(n.bound?.itemSpacing);
+        return Math.max(n.bound?.minWidth ? px(n.bound.minWidth) : 0, px(n.bound?.paddingLeft) + content + px(n.bound?.paddingRight));
+      };
+      const hideCheck = (n: any): any => ({ ...n, ...(n.name === 'check' ? { visible: false } : {}), children: (n.children ?? []).map(hideCheck) });
+      const un = widthOf(restOf('select', 'unselected', 'medium').plan.root);
+      const selRoot = restOf('select', 'selected', 'medium').plan.root;
+      const sel = widthOf(selRoot);
+      const selOff = widthOf(hideCheck(selRoot));
+      ok(sel - un === CHECK_PLUS_GAP_MD && selOff === un,
+        `tag selected width (${b}, medium): owner decision 2026-09-29, the check widens the tag — with the check mark on, a selected tag is ${CHECK_PLUS_GAP_MD}px wider than its unselected twin (a 24px glyph and an 8px gap), and with it off the two are one width (unselected ${un}, selected ${sel}, check off ${selOff})`);
+    }
+  }
+  // THE TINT (owner, 2026-09-29, "respect none"): `interactive.primary.subtle-fill.selected` on the default and
+  // solid-tint levers, and NO FILL on `none` — there a selected tag shows its 2px outline and its check only. Read
+  // off the materialized def per lever and off the projected `none` members (a fill that appears is a failure).
+  const TINT_REF = 'color.interactive.primary.subtle-fill.selected';
+  const tintAt = (lever: 'overlay-neutral' | 'solid-tint' | 'none') => applyOutlineInteraction(tagDef, lever).tokens['selected.overlay'];
+  ok(tintAt('overlay-neutral') === TINT_REF && tintAt('solid-tint') === TINT_REF && tintAt('none') === undefined,
+    `tag selected tint: binds ${TINT_REF} on overlay-neutral and solid-tint, and nothing on none (got ${tintAt('overlay-neutral')} / ${tintAt('solid-tint')} / ${tintAt('none') ?? 'nothing'})`);
+  const noneSelected = figmaAnatomySet(applyOutlineInteraction(tagDef, 'none'), { swapTarget: 'FPO-default-icon' })
+    .filter((p) => /selection=selected/.test(planComponentName(p)));
+  const noneFilled = noneSelected.filter((p) => p.root.paints?.fills !== undefined || findNode(p.root, 'check') === undefined || p.root.bound?.strokeWeight !== 'border-width/thick');
+  ok(noneSelected.length === 15 && noneFilled.length === 0,
+    `tag on an outlineInteraction none brand: all 15 selected members have no fill, and keep the 2px outline and the check (${noneSelected.length} members${noneFilled.length ? ` — wrong: ${noneFilled.slice(0, 3).map((p) => `${planComponentName(p)} fill ${p.root.paints?.fills}`).join(' | ')}` : ''})`);
+
+  // THE CROSS-COMPONENT ARM (owner decision 3, restated 2026-09-28): at rest, every status Badge against every Tag
+  // type × selection differs on three stated properties. SHAPE — the tag is a pill (`radius/round`) and the status
+  // badge takes the small radius (`radius/sm`). FAMILY — the tag paints only the interactive family and the badge
+  // none of it. CUE — the tag shows an edge, a check mark or the × slot, and the badge has a non-interactive fill
+  // and no check mark. Both sides read from the PROJECTED rest members, each first held to its own literal table.
   const paintsOf = (plan: AnatomyPlan) => {
     const refs: string[] = [];
     const walk = (n: any) => {
@@ -5086,17 +5302,8 @@ for (const b of brands) {
       for (const c of n.children ?? []) walk(c);
     };
     walk(plan.root);
-    return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, refs, names: planPartNames(plan.root) };
+    return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, radius: plan.root.bound?.topLeftRadius, refs, names: planPartNames(plan.root) };
   };
-  const TAG_REST: Record<string, { fill?: string; stroke?: string; label: string; check: boolean }> = {
-    unselected: { stroke: 'color/interactive/neutral/border/rest', label: 'color/interactive/neutral/text/rest', check: false },
-    selected: { fill: 'color/interactive/primary/fill/rest', label: 'color/interactive/primary/on-fill', check: true },
-  };
-  // THE BADGE SIDE, per emphasis (Badge #1736, owner decisions 2026-09-28): the status label at rest is either
-  // SUBTLE — a tone tint with a 1px edge in the tone's border role — or BOLD — the solid tone fill, no edge.
-  // So "the badge shows no edge" no longer holds and is not the owner's rule; what holds is the rule itself:
-  // the tag paints only the interactive family, and the badge paints NO interactive role and always has a
-  // non-interactive fill (a tint or a bold fill), never the tag's fill, and no check mark.
   const BADGE_REST: Record<string, { fill: string; stroke?: string }> = {
     'subtle.neutral': { fill: 'color/foreground/secondary', stroke: 'color/border/secondary' },
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`subtle.${t}`, { fill: `color/foreground/${t}-subtle`, stroke: `color/border/${t}` }])),
@@ -5104,59 +5311,108 @@ for (const b of brands) {
     ...Object.fromEntries(['info', 'success', 'warning', 'danger'].map((t) => [`bold.${t}`, { fill: `color/foreground/${t}` }])),
   };
   const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
-  const tagAt = (selection: string) => paintsOf(figmaAnatomyPlan(tagDef, 'medium', { selection, state: 'rest' } as never));
-  const badgeAt = (emphasis: string, tone: string) => paintsOf(figmaAnatomyPlan(badgeDef, undefined, { genre: 'status', emphasis, tone } as never));
-  for (const [sel, want] of Object.entries(TAG_REST)) {
-    const got = tagAt(sel);
-    const label = figmaAnatomyPlan(tagDef, 'medium', { selection: sel, state: 'rest' } as never).root.children?.find((c: any) => c.name === 'label')?.paints?.fills;
-    ok(got.fill === want.fill && got.stroke === want.stroke && label === want.label && got.names.includes('check') === want.check,
-      `tag rest (${sel}): fill ${want.fill ?? 'none'}, edge ${want.stroke ?? 'none'}, label ${want.label}, check mark ${want.check ? 'shown' : 'absent'} (got fill ${got.fill ?? 'none'}, edge ${got.stroke ?? 'none'}, label ${label}, check ${got.names.includes('check')})`);
+  const TAG_RADIUS = 'radius/round';
+  const BADGE_STATUS_RADIUS = 'radius/sm';
+  // Caught, not thrown: a badge whose axis is no longer `type` (the 2026-09-28 rename reverted) makes the projector
+  // refuse this coordinate, and a throw here would end the suite with no summary instead of failing the arms below.
+  const badgeAt = (emphasis: string, tone: string) => {
+    try { return paintsOf(figmaAnatomyPlan(badgeDef, undefined, { type: 'status', emphasis, tone } as never)); }
+    catch (e) { return { fill: `(refused: ${(e as Error).message.slice(0, 80)})`, stroke: undefined, radius: undefined, refs: [] as string[], names: [] as string[] }; }
+  };
+  const TAG_KINDS: [string, string][] = [['select', 'unselected'], ['select', 'selected'], ['dismissible', 'unselected']];
+  for (const [type, sel] of TAG_KINDS) {
+    const t = paintsOf(restOf(type, sel, 'medium').plan);
+    ok(t.radius === TAG_RADIUS, `tag shape (${type} ${sel}): the pill, ${TAG_RADIUS} (got ${t.radius})`);
   }
   for (const [key, want] of Object.entries(BADGE_REST)) {
     const [emphasis, tone] = key.split('.');
     const b = badgeAt(emphasis, tone);
-    ok(b.fill === want.fill && b.stroke === want.stroke,
-      `badge rest (${emphasis} ${tone}): fill ${want.fill}, edge ${want.stroke ?? 'none'} (got fill ${b.fill}, edge ${b.stroke ?? 'none'})`);
-    for (const sel of Object.keys(TAG_REST)) {
-      const t = tagAt(sel);
+    ok(b.fill === want.fill && b.stroke === want.stroke && b.radius === BADGE_STATUS_RADIUS,
+      `badge rest (${emphasis} ${tone}): fill ${want.fill}, edge ${want.stroke ?? 'none'}, corner ${BADGE_STATUS_RADIUS} (got fill ${b.fill}, edge ${b.stroke ?? 'none'}, corner ${b.radius})`);
+    for (const [type, sel] of TAG_KINDS) {
+      const t = paintsOf(restOf(type, sel, 'medium').plan);
       const tagInteractive = t.refs.length > 0 && t.refs.every((r) => r.startsWith('color/interactive/'));
       const badgeInteractive = b.refs.some((r) => r.startsWith('color/interactive/'));
-      const tagCue = t.stroke !== undefined || t.names.includes('check');
+      const tagCue = t.stroke !== undefined || t.names.includes('check') || t.names.includes('dismiss');
       const badgeFilled = b.fill !== undefined && !b.fill.startsWith('color/interactive/');
-      ok(tagInteractive && !badgeInteractive && tagCue && badgeFilled && !b.names.includes('check') && t.fill !== b.fill,
-        `tag vs badge at rest (${sel} tag, ${emphasis} ${tone} badge): the tag paints only the interactive family and shows an edge or a check mark; the badge paints no interactive role, has a tint or bold fill, and no check mark (tag ${JSON.stringify(t.refs)}, cue ${tagCue}; badge ${JSON.stringify(b.refs)})`);
+      ok(t.radius !== b.radius && tagInteractive && !badgeInteractive && tagCue && badgeFilled && !b.names.includes('check') && t.fill !== b.fill,
+        `tag vs badge at rest (${type} ${sel} tag, ${emphasis} ${tone} badge): a pill against a small-radius label, the tag paints only the interactive family and shows an edge, a check mark or the × slot; the badge paints no interactive role, has a tint or bold fill, and no check mark (tag ${t.radius} ${JSON.stringify(t.refs)}, cue ${tagCue}; badge ${b.radius} ${JSON.stringify(b.refs)})`);
     }
   }
 
-  // CONTRAST, measured on the def's own pairs in every corpus brand and mode: the selected label on its fill
-  // (text, 4.5:1), and the unselected label and edge on the page (4.5:1 and 3:1).
-  const themes: [string, any][] = [
-    ['nb', nbTheme()],
-    ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
-    ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
-    ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
-  ];
-  const TAG_CELLS = 16;
-  const PAIRS: [string, string, string, number][] = [
-    ['selected label on its fill', 'selected.label', 'selected.fill', 4.5],
-    ['unselected label on the page', 'unselected.label', 'page', 4.5],
-    ['unselected edge on the page', 'unselected.border', 'page', 3],
-  ];
-  for (const [what, inkKey, groundKey, floor] of PAIRS) {
-    const ink = tagDef.tokens[inkKey]?.replace(/^color\./, '') ?? `(unbound ${inkKey})`;
-    const ground = groundKey === 'page' ? 'background.primary' : tagDef.tokens[groundKey]?.replace(/^color\./, '') ?? `(unbound ${groundKey})`;
+  // CONTRAST, measured on the def's own pairs in every corpus brand and mode against LITERAL floors (owner,
+  // 2026-09-28): 5 brands × 4 modes = 20 cells each, a literal, so a brand or mode dropping out fails the count.
+  // A translucent ground (the selected tint, the hover and pressed washes) is composited over the page first,
+  // which is what a person sees. The tint is also measured on the solid-tint lever, where it is the role the
+  // owner named, with the brands rebuilt on that lever.
+  const wendysInput = standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input;
+  const tagThemes = (lever?: string): [string, any][] => {
+    const on = (i: any) => brandTheme({ ...i, ...(lever ? { outlineInteraction: lever } : {}) } as BrandInput);
+    return [
+      ['nb', lever ? { ...nbTheme(), outlineInteraction: lever } : nbTheme()],
+      ['aurora', on(exampleBrands()['aurora'])], ['harbor', on(exampleBrands()['harbor'])],
+      ['prism3', on(exampleBrands()['prism3'])], ['wendys', on(wendysInput)],
+    ];
+  };
+  const TAG_CELLS = 20;
+  const ref = (key: string) => tagDef.tokens[key]?.replace(/^color\./, '') ?? `(unbound ${key})`;
+  const colorOf = (roles: any, name: string, under: RGB): RGB | undefined => {
+    const r = roles[name];
+    if (!r?.hex) return undefined;
+    return r.alpha !== undefined && r.alpha < 1 ? composite(under, hexToRgb(r.hex), r.alpha) : hexToRgb(r.hex);
+  };
+  const measureTag = (what: string, ink: string, grounds: string[], floor: number, lever?: string) => {
     const low: string[] = [];
     let measured = 0;
-    for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
-      const a = m.roles[ink], g = m.roles[ground];
-      if (!a?.hex || !g?.hex) { low.push(`${brand}/${m.mode}: missing ${!a?.hex ? ink : ground}`); continue; }
-      const r = contrast(hexToRgb(a.hex), hexToRgb(g.hex));
+    let min = Infinity;
+    for (const [brand, th] of tagThemes(lever)) for (const m of resolveAllModes(th)) {
+      const page = m.roles['background.primary']?.hex ? hexToRgb(m.roles['background.primary'].hex) : undefined;
+      let g: RGB | undefined = page;
+      for (const name of grounds) g = g && colorOf(m.roles, name, g);
+      const x = g && colorOf(m.roles, ink, g);
+      if (!x || !g) { low.push(`${brand}/${m.mode}: missing ${!x ? ink : grounds.join(' over ')}`); continue; }
+      const r = contrast(x, g);
       measured++;
+      min = Math.min(min, r);
       if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
     }
     ok(measured === TAG_CELLS && low.length === 0,
-      `tag contrast (${what}): ${ink} on ${ground} clears ${floor}:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+      `tag contrast (${what}): ${ink} on ${grounds.length ? grounds.join(' over the page, ') + ' over the page' : 'the page'}${lever ? ` [${lever}]` : ''} clears ${floor}:1 in all ${measured} of ${TAG_CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+  };
+  const tint = ref('selected.overlay');
+  measureTag('selected label on the tint', ref('selected.label'), [tint], 4.5);
+  measureTag('selected label on the tint', ref('selected.label'), ['interactive.primary.subtle-fill.selected'], 4.5, 'solid-tint');
+  measureTag('check mark on the tint', ref('selected.icon'), [tint], 3);
+  measureTag('check mark on the tint', ref('selected.icon'), ['interactive.primary.subtle-fill.selected'], 3, 'solid-tint');
+  // THE TINT'S CONTRACT BEYOND THE CORPUS (owner, 2026-09-29): on synthetic brands at the primary's extremes — a
+  // pale yellow, a mid saturated red and a near-black navy, each on the default lever — the tint exists in every
+  // mode, and the selected label clears 4.5:1 and the check 3:1 on it, composited over the page.
+  {
+    const SYNTH: [string, { l: number; c: number; h: number }][] = [['pale-yellow', { l: 0.93, c: 0.17, h: 100 }], ['mid-red', { l: 0.58, c: 0.22, h: 25 }], ['dark-navy', { l: 0.25, c: 0.09, h: 262 }]];
+    const bad: string[] = [];
+    let cells = 0;
+    for (const [id, primary] of SYNTH) for (const m of resolveAllModes(brandTheme({ id: `synthetic-${id}`, primary, neutral: { hue: primary.h, chroma: 0.008 } } as BrandInput))) {
+      const page = hexToRgb(m.roles['background.primary'].hex);
+      const g = colorOf(m.roles, 'interactive.primary.subtle-fill.selected', page);
+      const lab = g && colorOf(m.roles, ref('selected.label'), g), chk = g && colorOf(m.roles, ref('selected.icon'), g);
+      if (!g || !lab || !chk) { bad.push(`${id}/${m.mode}: missing`); continue; }
+      cells++;
+      if (contrast(lab, g) < 4.5) bad.push(`${id}/${m.mode} label ${contrast(lab, g).toFixed(2)}`);
+      if (contrast(chk, g) < 3) bad.push(`${id}/${m.mode} check ${contrast(chk, g).toFixed(2)}`);
+    }
+    ok(cells === 12 && bad.length === 0,
+      `tag contrast (synthetic brands): the tint exists in all ${cells} of 12 synthetic brand × mode cells, the selected label clears 4.5:1 and the check 3:1 on it${bad.length ? ` — ${bad.join('; ')}` : ''}`);
   }
+  for (const st of ['', '.hover', '.pressed']) measureTag(`selected outline against the page${st}`, ref(`selected.border${st}`), [], 3);
+  // THE × IN EVERY PROJECTED STATE, on its own ground: the page at rest and focus-visible (no key of its own, so
+  // the rest ink), the page under the hover and pressed washes, and the disabled glyph ink on the page.
+  measureTag('× glyph at rest and focus-visible', ref('unselected.icon'), [], 3);
+  measureTag('× glyph at hover', ref('unselected.icon.hover'), [ref('unselected.overlay.hover')], 3);
+  measureTag('× glyph at pressed', ref('unselected.icon.pressed'), [ref('unselected.overlay.pressed')], 3);
+  measureTag('× glyph at disabled', ref('disabled.icon'), [], 3);
+  // UNSELECTED, as before: the label and the 1px edge on the page.
+  measureTag('unselected label on the page', ref('unselected.label'), [], 4.5);
+  measureTag('unselected edge on the page', ref('unselected.border'), [], 3);
 }
 
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
@@ -6794,7 +7050,20 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!isWhite(p(D, 'inverse.background.primary')), 'dark inverse surface is near-white, not pure white');
   ok(isWhite(p(L, 'background.primary')), 'light base page stays pure white (the one allowed pure extreme)');
   // on-fill softening: dark interactive on-fill is near-black (950), light keeps pure white; HC keeps pure
-  ok(!isBlack(p(D, 'interactive.primary.on-fill')), 'dark interactive on-fill is softened (near-black, not pure)');
+  // #1773 (owner, 2026-09-29): the page fill now also clears 3:1 against `background.tertiary`, which moves this
+  // brand's dark primary fill one step lighter. There neither softened ink (neutral 025 / 950) clears 4.5:1, so
+  // `onColor` escalates to a pure extreme — its documented fallback, the one place pure black is allowed (and
+  // on a near-tie in a dark-family mode, white, by the owner's #1773 rule). The pin is therefore "softened
+  // UNLESS neither softened ink clears", recomputed from the emitted hexes here.
+  {
+    const dInk = p(D, 'interactive.primary.on-fill');
+    const hx = (k: string) => D[k].hex as string;
+    const nSteps = (th as any).palettes.find((q: any) => q.palette === (th as any).roleToPalette.neutral).steps as Array<{ key: string; rgb: any }>;
+    const nSoft = ['025', '950'].map((st) => { const x = nSteps.find((q) => q.key === st); return x ? hex(x.rgb) : undefined; });
+    const softClears = nSoft.some((h) => h && contrast(hexToRgb(h), hexToRgb(hx('interactive.primary.fill.rest'))) >= 4.5);
+    ok(!isBlack(dInk) || (!softClears && contrast(hexToRgb(hx('interactive.primary.on-fill')), hexToRgb(hx('interactive.primary.fill.rest'))) >= 4.5),
+      `dark interactive on-fill is softened (near-black, not pure) unless neither softened ink clears 4.5:1 on the fill (ink ${dInk}, softened clears: ${softClears})`);
+  }
   ok(isWhite(p(L, 'interactive.primary.on-fill')), 'light interactive on-fill stays pure white (user preference)');
   ok(isWhite(p(HCD, 'interactive.primary.on-fill')) || isBlack(p(HCD, 'interactive.primary.on-fill')), 'HC keeps pure extremes for on-fill (max contrast)');
   ok(isBlack(p(HCL, 'inverse.background.primary')), 'HC inverse stays a pure extreme (max contrast)');
@@ -7053,7 +7322,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       for (const f of RELS) for (const p of e[f] ?? []) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.${f}: ${p}`); }
       if (e.usage_limit?.body_text_alternative !== undefined) { pathsChecked++; if (!isRole(e.usage_limit.body_text_alternative)) pathBad.push(`${b} ${k}.usage_limit: ${e.usage_limit.body_text_alternative}`); }
       for (const cw of e.contrast_with ?? []) for (const p of [cw.token, cw.composited_over].filter(Boolean)) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.contrast_with: ${p}`); }
-      for (const v of Object.values<string>(e.mode_overrides ?? {})) refMiss(`${k}.mode_overrides`, v);
+      // A tinted wash states its fill role and opacity token as a pair (schema 0.4); each half must resolve.
+      for (const v of Object.values<any>(e.mode_overrides ?? {})) for (const r of typeof v === 'string' ? [v] : [v?.color, v?.opacity]) refMiss(`${k}.mode_overrides`, r);
     }
     for (const [k, e] of Object.entries<any>(ai.typography)) {
       miss('typography key', k);
@@ -7227,6 +7497,32 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     && entriesChecked > 2_500 && skillNamesChecked >= 4 * 10 && capsChecked > 3_000 && limitsChecked > 800 && tracking > 50,
     `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} legibility relations (+${tracking} tracks), ${cwChecked} contrast_with, ${clausesChecked} surface clauses, ${entriesChecked} tree leaves, ${skillNamesChecked} skill names, ${capsChecked} prose fields for capitals, ${limitsChecked} usage-limit checks across ${BRANDS.length} brands`);
   ok(pathBad.length === 0, 'sidecar paths: every token path named in .ai.json resolves in the brand\'s emitted tree' + (pathBad.length ? ` — ${pathBad.length}: ${pathBad.slice(0, 5).join(' | ')}` : ''));
+
+// THE TINTED WASH IN THE SIDECAR (2026-09-29). Every overlay-neutral brand now carries one tinted wash,
+// `interactive.primary.subtle-fill.selected`, whose `$value` is a literal composite — which exposed two readings
+// that had only ever seen a synthetic solid-tint theme (#1112). (1) A semantic color role is described under
+// `color` and never listed under `primitives` ("private primitive — prefer a semantic token" about the token Tag
+// binds). (2) Its `mode_overrides` state the tint — the fill ROLE at the OPACITY token — never the opaque fill's
+// palette step. The expected fill and opacity are read off the emitted TREE's `$extensions.prism3.tint`, not
+// off the sidecar's own source.
+{
+  for (const [id, th] of [['nb', nbTheme()], ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)]] as [string, any][]) {
+    const tree = buildTree(th).tree as any;
+    const root = Object.keys(tree)[0];
+    const ai = buildAiMetadata(th, tree) as any;
+    const leaf = tree[root].color.interactive.primary['subtle-fill'].selected;
+    const asPrimitive = Object.keys(ai.primitives ?? {}).filter((k) => k.startsWith('color.') && k.slice('color.'.length) in (ai.color ?? {}));
+    ok(!!ai.color?.['interactive.primary.subtle-fill.selected'] && asPrimitive.length === 0,
+      `sidecar (${id}): no semantic color role is listed under primitives, and the selected tint is described under color${asPrimitive.length ? ` — listed as primitives: ${asPrimitive.join(', ')}` : ''}`);
+    const ov = ai.color?.['interactive.primary.subtle-fill.selected']?.mode_overrides ?? {};
+    const wrong = Object.entries(ov).filter(([m, v]) => {
+      const t = (m === 'light' ? leaf.$extensions.prism3.tint : leaf.$extensions.prism3.modes?.[m]?.tint ?? leaf.$extensions.prism3.tint);
+      return JSON.stringify(v) !== JSON.stringify({ color: t.color, opacity: t.opacity });
+    });
+    ok(Object.keys(ov).length === 4 && wrong.length === 0,
+      `sidecar (${id}): the selected tint's mode_overrides state the fill role at the opacity token in every mode, as the tree's tint does (${wrong.length ? wrong.map(([m, v]) => `${m}: ${JSON.stringify(v)}`).join('; ') : JSON.stringify(ov.light)})`);
+  }
+}
   ok(a11Seen > 0, `sidecar paths: the AI/A-11 exemption (held for #1614) is still live (${a11Seen}) — once it reads 0, delete the exemption`);
   ok(pairBad.length === 0, 'sidecar pairings: every sits_on / carries / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
   ok(primBad.length === 0, 'sidecar fields: every entry carries its required fields, and every sub-body-text ink its usage_limit' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));
@@ -8551,8 +8847,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
           for (const st of ['hover', 'pressed', 'selected']) {
             for (const fam of FAMILIES) {
               const present = m.roles[`interactive.${color}.${fam}.${st}`] !== undefined;
-              if (fam === family && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
-              if (fam !== family && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
+              // THE ONE SANCTIONED EXTRA (owner, 2026-09-29): overlay-neutral also carries the SELECTED primary
+              // subtle fill, the tint a selectable control binds. Written here as a literal, not read from the
+              // emitter; `none` gets no such allowance, so a tint appearing there is still spurious.
+              const selectedTint = method === 'overlay-neutral' && fam === 'subtle-fill' && color === 'primary' && st === 'selected';
+              if ((fam === family || selectedTint) && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
+              if (fam !== family && !selectedTint && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
             }
             // The role key the helper hands a consumer must be the one that resolves — the read the
             // dashboard performs, asserted directly rather than inferred from the two sets above.
@@ -8680,7 +8980,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // Two groups, both consequences of the relaxed fills rather than independent decisions:
 //   1. `foreground/*` — the relaxed bold fills themselves.
 //   2. `text|icon/on-*` (dark) — the fill moved toward its anchor and got DARKER, so the winning ink
-//      side FLIPS from NB's dark 950 to a light 025 (or to black, now permitted on a fill).
+//      side FLIPS from NB's dark 950 to a light 025 (or to a pure extreme, now permitted on a fill).
+//      `on-info` is pure WHITE since the owner's dark-family tie rule reached the status inks (#1773,
+//      2026-09-29): on NB's info.500 `#317bb2` black led white by 0.048:1 (4.607 vs 4.559), inside the tie.
 //
 // `border/focus` USED TO BE A THIRD GROUP and is no longer, which is the useful direction to record it
 // in: through 0.67.0 the ring derived from `actionRest` and so diverged from NB in DARK (engine red/550
@@ -8725,12 +9027,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'dark', name: 'color/text/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/text/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/text/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
-  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/white' },
   { mode: 'dark', name: 'color/icon/on-brand', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
-  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/white' },
   // FIFTH group (#570): muted semantic ink in HC-LIGHT only. NB authored muted at a FIXED rung, so
   // its hc-light values are byte-identical to its light ones — the high-contrast mode did nothing for
   // the one ink family named for being low-emphasis (measured 3.85 in both, against a 4.5 HC bar).
@@ -8775,6 +9077,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-dark', name: 'color/text/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
   { mode: 'hc-dark', name: 'color/icon/link/hover', nb: 'palette/red/250', engine: 'palette/red/200' },
   { mode: 'hc-dark', name: 'color/icon/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
+  // SEVENTH group (#1782): the three FIELD STATUS borders. NB authored `border.danger|warning|success` at 500
+  // (hc-dark success at 450) against the page alone. A text field / textarea / select with a status draws that
+  // border over `background.secondary` and over its own hover wash too, and the engine now also gates those
+  // three roles on those grounds (`alsoClear` in modes.ts), compositing the wash at the alpha NB SHIPS —
+  // `rgba(0, 0, 0, 0.1)` / Figma `a: 0.1`, not the hex dialect's 26/255. Each row is here for ONE of three
+  // reasons, stated per row because they are not the same claim, and ratios are the authored step's worst
+  // ground (the wash composited over `background.secondary`) at alpha 0.1:
+  //   WCAG — the authored step misses SC 1.4.11's 3:1 on that ground: a real non-text contrast miss, the same
+  //          owner stance as groups 1 and 4.
+  //   HC   — the authored step CLEARS 3:1 but misses the high-contrast modes' own 4.5:1 non-text floor on the
+  //          extra grounds. That floor is an OWNER DECISION (2026-09-29, #1782 decision 1), not a WCAG miss.
+  //   FOCUS — the step the contrast rule alone would pick is `border.focus`'s step, so the engine moves one
+  //          further (#1782 decision 2: an errored field must not share its edge color with a focused one).
+  // `border.brand` and `border.info` are not field statuses and are ABSENT here — still byte-checked against
+  // NB, which is the check that the move is scoped. So is nb DARK WARNING: amber.500 measures 3.02:1 at the
+  // shipped 0.1 (2.999 only at the hex dialect's 0.102), so it stays NB's authored step.
+  { mode: 'light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/550' },     // WCAG: 500 at 2.96:1
+  { mode: 'dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/400' },           // WCAG: 500 at 2.96:1; FOCUS: 450 is border.focus in nb dark
+  { mode: 'dark', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/450' },      // WCAG: 500 at 2.78:1
+  { mode: 'hc-light', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/600' },       // HC: 500 at 3.66:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/600' },  // HC: 500 at 3.59:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/550' },  // HC: 500 at 3.90:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },        // HC: 500 at 3.82:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },   // HC: 500 at 3.89:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },   // HC: 450 at 4.26:1 (clears 3:1)
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -10305,8 +10632,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // (b) COLOUR aliases — every per-mode alias name resolves within palette (name-based).
     const paletteNames = new Set(palette.variables.map((v) => v.name));
     const colorAliasBad: string[] = [];
+    // A TINT (#1646) aliases its FILL VARIABLE in this same collection at an opacity, not a palette step, and that
+    // fill is itself held to a palette step by this loop. Since 2026-09-29 every overlay-neutral brand carries one
+    // (`interactive.primary.subtle-fill.selected`), so the corpus reaches this case; before, only a solid-tint theme did.
+    const colorNames = new Set(color.flatMap((c) => c.variables.map((v) => v.name)));
     for (const c of color) for (const v of c.variables) {
-      if (!v.alias || !paletteNames.has(v.alias.name)) colorAliasBad.push(`${c.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
+      const tintOk = (v as { aliasOpacity?: unknown }).aliasOpacity !== undefined && !!v.alias && colorNames.has(v.alias.name) && /\/fill\/rest$/.test(v.alias.name);
+      if (!tintOk && (!v.alias || !paletteNames.has(v.alias.name))) colorAliasBad.push(`${c.$mode}:${v.name} → ${v.alias?.name ?? '<none>'}`);
     }
     ok(colorAliasBad.length === 0, `figma generalise (${id}): every colour alias resolves to a real palette variable within THIS brand` + (colorAliasBad.length ? ` — ${colorAliasBad.slice(0, 3).join(', ')}` : ''));
 
@@ -10459,8 +10791,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     if (!node) continue;
     const ext = node.$extensions?.prism3?.modes?.wireframe?.$value;
     if (typeof ext !== 'string') continue; // some roles may keep the light value in wireframe (already-neutral); accept whatever the tree emits
-    const wantName = figName(ext.replace(/^\{|\}$/g, ''));
+    // A TINT (#1646) carries a literal composite `$value` and names its fill in `tint.color`; the Figma variable
+    // aliases that fill variable at an opacity, and the fill's own wireframe alias is held to the neutral ramp by
+    // this same loop. So the tint is matched against its fill, and the greyscale check is the fill's.
+    const tintColor = (node.$extensions?.prism3?.modes?.wireframe?.tint ?? node.$extensions?.prism3?.tint)?.color;
+    const wantName = figName((typeof tintColor === 'string' ? tintColor : ext).replace(/^\{|\}$/g, ''));
     if (v.alias?.name !== wantName) mismatchedAliases.push(`${v.name} → ${v.alias?.name} (want ${wantName})`);
+    if (typeof tintColor === 'string') continue;
     const neutralPrefix = `${wf.root}/core/palette/`;
     if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`) && v.alias.name !== `${neutralPrefix}transparent`) {
       // Wireframe is a greyscale mode — every chromatic role should route to the neutral
@@ -12484,10 +12821,31 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     //       (visible and mainComponent are different Figma fields).
     ok(validateComponentDef(select).errors.length === 0,
       `#1331 a swap + a boolean on ONE node (select's leading glyph) validates clean (${validateComponentDef(select).errors.join('; ')})`);
-    //   (b) NEW REFUSAL — a boolean on a `presentWhen`-gated part is refused (two presence mechanisms).
+    //   (b) THE COMPOSITION (#1743, 2026-09-28) — a boolean on a VARIANT-gated part is ADMITTED and composes:
+    //       the gate decides which members carry the node, the boolean toggles it there. Measured on the
+    //       projection, not on the validator alone: the node exists at status=error only, with its switch, and
+    //       at no other status. A boolean on a STATE gate is still refused, by name.
     const boolAndGate = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { status: ['error'] } } } } };
-    ok(validateComponentDef(boolAndGate as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /also declares presentWhen/.test(e)),
-      '#1331 a boolean on a presentWhen-gated part is refused BY NAME — the boolean is the sole presence mechanism, a variant gate would drop the node it toggles');
+    const gatedSet = figmaAnatomySet(boolAndGate as never, { swapTarget: 'FPO-default-icon' });
+    const gatedWrong = gatedSet.filter((p) => {
+      const lv = findLV(p.root);
+      return p.coord.status === 'error' ? !(lv && lv.visibleProp === 'leading icon') : !!lv;
+    });
+    ok(validateComponentDef(boolAndGate as never).errors.length === 0 && gatedWrong.length === 0,
+      `#1743 a boolean on a VARIANT-gated part composes: it validates, and the node exists only at the gated members, carrying its switch there (${validateComponentDef(boolAndGate as never).errors.join('; ')}${gatedWrong.length ? ` — wrong at ${gatedWrong.map((p) => planComponentName(p)).join(' | ')}` : ''})`);
+    const boolAndState = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { state: ['hover'] } } } } };
+    ok(validateComponentDef(boolAndState as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /presentWhen on 'state'/.test(e)),
+      '#1331 a boolean on a STATE-gated part is refused BY NAME — a boolean composes with a variant presence gate only');
+    //       And a VARIANT gate that lands only on coordinates `excludeCoordinates` removes is refused: Tag's check
+    //       mark gated to `type=dismissible, selection=selected`, the one pair the set excludes, would declare a
+    //       `Check icon` switch on the set wired to a node on no member. Tag as shipped validates clean.
+    const tagForGate = componentDefs.find((d) => d.id === 'tag')!;
+    const tagParts = tagForGate.anatomy!.parts;
+    const checkOnExcluded = { ...tagForGate, anatomy: { ...tagForGate.anatomy!, parts: { ...tagParts, check: { ...tagParts.check, presentWhen: { type: ['dismissible'], selection: ['selected'] } } } } };
+    const excludedErrs = validateComponentDef(checkOnExcluded as never).errors;
+    ok(validateComponentDef(tagForGate).errors.length === 0
+      && excludedErrs.some((e) => /booleans\.showCheck/.test(e) && /excludeCoordinates removes every such member/.test(e)),
+      `#1743 a boolean whose VARIANT gate lands only on excluded coordinates is refused BY NAME — the switch would toggle a node on no member (${excludedErrs.join('; ') || 'no refusal'})`);
     //   (c) requireOptional — a boolean toggling a NON-optional part is refused (the anatomy must allow the
     //       part to be hidden). Pinned on select's own required `chevron` node (its text layers are
     //       state-gated since Option C, which a boolean is refused on for a different reason, above).
@@ -12918,8 +13276,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k))
     && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the border swaps (#1494/#1517)');
   ok(textField.tokens['border'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (bare border = rest, + border.hover) (#1494)');
-  // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
-  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
+  // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink,
+  // and the editable field's own boundary (owner decision 2026-09-29, #1710) rather than a fainter edge.
+  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.field.border.rest', 'component: TextField read-only stays full-contrast (text.primary + field.border.rest), not disabled.* (#1710)');
   // #784: the key naming that state must BE the state, or `{slot}.{state}` never reaches it. `border.readonly`
   // was bound, resolvable and unreachable — a read-only field painted its rest border. Asserted against
   // `states` rather than against the literal, so the two cannot drift apart again.
@@ -12936,6 +13295,335 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
+
+  // ---- #1782: A STATUS FIELD'S BORDER CLEARS 3:1 (SC 1.4.11) ON THE PAGE AND ON ITS OWN HOVER WASH ----
+  // At `state=hover` a field control fills with the translucent `interactive.neutral.overlay.hover` wash, and a
+  // non-default status keeps its status border (`border.danger` / `.warning` / `.success`). The border is then
+  // drawn between two grounds: the page OUTSIDE the control and the wash composited over that page INSIDE it.
+  // Contracted against `background.primary` alone, the status borders measured 2.64–3.00:1 on the inside
+  // (132 members, 44 brand × mode × stroke × ground cells, found by #1772's extension of the #1710 sweep).
+  //
+  // STANDALONE on purpose: #1772's #1710 sweep holds this coordinate out with a pointer to #1782, and whichever
+  // of the two lands second deletes that exclusion. This block does not depend on it.
+  //
+  // WHAT THE TWO SIDES ARE, per docs/34 question 1.
+  //   SUBJECT — the paint the PROJECTED member carries: `figmaAnatomySet` walked for every hover member with a
+  //     non-default status, each visible stroked node contributing its own stroke + fill (shape 1's #536 fix —
+  //     read the plan, not `def.tokens`). The defs are PINNED by name and every def × status must be
+  //     represented, so a def or a status that drops out of the projection fails instead of shrinking the sweep.
+  //   ORACLE — contrast RECOMPUTED from resolved hexes against two page grounds written here as literals, with
+  //     the wash composited at its EMITTED alpha (the primitive's `$value`, not the role's recorded `ratio`,
+  //     `against` or `min` — the roles declare `against: background.primary` only, which is the defect). The
+  //     floor is the literal 3 of SC 1.4.11, not the mode's `nonTextMin`. Never imports the engine's
+  //     `FIELD_STATUS_BORDERS` / `alsoClear` grounds — dropping a ground there must fail HERE, by name.
+  //   SHARED, AND ACCEPTED: `contrast` and `composite` are imported from color.ts, the same two functions the
+  //     engine picks with. That is the repo's standing pattern for contrast gates (the WCAG formula and
+  //     source-over compositing are the definition being measured, not a derivation of the subject), so it is
+  //     left as is. What is NOT shared is everything that decides the answer: the grounds, the floors, the
+  //     wash alpha (parsed from the emitted `$value`, never `emittedAlpha`) and the focus value compared below.
+  //
+  // THREE MORE ARMS, from the owner's decisions of 2026-09-29:
+  //   HC — hc-light / hc-dark hold these borders to 4.5:1, not 3:1, on the same four grounds (decision 1: the
+  //     high-contrast modes keep their own non-text floor on the extra grounds). The 3:1 arm cannot see this:
+  //     the HC 500s measure 3.6–3.9:1 on the wash, above 3, so dropping the extra grounds in HC alone left it
+  //     silent. The floor is the literal 4.5, not `nonTextMin`.
+  //   STATUS ≠ FOCUS — no status border resolves to `border.focus`'s value (decision 2: an errored field and a
+  //     focused field must not share an edge color), in every brand × mode here AND in a wireframe variant of
+  //     each, where every chromatic role collapses onto the neutral ramp the focus ring also lands on.
+  {
+    // The NB master theme's brand input, COPIED as literal values (the owner's file, 2026-09-28; identical to
+    // the switch block's `NB_MASTER`), so this check does not move when that file does. It opts out of the
+    // overlay wash (`outlineInteraction: solid-tint`), so its hover members measure on the bare ground.
+    const NB_MASTER_1782: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+    const SH_CORPUS: Array<[string, Theme]> = [
+      ...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+      ['prism3', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+      ['nb-master', brandTheme(NB_MASTER_1782)],
+    ];
+    const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+    const SH_GROUNDS = ['background.primary', 'background.secondary'];
+    const SH_DEFS = ['text-field', 'textarea', 'select'];
+    const SH_STATUSES = ['error', 'warning', 'success'];
+    const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
+    type ShPaint = { def: string; status: string; coord: string; stroke: string; fill?: string };
+    const shPaints: ShPaint[] = [];
+    for (const id of SH_DEFS) {
+      const d = componentDefs.find((c) => c.id === id);
+      if (!d) continue;                                           // reported by the representation arm below
+      for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+        if (plan.coord.state !== 'hover' || plan.coord.status === undefined || plan.coord.status === 'default') continue;
+        const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
+        const walk = (n: any): void => {
+          if (n.visible !== false && typeof n.paints?.strokes === 'string')
+            shPaints.push({ def: id, status: String(plan.coord.status), coord, stroke: roleOfVar(n.paints.strokes), fill: typeof n.paints.fills === 'string' ? roleOfVar(n.paints.fills) : undefined });
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+      }
+    }
+    const shMissing = SH_DEFS.flatMap((id) => SH_STATUSES.filter((s) => !shPaints.some((p) => p.def === id && p.status === s)).map((s) => `${id}[status=${s}]`));
+    ok(shMissing.length === 0,
+      `a11y(#1782): every pinned field def (text-field, textarea, select) × non-default status (error, warning, success) projects a stroked hover member` + (shMissing.length ? ` — missing: ${shMissing.join(', ')}` : ''));
+
+    const shFails: string[] = [], shHcFails: string[] = [];
+    const shModesSeen = new Set<string>();
+    let shCells = 0, shCellsExpected = 0, shWashed = 0, shWashOptOut = 0, shHcCells = 0, shHcWashed = 0;
+    for (const [brand, th] of SH_CORPUS) {
+      const built = buildTree(th).tree as any;
+      const alphaOf = (path: string): number | undefined => {
+        const v = at(built, path)?.$value;
+        return typeof v === 'string' && !v.startsWith('{') ? parseColor(v).a : undefined;
+      };
+      const modes = resolveAllModes(th);
+      shCellsExpected += modes.length * shPaints.length * SH_GROUNDS.length;
+      for (const m of modes) {
+        shModesSeen.add(m.mode);
+        const brandHasWash = Object.keys(m.roles).some((k) => /^interactive\.[a-z0-9-]+\.overlay\./.test(k));
+        for (const p of shPaints) {
+          const tag = `${brand}/${m.mode} ${p.def}[${p.coord}]`;
+          const b = m.roles[p.stroke];
+          if (!b?.hex) { shFails.push(`${tag} stroke ${p.stroke} unresolved`); continue; }
+          let f = p.fill ? m.roles[p.fill] : undefined;
+          // The one absent fill that is not a failure: a hover WASH in a brand that opts out of overlay tokens
+          // (`outlineInteraction` none / solid-tint). Counted; any other absent fill fails (docs/34 question 3).
+          if (p.fill && !f && /^interactive\.[a-z0-9-]+\.overlay\./.test(p.fill) && !brandHasWash) shWashOptOut++;
+          else if (p.fill && !f) { shFails.push(`${tag} fill ${p.fill} not emitted`); continue; }
+          const fa = f ? alphaOf(f.path) : 0;
+          if (f && (!f.hex || fa === undefined)) { shFails.push(`${tag} fill ${p.fill} alpha unresolved`); continue; }
+          if (f && (fa as number) > 0) shWashed++;
+          const isHc = m.mode === 'hc-light' || m.mode === 'hc-dark';
+          for (const g of SH_GROUNDS) {
+            const ground = m.roles[g];
+            if (!ground?.hex) { shFails.push(`${tag} ground ${g} unresolved`); continue; }
+            const gRgb = hexToRgb(ground.hex);
+            const inside = f ? composite(gRgb, hexToRgb(f.hex), fa as number) : gRgb;
+            const outer = contrast(hexToRgb(b.hex), gRgb), inner = contrast(hexToRgb(b.hex), inside);
+            shCells++;
+            if (outer < 3) shFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+            if (inner < 3) shFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            if (isHc) {
+              shHcCells++;
+              if (f && (fa as number) > 0) shHcWashed++;
+              if (outer < 4.5) shHcFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+              if (inner < 4.5) shHcFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            }
+          }
+        }
+      }
+    }
+    const shModesMissing = SH_MODES.filter((mm) => !shModesSeen.has(mm));
+    // `shWashed > 0` is the arm that keeps the inside comparison from degenerating into the outside one: if no
+    // measured member composited a real wash, the gate would be measuring the page twice and calling it both.
+    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed > 0,
+      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
+    const shGrouped = new Map<string, string[]>();
+    for (const f of shFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shGrouped.set(key, [...(shGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shFails.length === 0,
+      `a11y(#1782): every status field border (danger / warning / success) clears 3:1 (SC 1.4.11) at hover against the page outside the control AND the hover wash composited over it inside, every corpus brand × mode — ${shFails.length} members below, in ${shGrouped.size} cells: ` + [...shGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shGrouped.size > 12 ? '; …' : ''));
+
+    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and at least one HC
+    // member must have composited a real wash — otherwise "inside" would be the page again and the arm would
+    // pass on the outside measurement alone.
+    const shHcGrouped = new Map<string, string[]>();
+    for (const f of shHcFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shHcGrouped.set(key, [...(shHcGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed > 0,
+      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
+    ok(shHcFails.length === 0,
+      `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
+
+    // STATUS ≠ FOCUS ARM (decision 2). The comparison is the resolved hex of each status border against the
+    // resolved hex of `border.focus` in the SAME mode — never the engine's `avoid` list. Wireframe variants are
+    // added because that is the mode where every status and the focus ring share one (neutral) ramp.
+    const SF_STATUSES = ['danger', 'warning', 'success'];
+    const sfCollide: string[] = [];
+    const sfModesSeen = new Set<string>();
+    let sfPairs = 0, sfSharedRamp = 0, sfModes = 0;
+    const sfBrands: Array<[string, Theme]> = [
+      ...SH_CORPUS,
+      ...SH_CORPUS.map(([id, th]) => [`${id}+wireframe`, { ...th, modes: [...th.modes.filter((mm) => mm !== 'wireframe'), 'wireframe'] }] as [string, Theme]),
+    ];
+    for (const [brand, th] of sfBrands) {
+      for (const m of resolveAllModes(th)) {
+        sfModesSeen.add(m.mode);
+        sfModes++;
+        const focus = m.roles['border.focus'];
+        if (!focus?.hex) { sfCollide.push(`${brand}/${m.mode} border.focus unresolved`); continue; }
+        for (const st of SF_STATUSES) {
+          const b = m.roles[`border.${st}`];
+          if (!b?.hex) { sfCollide.push(`${brand}/${m.mode} border.${st} unresolved`); continue; }
+          sfPairs++;
+          // Counted so the arm can show it walked pairs that COULD collide: same palette, different step.
+          if (b.path.split('.').slice(0, -1).join('.') === focus.path.split('.').slice(0, -1).join('.')) sfSharedRamp++;
+          if (b.hex.toLowerCase() === focus.hex.toLowerCase())
+            sfCollide.push(`${brand}/${m.mode} border.${st} = border.focus (${b.path.split('.').slice(-2).join('.')} ${b.hex})`);
+        }
+      }
+    }
+    ok(sfModes > 0 && sfPairs === sfModes * SF_STATUSES.length && ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'].every((mm) => sfModesSeen.has(mm)) && sfSharedRamp > 0,
+      `a11y(#1782) status ≠ focus: compared every status border with border.focus in every brand × mode, wireframe included (${sfPairs} pairs, ${sfSharedRamp} on the focus ring's own ramp)`);
+    ok(sfCollide.length === 0,
+      `a11y(#1782) status ≠ focus: no status field border (danger / warning / success) resolves to border.focus's color (owner decision, 2026-09-29: an errored field and a focused field must not share an edge color), every corpus brand × mode + prism3 + the NB master, and each in wireframe — ${sfCollide.length} collisions: ${sfCollide.slice(0, 12).join('; ')}${sfCollide.length > 12 ? '; …' : ''}`);
+  }
+
+  // ---- #1710: THE READ-ONLY FIELD BOUNDARY CLEARS 3:1 (SC 1.4.11) ON ITS FILL AND ITS PAGE GROUND ----
+  // A read-only field is still a control — focusable, in the tab order, submitted — so its boundary is the
+  // visual information a user needs to identify it, and SC 1.4.11 asks 3:1 of it. The rest/hover border
+  // (`field.border.*`) is contracted at 3:1 on the darkest permissible ground since #1341; the read-only
+  // arm binds a different role and nothing measured it. #1710 found it at ~2.7:1 on `background.secondary`.
+  //
+  // WHAT THE TWO SIDES ARE, per docs/34 question 1.
+  //   SUBJECT — the paint the PROJECTED member actually carries: `figmaAnatomySet` is walked for every member
+  //     at state=read-only (every status) — and, since the #1772 review, at rest / hover / filled too, the
+  //     states the defs' SC 1.4.11 line claims (see RO_SWEPT) — and each visible node that strokes contributes its
+  //     own stroke + fill. Read off the emitted plan, not off `def.tokens`, so a paint-grammar slip that
+  //     leaves the read-only member stroking some other key is measured as what it paints (shape 1's #536
+  //     fix). Scope is DISCOVERED from `componentDefs` (any def whose projected state axis carries
+  //     `read-only`) and then PINNED by name below, so a discovery that silently drops a field def fails
+  //     instead of shrinking the sweep (shape 15).
+  //   ORACLE — contrast RECOMPUTED from the resolved hexes against two page grounds written here as
+  //     literals (`background.primary`, `background.secondary` — the surfaces a field is placed on, and the
+  //     pair #1710 measured). Never the role's own `ratio`, `against` or `min`: `border.secondary` declares
+  //     `against: background.primary, min: 0`, so any check that read its declaration would pass it (shape 1,
+  //     the #573 border-contrast instance). The fill is composited over each ground by its REAL alpha, read
+  //     from the emitted primitive's `$value` rather than inferred from the path name — the default
+  //     `field.fill` is transparent, so today the fill IS the ground, and a brand pointing it at a solid
+  //     surface is measured against that surface.
+  // BOTH SIDES ARE REQUIRED: the border against the page ground outside the control AND against the fill
+  // inside it. With a transparent fill they are one comparison; with an opaque read-only fill they diverge,
+  // and whether the outer edge alone may fall below 3:1 is part of #1710's open decision — not assumed here.
+  {
+    // The corpus the contract is built over (`corpus()` — nb, aurora, harbor, wendys and the minimal-lever
+    // fixtures), plus prism3 and the NB master theme — the brand the owner works in. The master's brand
+    // input is COPIED here as literal values (the owner's file, 2026-09-28; byte-identical to the #1354
+    // block's copy), so this check does not move when that file does.
+    const NB_MASTER_1710: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+    const RO_CORPUS: Array<[string, Theme]> = [
+      ...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+      ['prism3', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+      ['nb-master', brandTheme(NB_MASTER_1710)],
+    ];
+    const RO_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+    const RO_GROUNDS = ['background.primary', 'background.secondary'];
+    // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
+    // read-only member landed with #1699/#1709).
+    const RO_PINNED = ['text-field', 'textarea', 'select'];
+    // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
+    // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
+    // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
+    // #1772 retargeted textarea's `border.hover` to a 2.69:1 role and nothing failed). `filled` is the rest
+    // border holding a value. `focus-visible` and `disabled` are NOT swept: the focus border is gated against
+    // the page by its own contract, and disabled is contrast-exempt — the defs' prose claims neither here.
+    const RO_SWEPT = ['read-only', 'rest', 'hover', 'filled'];
+    // Every status is swept at every swept state. The status × hover coordinate was held out here until #1782
+    // (PR #1783) made the status borders clear the hover wash; its own gate is `a11y(#1782)`, and this sweep now
+    // covers the coordinate too.
+    const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
+    type RoPaint = { def: string; state: string; coord: string; stroke: string; fill?: string };
+    const roPaints: RoPaint[] = [];
+    // A member in a swept state that draws NO stroked boundary is a failure, never a skip (#1772 review): a
+    // fill-framed def discovered here used to contribute zero paints and stay green.
+    const roUnframed: string[] = [];
+    const roDefs = componentDefs.filter((d) => d.figmaProperties?.stateAxis?.values.includes('read-only'));
+    for (const d of roDefs) {
+      const axis = d.figmaProperties!.stateAxis!.values;
+      // A pinned def must PROJECT every swept state, so dropping one from its axis cannot shrink the sweep.
+      if (RO_PINNED.includes(d.id))
+        for (const st of RO_SWEPT) if (!axis.includes(st)) roUnframed.push(`${d.id}: no projected ${st} member`);
+      for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).filter((p) => RO_SWEPT.includes(String(p.coord.state)))) {
+        const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
+        let stroked = 0;
+        const walk = (n: any): void => {
+          if (n.visible !== false && typeof n.paints?.strokes === 'string') {
+            stroked++;
+            roPaints.push({ def: d.id, state: String(plan.coord.state), coord, stroke: roleOfVar(n.paints.strokes), fill: typeof n.paints.fills === 'string' ? roleOfVar(n.paints.fills) : undefined });
+          }
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+        if (!stroked) roUnframed.push(`${d.id}[${coord}]`);
+      }
+    }
+    const roMissingDefs = RO_PINNED.filter((id) => !roPaints.some((p) => p.def === id && p.state === 'read-only'));
+    ok(roMissingDefs.length === 0,
+      `a11y(#1710): the read-only boundary sweep REPRESENTS every pinned field def (text-field, textarea, select) with a stroked read-only member` + (roMissingDefs.length ? ` — missing: ${roMissingDefs.join(', ')}` : ''));
+    ok(roUnframed.length === 0,
+      `a11y(#1710): every discovered field member in a swept state (${RO_SWEPT.join(', ')}), every status, draws a stroked boundary — a member with none is unmeasured, not passing` + (roUnframed.length ? ` — ${roUnframed.length} without: ${roUnframed.slice(0, 6).join('; ')}${roUnframed.length > 6 ? '; …' : ''}` : ''));
+
+    const roFails: string[] = [];
+    const roModesMissing: string[] = [];
+    const roModesSeen = new Set<string>();
+    let roCells = 0, roCellsExpected = 0, roWashOptOut = 0;
+    for (const [brand, th] of RO_CORPUS) {
+      const built = buildTree(th).tree as any;
+      const alphaOf = (path: string): number | undefined => {
+        const v = at(built, path)?.$value;
+        return typeof v === 'string' && !v.startsWith('{') ? parseColor(v).a : undefined;
+      };
+      const modes = resolveAllModes(th);
+      if (!modes.length) roModesMissing.push(`${brand}: no modes`);
+      // Every mode × every stroked node × every ground is one cell; a `continue` below that skips a cell
+      // leaves `roCells` short of this, so a silent skip fails the floor as well as naming itself.
+      roCellsExpected += modes.length * roPaints.length * RO_GROUNDS.length;
+      for (const m of modes) {
+        roModesSeen.add(m.mode);
+        for (const p of roPaints) {
+          const tag = `${brand}/${m.mode} ${p.def}[${p.coord}]`;
+          const b = m.roles[p.stroke];
+          if (!b?.hex) { roFails.push(`${tag} stroke ${p.stroke} unresolved`); continue; }
+          let f = p.fill ? m.roles[p.fill] : undefined;
+          // THE ONE ABSENT FILL THAT IS NOT A FAILURE: a hover WASH (`interactive.*.overlay.*`) in a brand
+          // whose `outlineInteraction` lever opts out of overlay tokens (`none`, `solid-tint` — `minimal-levers`
+          // and the NB master theme). The engine emits no wash there by design (modes.ts), so the member paints
+          // no fill and the ground is what sits inside the border. Counted and printed, never silent; any other
+          // absent or unresolvable fill is a FAILURE, never a "treat as transparent" (docs/34 question 3).
+          if (p.fill && !f && /^interactive\.[a-z0-9-]+\.overlay\./.test(p.fill) && !Object.keys(m.roles).some((k) => /^interactive\.[a-z0-9-]+\.overlay\./.test(k))) {
+            roWashOptOut++;
+            f = undefined;
+          } else if (p.fill && !f) { roFails.push(`${tag} fill ${p.fill} not emitted`); continue; }
+          const fa = f ? alphaOf(f.path) : 0;
+          if (f && (!f.hex || fa === undefined)) { roFails.push(`${tag} fill ${p.fill} alpha unresolved`); continue; }
+          for (const g of RO_GROUNDS) {
+            const ground = m.roles[g];
+            if (!ground?.hex) { roFails.push(`${tag} ground ${g} unresolved`); continue; }
+            const gRgb = hexToRgb(ground.hex);
+            const inside = f ? composite(gRgb, hexToRgb(f.hex), fa as number) : gRgb;
+            const outer = contrast(hexToRgb(b.hex), gRgb), inner = contrast(hexToRgb(b.hex), inside);
+            roCells++;
+            if (outer < 3 || inner < 3)
+              roFails.push(`${tag} ${p.stroke} on ${g}: ${Math.min(outer, inner).toFixed(2)}`);
+          }
+        }
+      }
+    }
+    for (const want of RO_MODES) if (!roModesSeen.has(want)) roModesMissing.push(`no brand resolved ${want}`);
+    ok(roModesMissing.length === 0 && roCells > 0 && roCells === roCellsExpected,
+      `a11y(#1710): the field boundary sweep measured every corpus brand × mode × stroked member × ground (${roCells} of ${roCellsExpected} cells; ${roWashOptOut} member-modes with no hover wash because the brand opts out of overlay tokens, measured on the bare ground)` + (roModesMissing.length ? ` — modes missing: ${roModesMissing.join(', ')}` : ''));
+    // One line per brand × mode × stroke × ground, naming the defs and coordinates under it, so a failure
+    // reads as the cells a reviewer would measure rather than as dozens of near-identical rows.
+    const roGroup = (fails: string[]): string => {
+      const grouped = new Map<string, string[]>();
+      for (const f of fails) {
+        const m = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+        const key = m ? `${m[1]} ${m[4]}` : f;
+        grouped.set(key, [...(grouped.get(key) ?? []), m ? `${m[2]}[${m[3]}]` : '']);
+      }
+      return `${fails.length} members below, in ${grouped.size} cells: ` + [...grouped].map(([k, defs]) => `${k} (${defs.join(', ')})`).join('; ');
+    };
+    const roFailsReadOnly = roFails.filter((f) => /state=read-only\]/.test(f));
+    const roFailsOther = roFails.filter((f) => !/state=read-only\]/.test(f));
+    ok(roFailsReadOnly.length === 0,
+      `a11y(#1710): every projected read-only field member's border clears 3:1 (SC 1.4.11) on its read-only fill and page ground, every corpus brand × mode × status — ${roGroup(roFailsReadOnly)}`);
+    ok(roFailsOther.length === 0,
+      `a11y(#1710): every projected rest / hover / filled field member's border clears 3:1 (SC 1.4.11) on its fill and page ground, every corpus brand × mode × status — the states the field defs' SC 1.4.11 line claims — ${roGroup(roFailsOther)}`);
+  }
 
   // #1623 sign-off (C1/TF-5 + C1/TA-4) — ONE VALIDATION API ACROSS THE FIELD FAMILY. text-field, textarea and
   // select each express validation through the same two props, spelled the same way, over the same value set,
@@ -13136,13 +13824,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const selProj = select.figmaProperties!.stateAxis!.values;
     ok(selProj.includes('read-only') && !selProj.includes('pending'),
       `#1699 select projects read-only and holds pending out of the Figma state axis (stateAxis [${selProj.join(', ')}])`);
-    //     The projected read-only member, read off the PLAN: text-field's quieter boundary, the value at full
-    //     contrast, no placeholder; an error status keeps the danger boundary at read-only.
+    //     The projected read-only member, read off the PLAN: the editable field's boundary (`field.border.rest`,
+    //     owner decision 2026-09-29, #1710), the value at full contrast, no placeholder; an error status keeps the
+    //     danger boundary at read-only.
     const roPlan = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'read-only' } as never).root;
-    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/border/secondary'
+    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/field/border/rest'
       && findPart(roPlan, 'value')?.paints?.fills === 'color/text/primary'
       && !findPart(roPlan, 'placeholder'),
-      `#1699 select's read-only member draws the secondary border and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
+      `#1699/#1710 select's read-only member draws the editable field border (field.border.rest) and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
     const roErr = figmaAnatomyPlan(select, undefined, { status: 'error', state: 'read-only' } as never).root;
     ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
       `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);
@@ -18907,18 +19596,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'].map(nbVar))
     ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
 
-  // Payload budget — the reason the colour lane is split across three passes in the first place.
-  // EVERY PAYLOAD, not every pass: `color-create` is chunked (#906), so iterating pass names and
-  // taking the first payload would measure a fraction of what ships and pass on any overrun in
-  // chunks 2..N. The bytes asserted are the finished string, the same one the CLI prints.
-  for (const name of passOrder()) {
-    const all = passPayloads('nb', name);
-    all.forEach((js, i) => {
-      const b = Buffer.byteLength(js, 'utf8');
-      const label = all.length > 1 ? `${name} chunk ${i + 1}/${all.length}` : name;
-      ok(b < 45_000, `materialise: pass '${label}' is inside the figma_execute budget (${b} bytes)`);
-    });
-  }
+  // Payload budget: EVERY BRAND since #1786, in the `materialise budget:` arms after this block. This
+  // arm read nb alone. Before #1767 chunked `color-aliases`, prism3's and wendys' single payloads were
+  // over the ceiling on main (46,436 and 45,101 B, measured at 7f00078f in #1786) and no arm read them.
 
   // THE CEILING CHUNKING CANNOT MOVE — asserted, so the health number is checked rather than merely
   // printed. Deliberately NOT worst-chunk fullness: the packer fills a chunk until the next row will
@@ -18973,6 +19653,27 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(new Set(packedNames).size === packedNames.length,
     `materialise: the packed rows carry ${packedNames.length} DISTINCT names (${new Set(packedNames).size} distinct) — a row duplicated across chunks keeps the row count and loses a variable`);
 
+  // COLOR-ALIASES IS CHUNKED TOO (the #1743 merge of main at 0.199.0): nb's single payload crossed the ceiling
+  // at 45,144 bytes once both sides' new colour variables met. The same three properties as color-create's
+  // packer, held the same way: every chunk carries rows and fits, the split path splits at a forced budget, and
+  // no row is lost or doubled — EXPECTED from the committed Figma export, not from the packer's input.
+  const aliasChunks = colorAliasesChunks('nb');
+  ok(aliasChunks.length >= 1 && aliasChunks.every((c) => c.rows > 0 && c.bytes < 45_000),
+    `materialise: color-aliases packs into ${aliasChunks.length} non-empty chunk(s), each inside the figma_execute budget (${aliasChunks.map((c) => `${c.rows} rows/${c.bytes}B`).join(', ')})`);
+  const aliasForced = colorAliasesChunks('nb', 6_000);
+  ok(aliasForced.length > 1 && aliasForced.every((c) => c.bytes <= 6_000 || c.rows === 1),
+    `materialise: the color-aliases packer actually splits — ${aliasForced.length} chunks at a 6,000B budget, none over unless a single row exceeds it`);
+  const aliasRowNames = (js: string): string[] => {
+    const m = /^const A=(\[.*\]);$/m.exec(js);
+    if (!m) throw new Error('color-aliases payload has no `const A=[...]` row array — the payload shape changed');
+    return (JSON.parse(m[1]) as [string, ...unknown[]][]).map((r) => r[0]);
+  };
+  const aliasPacked = aliasChunks.flatMap((c) => aliasRowNames(c.js));
+  const aliasForcedPacked = aliasForced.flatMap((c) => aliasRowNames(c.js));
+  ok(aliasPacked.length === exportedVars && new Set(aliasPacked).size === exportedVars
+    && aliasForcedPacked.length === exportedVars && new Set(aliasForcedPacked).size === exportedVars,
+    `materialise: every colour variable is re-aliased in exactly one color-aliases chunk (${aliasPacked.length} packed, ${new Set(aliasPacked).size} distinct; forced ${aliasForcedPacked.length}/${new Set(aliasForcedPacked).size}; ${exportedVars} in the committed color.light.json)`);
+
   // NO async IIFE — every pass must return its counts to the PASTING AGENT. `figma_execute` neither
   // awaits nor unwraps a returned Promise, so a `(async()=>{...})()` wrapper handed the caller
   // `result: undefined` while still reporting `success: true`: the created / bound / skipped / miss
@@ -18987,6 +19688,226 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // structured results, so match a top-level `return` of either shape, not an object literal alone.
     ok(/^\s*return\s*[{[]/m.test(js) || /^\s*return\s+\w+;\s*$/m.test(js),
       `materialise: pass '${name}' returns a structured result the pasting agent can verify`);
+  }
+}
+
+// #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
+// `color-aliases` pass EXECUTED rather than only measured.
+//
+// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The four committed
+// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints. harbor and
+// nb-redesign are `examples/*.design.md` briefs the plugin emits but no committed tree holds, so they are
+// compiled here (the dialect route cli.ts takes) and registered in memory; every pass then runs on them
+// unchanged. Both directions are checked against the directories, so a new brief or a new committed
+// tree that nobody lists here fails by name rather than going unmeasured. That is how prism3 and wendys
+// sat over the ceiling on main while this arm read nb alone: their single `color-aliases` payloads were
+// 46,436 and 45,101 B at 7f00078f, before #1767 chunked the pass (#1786). Unchunked on this PR's base
+// trees they would be 46,740 and 45,396 B, and nb's and aurora's 45,144 and 45,196 B.
+//
+// THE CEILING IS WRITTEN HERE, not read off the CLI's `BUDGET` or the packer's `COLOR_CHUNK_BYTES`:
+// a packer budget raised past the transport's limit must fail this arm, not move it.
+{
+  const FIGMA_EXECUTE_CEILING = 45_000;
+  const PASTE_BRANDS: { id: string; tree: 'committed' | 'brief' }[] = [
+    { id: 'nb', tree: 'committed' },
+    { id: 'prism3', tree: 'committed' },
+    { id: 'aurora', tree: 'committed' },
+    { id: 'wendys', tree: 'committed' },
+    { id: 'harbor', tree: 'brief' },
+    { id: 'nb-redesign', tree: 'brief' },
+  ];
+  const figmaDirs = readdirSync(resolve(HERE, './out/figma')).sort();
+  const briefIds = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).map((f) => f.slice(0, -'.design.md'.length)).sort();
+  const listed = new Set(PASTE_BRANDS.map((b) => b.id));
+  const committedListed = PASTE_BRANDS.filter((b) => b.tree === 'committed').map((b) => b.id).sort();
+  ok(JSON.stringify(committedListed) === JSON.stringify(figmaDirs),
+    `materialise budget: the committed brands listed here are exactly the out/figma trees (listed ${committedListed.join(', ')}; on disk ${figmaDirs.join(', ') || 'NONE'})`);
+  const unlisted = briefIds.filter((id) => !listed.has(id));
+  ok(briefIds.length > 0 && unlisted.length === 0,
+    `materialise budget: every examples/*.design.md brief is a listed brand (${briefIds.length} briefs${unlisted.length ? `; UNLISTED: ${unlisted.join(', ')}` : ''})`);
+
+  // Each brand's files by path — disk for a committed tree, the emitter's own artifacts for a brief. The
+  // execution arms below read their EXPECTED alias targets from these files, never from the write plan.
+  // `registerFigmaTree` REFUSES an id with a committed tree, so the suite can never measure an in-memory
+  // tree while the CLI prints the one on disk. Asserted by name: nothing else would notice the refusal gone.
+  // The files offered are nb's own committed ones, not `[]`: were the refusal gone, an empty tree would
+  // shadow nb for every later arm and crash the suite before this failure printed; nb's own files keep
+  // every later nb arm reading what it reads today, so this arm is the one that fails.
+  {
+    const nbDir = resolve(HERE, './out/figma/nb');
+    const nbOwn = readdirSync(nbDir).map((f) => ({ path: f, content: readFileSync(resolve(nbDir, f), 'utf8') }));
+    let refused = '';
+    try { registerFigmaTree('nb', nbOwn); } catch (e) { refused = (e as Error).message; }
+    ok(refused.includes("'nb'") && refused.includes('committed'),
+      `materialise budget: registerFigmaTree refuses 'nb', which has a committed out/figma tree (${refused ? `threw: ${refused}` : 'did NOT throw'})`);
+  }
+
+  const trees = new Map<string, Map<string, string>>();
+  for (const { id, tree } of PASTE_BRANDS) {
+    try {
+      if (tree === 'committed') {
+        const dir = resolve(HERE, `./out/figma/${id}`);
+        trees.set(id, new Map(readdirSync(dir).map((f) => [f, readFileSync(resolve(dir, f), 'utf8')])));
+      } else {
+        const text = readFileSync(resolve(HERE, `./examples/${id}.design.md`), 'utf8');
+        const std = parseStandardDesignMd(text);
+        const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+        const { artifacts } = figmaArtifacts(brandTheme(input));
+        registerFigmaTree(id, artifacts);
+        trees.set(id, new Map(artifacts.map((a) => [a.path, a.content])));
+      }
+    } catch (e) {
+      ok(false, `materialise budget: ${id} — its Figma tree loads (${(e as Error).message})`);
+    }
+  }
+
+  // EVERY PAYLOAD of every pass, every chunk of a chunked one: a pass measured by its first payload
+  // passes any overrun in chunks 2..N. The bytes are the finished strings the CLI prints.
+  // A pass that THROWS for one brand fails that brand's arm by name, with the error, and the suite goes
+  // on: uncaught, it crashed the run with an unnamed TypeError and skipped every later assertion.
+  for (const { id } of PASTE_BRANDS) {
+    if (!trees.has(id)) continue;
+    const sizes: { label: string; bytes: number }[] = [];
+    try {
+      for (const name of passOrder()) {
+        const all = passPayloads(id, name);
+        all.forEach((js, i) => sizes.push({ label: all.length > 1 ? `${name} chunk ${i + 1}/${all.length}` : name, bytes: Buffer.byteLength(js, 'utf8') }));
+      }
+    } catch (e) {
+      ok(false, `materialise budget: ${id} — every pass payload and every chunk is ≤ ${FIGMA_EXECUTE_CEILING} B — a pass THREW: ${(e as Error).message}`);
+      continue;
+    }
+    const worst = sizes.reduce((a, b) => (b.bytes > a.bytes ? b : a), { label: 'none', bytes: 0 });
+    const over = sizes.filter((s) => s.bytes > FIGMA_EXECUTE_CEILING);
+    ok(sizes.length >= passOrder().length && over.length === 0,
+      `materialise budget: ${id} — every pass payload and every chunk is ≤ ${FIGMA_EXECUTE_CEILING} B (largest: ${worst.label}, ${worst.bytes} B, of ${sizes.length} payloads)${over.length ? ` — OVER: ${over.map((s) => `${s.label} ${s.bytes} B`).join(', ')}` : ''}`);
+  }
+
+  // THE CHUNKS, EXECUTED. A stateful Variables shim: the palette, every `color-create` chunk and
+  // `dims-create` (a wash's `opacity/<n>` target) run first, so every variable the alias pass looks up
+  // was made by the pass that makes it in Figma, not placed by hand. Every `color-aliases` chunk then
+  // runs in paste order, and every write is logged with the phase it happened in.
+  //
+  // nb-redesign is light-only, so its arms cannot see a mode-crossing defect (a pass binding one mode's
+  // target in every mode): with one mode, every target is that mode's. The four-mode brands carry that
+  // coverage; nb-redesign is here for its own tree and its one-chunk case.
+  type ShimCol = { id: string; name: string; modes: { name: string; modeId: string }[]; renameMode: (id: string, n: string) => void; addMode: (n: string) => string };
+  type ShimVar = { id: string; name: string; variableCollectionId: string; resolvedType: string; values: Record<string, unknown>; setValueForMode: (m: string, v: unknown) => void };
+  const AsyncFn = Object.getPrototypeOf(async () => {}).constructor;
+  const makeShim = () => {
+    const cols: ShimCol[] = [];
+    const vars: ShimVar[] = [];
+    const writes: { phase: string; varName: string; modeId: string; value: unknown }[] = [];
+    let phase = '';
+    const figma = {
+      variables: {
+        getLocalVariablesAsync: async () => [...vars],
+        getLocalVariableCollectionsAsync: async () => [...cols],
+        createVariableCollection: (name: string) => {
+          const col: ShimCol = {
+            id: `C${cols.length}`, name, modes: [],
+            renameMode(modeId, n) { const m = col.modes.find((x) => x.modeId === modeId); if (m) m.name = n; },
+            addMode(n) { const modeId = `${col.id}:M${col.modes.length}`; col.modes.push({ name: n, modeId }); return modeId; },
+          };
+          col.modes.push({ name: 'Mode 1', modeId: `${col.id}:M0` });
+          cols.push(col);
+          return col;
+        },
+        createVariable: (name: string, col: ShimCol, resolvedType: string) => {
+          const v: ShimVar = {
+            id: `V${vars.length}`, name, variableCollectionId: col.id, resolvedType, values: {},
+            setValueForMode(m, val) { v.values[m] = val; writes.push({ phase, varName: v.name, modeId: m, value: val }); },
+          };
+          vars.push(v);
+          return v;
+        },
+        createVariableAlias: (v: ShimVar) => ({ type: 'VARIABLE_ALIAS', id: v.id }),
+      },
+    };
+    const run = async (p: string, js: string) => { phase = p; return await new AsyncFn('figma', js)(figma); };
+    return { cols, vars, writes, run };
+  };
+  const setUp = async (id: string) => {
+    const s = makeShim();
+    for (const name of ['palette', 'color-create', 'dims-create']) for (const js of passPayloads(id, name)) await s.run(name, js);
+    return s;
+  };
+  // An alias value, rendered by TARGET NAME: a plain alias is its target's name, a wash is
+  // `<fill> @ <opacity variable>`. Anything else is not an alias write.
+  const aliasName = (s: ReturnType<typeof makeShim>, v: unknown): string | null => {
+    const nameOf = (a: unknown) => {
+      const x = a as { type?: string; id?: string } | null;
+      return x && x.type === 'VARIABLE_ALIAS' ? s.vars.find((w) => w.id === x.id)?.name ?? `?${x.id}` : null;
+    };
+    const plain = nameOf(v);
+    if (plain) return plain;
+    const wash = v as { color?: unknown; opacity?: unknown } | null;
+    if (wash && typeof wash === 'object' && 'color' in wash) return `${nameOf(wash.color)} @ ${nameOf(wash.opacity)}`;
+    return null;
+  };
+  const MODE_ORDER = ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'];
+
+  for (const { id } of PASTE_BRANDS) {
+    const files = trees.get(id);
+    if (!files) continue;
+    // Same reason as the budget loop: a pass that throws fails this brand's arm by name and the suite goes on.
+    try {
+      const modes = MODE_ORDER.filter((m) => files.has(`color.${m}.json`));
+      const colorFiles = modes.map((m) => JSON.parse(files.get(`color.${m}.json`)!) as FigmaCollectionFile);
+      // EXPECTED, from the emitted colour files: `<var> @ <mode>` -> the alias each file names.
+      const expected = new Map<string, string>();
+      colorFiles.forEach((f, i) => {
+        for (const v of f.variables as { name: string; alias?: { name: string } | null; aliasOpacity?: { name: string } }[]) {
+          if (!v.alias) continue;
+          expected.set(`${v.name} @ ${modes[i]}`, v.aliasOpacity ? `${v.alias.name} @ ${v.aliasOpacity.name}` : v.alias.name);
+        }
+      });
+
+      const chunks = passPayloads(id, 'color-aliases');
+      const s = await setUp(id);
+      const results: { bound: number; expected: number; misses: string[] }[] = [];
+      for (const js of chunks) results.push(await s.run('color-aliases', js));
+      const colorCol = s.cols.find((c) => c.name === 'color');
+      const modeName = new Map((colorCol?.modes ?? []).map((m) => [m.modeId, m.name]));
+      const got = new Map<string, string[]>();
+      for (const w of s.writes.filter((x) => x.phase === 'color-aliases')) {
+        const key = `${w.varName} @ ${modeName.get(w.modeId) ?? `?${w.modeId}`}`;
+        got.set(key, [...(got.get(key) ?? []), aliasName(s, w.value) ?? 'NOT AN ALIAS']);
+      }
+      const problems: string[] = [];
+      for (const [key, want] of expected) {
+        const g = got.get(key) ?? [];
+        if (g.length !== 1) problems.push(`${key} aliased ${g.length}×`);
+        else if (g[0] !== want) problems.push(`${key} -> ${g[0]}, want ${want}`);
+      }
+      for (const key of got.keys()) if (!expected.has(key)) problems.push(`${key} aliased, but its file names no alias`);
+      const misses = results.flatMap((r) => r.misses);
+      const colorVars = new Set(colorFiles[0]?.variables.map((v) => v.name) ?? []);
+      const aliasedVars = new Set([...expected.keys()].map((k) => k.slice(0, k.lastIndexOf(' @ '))));
+      ok(chunks.length >= 1 && expected.size > 0 && problems.length === 0 && misses.length === 0,
+        `materialise chunks execute: ${id} — every colour variable is re-aliased exactly once per mode, to the target its emitted color.<mode>.json names (${chunks.length} chunk(s); ${aliasedVars.size}/${colorVars.size} variables, ${expected.size} mode-aliases expected, ${[...got.values()].reduce((n, g) => n + g.length, 0)} written; ${misses.length} misses${problems.length ? ` — ${problems.slice(0, 3).join('; ')}` : ''})`);
+
+      // ...and the chunks in order leave the file EXACTLY as the unchunked pass does. The reference plan is
+      // built from the same files, so this compares the packer's partition against the whole — the
+      // program itself is shared, and its correctness is the arm above's job, against the files.
+      const plan = buildWritePlan({ palette: JSON.parse(files.get('core.palette.json')!) as FigmaCollectionFile, color: colorFiles });
+      const w = await setUp(id);
+      const whole = await w.run('color-aliases', colorAliasesJs(plan)) as { bound: number; expected: number; misses: string[] };
+      const stateOf = (x: ReturnType<typeof makeShim>) => {
+        const col = x.cols.find((c) => c.name === 'color');
+        const mName = new Map((col?.modes ?? []).map((m) => [m.modeId, m.name]));
+        return JSON.stringify(x.vars.filter((v) => v.variableCollectionId === col?.id).map((v) =>
+          [v.name, Object.entries(v.values).map(([m, val]) => [mName.get(m), aliasName(x, val) ?? JSON.stringify(val)])]));
+      };
+      const aliasWrites = (x: ReturnType<typeof makeShim>) => x.writes.filter((e) => e.phase === 'color-aliases').length;
+      const sum = (k: 'bound' | 'expected') => results.reduce((n, r) => n + r[k], 0);
+      const same = stateOf(s) === stateOf(w) && sum('bound') === whole.bound && sum('expected') === whole.expected
+        && JSON.stringify(misses) === JSON.stringify(whole.misses) && aliasWrites(s) === aliasWrites(w);
+      ok(same,
+        `materialise chunks execute: ${id} — the ${chunks.length} chunk(s) in order leave the colour collection exactly as the unchunked color-aliases payload does (bound ${sum('bound')} vs ${whole.bound}; expected ${sum('expected')} vs ${whole.expected}; alias writes ${aliasWrites(s)} vs ${aliasWrites(w)}; misses ${misses.length} vs ${whole.misses.length})`);
+    } catch (e) {
+      ok(false, `materialise chunks execute: ${id} — the palette, color-create, dims-create and color-aliases payloads run in the shim — a pass THREW: ${(e as Error).message}`);
+    }
   }
 }
 
@@ -20900,7 +21821,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
-      // the gated axis — badge has no `genre=count, emphasis=subtle` — and the projector refuses a coordinate
+      // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
       // other axes in declaration order from the pinned one. For every def without an exclusion that is the
       // pinned coordinate itself, unchanged.
@@ -20934,9 +21855,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         ok(has(rest) === values.includes('rest'),
           `#910 ${def.id}: '${name}' is ${values.includes('rest') ? 'present' : 'absent'} when 'state' is not supplied — an unsupplied state reads as rest, and this gate ${values.includes('rest') ? 'names' : 'does not name'} rest`);
       else {
-        // ABSENT, OR REFUSED BY NAME (badge, 2026-09-27). `badge` is the first def whose gated axis (`genre`)
-        // also keys its GEOMETRY (`{genre}.pad-x`) and shares a paint template with another axis
-        // (`{tone}.{genre}.{slot}`), so the projector refuses a coordinate without it — a deliberate guard
+        // ABSENT, OR REFUSED BY NAME (badge, 2026-09-27). `badge` is the first def whose gated axis (`type`, first named `genre`)
+        // also keys its GEOMETRY (`{type}.pad-x`) and shares a paint template with another axis
+        // (`{tone}.{type}.{slot}`), so the projector refuses a coordinate without it — a deliberate guard
         // (#1248's unfillable-key throw, the partial-paint-coordinate throw) rather than a part asserted on
         // no evidence. A refusal is the conservative answer too, so it passes here only when its message
         // NAMES the gated axis AS THE MISSING ONE — read from the refusal's own missing list, not from anywhere
@@ -22281,15 +23202,23 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // host's own caret placement. The fixed control height is the mechanical half of the same fact.
     'text-field.entry':
       "text-field's entry row shows the single-line placeholder or value ellipsized to one line, so it does not wrap — the first line IS the block, and the caret, one line box tall, centred against it sits where a native caret sits. The control's fixed single-line height is the mechanical half of the same fact (as select.content).",
-    // `badge`'s surface (the genre axis, 2026-09-27) lists a text part and the sized `dot` box as children,
-    // but `presentWhen` on `genre` puts exactly one of them in any member: no member pairs the dot with a
+    // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
+    // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
     // count a capped number, so neither wraps either.
     'badge.surface':
-      "the dot and the two text parts are gated on genre and never present together, so no member pairs a sized box with a label; and the status label (one or two words) and the capped count do not wrap, so the first line IS the block.",
-    // `tag` (2026-09-27) pairs its check mark, leading icon and remove button with the label.
+      "the dot and the two text parts are gated on type and never present together, so no member pairs a sized box with a label; and the status label (one or two words) and the capped count do not wrap, so the first line IS the block.",
+    // `tag` (2026-09-28): the container pairs the label row with the dismissible tag's square × slot, and the
+    // label row pairs the leading icon and the trailing check mark with the label. Since #1758 the label WRAPS
+    // in code, so "it never wraps" is no longer the reason. The reason is the Figma projection, which is what
+    // this arm reads: the tag's height is FIXED at one line and its label is one line of placeholder text, so
+    // in every member the first line IS the block. In code a wrapped label centers the glyphs and the × slot on
+    // the label block, and whether they should sit on the first line instead is held for the owner (`tag.ts`
+    // `notes.contested`).
     'tag.container':
-      "a tag's label is one line, truncated with an ellipsis past its maximum width, so it does not wrap — the first line IS the block and centring the check mark, icon and remove button against it cannot float them mid-paragraph. The tag's fixed height is the mechanical half of the same fact (as button.container).",
+      "the tag's height is fixed at one line in Figma and its label is one line there, so the × slot centers against the only line; in code a wrapped label centers the slot on the label block, which is held for the owner (tag.ts notes.contested).",
+    'tag.content':
+      "the tag's height is fixed at one line in Figma and its label is one line there, so the leading icon and the check mark center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
   let pairedRows = 0;
   const centred: string[] = [];
@@ -22533,16 +23462,18 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   const prism3 = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input);
 
   // (1) THE OWNER'S DEFECT, as literals. NB master light: the off track is the light #DCDBDB, the on track
-  // the brand-neutral #34383D, and they sit 8.54:1 apart. prism3 light is the control: #DBDBDC / #0B008C,
-  // 10.90:1. Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
+  // the brand-neutral #0B0E10, and they sit 14.01:1 apart. prism3 light is the control: #DBDBDC / #1E1EFF,
+  // 5.65:1. (Before #1626 the on track was `fill.selected`'s own walked step — #34383D at 8.54:1 and
+  // #0B008C at 10.90:1; since 2026-09-29 `fill.selected` takes the rest step, so the on track is the brand's
+  // rest fill.) Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
   // #2D2C2C, 1.18:1 from the on track, and fails the first arm by name.
   const mOff = hexAt(master, 'light', 'off.fill'), mOn = hexAt(master, 'light', 'on.fill');
-  ok(mOff === '#dcdbdb' && mOn === '#34383d' && mOff !== mOn,
-    `#1354 NB master light: the off track is the light #dcdbdb and the on track #34383d — two different tracks (off=${mOff}, on=${mOn})`);
-  ok(ratio(mOff, mOn) === 8.54, `#1354 NB master light: off track vs on track is 8.54:1 (got ${ratio(mOff, mOn)}:1)`);
+  ok(mOff === '#dcdbdb' && mOn === '#0b0e10' && mOff !== mOn,
+    `#1354 NB master light: the off track is the light #dcdbdb and the on track #0b0e10 — two different tracks (off=${mOff}, on=${mOn})`);
+  ok(ratio(mOff, mOn) === 14.01, `#1354 NB master light: off track vs on track is 14.01:1 (got ${ratio(mOff, mOn)}:1)`);
   const pOff = hexAt(prism3, 'light', 'off.fill'), pOn = hexAt(prism3, 'light', 'on.fill');
-  ok(pOff === '#dbdbdc' && pOn === '#0b008c' && ratio(pOff, pOn) === 10.9,
-    `#1354 prism3 light: off track #dbdbdc vs on track #0b008c at 10.90:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
+  ok(pOff === '#dbdbdc' && pOn === '#1e1eff' && ratio(pOff, pOn) === 5.65,
+    `#1354 prism3 light: off track #dbdbdc vs on track #1e1eff at 5.65:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
 
   // (2) THE LEVER DOES NOT REACH THE OFF TRACK. The same brand at `neutralEmphasis` subtle and strong
   // resolves the off track, its border and its thumb to the SAME hexes — while the neutral BUTTON fill
@@ -22569,12 +23500,13 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     `#1354 prism3 light: off thumb #0d0d0e on the off track at 14.04:1 (got ${hexAt(prism3, 'light', 'off.indicator')}, ${ratio(hexAt(prism3, 'light', 'off.indicator'), pOff)}:1)`);
 
   // (4) THE CONTRAST CONTRACTS, every mode of every corpus brand + prism3 + the NB master, recomputed from
-  // resolved hexes. The on-thumb pair is held in every mode but `dark`, where `on-fill` (gated against
-  // `fill.rest`) measures 2.32–2.62:1 on `fill.selected` — the on arm is unchanged by owner decision and
-  // the gap is filed as #1763. The exemption is PINNED, not silent: exactly 10 dark rows fall under 3:1
-  // (every corpus brand's dark mode but aurora's, plus prism3's), and aurora dark holds at 8.59:1.
+  // resolved hexes. The on-thumb pair is held in EVERY mode, `dark` included. Until #1626/#1763 (owner,
+  // 2026-09-29) `dark` was exempt: `on.fill` (`primary.fill.selected`) walked a lighter step than rest and the
+  // light `on-fill` measured 2.32–2.62:1 on it, pinned here as `darkOnGap === 10`. `fill.selected` now takes
+  // the rest step, so the exemption is gone and the dark pair is asserted as LITERALS below — for the switch's
+  // on thumb and, through its own def, the checkbox's checked mark (the same role pair, bound independently).
   const misses: string[] = [];
-  let rows = 0, darkOnGap = 0, auroraDarkOn = 0;
+  let rows = 0;
   for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
     for (const m of resolveAllModes(theme)) {
       rows++;
@@ -22585,18 +23517,152 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       need('off thumb vs off track', ratio(h('off.indicator'), h('off.fill')));
       need('off glyph vs off thumb', ratio(h('off.icon'), h('off.indicator')));
       need('on track vs page', ratio(h('on.fill'), page));
-      if (m.mode === 'dark') {
-        if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++;
-        if (id.startsWith('aurora')) auroraDarkOn = ratio(h('on.indicator'), h('on.fill'));
-      }
-      else { need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill'))); need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator'))); }
+      need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill')));
+      need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator')));
     }
   ok(rows >= 40 && misses.length === 0,
-    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`) — misses: ${misses.join('; ') || 'none'}`);
-  ok(darkOnGap === 10,
-    `#1763 the dark-mode on-thumb exemption covers exactly 10 rows under 3:1 — every corpus brand's dark mode but aurora's, plus prism3's (got ${darkOnGap}); a new row under 3:1 is a regression, one fewer means #1763 moved`);
-  ok(auroraDarkOn === 8.59,
-    `#1763 aurora dark keeps its on thumb at 8.59:1 against the on track — the one dark mode outside the exemption (got ${auroraDarkOn}:1)`);
+    `#1354 / #1763 switch contrast: off border, off thumb, off glyph, on track, on thumb and on glyph clear 3:1 in all ${rows} brand×mode rows, dark included — misses: ${misses.join('; ') || 'none'}`);
+  // THE DARK LITERALS (#1763). Measured 2026-09-29 once the fix landed; before it these read 2.32–2.62:1
+  // everywhere but aurora. One row per corpus palette (the six minimal fixtures share one) plus prism3; the
+  // NB master theme ships light only. Switch: on thumb vs on track. Checkbox: checked mark vs checked box,
+  // read through `checkbox-control`'s own bindings. Re-measured after the tertiary gate (#1773): nb, harbor,
+  // wendys and prism3 moved their dark rest fill one step lighter, and the label escalated to a pure extreme.
+  // Aurora dark then moved 4.60 → 4.56 with the owner's dark-family tie rule (black 4.601 → white 4.565).
+  const DARK_ON: Record<string, number> = { nb: 4.58, aurora: 4.56, harbor: 4.58, wendys: 4.8, minimal: 4.63, prism3: 4.58 };
+  const cbRole = (key: string) => (checkboxControl.tokens[key] ?? '').replace(/^color\./, '');
+  const darkWrong: string[] = [];
+  let darkSeen = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }]) {
+    const short = id.split(' ')[0];
+    if (!(short in DARK_ON)) continue;
+    const dm = resolveAllModes(theme).find((m) => m.mode === 'dark');
+    if (!dm) { darkWrong.push(`${short}: no dark mode`); continue; }
+    darkSeen++;
+    const sw = ratio(dm.roles[role('on.indicator')].hex, dm.roles[role('on.fill')].hex);
+    const cb = ratio(dm.roles[cbRole('checked.icon')]?.hex ?? '#808080', dm.roles[cbRole('checked.fill')]?.hex ?? '#808080');
+    if (sw !== DARK_ON[short]) darkWrong.push(`${short} switch on thumb ${sw}:1 (want ${DARK_ON[short]})`);
+    if (cb !== DARK_ON[short]) darkWrong.push(`${short} checkbox checked mark ${cb}:1 (want ${DARK_ON[short]})`);
+  }
+  ok(darkSeen === 6 && darkWrong.length === 0,
+    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 4.58, aurora 4.56, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
+
+  // THE DARK-FAMILY TIE RULE (#1773, owner, 2026-09-29): when pure white and pure black both clear 4.5:1 on a
+  // fill and sit within 0.05:1 of each other, a dark-family mode takes WHITE; otherwise the higher ratio wins,
+  // and light modes are unchanged. (a) prism3 dark's primary label is white at 4.58:1 on `#3d68fc`, where black
+  // measures 4.584 against white's 4.581 — removing the rule paints it black and fails here by name. (b) The same
+  // near-tie fill in a LIGHT-family mode still takes the higher ratio, black. (c) A fill where white is under
+  // 4.5:1 (`#7398f8`, white 2.83) still takes black in a dark-family mode — the rule never trades legibility.
+  {
+    const pDark = resolveAllModes(prism3).find((m) => m.mode === 'dark')!;
+    const pInk = pDark.roles['interactive.primary.on-fill'], pFill = pDark.roles['interactive.primary.fill.rest'];
+    ok(pInk.hex === '#ffffff' && pFill.hex === '#3d68fc' && ratio(pInk.hex, pFill.hex) === 4.58,
+      `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc (got ${pInk.hex} on ${pFill.hex}, ${ratio(pInk.hex, pFill.hex)}:1)`);
+    const tieFill = hexToRgb('#3d68fc'), lightFill = hexToRgb('#7398f8');
+    ok(pureExtremeInk(tieFill, 'light', 4.5) === 'black',
+      `#1773 tie rule: a near-tie in a LIGHT-family mode still takes the higher ratio (black 4.584 over white 4.581 on #3d68fc; got ${pureExtremeInk(tieFill, 'light', 4.5)})`);
+    ok(ratio('#ffffff', '#7398f8') < 4.5 && pureExtremeInk(lightFill, 'dark', 4.5) === 'black',
+      `#1773 tie rule: where white is under 4.5:1 (#7398f8, white ${ratio('#ffffff', '#7398f8')}:1) a dark-family mode still takes black (got ${pureExtremeInk(lightFill, 'dark', 4.5)})`);
+
+    // (d) THE TIE IS 0.05:1, NOT WIDER (review of #1773). `#767676` in a dark-family mode: both extremes clear
+    // 4.5:1 (white 4.54, black 4.62) but black leads by 0.08, above `EXTREME_TIE`, so the higher ratio wins.
+    // Widening the tie to 0.2 paints it white and fails here by name.
+    const nearMiss = hexToRgb('#767676');
+    const nmW = contrast(hexToRgb('#ffffff'), nearMiss), nmB = contrast(hexToRgb('#000000'), nearMiss);
+    ok(nmW >= 4.5 && nmB >= 4.5 && nmB - nmW > 0.05 && nmB - nmW < 0.1 && pureExtremeInk(nearMiss, 'dark', 4.5) === 'black',
+      `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio (#767676: white ${nmW.toFixed(3)}, black ${nmB.toFixed(3)}, gap ${(nmB - nmW).toFixed(3)}; got ${pureExtremeInk(nearMiss, 'dark', 4.5)})`);
+    // (e) THE BOTH-CLEAR GUARD. At the engine's 4.5:1 on-fill floor the guard cannot fire: two inks within
+    // 0.05:1 of each other sit at 4.558:1 or above (they meet at 4.583, the fill where white and black tie),
+    // so neither is under 4.5. It protects a RAISED floor, so the witness raises it: at 7:1 on `#3d68fc`
+    // neither extreme clears (white 4.581, black 4.584), and the rule must not trade the higher ratio for
+    // white. Dropping the guard paints it white and fails here by name.
+    ok(pureExtremeInk(tieFill, 'dark', 7) === 'black',
+      `#1773 tie rule: when an extreme misses the floor (7:1 on #3d68fc, white 4.581, black 4.584) a dark-family near-tie still takes the higher ratio (got ${pureExtremeInk(tieFill, 'dark', 7)})`);
+  }
+
+  // THE TIE RULE ON THE STATUS ON-COLORS (owner, 2026-09-29, extending #1773). `text.on-<status>` /
+  // `icon.on-<status>` on the solid status fill take white on a dark-family near-tie, like the interactive
+  // on-fill. One representative moved cell per corpus palette plus prism3, as LITERALS: the fill, white ink
+  // on it, and the ratio read off the resolved hexes (every one still clears 4.5:1). The rule off for the
+  // status caller paints each black and fails here by name. The full list of 42 moved cells is in the
+  // `docs/00-progress.md` entry.
+  {
+    const STATUS_TIE: Array<[string, string, string, number]> = [
+      ['nb', 'info', '#317bb2', 4.56], ['aurora', 'brand', '#7269ca', 4.58], ['harbor', 'danger', '#cd4840', 4.57],
+      ['wendys', 'info', '#317bb2', 4.56], ['minimal', 'danger', '#c94c44', 4.56], ['prism3', 'success', '#2e8554', 4.57],
+    ];
+    const byId = new Map<string, Theme>([...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]), ['prism3', prism3]]);
+    const statusWrong: string[] = [];
+    let statusSeen = 0;
+    for (const [id, status, fillHex, want] of STATUS_TIE) {
+      const dm = resolveAllModes(byId.get(id)!).find((m) => m.mode === 'dark')!;
+      const fill = dm.roles[`foreground.${status}`].hex;
+      for (const slot of ['text', 'icon']) {
+        statusSeen++;
+        const ink = dm.roles[`${slot}.on-${status}`].hex;
+        if (fill !== fillHex || ink !== '#ffffff' || ratio(ink, fill) !== want)
+          statusWrong.push(`${id} dark ${slot}.on-${status}: ${ink} on ${fill} ${ratio(ink, fill)}:1 (want #ffffff on ${fillHex} ${want}:1)`);
+      }
+    }
+    ok(statusSeen === 12 && statusWrong.length === 0,
+      `#1773 tie rule on the status on-colors: dark text.on-/icon.on- take white at the pinned literals (nb info 4.56, aurora brand 4.58, harbor danger 4.57, wendys info 4.56, minimal danger 4.56, prism3 success 4.57:1) — seen ${statusSeen}; wrong: ${statusWrong.join('; ') || 'none'}`);
+  }
+
+  // AN AUTHORED ANCHOR PIN THAT MISSES THE TERTIARY TIER IS REPORTED (review of #1773). A pin is `exact`
+  // (#331), so it skips the tertiary gate and ships as authored; the tier check reports its miss the way a
+  // missed override is reported: a `warnings` entry, here naming `background.tertiary` as its ground, and one
+  // failed mode check in `buildTree`'s stats. Literals: the minimal brand with `modeAnchors.dark.primary: 550`
+  // emits primary.550 `#3661b5` at 2.69:1 on tertiary (3.02:1 on the floor, which it clears). The same brand
+  // unpinned reports nothing. Removing the tier check fails here by name.
+  {
+    const pinned = brandTheme({ ...MINIMAL_BRAND, modeAnchors: { dark: { primary: 550 } } } as BrandInput);
+    const dm = resolveAllModes(pinned).find((m) => m.mode === 'dark')!;
+    const fill = dm.roles['interactive.primary.fill.rest'];
+    const tierWarn = (dm.warnings ?? []).filter((w) => w.role === 'interactive.primary.fill.rest' && w.against === 'background.tertiary');
+    const pinnedStats = buildTree(pinned).stats;
+    const plain = resolveAllModes(brandTheme(MINIMAL_BRAND));
+    const plainStats = buildTree(brandTheme(MINIMAL_BRAND)).stats;
+    ok(fill.hex === '#3661b5' && ratio(fill.hex, dm.roles['background.tertiary'].hex) === 2.69
+      && tierWarn.length === 1 && Number(tierWarn[0].ratio.toFixed(2)) === 2.69 && tierWarn[0].min === 3
+      && pinnedStats.modeChecks - pinnedStats.modePass === 1
+      && plain.every((m) => !(m.warnings ?? []).some((w) => w.against === 'background.tertiary')) && plainStats.modePass === plainStats.modeChecks,
+      `#1773 a pinned anchor that misses background.tertiary is reported: minimal dark primary pinned at 550 emits ${fill.hex} at ${ratio(fill.hex, dm.roles['background.tertiary'].hex)}:1 on tertiary, with ${tierWarn.length} tier warning(s) (${tierWarn.map((w) => `${w.ratio.toFixed(2)}:1 < ${w.min}`).join(', ') || 'none'}) and ${pinnedStats.modeChecks - pinnedStats.modePass} failed mode check(s); unpinned: ${plainStats.modePass}/${plainStats.modeChecks}`);
+  }
+
+  // THE SELECTED FILL ON EVERY PAGE TIER (#1773, owner, 2026-09-29). The radio's checked dot, the checkbox's
+  // checked box and the switch's on track each read `interactive.primary.fill.selected` (the rest step), and
+  // each must clear SC 1.4.11's 3:1 on `background.primary`, `.secondary` AND `.tertiary` in every mode — the
+  // tertiary arm is the owner's option 2 (before it, dark tertiary read 2.71–2.86:1 in nb, harbor, wendys and
+  // prism3). LITERALS per brand × mode, [P, S, T], read through EACH def's own binding, so a rebind of one of
+  // the three is measured on its own; removing the tertiary gate in `modes.ts` fails the T column by name.
+  const TIER: Record<string, [number, number, number]> = {
+    'nb light': [5.62, 4.62, 4.08], 'nb dark': [4.24, 3.92, 3.49], 'nb hc-light': [10.03, 10.03, 10.03], 'nb hc-dark': [8.77, 8.77, 8.77],
+    'aurora light': [4.56, 3.76, 3.3], 'aurora dark': [4.26, 3.92, 3.52], 'aurora hc-light': [10.03, 10.03, 10.03], 'aurora hc-dark': [8.59, 8.59, 8.59],
+    'harbor light': [5.59, 4.91, 4.32], 'harbor dark': [4.24, 3.91, 3.5], 'harbor hc-light': [9.96, 9.96, 9.96], 'harbor hc-dark': [8.72, 8.72, 8.72],
+    'wendys light': [5.88, 4.85, 4.25], 'wendys dark': [4.05, 3.73, 3.32], 'wendys hc-light': [9.77, 9.77, 9.77], 'wendys hc-dark': [9.19, 9.19, 9.19],
+    'minimal light': [4.97, 4.1, 3.59], 'minimal dark': [3.91, 3.61, 3.22], 'minimal hc-light': [8.65, 8.65, 8.65], 'minimal hc-dark': [8.44, 8.44, 8.44],
+    'prism3 light': [7.82, 6.44, 5.65], 'prism3 dark': [4.24, 3.91, 3.51], 'prism3 hc-light': [9.38, 9.38, 9.38], 'prism3 hc-dark': [8.88, 8.88, 8.88],
+    'NB master light': [19.36, 15.95, 14.01],
+  };
+  const tierWrong: string[] = [];
+  let tierCells = 0;
+  const tierBinds: Array<[string, ComponentDef, string]> = [['radio checked dot', radioControl, 'checked.indicator'], ['checkbox checked box', checkboxControl, 'checked.fill'], ['switch on track', switchControl, 'on.fill']];
+  for (const { id, theme } of [...corpus().filter((b) => ['nb', 'aurora', 'harbor', 'wendys', 'minimal'].includes(b.id.split(' ')[0])), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }]) {
+    const short = id === 'NB master' ? id : id.split(' ')[0];
+    for (const m of resolveAllModes(theme)) {
+      const want = TIER[`${short} ${m.mode}`];
+      if (!want) { tierWrong.push(`${short} ${m.mode}: no literal row`); continue; }
+      for (const [label, def, key] of tierBinds) {
+        const fillHex = m.roles[(def.tokens[key] ?? '').replace(/^color\./, '')]?.hex ?? '#808080';
+        (['primary', 'secondary', 'tertiary'] as const).forEach((tier, i) => {
+          tierCells++;
+          const r = ratio(fillHex, m.roles[`background.${tier}`].hex);
+          if (r !== want[i] || r < 3) tierWrong.push(`${short} ${m.mode} ${label} on ${tier} ${r}:1 (want ${want[i]})`);
+        });
+      }
+    }
+  }
+  ok(tierCells === Object.keys(TIER).length * 3 * 3 && tierWrong.length === 0,
+    `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on background.primary, .secondary and .tertiary in every mode, at the pinned literals (${tierCells} cells) — wrong: ${tierWrong.slice(0, 6).join('; ') || 'none'}${tierWrong.length > 6 ? ` (+${tierWrong.length - 6})` : ''}`);
 
   // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
   // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every
@@ -22620,6 +23686,123 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   ok(disRows >= 40 && disMisses.length === 0,
     `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all ${disRows} brand×mode rows — misses: ${disMisses.join('; ') || 'none'}`);
 
+  // (4c) #1626 / #1763 — EVERY `on-fill` MEASURED AGAINST EVERY FILL STATE IT SITS ON. The mode contract
+  // gates `interactive.<c>.on-fill` (and its `inverse.` twin) against `fill.rest` only, so the four engaged
+  // fills were never measured against the label painted on them. This arm measures all five, for every
+  // on-fill role the engine emits (page and inverse ground, every family), in every mode of every corpus
+  // brand, prism3 and the NB master theme, from RESOLVED hexes — never a role's own `ratio`.
+  //
+  // The floor is AUTHORED here: `on-fill` is a TEXT ink (the button label), so 4.5:1 (SC 1.4.3). The same
+  // role also paints non-text marks — the switch's on thumb and the checkbox's checked mark, whose 1.4.11
+  // floor is 3:1 — but it is one role with one declared min, so the stricter bar governs; a role that
+  // declares any other min fails the drift arm below rather than silently moving this bar.
+  //
+  // What each state is held to:
+  //   rest               — the floor.
+  //   hover / pressed    — MEASURED, EXEMPT: transient states, exempt from the ink contract by the owner
+  //                        (#1456 on the inverse band; #1626 on the page). Counted in the represented line.
+  //   focused / selected — the floor, no exemption: these persist (a checked checkbox, an on switch).
+  //
+  // Before the owner's 2026-09-29 decision ("rest fill + deeper inverse ink") 113 focused/selected pairs
+  // missed and sat in a pinned register here. The fix moved the page's focused/selected fills onto the rest
+  // step and re-picked the inverse brand ink against every state fill, so the register is empty and the
+  // arm asserts zero misses. A regression back to the old page step (2.32–2.62:1 in `dark`) or to the
+  // rest-only inverse ink (2.53–3.55:1 on selected) fails `#1626 no on-fill falls under …` by name.
+  {
+    const ONFILL_FLOOR = 4.5;
+    const ONFILL_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
+    const TRANSIENT = new Set(['hover', 'pressed']);
+    const ONFILL_ROLE = /^(inverse\.)?interactive\.[^.]+\.on-fill$/;
+    const restUnder: string[] = [], minDrift: string[] = [], unmeasured: string[] = [], persistentUnder: string[] = [];
+    const grounds = new Set<string>(), families = new Set<string>();
+    const perState: Record<string, number> = {};
+    let onRows = 0, onRoles = 0, transientUnder = 0;
+    const brandsForOnFill = [
+      ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
+      { id: 'prism3', theme: prism3 }, { id: 'NB-master', theme: master },
+    ];
+    for (const { id, theme } of brandsForOnFill)
+      for (const m of resolveAllModes(theme)) {
+        onRows++;
+        for (const k of Object.keys(m.roles).filter((r) => ONFILL_ROLE.test(r))) {
+          onRoles++;
+          const ink = m.roles[k];
+          const base = k.slice(0, -'on-fill'.length);
+          grounds.add(k.startsWith('inverse.') ? 'inverse' : 'page');
+          families.add(k.split('.').slice(-2)[0]);
+          if (ink.min !== ONFILL_FLOOR) minDrift.push(`${id} ${m.mode} ${k} declares min ${ink.min}`);
+          // The fill states the ENGINE emitted for this family — read off the role set, independent of
+          // ONFILL_STATES, so a state this arm stops measuring is reported by name rather than skipped.
+          for (const r of Object.keys(m.roles).filter((r) => r.startsWith(`${base}fill.`))) {
+            const st = r.slice(`${base}fill.`.length);
+            if (!ONFILL_STATES.includes(st)) unmeasured.push(`${id} ${m.mode} ${r}`);
+          }
+          for (const st of ONFILL_STATES) {
+            const fill = m.roles[`${base}fill.${st}`];
+            if (!fill) { unmeasured.push(`${id} ${m.mode} ${base}fill.${st} MISSING`); continue; }
+            perState[st] = (perState[st] ?? 0) + 1;
+            const r = ratio(ink.hex, fill.hex);
+            if (r >= ONFILL_FLOOR) continue;
+            if (st === 'rest') restUnder.push(`${id} ${m.mode} ${k} rest ${r}:1`);
+            else if (TRANSIENT.has(st)) transientUnder++;
+            else persistentUnder.push(`${id} ${m.mode} ${k} ${st} ${r}:1`);
+          }
+        }
+      }
+    ok(onRows >= 40 && grounds.size === 2 && ['primary', 'destructive', 'neutral'].every((f) => families.has(f))
+      && ONFILL_STATES.every((st) => (perState[st] ?? 0) === onRoles),
+      `#1626 on-fill × fill-state represented: ${onRoles} on-fill roles across ${onRows} brand×mode rows, page and inverse ground (${[...grounds].sort().join('/')}), families ${[...families].sort().join('/')}, every state measured once per role (${ONFILL_STATES.map((s) => `${s}=${perState[s] ?? 0}`).join(', ')}); ${transientUnder} hover/pressed pairs under ${ONFILL_FLOOR}:1, exempt`);
+    ok(unmeasured.length === 0,
+      `#1626 every fill state the engine emits under an on-fill's family is measured against that on-fill — unmeasured: ${unmeasured.slice(0, 6).join('; ') || 'none'}${unmeasured.length > 6 ? ` (+${unmeasured.length - 6})` : ''}`);
+    ok(minDrift.length === 0,
+      `#1626 every on-fill role declares the ${ONFILL_FLOOR}:1 text floor this arm measures by — drift: ${minDrift.slice(0, 6).join('; ') || 'none'}`);
+    ok(restUnder.length === 0,
+      `#1626 every on-fill clears ${ONFILL_FLOOR}:1 on its rest fill — under: ${restUnder.slice(0, 6).join('; ') || 'none'}`);
+    ok(persistentUnder.length === 0,
+      `#1626 no on-fill falls under ${ONFILL_FLOOR}:1 on a focused or selected fill, in any brand or mode — under: ${persistentUnder.slice(0, 6).join('; ') || 'none'}${persistentUnder.length > 6 ? ` (+${persistentUnder.length - 6})` : ''}`);
+
+    // A `fill.rest` OVERRIDE CARRIES TO ITS FOCUSED / SELECTED TWINS (review of #1773). The override layer
+    // rewrites one role, and `on-fill` re-picks against the overridden rest, so a rest override that left
+    // the twins on the derived step read 3.28:1 on selected with no warning (prism3 dark, rest → primary.300,
+    // selected stuck at primary.550, on-fill → neutral.950). Literals: all three land on primary.300 #86a7f7
+    // and the ink clears 8.22:1 on them. Removing `withFillStateTwins` fails this by name.
+    {
+      const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
+      const pOv = brandTheme({ ...pIn, overrides: { ...((pIn as any).overrides ?? {}), dark: { ...(((pIn as any).overrides ?? {}).dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' } } } } as BrandInput);
+      const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
+      const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
+      const inkHex = dm.roles['interactive.primary.on-fill'].hex;
+      const twinsUnder = ['rest', 'focused', 'selected'].map((st) => `${st} ${fh(st)} ${ratio(inkHex, fh(st))}:1`).filter((x) => Number(x.split(' ')[2].slice(0, -2)) < ONFILL_FLOOR);
+      ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#86a7f7' && twinsUnder.length === 0 && ratio(inkHex, fh('selected')) === 8.22,
+        `#1626 a fill.rest override carries to focused and selected: prism3 dark rest → primary.300 puts all three on #86a7f7 and on-fill clears 8.22:1 on each (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}, on-fill ${inkHex} on selected ${ratio(inkHex, fh('selected'))}:1${twinsUnder.length ? `; under: ${twinsUnder.join(', ')}` : ''})`);
+    }
+    // AN EXPLICIT TWIN OVERRIDE BEATS THE CARRIED REST (review of #1773). Same brand and rest override, plus
+    // an explicit `fill.selected` → primary.600: rest and focused carry `#86a7f7`, selected stays on its own
+    // `#1e1eff`. Carrying the rest over an explicit twin fails here by name.
+    {
+      const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
+      const prev = ((pIn as any).overrides ?? {});
+      const pOv = brandTheme({ ...pIn, overrides: { ...prev, dark: { ...(prev.dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' }, 'interactive.primary.fill.selected': { palette: 'primary', step: '600' } } } } as BrandInput);
+      const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
+      const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
+      ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#1e1eff',
+        `#1626 an explicit fill.selected override beats the carried fill.rest override: prism3 dark rest → primary.300, selected → primary.600 (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}; want #86a7f7, #86a7f7, #1e1eff)`);
+    }
+    // THE PAGE `fill.selected` WORDING IS PAGE-ONLY (#1773). The owner's sentence ships on the page ground; the
+    // inverse band's selected fill still steps off rest (#1456), so it keeps the shared lead. Literals for both,
+    // from the live `.ai.json` of prism3. Dropping the `!inverse` scope gives the inverse role the page sentence
+    // and fails here by name.
+    {
+      const aiP3 = buildAiMetadata(prism3, buildTree(prism3).tree) as any;
+      const pageW: string = aiP3?.color?.['interactive.primary.fill.selected']?.when_to_use ?? '';
+      const invW: string = aiP3?.color?.['inverse.interactive.primary.fill.selected']?.when_to_use ?? '';
+      ok(pageW.startsWith('The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline.'),
+        `#1773 page interactive.primary.fill.selected carries the owner's wording in .ai.json (got ${JSON.stringify(pageW.slice(0, 120))})`);
+      ok(invW.startsWith('The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active.') && !invW.includes('same color as the rest fill'),
+        `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording (got ${JSON.stringify(invW.slice(0, 120))})`);
+    }
+  }
+
   // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
   // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
   const set = figmaAnatomySet(sc);
@@ -22642,22 +23825,34 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     `#1354 showStateLabel defaults to true in code on switch-control and switch-row (atom=${codeDefault(sc)}, row=${codeDefault(switchRow)})`);
 
   // (7) THE LOOSENED REFUSAL, PINNED (docs/34). `figmaPropertyErrors` used to refuse ANY boolean on a
-  // `presentWhen`-gated part; it now admits a boolean over two or more parts gated on one shared axis whose
-  // values they cover. The oracle is the refusal's own message; each arm drives the check over a patched def.
-  const PRESENCE_REFUSAL = /also declares? presentWhen/;
+  // `presentWhen`-gated part. #1765 admitted a boolean over parts that PARTITION one axis; the #1743 merge
+  // reconciled that with Tag's one-part variant gate into one rule: VARIANT gates only, DISJOINT across the
+  // targeted parts (no member builds two nodes for the boolean), and at least one member building a node.
+  // Coverage is no longer required. The oracle is each refusal's own message; each arm drives the check over
+  // a patched def, and the admitted arms are measured on the projection, not on the validator alone.
+  const PRESENCE_REFUSAL = /also declares? presentWhen|both build at|no member the set keeps builds/;
+  const OVERLAP_REFUSAL = /booleans\.showStateLabel → parts '.*' both build at .* the presence gates of the parts it targets must be disjoint/;
   const withBool = (part: string | readonly string[], parts?: Record<string, unknown>): ComponentDef =>
     ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts, ...(parts ?? {}) } },
       figmaProperties: { ...sc.figmaProperties!, booleans: { showStateLabel: { part, default: true, figmaName: 'State icon' } } } } as ComponentDef);
   ok(!figmaPropertyErrors(sc).some((e) => PRESENCE_REFUSAL.test(e)),
     `#1354 the authored State icon boolean over the check and the X is NOT refused (errors: ${figmaPropertyErrors(sc).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
-  ok(figmaPropertyErrors(withBool('onGlyph')).some((e) => PRESENCE_REFUSAL.test(e)),
-    '#1354 MUTATION: a boolean over ONE presentWhen-gated glyph is still refused — some members would have nothing to toggle');
-  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on'] } } })).some((e) => PRESENCE_REFUSAL.test(e)),
-    '#1354 MUTATION: two gated glyphs that leave `selection=off` uncovered are refused — coverage is checked, not assumed');
-  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: undefined } })).some((e) => PRESENCE_REFUSAL.test(e)),
-    '#1354 MUTATION: a gated glyph mixed with an ungated one is refused — the narrowing admits only all-gated parts');
-  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on', 'off'] } } })).some((e) => PRESENCE_REFUSAL.test(e)),
-    '#1354 MUTATION: two gated glyphs that BOTH exist at `selection=on` are refused — the gates must partition the axis, so every member builds exactly one node');
+  // An UNCOVERED value is now admitted: a boolean over the check alone leaves `selection=off` with no node, and
+  // that member simply has nothing to toggle. Projected: the check at the 12 `on` members, nothing at the 12 `off`.
+  const onlyOn = withBool('onGlyph');
+  const onlyOnSet = figmaAnatomySet(onlyOn);
+  const onlyOnGlyphs = onlyOnSet.map((p) => ({ sel: p.coord.selection, g: glyphNodes(p.root as unknown as GNode).filter((g) => g.visibleProp === 'State icon') }));
+  ok(!figmaPropertyErrors(onlyOn).some((e) => PRESENCE_REFUSAL.test(e))
+    && onlyOnGlyphs.filter((m) => m.sel === 'on').every((m) => m.g.length === 1 && m.g[0].name === 'onGlyph')
+    && onlyOnGlyphs.filter((m) => m.sel === 'off').every((m) => m.g.length === 0)
+    && onlyOnGlyphs.filter((m) => m.sel === 'on').length === 12 && onlyOnGlyphs.filter((m) => m.sel === 'off').length === 12,
+    `#1743 a boolean over ONE presentWhen-gated glyph is admitted — the uncovered selection=off members carry no node and nothing to toggle (errors: ${figmaPropertyErrors(onlyOn).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on'] } } })).some((e) => OVERLAP_REFUSAL.test(e)),
+    '#1354 MUTATION: two gated glyphs both gated to `selection=on` are refused BY NAME — they overlap there, and the boolean would drive two nodes at one member');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: undefined } })).some((e) => OVERLAP_REFUSAL.test(e)),
+    '#1354 MUTATION: a gated glyph mixed with an ungated one is refused BY NAME — the ungated one builds at every member, so the two overlap at selection=on');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on', 'off'] } } })).some((e) => OVERLAP_REFUSAL.test(e)),
+    '#1354 MUTATION: two gated glyphs that BOTH exist at `selection=on` are refused BY NAME — the gates must be disjoint, so every member builds at most one node');
   // THE `when` REFUSAL. A `when`-gated part under a boolean is refused outright: `present()` returns early
   // for a boolean part with no `presentWhen`, so without this refusal an absolute focus ring (or an
   // overlay) would be built at EVERY member instead of only at its state.

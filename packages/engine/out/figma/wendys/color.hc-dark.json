@@ -1246,14 +1246,14 @@
       ],
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7490196228027344,
-        "b": 0.7372549176216125,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/150"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -1265,14 +1265,14 @@
       ],
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.9607843160629272,
-        "g": 0.8901960849761963,
-        "b": 0.886274516582489,
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/050"
+        "name": "wds/core/palette/primary/250"
       }
     },
     {
@@ -1521,6 +1521,29 @@
       }
     },
     {
+      "name": "wds/color/interactive/primary/subtle-fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected tinted wash — the primary fill at 30% over the page",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.5960784554481506,
+        "b": 0.5843137502670288,
+        "a": 0.3019607961177826
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/color/interactive/primary/fill/rest"
+      },
+      "aliasOpacity": {
+        "value": 30,
+        "name": "wds/opacity/30"
+      }
+    },
+    {
       "name": "wds/color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1586,14 +1609,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7019608020782471,
-        "b": 0.6901960968971252,
+        "r": 0.9058823585510254,
+        "g": 0.5607843399047852,
+        "b": 0.5490196347236633,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/200"
+        "name": "wds/core/palette/danger/300"
       }
     },
     {
@@ -1605,14 +1628,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.9490196108818054,
-        "g": 0.8352941274642944,
-        "b": 0.8274509906768799,
+        "r": 0.9058823585510254,
+        "g": 0.5607843399047852,
+        "b": 0.5490196347236633,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/100"
+        "name": "wds/core/palette/danger/300"
       }
     },
     {
@@ -1926,14 +1949,14 @@
       ],
       "description": "Neutral fill, focused",
       "value": {
-        "r": 0.21568627655506134,
-        "g": 0.21960784494876862,
-        "b": 0.2235294133424759,
+        "r": 0.12941177189350128,
+        "g": 0.13333334028720856,
+        "b": 0.13333334028720856,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/750"
+        "name": "wds/core/palette/neutral/850"
       }
     },
     {
@@ -1945,14 +1968,14 @@
       ],
       "description": "Neutral fill, selected",
       "value": {
-        "r": 0.30588236451148987,
-        "g": 0.3137255012989044,
-        "b": 0.3176470696926117,
+        "r": 0.12941177189350128,
+        "g": 0.13333334028720856,
+        "b": 0.13333334028720856,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/650"
+        "name": "wds/core/palette/neutral/850"
       }
     },
     {
@@ -2375,14 +2398,14 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.2862745225429535,
-        "g": 0.5137255191802979,
-        "b": 0.2666666805744171,
+        "r": 0.32549020648002625,
+        "g": 0.5647059082984924,
+        "b": 0.30588236451148987,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/success/500"
+        "name": "wds/core/palette/success/450"
       }
     },
     {
@@ -2393,14 +2416,14 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.7176470756530762,
-        "g": 0.3607843220233917,
-        "b": 0.13725490868091583,
+        "r": 0.8470588326454163,
+        "g": 0.4431372582912445,
+        "b": 0.20000000298023224,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/warning/500"
+        "name": "wds/core/palette/warning/400"
       }
     },
     {
@@ -2411,14 +2434,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.8823529481887817,
+        "g": 0.40392157435417175,
+        "b": 0.40392157435417175,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/500"
+        "name": "wds/core/palette/danger/400"
       }
     },
     {
@@ -3222,7 +3245,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
       "value": {
         "r": 1,
         "g": 1,
@@ -3562,7 +3585,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
       "value": {
         "r": 1,
         "g": 1,
