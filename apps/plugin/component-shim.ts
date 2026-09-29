@@ -394,6 +394,12 @@ export const burnMs = (ms: number): void => { const t0 = Date.now(); while (Date
 export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   const page = opts.page;
+  /** Copy an instance's `mainComponent` onto a twin the host installs in its place (#1781) — same
+   *  non-enumerable shape `createInstance` gives it, so a relocated instance still reads back its source. */
+  const carryMain = (from: Node, to: Node): void => {
+    const m = (from as Record<string, unknown>).mainComponent;
+    if (m !== undefined) Object.defineProperty(to, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: m });
+  };
   /**
    * FIGMA'S FONT-LOADED STATE — per plugin RUN, and the host behavior no shim modelled (#680).
    *
@@ -1183,10 +1189,21 @@ export const makeShim = (opts: ShimOpts = {}) => {
     root: {
       findAllWithCriteria: (criteria?: { types?: string[] }) => {
         const types = criteria?.types ?? ['COMPONENT'];
-        const mkRef = (name: string, i: number, main?: Node) => ({
-          name, id: `73:${37 + i}`,
+        // `owner` is the node this component sits in — the SET it is a member of, or the page for a plain
+        // component. It is what the instance's `mainComponent.parent` reads back (#1781), and it is recorded
+        // HERE, by the host, at the moment `createInstance` is called on THIS object — never derived from the
+        // name the executor asked for, which is the lookup under test.
+        const PAGE_OWNER = { name: 'Page 1', type: 'PAGE' };
+        const mkRef = (name: string, i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
+          name, id: `73:${37 + i}`, type: 'COMPONENT',
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            // WHICH COMPONENT THIS IS AN INSTANCE OF, in Figma's own shape (`InstanceNode.mainComponent`, whose
+            // `parent` is the COMPONENT_SET for a variant). A plain descriptor — no live back-references, so a
+            // node tree still serializes — and NON-ENUMERABLE, so spreading or diffing a node's own keys does
+            // not grow a field the executor never wrote. The read-back reads it to tell `checkbox-row/size=small`
+            // from `switch-row/size=small`, which share every other property this shim models.
+            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
             // laid out at that width — so a message that wraps in a narrower field reads taller here too.
@@ -1225,8 +1242,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
             return inst;
           },
         });
-        const found: { name: string; id: string; createInstance: () => Node; children?: { name: string }[] }[] = [];
+        const found: { name: string; id: string; type: string; createInstance?: () => Node; children?: ReturnType<typeof mkRef>[] }[] = [];
         let seq = 0;
+        // A SET, carrying its members AS COMPONENTS (#1781) — the same objects a COMPONENT search returns for
+        // them, each knowing which set it belongs to. Was `children: [{ name }]`: names only, which was enough
+        // while the executor matched a name here and then instantiated whatever `compByName` held under it —
+        // and that re-lookup across every set in the file is the defect. A set whose children cannot be
+        // instantiated would make the fixed executor's success path unreachable, so the shim now answers the
+        // question the real host answers: a ComponentSetNode's children ARE ComponentNodes.
+        const mkSet = (name: string, members: ReturnType<typeof mkRef>[]) => ({ name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members });
         for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mkRef(name, seq++));
         for (const fn of opts.fileNodes ?? []) {
           if (fn.type === 'COMPONENT_SET') {
@@ -1235,17 +1259,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
             // and then see an empty member list, so every coordinate reported the fifth miss and the
             // success path was unreachable while looking exercised: the assertions about a wrong
             // coordinate would all have passed against a shim that had no right answer to give.
-            if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(fn.name, seq++), children: fn.variants.map((v) => ({ name: v })) });
+            const owner = { name: fn.name, type: 'COMPONENT_SET' };
+            const members = fn.variants.map((v) => mkRef(v, seq++, undefined, owner));
+            if (types.includes('COMPONENT_SET')) found.push(mkSet(fn.name, members));
             // The members, under their variant coordinates — the names a COMPONENT search really returns.
-            if (types.includes('COMPONENT')) for (const v of fn.variants) found.push(mkRef(v, seq++));
+            if (types.includes('COMPONENT')) for (const m of members) found.push(m);
           } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
         }
         if (opts.liveRoot) for (const n of page?.children ?? []) {
           const live = (n.children as Node[] | undefined) ?? [];
-          const kids = live.map((c) => ({ name: String(c.name) }));
           if (n.type === 'COMPONENT_SET') {
-            if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(String(n.name), seq++), children: kids });
-            if (types.includes('COMPONENT')) live.forEach((c) => found.push(mkRef(String(c.name), seq++, c)));
+            const owner = { name: String(n.name), type: 'COMPONENT_SET' };
+            const members = live.map((c) => mkRef(String(c.name), seq++, c, owner));
+            if (types.includes('COMPONENT_SET')) found.push(mkSet(String(n.name), members));
+            if (types.includes('COMPONENT')) for (const m of members) found.push(m);
           } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) found.push(mkRef(String(n.name), seq++));
         }
         return found;
@@ -1401,6 +1428,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // guaranteed failure. This is the host relocating a node it already accepted the write for, which
           // is not a plugin-API write and is not what the rule governs.
           (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
+          carryMain(n, t);   // #1781 — a relocated instance is still an instance of the same component
           if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
           for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinOf(kid));
           // DETACH the original: its ref setter now throws Figma's own message, the #1337 symptom.
@@ -1449,6 +1477,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // `visible=∅` divergence on the settled set and make this mode unfaithful to the host.
         (t as Record<string, unknown>).visible = (n as Record<string, unknown>).visible;
         (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
+        carryMain(n, t);   // #1781 — same as `twinOf`
         if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
         for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinAttached(kid));
         return t;
