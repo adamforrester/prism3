@@ -173,6 +173,13 @@
       "title": "body and caption keep `default`, the same way label keeps `emphasis`",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-09-28",
+      "issue": 259,
+      "title": "the style-guide generator's coverage, layout, contrast column, rerun and cell components",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": "2."
     }
   ]
 }

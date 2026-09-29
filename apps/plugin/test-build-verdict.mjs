@@ -574,6 +574,59 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   }
 }
 
+// ── #259: the style-guide step reaches its verdict, and its options cross the bridge ──────────────
+//
+// The same #870 shape on a new control: `style-guide-result` has to repaint the PAGE's row, not only the
+// chrome, or the button sits on "Drawing…" after a run that finished. And the Customize options are only
+// worth having if they reach the main thread, so the outgoing message is captured off the bus — the UI's
+// `parent.postMessage` lands on this window — and its options compared with the values picked here.
+// EXPECTED is authored in the words on screen; nothing reads `styleGuideState` (docs/34 shape 16).
+{
+  const { page, errors } = await openPanel();
+  await page.evaluate(() => {
+    window.__sent = [];
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'style-guide') window.__sent.push(m); });
+  });
+  await page.locator('button.stage', { hasText: 'Style guide' }).first().click();
+  await page.waitForSelector('.fs-row button.barbtn', { timeout: 5000 }).catch(() => {});
+  const readSg = () => page.evaluate(() => {
+    const btn = [...document.querySelectorAll('.fs-row button.barbtn')].find((b) => /style guide|Drawing/.test(b.textContent ?? ''));
+    const det = [...document.querySelectorAll('details.contracts')].find((d) => /Customize/.test(d.textContent ?? ''));
+    return {
+      button: btn ? btn.textContent : null,
+      disabled: btn ? btn.disabled : null,
+      verdict: btn ? [...btn.parentElement.querySelectorAll('.applystat')].map((n) => n.textContent) : [],
+      customize: det ? { open: det.open, text: det.textContent } : null,
+      sent: window.__sent,
+    };
+  });
+  const before = await readSg();
+  ok(before.button === '▦ Draw style guide' && before.disabled === false, `#259 the Style guide page offers "▦ Draw style guide", enabled — read "${before.button}", disabled ${before.disabled}`);
+  ok(before.customize !== null && before.customize.open === false, '#259 the per-type options fold away under a closed "Customize"');
+  ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
+    '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
+
+  await page.locator('details.contracts summary', { hasText: 'Customize' }).first().click();
+  await page.locator('.knob', { hasText: 'Color value' }).locator('select').selectOption('hsl');
+  await page.locator('.knob', { hasText: 'Display style' }).locator('select').selectOption('border');
+  const clicked = await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).then(() => true, () => false);
+  ok(clicked, '#259 the Draw style guide control can be clicked');
+  // postMessage delivers asynchronously; a real condition rather than a sleep.
+  await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const pending = await readSg();
+  ok(pending.button === '⋯ Drawing…' && pending.disabled === true, `#259 a run in flight reads "⋯ Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
+  ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
+    `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
+
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables: 11 on ↳ Primitive tokens, 11 on ↳ Semantic tokens' });
+  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '▦ Draw style guide'), null, { timeout: 5000 }).catch(() => {});
+  const done = await readSg();
+  ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
+  ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+  ok(errors.length === 0, `#259 no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 await browser.close();
 server.close();
 

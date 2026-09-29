@@ -29,7 +29,7 @@
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { AGENT_PROTOCOL_VERSION, parseCommand, failedResult } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd } from './agent-protocol';
-import type { MainToUi } from './messages';
+import type { MainToUi, StyleGuideOptions } from './messages';
 import type { BrandInput } from '@prism3/engine/theme';
 import { allLeaves, leafPageName } from './file-taxonomy';
 
@@ -45,6 +45,7 @@ export type AgentActions = {
   applyTheme(input: BrandInput, sink: ActionSink): Promise<void>;
   buildComponents(def: string | undefined, sink: ActionSink): Promise<void>;
   fileSetup(sink: ActionSink): Promise<void>;
+  styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
   prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
   seedFromFile(sink: ActionSink): Promise<void>;
 };
@@ -127,6 +128,7 @@ export const ROUTES: { [C in AgentCmd]: Route } = {
   'apply-theme': (c, a, sink) => a.applyTheme((c as Extract<ValidCommand, { cmd: 'apply-theme' }>).args.input, sink),
   'build-components': (c, a, sink) => a.buildComponents((c as Extract<ValidCommand, { cmd: 'build-components' }>).args.def, sink),
   'file-setup': (_c, a, sink) => a.fileSetup(sink),
+  'style-guide': (c, a, sink) => a.styleGuide((c as Extract<ValidCommand, { cmd: 'style-guide' }>).args, sink),
   prune: (c, a, sink) => {
     const { input, confirm } = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
     return a.prune(input, confirm, sink);

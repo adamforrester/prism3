@@ -23,7 +23,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
-import type { MainToUi, UiToMain } from './messages';
+import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
@@ -35,6 +35,11 @@ import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode } from './write-components';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
+import { ensureStyleGuideCells } from './style-guide-cells';
+import type { CellsApi } from './style-guide-cells';
+import { runStyleGuide, styleGuideSummary } from './style-guide';
+import type { SgContract } from './style-guide';
+import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
@@ -786,7 +791,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
     const page = scaffold.fileComponentsPage;
     let assetNote = '';
-    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean } = {};
+    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean; styleGuideCells?: unknown } = {};
     if (page) {
       // IDEMPOTENT ASSET BUILD: skipped when the page already holds either set, in any case (`ensureFileComponents`).
       const res = await ensureFileComponents(figma, page);
@@ -798,6 +803,11 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
         assetNote = `, built ${res.built.join(' + ')}` +
           (res.fontMisses.length ? ` (⚠️ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
       }
+      // The style-guide cell sets (#259) beside them — adopted wherever the file already has them, in any case.
+      const cells = await ensureStyleGuideCells(figma, page);
+      assets = { ...assets, styleGuideCells: cells };
+      if (cells.built.length) assetNote += `, built ${cells.built.join(' + ')}${cells.fontMisses.length ? ` (⚠️ ${cells.fontMisses.slice(0, 2).join('; ')})` : ''}`;
+      if (cells.adopted.length) assetNote += `, style-guide cells already present: ${cells.adopted.map((a) => a.page ? `${a.name} on ${a.page}` : a.name).join(', ')}`;
     } else {
       assetNote = ', ⚠️ no File Components page — assets not built';
     }
@@ -806,6 +816,33 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
     sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
+  }
+};
+
+/**
+ * STYLE GUIDE (#259, phase 1: color) — the token tables, drawn from the file's own variables with the cell sets
+ * file setup placed. `style-guide.ts` holds the plan and the executor; this reads the saved brand for the
+ * contrast column's grounds and floors (the engine's own contract, `resolveAllModes`), and reports.
+ *
+ * NO SAVED BRAND IS NOT A FAILURE: the tables are drawn and the contrast column reads "—", said once in the
+ * summary. A brand that no longer resolves is the same, with its reason.
+ */
+const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise<void> => {
+  try {
+    let contract: SgContract | null = null;
+    let contractNote = '';
+    try {
+      const input = restoreInput(figma.root);
+      if (input) contract = resolveAllModes(brandTheme(input));
+    } catch (e) {
+      contractNote = `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"`;
+    }
+    const result = await runStyleGuide(figma, contract, options);
+    const v = styleGuideSummary(result);
+    sink.data({ styleGuide: result });
+    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD) });
+  } catch (e) {
+    sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(`style guide failed: ${(e as Error).message}`, PRISM3_BUILD) });
   }
 };
 
@@ -902,7 +939,7 @@ const sendFonts = async (): Promise<void> => {
  * drives both the UI message and the agent command — a route pointed at a copy fails there by name.
  * Exported for that test only; nothing in the plugin imports it.
  */
-export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, prune, seedFromFile };
+export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, styleGuide, prune, seedFromFile };
 
 /**
  * THE AGENT LINK (off until the owner switches it on in the panel; never persisted). Commands arrive as
@@ -974,6 +1011,10 @@ onUiMessage((msg: UiToMain) => {
     case 'file-setup':
       // #1554 — scaffold the page skeleton + build the two template assets. Its own action.
       void ACTIONS.fileSetup(uiSink);
+      return;
+    case 'style-guide':
+      // #259 — the color tables, after Apply theme. Its own action.
+      void ACTIONS.styleGuide(msg.options ?? {}, uiSink);
       return;
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.

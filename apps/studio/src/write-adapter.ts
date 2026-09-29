@@ -119,6 +119,10 @@ export interface HostCommit {
    *  result is `file-setup-result`, a distinct verdict kind with its own slot, for the same one-kind-per-fact
    *  reason `component-result` is separate from `apply-result` — see `onHostMessage` below. */
   postFileSetup(): void;
+  /** Ask the host to draw the style-guide tables (#259; Figma only, no-op on web, which has no canvas). The
+   *  options are the panel's Customize fields, every one optional. Its result is `style-guide-result`, its own
+   *  kind and slot for the one-kind-per-fact reason above. */
+  postStyleGuide(options?: StyleGuideOptionsMsg): void;
   /** Ask the host to PRUNE the styles/variables/collections the current config no longer emits (#1521;
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
@@ -155,6 +159,8 @@ export interface HostCommit {
         // skeleton get laid" is separately true and separately actionable from a theme or component write,
         // so it needs its own verdict slot and cannot overwrite theirs.
         | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+        // #259 — the outcome of a `style-guide` run, its own slot.
+        | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
         // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
         // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
@@ -189,6 +195,18 @@ type UiComponentsMsg = { type: 'build-components'; def?: string };
 /** Kept in sync with `messages.ts` `UiToMain` (`file-setup`, #1554) — carries no payload; the taxonomy
  *  is a main-bundle config, not something the UI supplies (see `postFileSetup`). */
 type UiFileSetupMsg = { type: 'file-setup' };
+/** Kept in sync with `messages.ts` `StyleGuideOptions` (#259) — the panel's Customize fields. */
+export type StyleGuideOptionsMsg = {
+  collections?: string[];
+  types?: string[];
+  valueFormat?: 'hex' | 'rgba' | 'hsl' | 'hsb';
+  header?: 'dark' | 'light';
+  aliases?: boolean;
+  description?: boolean;
+  display?: 'auto' | 'default' | 'text' | 'icon' | 'border' | 'transparency';
+};
+/** Kept in sync with `messages.ts` `UiToMain` (`style-guide`, #259). */
+type UiStyleGuideMsg = { type: 'style-guide'; options?: StyleGuideOptionsMsg };
 /** Kept in sync with `messages.ts` `UiToMain` (`prune`, #1521) — `confirm` false previews, true deletes. */
 type UiPruneMsg = { type: 'prune'; input: unknown; confirm: boolean };
 /** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
@@ -209,6 +227,9 @@ const figmaCommit = (): HostCommit => ({
   },
   postFileSetup() {
     parent.postMessage({ pluginMessage: { type: 'file-setup' } as UiFileSetupMsg }, '*');
+  },
+  postStyleGuide(options) {
+    parent.postMessage({ pluginMessage: { type: 'style-guide', ...(options ? { options } : {}) } as UiStyleGuideMsg }, '*');
   },
   postPrune(input, confirm) {
     parent.postMessage({ pluginMessage: { type: 'prune', input, confirm } as UiPruneMsg }, '*');
@@ -240,6 +261,10 @@ const figmaCommit = (): HostCommit => ({
         // truncation the headline exists to remove.
         const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ file set up' : '✗ setup failed';
         cb({ kind: 'file-setup-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
+      } else if (m.type === 'style-guide-result') {
+        // #259. Same headline fallback, same reason.
+        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ style guide written' : '✗ style guide failed';
+        cb({ kind: 'style-guide-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
       } else if (m.type === 'component-progress') {
         // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
         // above, which fall back to a default headline. A result is a fact the designer is waiting for,
@@ -310,6 +335,7 @@ const webCommit = (): HostCommit => ({
   postTheme() {/* web commits via the export bar (download design.md / tokens.json) */},
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
   postFileSetup() {/* no canvas on web — file scaffolding is a Figma-only action (#1558) */},
+  postStyleGuide() {/* no canvas on web — the style guide is drawn in Figma (#259) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
