@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.199.0 — #1782: the three FIELD STATUS borders (`border.danger` / `border.warning` / `border.success`)
+ * clear their non-text floor on the grounds a status field actually draws them on. `text-field`, `textarea`
+ * and `select` keep the status border at hover, where the control fills with the translucent
+ * `interactive.neutral.overlay.hover` wash; contracted against `background.primary` alone, the 500 anchor
+ * measured 2.64–3.00:1 against that wash composited over `background.secondary` (132 members, 44 cells).
+ * The roles now also clear `background.secondary` and the wash composited over either page ground, through
+ * `pickBrand`'s existing `alsoClear` at the role's own `nonTextMin` (4.5 in HC), with the wash at its
+ * emitted 8-bit alpha (26/255). Values move one rung in light/dark (light → 550, dark → 450) wherever 500
+ * missed, and one or two rungs in HC (hc-light → 550/600, hc-dark → 400/450); 104 role-modes across the
+ * corpus + prism3, none in the NB master theme (no wash, and 500 already clears `background.secondary`).
+ * `border.brand` / `border.info` are not field statuses and do not move. NB's authored 500s now diverge
+ * (ten `NB_KNOWN_DIVERGENCES` rows, group seven). Emitted values move in every washed brand → ENGINE bump.
+ * CONTRACT STANDS at 13.2.0 (no token name moves; no projected member moves).
+ *
  * 0.198.0 — #1745: Badge's three NEUTRAL pairs become mode contracts instead of example-brand measurements, so
  * every brand the engine generates is checked, not only the corpus. `border.secondary` is contracted against
  * `background.primary` at the mode's non-text bar (3:1, 4.5:1 in high-contrast), and its `pickClosest` now
@@ -4110,7 +4124,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.198.0';
+export const ENGINE_VERSION = '0.199.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

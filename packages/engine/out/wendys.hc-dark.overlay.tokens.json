@@ -3054,7 +3054,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{wds.core.palette.success.500}",
+          "$value": "{wds.core.palette.success.450}",
           "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -3069,8 +3069,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "wds.core.palette.success.500",
-              "contrast": 4.61,
+              "aliasOf": "wds.core.palette.success.450",
+              "contrast": 5.47,
               "against": "background.primary",
               "min": 4.5
             }
@@ -3078,7 +3078,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{wds.core.palette.warning.500}",
+          "$value": "{wds.core.palette.warning.400}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -3093,8 +3093,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "wds.core.palette.warning.500",
-              "contrast": 4.57,
+              "aliasOf": "wds.core.palette.warning.400",
+              "contrast": 6.33,
               "against": "background.primary",
               "min": 4.5
             }
@@ -3102,7 +3102,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{wds.core.palette.danger.500}",
+          "$value": "{wds.core.palette.danger.400}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -3117,8 +3117,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "wds.core.palette.danger.500",
-              "contrast": 4.57,
+              "aliasOf": "wds.core.palette.danger.400",
+              "contrast": 6.34,
               "against": "background.primary",
               "min": 4.5
             }

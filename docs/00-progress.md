@@ -7,6 +7,32 @@
 
 ---
 
+## (2026-09-29) — Status field borders clear 3:1 on the hover wash (#1782)
+
+**STATUS: PR open from `lane/status-border-hover`, labeled DO NOT MERGE. Closes #1782.** ENGINE 0.198.0 → **0.199.0** (the orchestrator renumbers). Emitted values move; CONTRACT stands at 13.2.0 (no token name, no projected member; stamp-only accept). No new regen artifact.
+
+**The defect.** At `state=hover`, `text-field`, `textarea` and `select` fill the control with the translucent `interactive.neutral.overlay.hover` wash (10% black on light, 10% white on dark). A non-default status keeps its status border there (`border.danger` / `.warning` / `.success`). Those roles were contracted at 3:1 against `background.primary` only. Against the wash composited over `background.secondary`, the 500 anchor measured 2.64–3.00:1: 132 members in 44 brand × mode × stroke × ground cells, found by #1772's extension of the #1710 sweep.
+
+**The fix is an existing mechanism, not a new rule.** `pickBrand` already takes `alsoClear`, the extra grounds a role must also clear. The semantic inks use it for their own `-subtle` tint. The three field status borders now pass three extra grounds: `background.secondary` (the field's darkest permissible ground since #1341), and the hover wash composited over each page ground. The anchor stays 500 wherever it clears all of them. `border.brand` and `border.info` are not field statuses and keep the page-only contract. A brand that opts out of the wash (`outlineInteraction` none / solid-tint) adds only `background.secondary`.
+
+**What moves: 104 role-modes across the corpus and prism3, none in the NB master theme.**
+- **Light:** one rung darker (500 → 550) where 500 missed. That is all three statuses in harbor and prism3, nb warning, danger in aurora and the minimal fixtures, and wendys success (14 role-modes).
+- **Dark:** one rung lighter (500 → 450) for all three statuses in every washed brand.
+- **HC:** hc-light moves to 600 (danger, warning) or 550–600 (success); hc-dark moves to 400–450. HC moves more because the extra grounds take the role's own floor, `nonTextMin`, which is 4.5 in HC. On the wash, 500 measured 3.6–3.9:1: above SC 1.4.11 but under HC's own non-text floor. The neutral `field.border.hover` already clears 5.3:1 on the same wash in HC, so this holds the status border to what its neutral sibling already does.
+- **NB master theme:** it has no wash, and 500 already clears `background.secondary`, so nothing moves.
+- **NB fixture:** NB's authored 500s now diverge in ten role-modes. They are recorded as group seven of `NB_KNOWN_DIVERGENCES`, with the same owner stance as groups 1 and 4: the authored value is a real non-text miss.
+
+**The alpha trap, for whoever re-measures this.** The wash primitive is emitted as 8-digit hex (`#0000001a`), so "10%" renders at 26/255 = 0.102. The first cut composited at the nominal 0.1 inside the engine. It passed there and failed the gate in aurora, wendys and the minimal fixtures' light mode at 2.99–3.00:1, because the gate reads the emitted `$value`. The engine now composites at the quantized alpha. A contract has to hold on the value that ships, not the value the source code names.
+
+**The gate (`test.ts`, `a11y(#1782)`), standalone by design.** It walks the projected hover members with a non-default status for the three pinned defs. It recomputes contrast from resolved hexes against two literal page grounds, outside and inside, with the wash composited at the alpha parsed from the emitted primitive. The floor is a literal 3. It never reads the roles' `ratio`, `against` or `min`, and never imports the engine's ground list. Representation arms fail if a def × status drops out of the projection, if the cell count falls short, or if no member composites a real wash. #1772's #1710 sweep holds this coordinate out with a pointer here. Whichever of the two lands second deletes that exclusion.
+
+**Mutations, each failing by name.**
+- `border.danger` back to page-only (danger removed from `FIELD_STATUS_BORDERS`) → `a11y(#1782)` fires: 57 members in 19 cells.
+- The wash ground dropped from the engine's `alsoClear` → `a11y(#1782)` fires: 132 members in 44 cells, the original defect exactly. The NB divergence rows also report CHANGED.
+- The wash ground dropped from the gate's own measurement (inside = page), with the engine fix also reverted → **zero** `a11y(#1782)` failures. The defect ships silently, which is the proof that the inside arm is the one that catches it.
+
+**Held for the owner.** HC moves one or two rungs further than SC 1.4.11 strictly requires. That is the mechanism applying the role's own mode floor, which is consistent with the neutral field border. The alternative is 3:1-only extra grounds in every mode, which needs a separate `min` for `alsoClear`. It would leave HC at 500 (3.6–3.9:1 on the wash) and move only the 44 light and dark role-modes.
+
 ## (2026-09-29) — Badge's neutral pairs are mode contracts, not example-brand measurements (#1745)
 
 **The gap.** Badge's accessibility lines rest on three neutral pairs, and `test.ts` measured each only in the five example brands. The engine contracted none of them: `border.secondary` carried `min: 0`, `inverse.foreground.tertiary` was a `self` surface, and `inverse.text.primary` is contracted against the inverse BAND, not the band's third step that Badge paints its bold neutral with. A client brand got no check. ENGINE 0.197.0 → **0.198.0** (MINOR; renumbered at net after #1749 took 0.197.0). CONTRACT stands at 13.2.0 (no token name moves).

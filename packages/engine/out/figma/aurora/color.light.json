@@ -2411,14 +2411,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
+        "name": "ads/core/palette/danger/550"
       }
     },
     {

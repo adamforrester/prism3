@@ -3054,7 +3054,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{nbds.core.palette.green.450}",
+          "$value": "{nbds.core.palette.green.400}",
           "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -3069,8 +3069,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "nbds.core.palette.green.450",
-              "contrast": 5.11,
+              "aliasOf": "nbds.core.palette.green.400",
+              "contrast": 6.05,
               "against": "background.primary",
               "min": 4.5
             }
@@ -3078,7 +3078,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{nbds.core.palette.amber.500}",
+          "$value": "{nbds.core.palette.amber.450}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -3093,8 +3093,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "nbds.core.palette.amber.500",
-              "contrast": 4.67,
+              "aliasOf": "nbds.core.palette.amber.450",
+              "contrast": 5.54,
               "against": "background.primary",
               "min": 4.5
             }
@@ -3102,7 +3102,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{nbds.core.palette.red.500}",
+          "$value": "{nbds.core.palette.red.450}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -3117,8 +3117,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "nbds.core.palette.red.500",
-              "contrast": 4.58,
+              "aliasOf": "nbds.core.palette.red.450",
+              "contrast": 5.45,
               "against": "background.primary",
               "min": 4.5
             }

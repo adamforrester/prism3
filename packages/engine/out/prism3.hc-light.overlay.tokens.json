@@ -2003,7 +2003,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{pds3.core.palette.success.500}",
+          "$value": "{pds3.core.palette.success.600}",
           "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -2018,8 +2018,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "pds3.core.palette.success.500",
-              "contrast": 4.57,
+              "aliasOf": "pds3.core.palette.success.600",
+              "contrast": 6.7,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2027,7 +2027,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{pds3.core.palette.warning.500}",
+          "$value": "{pds3.core.palette.warning.600}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -2042,8 +2042,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "pds3.core.palette.warning.500",
-              "contrast": 4.54,
+              "aliasOf": "pds3.core.palette.warning.600",
+              "contrast": 6.72,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2051,7 +2051,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{pds3.core.palette.danger.500}",
+          "$value": "{pds3.core.palette.danger.600}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -2066,8 +2066,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "pds3.core.palette.danger.500",
-              "contrast": 4.57,
+              "aliasOf": "pds3.core.palette.danger.600",
+              "contrast": 6.78,
               "against": "background.primary",
               "min": 4.5
             }

@@ -1925,8 +1925,43 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the three rungs resolve to DISTINCT steps in every mode of every corpus brand; the ratio ladder is
   // the derivation, the distinctness is the contract.
   put('border.tertiary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider — the third rung of the neutral edge ladder', 'background.primary', 0);
+  // #1782 — THE THREE FIELD STATUS BORDERS ALSO CLEAR THE FIELD'S OWN GROUNDS. `text-field`, `textarea` and
+  // `select` swap their border to `border.danger` / `border.warning` / `border.success` for a non-default
+  // status, in EVERY non-disabled state — including hover, where the control fills with the translucent
+  // `interactive.neutral.overlay.hover` wash. So the border is drawn against more than the page: against
+  // `background.secondary` (the darkest permissible field ground, `field.border.rest`'s own ground since
+  // #1341) outside the control, and against the wash composited over either page ground inside it. Gated
+  // at the page alone, the 500 anchor measured 2.64–3.00:1 on the washed `background.secondary` (every
+  // washed brand's dark mode, all of harbor light, one or more light statuses elsewhere) — under SC 1.4.11.
+  //
+  // THE EXISTING MECHANISM, NOT A NEW RULE: `pickBrand`'s `alsoClear` (the grounds a role placed on more
+  // than one surface must ALSO clear — the semantic-ink precedent). The anchor stays 500 wherever it clears
+  // every ground; otherwise the nearest step that does. The extra grounds take the role's OWN floor
+  // (`nonTextMin`: 3 in light/dark, 4.5 in HC), the same bar `field.border.*` holds on its ground, so in HC
+  // the step moves one or two rungs where the 500 measured 3.6–3.9:1 on the wash. The reported
+  // `ratio` and `against` stay the page's, as `alsoClear` documents. A brand that opts out of the overlay
+  // wash (`outlineInteraction` none / solid-tint) has no washed ground, so only `background.secondary` is
+  // added. `info` and `brand` are not field statuses and keep the page-only contract.
+  //
+  // `test.ts` (#1782 block) gates the RESULT from the emitted hexes and the wash's emitted alpha, never
+  // from this list — the grounds are written there as literals, so dropping one here fails it by name.
+  const FIELD_STATUS_BORDERS: readonly Role[] = ['danger', 'warning', 'success'];
+  const fieldPageRgb = asGround('background.primary', baseRgb);
+  const fieldInsetRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
+  const fieldWash = roles['interactive.neutral.overlay.hover'];
+  const fieldWashRgb = fieldWash ? asGround('interactive.neutral.overlay.hover', rgbByRole.get('interactive.neutral.overlay.hover')!) : undefined;
+  // The alpha a renderer actually applies, not the nominal one: the wash primitive is emitted as 8-digit hex
+  // (`#0000001a`), so 10% renders as 26/255 = 0.102. At the nominal 0.1 two cells (aurora and wendys light)
+  // cleared 3:1 here and measured 2.99–3.00 in the emitted tokens — a contract has to hold on what ships.
+  const fieldWashA = fieldWash?.alpha !== undefined ? Math.round(fieldWash.alpha * 255) / 255 : undefined;
+  const fieldStatusGrounds: RGB[] = [
+    fieldInsetRgb,
+    ...(fieldWashRgb && fieldWashA !== undefined
+      ? [composite(fieldPageRgb, fieldWashRgb, fieldWashA), composite(fieldInsetRgb, fieldWashRgb, fieldWashA)]
+      : []),
+  ];
   for (const r of SEMANTICS)
-    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
+    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin, false, FIELD_STATUS_BORDERS.includes(r) ? fieldStatusGrounds : []), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
   // The default ring adapts against the page in the STANDARD modes; in HC it keeps `actionRest` (#1336).
   // HC already made the default ring respond — `actionRest` is gated at the escalated HC fill bar
   // (`actionMin` 7:1) and so already resolves a dark ring on the white HC page and a light one on the

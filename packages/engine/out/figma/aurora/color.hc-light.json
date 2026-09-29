@@ -2375,14 +2375,14 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.18431372940540314,
+        "g": 0.40784314274787903,
+        "b": 0.20000000298023224,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/500"
+        "name": "ads/core/palette/success/600"
       }
     },
     {
@@ -2393,14 +2393,14 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
+        "r": 0.4941176474094391,
+        "g": 0.32549020648002625,
         "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/500"
+        "name": "ads/core/palette/warning/600"
       }
     },
     {
@@ -2411,14 +2411,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
+        "name": "ads/core/palette/danger/600"
       }
     },
     {
