@@ -133,7 +133,33 @@ const FONT_SCOPE_CODE: Record<string, string> = { ...FLOAT_SCOPE_CODE, FONT_FAMI
 const encodeFontScopes = (scopes: string[]): string =>
   scopes.map((s) => FONT_SCOPE_CODE[s] ?? '?').sort().join('');
 
+/**
+ * A brand's Figma tree held in memory instead of on disk (#1786).
+ *
+ * Only four brands have a committed `out/figma/<brand>/` tree, but the plugin emits every
+ * `examples/*.design.md` brief, and harbor and nb-redesign have no tree. Their paste payloads were
+ * measured by nothing. Registering `figmaArtifacts(theme)` under an id lets every pass below run on
+ * that brand unchanged — the same file names, the same parse, only the read differs. An id that
+ * already has a committed tree is refused: a registration must never shadow the artifact the CLI
+ * prints, or the suite would measure one tree and the CLI would paste another.
+ */
+const MEMORY_TREES = new Map<string, Map<string, string>>();
+export const registerFigmaTree = (id: string, artifacts: readonly { path: string; content: string }[]): void => {
+  if (existsSync(resolve(HERE, `out/figma/${id}`))) throw new Error(`'${id}' has a committed out/figma tree; an in-memory tree would shadow it`);
+  MEMORY_TREES.set(id, new Map(artifacts.map((a) => [a.path, a.content])));
+};
+const has = (brand: string, file: string): boolean => {
+  const mem = MEMORY_TREES.get(brand);
+  return mem ? mem.has(file) : existsSync(resolve(HERE, `out/figma/${brand}/${file}`));
+};
+
 const load = (brand: string, file: string): FigmaCollectionFile => {
+  const mem = MEMORY_TREES.get(brand);
+  if (mem) {
+    const content = mem.get(file);
+    if (content === undefined) throw new Error(`missing file in the in-memory tree '${brand}': ${file}`);
+    return JSON.parse(content);
+  }
   const p = resolve(HERE, `out/figma/${brand}/${file}`);
   if (!existsSync(p)) throw new Error(`missing emitted file: ${p} — run \`npx tsx packages/engine/emit-figma.ts\` first`);
   return JSON.parse(readFileSync(p, 'utf8'));
@@ -141,7 +167,7 @@ const load = (brand: string, file: string): FigmaCollectionFile => {
 
 // Which colour modes did this brand emit? (light/dark/hc-* always; wireframe if opted in.)
 const colourModes = (brand: string): string[] =>
-  MODE_ORDER.filter((m) => existsSync(resolve(HERE, `out/figma/${brand}/color.${m}.json`)));
+  MODE_ORDER.filter((m) => has(brand, `color.${m}.json`));
 
 // The disk-read SHELL: read the emitted raw-figma files → collections → the pure `buildWritePlan`.
 // Every pass below (and `aliasRows`) projects THIS plan, so the CLI paste-path and the live plugin
@@ -192,12 +218,11 @@ const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
  *  multi-mode axis is `<stem>.<mode>.json` — except radius, which emits the single-file form when
  *  the brand hasn't opted into wireframe (docs/11 Pillar 1b), so BOTH shapes are probed. */
 const floatFiles = (brand: string, axis: { stem: string; modes: string[] | null }): string[] => {
-  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
   const single = `${axis.stem}.json`;
-  if (!axis.modes) return existsSync(at(single)) ? [single] : [];
-  const perMode = axis.modes.map((m) => `${axis.stem}.${m}.json`).filter((f) => existsSync(at(f)));
+  if (!axis.modes) return has(brand, single) ? [single] : [];
+  const perMode = axis.modes.map((m) => `${axis.stem}.${m}.json`).filter((f) => has(brand, f));
   if (perMode.length) return perMode;
-  return existsSync(at(single)) ? [single] : [];
+  return has(brand, single) ? [single] : [];
 };
 
 const floatPlans = (brand: string): FloatCollectionPlan[] =>
@@ -237,13 +262,12 @@ export const floatCollections = (brand: string): string[] => floatPlans(brand).m
  *  primitives by name) while every one of them declares `$collection: 'core'`. Nothing here spells
  *  the collection — it is read back off the loaded file, below. */
 const fontFiles = (brand: string): { font: FigmaCollectionFile[]; fluid: FigmaCollectionFile[] } => {
-  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
   const single = 'core.font.json';
   // Mode names aren't known ahead of time here (they're the brand's appearance modes), so read the
   // per-mode files by the same MODE_ORDER the colour lane uses, then fall back to the single file.
-  const perMode = MODE_ORDER.map((m) => `core.font.${m}.json`).filter((f) => existsSync(at(f)));
-  const font = perMode.length ? perMode : existsSync(at(single)) ? [single] : [];
-  const fluid = FONT_FLUID_MODES.map((m) => `type-sets.${m}.json`).filter((f) => existsSync(at(f)));
+  const perMode = MODE_ORDER.map((m) => `core.font.${m}.json`).filter((f) => has(brand, f));
+  const font = perMode.length ? perMode : has(brand, single) ? [single] : [];
+  const fluid = FONT_FLUID_MODES.map((m) => `type-sets.${m}.json`).filter((f) => has(brand, f));
   return { font: font.map((f) => load(brand, f)), fluid: fluid.map((f) => load(brand, f)) };
 };
 
@@ -262,20 +286,18 @@ const fontVarPlans = (brand: string): VarCollectionPlan[] => {
 export const fontCollections = (brand: string): string[] => fontVarPlans(brand).map((p) => p.name);
 
 const stylesPlan = (brand: string): StylesPlan => {
-  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
   const empty = <T,>(collection: string): T => ({ $collection: collection, styles: [] }) as T;
-  const shadow = existsSync(at('shadow-styles.json'))
+  const shadow = has(brand, 'shadow-styles.json')
     ? (load(brand, 'shadow-styles.json') as unknown as FigmaEffectStylesFile)
     : empty<FigmaEffectStylesFile>('shadow-styles');
-  const gradient = existsSync(at('gradient-styles.json'))
+  const gradient = has(brand, 'gradient-styles.json')
     ? (load(brand, 'gradient-styles.json') as unknown as FigmaPaintStylesFile)
     : empty<FigmaPaintStylesFile>('gradient-styles');
   return stylesPlanFromFiles(shadow, gradient);
 };
 
 const textStylePlan = (brand: string): TextStylePlan => {
-  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
-  if (!existsSync(at('text-styles.json'))) return [];
+  if (!has(brand, 'text-styles.json')) return [];
   const { font } = fontFiles(brand);
   if (!font.length) return [];
   return textStylePlanFromFiles(load(brand, 'text-styles.json') as unknown as FigmaTextStylesFile, font[0]);
@@ -447,8 +469,12 @@ export const aliasRows = (brand: string): { modes: string[]; rows: AliasRow[] } 
 // is pasted BEFORE this pass (`ORDER`), and the opacity target is found in the same unscoped name map as
 // the colour target. A missing opacity variable is a miss, never a quiet opaque alias: the wash would
 // stop following the scale. The value shape is the one `apps/plugin/src/write-figma.ts` writes.
-/** The `color-aliases` payload for a plan. Exported so the suite can drive a plan no committed brand
- *  emits (no brand sets `solid-tint`, #1112) through the SAME string the CLI prints. */
+/** The WHOLE `color-aliases` pass for a plan, as ONE unchunked payload. The CLI no longer prints this
+ *  string: it prints `colorAliasesChunks`, which is byte-identical to it only when every row fits one
+ *  chunk (none of the four committed trees does today). Its readers are the suite alone, for two jobs — driving a
+ *  plan no committed brand emits (no brand sets `solid-tint`, #1112) through the pass's program, and
+ *  standing as the reference that executing every chunk in order must reproduce (#1786). It shares
+ *  `colorAliasesJsFor` with the chunks, so it checks the packer's partition, never the program. */
 export const colorAliasesJs = (plan: WritePlan): string => {
   const { modes, rows } = aliasRowsFrom(plan);
   return colorAliasesJsFor(modes, rows);
@@ -880,7 +906,8 @@ const ORDER = [
 ];
 
 /** The pass payloads, exposed so the suite can assert on what would actually be pasted rather than
- *  on a re-derivation of it. Byte-for-byte the same string the CLI prints. */
+ *  on a re-derivation of it. Byte-for-byte the strings the CLI prints — one per `--chunk` for a
+ *  chunked pass. */
 export const passPayloads = (brand: string, name: string): string[] => {
   const fn = PASSES[name];
   if (!fn) throw new Error(`unknown pass '${name}' — one of: ${ORDER.join(', ')}`);
