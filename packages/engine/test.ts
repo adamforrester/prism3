@@ -19375,8 +19375,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
 
   // Payload budget: EVERY BRAND since #1786, in the `materialise budget:` arms after this block. This
-  // arm read nb alone, while prism3's and wendys' single `color-aliases` payloads were already over the
-  // ceiling on main and nothing measured them.
+  // arm read nb alone. Before #1767 chunked `color-aliases`, prism3's and wendys' single payloads were
+  // over the ceiling on main (46,436 and 45,101 B, measured at 7f00078f in #1786) and no arm read them.
 
   // THE CEILING CHUNKING CANNOT MOVE — asserted, so the health number is checked rather than merely
   // printed. Deliberately NOT worst-chunk fullness: the packer fills a chunk until the next row will
@@ -19477,8 +19477,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 // nb-redesign are `examples/*.design.md` briefs the plugin emits but no committed tree holds, so they are
 // compiled here (the dialect route cli.ts takes) and registered in memory; every pass then runs on them
 // unchanged. Both directions are checked against the directories, so a new brief or a new committed
-// tree that nobody lists here fails by name rather than going unmeasured — the exact way prism3 and
-// wendys sat over the ceiling on main while this arm read nb alone.
+// tree that nobody lists here fails by name rather than going unmeasured. That is how prism3 and wendys
+// sat over the ceiling on main while this arm read nb alone: their single `color-aliases` payloads were
+// 46,436 and 45,101 B at 7f00078f, before #1767 chunked the pass (#1786). Unchunked on this PR's base
+// trees they would be 46,740 and 45,396 B, and nb's and aurora's 45,144 and 45,196 B.
 //
 // THE CEILING IS WRITTEN HERE, not read off the CLI's `BUDGET` or the packer's `COLOR_CHUNK_BYTES`:
 // a packer budget raised past the transport's limit must fail this arm, not move it.
@@ -19504,6 +19506,20 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // Each brand's files by path — disk for a committed tree, the emitter's own artifacts for a brief. The
   // execution arms below read their EXPECTED alias targets from these files, never from the write plan.
+  // `registerFigmaTree` REFUSES an id with a committed tree, so the suite can never measure an in-memory
+  // tree while the CLI prints the one on disk. Asserted by name: nothing else would notice the refusal gone.
+  // The files offered are nb's own committed ones, not `[]`: were the refusal gone, an empty tree would
+  // shadow nb for every later arm and crash the suite before this failure printed; nb's own files keep
+  // every later nb arm reading what it reads today, so this arm is the one that fails.
+  {
+    const nbDir = resolve(HERE, './out/figma/nb');
+    const nbOwn = readdirSync(nbDir).map((f) => ({ path: f, content: readFileSync(resolve(nbDir, f), 'utf8') }));
+    let refused = '';
+    try { registerFigmaTree('nb', nbOwn); } catch (e) { refused = (e as Error).message; }
+    ok(refused.includes("'nb'") && refused.includes('committed'),
+      `materialise budget: registerFigmaTree refuses 'nb', which has a committed out/figma tree (${refused ? `threw: ${refused}` : 'did NOT throw'})`);
+  }
+
   const trees = new Map<string, Map<string, string>>();
   for (const { id, tree } of PASTE_BRANDS) {
     try {
@@ -19525,12 +19541,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // EVERY PAYLOAD of every pass, every chunk of a chunked one: a pass measured by its first payload
   // passes any overrun in chunks 2..N. The bytes are the finished strings the CLI prints.
+  // A pass that THROWS for one brand fails that brand's arm by name, with the error, and the suite goes
+  // on: uncaught, it crashed the run with an unnamed TypeError and skipped every later assertion.
   for (const { id } of PASTE_BRANDS) {
     if (!trees.has(id)) continue;
     const sizes: { label: string; bytes: number }[] = [];
-    for (const name of passOrder()) {
-      const all = passPayloads(id, name);
-      all.forEach((js, i) => sizes.push({ label: all.length > 1 ? `${name} chunk ${i + 1}/${all.length}` : name, bytes: Buffer.byteLength(js, 'utf8') }));
+    try {
+      for (const name of passOrder()) {
+        const all = passPayloads(id, name);
+        all.forEach((js, i) => sizes.push({ label: all.length > 1 ? `${name} chunk ${i + 1}/${all.length}` : name, bytes: Buffer.byteLength(js, 'utf8') }));
+      }
+    } catch (e) {
+      ok(false, `materialise budget: ${id} — every pass payload and every chunk is ≤ ${FIGMA_EXECUTE_CEILING} B — a pass THREW: ${(e as Error).message}`);
+      continue;
     }
     const worst = sizes.reduce((a, b) => (b.bytes > a.bytes ? b : a), { label: 'none', bytes: 0 });
     const over = sizes.filter((s) => s.bytes > FIGMA_EXECUTE_CEILING);
@@ -19542,6 +19565,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `dims-create` (a wash's `opacity/<n>` target) run first, so every variable the alias pass looks up
   // was made by the pass that makes it in Figma, not placed by hand. Every `color-aliases` chunk then
   // runs in paste order, and every write is logged with the phase it happened in.
+  //
+  // nb-redesign is light-only, so its arms cannot see a mode-crossing defect (a pass binding one mode's
+  // target in every mode): with one mode, every target is that mode's. The four-mode brands carry that
+  // coverage; nb-redesign is here for its own tree and its one-chunk case.
   type ShimCol = { id: string; name: string; modes: { name: string; modeId: string }[]; renameMode: (id: string, n: string) => void; addMode: (n: string) => string };
   type ShimVar = { id: string; name: string; variableCollectionId: string; resolvedType: string; values: Record<string, unknown>; setValueForMode: (m: string, v: unknown) => void };
   const AsyncFn = Object.getPrototypeOf(async () => {}).constructor;
@@ -19601,59 +19628,64 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const { id } of PASTE_BRANDS) {
     const files = trees.get(id);
     if (!files) continue;
-    const modes = MODE_ORDER.filter((m) => files.has(`color.${m}.json`));
-    const colorFiles = modes.map((m) => JSON.parse(files.get(`color.${m}.json`)!) as FigmaCollectionFile);
-    // EXPECTED, from the emitted colour files: `<var> @ <mode>` -> the alias each file names.
-    const expected = new Map<string, string>();
-    colorFiles.forEach((f, i) => {
-      for (const v of f.variables as { name: string; alias?: { name: string } | null; aliasOpacity?: { name: string } }[]) {
-        if (!v.alias) continue;
-        expected.set(`${v.name} @ ${modes[i]}`, v.aliasOpacity ? `${v.alias.name} @ ${v.aliasOpacity.name}` : v.alias.name);
+    // Same reason as the budget loop: a pass that throws fails this brand's arm by name and the suite goes on.
+    try {
+      const modes = MODE_ORDER.filter((m) => files.has(`color.${m}.json`));
+      const colorFiles = modes.map((m) => JSON.parse(files.get(`color.${m}.json`)!) as FigmaCollectionFile);
+      // EXPECTED, from the emitted colour files: `<var> @ <mode>` -> the alias each file names.
+      const expected = new Map<string, string>();
+      colorFiles.forEach((f, i) => {
+        for (const v of f.variables as { name: string; alias?: { name: string } | null; aliasOpacity?: { name: string } }[]) {
+          if (!v.alias) continue;
+          expected.set(`${v.name} @ ${modes[i]}`, v.aliasOpacity ? `${v.alias.name} @ ${v.aliasOpacity.name}` : v.alias.name);
+        }
+      });
+
+      const chunks = passPayloads(id, 'color-aliases');
+      const s = await setUp(id);
+      const results: { bound: number; expected: number; misses: string[] }[] = [];
+      for (const js of chunks) results.push(await s.run('color-aliases', js));
+      const colorCol = s.cols.find((c) => c.name === 'color');
+      const modeName = new Map((colorCol?.modes ?? []).map((m) => [m.modeId, m.name]));
+      const got = new Map<string, string[]>();
+      for (const w of s.writes.filter((x) => x.phase === 'color-aliases')) {
+        const key = `${w.varName} @ ${modeName.get(w.modeId) ?? `?${w.modeId}`}`;
+        got.set(key, [...(got.get(key) ?? []), aliasName(s, w.value) ?? 'NOT AN ALIAS']);
       }
-    });
+      const problems: string[] = [];
+      for (const [key, want] of expected) {
+        const g = got.get(key) ?? [];
+        if (g.length !== 1) problems.push(`${key} aliased ${g.length}×`);
+        else if (g[0] !== want) problems.push(`${key} -> ${g[0]}, want ${want}`);
+      }
+      for (const key of got.keys()) if (!expected.has(key)) problems.push(`${key} aliased, but its file names no alias`);
+      const misses = results.flatMap((r) => r.misses);
+      const colorVars = new Set(colorFiles[0]?.variables.map((v) => v.name) ?? []);
+      const aliasedVars = new Set([...expected.keys()].map((k) => k.slice(0, k.lastIndexOf(' @ '))));
+      ok(chunks.length >= 1 && expected.size > 0 && problems.length === 0 && misses.length === 0,
+        `materialise chunks execute: ${id} — every colour variable is re-aliased exactly once per mode, to the target its emitted color.<mode>.json names (${chunks.length} chunk(s); ${aliasedVars.size}/${colorVars.size} variables, ${expected.size} mode-aliases expected, ${[...got.values()].reduce((n, g) => n + g.length, 0)} written; ${misses.length} misses${problems.length ? ` — ${problems.slice(0, 3).join('; ')}` : ''})`);
 
-    const chunks = passPayloads(id, 'color-aliases');
-    const s = await setUp(id);
-    const results: { bound: number; expected: number; misses: string[] }[] = [];
-    for (const js of chunks) results.push(await s.run('color-aliases', js));
-    const colorCol = s.cols.find((c) => c.name === 'color');
-    const modeName = new Map((colorCol?.modes ?? []).map((m) => [m.modeId, m.name]));
-    const got = new Map<string, string[]>();
-    for (const w of s.writes.filter((x) => x.phase === 'color-aliases')) {
-      const key = `${w.varName} @ ${modeName.get(w.modeId) ?? `?${w.modeId}`}`;
-      got.set(key, [...(got.get(key) ?? []), aliasName(s, w.value) ?? 'NOT AN ALIAS']);
+      // ...and the chunks in order leave the file EXACTLY as the unchunked pass does. The reference plan is
+      // built from the same files, so this compares the packer's partition against the whole — the
+      // program itself is shared, and its correctness is the arm above's job, against the files.
+      const plan = buildWritePlan({ palette: JSON.parse(files.get('core.palette.json')!) as FigmaCollectionFile, color: colorFiles });
+      const w = await setUp(id);
+      const whole = await w.run('color-aliases', colorAliasesJs(plan)) as { bound: number; expected: number; misses: string[] };
+      const stateOf = (x: ReturnType<typeof makeShim>) => {
+        const col = x.cols.find((c) => c.name === 'color');
+        const mName = new Map((col?.modes ?? []).map((m) => [m.modeId, m.name]));
+        return JSON.stringify(x.vars.filter((v) => v.variableCollectionId === col?.id).map((v) =>
+          [v.name, Object.entries(v.values).map(([m, val]) => [mName.get(m), aliasName(x, val) ?? JSON.stringify(val)])]));
+      };
+      const aliasWrites = (x: ReturnType<typeof makeShim>) => x.writes.filter((e) => e.phase === 'color-aliases').length;
+      const sum = (k: 'bound' | 'expected') => results.reduce((n, r) => n + r[k], 0);
+      const same = stateOf(s) === stateOf(w) && sum('bound') === whole.bound && sum('expected') === whole.expected
+        && JSON.stringify(misses) === JSON.stringify(whole.misses) && aliasWrites(s) === aliasWrites(w);
+      ok(same,
+        `materialise chunks execute: ${id} — the ${chunks.length} chunk(s) in order leave the colour collection exactly as the unchunked color-aliases payload does (bound ${sum('bound')} vs ${whole.bound}; expected ${sum('expected')} vs ${whole.expected}; alias writes ${aliasWrites(s)} vs ${aliasWrites(w)}; misses ${misses.length} vs ${whole.misses.length})`);
+    } catch (e) {
+      ok(false, `materialise chunks execute: ${id} — the palette, color-create, dims-create and color-aliases payloads run in the shim — a pass THREW: ${(e as Error).message}`);
     }
-    const problems: string[] = [];
-    for (const [key, want] of expected) {
-      const g = got.get(key) ?? [];
-      if (g.length !== 1) problems.push(`${key} aliased ${g.length}×`);
-      else if (g[0] !== want) problems.push(`${key} -> ${g[0]}, want ${want}`);
-    }
-    for (const key of got.keys()) if (!expected.has(key)) problems.push(`${key} aliased, but its file names no alias`);
-    const misses = results.flatMap((r) => r.misses);
-    const colorVars = new Set(colorFiles[0]?.variables.map((v) => v.name) ?? []);
-    const aliasedVars = new Set([...expected.keys()].map((k) => k.slice(0, k.lastIndexOf(' @ '))));
-    ok(chunks.length >= 1 && expected.size > 0 && problems.length === 0 && misses.length === 0,
-      `materialise chunks execute: ${id} — every colour variable is re-aliased exactly once per mode, to the target its emitted color.<mode>.json names (${chunks.length} chunk(s); ${aliasedVars.size}/${colorVars.size} variables, ${expected.size} mode-aliases expected, ${[...got.values()].reduce((n, g) => n + g.length, 0)} written; ${misses.length} misses${problems.length ? ` — ${problems.slice(0, 3).join('; ')}` : ''})`);
-
-    // ...and the chunks in order leave the file EXACTLY as the unchunked pass does. The reference plan is
-    // built from the same files, so this compares the packer's partition against the whole — the
-    // program itself is shared, and its correctness is the arm above's job, against the files.
-    const plan = buildWritePlan({ palette: JSON.parse(files.get('core.palette.json')!) as FigmaCollectionFile, color: colorFiles });
-    const w = await setUp(id);
-    const whole = await w.run('color-aliases', colorAliasesJs(plan)) as { bound: number; expected: number; misses: string[] };
-    const stateOf = (x: ReturnType<typeof makeShim>) => {
-      const col = x.cols.find((c) => c.name === 'color');
-      const mName = new Map((col?.modes ?? []).map((m) => [m.modeId, m.name]));
-      return JSON.stringify(x.vars.filter((v) => v.variableCollectionId === col?.id).map((v) =>
-        [v.name, Object.entries(v.values).map(([m, val]) => [mName.get(m), aliasName(x, val) ?? JSON.stringify(val)])]));
-    };
-    const aliasWrites = (x: ReturnType<typeof makeShim>) => x.writes.filter((e) => e.phase === 'color-aliases').length;
-    const sum = (k: 'bound' | 'expected') => results.reduce((n, r) => n + r[k], 0);
-    const same = stateOf(s) === stateOf(w) && sum('bound') === whole.bound && sum('expected') === whole.expected
-      && JSON.stringify(misses) === JSON.stringify(whole.misses) && aliasWrites(s) === aliasWrites(w);
-    ok(same,
-      `materialise chunks execute: ${id} — the ${chunks.length} chunk(s) in order leave the colour collection exactly as the unchunked color-aliases payload does (bound ${sum('bound')} vs ${whole.bound}; expected ${sum('expected')} vs ${whole.expected}; alias writes ${aliasWrites(s)} vs ${aliasWrites(w)}; misses ${misses.length} vs ${whole.misses.length})`);
   }
 }
 
