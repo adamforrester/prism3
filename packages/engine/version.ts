@@ -2933,7 +2933,8 @@
  * `inverse.foreground.tertiary` (the bold neutral fill) moves from a `self` surface to a fill contracted
  * against `background.primary` at the same bar, and carries a SECOND pair, `alsoAgainst` — its label
  * `inverse.text.primary` at 4.5:1 — which the contrast sweep measures from the final colors and names in
- * `warnings` (with the partner in `against`) when it falls short. NO emitted color moves in any corpus brand
+ * `warnings` (with the partner in `against`) when it falls short; `tree.ts` counts that pair in `modeChecks`, so the
+ * CLI and `emit-dtcg` exit non-zero on it, and both roles state it in their `.ai.json` `contrast_with`. NO emitted color moves in any corpus brand
  * or in the NB master theme; `out/**` moves by the new `against`/`min`/`contrast` metadata on those two roles,
  * the two new `contrast_with` entries per `.ai.json`, and the stamp → ENGINE MINOR. CONTRACT STANDS at 13.2.0
  * (no token name moves).

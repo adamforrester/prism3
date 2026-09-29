@@ -382,6 +382,12 @@
           "min": "3:1",
           "ratio": 13.94,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        },
+        {
+          "token": "inverse.text.primary",
+          "min": "4.5:1",
+          "ratio": 13.01,
+          "requirement": "MUST clear 4.5:1 against `inverse.text.primary` in every mode."
         }
       ]
     },
@@ -5114,6 +5120,12 @@
           "min": "7:1",
           "ratio": 18.13,
           "requirement": "MUST clear 7:1 against `inverse.background.primary` in every mode."
+        },
+        {
+          "token": "inverse.foreground.tertiary",
+          "min": "4.5:1",
+          "ratio": 13.01,
+          "requirement": "MUST clear 4.5:1 against `inverse.foreground.tertiary` in every mode."
         }
       ]
     },

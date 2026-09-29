@@ -4994,6 +4994,31 @@ for (const b of brands) {
     ok(w.length === 1 && w[0].min === 3 && Math.abs(w[0].ratio - r) < 0.01,
       `#1745 fill caught: a warning names inverse.foreground.tertiary's own pair against the page at ${r.toFixed(2)} under 3:1 (got ${JSON.stringify(warnsOf(m, 'inverse.foreground.tertiary'))})`);
   }
+  // (4) THE EXIT GATE COUNTS THE SECOND PAIR (review of #1776). `cli.ts` and `emit-dtcg.ts` exit on
+  // `stats.modePass < stats.modeChecks`, and the fidelity report prints the same count; a warning in
+  // `ModeResult.warnings` alone reaches none of them. Overriding the fill to `neutral.400` leaves its own
+  // pair clear of 3:1 on the page but sinks its label under 4.5:1, so exactly one contract must fail —
+  // held against the same brand without the override, so the count is relative, not a literal total.
+  {
+    const base = buildTree(brandTheme(MINIMAL_BRAND)).stats;
+    const ovInput = { ...MINIMAL_BRAND, overrides: { light: { 'inverse.foreground.tertiary': { palette: 'neutral', step: '400' } } } } as BrandInput;
+    const ovTheme = brandTheme(ovInput);
+    const ov = buildTree(ovTheme).stats;
+    const m = resolveAllModes(ovTheme).find((x) => x.mode === 'light')!;
+    const label = ratioOf(m, 'inverse.text.primary', 'inverse.foreground.tertiary');
+    const own = ratioOf(m, 'inverse.foreground.tertiary', 'background.primary');
+    ok(base.modePass === base.modeChecks && ov.modeChecks === base.modeChecks && ov.modeChecks - ov.modePass === 1 && label < 4.5 && own >= 3,
+      `#1745 exit gate: an override sinking the label on the bold neutral fill (${label.toFixed(2)}:1, the fill still ${own.toFixed(2)}:1 on the page) fails exactly one mode contract in the count the CLI and emit exit on (base ${base.modePass}/${base.modeChecks}, override ${ov.modePass}/${ov.modeChecks})`);
+  }
+  // (5) THE SIDECAR STATES THE SECOND PAIR FROM BOTH ENDS, after each role's own pair (which stays first).
+  {
+    const ai = buildAiMetadata(brandTheme(MINIMAL_BRAND), buildTree(brandTheme(MINIMAL_BRAND)).tree) as any;
+    const fillCw = ai.color['inverse.foreground.tertiary']?.contrast_with ?? [];
+    const inkCw = ai.color['inverse.text.primary']?.contrast_with ?? [];
+    const has = (cw: any[], token: string) => cw.slice(1).some((c) => c.token === token && c.min === '4.5:1' && c.requirement === `MUST clear 4.5:1 against \`${token}\` in every mode.`);
+    ok(fillCw[0]?.token === 'background.primary' && has(fillCw, 'inverse.text.primary') && inkCw[0]?.token === 'inverse.background.primary' && has(inkCw, 'inverse.foreground.tertiary'),
+      `#1745 sidecar: inverse.foreground.tertiary and inverse.text.primary each state the 4.5:1 label pair after their own pair (fill ${JSON.stringify(fillCw.map((c: any) => c.token))}, ink ${JSON.stringify(inkCw.map((c: any) => c.token))})`);
+  }
 }
 
 // ---- TAG — the owner's decisions of 2026-09-27, held here with literal expectations --------------------------

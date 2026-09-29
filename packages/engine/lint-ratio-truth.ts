@@ -169,6 +169,10 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
       // Runs before the `self` skip below, because the role carrying it may be a surface.
       if (r.alsoAgainst) {
         const partner = r.alsoAgainst.against;
+        // UNREACHABLE TODAY, and kept as a backstop rather than as coverage: `resolveMode` THROWS on an
+        // `alsoAgainst` partner that is not a role in the mode, so no tree reaching this sweep can carry
+        // one. This branch fires only if that throw is ever removed — a dangling partner would otherwise
+        // reach the `roles[partner].hex` read below and crash the gate without naming it.
         if (!(partner in roles)) {
           failures.push(`${label}/${m.mode}: '${key}' names alsoAgainst '${partner}', which is not a role in this mode — the second pair measures against nothing.`);
         } else {
