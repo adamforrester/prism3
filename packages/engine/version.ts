@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.207.0 — #1789: the plugin's font preload warned "1 typeface unavailable (Playfair Display|Semi Bold
+ * Italic)" on a Figma whose Playfair ships `SemiBold Italic`, in the same apply whose text-style pass wrote
+ * that style correctly. `preloadFonts` tested each candidate by exact `family|style` and never ran the #499
+ * resolver. It now resolves every candidate's style against its family's real styles with the same
+ * `resolveFontStyle`, loads the RESOLVED face (once, however many candidates resolve to it; a failed load is
+ * still reported for every named candidate of that face, in any candidate order), and reports a named face
+ * unavailable only when the resolver or the load says so. Every origin (theme, file, crossed)
+ * resolves the same way; the origin still decides only whether a miss is reported. The verdict's "N font
+ * styles name-resolved" stays the text-style pass's count. A PLUGIN write-path behavior change (principle 5)
+ * → ENGINE bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen.
+ * CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
  * 0.206.0 — the spacing model (owner-decided 2026-09-29, "size is for size, space is for space"; decision
  * record `docs/28` §5.4). `size.*` holds dimensions only: the shared scale stops emitting
  * `size.<rung>.{padding-x,padding-x-visual,padding-y,gap}` (CONTRACT 14.0.0, below), and every component states
@@ -4226,7 +4238,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.206.0';
+export const ENGINE_VERSION = '0.207.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
