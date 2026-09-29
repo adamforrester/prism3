@@ -7,6 +7,37 @@
 
 ---
 
+## (2026-09-29) — Quiet buttons: the hover and pressed fill is a rule across the whole grid, not three spot fixes (#1387)
+
+**STATUS: PR open, labeled DO NOT MERGE.** Files: `packages/engine/test.ts` (one new block; the NB master fixture moved to module scope so the block can read it) and this entry. The review follow-up (per-family counts, per-brand register, plugin materialization) landed as new commits on the same PR. No engine behavior moves, so `ENGINE_VERSION` stands at 0.196.0 and `CONTRACT_VERSION` at 13.2.0.
+
+**Premise re-check: the defect is already fixed on `main`.** #1387's raw `#ffffff` came from the host, not the plan. A plan's `paints.fills` is a variable NAME. The set named the overlay wash, a `solid-tint` or `none` brand did not emit it, and Figma kept its default white fill on the frame. Three merged PRs closed it: #1394 clears an unresolvable fill to transparent in both executors, #1608 rebinds the def per `outlineInteraction` before projection (`applyOutlineInteraction` via `outlineFillRole`), and #1613 emits the inverse tinted wash. The measurement below confirms it. It covers the 10 contract-corpus brands plus the NB master theme, under all three methods, over every quiet member (`outline` / `text` / `ghost`; icon-button's quiet appearance is `ghost`, not `text`) × `hover` / `pressed` × both surfaces × every mode. Result: 0 fills that are not a `color/` variable, 0 members with no fill (other than at `none`), and 0 refs the brand does not emit.
+
+**Why `lint-paint` never saw it.** Its universe is plan variable names. Arm 1 compares key and ref, arm 2 is a characterization, and arm 3 asks whether the projector ever returns a key. None of them asks whether a name resolves against a brand's emission, and the white itself was host state that no plan carries. So the new check lives in `test.ts`, next to the brand emission, not in `lint-paint`.
+
+**The gate (`test.ts`, `#1387` block).** Subject: every quiet hover/pressed member of the six button families, 432 per brand × method, half on the inverse band. Each member is projected from the def as the plugin builds it, through `materializeForBrand`'s chain (`applyControlShape`, `applyWeightIntent`, `applyOutlineInteraction`, `applyButtonLayout`). The chain is restated in the test, as `lint-lever-sweep.ts` restates it, because the engine must not import a surface. So the NB master's hairline corners and edge-pinned icons are what gets walked. No corpus input sets a raw-input lever, so the corpus brands take the defaults. Oracles, none read off the subject: the family each method binds is written out as a regex (it is not asked of `outlineFillRole`). "Emitted" means `buildFigmaColor`'s variables. The floors are WCAG's (4.5:1 label, 3:1 glyph). The ratios come from the block's own luminance and compositing over `resolveAllModes`, not from any `ratio` the solver stored. The block is deliberately AA-only, in every mode; the solver already holds hc modes to 7:1. Six assertions:
+- the walk looked at all 14,256 members, half of them inverse;
+- the cells per family × surface × ink kind × state match literal counts: 1,968 per button-family label or glyph and 984 per icon-button glyph (41 brand-modes × 2 fill-painting methods). A family, surface or ink kind that stops projecting fails by name; a single "more than zero" check let every icon-button cell vanish in review;
+- every fill is the method's emitted variable on its own surface;
+- every hover label clears 4.5:1 and every hover glyph 3:1 on the composited fill, in every mode and on both surfaces;
+- no pressed label or glyph falls below 4.5:1 outside `HELD_PRESSED`;
+- every `HELD_PRESSED` entry still measures its exact pinned ratio.
+
+Measured hover minimums: overlay-neutral 5.26 (page) and 5.04 (inverse); solid-tint 5.23 (page) and 4.80 (inverse, NB master destructive).
+
+**OWNER DECISION (2026-09-29): keep the #1281 pressed exemption.** Pressed is exempt from ink contrast (#1281, decision 1). On #1387 the owner chose to keep that exemption for the quiet pressed cells, so the block pins them rather than flooring them. `HELD_PRESSED` holds 44 entries, keyed per brand, method, mode, fill role and ink kind, each with its exact ratio to 2 dp. That covers 11 brands × {primary, destructive} × {label, glyph}. All of them are `solid-tint` on the inverse band in light mode at `opacity.30`: primary 3.47–3.82:1 (NB master 3.51) and destructive 4.09–4.48:1. A cell that appears, moves or starts to pass fails by name. The pooled first version keyed `method|surface|mode|color` across brands and never checked the ratio, so a single brand could move or clear silently. The options put to the owner, for the record: at `opacity.20` the same cells measure 5.06–5.58 (primary) and 5.98–6.55 (destructive), with ΔE00 14.1–14.7 against the band; the alternative was per-mode steps (#1646). Every overlay-neutral pressed cell clears 4.5:1 (minimum 4.93), and so does every page cell at solid-tint (minimum 4.88).
+
+**Mutations** (each committed first, restored from HEAD), against the final block:
+- M1, `button` binds the literal `'#ffffff'` on `outline.overlay.hover`: `#1387 every quiet button hover/pressed container fill is the method's emitted color variable…` fails (2376), plus the cell-count assertion. #1608's emission check and the binding-resolution checks fail beside them.
+- M2, `icon-button` drops `outline.overlay.hover`: the same #1387 fill assertion fails (792), plus the cell count, beside #1225's binding counts. Dropping it from `button` instead crashes an older test that reads the key directly, so that form proves nothing by name.
+- M3, `applyOutlineInteraction` stops rebinding: the #1387 fill assertion fails (4752), along with the cell count and the stale-register assertion.
+- M4, the host's transparent fallback (`write-components.ts`) removed: `apps/plugin/test-write-components.ts` `#1387 no built node keeps an opaque #ffffff literal…` fails (11 white). That is the existing host gate, re-proved.
+- M5, one brand's pressed cell moves (wendys `primary` `#C8102E` → `#A8102E`): only `#1387 every held quiet pressed cell still measures exactly as pinned…` fails, on exactly wendys' two primary cells (3.82 → 3.56).
+- M6, pressed nominal step `opacity.30` → `opacity.40`: both register assertions fail (60 new cells, 44 moved).
+- M7, the slot branch stops projecting glyph ink (`descendantFills = paintOf('icon')` removed): `#1387 every family × surface × ink kind × state measured its full cell count…` fails (24 glyph keys at 0), plus the stale register. This is the reviewer's mutation that the earlier `hoverCells > 0` let through.
+
+---
+
 ## (2026-09-28) — Style guide generator, phase 1: cell components and color tables (#259)
 
 **STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.196.0 → **0.197.0** (renumbered at net after #1748, #1753, #1759, #1757, #1765 and #1766 took 0.191.0–0.196.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
