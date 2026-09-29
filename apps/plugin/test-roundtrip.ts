@@ -1657,6 +1657,22 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!row1 && grpWrong.length === 1 && grpWrong[0].member === 'size=large' && grpWrong[0].path.endsWith('/row1')
     && grpWrong[0].actual.includes('__old__checkbox-row/'),
     `#1781 read-back: a group row pointing at the renamed-aside __old__checkbox-row fails by name — ${grpWrong.map((d) => `${d.member} :: ${d.path} — plan: ${d.expected}; host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
+
+  // AN UNNAMEABLE SOURCE FAILS TOO. An instance whose main component the host cannot name is not evidence
+  // the nest landed, so it must not read back clean. Two host states, each on a fresh build so the tamper
+  // above cannot leak into them: the INSTANCE carries no `mainComponent` at all, and it carries one with no
+  // `name`. The expected text is a literal authored here, not read off the predicate.
+  const UNNAMED = 'an instance whose main component the host cannot name';
+  for (const [label, value] of [['no mainComponent', undefined], ['a mainComponent with no name', { type: 'COMPONENT', parent: { name: 'checkbox-control', type: 'COMPONENT_SET' } }]] as const) {
+    const fresh = await readBack('checkbox-row');
+    const medium = fresh.members.find((m) => m.name === 'size=medium');
+    const inst = medium && findPart(medium, 'control');
+    if (inst) Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value });
+    const got = fresh.nestDiv();
+    ok(!!inst && inst.type === 'INSTANCE' && got.length === 1 && got[0].member === 'size=medium' && got[0].path.endsWith('/control')
+      && got[0].actual === UNNAMED,
+      `#1781 read-back: an INSTANCE with ${label} fails with "${UNNAMED}" — ${got.map((d) => `${d.member} :: ${d.path} — host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
+  }
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
