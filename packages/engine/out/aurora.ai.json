@@ -375,6 +375,14 @@
       ],
       "tracks": [
         "inverse.border.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 13.92,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
       ]
     },
     "foreground.brand": {
@@ -6211,7 +6219,15 @@
         "dark": "{ads.core.palette.neutral.500}",
         "hc-light": "{ads.core.palette.neutral.700}",
         "hc-dark": "{ads.core.palette.neutral.250}"
-      }
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.26,
+          "requirement": "MUST clear 3:1 against `background.primary` in every mode."
+        }
+      ]
     },
     "border.tertiary": {
       "$description": "Strongest border / divider — the third rung of the neutral edge ladder",

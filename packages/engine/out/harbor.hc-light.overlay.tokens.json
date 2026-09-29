@@ -1972,7 +1972,8 @@
               },
               "aliasOf": "hds.core.palette.neutral.700",
               "contrast": 9.85,
-              "against": "background.primary"
+              "against": "background.primary",
+              "min": 4.5
             }
           }
         },
@@ -2382,8 +2383,9 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "hds.core.palette.black",
-                "contrast": 1,
-                "against": "self"
+                "contrast": 21,
+                "against": "background.primary",
+                "min": 4.5
               }
             }
           },

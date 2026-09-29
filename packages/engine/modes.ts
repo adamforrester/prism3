@@ -84,11 +84,21 @@ const pickMinPass = (cands: Cand[], surface: RGB, min: number): Rated => {
 const pickMostExtreme = (cands: Cand[], surface: RGB): Rated =>
   cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) })).sort((a, b) => b.ratio - a.ratio)[0];
 
-/** Candidate whose contrast is closest to a target (for decorative borders). */
-const pickClosest = (cands: Cand[], surface: RGB, target: number): Rated =>
-  cands
-    .map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }))
-    .sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
+/**
+ * Candidate whose contrast is closest to a target (for the border ladders).
+ *
+ * `min` (#1745) is a FLOOR under the target, for a rung that also carries a contract: only candidates
+ * clearing `min` are eligible, and the closest of those wins. With no candidate clearing it, the most
+ * extreme one does — the same fallback `pickMinPass` takes — and the contrast sweep at the end of
+ * `resolveMode` names the shortfall. `min: 0` (the default) makes every candidate eligible, so an
+ * uncontracted rung picks exactly as it always has.
+ */
+const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0): Rated => {
+  const rated = cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }));
+  const eligible = rated.filter((c) => c.ratio >= min);
+  if (!eligible.length) return rated.sort((a, b) => b.ratio - a.ratio)[0];
+  return eligible.sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
+};
 
 /**
  * Keep the anchor step if it clears `min`; otherwise the nearest step that does.
@@ -174,7 +184,19 @@ export type ContrastModel = 'ink-on-surface' | 'ink-on-composite';
  *  in the same mode) and the EXISTING opacity-scale step it is laid at (`opacity`, a key of the `opacity.*`
  *  scale — 20 means `opacity.20`). The role's `alpha` is `opacity / 100`; this names where both came from. */
 export type TintSource = { fill: string; opacity: number };
-export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number; tint?: TintSource } & (
+/**
+ * A SECOND contracted pair on one role (#1745). `against`/`min` hold the pair a role is placed in; this
+ * holds one more it is USED in, where the partner already carries a contract of its own and cannot take
+ * a second `against`. The one user today is `inverse.foreground.tertiary`, Badge's bold neutral fill: it
+ * sits on the page (its own `against`) and carries `inverse.text.primary` as its label — and that ink is
+ * already contracted against `inverse.background.primary`.
+ *
+ * No ratio is stored, on purpose. A stored number goes stale the moment either colour moves after it was
+ * written (#956); the contrast sweep at the end of `resolveMode` measures the pair from the FINAL colours
+ * instead, and names a shortfall in `warnings` with the partner in `against`.
+ */
+export type AlsoAgainst = { against: string; min: number };
+export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number; tint?: TintSource; alsoAgainst?: AlsoAgainst } & (
   | { model: 'ink-on-surface'; legibleFor?: undefined }
   | { model: 'ink-on-composite'; legibleFor: string; alpha: number }
 );
@@ -193,7 +215,9 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // input, so the roles measured against it kept the value and ratio they derived from the OLD one.
 // Optional rather than a separate union member so every existing reader of `{role, ratio, min}` keeps
 // working unchanged — the contrast fields are still the overridden role's own, and still correct.
-export type OverrideWarning = { role: string; ratio: number; min: number };
+// `against` is set only on a warning about a role's SECOND contracted pair (`AlsoAgainst`, #1745), and
+// names that pair's partner; a warning without it is about the role's own `against`, as it always was.
+export type OverrideWarning = { role: string; ratio: number; min: number; against?: string };
 export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; warnings?: OverrideWarning[] };
 
 /**
@@ -1004,7 +1028,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('foreground.tertiary', cfg.fg.tertiary, 'A third surface step');
   putSurf('inverse.foreground.primary', cfg.fgInverse.primary, 'Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)');
   putSurf('inverse.foreground.secondary', cfg.fgInverse.secondary, 'Inverse surface, second tier');
-  putSurf('inverse.foreground.tertiary', cfg.fgInverse.tertiary, 'Inverse surface, third tier');
+  // THE BOLD NEUTRAL FILL (#1745). Badge paints its bold neutral member with this surface under
+  // `inverse.text.primary`, because no page-polarity neutral separates from the page in the high-contrast
+  // modes. So it is contracted as a bold fill as well as a surface: against the page at the mode's
+  // non-text bar (the bar `border.<tone>` uses, 3:1 and 4.5:1 in HC), and — its second pair — under its
+  // label at `onMin`, the bar every `text.on-<tone>` clears on its own bold fill. The value is the inverse
+  // ladder's third step, unchanged: the ladder is DECLARED (`surfaces.<mode>.inverseBase`), so a band too
+  // close to the page is the author's choice, and the contrast sweep below names the shortfall rather than
+  // moving the band.
+  put('inverse.foreground.tertiary', rated(cfg.fgInverse.tertiary, baseRgb), 'Inverse surface, third tier', 'background.primary', cfg.nonTextMin);
+  roles['inverse.foreground.tertiary'].alsoAgainst = { against: 'inverse.text.primary', min: onMin };
   // bold semantic fills (filled badge / banner / button at rest) — static.
   const fills: Partial<Record<Role, RatedNum>> = {};
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
@@ -1875,7 +1908,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // set is `inverse.border.*` below. In HC the border targets escalate — borders
   // carry structure when surfaces flatten.
   put('border.primary', pickClosest(ramp, baseRgb, cfg.borderTarget), `Default border — decorative, ~${cfg.borderTarget}:1`, 'background.primary', 0);
-  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2), 'Stronger border / divider', 'background.primary', 0);
+  // CONTRACTED at the mode's non-text bar (#1745): Badge's subtle neutral member is edged in this role, and
+  // the edge is what separates it from the page. The target still sets the rung; the floor only makes a
+  // rung that lands under the bar ineligible, so the pick moves one step deeper where the closest step
+  // misses it (a warm neutral on an off-white page) and nowhere else.
+  put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2, cfg.nonTextMin), 'Stronger border / divider', 'background.primary', cfg.nonTextMin);
   // A THIRD RUNG, because border was the only surface/ink family that stopped at two (#1140).
   // `background`, `foreground`, `text` and `icon` all ship `primary`/`secondary`/`tertiary`, so a
   // designer reaching for the third step of the neutral edge ladder found nothing and had to pick a
@@ -2072,6 +2109,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // moves no committed artifact. It fires exactly when someone picks a ground the ramp cannot serve.
   for (const [rolePath, r] of Object.entries(roles))
     if (r.min > 0 && r.ratio < r.min) warnings.push({ role: rolePath, ratio: r.ratio, min: r.min });
+  // A role's SECOND pair (#1745), measured here from the final colours rather than read off a number
+  // written earlier — see `AlsoAgainst`. A partner that does not resolve is a wiring error, not a
+  // shortfall, so it throws rather than warning.
+  for (const [rolePath, r] of Object.entries(roles)) {
+    if (!r.alsoAgainst) continue;
+    const me = rgbByRole.get(rolePath), partner = rgbByRole.get(r.alsoAgainst.against);
+    if (!me || !partner) throw new Error(`${mode}: '${rolePath}' names alsoAgainst '${r.alsoAgainst.against}', which is not a role in this mode`);
+    const ratio = contrast(me, partner);
+    if (ratio < r.alsoAgainst.min) warnings.push({ role: rolePath, ratio, min: r.alsoAgainst.min, against: r.alsoAgainst.against });
+  }
 
   return { mode, surface: baseRgb, roles, ...(warnings.length ? { warnings } : {}) };
 };
