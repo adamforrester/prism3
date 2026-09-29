@@ -140,6 +140,7 @@ npx tsx tools/figma-mcp/agent-link.ts send status                       # prints
 npx tsx tools/figma-mcp/agent-link.ts send apply-theme --brand aurora
 npx tsx tools/figma-mcp/agent-link.ts send build-components '{"def":"button"}'
 npx tsx tools/figma-mcp/agent-link.ts send file-setup
+npx tsx tools/figma-mcp/agent-link.ts send style-guide '{"collections":["color"]}'
 npx tsx tools/figma-mcp/agent-link.ts send prune '{"confirm":false}' --brand aurora
 npx tsx tools/figma-mcp/agent-link.ts send readback
 npx tsx tools/figma-mcp/agent-link.ts read <id>                          # the result, or where the command is
@@ -167,8 +168,8 @@ What a result holds (`apps/plugin/src/agent-protocol.ts` is the definition):
 | `v`, `id`, `cmd`, `startedAt`, `finishedAt` | the envelope; `v` is the protocol version |
 | `ok` | the action's own verdict — `false` whenever `error` is set |
 | `engineVersion`, `transport` | which engine ran it, and `mailbox` |
-| `result.verdict` | the message the panel would have shown: `apply-result`, `component-result`, `file-setup-result`, `prune-result` or `seed-info`, headline and summary byte for byte |
-| `result.data` | the facts behind the verdict: misses by axis, orphans, stranded collections, renames (`apply`); the component report, its counters and telemetry (`build`); the prune plan (`prunePlan`); the file-setup pages (`fileSetup`); the contract checks (`readback`) and a census of every component page with each set's own build report (`components`) |
+| `result.verdict` | the message the panel would have shown: `apply-result`, `component-result`, `file-setup-result`, `style-guide-result`, `prune-result` or `seed-info`, headline and summary byte for byte |
+| `result.data` | the facts behind the verdict: misses by axis, orphans, stranded collections, renames (`apply`); the component report, its counters and telemetry (`build`); the prune plan (`prunePlan`); the file-setup pages (`fileSetup`); every style-guide table and its diff (`styleGuide`); the contract checks (`readback`) and a census of every component page with each set's own build report (`components`) |
 | `result.logs` | every console line the plugin printed while the command ran |
 | `progress` | `component-progress` readings for a build |
 | `error` | `{ code, message }` for a command that was not run |

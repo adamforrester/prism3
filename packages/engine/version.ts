@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.197.0 — #1710 (owner decision, 2026-09-29): the read-only field keeps the editable field's boundary.
+ * 0.199.0 — #1710 (owner decision, 2026-09-29): the read-only field keeps the editable field's boundary.
  * `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to
  * `color.field.border.rest`, so the read-only member draws the same border as rest and filled in every mode.
  * `border.secondary` measured 2.69–2.81:1 on `background.secondary` in light in every brand, below the SC 1.4.11
@@ -2934,6 +2934,28 @@
  * theme. The three defs' a11y and prose claims now name the boundary that is built. The projected read-only
  * members' stroke moves (`schema/component-surface.json`, the paint census) → ENGINE MINOR. CONTRACT STANDS at
  * 13.2.0: no token name moves — the defs bind an existing role.
+ *
+ * 0.198.0 — #1745: Badge's three NEUTRAL pairs become mode contracts instead of example-brand measurements, so
+ * every brand the engine generates is checked, not only the corpus. `border.secondary` is contracted against
+ * `background.primary` at the mode's non-text bar (3:1, 4.5:1 in high-contrast), and its `pickClosest` now
+ * takes that bar as a floor: a rung that lands under it is ineligible and the pick moves one step deeper.
+ * `inverse.foreground.tertiary` (the bold neutral fill) moves from a `self` surface to a fill contracted
+ * against `background.primary` at the same bar, and carries a SECOND pair, `alsoAgainst` — its label
+ * `inverse.text.primary` at 4.5:1 — which the contrast sweep measures from the final colors and names in
+ * `warnings` (with the partner in `against`) when it falls short; `tree.ts` counts that pair in `modeChecks`, so the
+ * CLI and `emit-dtcg` exit non-zero on it, and both roles state it in their `.ai.json` `contrast_with`. NO emitted color moves in any corpus brand
+ * or in the NB master theme; `out/**` moves by the new `against`/`min`/`contrast` metadata on those two roles,
+ * the two new `contrast_with` entries per `.ai.json`, and the stamp → ENGINE MINOR. CONTRACT STANDS at 13.2.0
+ * (no token name moves).
+ *
+ * 0.197.0 — #259 phase 1: the style-guide generator, COLOR (owner decisions, 2026-09-27/28). A plugin
+ * feature: `apps/plugin/src/style-guide.ts` draws one table per color group onto `↳ Primitive tokens` /
+ * `↳ Semantic tokens` from the file's own variables, with modes side by side (each swatch bound and
+ * mode-pinned), each specimen on its contracted ground, and a contrast column from `resolveAllModes`.
+ * `style-guide-cells.ts` builds or adopts three cell sets on `↳ File Components` during Set up file. New panel
+ * step and `style-guide` agent command. A plugin behavior change (principle 5) → ENGINE bump; no engine
+ * emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at
+ * 13.1.0 (no token name moves). Design record: `docs/45-style-guide-generator.md`.
  *
  * 0.196.0 — #1318 (owner decisions, 2026-09-28): the veil's DIRECTIONAL GRADIENT washes, Prism 2's
  * `Gradient from top/bottom/left/right` scrim variants. A new variant axis `direction` (`full | from-top |
@@ -4097,7 +4119,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.197.0';
+export const ENGINE_VERSION = '0.199.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

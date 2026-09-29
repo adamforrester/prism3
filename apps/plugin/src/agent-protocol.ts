@@ -30,14 +30,14 @@
  * ever executed.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import type { MainToUi } from './messages';
+import type { MainToUi, StyleGuideOptions } from './messages';
 
 /** The protocol revision. See the header for when it moves. */
 export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'prune', 'readback'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback'] as const;
 export type AgentCmd = (typeof AGENT_COMMANDS)[number];
 
 /** Each command's `args`, exactly as the UI sends the matching message (`messages.ts` `UiToMain`). */
@@ -50,6 +50,8 @@ export type AgentArgs = {
   'build-components': { def?: string };
   /** The page scaffold + the two template assets. No payload. */
   'file-setup': Record<string, never>;
+  /** The color style-guide tables (#259) — every field optional, as the panel's Customize options. */
+  'style-guide': StyleGuideOptions;
   /** `confirm: false` previews, `confirm: true` deletes — the UI's two-step prune, in one field. */
   prune: { input: BrandInput; confirm: boolean };
   /** The boot read-back (`seed-info`) plus a census of every component page. Read-only. */
@@ -176,6 +178,22 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
         return fail('bad-args', 'build-components takes args.def: a component def id, or no def for Button');
       }
       return { ok: true, command: { ...base, cmd: 'build-components', args: args.def === undefined ? {} : { def: args.def } } };
+    case 'style-guide': {
+      const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every((s) => typeof s === 'string' && s.length > 0);
+      const oneOf = (v: unknown, allowed: readonly string[]): boolean => v === undefined || (typeof v === 'string' && allowed.includes(v));
+      const flag = (v: unknown): boolean => v === undefined || typeof v === 'boolean';
+      if (args.collections !== undefined && !strings(args.collections)) return fail('bad-args', 'style-guide takes args.collections: an array of collection names');
+      if (args.types !== undefined && !strings(args.types)) return fail('bad-args', "style-guide takes args.types: an array of token types, e.g. ['color']");
+      if (!oneOf(args.valueFormat, ['hex', 'rgba', 'hsl', 'hsb'])) return fail('bad-args', 'style-guide takes args.valueFormat: hex, rgba, hsl or hsb');
+      if (!oneOf(args.header, ['dark', 'light'])) return fail('bad-args', 'style-guide takes args.header: dark or light');
+      if (!oneOf(args.display, ['auto', 'default', 'text', 'icon', 'border', 'transparency'])) return fail('bad-args', 'style-guide takes args.display: auto, default, text, icon, border or transparency');
+      if (!flag(args.aliases) || !flag(args.description)) return fail('bad-args', 'style-guide takes args.aliases and args.description as booleans');
+      const opts: StyleGuideOptions = {};
+      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description'] as const) {
+        if (args[k] !== undefined) (opts as Record<string, unknown>)[k] = args[k];
+      }
+      return { ok: true, command: { ...base, cmd: 'style-guide', args: opts } };
+    }
     case 'status':
     case 'file-setup':
     case 'readback':

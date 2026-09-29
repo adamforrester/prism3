@@ -2832,7 +2832,8 @@
               },
               "aliasOf": "nbds.core.palette.neutral.500",
               "contrast": 4.23,
-              "against": "background.primary"
+              "against": "background.primary",
+              "min": 3
             }
           }
         },
@@ -3122,8 +3123,9 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "nbds.core.palette.neutral.150",
-                "contrast": 1,
-                "against": "self"
+                "contrast": 12.33,
+                "against": "background.primary",
+                "min": 3
               }
             }
           },

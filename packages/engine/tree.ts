@@ -13,7 +13,7 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex } from './color';
+import { RGB, contrast, hex, hexToRgb } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
@@ -1263,6 +1263,15 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
+  // A role's SECOND pair (`alsoAgainst`, #1745) is a contract too, so it counts here — this count is what
+  // `cli.ts` and `emit-dtcg.ts` exit on and what the fidelity report prints. Measured from the two final hex
+  // values: the engine stores no ratio for the pair, and its warning lives only in `ModeResult.warnings`,
+  // which neither exit path reads. A partner missing from the mode counts as a failure, not a skip.
+  for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.alsoAgainst) {
+    modeChecks++;
+    const partner = mr.roles[r.alsoAgainst.against];
+    if (partner && contrast(hexToRgb(r.hex), hexToRgb(partner.hex)) >= r.alsoAgainst.min) modePass++;
+  }
 
   // `+ 1` for `white-alpha.0` (#1318) — the one alpha leaf outside the 5–90 ramp steps.
   const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length + 1;
