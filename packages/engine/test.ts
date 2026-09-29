@@ -2862,7 +2862,7 @@ for (const b of brands) {
       'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
-      tag: { keys: ['padding-x', 'gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
+      tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -2873,7 +2873,9 @@ for (const b of brands) {
       select: { compact: 'bare 12/6/6', comfortable: 'bare 16/8/8', spacious: 'bare 20/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
       'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
-      tag: { compact: 'small 6/4/4/6/0 · medium 8/6/4/8/0 · large 12/8/6/12/0', comfortable: 'small 8/6/4/8/0 · medium 12/8/6/12/0 · large 16/12/8/16/0', spacious: 'small 12/8/6/12/0 · medium 16/12/8/16/0 · large 20/16/12/20/0' },
+      // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
+      // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
+      tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -2898,6 +2900,10 @@ for (const b of brands) {
     // THE GAP FLOOR (owner, 2026-09-29, `docs/28` §5.4.1): no gap below 4px at any density; paddings are not
     // floored. The gap keys are listed here, per def, literally. The floor's one move in the corpus is compact
     // small Tag's label→check, which the bare step rule takes to 2px (`space.025`); the table above holds it at 4.
+    // A `+` entry is a VISIBLE gap, the sum of the layer gap and the inset after it, each read off the
+    // materialized tokens (owner, 2026-09-29): Tag's icon→label is its content gap plus the label row's leading
+    // inset, 0 on a select tag and 4px on a dismissible one. The floor holds the SUM; the dismissible layer gap
+    // alone is 2px at comfortable small and 0 at compact small, on purpose.
     const GAP_KEYS: Record<string, string[]> = {
       button: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'button-destructive': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -2906,14 +2912,19 @@ for (const b of brands) {
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
-      tag: ['size.small.gap', 'size.medium.gap', 'size.large.gap', 'size.small.check-gap', 'size.medium.check-gap', 'size.large.check-gap'],
+      tag: ['small', 'medium', 'large'].flatMap((v) => [
+        `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
     const under: string[] = [];
     for (const [id, keys] of Object.entries(GAP_KEYS)) {
       const def = componentDefs.find((d) => d.id === id)!;
       for (const d of densities) {
         const m = applySpacingDensity(def, d);
-        for (const k of keys) { const px = SPACE_PX.get(m.tokens[k]); if (!(px !== undefined && px >= 4)) under.push(`${id}@${d} ${k}: ${px ?? m.tokens[k]}`); }
+        for (const k of keys) {
+          const parts = k.split('+').map((p) => SPACE_PX.get(m.tokens[p]));
+          const px = parts.some((p) => p === undefined) ? undefined : parts.reduce((a, b) => a! + b!, 0);
+          if (!(px !== undefined && px >= 4)) under.push(`${id}@${d} ${k}: ${px ?? k.split('+').map((p) => m.tokens[p]).join('+')}`);
+        }
       }
     }
     const tagCheck = SPACE_PX.get(applySpacingDensity(componentDefs.find((d) => d.id === 'tag')!, 'compact').tokens['size.small.check-gap']);
@@ -2932,7 +2943,9 @@ for (const b of brands) {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'bare', lt: [['gap', 'pad-x']] },
       select: { prefix: 'bare', lt: [['gap', 'pad-x']] },
-      tag: { prefix: 'sized', lt: [['gap', 'padding-x'], ['check-gap', 'padding-x']] },
+      // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
+      // type: the sum is what must stay under the padding. A `+` key is summed.
+      tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -2963,6 +2976,15 @@ for (const b of brands) {
     const corpus326 = lacks326(componentDefs);
     ok(corpus326.length === 0 && fixture326.join() === 'tag',
       `spacing ordering: a def that states padding-x-visual carries the #326 rule (gap < padding-x-visual < padding-x) — corpus lacking it: ${corpus326.join(', ') || 'none'}; the fixture (tag with a padding-x-visual and a #325-only rule) is caught: ${fixture326.join(', ') || 'NOT caught'}`);
+    // A def with a layer gap under an inset (`visibleGaps`) orders the SUM, so its rule must carry `gap+inset`
+    // for each entry; a rule that orders the layer gap alone would pass on a value no one sees.
+    const unsummed = componentDefs.filter((d) => d.visibleGaps?.length).flatMap((d) => d.visibleGaps!.map((g) => {
+      const strip = (k: string) => (RULES[d.id]?.prefix === 'sized' ? k.replace(/^size\.\{size\}\./, '') : k);
+      const want = `${strip(g.gap)}+${strip(g.inset)}`;
+      return RULES[d.id]?.lt.some(([lo]) => lo === want) ? '' : `${d.id} (${want})`;
+    })).filter(Boolean);
+    ok(unsummed.length === 0 && componentDefs.some((d) => d.visibleGaps?.length),
+      `spacing ordering: every visible gap (a layer gap plus the inset after it) is ordered as the sum${unsummed.length ? ` — NOT ORDERED: ${unsummed.join(', ')}` : ''}`);
     const broken: string[] = [];
     let checks = 0;
     for (const [id, rule] of Object.entries(RULES)) {
@@ -2972,7 +2994,8 @@ for (const b of brands) {
         const m = applySpacingDensity(def, d);
         for (const v of sizes)
           for (const [lo, hi] of rule.lt) {
-            const at = (k: string) => SPACE_PX.get(m.tokens[v ? `size.${v}.${k}` : k]);
+            const one = (k: string) => SPACE_PX.get(m.tokens[v ? `size.${v}.${k}` : k]);
+            const at = (k: string) => { const ps = k.split('+').map(one); return ps.some((p) => p === undefined) ? undefined : ps.reduce((a, b) => a! + b!, 0); };
             const a = at(lo), b = at(hi);
             checks++;
             if (!(a !== undefined && b !== undefined && a < b)) broken.push(`${id}@${d}${v ? `/${v}` : ''}: ${lo} ${a} !< ${hi} ${b}`);
@@ -5384,8 +5407,13 @@ for (const b of brands) {
   //   · a 24px label alone: 12+24+12 = 48, under the 64px floor, so 64 (the content centers in it);
   //   · a 24px label and the check: 12+24+6+24+12 = 78;
   //   · a 67px label, the leading icon and the check: 12+24+8+67+6+24+12 = 153;
-  //   · a dismissible tag, 24px label: 12+24+0+44 = 80 — no inset before the × slot (decision M);
   //   · the check widens a tag above its floor by one glyph and one gap, 24+6 = 30, and not at all with it off.
+  // and the DISMISSIBLE tag at every size (owner, 2026-09-29, decision N): padding-x, then the icon, the content
+  // gap and the label row's 4px leading inset, then the label, no inset before the × slot (decision M), and the
+  // square slot. The content gap is the icon→label less 4 (2/4/4), so the icon→label reads 6/8/8:
+  //   · small, 20px label: 8+4+20+0+36 = 68; with the 20px icon: 8+20+2+4+20+36 = 90;
+  //   · medium, 24px label: 12+4+24+0+44 = 84; with the 24px icon: 12+24+4+4+24+44 = 112;
+  //   · large, 24px label: 16+4+24+0+56 = 100; with the 32px icon: 16+32+4+4+24+56 = 136.
   {
     const widthBrands: [string, any][] = [['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any])];
     for (const [b, th] of widthBrands) {
@@ -5407,21 +5435,60 @@ for (const b of brands) {
       };
       const set = (n: any, name: string, visible: boolean): any => ({ ...n, ...(n.name === name ? { visible } : {}), children: (n.children ?? []).map((c: any) => set(c, name, visible)) });
       const mat = figmaAnatomySet(applyMinWidthRatio(applySpacingDensity(tagDef, th.dims.density), sizeRefPx(th.dims.sizes)), { swapTarget: 'FPO-default-icon' });
-      const rest = (type: string, sel: string) => mat.find((p) => p.size === 'medium' && new RegExp(`type=${type}, selection=${sel}, size=medium, state=rest`).test(planComponentName(p)))!.root;
-      const un = rest('select', 'unselected'), sel = rest('select', 'selected'), dis = rest('dismissible', 'unselected');
+      const rest = (type: string, sel: string, size = 'medium') => mat.find((p) => p.size === size && new RegExp(`type=${type}, selection=${sel}, size=${size}, state=rest`).test(planComponentName(p)))!.root;
+      const un = rest('select', 'unselected'), sel = rest('select', 'selected');
       const got = {
         alone: widthOf(set(un, 'leadingVisual', false), 24),
         check: widthOf(set(sel, 'leadingVisual', false), 24),
         full: widthOf(set(sel, 'leadingVisual', true), 67),
-        dismissible: widthOf(set(dis, 'leadingVisual', false), 24),
         widen: widthOf(set(sel, 'leadingVisual', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
         widenOff: widthOf(set(set(sel, 'leadingVisual', false), 'check', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
       };
-      const WANT = { alone: 64, check: 78, full: 153, dismissible: 80, widen: 30, widenOff: 0 };
+      const WANT = { alone: 64, check: 78, full: 153, widen: 30, widenOff: 0 };
       ok(JSON.stringify(got) === JSON.stringify(WANT),
-        `tag rendered width (${b}, medium, comfortable): the owner's worked examples — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, dismissible 80, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
+        `tag rendered width (${b}, medium, comfortable): the owner's worked examples for a select tag — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
+      const DIS_LABEL: Record<string, number> = { small: 20, medium: 24, large: 24 };
+      const gotDis = Object.fromEntries(['small', 'medium', 'large'].map((sz) => {
+        const dis = rest('dismissible', 'unselected', sz);
+        return [sz, `${widthOf(set(dis, 'leadingVisual', false), DIS_LABEL[sz])}/${widthOf(set(dis, 'leadingVisual', true), DIS_LABEL[sz])}`];
+      }));
+      const WANT_DIS = { small: '68/90', medium: '84/112', large: '100/136' };
+      ok(JSON.stringify(gotDis) === JSON.stringify(WANT_DIS),
+        `tag dismissible rendered width (${b}, comfortable): label alone / with the leading icon — small 68/90 (20px label), medium 84/112, large 100/136 (24px label), the label row inset 4px and the icon→label 6/8/8 (got ${JSON.stringify(gotDis)})`);
     }
   }
+  // THE DISMISSIBLE ICON→LABEL, per size and density (owner, 2026-09-29, decision N), read off the PROJECTED
+  // members: the content row's itemSpacing and the label row's paddingLeft as Figma receives them, each variable's
+  // px read off the space scale. A dismissible tag's label row is inset a FIXED 4px at every density; its content
+  // gap is the visible icon→label (6/8/8 at comfortable, moved one ladder step by density and floored at 4px)
+  // less that 4, never below 0. The floor is on the VISIBLE distance: the layer gap is 2px at comfortable small
+  // and 0 at compact small, on purpose. A select tag is untouched: no inset, and its own gap. EXPECTED is
+  // literal, `gap+inset=visible` per size, small · medium · large.
+  {
+    const SPACE_VAR_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
+    const DISMISSIBLE: Record<string, string> = {
+      compact: '0+4=4 · 2+4=6 · 2+4=6', comfortable: '2+4=6 · 4+4=8 · 4+4=8', spacious: '4+4=8 · 8+4=12 · 8+4=12',
+    };
+    const SELECT: Record<string, string> = {
+      compact: '4+0=4 · 6+0=6 · 8+0=8', comfortable: '6+0=6 · 8+0=8 · 12+0=12', spacious: '8+0=8 · 12+0=12 · 16+0=16',
+    };
+    const wrong: string[] = [];
+    for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+      const mat = figmaAnatomySet(applySpacingDensity(tagDef, d), { swapTarget: 'FPO-default-icon' });
+      for (const [type, want] of [['dismissible', DISMISSIBLE[d]], ['select', SELECT[d]]] as const) {
+        const got = ['small', 'medium', 'large'].map((sz) => {
+          const m = mat.find((p) => p.size === sz && new RegExp(`type=${type}, selection=unselected, size=${sz}, state=rest`).test(planComponentName(p)))!;
+          const gap = SPACE_VAR_PX.get(findNode(m.root, 'content')?.bound?.itemSpacing);
+          const inset = SPACE_VAR_PX.get(findNode(m.root, 'labelCheck')?.bound?.paddingLeft);
+          return `${gap}+${inset}=${gap !== undefined && inset !== undefined ? gap + inset : '?'}`;
+        }).join(' · ');
+        if (got !== want) wrong.push(`${type}@${d}: ${got} (want ${want})`);
+      }
+    }
+    ok(wrong.length === 0,
+      `tag dismissible icon→label: the content gap plus the label row's fixed 4px inset, per size at compact / comfortable / spacious, and a select tag's gap unchanged with no inset${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''}`);
+  }
+
   // THE TINT (owner, 2026-09-29, "respect none"): `interactive.primary.subtle-fill.selected` on the default and
   // solid-tint levers, and NO FILL on `none` — there a selected tag shows its 2px outline and its check only. Read
   // off the materialized def per lever and off the projected `none` members (a fill that appears is a failure).

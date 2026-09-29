@@ -195,6 +195,26 @@ export const isGapKey = (key: string): boolean => /(^|-)gap$/.test(key.split('.'
 export const densitySpacingStep = (key: string, ref: string, density: Density): string =>
   densitySpace(ref, density, isGapKey(key) ? GAP_FLOOR_PX : 0);
 
+// A LAYER GAP DERIVED FROM THE GAP THE EYE SEES (owner, 2026-09-29, the dismissible Tag). When the cell after
+// a gap carries a fixed inline-start inset of its own, the distance the eye reads is the layer gap PLUS that
+// inset. The def states the VISIBLE distance (a density-following gap: stepped, and floored at `GAP_FLOOR_PX`)
+// and the fixed inset, and the layer gap is what is left: visible − inset, never below 0. The floor is on the
+// visible distance, NOT on the layer gap — a 2px layer gap under a 4px inset is intended (a 6px visible gap).
+// `ComponentDef.visibleGaps` names the three keys; `applySpacingDensity` writes the layer gap at every density.
+/** The `space.*` step of a layer gap that, with the `insetRef` after it, shows `visibleRef`. Throws when the
+ *  difference is not a step of the ladder — a derived gap the scale does not hold has no variable to bind. */
+export const visibleGapStep = (visibleRef: string, insetRef: string): string => {
+  const pxOf = (ref: string): number => {
+    const m = /^space\.([0-9]+)$/.exec(ref);
+    if (!m || !SPACE_KEYS.includes(m[1])) throw new Error(`visibleGapStep: '${ref}' is not a step of the space ladder`);
+    return (Number(m[1]) / 100) * SPACE_BASE;
+  };
+  const px = Math.max(0, pxOf(visibleRef) - pxOf(insetRef));
+  const key = SPACE_KEYS.find((k) => (Number(k) / 100) * SPACE_BASE === px);
+  if (key === undefined) throw new Error(`visibleGapStep: ${visibleRef} − ${insetRef} = ${px}px, which is not a step of the space ladder`);
+  return `space.${key}`;
+};
+
 // Component-size ladder. A "size" is a CONTRACT (a control height) every component opts into — guaranteeing
 // a `md` button, input and select agree. Spacing is not part of it (the spacing model, above).
 //

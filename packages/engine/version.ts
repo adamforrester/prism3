@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.212.0 — the dismissible Tag's label inset (owner-decided 2026-09-29 from live QA on a real Figma file;
+ * decision record `docs/28` §5.4.4). On a dismissible tag the label-and-check row (`labelCheck`) takes a FIXED
+ * 4px leading inset (`space.050`, every density), and the content row's icon→label gap drops to match (6/8/12
+ * → 2/4/4 at comfortable), so the visible icon→label is 6/8/8 and a dismissible tag is 4px wider. The def
+ * states the visible distance (density-following, held by the 4px gap floor) and the layer gap is derived as
+ * visible − inset, never below 0 (`ComponentDef.visibleGaps`, `visibleGapStep`, applied in
+ * `applySpacingDensity`). Select tags are pixel-identical; their `labelCheck` now binds explicit 0 paddings.
+ * The projected component surface moves (dismissible `itemSpacing`, `labelCheck` padding bindings) → ENGINE
+ * bump. CONTRACT STANDS at 14.0.0 (no token name moves; the new keys are def-internal bindings to existing
+ * `space.*` steps).
+ *
  * 0.208.0 — #1790: the paste path's theme cleanup (`runCleanupTheme`, the `use_figma` scratch-file wipe)
  * had the read-after-remove defect that `applyPrunePlan` was fixed for in 0.203.0. It read `.name` off
  * each style and each collection right after calling its `remove()`, and on the next collection it read `variableCollectionId`
@@ -4249,7 +4260,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.208.0';
+export const ENGINE_VERSION = '0.212.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
