@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-09-29) — Style guide, phase 2: dimension, font-variable and text-style tables (#259)
+
+**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE 0.199.0 → **0.200.0** (the orchestrator renumbers at net), a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
+
+**Why.** Phase 2 of the owner's plan (#259, `docs/45` §5): the tables for dimension and typography, the owner's REM and pixel options, and the spacing cell set that phase 1 built and nothing read.
+
+**What it does.**
+- **Every variable is read, not only COLOR** (`readCatalog`, the #146 lesson: a type-filtered fetch misses the STRING family and FLOAT size variables), with its `scopes`, and the file's text styles (`getLocalTextStylesAsync`).
+- **A variable's kind** (`varKind`): scopes first (`FONT_SIZE`, `CORNER_RADIUS`, `GAP`, `WIDTH_HEIGHT`), name second; the later-phase families (breakpoints, grid, opacity, icon sizes, border and stroke widths, font style) are counted in one note and not drawn.
+- **Tables.** One `dimension` table per collection, one per font kind per collection, one for the text styles. Primitive or semantic by phase 1's alias rule, applied to the table. A title two phase-2 tables share names its collection: "Font size (core)", "Font size (type-sets)".
+- **Specimens, bound and pinned per mode.** A spacing: the `display=filled` spacing cell, its bar at the value's width, `width` bound. A size or plain scale: the `display=line` bracket, the same way. A radius: the `type=radius` swatch, `topLeftRadius` bound. A font variable: "Abc 123" with its one property bound (a family or weight loads that font first). A text style: "Abc 123" with `setTextStyleIdAsync`. No ground, no contrast column.
+- **Values.** `16px · 1rem` (REM at 16px), each unit on a toggle; a weight as `600 · Semi Bold`; a text style's size / line height per mode, family, weight and letter spacing once, paragraph spacing and decoration on toggle. The rerun report compares units-free values, so a REM switch changes no row.
+- **Modes.** A mode-varying dimension and prism3's fluid `type-sets` sizes draw one bound specimen and value per mode. The text-style table takes the modes of the collection its sizes are bound to (desktop, mobile), so a hero style reads 160px beside 48px.
+- **Options** (`StyleGuideOptions`, agent-link args validated as `bad-args`, panel *Customize*): `pixels`, `rem`, `dimensionDisplay` (auto / Generic / Spacing / Border radius), `fontDisplay` (auto / Generic / Family / Size / Weight / Letter spacing / Line height), `paragraphSpacing`, `textDecoration`. `PHASE_TYPES` is now color, dimension, the five font kinds and `typography`.
+- **A binding the host refuses** is counted with the unbound swatches and named; the headline reads "⚠ 17 specimens unbound".
+
+**Deliberately not done.** The dimension "title cell" option stays deferred, as phase 1 left it: the header carries the title, and what the owner's title cell drew is not recorded (held for the owner). The fingerprint is unchanged, so phase 1's recorded fingerprints keep matching; the cost is that a superseded dimension table whose value moved reads as edited and is kept (a bar's width is its value), the safe direction. Font style (`core/font/style/*`) waits for a later phase with opacity and the rest.
+
+**Traps for whoever works here next.**
+- **The emission's `text-styles.json` holds 63 styles, not the 39 `docs/45` §4 counted;** the fixture reads them from the emission, so the count follows the engine.
+- **A table's mode named "Value"** (the `legacy` and a foreign fixture's) reads "Value · Value" in the header row. It is the file's name, printed as given; the phase-2 fixture names its one mode "Default".
+- **The scratchpad is shared across lanes:** name mutation scripts in a lane subfolder, not `m1.py` at its root.
+- **Not checked offline:** that the host accepts `setBoundVariable` on an instance's bar, corner and text fields, which fonts a bound family or weight needs, and `setTextStyleIdAsync` under a pinned mode (`docs/45` §7, live-checks).
+
+**Tests.** `test-style-guide.ts` sections 16–19, literal, through the shim, on a file of the prism3 emission's dimension and font variables and 63 text styles plus a mode-varying `density` and an out-of-order `metrics` ramp (details: `docs/45` §7). `test-agent-link.ts`: the new args reach the handler; bad values are `bad-args`. `test-build-verdict.mjs`: the new Customize fields, and that they cross the bridge (a probe flipping its expectation went red, 152 of 153).
+
+**Mutations,** after a `wip:` commit, each restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| the spacing bar's width left unbound | "16: space/050 draws the filled spacing bar at 4px, its width bound to space/050 and pinned to the space mode (… bound undefined)", "16: a mode-varying spacing draws a bound bar per mode, pinned…" |
+| the radius corner left unbound | "16: radius/md draws the type=radius swatch, 48 × 48 and FIXED, its corner bound to radius/md", "19: a binding the host refuses is counted and named… (11 unbound)" |
+| the font variable's property left unbound | "17: font size 16's specimen is "Abc 123" with fontSize alone bound to it", "17: font family display binds fontFamily alone…", "17: font weight 600 binds fontWeight alone…", "17: a line height binds lineHeight…", "17: Display "Size" binds fontSize instead", "19: a binding the host refuses…" |
+| REM computed at a 10px base | "16: its value reads px and REM at a 16px base, with its alias ("4px · 0.4rem …")", "16: space/1200 reads "96px · 6rem"", "16: radius/capsule reads "999px · 62.4375rem"", "17: its value is "16px · 1rem"", "18: body/lg/default reads 18px · 1.125rem / 150%…", and six more |
+| a lexical sort | "16: the space scale in ramp order, 1000 after 900", "16: a ramp stored 16, 4, 100, 2 draws 2, 4, 16, 100 (100, 16, 2, 4)", "16: a size draws the bracket (display=line), 100px wide for 100" |
+| the text style not applied | "18: body/lg/default's specimen is "Abc 123" with its text style applied, one per mode, pinned (, )" |
+| the paragraph-spacing column always shown | "18: the text-style table: a specimen and size per type-sets mode, then family, weight, letter spacing (… Paragraph spacing …)", "18: toggled off, the two columns are gone on the rerun" |
+
+---
+
 ## (2026-09-29) — Style guide: one table at a time, yielding to Figma, one run at a time, a header that spans its table and the owner's HUG grid (#1778, #1785, #259)
 
 **STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE 0.198.0 → **0.199.0** (rebased over #1776, which took 0.198.0; the orchestrator renumbers at net), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.

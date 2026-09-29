@@ -606,10 +606,19 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(before.customize !== null && before.customize.open === false, '#259 the per-type options fold away under a closed "Customize"');
   ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
     '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
+  ok(['Dimension display', 'Font variable display', 'Pixels', 'REM', 'Paragraph spacing', 'Text decoration'].every((w) => (before.customize?.text ?? '').includes(w)),
+    '#259 phase 2: Customize carries Dimension display, Font variable display, Pixels, REM, Paragraph spacing and Text decoration');
 
   await page.locator('details.contracts summary', { hasText: 'Customize' }).first().click();
   await page.locator('.knob', { hasText: 'Color value' }).locator('select').selectOption('hsl');
   await page.locator('.knob', { hasText: 'Display style' }).locator('select').selectOption('border');
+  // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, picked in the words
+  // on screen. A knob is found by its exact label, since "REM" is a substring of other knobs' prose.
+  const knobNamed = (label) => page.locator('.knob').filter({ has: page.locator('label.knob-label', { hasText: new RegExp(`^${label}$`) }) });
+  await knobNamed('Dimension display').locator('select').selectOption('radius');
+  await knobNamed('Font variable display').locator('select').selectOption('weight');
+  await knobNamed('REM').locator('input.toggle').click({ force: true });
+  await knobNamed('Paragraph spacing').locator('input.toggle').click({ force: true });
   // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
   await page.locator('.knob', { hasText: 'Tables' }).locator('textarea').fill('Primary — nbds,  Text — pds3, ');
   const clicked = await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).then(() => true, () => false);
@@ -620,6 +629,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(pending.button === '⋯ Drawing…' && pending.disabled === true, `#259 a run in flight reads "⋯ Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
   ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
     `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
+  const p2 = pending.sent[0]?.options ?? {};
+  ok(p2.dimensionDisplay === 'radius' && p2.fontDisplay === 'weight' && p2.rem === false && p2.paragraphSpacing === true && p2.pixels === undefined && p2.textDecoration === undefined,
+    `#259 phase 2: the dimension and font displays, REM off and paragraph spacing on cross the bridge; untouched toggles are not sent — sent ${JSON.stringify(p2)}`);
   ok(JSON.stringify(pending.sent[0]?.options?.tables) === JSON.stringify(['Primary — nbds', 'Text — pds3']),
     `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);
   // #1778: a progress reading rewrites the page's pending pill in place.

@@ -189,11 +189,15 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (!oneOf(args.header, ['dark', 'light'])) return fail('bad-args', 'style-guide takes args.header: dark or light');
       if (!oneOf(args.display, ['auto', 'default', 'text', 'icon', 'border', 'transparency'])) return fail('bad-args', 'style-guide takes args.display: auto, default, text, icon, border or transparency');
       if (!flag(args.aliases) || !flag(args.description)) return fail('bad-args', 'style-guide takes args.aliases and args.description as booleans');
+      // #259 phase 2: the dimension, font-variable and text-style options.
+      if (!oneOf(args.dimensionDisplay, ['auto', 'generic', 'spacing', 'radius'])) return fail('bad-args', 'style-guide takes args.dimensionDisplay: auto, generic, spacing or radius');
+      if (!oneOf(args.fontDisplay, ['auto', 'generic', 'family', 'size', 'weight', 'letterSpacing', 'lineHeight'])) return fail('bad-args', 'style-guide takes args.fontDisplay: auto, generic, family, size, weight, letterSpacing or lineHeight');
+      if (!flag(args.pixels) || !flag(args.rem) || !flag(args.paragraphSpacing) || !flag(args.textDecoration)) return fail('bad-args', 'style-guide takes args.pixels, args.rem, args.paragraphSpacing and args.textDecoration as booleans');
       // An empty list would draw nothing and match nothing, so it is refused rather than read as "every table";
       // so is a name of spaces alone, which the filter's trim would turn into an empty one.
       if (args.tables !== undefined && (!strings(args.tables) || !args.tables.length || args.tables.some((t) => !t.trim()))) return fail('bad-args', "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']");
       const opts: StyleGuideOptions = {};
-      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables'] as const) {
+      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables', 'pixels', 'rem', 'dimensionDisplay', 'fontDisplay', 'paragraphSpacing', 'textDecoration'] as const) {
         if (args[k] !== undefined) (opts as Record<string, unknown>)[k] = args[k];
       }
       return { ok: true, command: { ...base, cmd: 'style-guide', args: opts } };

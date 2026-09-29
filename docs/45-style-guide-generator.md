@@ -1,6 +1,6 @@
 # 45 — The style-guide generator
 
-**Status:** phase 1 (color) built in `apps/plugin/src/style-guide.ts` + `style-guide-cells.ts`, with the tables filter and host yielding of #1778; phases 2–3 specified here, not built.
+**Status:** phase 1 (color) built in `apps/plugin/src/style-guide.ts` + `style-guide-cells.ts`, with the tables filter and host yielding of #1778. **Phase 2 (dimension, font variables, text styles) built** in the same two files, offline-tested, awaiting the owner's live check (§6, "How phase 2 decides"; §7). Phase 3 specified here, not built.
 **Issue:** #259. **Why a plugin feature, not a separate tool:** `docs/09` §4 — the tables document the variables a theme write left in *this* file, so they read `figma.variables` rather than the engine's emission, and they live where the designer already works.
 
 This is the design record for every phase. Section 2 holds the owner's decisions, verbatim in substance and closed. Anything this document adds beyond them is marked **proposed, owner to confirm**. The list of those items is §8.
@@ -16,20 +16,28 @@ Two halves, the shape every executor in the plugin takes:
 - **`planStyleGuide(catalog, contract, options)`**: pure. Collections, variables and the engine's contrast contract go in. A list of tables comes out: page, title, columns, rows in order, and per mode the value, alias, ground and measured contrast. It is tested with no host.
 - **`runStyleGuide(api, contract, options, run)`**: the executor. It writes the plan from the cell sets and never throws for a missing optional piece. No page, no cell set, no header set and an unloadable font are each a named skip. It draws one table at a time and yields to the host between them (§6, "Sharing the host's thread"); `run` carries the caller's `yieldTo` and `onProgress`, which never cross the bridge.
 
-It is driven from the panel (the **Style guide** step) and from the agent link (`style-guide {collections?, types?, tables?, valueFormat?, header?, display?, aliases?, description?}`).
+It is driven from the panel (the **Style guide** step) and from the agent link (`style-guide {collections?, types?, tables?, valueFormat?, header?, display?, aliases?, description?, pixels?, rem?, dimensionDisplay?, fontDisplay?, paragraphSpacing?, textDecoration?}`).
 
-**Options.** Every one is optional, so `{}` draws every color table.
+**Options.** Every one is optional, so `{}` draws every table the built phases draw.
 
 | Option | What it does |
 |---|---|
 | `collections` | Collection names, in any case. Absent: every collection. |
-| `types` | Token types. Absent: every type this phase draws (`color`). A later-phase type is named in the report. |
+| `types` | Token types, in any case. Absent: every type phases 1–2 draw (`PHASE_TYPES`: `color`, `dimension`, `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `typography`). A later-phase type is named in the report ("shadow: not in this phase — this phase draws color, dimension, …"). |
 | `tables` | Table titles as drawn ("Primary — nbds") or keys, in any case (#1778). Absent: every table. A name that matches no table is reported by name with the titles the run can draw, and the run is not a pass. A filtered run covers only the tables it draws (§6). In the panel: *Customize* → *Tables*, one title a line, or several on one line separated by commas; a field with a line break splits on line breaks only, so a title with a comma in it goes on a line of its own. The agent link refuses an empty list, an empty name and a name of spaces alone as `bad-args`. |
 | `valueFormat` | `hex` (default), `rgba`, `hsl` or `hsb`. |
 | `header` | The header row's fill: `dark` (default) or `light`. |
-| `display` | The specimen: `auto` (default, from each token's role), or one swatch type for every row. |
-| `aliases` | Each value's alias chip. Default on. |
+| `display` | The color specimen: `auto` (default, from each token's role), or one swatch type for every row. |
+| `aliases` | Each value's alias chip. Default on. For a text style, the chip names the variable a property is bound to. |
 | `description` | The description column. Default on. |
+| `pixels` | Lengths (dimensions, font sizes, line heights, letter spacing, text styles) in pixels. Default on. Phase 2. |
+| `rem` | Lengths in REM as well, at a 16px base (`REM_BASE`): `16px · 1rem`. Default on. With both off, a value prints in pixels, since a value column always prints a value (**proposed, owner to confirm**). Phase 2. |
+| `dimensionDisplay` | The dimension specimen: `auto` (default, from each variable's role), `generic` (the bracket, `display=line`), `spacing` (the filled bar, `display=filled`) or `radius` (the radius swatch). The owner's Generic / Spacing / Border radius. Phase 2. |
+| `fontDisplay` | The font-variable specimen: `auto` (default: the property the variable is for), `generic` (nothing bound), or `family`, `size`, `weight`, `letterSpacing`, `lineHeight` (that one property bound). The owner's Generic / Family / Size / Weight / Letter spacing / Line height. Phase 2. |
+| `paragraphSpacing` | A paragraph-spacing column in the text-style table. Default off. Phase 2. |
+| `textDecoration` | A text-decoration column in the text-style table. Default off. Phase 2. |
+
+In the panel, all of these sit under *Customize*: *Dimension display*, *Font variable display*, *Pixels*, *REM*, *Paragraph spacing* and *Text decoration* join phase 1's fields. The owner's old plugin had one set of options per type (font variables: display type, REM, aliases, description; text styles: header, REM, aliases, text decoration, paragraph spacing, description; dimension: display style, pixels, REM, aliases, description, title cell). This build holds one set for the whole run, shared where the owner's sets overlap (header, REM, aliases, description), so a run over every type is configured once (**proposed, owner to confirm**). The dimension "title cell" stays deferred, as in phase 1 (§8).
 
 ## 2. Decided (2026-09-28, #259): the style-guide generator's coverage, layout, contrast column, rerun and cell components
 
@@ -95,11 +103,13 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 | Type | Count | Page | Specimen | Value | Type-specific column | Phase |
 |---|---|---|---|---|---|---|
 | color | 388 | primitive: Primitive tokens (one table per palette, as a scale); semantic: Semantic tokens (one per family) | swatch by role: text "Aa", icon diamond, border outline, translucent checkerboard, else filled; on its ground | Hex / RGB-A / HSL / HSB; translucent carries alpha | **Contrast** per mode, semantic only: `4.52:1 — clears the 4.5:1 floor` + the ground on a second line. An ink-on-wash role measures its `legibleFor` ink over the composite. "—" with no contracted ground. | **1 (built)** |
-| dimension | 180 | space/size scales: Primitive; spacing and radius roles: Semantic | spacing cell (filled bar or bracket) at the value's width; radius swatch for radii | px, and REM at a 16px base (toggles) | — | 2 |
-| typography (text styles) | 39 | Semantic tokens | the style's own sample, "Abc 123" set in it | family · weight · size / line height · letter spacing, px and REM | paragraph spacing and text decoration (toggles, the owner's options) | 2 |
-| fontFamily | 9 | Primitive | "Abc 123" in the family | family name | — | 2 |
-| fontWeight | 10 | Primitive | "Abc 123" at the weight | numeric weight + style name | — | 2 |
-| number | 31 | by collection | none, or the scale's bar where it is a ratio | the number | the unit the name implies (line-height ratio, opacity %) — **proposed** | 2 (line heights, letter spacing) / 3 (the rest) |
+| dimension | 180 | a scale no variable aliases (`core/dimension`): Primitive; spacing, size and radius roles: Semantic | spacing cell at the value's width, its width bound (filled bar for a spacing, bracket for a size or a plain scale); radius swatch for a radius, its corner bound | px, and REM at a 16px base (toggles) | — | **2 (built)** |
+| typography (text styles) | 63 | Semantic tokens | "Abc 123" with the style applied, one per mode of the collection its sizes are bound to | size / line height per mode; family · weight · letter spacing once, px and REM | paragraph spacing and text decoration (toggles, the owner's options) | **2 (built)** |
+| fontFamily | 7 | by the alias rule (prism3: Primitive) | "Abc 123", `fontFamily` bound | family name | — | **2 (built)** |
+| fontSize | 43 | by the alias rule (prism3 `core` and `type-sets`: Primitive) | "Abc 123", `fontSize` bound | px and REM | — | **2 (built)** |
+| fontWeight | 11 | by the alias rule (prism3: Semantic, since `weight-role/*` aliases `weight/*`) | "Abc 123", `fontWeight` bound | numeric weight + style name (`600 · Semi Bold`) | — | **2 (built)** |
+| lineHeight, letterSpacing | 0 in prism3 | by the alias rule | "Abc 123", that property bound | px and REM | — | **2 (built)** |
+| number | 31 | by collection | none, or the scale's bar where it is a ratio | the number | the unit the name implies (opacity %) — **proposed** | 3 |
 | shadow | 7 | Semantic | a card with the effect style applied | offset · blur · spread · color | — | 3 |
 | gradient (paint styles) | — | Semantic | a swatch filled with the style | stops, as values with their aliases | — | 3 |
 | duration | 24 | Semantic | none (**proposed**: a bar at the duration's length) | ms | — | 3 |
@@ -115,10 +125,10 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 ## 5. Phase plan
 
 1. **Color (this PR).** Every color collection; primitives as scales, semantic roles by family; contrast per mode; Set up file builds or adopts the cells; panel step and agent command.
-2. **Dimension + typography.** Font variables (family, size, weight, letter spacing, line height) and text styles; the owner's REM/pixel options; the spacing cell set, already built in phase 1, goes into use.
+2. **Dimension + typography (built, awaiting the owner's live check).** Font variables (family, size, weight, letter spacing, line height) and text styles; the owner's REM/pixel options; the spacing cell set, already built in phase 1, goes into use. How it decides: §6, "How phase 2 decides".
 3. **The rest.** Shadow, gradient, motion (duration, easing, transition, spring), opacity, border width, breakpoints/grids and icon sizes.
 
-`PHASE_TYPES` in `style-guide.ts` names what the current phase draws. A type asked for outside it is reported ("dimension: not in this phase — color only"), never silently dropped.
+`PHASE_TYPES` in `style-guide.ts` names what the built phases draw. A type asked for outside it is reported ("shadow: not in this phase — this phase draws color, dimension, …"), never silently dropped. A run with no `types` also counts the FLOAT and STRING variables a later phase draws, once: "Not drawn until a later phase: 13 font style, 12 opacity variables" (prism3's emission).
 
 ## 6. How phase 1 decides
 
@@ -164,6 +174,27 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - **Verdict.** "✓ style guide: 22 tables" on a clean run, "✓ style guide: 1 table" for one. "⚠ 11 drawn, 11 skipped" when a page or the cells were missing, which is not a pass, so the detail opens. "⚠ 1 drawn, 1 not found" when a `tables` name matched nothing, and "✗ no table matched" when none did (**proposed, owner to confirm**). "⚠ 368 swatches unbound" when a swatch member has no layer that takes a fill, counted per variant in the detail. "✗ style guide skipped" when nothing was drawn.
 - **Binding an adopted swatch.** In order: a layer named `Specimen`; a layer found by type (the first text layer, stroked layer or filled layer); and last, the instance itself, where the member paints its own fill or stroke or has no layers (the owner's `type=default`).
 
+### How phase 2 decides (#259: dimension, font variables, text styles)
+
+Phase 2 keeps every owner decision of §2 (a table per family per collection on the right page, one specimen and value column per mode with the specimen bound and pinned, the header spanning its table, the HUG grid, a ground only where a specimen must sit on something, update in place, the `tables` filter, one run at a time, the adopted cells). What it adds:
+
+- **A variable's kind.** A FLOAT or STRING variable is classified by its host `scopes` first, its name second (`varKind`, **proposed, owner to confirm**). A variable scoped to one font property is that property (`FONT_SIZE` → font size). Then the later-phase families by name: breakpoints, grid (`grid/gutter` too, so it is not drawn as spacing today and redrawn as a grid in phase 3), opacity, icon sizes, and border and stroke widths (a `STROKE_FLOAT`-only scope). Then font names, a radius (`CORNER_RADIUS`, or a `radius` segment), a spacing (`GAP`, or `space`, `gap`, `padding`, `inset`, `margin`), a size (`WIDTH_HEIGHT`, or `size`, `height`, `width`), and last a plain scale (`core/dimension/*`, scoped to everything). Spacing, size, radius and scale are the `dimension` type; font style (`core/font/style/*`, a STRING) waits for a later phase.
+- **Tables.** One `dimension` table per collection (and per root in a two-root collection), and one table per font kind per collection (**proposed, owner to confirm**: one table per kind). Primitive or semantic by the phase 1 rule, applied to the table: primitive when none of its variables aliases another. So `core/dimension` is primitive, on `↳ Primitive tokens`; `space`, `size` and `radius` alias it and are semantic, on `↳ Semantic tokens`; prism3's font-weight table holds `weight/*` and the aliasing `weight-role/*`, so it is semantic. Keys follow phase 1's form: `dimension|<collection ID>|pds3/space`, `fontSize|<collection ID>|pds3/core/font/size`, `typography|text-styles|`.
+- **Titles.** A primitive dimension table takes its path's last segment ("Dimension"), a semantic one its collection's name ("Space", "Radius"); a font table its kind ("Font size"). Two phase-2 tables that would share a title name their collection: "Font size (core)" and "Font size (type-sets)", since the tables filter matches a title (**proposed, owner to confirm**). A two-root collection adds its root, as color does.
+- **Rows.** Named inside the table's shared path ("025", "xs/height", "weight-role/strong"). A table whose rows are single steps sorts in ramp order, numerically (`0, 025, 050 … 900, 1000`); a table of paths keeps the file's order.
+- **The specimen by role** (decision 13, carried to phase 2, **proposed, owner to confirm** where it goes beyond the brief). None sits on a ground: nothing is measured against one.
+  - A **spacing** draws the `_style-guide-spacing-cells` `display=filled` member, its bar resized to the value and its width bound to the variable (`setBoundVariable('width')`); a **size** or a plain **scale** draws the `display=line` bracket the same way; a **radius** draws the swatches set's `type=radius` member at its fixed 48 × 48, its rounded corner bound (`topLeftRadius`). The *Dimension display* override draws one of the three for every row. The spacing cell FILLs its track like a text cell; the radius swatch is FIXED like a palette swatch.
+  - A **font variable** draws "Abc 123" in a `type=default` text cell with the one property bound: `fontFamily`, `fontSize`, `fontWeight`, `letterSpacing` or `lineHeight`. The host sets a bound family or weight only in a loaded font, so the family is loaded in the cell's style, or the cell's family at the weight's style name (`600` → "Semi Bold"). The specimen is at the variable's size, so a 160px size draws a 160px row (**proposed, owner to confirm**). *Font variable display* binds another property, or none (Generic).
+  - A **text style** draws "Abc 123" with the style applied (`setTextStyleIdAsync`), its font loaded first.
+  - Each specimen pins its column's mode. A binding the host refuses is counted with the swatches (`unbound`), named ("6 type=radius specimens are not bound to their variable…"), and is not a pass: "⚠ 17 specimens unbound".
+- **Modes.** A dimension or font table takes its collection's modes, side by side like color. A mode-varying dimension (a compact and a comfortable spacing, a mobile and a desktop size) shows one bound specimen and value per mode, each pinned. A **fluid type size** is the same: prism3's `type-sets` holds desktop and mobile, so "Font size (type-sets)" reads `160px · 10rem` beside `48px · 3rem`. A mode pair is shown as its modes, not as a min–max range (**proposed, owner to confirm**).
+- **The text-style table.** One table, "Text styles", on `↳ Semantic tokens`, one row per local style in the file's own order (display → title → body → label → caption → eyebrow → code in prism3; not invented). Its modes are those of the collection holding the most bound font sizes among collections with more than one mode (prism3: `type-sets`, desktop and mobile); with none, one column headed "Specimen" (**proposed, owner to confirm**). Columns: Token · [mode · Size / line height] per mode · Family · Weight · Letter spacing · [Paragraph spacing] · [Decoration] · Description. The size and line height print per mode (`18px · 1.125rem / 150%`); family, weight (`500 · Medium Italic`, the number read from the style name) and letter spacing (`-3%`, or px and REM when the style stores pixels) print once, joined with " / " where a mode differs. Each value carries the chip of the variable its property is bound to. Text styles belong to no collection, so a `collections` filter leaves the table out (**proposed, owner to confirm**).
+- **Header descriptions** state what the plan counted: "18 dimensions in space", "2 dimensions in density, per mode (compact, comfortable)", "22 font size variables in core", "63 text styles in this file, sizes per type-sets mode (desktop, mobile)", and for a primitive table the count another variable references (**proposed, owner to confirm**).
+- **The rerun report** compares what a row holds, never how it prints: a dimension's alias and resolved number, a text style's family, style, weight, size, line height, letter spacing, paragraph spacing and decoration in their own units. Switching REM off changes no row.
+- **No contrast column.** Contrast is a color measure; a phase-2 table has no Contrast column and no "—" placeholder.
+- **The fingerprint** (§6, decision 9) is unchanged, so phase 1's recorded fingerprints still match. A spacing bar's width is its value, and width is in the fingerprint, so a superseded dimension table whose value moved reads as edited and is kept: the safe direction, but it means such a table is deleted by hand (**proposed, owner to confirm**).
+- **A missing spacing set** is named ("no _style-guide-spacing-cells set — dimension rows have no specimen; Set up file adds it"); the tables draw without a specimen. An adopted swatch set without a `type=radius` member names the variant, as phase 1 does.
+
 ## 7. What is and is not verified offline
 
 `apps/plugin/test-style-guide.ts` drives both halves through a node shim that keeps GRID tracks, explicit modes, bound paints and plugin data. It checks:
@@ -184,7 +215,8 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - superseded tables: an unedited stale table and an unedited replaced one are deleted, header and cells with them, and the stack closes over the gap. So is one whose bound variable's value and alpha changed between runs, replayed onto the paints as the host repaints them. Kept, each by its own literal fixture at the same size: one value cell retyped (the same length), a fill repainted, a stroke added, a cell widened by 40px, a pinned mode changed, 8px corners, a drop shadow, a stroke weight and alignment, a layer opacity and blend mode, one cell made bold, a fill style, a padding change, a swatch swapped to another component, a header property toggled, and the reviewer's shadow, corners and bold together. Also kept: a table moved across, moved down, put inside a designer's frame at the same x and y, and moved to another page at the same x and y; a table with no fingerprint; an in-place duplicate; an unedited table the host cannot remove. A run that draws nothing, a file whose collections moved to a library, and a single collection gone while the rest draw each delete nothing. A frame named like a table without the generator's key is never touched;
 - the in-place rerun and its diff, and the header rewrite over an earlier run's titles;
 - adoption whatever the page or case;
-- every skip.
+- every skip;
+- **phase 2 (#259)**, on a file of the prism3 emission's dimension and font variables and its 63 text styles, plus a mode-varying `density` collection and a `metrics` ramp stored 16, 4, 100, 2 with a line height and a letter spacing (section 16–19): a table per collection and type, eight on `↳ Primitive tokens` and five on `↳ Semantic tokens`; `space/050` drawn as the filled bar at 4px, its width bound to `space/050` and pinned, reading `4px · 0.25rem` with its alias; the space scale in ramp order (1000 after 900) and the metrics ramp drawn 2, 4, 16, 100; a size drawn as the bracket; `density` drawing a bound, pinned bar per mode (8px compact, 12px comfortable); `radius/md` the 48 × 48 FIXED `type=radius` swatch with its corner bound, and `capsule` reading `999px · 62.4375rem`; no ground and no contrast column in any phase-2 table; a font size, family, weight, line height and letter spacing each binding its one property, with literal values (`600 · Semi Bold`, `-0.5px · -0.0312rem`); the fluid `type-sets` sizes side by side, 160px and 48px, each pinned; Generic binding nothing and Size binding `fontSize` on a weight; the text-style table in the file's order with `textStyleId` applied per mode and the literal family, weight, size / line height and letter spacing of `body/lg/default` and `display/3xl/emphasis`; the toggled columns appearing and going; REM and pixels each dropping its unit; a rerun in place reporting a re-aliased spacing and a text style's changed letter spacing, and a REM switch changing no row; the tables filter by title, a disambiguated title and a key, and "Font size" alone reported; a later-phase type named and the later-phase variables counted; and a binding the host refuses counted, named and not a pass. `test-agent-link.ts` checks the new args reach the handler and bad values are `bad-args`; `test-build-verdict.mjs` checks the new Customize fields and that they cross the bridge.
 
 `test-build-verdict.mjs` drives the built panel: the Style guide page, the Customize fold, the options crossing the bridge (the Tables field on one line and across lines), the verdict on the row, an agent's first reading putting the row pending with its button disabled, and a `busy` refusal leaving it pending.
 
@@ -198,6 +230,12 @@ The shared core is Token · [specimen · value (+ alias chip)] per mode · Descr
 - that a table's fingerprint, read on the next run with nothing touched, matches the one recorded when it was written. If the host lays a table out differently on a later read, nothing is ever deleted: the safe direction;
 - **live-check:** whether deleting a variable or a collection detaches a paint's binding or drops a pinned mode. If it does, a stale table reads as edited and is kept: the safe direction;
 - **live-check:** whether "Move to page" keeps a node's ID. If it does not, a moved table reads as a copy and is kept: the safe direction.
+- **live-checks (phase 2):**
+  - that `setBoundVariable('width')` on a spacing cell instance's bar, and `setBoundVariable('topLeftRadius')` on the radius swatch's specimen, are accepted as overrides and follow the pinned mode (the shim records the binding; it does not repaint);
+  - that binding `fontFamily` or `fontWeight` on an instance's text needs only the font the plugin loads first (the family in the cell's style, or the cell's family at the weight's style name). A family without that style is refused, which is counted and named;
+  - that `setTextStyleIdAsync` on an instance's text keeps the style when the instance is pinned to a `type-sets` mode, and the specimen shows that mode's size;
+  - how tall a 160px "Abc 123" row reads, and how wide a 999px radius or a 1,440px container bar makes its column: both are the value, drawn at its size;
+  - that a zero-width bar (`space/0`) draws at the host's minimum, 0.01px, without refusing the resize.
 
 **Known limitation (#1778; S3 in the review of `f95a2cb3`): closing the plugin mid-run.** A run yields to the host, so the designer can close the plugin between two tables, or inside one. Nothing detects either case:
 - **A half-built table.** Its grid holds only the rows drawn so far. A table the run was drawing for the first time has no fingerprint yet, since the fingerprint is stamped when a table is finished, and the generator never deletes a table without one (decision 9). A table the run was redrawing keeps its previous fingerprint, which no longer matches, so it reads as edited. Either way, the next run that draws it finds it by its key and redraws it whole. If the next run supersedes it instead, it is kept and reported ("drawn before edits were tracked", or "edited"), for the owner to delete by hand.
@@ -247,4 +285,18 @@ A live run on the owner's test file is the check.
 - The header description text (§6): the counts, and the wording of each clause.
 - The dark table header as the default (`header: 'light'` switches it).
 - The alpha format for a translucent value: `#000000 · 40%`.
-- The Style guide page's claim that "each swatch is drawn on the ground its contrast is measured against": built and tested offline, **unverified in the host** until the live run (§7). A palette swatch has no ground and no contrast (decision 13), so the claim is about role swatches; the sentence does not say so.
+- The Style guide page's claim that "a color role's swatch sits on the ground its contrast is measured against": built and tested offline, **unverified in the host** until the live run (§7). Rewritten for phase 2 to name color roles, since a palette swatch and every phase-2 specimen have no ground.
+- **Phase 2** (§6, "How phase 2 decides"), each proposed:
+  - the kind of a FLOAT or STRING variable, scopes first and name second, and which kinds wait for phase 3 (font style, opacity, border and stroke widths, icon sizes, breakpoints, grid);
+  - one `dimension` table per collection, one table per font kind per collection, and the alias rule applied per table (prism3's font-weight table is semantic);
+  - titles: a primitive dimension table by its path's last segment, a semantic one by its collection, a font table by its kind, and "(collection)" added to a title two phase-2 tables share;
+  - the auto specimen: spacing a filled bar, size and plain scale a bracket, radius the radius swatch with its top-left corner bound; *Dimension display* Generic as the bracket;
+  - the font specimen at the variable's own size (a 160px row for a 160px size);
+  - a mode-varying dimension and a fluid type size shown as their modes side by side, not a min–max range;
+  - the text-style table's modes taken from the collection holding the most bound sizes; "Specimen" as the header without one; family, weight and letter spacing printed once; the weight number read from the style name; a `collections` filter leaving text styles out;
+  - one set of options for the whole run rather than one per type, shared where the owner's per-type sets overlap; lengths printed `16px · 1rem`, pixels when both units are off;
+  - the header descriptions ("18 dimensions in space", "63 text styles in this file, sizes per type-sets mode");
+  - the "Not drawn until a later phase" note and its counts;
+  - a superseded dimension table whose value moved reads as edited and is kept (the bar's width is in the fingerprint);
+  - the headline "⚠ 17 specimens unbound" when a phase-2 binding is refused.
+- The dimension "title cell" option (the owner's old plugin), still deferred: each table's header carries the title, and what the owner's title cell drew is not recorded here. Held for the owner.

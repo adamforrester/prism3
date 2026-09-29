@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.200.0 — #259 phase 2: the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
+ * `dimension` table per collection (spacing and size as a spacing cell at the value's width, its width bound; a radius
+ * as the radius swatch, its corner bound), one table per font kind per collection ("Abc 123" with the one property
+ * bound), and one text-style table ("Abc 123" with the style applied, sizes per `type-sets` mode). Values in px and
+ * REM at a 16px base; paragraph spacing and decoration columns on toggle; `PHASE_TYPES` widened; new panel Customize
+ * fields and agent-link args (`pixels`, `rem`, `dimensionDisplay`, `fontDisplay`, `paragraphSpacing`,
+ * `textDecoration`). A plugin behavior change (principle 5) → ENGINE bump; no engine emission or projected surface
+ * moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 13.2.0. Design record:
+ * `docs/45-style-guide-generator.md` §6, "How phase 2 decides".
+ *
  * 0.199.0 — #1778 + #259 (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
  * unknown name is reported; a filtered run supersedes nothing and re-stacks only its own pages. The executor
@@ -4124,7 +4134,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.199.0';
+export const ENGINE_VERSION = '0.200.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

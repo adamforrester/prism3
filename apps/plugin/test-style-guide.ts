@@ -1,5 +1,6 @@
 /**
- * STYLE-GUIDE test (#259, phase 1: color) — the cell sets and the color tables.
+ * STYLE-GUIDE test (#259, phases 1–2) — the cell sets, the color tables, and the dimension, font-variable and text-style
+ * tables.
  *
  *   npx tsx apps/plugin/test-style-guide.ts
  *
@@ -52,6 +53,12 @@
  *  15. ONE RUN AT A TIME (#1785): a run asked for from the agent link while a panel run is mid-yield is refused, naming
  *      the panel's run, and exactly one set of tables results. (`test-agent-link.ts` drives the same gate through
  *      `main.ts`'s two real entry points.)
+ *  16–19. PHASE 2 (#259), on the prism3 emission's dimension and font variables and its 63 text styles, plus a
+ *      mode-varying `density` and a `metrics` ramp stored out of order: a table per collection and type on the right
+ *      page; spacing bars, brackets and radius swatches at the value with their width or corner bound and each mode
+ *      pinned; px and REM at 16px; ramp order; a font variable's one property bound; the fluid type-sets sizes side by
+ *      side; the text-style table in the file's order with its style applied; the toggled columns; a rerun in place;
+ *      the tables filter; the phase boundary; a refused binding named.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -154,6 +161,13 @@
  *     run asked for from the agent link while a panel run is mid-yield is refused…" fails.
  *   - (owner decision 13 as clarified 2026-09-29: the specimen by role) a ground on a palette row → "5: a palette row has
  *     no ground frame…" fails; a filled square for a text role → "5: a text.* row draws letters…" fails.
+ *   - (phase 2, docs/00-progress.md 2026-09-29) the spacing bar unbound → "16: space/050 draws the filled spacing bar…",
+ *     "16: a mode-varying spacing draws a bound bar per mode…"; the radius corner unbound → "16: radius/md draws the
+ *     type=radius swatch…"; the font property unbound → "17: font size 16's specimen…" and the other 17 binding arms;
+ *     REM at 10px → "16: its value reads px and REM at a 16px base…" and ten more; a lexical sort → "16: the space scale
+ *     in ramp order…", "16: a ramp stored 16, 4, 100, 2…"; the text style not applied → "18: body/lg/default's specimen
+ *     is "Abc 123" with its text style applied…"; the paragraph-spacing column always shown → "18: the text-style
+ *     table…", "18: toggled off, the two columns are gone…".
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -188,6 +202,8 @@ const readJson = (f: string) => JSON.parse(readFileSync(join(OUT, f), 'utf8')) a
 
 // ── The shim ─────────────────────────────────────────────────────────────────────────────────────────
 let nextId = 1;
+/** Phase 2: when set, every `setBoundVariable` throws, as the host does for a binding it refuses. */
+let refuseBinding = false;
 /** The shim's text metric: every character 7px wide, lines split at "\n". Its own figure, not the plugin's. */
 const CHAR_W = 7;
 const isAuto = (n: N | null | undefined): boolean => n?.layoutMode === 'HORIZONTAL' || n?.layoutMode === 'VERTICAL';
@@ -357,6 +373,15 @@ class N {
     if (!collection || typeof collection !== 'object' || typeof (collection as { id?: unknown }).id !== 'string') throw new Error('collection object required');
     this.explicitVariableModes[(collection as { id: string }).id] = modeId;
   }
+  /** Phase 2: a node property bound to a variable, recorded as the host's `boundVariables` reads it. A shim-wide switch
+   *  makes the host refuse, as it does for a text field whose font is not loaded. */
+  boundVariables: Record<string, { type: string; id: string }> = {};
+  setBoundVariable(field: string, v: { id: string } | null): void {
+    if (refuseBinding) throw new Error(`cannot bind ${field}`);
+    if (v) this.boundVariables[field] = { type: 'VARIABLE_ALIAS', id: v.id };
+  }
+  textStyleId = '';
+  async setTextStyleIdAsync(id: string): Promise<void> { this.textStyleId = id; }
   setProperties(p: Record<string, unknown>): void {
     for (const [k, v] of Object.entries(p)) if (this.componentProperties?.[k]) this.componentProperties[k].value = v;
   }
@@ -467,11 +492,17 @@ const headerSet = (name = '_Section-header'): N => {
   return set;
 };
 
-interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string> }
+interface Shim { api: StyleGuideApi & CellsApi; pages: N[]; vars: ShimVar[]; cols: ShimCol[]; fontFails: Set<string>; styles: ShimStyle[] }
 interface ShimCol { id: string; name: string; modes: { modeId: string; name: string }[]; defaultModeId: string }
-interface ShimVar { id: string; name: string; variableCollectionId: string; resolvedType: string; description: string; valuesByMode: Record<string, unknown> }
+interface ShimVar { id: string; name: string; variableCollectionId: string; resolvedType: string; description: string; valuesByMode: Record<string, unknown>; scopes?: string[] }
+/** A local text style as `getLocalTextStylesAsync` returns one (phase 2). */
+interface ShimStyle {
+  id: string; name: string; description: string; fontName: { family: string; style: string }; fontSize: number;
+  lineHeight: { unit: string; value?: number }; letterSpacing: { unit: string; value: number }; paragraphSpacing: number; textDecoration: string;
+  boundVariables: Record<string, { type: string; id: string }>;
+}
 
-const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[]): Shim => {
+const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyle[] = []): Shim => {
   const fontFails = new Set<string>();
   const root = {
     get children() { return pages; },
@@ -482,6 +513,7 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[]): Shim => {
     loadAllPagesAsync: async () => {},
     loadFontAsync: async (f: { family: string; style: string }) => { if (fontFails.has(`${f.family} ${f.style}`)) throw new Error('no font'); },
     createFrame: () => new N('FRAME'),
+    getLocalTextStylesAsync: async () => styles,
     createComponent: () => new N('COMPONENT'),
     // The host's default for a new text node: it sizes to its words.
     createText: () => { const t = new N('TEXT'); t.textAutoResize = 'WIDTH_AND_HEIGHT'; return t; },
@@ -499,7 +531,7 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[]): Shim => {
       setBoundVariableForPaint: (paint: object, field: string, v: { id: string }) => ({ ...paint, boundVariables: { [field]: { type: 'VARIABLE_ALIAS', id: v.id } } }),
     },
   };
-  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails };
+  return { api: api as unknown as StyleGuideApi & CellsApi, pages, vars, cols, fontFails, styles };
 };
 
 /** The prism3 variables, as a theme write leaves them: `core` (Default) and `color` (four modes). */
@@ -556,6 +588,94 @@ const twoRootVariables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
     })),
   }));
   return { cols, vars: [...nb, ...vars] };
+};
+
+/** PHASE 2's file (#259): the prism3 emission's dimension and font variables and its 63 text styles, as a theme write
+ *  leaves them — `core` (dimension + font), `space`, `radius`, `size`, `type-sets` (desktop, mobile), `opacity` — plus
+ *  two foreign collections: `density`, a dimension that varies by mode (compact 8/32, comfortable 12/40), and
+ *  `metrics`, a size ramp stored out of order (16, 4, 100, 2) with a line height (24) and a letter spacing (−0.5). */
+const phase2Variables = (): { cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyle[] } => {
+  type Em = { name: string; resolvedType: string; description: string; value: unknown; alias: { name: string } | null; scopes?: string[] };
+  const em = (f: string): Em[] => (JSON.parse(readFileSync(join(OUT, f), 'utf8')) as { variables: Em[] }).variables;
+  const one = (id: string, name: string): ShimCol => ({ id: `VariableCollectionId:${id}`, name, modes: [{ modeId: `${id}:0`, name: 'Default' }], defaultModeId: `${id}:0` });
+  const cols: ShimCol[] = [
+    one('core', 'core'), one('space', 'space'), one('radius', 'radius'), one('size', 'size'),
+    { id: 'VariableCollectionId:ts', name: 'type-sets', modes: [{ modeId: 'ts:0', name: 'desktop' }, { modeId: 'ts:1', name: 'mobile' }], defaultModeId: 'ts:0' },
+    one('opacity', 'opacity'),
+    { id: 'VariableCollectionId:density', name: 'density', modes: [{ modeId: 'density:0', name: 'compact' }, { modeId: 'density:1', name: 'comfortable' }], defaultModeId: 'density:0' },
+    { id: 'VariableCollectionId:metrics', name: 'metrics', modes: [{ modeId: 'metrics:0', name: 'Default' }], defaultModeId: 'metrics:0' },
+  ];
+  // Every file's variables, per collection and mode, ids assigned before any alias is read.
+  const sources: [string, string[], Em[][]][] = [
+    ['core', ['core:0'], [[...em('core.dimension.json'), ...em('core.font.json')]]],
+    ['space', ['space:0'], [em('space.json')]],
+    ['radius', ['radius:0'], [em('radius.json')]],
+    ['size', ['size:0'], [em('size.json')]],
+    ['ts', ['ts:0', 'ts:1'], [em('type-sets.desktop.json'), em('type-sets.mobile.json')]],
+    ['opacity', ['opacity:0'], [em('opacity.json')]],
+  ];
+  const idOf = new Map<string, string>();
+  for (const [c, , files] of sources) files[0].forEach((v, i) => idOf.set(v.name, `VariableID:${c}:${i}`));
+  const vars: ShimVar[] = [];
+  for (const [c, modes, files] of sources) files[0].forEach((v, i) => {
+    const valuesByMode: Record<string, unknown> = {};
+    modes.forEach((m, k) => {
+      const mv = files[k].find((x) => x.name === v.name)!;
+      valuesByMode[m] = mv.alias ? { type: 'VARIABLE_ALIAS', id: idOf.get(mv.alias.name) } : mv.value;
+    });
+    vars.push({ id: idOf.get(v.name)!, name: v.name, variableCollectionId: `VariableCollectionId:${c}`, resolvedType: v.resolvedType, description: v.description, valuesByMode, scopes: v.scopes });
+  });
+  const add = (id: string, name: string, col: string, values: Record<string, unknown>, scopes: string[], resolvedType = 'FLOAT'): void => {
+    idOf.set(name, id);
+    vars.push({ id, name, variableCollectionId: `VariableCollectionId:${col}`, resolvedType, description: '', valuesByMode: values, scopes });
+  };
+  add('VariableID:density:0', 'density/space/gap', 'density', { 'density:0': 8, 'density:1': 12 }, ['GAP']);
+  add('VariableID:density:1', 'density/size/row', 'density', { 'density:0': 32, 'density:1': 40 }, ['WIDTH_HEIGHT']);
+  ['16', '4', '100', '2'].forEach((st, i) => add(`VariableID:metrics:${i}`, `metrics/step/${st}`, 'metrics', { 'metrics:0': Number(st) }, ['WIDTH_HEIGHT']));
+  add('VariableID:metrics:lh', 'metrics/line-height/body', 'metrics', { 'metrics:0': 24 }, ['LINE_HEIGHT']);
+  add('VariableID:metrics:ls', 'metrics/letter-spacing/tight', 'metrics', { 'metrics:0': -0.5 }, ['LETTER_SPACING']);
+
+  // The text styles, as `getLocalTextStylesAsync` returns them: the literal values (a bound one at its default mode's
+  // value, as the host stores it) and each bound property's variable.
+  type EmProp = { bound?: boolean; variable?: string; value?: unknown };
+  const emStyles = (JSON.parse(readFileSync(join(OUT, 'text-styles.json'), 'utf8')) as { styles: { name: string; description: string; properties: Record<string, EmProp> }[] }).styles;
+  const literal = (p: EmProp): unknown => {
+    if (!p.bound) return p.value;
+    const v = vars.find((x) => x.name === p.variable)!;
+    const col = cols.find((c) => c.id === v.variableCollectionId)!;
+    let raw = v.valuesByMode[col.defaultModeId] as { type?: string; id?: string } | unknown;
+    while ((raw as { type?: string })?.type === 'VARIABLE_ALIAS') {
+      const t = vars.find((x) => x.id === (raw as { id: string }).id)!;
+      raw = Object.values(t.valuesByMode)[0];
+    }
+    return raw;
+  };
+  const styles: ShimStyle[] = emStyles.map((st, i) => {
+    const p = st.properties;
+    const boundVariables: Record<string, { type: string; id: string }> = {};
+    for (const [k, v] of Object.entries(p)) if (v.bound) boundVariables[k] = { type: 'VARIABLE_ALIAS', id: idOf.get(v.variable!)! };
+    return {
+      id: `S:${i}:`, name: st.name, description: st.description,
+      fontName: { family: String(literal(p.fontFamily)), style: String(literal(p.fontStyle)) },
+      fontSize: Number(literal(p.fontSize)),
+      lineHeight: p.lineHeight.value as { unit: string; value: number },
+      letterSpacing: p.letterSpacing.value as { unit: string; value: number },
+      paragraphSpacing: 0,
+      textDecoration: String(p.textDecoration.value),
+      boundVariables,
+    };
+  });
+  return { cols, vars, styles };
+};
+
+/** Phase 2's file, drawn from: the pages, the header set and the cell sets Set up file builds. */
+const phase2File = async (): Promise<Shim & { fc: N; prim: N; sem: N }> => {
+  const fc = page(FC), prim = page(PRIM), sem = page(SEM);
+  fc.appendChild(headerSet());
+  const { cols, vars, styles } = phase2Variables();
+  const s = makeShim([page('Cover'), prim, sem, fc], cols, vars, styles);
+  await ensureStyleGuideCells(s.api, fc);
+  return { ...s, fc, prim, sem };
 };
 
 const fullFile = async (variables = prism3Variables()): Promise<Shim & { fc: N; prim: N; sem: N }> => {
@@ -715,7 +835,7 @@ const main = async (): Promise<void> => {
     ok(hover.cells[0].contrast?.ink === 'text/primary' && hover.cells[0].contrast?.ground === 'background/primary' && contrastText(hover.cells[0].contrast).startsWith('15.42:1 — clears the 4.5:1 floor'), '3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1');
     const noBrand = planStyleGuide(catalog, null);
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
-    ok(planStyleGuide(catalog, contract, { types: ['dimension'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['dimension'] }).notes.includes('dimension: not in this phase — color only'), '3: a later-phase type is named, not drawn');
+    ok(planStyleGuide(catalog, contract, { types: ['shadow'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['shadow'] }).notes.includes('shadow: not in this phase — this phase draws color, dimension, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography'), '3: a later-phase type is named, not drawn');
     ok(planStyleGuide(catalog, contract, { valueFormat: 'rgba' }).tables.find((t) => t.title === 'Scrim')!.rows[0].cells[0].value === 'rgba(0, 0, 0, 0.4)', '3: rgba format');
   }
 
@@ -1438,6 +1558,186 @@ const main = async (): Promise<void> => {
       `15: exactly one set of tables results: 22, each key once, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
     const third = await gate.run('agent', () => draw(f15.api, contract, { collections: ['legacy'] }));
     ok(third.ran && gate.running() === null, '15: once that run reports, the next is let through, from either entry point');
+  }
+
+  console.log('16. phase 2: dimension tables (#259)');
+  const p2 = await phase2File();
+  const p2Id = (name: string): string => p2.vars.find((v) => v.name === name)!.id;
+  const p2First = await draw(p2.api, contract);
+  /** A table's header row, as drawn. */
+  const headerRow = (w: N): string[] => gridOf(w).children.filter((k) => k.gridRow === 0).sort((a, b) => a.gridCol! - b.gridCol!).map(textIn);
+  /** The bar inside a spacing cell. */
+  const barIn = (cell: N | undefined): N | null => cell?.findOne((k) => k.name === 'Bar') ?? null;
+  {
+    ok(JSON.stringify(tablesOn(p2.prim).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Density', 'Dimension', 'Font family', 'Font size (core)', 'Font size (type-sets)', 'Letter spacing', 'Line height', 'Step'])
+      && JSON.stringify(tablesOn(p2.sem).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Font weight', 'Radius', 'Size', 'Space', 'Text styles']),
+      `16: a table per collection and type, the scales on ↳ Primitive tokens and the roles on ↳ Semantic tokens (${tablesOn(p2.prim).map((w) => w.name).join(', ')} | ${tablesOn(p2.sem).map((w) => w.name).join(', ')})`);
+    ok(p2First.tables.length === 13 && p2First.tables.every((t) => t.status === 'created') && styleGuideSummary(p2First).headline === '✓ style guide: 13 tables', `16: 13 tables, all created: "${styleGuideSummary(p2First).headline}"`);
+    const space = tableFrame(p2.sem, 'Space')!;
+    const sg = gridOf(space);
+    ok(JSON.stringify(headerRow(space)) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), `16: a dimension table is Token · <mode> · Value · Description, no contrast column (${headerRow(space).join(' · ')})`);
+    // THE SPECIMEN: the spacing cell's filled bar at the value's width, its width bound to the variable, pinned to its mode.
+    const r050 = rowOf(sg, '050');
+    const cell = cellAt(sg, r050, 1);
+    const bar = barIn(cell);
+    ok(cell?.mainComponent?.name === 'display=filled' && bar?.width === 4 && bar?.boundVariables.width?.id === p2Id('pds3/space/050') && cell.explicitVariableModes['VariableCollectionId:space'] === 'space:0',
+      `16: space/050 draws the filled spacing bar at 4px, its width bound to space/050 and pinned to the space mode (${cell?.mainComponent?.name}, ${bar?.width}px, bound ${bar?.boundVariables.width?.id})`);
+    ok(textIn(cellAt(sg, r050, 2)) === '4px · 0.25rem | ↗ | pds3/core/dimension/4', `16: its value reads px and REM at a 16px base, with its alias: "${textIn(cellAt(sg, r050, 2))}"`);
+    ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px · 6rem | ↗ | pds3/core/dimension/96', `16: space/1200 reads "96px · 6rem" (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))})`);
+    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200']),
+      '16: the space scale in ramp order, 1000 after 900');
+    // NUMERIC SORT: the metrics ramp is stored 16, 4, 100, 2.
+    const step = gridOf(tableFrame(p2.prim, 'Step')!);
+    const stepRows = step.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn);
+    ok(JSON.stringify(stepRows) === JSON.stringify(['2', '4', '16', '100']), `16: a ramp stored 16, 4, 100, 2 draws 2, 4, 16, 100 (${stepRows.join(', ')})`);
+    ok(cellAt(step, 1, 1)?.mainComponent?.name === 'display=line' && barIn(cellAt(step, 4, 1))?.width === 100, '16: a size draws the bracket (display=line), 100px wide for 100');
+    // MODES SIDE BY SIDE: a dimension that varies by mode draws one bound specimen per mode, each pinned.
+    const dens = tableFrame(p2.prim, 'Density')!;
+    const dg = gridOf(dens);
+    const gap = rowOf(dg, 'space/gap');
+    const [c0, c1] = [cellAt(dg, gap, 1), cellAt(dg, gap, 3)];
+    ok(JSON.stringify(headerRow(dens)) === JSON.stringify(['Token', 'compact', 'Value', 'comfortable', 'Value', 'Description'])
+      && c0?.explicitVariableModes['VariableCollectionId:density'] === 'density:0' && c1?.explicitVariableModes['VariableCollectionId:density'] === 'density:1'
+      && barIn(c0)?.width === 8 && barIn(c1)?.width === 12 && barIn(c0)?.boundVariables.width?.id === p2Id('density/space/gap') && barIn(c1)?.boundVariables.width?.id === p2Id('density/space/gap'),
+      `16: a mode-varying spacing draws a bound bar per mode, pinned: compact 8px, comfortable 12px (${barIn(c0)?.width}, ${barIn(c1)?.width})`);
+    ok(textIn(cellAt(dg, gap, 2)) === '8px · 0.5rem' && textIn(cellAt(dg, gap, 4)) === '12px · 0.75rem', '16: its values per mode: "8px · 0.5rem", "12px · 0.75rem"');
+    // RADIUS: the swatches set's type=radius member at its fixed size, its corner bound to the variable, no ground.
+    const rg = gridOf(tableFrame(p2.sem, 'Radius')!);
+    const md = cellAt(rg, rowOf(rg, 'md'), 1);
+    ok(md?.type === 'INSTANCE' && md.mainComponent?.name === 'type=radius' && md.lsh === 'FIXED' && md.width === 48 && md.height === 48
+      && md.findOne((k) => k.name === 'Specimen')?.boundVariables.topLeftRadius?.id === p2Id('pds3/radius/md') && md.explicitVariableModes['VariableCollectionId:radius'] === 'radius:0',
+      `16: radius/md draws the type=radius swatch, 48 × 48 and FIXED, its corner bound to radius/md (${md?.mainComponent?.name}, ${md?.width}×${md?.height})`);
+    ok(textIn(cellAt(rg, rowOf(rg, 'capsule'), 2)) === '999px · 62.4375rem', `16: radius/capsule reads "999px · 62.4375rem" (${textIn(cellAt(rg, rowOf(rg, 'capsule'), 2))})`);
+    ok(tablesOn(p2.sem).concat(tablesOn(p2.prim)).every((w) => gridOf(w).findAll((k) => k.name === 'Ground').length === 0), '16: no phase-2 specimen sits on a ground');
+    // The spacing cell FILLs its track, as every cell but a swatch does, and no cell is wider than its column.
+    ok(cell?.lsh === 'FILL' && cell.layoutSizingVertical === 'FILL', '16: a spacing cell FILLs its track, both axes');
+    const off = [...tablesOn(p2.sem), ...tablesOn(p2.prim)].flatMap((w) => clipped(gridOf(w)).map((x) => `${w.name} ${x}`));
+    ok(off.length === 0, `16: no cell in any phase-2 table is wider than its column (${off.slice(0, 3).join('; ')})`);
+    ok(!p2First.notes.some((n) => n.includes('Contrast')) && [...tablesOn(p2.sem), ...tablesOn(p2.prim)].every((w) => !headerRow(w).includes('Contrast')), '16: no phase-2 table has a contrast column');
+  }
+
+  console.log('17. phase 2: font variables (#259)');
+  {
+    /** The Text node of a font specimen. */
+    const textOf = (cell: N | undefined): N | null => cell?.findOne((k) => k.type === 'TEXT') ?? null;
+    const bindings = (t: N | null): string => Object.keys(t?.boundVariables ?? {}).sort().join(',');
+    const size = gridOf(tableFrame(p2.prim, 'Font size (core)')!);
+    const s16 = textOf(cellAt(size, rowOf(size, '16'), 1));
+    ok(s16?.characters === 'Abc 123' && bindings(s16) === 'fontSize' && s16?.boundVariables.fontSize.id === p2Id('pds3/core/font/size/16'),
+      `17: font size 16's specimen is "Abc 123" with fontSize alone bound to it (${s16?.characters}, bound ${bindings(s16)})`);
+    ok(textIn(cellAt(size, rowOf(size, '16'), 2)) === '16px · 1rem', '17: its value is "16px · 1rem"');
+    const fam = gridOf(tableFrame(p2.prim, 'Font family')!);
+    const fDisplay = textOf(cellAt(fam, rowOf(fam, 'display'), 1));
+    ok(bindings(fDisplay) === 'fontFamily' && fDisplay?.boundVariables.fontFamily.id === p2Id('pds3/core/font/family/display') && textIn(cellAt(fam, rowOf(fam, 'display'), 2)) === 'Playfair Display',
+      `17: font family display binds fontFamily alone and reads "Playfair Display" (${bindings(fDisplay)})`);
+    const wt = gridOf(tableFrame(p2.sem, 'Font weight')!);
+    const w600 = textOf(cellAt(wt, rowOf(wt, 'weight/600'), 1));
+    ok(bindings(w600) === 'fontWeight' && w600?.boundVariables.fontWeight.id === p2Id('pds3/core/font/weight/600') && textIn(cellAt(wt, rowOf(wt, 'weight/600'), 2)) === '600 · Semi Bold',
+      `17: font weight 600 binds fontWeight alone and reads "600 · Semi Bold" (${bindings(w600)}, "${textIn(cellAt(wt, rowOf(wt, 'weight/600'), 2))}")`);
+    ok(textIn(cellAt(wt, rowOf(wt, 'weight-role/strong'), 2)) === '600 · Semi Bold | ↗ | pds3/core/font/weight/600', '17: a weight role reads its weight and its alias');
+    const lh = gridOf(tableFrame(p2.prim, 'Line height')!);
+    const ls = gridOf(tableFrame(p2.prim, 'Letter spacing')!);
+    ok(bindings(textOf(cellAt(lh, 1, 1))) === 'lineHeight' && textIn(cellAt(lh, 1, 2)) === '24px · 1.5rem'
+      && bindings(textOf(cellAt(ls, 1, 1))) === 'letterSpacing' && textIn(cellAt(ls, 1, 2)) === '-0.5px · -0.0312rem',
+      `17: a line height binds lineHeight ("24px · 1.5rem"), a letter spacing letterSpacing ("${textIn(cellAt(ls, 1, 2))}")`);
+    // A FLUID size: one specimen per type-sets mode, each pinned, each value in its mode.
+    const fluid = tableFrame(p2.prim, 'Font size (type-sets)')!;
+    const fg = gridOf(fluid);
+    const d3 = rowOf(fg, 'display/3xl/emphasis');
+    ok(JSON.stringify(headerRow(fluid)) === JSON.stringify(['Token', 'desktop', 'Value', 'mobile', 'Value', 'Description'])
+      && cellAt(fg, d3, 1)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:0' && cellAt(fg, d3, 3)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:1'
+      && textIn(cellAt(fg, d3, 2)) === '160px · 10rem' && textIn(cellAt(fg, d3, 4)) === '48px · 3rem',
+      `17: a fluid size draws desktop and mobile side by side, pinned: 160px and 48px (${textIn(cellAt(fg, d3, 2))} / ${textIn(cellAt(fg, d3, 4))})`);
+    // The display override: Generic binds nothing; Size binds fontSize on a weight row.
+    const gen = await phase2File();
+    await draw(gen.api, contract, { types: ['fontWeight'], fontDisplay: 'generic' });
+    const gw = gridOf(tableFrame(gen.sem, 'Font weight')!);
+    ok(bindings(textOf(cellAt(gw, 1, 1))) === '', '17: Display "Generic" draws "Abc 123" with nothing bound');
+    await draw(gen.api, contract, { types: ['fontWeight'], fontDisplay: 'size' });
+    ok(bindings(textOf(cellAt(gridOf(tableFrame(gen.sem, 'Font weight')!), 1, 1))) === 'fontSize', '17: Display "Size" binds fontSize instead');
+  }
+
+  console.log('18. phase 2: text styles (#259)');
+  {
+    const ts = tableFrame(p2.sem, 'Text styles')!;
+    const tg = gridOf(ts);
+    ok(JSON.stringify(headerRow(ts)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'mobile', 'Size / line height', 'Family', 'Weight', 'Letter spacing', 'Description']),
+      `18: the text-style table: a specimen and size per type-sets mode, then family, weight, letter spacing (${headerRow(ts).join(' · ')})`);
+    const names = tg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn);
+    ok(names.length === 63 && JSON.stringify(names) === JSON.stringify(p2.styles.map((st) => st.name)), `18: one row per text style, 63, in the file's order (${names.slice(0, 2).join(', ')} …)`);
+    const body = rowOf(tg, 'body/lg/default');
+    const bodyId = p2.styles.find((st) => st.name === 'body/lg/default')!.id;
+    const spec = [cellAt(tg, body, 1), cellAt(tg, body, 3)];
+    ok(spec.every((c) => c?.findOne((k) => k.type === 'TEXT')?.textStyleId === bodyId && c?.findOne((k) => k.type === 'TEXT')?.characters === 'Abc 123')
+      && spec[0]?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:0' && spec[1]?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:1',
+      `18: body/lg/default's specimen is "Abc 123" with its text style applied, one per mode, pinned (${spec.map((c) => c?.findOne((k) => k.type === 'TEXT')?.textStyleId).join(', ')})`);
+    ok(textIn(cellAt(tg, body, 2)) === '18px · 1.125rem / 150% | ↗ | pds3/core/font/size/18' && textIn(cellAt(tg, body, 5)) === 'Inter | ↗ | pds3/core/font/family/body'
+      && textIn(cellAt(tg, body, 6)) === '400 · Regular | ↗ | pds3/core/font/style/body/default' && textIn(cellAt(tg, body, 7)) === '0%',
+      `18: body/lg/default reads 18px · 1.125rem / 150%, Inter, 400 · Regular, 0% (${[2, 5, 6, 7].map((c) => textIn(cellAt(tg, body, c))).join(' ‖ ')})`);
+    const hero = rowOf(tg, 'display/3xl/emphasis');
+    ok(textIn(cellAt(tg, hero, 2)) === '160px · 10rem / 105% | ↗ | pds3/font-fluid/display/3xl/emphasis' && textIn(cellAt(tg, hero, 4)) === '48px · 3rem / 105% | ↗ | pds3/font-fluid/display/3xl/emphasis'
+      && textIn(cellAt(tg, hero, 5)) === 'Playfair Display | ↗ | pds3/core/font/family/display' && textIn(cellAt(tg, hero, 6)) === '500 · Medium Italic | ↗ | pds3/core/font/style/display/emphasis' && textIn(cellAt(tg, hero, 7)) === '-3%',
+      `18: display/3xl/emphasis reads 160px on desktop and 48px on mobile, Playfair Display, 500 · Medium Italic, -3% (${[2, 4, 5, 6, 7].map((c) => textIn(cellAt(tg, hero, c))).join(' ‖ ')})`);
+    // THE TOGGLED COLUMNS: paragraph spacing and text decoration appear only when asked for.
+    const tog = await phase2File();
+    await draw(tog.api, contract, { types: ['typography'], paragraphSpacing: true, textDecoration: true });
+    const tw = tableFrame(tog.sem, 'Text styles')!;
+    ok(JSON.stringify(headerRow(tw)) === JSON.stringify(['Token', 'desktop', 'Size / line height', 'mobile', 'Size / line height', 'Family', 'Weight', 'Letter spacing', 'Paragraph spacing', 'Decoration', 'Description']),
+      `18: paragraph spacing and decoration toggled on add their columns (${headerRow(tw).join(' · ')})`);
+    const link = rowOf(gridOf(tw), 'body/lg/default-link');
+    ok(textIn(cellAt(gridOf(tw), link, 8)) === '0px · 0rem' && textIn(cellAt(gridOf(tw), link, 9)) === 'Underline', `18: a link style reads "Underline" (${textIn(cellAt(gridOf(tw), link, 9))})`);
+    await draw(tog.api, contract, { types: ['typography'] });
+    ok(!headerRow(tableFrame(tog.sem, 'Text styles')!).includes('Paragraph spacing') && !headerRow(tableFrame(tog.sem, 'Text styles')!).includes('Decoration'),
+      '18: toggled off, the two columns are gone on the rerun');
+    // PIXELS and REM: each toggle drops its unit.
+    await draw(tog.api, contract, { types: ['typography'], rem: false });
+    const noRem = gridOf(tableFrame(tog.sem, 'Text styles')!);
+    ok(textIn(cellAt(noRem, rowOf(noRem, 'body/lg/default'), 2)).startsWith('18px / 150%'), `18: REM off reads "18px / 150%" (${textIn(cellAt(noRem, rowOf(noRem, 'body/lg/default'), 2))})`);
+    await draw(tog.api, contract, { types: ['typography'], pixels: false });
+    const noPx = gridOf(tableFrame(tog.sem, 'Text styles')!);
+    ok(textIn(cellAt(noPx, rowOf(noPx, 'body/lg/default'), 2)).startsWith('1.125rem / 150%'), `18: pixels off reads "1.125rem / 150%" (${textIn(cellAt(noPx, rowOf(noPx, 'body/lg/default'), 2))})`);
+  }
+
+  console.log('19. phase 2: rerun, the tables filter, the phase boundary, an unbound specimen (#259)');
+  {
+    const space = tableFrame(p2.sem, 'Space')!;
+    const spaceId = space.id;
+    p2.vars.find((v) => v.name === 'pds3/space/050')!.valuesByMode['space:0'] = { type: 'VARIABLE_ALIAS', id: p2Id('pds3/core/dimension/6') };
+    p2.styles.find((st) => st.name === 'body/lg/default')!.letterSpacing = { unit: 'PERCENT', value: 1 };
+    const again = await draw(p2.api, contract);
+    const sg = gridOf(tableFrame(p2.sem, 'Space')!);
+    const upd = (title: string) => again.tables.find((t) => t.title === title) as Extract<TableOutcome, { status: 'updated' }> | undefined;
+    ok(tablesOn(p2.sem).length === 5 && tablesOn(p2.prim).length === 8 && tableFrame(p2.sem, 'Space')?.id === spaceId && again.tables.every((t) => t.status === 'updated'),
+      '19: a rerun updates every phase-2 table in place, none duplicated');
+    ok(JSON.stringify(upd('Space')?.diff) === JSON.stringify({ added: [], removed: [], changed: ['pds3/space/050'], renamed: [] }) && barIn(cellAt(sg, rowOf(sg, '050'), 1))?.width === 6
+      && textIn(cellAt(sg, rowOf(sg, '050'), 2)) === '6px · 0.375rem | ↗ | pds3/core/dimension/6',
+      `19: space/050 re-aliased to 6 is reported changed, its bar 6px and its value "6px · 0.375rem" (${JSON.stringify(upd('Space')?.diff)})`);
+    ok(JSON.stringify(upd('Text styles')?.diff.changed) === JSON.stringify(['body/lg/default']), `19: a text style's letter spacing change is reported (${JSON.stringify(upd('Text styles')?.diff)})`);
+    ok(again.deleted.length === 0 && again.kept.length === 0 && again.stale.length === 0, '19: nothing superseded');
+    const remOnly = await draw(p2.api, contract, { rem: false });
+    ok(remOnly.tables.every((t) => t.status === 'updated' && !t.diff.changed.length), '19: switching REM off changes no row');
+    // THE TABLES FILTER on the new tables: by title, a disambiguated title, and a key.
+    const before = new Map([...tablesOn(p2.sem), ...tablesOn(p2.prim)].map((w) => [w.name, gridOf(w).id]));
+    const f1 = await draw(p2.api, contract, { tables: ['space', 'Font size (type-sets)', 'dimension|VariableCollectionId:radius|pds3/radius'] });
+    const redrawn = [...tablesOn(p2.sem), ...tablesOn(p2.prim)].filter((w) => before.get(w.name) !== gridOf(w).id).map((w) => w.name).sort();
+    ok(JSON.stringify(f1.tables.map((t) => t.title).sort()) === JSON.stringify(['Font size (type-sets)', 'Radius', 'Space']) && JSON.stringify(redrawn) === JSON.stringify(['Style guide — Font size (type-sets)', 'Style guide — Radius', 'Style guide — Space'])
+      && f1.unmatched.length === 0,
+      `19: tables: [space, Font size (type-sets), the radius key] draws those three and no other (${redrawn.join(', ')})`);
+    ok((await draw(p2.api, contract, { tables: ['Font size'] })).unmatched.length === 1, '19: "Font size" alone matches neither disambiguated title, and is reported');
+    // THE PHASE BOUNDARY: a type outside it is named, not drawn; the later-phase variables are counted.
+    const out = await draw(p2.api, contract, { types: ['dimension', 'shadow'] });
+    ok(out.tables.length === 6 && out.tables.every((t) => t.key.startsWith('dimension|')) && out.notes.includes('shadow: not in this phase — this phase draws color, dimension, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography'),
+      `19: types [dimension, shadow] draws the 6 dimension tables and names shadow as outside this phase (${out.notes.join(' / ')})`);
+    ok(p2First.notes.includes('Not drawn until a later phase: 13 font style, 12 opacity variables'), `19: an open run counts the variables a later phase draws (${p2First.notes.join(' / ')})`);
+    // A HOST THAT REFUSES A BINDING: counted, named, not a pass.
+    const nb = await phase2File();
+    refuseBinding = true;
+    const refused = await draw(nb.api, contract, { tables: ['Radius', 'Font weight'] });
+    refuseBinding = false;
+    const v = styleGuideSummary(refused);
+    ok(refused.unbound === 17 && !v.ok && v.summary.includes('6 type=radius specimens are not bound to their variable') && v.summary.includes('11 font weight specimens are not bound to their variable'),
+      `19: a binding the host refuses is counted and named, and is not a pass: ${refused.unbound} unbound — "${v.headline}"`);
+    ok(v.headline === '⚠ 17 specimens unbound', `19: its headline counts specimens, not swatches: "${v.headline}"`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

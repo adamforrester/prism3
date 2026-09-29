@@ -106,14 +106,21 @@ export type UiToMain =
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
 /** How a style-guide value cell prints a color. */
 export type ValueFormat = 'hex' | 'rgba' | 'hsl' | 'hsb';
+/** A dimension row's specimen (#259 phase 2): `spacing` a filled bar at the value's width, `generic` the bracket
+ *  (`display=line`) at that width, `radius` the radius swatch with its corner bound. `auto` chooses from the role. */
+export type DimensionDisplay = 'auto' | 'generic' | 'spacing' | 'radius';
+/** A font-variable row's specimen (#259 phase 2): "Abc 123" with the one named property bound to the variable;
+ *  `generic` binds none. `auto` binds the property the variable is for. */
+export type FontDisplay = 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
 
 /** The style guide's options (#259) — the panel's Customize fields and the agent command's args. Every one
- *  has a default, so `{}` documents every color collection. Here, not in `style-guide.ts`, so this file and
+ *  has a default, so `{}` draws every table this phase draws. Here, not in `style-guide.ts`, so this file and
  *  `agent-protocol.ts` stay context-neutral: that module imports the engine's color math at runtime. */
 export interface StyleGuideOptions {
   /** Collection names to document, in any case; absent means every collection. */
   collections?: string[];
-  /** Token types; absent means every type this phase covers (`color`). */
+  /** Token types; absent means every type this phase covers (`PHASE_TYPES` in `style-guide.ts`: color,
+   *  dimension, the five font-variable kinds and `typography`, the text styles). */
   types?: string[];
   valueFormat?: ValueFormat;
   /** Table header: `dark` (default) or `light`. */
@@ -122,12 +129,24 @@ export interface StyleGuideOptions {
   aliases?: boolean;
   /** Show the description column. Default on. */
   description?: boolean;
-  /** Override the specimen chosen from each token's role. `auto` (default) chooses per row. */
+  /** Override the COLOR specimen chosen from each token's role. `auto` (default) chooses per row. */
   display?: 'auto' | SwatchType;
   /** Draw only these tables (#1778), each named by its title as drawn ("Primary — nbds") or its key, in any
    *  case; absent means every table. A name that matches no table is reported by name. A filtered run covers
    *  only the tables it draws: no other table is stale, replaced or deleted by it. */
   tables?: string[];
+  /** Print lengths (dimensions, font sizes, text styles) in pixels. Default on. */
+  pixels?: boolean;
+  /** Print lengths in REM as well, at a 16px base. Default on. */
+  rem?: boolean;
+  /** The dimension specimen; `auto` (default) chooses from each variable's role. */
+  dimensionDisplay?: DimensionDisplay;
+  /** The font-variable specimen; `auto` (default) binds the property each variable is for. */
+  fontDisplay?: FontDisplay;
+  /** Add a paragraph-spacing column to the text-style table. Default off. */
+  paragraphSpacing?: boolean;
+  /** Add a text-decoration column to the text-style table. Default off. */
+  textDecoration?: boolean;
 }
 
 /** Messages the main thread sends TO the UI iframe. */
