@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-29) — Font preload: a face is unavailable only when the #499 resolver finds no spelling of it (#1789)
+
+**STATUS: PR open from `lane/font-preload-resolve`, labeled DO NOT MERGE.** ENGINE 0.203.0 → **0.207.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp; 0.204.0–0.206.0 skipped because open lanes hold 0.205.0 and 0.206.0). CONTRACT stands at 13.2.0. Closes #1789.
+
+**The live report.** Re-applying the prism3 example brand on a real Figma test file read `12 font styles name-resolved, ⚠️ 1 typeface unavailable (Playfair Display|Semi Bold Italic)`. That Figma's Playfair ships `SemiBold Italic`. The engine emits one guess per weight (`Semi Bold Italic`), and the text-style pass corrects it through `resolveFontStyle` (#499), so the styles were right. The preload (`apps/plugin/src/preload-fonts.ts`, #680) tested `available.has("family|style")` by exact string and never asked the resolver, so the same apply both fixed the face and warned it was missing.
+
+**The fix.** `preloadFonts` now groups the host's font list by family and resolves each candidate's style with the same `resolveFontStyle`. It loads the RESOLVED face and records a named face as unavailable only when the resolver returns `undefined` (the family lacks the weight under every spelling, or the family is absent). The entry names the face as ASKED FOR, matching the text-style pass's skip reason. Without a host list, nothing changes: the candidate is loaded as named and the load itself is the test.
+
+**Decisions.** *Origins:* every origin resolves the same way. A `file` face spelled differently from the host (a file made against another font version) now loads the real face instead of being reported. A `crossed` pair that exists only under another spelling now loads instead of counting as a miss. Crossed pairs are still never reported. The origin decides whether a miss is reported, never how a face is looked up, and one lookup path is simpler to hold correct than three. *Dedup:* two candidates that resolve to one face load it once. The common re-apply needs this: the theme asks for `Semi Bold Italic` and the file already holds `SemiBold Italic`, because the previous text-style pass wrote it. *The verdict count:* "N font styles name-resolved" stays `ts.resolvedStyles`, the text-style pass's count. It counts STYLES whose baked name was corrected. The preload resolves candidate FACES, including file and crossed pairs and theme faces the text-style pass resolves again, so adding the two would count one correction twice, in a unit the sentence does not name. No new field on `FontPreloadResult`: `loaded` and `unavailable` already carry what the verdict shows.
+
+**Test.** A new `#1789` block in `apps/plugin/test-write-typography.ts` takes the real prism3 plan rows spelled `Playfair Display|Semi Bold Italic` (a reachability assertion pins that the engine still emits that guess: 12 rows). Against a host list spelled `SemiBold Italic`, it asserts `unavailable` is `[]` and the host saw exactly one load, `[{"family":"Playfair Display","style":"SemiBold Italic"}]`. A Playfair with no 600 under any spelling still yields exactly `[{"face":"Playfair Display|Semi Bold Italic","origin":"theme","reason":"not available in this Figma"}]` with zero loads. A Figma with no Playfair at all is still reported too. Two more arms cover the theme-plus-file dedup (one load) and a `file` face `Semi Bold` loading the host's `SemiBold`. Every expectation is a literal, never computed with `resolveFontStyle` (docs/34 shape 1).
+
+**Mutations (on a `wip:` commit, restored by `git checkout --`).** Restoring `origin/main`'s `preload-fonts.ts`, the exact-match check, fails 4 arms by name: `#1789 a host spelling it 'SemiBold Italic' gives NO unavailable entry for a plan face 'Semi Bold Italic'` (got the live report's entry), `...and exactly one load, of the RESOLVED name` (got 0 loads), the dedup arm, and the file-spelling arm. The genuinely-absent arms stay green under both code paths, as they should. Dropping the resolved-face dedup line fails only `#1789 a theme face and a file face that resolve to the same real face load it ONCE` (got two loads).
+
+---
+
 ## (2026-09-29) — Prune: the executor reads nothing off an object it has removed
 
 **STATUS: PR open from `lane/prune-name-after-remove`, labeled DO NOT MERGE.** ENGINE 0.202.0 → **0.203.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). CONTRACT stands at 13.2.0.

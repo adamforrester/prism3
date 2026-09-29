@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.207.0 — #1789: the plugin's font preload warned "1 typeface unavailable (Playfair Display|Semi Bold
+ * Italic)" on a Figma whose Playfair ships `SemiBold Italic`, in the same apply whose text-style pass wrote
+ * that style correctly. `preloadFonts` tested each candidate by exact `family|style` and never ran the #499
+ * resolver. It now resolves every candidate's style against its family's real styles with the same
+ * `resolveFontStyle`, loads the RESOLVED face (once, however many candidates resolve to it), and reports a
+ * named face unavailable only when the resolver returns `undefined`. Every origin (theme, file, crossed)
+ * resolves the same way; the origin still decides only whether a miss is reported. The verdict's "N font
+ * styles name-resolved" stays the text-style pass's count. A PLUGIN write-path behavior change (principle 5)
+ * → ENGINE bump; no emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen.
+ * CONTRACT STANDS at 13.2.0 (no token name moves).
+ *
  * 0.203.0 — the plugin's confirmed prune stopped after its first style: `applyPrunePlan` read `.name` off
  * each style (and each variable) right after calling its `remove()`, and the host throws on any read of a
  * removed object (`in get_name: The style with id "S:…" does not exist`, seen live on a real Figma test
@@ -4212,7 +4223,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.203.0';
+export const ENGINE_VERSION = '0.207.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
