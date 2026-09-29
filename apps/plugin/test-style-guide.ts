@@ -555,7 +555,7 @@ const main = async (): Promise<void> => {
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
     ok(prim.every((t) => t.page === PRIM), '3: primitive tables go on ↳ Primitive tokens');
-    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 265 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 163, '3: every color variable is a row (265 + 163)');
+    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 267 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (267 + 164)');
     const text = byTitle('semantic', 'Text')!;
     ok(JSON.stringify(text.columns) === JSON.stringify(['Token', 'light', 'Value', 'Contrast', 'dark', 'Value', 'Contrast', 'hc-light', 'Value', 'Contrast', 'hc-dark', 'Value', 'Contrast', 'Description']), '3: a specimen, value and contrast column per mode');
     ok(JSON.stringify(byTitle('primitive', 'Neutral')!.columns) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), '3: a primitive table has no contrast column');
