@@ -7,6 +7,31 @@
 
 ---
 
+## (2026-09-29) — Quiet buttons: the hover and pressed fill is a rule across the whole grid, not three spot fixes (#1387)
+
+**STATUS: PR open, labeled DO NOT MERGE.** Files: `packages/engine/test.ts` (one new block; the NB master fixture moved to module scope so the block can read it) and this entry. No engine behavior moves, so `ENGINE_VERSION` stands at 0.196.0 and `CONTRACT_VERSION` at 13.2.0.
+
+**Premise re-check: the defect is already fixed on `main`.** #1387's raw `#ffffff` came from the host, not the plan. A plan's `paints.fills` is a variable NAME. The set named the overlay wash, a `solid-tint` or `none` brand did not emit it, and Figma kept its default white fill on the frame. Three merged PRs closed it: #1394 clears an unresolvable fill to transparent in both executors, #1608 rebinds the def per `outlineInteraction` before projection (`applyOutlineInteraction` via `outlineFillRole`), and #1613 emits the inverse tinted wash. The measurement below confirms it. It covers the 10 contract-corpus brands plus the NB master theme, under all three methods, over every quiet member (`outline` / `text` / `ghost`; icon-button's quiet appearance is `ghost`, which the issue's count predates) × `hover` / `pressed` × both surfaces × every mode. Result: 0 fills that are not a `color/` variable, 0 members with no fill (other than at `none`), and 0 refs the brand does not emit.
+
+**Why `lint-paint` never saw it.** Its universe is plan variable names. Arm 1 compares key and ref, arm 2 is a characterization, and arm 3 asks whether the projector ever returns a key. None of them asks whether a name resolves against a brand's emission, and the white itself was host state that no plan carries. So the new check lives in `test.ts`, next to the brand emission, not in `lint-paint`.
+
+**The gate (`test.ts`, `#1387` block).** Subject: every quiet hover/pressed member of the six button families, projected from the materialized def, 432 per brand × method, half on the inverse band. Oracles, none read off the subject: the family each method binds is written out as a regex (it is not asked of `outlineFillRole`). "Emitted" means `buildFigmaColor`'s variables. The floors are WCAG's (4.5:1 label, 3:1 glyph). The ratios come from the block's own luminance and compositing over `resolveAllModes`, not from any `ratio` the solver stored. Five assertions:
+- the walk looked at all 14,256 members, half of them inverse;
+- it measured some hover cells;
+- every fill is the method's emitted variable on its own surface;
+- every hover label clears 4.5:1 and every hover glyph 3:1 on the composited fill, in every mode and on both surfaces;
+- the pressed cells below 4.5:1 are exactly the held set (next paragraph).
+
+Measured hover minimums: overlay-neutral 5.26 (page) and 5.04 (inverse); solid-tint 5.23 (page) and 4.80 (inverse, NB master destructive).
+
+**HELD FOR THE OWNER: pressed on the inverse band at `solid-tint`.** Pressed is exempt from ink contrast by the standing decision (#1281, decision 1), so the block pins the failing cells rather than flooring them. Only light mode on the inverse band falls below 4.5:1 at `opacity.30`: primary 3.47–3.82:1 across the corpus (NB master 3.51) and destructive 4.09–4.48:1. At `opacity.20` the same cells measure 5.06–5.58 (primary) and 5.98–6.55 (destructive), with ΔE00 14.1–14.7 against the band. The owner can keep the exemption (status quo), gate pressed with the hover text guard (inverse primary lands on `opacity.20`; NB master destructive hovers at 20, so its pressed would sit on hover's step or push hover down), or move to per-mode steps (#1646). Every overlay-neutral pressed cell clears 4.5:1 (minimum 4.93) and so does every page cell at solid-tint (minimum 4.88).
+
+**Mutations** (each committed first, restored from HEAD):
+- M1, `button` binds the literal `'#ffffff'` on `outline.overlay.hover`: `#1387 every quiet button hover/pressed container fill is the method's emitted color variable…` fails (2376), beside #1608's emission check and the binding-resolution checks.
+- M2, `icon-button` drops `outline.overlay.hover`: the same #1387 assertion fails (792), beside #1225's binding counts. Dropping it from `button` instead crashes an older test that reads the key directly, so that form proves nothing by name.
+- M3, `applyOutlineInteraction` stops rebinding: the #1387 fill assertion fails (4752), and the held pressed pin fails with `none`, because solid-tint lost its fills.
+- M4, the host's transparent fallback (`write-components.ts`) removed: `apps/plugin/test-write-components.ts` `#1387 no built node keeps an opaque #ffffff literal…` fails (11 white). That is the existing host gate, re-proved.
+
 ## (2026-09-28) — Veil: directional gradient washes, and component-level gradient paint (#1318)
 
 **Owner-decided (three decisions on #1318).** Veil gains a variant axis `direction` (`full | from-top | from-bottom | from-left | from-right`, default `full`), so the set goes from 6 to 30 members. A directional member is a two-stop linear gradient: the (value, intensity) role at full strength on the named edge, fading to clear at the opposite edge. The clear end is a role per polarity, `veil.dark.clear` and `veil.light.clear`. ENGINE 0.195.0 → **0.196.0** (renumbered at net after #1757 and #1765 took 0.194.0 and 0.195.0); CONTRACT 13.1.0 → **13.2.0** (MINOR, three adds).

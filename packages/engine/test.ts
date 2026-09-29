@@ -22400,6 +22400,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
 }
 
+// The NB master theme's brand input, COPIED here as literal values (the owner's file, 2026-09-28) — a
+// fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
+// below reads it too.
+const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
 // ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `State icon` BOOLEAN ------------------------
 //
 // The owner saw the NB master theme's switch draw its off and on tracks as the same near-black: the off
@@ -22411,9 +22416,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 // the check is about, so a rebind fails by name rather than agreeing with itself (docs/34).
 {
   const sc = switchControl;
-  // The NB master theme's brand input, COPIED here as literal values (the owner's file, 2026-09-28) — a
-  // fixture, not a path, so the test does not move when that file does.
-  const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
   const role = (key: string) => { const ref = sc.tokens[key]; ok(!!ref && ref.startsWith('color.'), `#1354 switch-control binds '${key}' to a color role (got ${ref})`); return (ref ?? '').replace(/^color\./, ''); };
   const hexAt = (theme: Theme, mode: string, key: string): string => resolveAllModes(theme).find((m) => m.mode === mode)!.roles[role(key)]?.hex ?? '(missing)';
   const ratio = (a: string, b: string) => Number(contrast(hexToRgb(a), hexToRgb(b)).toFixed(2));
@@ -22553,6 +22555,120 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const ringBool = withBool('focusRing', { focusRing: { ...sc.anatomy!.parts.focusRing, optional: true } });
   ok(figmaPropertyErrors(ringBool).some((e) => WHEN_REFUSAL.test(e)),
     `#1354 a boolean over a \`when\`-gated part (the focus ring) is refused BY NAME — otherwise the ring would build at every member (errors: ${figmaPropertyErrors(ringBool).join('; ') || 'none'})`);
+}
+
+// ---- #1387: A QUIET BUTTON'S HOVER AND PRESSED FILL IS AN EMITTED COLOR ROLE, AND ITS HOVER INK CLEARS AA ON IT ----
+//
+// The 2026-09-09 host-truth audit found `appearance=outline/text × state=hover/pressed` building as "SOLID
+// #ffffff, opacity 1, unbound" on 324 button members: the plan named the overlay wash, the brand had not emitted
+// it (`solid-tint` / `none`), and the host kept Figma's default white. Three fixes closed it: the executors clear
+// an unresolvable fill instead (#1394, gated host-side in `apps/plugin/test-write-components.ts`), the def is
+// rebound per `outlineInteraction` before projection (#1608), and the inverse band got its own tinted wash
+// (#1613). What no gate held was the RULE across the whole quiet grid. #1608's cross-check reads one brand
+// pair and hand-names one member; `lint-paint`'s census would move on a dropped binding, but a census says
+// "different", never "wrong", and no arm there asks whether a paint is a variable the brand emits at all.
+//
+// SUBJECT: every quiet (`outline` / `text` / `ghost`) × `hover` / `pressed` member of the six button families,
+// projected from the materialized def. ORACLES, none read off the subject (docs/34): the family each method
+// binds is written out below, not asked of `outlineFillRole`; "emitted" is `buildFigmaColor`, the variables
+// Apply writes; the ink bars are WCAG's (4.5:1 text, 3:1 non-text), stated here; and the ratios come from
+// this block's own luminance and compositing over `resolveAllModes`, not from any `ratio` the solver stored.
+// SCOPE: the full contract corpus plus the owner's NB master theme, each under all three methods, on both
+// surfaces, in every mode the brand resolves — so the inverse band and the non-light modes, the two places
+// a literal white showed, are in the walk and counted (shape 15).
+//
+// PRESSED IS MEASURED, NOT FLOORED. Pressed and selected are exempt from ink-on-state-surface contrast by
+// the owner's standing decision (#1281, decision 1: what pressed owes is distinction from rest). Measured
+// here, the only cells below 4.5:1 are `solid-tint` on the inverse band in light mode — primary 3.47–3.82:1
+// and destructive 4.09–4.48:1 across the corpus and the NB master. They are pinned in both directions so the
+// held gap cannot widen, or close, without this block saying so; whether pressed takes a floor is the
+// owner's call, not this block's.
+{
+  const FAMILIES = [button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral];
+  const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+  // What each method binds on a quiet hover/pressed container — hand-written, the #1608 table read as a rule.
+  const BINDS: Record<typeof METHODS[number], RegExp | null> = {
+    'overlay-neutral': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/overlay\/(hover|pressed)$/,
+    'solid-tint': /^color\/(inverse\/)?interactive\/[a-z0-9-]+\/subtle-fill\/(hover|pressed)$/,
+    'none': null,
+  };
+  const TEXT_FLOOR = 4.5;   // WCAG 1.4.3, the label
+  const ICON_FLOOR = 3;     // WCAG 1.4.11, the glyph
+  // The members per brand × method: button ×3 at 2 quiet appearances × 2 states × 2 surfaces × 3 sizes × 4
+  // icon-slot fills (96), icon-button ×3 at 2 × 2 × 2 × 3 sizes × 2 shapes (48). Half on each surface.
+  const MEMBERS = 3 * 96 + 3 * 48;
+  // Own WCAG math — relative luminance and alpha compositing over sRGB hex, independent of `color.ts`.
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const lum = (c: number[]) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  const ratioOf = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const over = (ground: number[], top: number[], a: number) => ground.map((g, i) => top[i] * a + g * (1 - a));
+  const roleOf = (v: string) => v.replace(/^color\//, '').replace(/\//g, '.');
+  const walk = (n: FigmaNodePlan): FigmaNodePlan[] => [n, ...n.children.flatMap(walk)];
+
+  const brands = [...corpus(), { id: 'nb-master (owner file, 2026-09-28)', theme: brandTheme(NB_MASTER) }];
+  const wrongFill: string[] = [];
+  const lowHover: string[] = [];
+  const lowPressed = new Map<string, number>();
+  let looked = 0, onInverse = 0, hoverCells = 0;
+  for (const { id, theme } of brands) for (const method of METHODS) {
+    const t = { ...theme, outlineInteraction: method };
+    const emitted = new Set(buildFigmaColor(t).color.flatMap((c) => c.variables.map((v: { name: string }) => v.name.replace(/^[^/]+\//, ''))));
+    const modes = resolveAllModes(t);
+    for (const def of FAMILIES) for (const p of figmaAnatomySet(applyOutlineInteraction(def, method))) {
+      const name = planComponentName(p);
+      if (!/appearance=(outline|text|ghost)/.test(name)) continue;
+      const state = /state=(hover|pressed)/.exec(name)?.[1];
+      if (!state) continue;
+      looked++;
+      const inverse = /surface=inverse/.test(name);
+      if (inverse) onInverse++;
+      const fill = p.root.paints?.fills;
+      const at = `${id} @ ${method}: ${def.id} ${name}`;
+      const want = BINDS[method];
+      if (!want) { if (fill !== undefined) wrongFill.push(`${at} fills ${fill} (none binds no hover fill)`); continue; }
+      if (fill === undefined) { wrongFill.push(`${at} fills NOTHING`); continue; }
+      if (!want.test(fill) || fill.startsWith('color/inverse/') !== inverse || !emitted.has(fill)) {
+        wrongFill.push(`${at} fills ${fill}${emitted.has(fill) ? '' : ' (not emitted)'}`);
+        continue;
+      }
+      const inks = walk(p.root).filter((n) => n !== p.root).flatMap((n) => [
+        ...(n.type === 'TEXT' && n.paints?.fills ? [{ v: n.paints.fills, floor: TEXT_FLOOR }] : []),
+        ...(n.descendantFills ? [{ v: n.descendantFills, floor: ICON_FLOOR }] : []),
+      ]);
+      for (const m of modes) {
+        const f = m.roles[roleOf(fill)];
+        const ground = m.roles[inverse ? 'inverse.background.primary' : 'background.primary'];
+        const result = over(rgb(ground.hex), rgb(f.hex), f.alpha ?? 1);
+        for (const { v, floor } of inks) {
+          const ink = m.roles[roleOf(v)];
+          if (!ink) { wrongFill.push(`${at} [${m.mode}] ink ${v} resolves to no role`); continue; }
+          const r = ratioOf(rgb(ink.hex), result);
+          if (state === 'hover') {
+            hoverCells++;
+            if (r < floor) lowHover.push(`${at} [${m.mode}] ${roleOf(v)} on ${roleOf(fill)} ${r.toFixed(2)}:1 < ${floor}:1`);
+          } else if (floor === TEXT_FLOOR && r < TEXT_FLOOR) {
+            const cell = `${method} | ${inverse ? 'inverse' : 'page'} | ${m.mode} | ${roleOf(fill).replace(/^(inverse\.)?interactive\.([a-z0-9-]+)\..*$/, '$2')}`;
+            lowPressed.set(cell, Math.min(lowPressed.get(cell) ?? Infinity, r));
+          }
+        }
+      }
+    }
+  }
+  const combos = brands.length * METHODS.length;
+  ok(looked === combos * MEMBERS && onInverse === looked / 2,
+    `#1387 the quiet hover/pressed walk LOOKED at every member, half of them on the inverse band — ${looked} of ${combos * MEMBERS} (${brands.length} brands × ${METHODS.length} methods × ${MEMBERS}), ${onInverse} inverse (docs/34 shapes 9 and 15)`);
+  ok(hoverCells > 0,
+    `#1387 the hover ink check measured cells — ${hoverCells} (a pass over zero cells is not a pass)`);
+  ok(wrongFill.length === 0,
+    `#1387 every quiet button hover/pressed container fill is the method's emitted color variable on its own surface — overlay wash, tinted wash, or none — never a literal, a miss, or dropped (${wrongFill.length}${wrongFill.length ? `: ${wrongFill.slice(0, 4).join('; ')}` : ''})`);
+  ok(lowHover.length === 0,
+    `#1387 every quiet button's hover label clears ${TEXT_FLOOR}:1 and hover glyph ${ICON_FLOOR}:1 on the composited hover fill, in every mode, on both surfaces (${lowHover.length}${lowHover.length ? `: ${lowHover.slice(0, 4).join('; ')}` : ''})`);
+  // THE HELD PRESSED CELLS, in both directions (owner decision #1281; see the header).
+  const HELD_PRESSED = ['solid-tint | inverse | light | destructive', 'solid-tint | inverse | light | primary'];
+  const heldNow = [...lowPressed.keys()].sort();
+  ok(JSON.stringify(heldNow) === JSON.stringify(HELD_PRESSED),
+    `#1387 the quiet pressed labels below ${TEXT_FLOOR}:1 are exactly the held solid-tint inverse-band light cells, no more and no fewer (${heldNow.map((k) => `${k} ${lowPressed.get(k)!.toFixed(2)}`).join('; ') || 'none'})`);
 }
 
 // ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----
