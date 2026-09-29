@@ -239,19 +239,19 @@
     },
     "badge": {
       "members": 20,
-      "sha256": "5c30fe6e79178bca45c17b89a4a62e5688b7726b7907dfc75aa0ae2e810a4666"
+      "sha256": "f946c45819e0024cb04c2488173378419968ec864b6141753539f05f82e4b750"
     },
     "tag": {
-      "members": 30,
-      "sha256": "8ff2f34e65198a45c2bc7db53059f8184cd13c7d3aec787acdc497ef42af6ee2"
+      "members": 45,
+      "sha256": "b693b3b318f5a6f971b34e15caa3a1328af288c4184893fe541dc40b3c6d2d21"
     },
     "tag@outline-solid-tint": {
-      "members": 30,
-      "sha256": "c8becd9a4cf34ccc25fafd3f4ec47c884d331eb61c5b652b53a3cfafc7a019be"
+      "members": 45,
+      "sha256": "21341d1f2c714e207ee0b46783be0ac0e997c2afd70b8b98db37778f22db58d9"
     },
     "tag@outline-none": {
-      "members": 30,
-      "sha256": "2d0e2cb266ad9a66b2298f6a7f6da55d8e01cb6cee73c102b81b8eda9b448b61"
+      "members": 45,
+      "sha256": "1e8848fafedfecd2bc17ace69d55e8458d030b4e8b28235f8162c11e9a7e93c1"
     }
   }
 }

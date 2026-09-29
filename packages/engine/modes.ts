@@ -240,7 +240,10 @@ export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, R
  * covered its ground until then. The field stays so a future opaque method cannot be added without
  * every consumer that branches on it being re-read.
  *
- * NO BRAND SETS `solid-tint`, so the `subtle-fill` row below reaches no committed artifact and every
+ * SINCE 2026-09-29 an `overlay-neutral` brand also emits ONE subtle fill, `interactive.primary.subtle-fill.selected`
+ * (the selected tint a selectable control binds; `resolveAllModes`), which this helper does not describe: it
+ * names the family that carries HOVER. NO BRAND SETS `solid-tint`, so the rest of the `subtle-fill` row below
+ * reaches no committed artifact and every
  * EMISSION-SCOPED gate passes without seeing the family — #1112. `test.ts` reaches it synthetically
  * (it constructs the theme itself), which is what the family has instead of corpus coverage, and the
  * distinction is the finding: the exhaustive switch makes a MISSING method a compile error and does
@@ -2151,6 +2154,12 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
   // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch in `resolveMode`.
   if (theme.outlineInteraction === 'solid-tint') settleSolidTint(theme, results);
+  // THE SELECTED TINT FOR EVERY BRAND THAT HAS AN OUTLINE FILL (owner, 2026-09-29). A selectable control (Tag's
+  // select type) binds `interactive.primary.subtle-fill.selected`. A solid-tint brand already carries it inside the
+  // full family; an overlay-neutral brand carries that ONE leaf, on the page ground, derived by the same pass and
+  // the same step choice, so a solid-tint brand's value does not move. `none` carries nothing: that lever omits
+  // every outline fill, the selected one included, and a selected tag there shows its outline and check only.
+  else if (theme.outlineInteraction === 'overlay-neutral') settleSolidTint(theme, results, { color: 'primary', state: 'selected' });
   return results;
 };
 
@@ -2206,11 +2215,15 @@ const TINT_VISIBLE_DE = 2.3;
  * fill or the ink (the per-mode override layer runs inside `resolveMode`) is what the tint follows and is
  * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step.
  */
-const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
+const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: string; state: 'selected' }): void => {
   const steps = OPACITY_STEPS.filter((s) => s > 0);
   const hexRgb = (r: ResolvedRole) => hexToRgb(r.hex);
-  const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
-  for (const [prefix, groundKey, groundName] of [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const) {
+  // `only` (owner, 2026-09-29): one leaf on the page ground — the overlay-neutral brand's selected tint. The step
+  // is still chosen by the full rule below (hover's guards first, selected one step above), so the value is the
+  // one a solid-tint brand would carry.
+  const columns = only ? [only.color] : ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+  const grounds = [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const;
+  for (const [prefix, groundKey, groundName] of only ? grounds.slice(0, 1) : grounds) {
     for (const color of columns) {
       const fillKey = `${prefix}interactive.${color}.fill.rest`;
       // Every mode must carry the fill and the ground, or there is no single step to choose.
@@ -2232,6 +2245,7 @@ const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
       while (!visible('pressed', steps[p]) && p + 1 < steps.length) p++;
 
       for (const [st, i] of [['hover', h], ['pressed', p], ['selected', p]] as const) {
+        if (only && st !== only.state) continue;
         const step = steps[i];
         const nominal = TINT_NOMINAL[st];
         const why = step < nominal ? `, stepped down from opacity.${nominal} to keep the ${st} label legible`
@@ -2242,7 +2256,9 @@ const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
           const inkKey = inkKeyOf(st);
           c.m.roles[`${prefix}interactive.${color}.subtle-fill.${st}`] = {
             path: fill.path,
-            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, the outline/text control's ${st} background)`,
+            // The SELECTED fill has two users since 2026-09-29 (an outline/text control, and a control the user
+            // selects in place, Tag's select type), so its sentence names both rather than one.
+            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, ${st === 'selected' ? 'the selected background of a selectable control or an outline/text control' : `the outline/text control's ${st} background`})`,
             ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
             // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
             // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.

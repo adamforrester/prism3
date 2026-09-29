@@ -317,7 +317,7 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
-  // `badge` keys its paint `{tone}.{genre}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
+  // `badge` keys its paint `{tone}.{type}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
   // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
   // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the
   // tone as a whole segment.

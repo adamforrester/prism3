@@ -1939,6 +1939,36 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#71add04d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{ads.color.interactive.primary.fill.rest}",
+                    "opacity": "{ads.opacity.30}"
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  },
+                  "contrast": 8.18,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed"
+                }
+              }
+            }
           }
         },
         "destructive": {

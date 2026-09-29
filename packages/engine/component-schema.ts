@@ -203,6 +203,27 @@ export type PartDef = {
    *  two concepts were never the same one. Do not delete it as unused on the strength of the
    *  projector no longer reading it; the a11y tier is downstream of here. */
   role?: 'target' | 'presentation';
+  /** A SECOND pointer target inside an interactive control (#1741): a part that is, or may be, pressed on its
+   *  own, apart from the one `role: 'target'` node. Tag's × slot is the first — a square the tag's height,
+   *  whose status as THE target or a part of a whole-tag target is the owner's open call, so it is marked
+   *  here either way.
+   *
+   *  WHY A MARKER ON THE PART, and not the gate's list alone. `lint-hit-target.ts` measures inner targets
+   *  from its authored `INNER_TARGETS`, and before this field it discovered them only through `nest` parts —
+   *  so the × slot, a `box`, was measured by the hand-written entry and nothing else, and deleting the entry
+   *  left every gate green. The def now says which of its parts is a target, and the gate compares the two
+   *  sides in both directions: a marked part of an interactive def that `INNER_TARGETS` does not list fails,
+   *  and an entry naming an unmarked part fails. Neither side is derived from the other (docs/34).
+   *
+   *  NOT `role`. `role: 'target'` is the single node a materializer attaches the interactive role, the
+   *  accessible name and the focus ring to, and the schema requires exactly one; an inner target is a
+   *  second place the pointer lands, which may or may not carry a role of its own in code.
+   *
+   *  Nothing in the projector reads it. Refused on the `role: 'target'` part (that one is measured as the
+   *  control itself), on the anatomy root, on an `absolute` part (outside the flow it owns no hit area —
+   *  `role`'s own rule) and on a part binding neither `size` nor both `width` and `height` (a target with an
+   *  unbound side cannot be measured against the floor on that side). */
+  innerTarget?: true;
   /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
   children?: string[];
   layout?: LayoutDef;
@@ -541,6 +562,19 @@ export type PartDef = {
    *  auto-layout frame — the `minWidth` rule), and alongside `height`/`size` (a bound height already fixes
    *  the axis, so a floor under it states the height twice). */
   minHeight?: string;
+  /** For `box` parts: the binding key giving the frame's MINIMUM WIDTH — Figma's auto-layout `minWidth`,
+   *  BOUND to a variable. The token-bound twin of the literal `minWidth` above, and the width-axis twin of
+   *  `minHeight`, for `minHeight`'s reason: the floor it states IS a token's value. Tag's floor is its own
+   *  height (owner, 2026-09-28: "minimum width = the tag's height, per size"), so it binds `size.{size}.height`
+   *  and follows the density the height follows — a literal would be 44 on a compact brand whose medium tag is
+   *  36 tall. Code reads it as `min-inline-size`.
+   *
+   *  NOT the literal `minWidth`: that is a projection floor a def states in px (#1343's "not a semantic
+   *  value"), and a map a brand-aware step writes (#1667). This one is a token relationship the def states.
+   *
+   *  Refused on a non-`box` kind, on a `box` with no `layout`, beside the literal `minWidth` (two floors on one
+   *  axis), and beside a bound `width` or `size` (a bound width already fixes the axis). */
+  minWidthKey?: string;
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -1004,12 +1038,12 @@ export type FigmaProperties = {
    *  THE SHAPE: a list of PARTIAL coordinates. Each entry maps a projected variant axis to the values it
    *  excludes, and a member is excluded when EVERY axis the entry names holds one of that entry's values
    *  (an AND across the entry's axes, an OR across its values). Entries OR together. So
-   *  `[{ genre: ['count', 'dot'], emphasis: ['subtle'] }]` removes the ten count and dot members at
+   *  `[{ type: ['count', 'dot'], emphasis: ['subtle'] }]` removes the ten count and dot members at
    *  `emphasis=subtle` and nothing else. An axis the entry does not name is unconstrained.
    *
    *  WHY NOT THE ALTERNATIVES. Duplicating the members (count and dot painted bold at `emphasis=subtle`
    *  as well) offers a value the member cannot honor, which `icon`'s `codeOnly` names as the worse outcome:
-   *  "a duplicate member that lies is worse than an absent one". Folding the two emphases into `genre`
+   *  "a duplicate member that lies is worse than an absent one". Folding the two emphases into `type`
    *  would spend the axis vocabulary on a coincidence of this def. And an axis value that is simply not
    *  there at some coordinates is what Figma itself supports: a variant set need not be a full grid.
    *
@@ -1086,9 +1120,11 @@ export type FigmaProperties = {
    *  governs two nodes that never coexist — the switch thumb's check (at `selection=on`) and X (at
    *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
    *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
-   *  dedupes by name). Such parts MAY be `presentWhen`-gated, but only on ONE shared variant axis whose
-   *  values they PARTITION between them (cover every value, no value twice) — so every member builds
-   *  exactly one node for the boolean to toggle. See the refusal in `figmaPropertyErrors`.
+   *  dedupes by name). A targeted part — one or several — MAY be `presentWhen`-gated on VARIANT axes
+   *  (Tag's check, present only on a selected select tag, is the one-part case): the gates must be
+   *  DISJOINT, so no member builds two nodes for the boolean, and at least one member the set keeps must
+   *  build a node. Coverage is not required — a member with no node has nothing to toggle. See the
+   *  refusals in `figmaPropertyErrors`.
    *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
@@ -2017,38 +2053,59 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   for (const [p, v] of Object.entries(fp.booleans ?? {}))
     for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true);
 
-  // A BOOLEAN must have a node to toggle at EVERY member (#1331): the part is emitted and its `visible` is
-  // toggled in place. A `when`-gated part (an overlay/absolute state) would DROP the node at some
-  // coordinates — leaving the boolean nothing to toggle there — so it is refused outright.
+  // A BOOLEAN toggles its parts' `visible` in place (#1331). A part it targets may ALSO carry a VARIANT
+  // presence gate, and the composition is defined, not left open: the gate decides WHICH members carry the
+  // node at all, and at those members the boolean toggles it. A member no targeted part reaches has nothing
+  // to toggle, which Figma allows — a component property is declared once on the set, and a variant with no
+  // node bound to it ignores it. Two users, one rule (reconciled in the #1743 merge of #1765):
+  //   · Tag's `Check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
+  //   · switch-control's `State icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
+  // Full coverage of an axis is NOT required: Tag's unselected members carry no check and nothing is wrong.
   //
-  // `presentWhen` is refused on the same ground, with ONE narrowing (switch-control's `State icon`): a
-  // boolean whose parts are ALL gated on ONE shared variant axis, and whose gates PARTITION that axis's
-  // values (every value covered, none twice), has exactly one node at every member — just not the same
-  // node. The check at `selection=on` and the X at `selection=off` are that shape. What stays refused is
-  // exactly the shape the old rule existed for: a single gated part (some members have nothing to toggle),
-  // gates that leave an axis value uncovered or name one twice, gates spread over two axes, and an ungated
-  // part mixed with gated ones. A `state` gate needs no clause of its own: `state` is never a key of
-  // `variants` (`VARIANT_AXES` excludes it), so its declared list is empty and `composes` is false; a part
-  // gating two axes needs none either, since it puts two names in `axes`.
+  // THREE REFUSALS, each a way the composition goes wrong without a sound:
+  //   (1) A STATE gate (`when`, or `presentWhen`'s reserved `state` key). A state is not a variant the
+  //       designer picks between members; a node that exists only at `focus-visible` behind a boolean is a
+  //       switch whose effect depends on a state the panel does not show beside it. No def needs it.
+  //   (2) OVERLAP — a member at which two targeted parts both build. The boolean then drives two nodes at
+  //       once there, which is two affordances wearing one switch; the parts' gates must be DISJOINT. An
+  //       ungated part builds at every member, so it overlaps any second part the same boolean targets.
+  //   (3) NO MEMBER — every targeted part's gate lands only on coordinates the set does not keep (in
+  //       practice, `excludeCoordinates`). The switch would be declared on the set and wired to a node on no
+  //       member. Tag's check gated to `type=dismissible × selection=selected` is the case this was written for.
+  // The members are enumerated HERE, from the declaration, with their own matcher — the same independence the
+  // exclusion refusals above keep from `isExcludedCoordinate`. A gate naming an axis the set does not project
+  // builds nowhere (the projector supplies no value for it) and is refused by name in `anatomyErrors`.
   for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
     const targeted = booleanPartsOf(v);
+    let stateGated = false;
     for (const part of targeted) {
       const p = parts[part];
-      if (p?.when)
-        e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean toggles the part's visibility at every member, so a state presence gate on the same part is a second presence mechanism the boolean cannot compose with`);
+      if (p?.when) {
+        stateGated = true;
+        e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares when — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
+      } else if (p?.presentWhen && STATE_GATE in p.presentWhen) {
+        stateGated = true;
+        e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares presentWhen on '${STATE_GATE}' — a boolean composes with a VARIANT presence gate only; a state gate on the same part is a second presence mechanism the boolean cannot compose with`);
+      }
     }
-    const gated = targeted.filter((part) => parts[part]?.presentWhen);
-    if (!gated.length) continue;
-    const axesOf = (part: string) => Object.keys(parts[part]!.presentWhen!);
-    const axes = [...new Set(gated.flatMap(axesOf))];
-    const axis = axes[0];
-    const declared = axis === undefined ? [] : [...((def.variants as Record<string, readonly string[] | undefined> | undefined)?.[axis] ?? [])];
-    const named = gated.flatMap((part) => [...(parts[part]!.presentWhen![axis!] ?? [])]);
-    const covered = new Set(named);
-    const composes = gated.length === targeted.length && gated.length > 1 && axes.length === 1
-      && declared.length > 0 && declared.every((val) => covered.has(val)) && named.length === covered.size;
-    if (!composes)
-      e.push(`figmaProperties.booleans.${prop} → part${gated.length > 1 ? 's' : ''} '${gated.join("', '")}' also declare${gated.length > 1 ? '' : 's'} presentWhen — a boolean toggles visibility at every member, so a variant presence gate is a second presence mechanism it cannot compose with, UNLESS the boolean targets two or more parts, all gated on one shared variant axis whose values their gates partition between them — every value covered, none twice (every member then builds exactly one node for the boolean to toggle)`);
+    if (stateGated || !targeted.every((part) => parts[part])) continue;
+    const axes = fp.variantAxes ?? [];
+    const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+    let grid: Record<string, string>[] = [{}];
+    for (const a of axes) grid = grid.flatMap((c) => values(a).map((val) => ({ ...c, [a]: val })));
+    const kept = grid.filter((c) => !(fp.excludeCoordinates ?? []).some((entry) => Object.keys(entry).length > 0 && Object.keys(entry).every((a) => (entry[a] ?? []).includes(c[a]))));
+    // AND across axes; an axis the member does not carry reads as ABSENT — the projector's reading.
+    const builds = (part: string, c: Record<string, string>): boolean =>
+      Object.entries(parts[part]!.presentWhen ?? {}).every(([a, vs]) => c[a] !== undefined && vs.includes(c[a]));
+    const gateText = (part: string): string =>
+      parts[part]!.presentWhen ? Object.entries(parts[part]!.presentWhen!).map(([a, vs]) => `${a}=${vs.join('|')}`).join(', ') : 'every member (ungated)';
+    const overlap = kept.find((c) => targeted.filter((part) => builds(part, c)).length > 1);
+    if (overlap) {
+      const both = targeted.filter((part) => builds(part, overlap));
+      e.push(`figmaProperties.booleans.${prop} → parts '${both.join("', '")}' both build at ${axes.map((a) => `${a}=${overlap[a]}`).join(', ') || 'every member'} (gated to ${both.map((part) => `${part}: ${gateText(part)}`).join('; ')}) — a boolean drives ONE node per member, so the presence gates of the parts it targets must be disjoint`);
+    }
+    if (!kept.some((c) => targeted.some((part) => builds(part, c))))
+      e.push(`figmaProperties.booleans.${prop} → part${targeted.length > 1 ? 's' : ''} '${targeted.join("', '")}' ${targeted.length > 1 ? 'are' : 'is'} gated to ${targeted.map(gateText).join('; ')}, and no member the set keeps builds ${targeted.length > 1 ? 'any of them' : 'it'}${fp.excludeCoordinates?.length ? ' — excludeCoordinates removes every such member' : ''}; the switch would be declared on the set and toggle a node on no member`);
   }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
@@ -2736,25 +2793,40 @@ export type State = (typeof STATES)[number];
  * to the shape's rung (capsule/none/hairline) and leaves the `circular` shape's intrinsic round rung, the
  * same rule it applies to switch/radio.
  *
- * ── `genre`: THE NINETEENTH NAME, FOR THE BADGE'S THREE KINDS (owner-approved, 2026-09-27) ──────────
+ * ── `type`: THE NINETEENTH NAME — WHICH KIND OF THE COMPONENT A MEMBER IS (Badge 2026-09-27, Tag 2026-09-28) ──
  *
- * `genre` (`status | count | dot`) is WHICH KIND of badge a member is — a status label in the flow of
- * text, a number over a host, or a contentless mark over a host. The owner chose one Badge switched by
- * props over the brief's three sibling components, and a designer picking a count member or a dot member
- * in Figma needs that switch as a variant axis. It clears this list's bar the way `shape` did: a distinct
- * kind of distinction no existing name expresses, with the nearest defeated. `appearance` is an EMPHASIS
- * ladder over one treatment of fixed content (filled/outline/text); `style` is a stroke treatment; `shape`
- * is a corner silhouette over identical content. A genre changes three things together that none of those
- * touches — the CONTENT model (text, a number, nothing), the PLACEMENT (in flow, or over a host) and the
- * ACCESSIBILITY contract (announced, or aria-hidden with the meaning in the host's name). Naming it
- * `appearance` would claim a count is a louder status label; naming it `shape` would claim the dot is the
- * same content with other corners. Neither is true, and the a11y difference is the one a consumer most
- * needs the name to carry.
+ * `type` names WHICH KIND of a component a member is, where the kinds differ in content, role or placement
+ * together — not in one treatment of fixed content. Two defs carry it, each with its own values:
  *
- * THE NAME IS THE BRIEF'S OWN WORD for the split (its §1 calls them "genres") and the owner's, and its
- * values are self-describing (`status`, not `default`). It is an AUTHORING axis in `axisKinds` — chosen when
- * the badge is placed, never moved on screen — so the three genres may differ in size, where the runtime
- * `tone` beside it may not. `lint-axis-values.ts` carries `['status', 'count', 'dot']` as a `sole` set.
+ *   · BADGE, `status | count | dot`: a status label in the flow of text, a number over a host, or a contentless
+ *     mark over a host. The owner chose one Badge switched by props over the brief's three sibling components,
+ *     and a designer picking a count or dot member in Figma needs that switch as a variant axis. A badge type
+ *     changes the CONTENT model (text, a number, nothing), the PLACEMENT (in flow, or over a host) and the
+ *     ACCESSIBILITY contract (announced, or aria-hidden with the meaning in the host's name).
+ *   · TAG, `select | dismissible`: one the user toggles on and off, or one the user removes. A tag type changes
+ *     the ROLE (a toggle button, or a row with a remove control), the KEYBOARD model and the TRAILING part (a
+ *     check mark, or the × slot), while the label is the same.
+ *
+ * It clears this list's bar the way `shape` did — a distinct kind of distinction no existing name expresses —
+ * with the nearest defeated. `appearance` is an EMPHASIS ladder over one treatment of fixed content (filled/
+ * outline/text); `style` is a stroke treatment; `shape` is a corner silhouette over identical content; and
+ * `selection` is the STATE a selectable control shows, which a select tag moves through and a dismissible tag
+ * never has — the `type` axis is what makes `dismissible × selected` a coordinate to exclude rather than a value
+ * to invent. Naming the badge's kinds `appearance` would claim a count is a louder status label; naming the
+ * tag's `selection` would claim a dismissible tag is a selection value.
+ *
+ * ONE NAME FOR BOTH, and the history is the argument (owner, 2026-09-28). Badge carried this axis as `genre` —
+ * the brief's own word, owner-approved 2026-09-27 — for one day. When Tag needed the same question answered
+ * the owner named Tag's axis `type` and renamed Badge's to match, so the list gains Tag's name and loses
+ * `genre`, and the count is unchanged. Two names for one question is the #756 failure this list exists to
+ * prevent. The two value sets share no member, which `lint-axis-values.ts` records: Badge's is `canonical` and
+ * Tag's is `disjoint`, because a content kind and an interaction kind have no value in common.
+ *
+ * THE NAME COLLIDES WITH HTML's `type` ATTRIBUTE in code, and that is the owner's accepted cost: each
+ * component's `type` prop is the component's own, never forwarded to the element, and the defs' code guidance
+ * says so where it matters (Tag, which renders a <button>). Each def's first value LEADS because it is the code
+ * default and Figma's default member (`status`, `select`). It is an AUTHORING axis in both — a member's type is
+ * chosen when it is placed and never moves on screen — so the box may differ across types.
  *
  * ── `direction`: THE TWENTIETH NAME, FOR THE VEIL'S GRADIENT WASHES (owner-decided, 2026-09-28, #1318) ──
  *
@@ -2773,7 +2845,7 @@ export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'genre', 'direction',
+  'status', 'emphasis', 'shape', 'type', 'direction',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3254,6 +3326,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // materializer has no single node to attach the a11y role and focus ring to.
   const targets = names.filter((n) => parts[n].role === 'target');
   if (targets.length !== 1) e.push(`anatomy: exactly one part must have role 'target' (found ${targets.length}${targets.length ? `: ${targets.join(', ')}` : ''})`);
+  // AN INNER TARGET (#1741) is a second place the pointer lands, measured by `lint-hit-target.ts` through its
+  // own bound side. Each way the marker would validate and then measure nothing is refused by name.
+  for (const n of names) {
+    const p = parts[n];
+    if (p.innerTarget === undefined) continue;
+    if ((p.innerTarget as unknown) !== true)
+      e.push(`anatomy part '${n}' declares innerTarget ${JSON.stringify(p.innerTarget)} — the marker is 'true' or absent`);
+    if (p.role === 'target')
+      e.push(`anatomy part '${n}' claims role 'target' and innerTarget — the role target is the control itself, measured as the control; an inner target is a SECOND target inside it`);
+    if (n === a.root)
+      e.push(`anatomy part '${n}' is the anatomy ROOT and declares innerTarget — the root is the control, not a target inside it`);
+    if (p.kind === 'absolute')
+      e.push(`anatomy part '${n}' is kind 'absolute' and declares innerTarget — a part outside the layout flow owns no hit area`);
+    // BOTH SIDES: `size` (a square), or `width` AND `height`. A part bound on its height alone is measured on its
+    // height alone, so a slot 4 wide and 44 tall would clear the floor.
+    if (p.size === undefined && (p.height === undefined || p.width === undefined))
+      e.push(`anatomy part '${n}' declares innerTarget but binds neither 'size' nor both 'width' and 'height' — a target with an unbound side cannot be measured against the hit-target floor on that side`);
+  }
 
   // NO TWO BOXES MAY CLAIM THE SAME SLOT (#933). `paintOf` dispatches on the slot alone and is blind to
   // which part asked, so two boxes naming `fill` do not divide the fill between them — they both take
@@ -3311,7 +3401,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -4033,6 +4123,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' declares 'minHeight' but binds no 'layout' — Figma applies a minimum height only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
     if (p.minHeight !== undefined && (p.height !== undefined || p.size !== undefined))
       e.push(`anatomy part '${n}' declares 'minHeight' alongside a bound '${p.height !== undefined ? 'height' : 'size'}' — a bound height already fixes the axis, so the floor states the height twice`);
+    // ---- `minWidthKey`, the BOX kind's token-bound auto-layout width FLOOR (2026-09-28) ----
+    // `minHeight`'s three rules on the other axis, plus the one only this axis has: the literal `minWidth`
+    // is a second floor on the same axis, and two floors on one axis means one of them is not the floor.
+    if (p.minWidthKey !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidthKey' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
+    if (p.minWidthKey !== undefined && p.kind === 'box' && !p.layout)
+      e.push(`anatomy part '${n}' declares 'minWidthKey' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    if (p.minWidthKey !== undefined && p.minWidth !== undefined)
+      e.push(`anatomy part '${n}' declares both 'minWidthKey' and a literal 'minWidth' — two floors on one axis, so one of them is not the floor`);
+    if (p.minWidthKey !== undefined && (p.width !== undefined || p.size !== undefined))
+      e.push(`anatomy part '${n}' declares 'minWidthKey' alongside a bound '${p.width !== undefined ? 'width' : 'size'}' — a bound width already fixes the axis, so the floor states the width twice`);
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the

@@ -2926,6 +2926,50 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.200.0 — Tag: Select and Dismissible types; Badge: a smaller radius for status labels (owner decisions,
+ * 2026-09-28; closes #1741 and #1743). TAG: a `type` variant axis (`select | dismissible`) and code prop
+ * replace `interaction`; the plain clickable tag is dropped. Select carries an
+ * optional leading icon and a TRAILING check mark behind a `check mark` boolean (on by default), present only at
+ * `selection=selected`, and no dismiss. Dismissible has no selection (`excludeCoordinates` removes dismissible ×
+ * selected, so the set is 45 members, up from 30) and a plain `close` glyph in a square trailing slot the tag's
+ * height, replacing the nested IconButton.Neutral. The minimum width is the height, bound (`minWidthKey`, a new
+ * `PartDef` field, the width twin of `minHeight`). Selected is a tint (`interactive.primary.overlay.selected`,
+ * which the outline-interaction lever repoints to `subtle-fill.selected` on a solid-tint brand) and a 2px primary
+ * outline (`border-width.thick`) at a constant label weight. The label wraps in code (#1758). SCHEMA: a boolean now
+ * composes with a VARIANT `presentWhen` gate on its part (#1743 option (a)); a state gate is still refused.
+ * BADGE: the status label's corner binds `radius.sm` (`{type}.radius`); count and dot keep `radius.round`. And the
+ * owner's scope addition the same day: Badge's `genre` axis is renamed `type`, so Badge and Tag use one name.
+ * `VARIANT_AXES` loses `genre` and gains `type`, so its count is unchanged; the values (`status | count | dot`),
+ * the prop, the paint and geometry keys and the Figma variant property move with it. No token name carries it.
+ * GATES: `lint-hit-target` measures targets inside a control and fails on an unlisted nested interactive
+ * control (#1741). Projected members move for tag and badge → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no token
+ * name is added or removed (`border-width.thick` and `radius.sm` already exist).
+ *   Review round: a new `PartDef.innerTarget` marks a target inside a control (Tag's × slot), and
+ *   `lint-hit-target` compares the marks against its `INNER_TARGETS` in both directions, so neither can be
+ *   dropped silently. Tag's prose no longer says selecting never reflows: the label keeps its width, and the
+ *   check mark adds a cell. `figmaPropertyErrors` refuses a boolean whose variant gate lands only on excluded
+ *   coordinates. Badge's contested note says `type`. Emitted prose moves; no projected member does. Same version.
+ *   Owner decisions 2026-09-29: the Select check's Figma switch is `Check icon` (the plan digest moves, the
+ *   member count does not); the widening check and the stepping selected edge are recorded as decided. Same
+ *   version. The one emitted `subtle-fill.selected` for every brand is held (the `none` lever omits it by design).
+ *   Then the owner's answer, "respect none": every brand whose `outlineInteraction` is not `none` emits
+ *   `interactive.primary.subtle-fill.selected` (one leaf on overlay-neutral, by the solid-tint rule), Tag binds it,
+ *   and `none` drops it. Emitted trees, overlays, Figma color files and sidecars move for every overlay-neutral
+ *   brand. The role is brandDependent, so CONTRACT stands at 13.1.0. Same version.
+ *   Re-review: the `.ai.json` sidecar describes the tint as a color role and never as a primitive, and a tinted
+ *   role's `mode_overrides` state `{ color, opacity }` rather than the fill's palette step (sidecar schema 0.3 →
+ *   0.4). An `innerTarget` part must bind `size` or both sides. Same version.
+ *   Merged with main at 0.199.0 (#1765 and six more): two rules for a boolean over a `presentWhen`-gated part
+ *   met — #1765's (two or more parts PARTITIONING one axis, switch-control's `State icon`) and this entry's (one
+ *   part on a variant gate, Tag's `Check icon`). One rule replaces both: VARIANT gates only, the targeted parts'
+ *   gates DISJOINT (no member builds two nodes for the boolean), and at least one member the set keeps building a
+ *   node; coverage of an axis is no longer required. The projector evaluates the gate for every boolean part on one
+ *   path, ahead of the slot-name lines. Neither def's projection moves (switch 24 members, one glyph each; Tag 45,
+ *   the check on selected select members only). One merge-only break, fixed here: nb's single `color-aliases`
+ *   materialise payload measured 44,813 bytes on this branch and 44,840 on main, and 45,144 merged, over the
+ *   45,000 `figma_execute` ceiling. The pass is now packed into byte-budgeted chunks exactly as `color-create`
+ *   is (#906); nb pastes it as 2. CONTRACT STANDS at 13.2.0, main's. Same version, renumbered 0.200.0.
+ *
  * 0.199.0 — #1710 (owner decision, 2026-09-29): the read-only field keeps the editable field's boundary.
  * `text-field`, `textarea` and `select` rebind `border.read-only` from `color.border.secondary` to
  * `color.field.border.rest`, so the read-only member draws the same border as rest and filled in every mode.
@@ -4119,7 +4163,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.199.0';
+export const ENGINE_VERSION = '0.200.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
