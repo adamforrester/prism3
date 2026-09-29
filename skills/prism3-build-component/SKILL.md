@@ -305,8 +305,9 @@ whose actual value comes from the host, not from the plan.
   neutral one: the primary ink misses 4.5:1 on the tint (lowest 2.70:1). Add a check mark only where the
   component's brief calls for one, and never let the tint be the only cue. A check mark present only while
   selected is a flow cell of its own, so the selected member is one glyph and one gap wider than the
-  unselected one, and a row of them reflows on toggle unless the component reserves that width (whether Tag
-  does is an open owner question; today it does not). See `packages/engine/components/tag.ts`.
+  unselected one, and a row of them reflows on toggle unless the component reserves that width (Tag does not:
+  the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
+  `interactive.primary.border.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
 - **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
   `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
   never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps

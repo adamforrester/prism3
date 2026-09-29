@@ -28,7 +28,7 @@
  *      argued in the list's header — and the code prop of the same name replaces `interaction`. It is an
  *      AUTHORING axis: a tag's type is chosen when it is placed and never changes on screen.
  *   B. SELECT: an optional leading icon (the `leading icon` boolean), and the selected status as a CHECK MARK
- *      on the TRAILING side. The check is optional — the `check mark` boolean, on by default — and exists
+ *      on the TRAILING side. The check is optional — the `Check icon` boolean, on by default — and exists
  *      only at `selection=selected`. It never sits beside the leading icon. No dismiss on Select at all, which
  *      removes #1743's dual hit target and its 2.09–2.86:1 × on the selected fill.
  *   C. DISMISSIBLE: the ×, and no selection state. `figmaProperties.excludeCoordinates` removes
@@ -45,6 +45,18 @@
  *      system's SELECTION PATTERN in `skills/prism3-build-component` (segmented control, selectable cards and
  *      list options reuse it). The unselected look stays as it was: outlined in `interactive.neutral`.
  *   F. NO TRUNCATION (#1758): the label WRAPS in code. A `title` does not make truncated text reachable.
+ *
+ * ── THE OWNER'S DECISIONS (2026-09-29) ─────────────────────────────────────────────────────────────────
+ *
+ *   G. THE CHECK WIDENS THE TAG. A selected tag with the check shown is one glyph and one gap wider than its
+ *      unselected twin (32px at medium); the width is not reserved. `test.ts` `tag selected width` pins it.
+ *   H. THE FIGMA SWITCH IS `Check icon` (it was `check mark`). It toggles only the Select check; the code prop
+ *      stays `showCheck`. The Dismissible × has no switch: it is the tag's action, present on every member.
+ *   I. SELECTED HOVER AND PRESSED: the tint holds and the 2px outline steps darker
+ *      (`interactive.primary.border.hover` / `.pressed`).
+ *   The owner also chose one `interactive.primary.subtle-fill.selected` emitted in every brand for the tint.
+ *   That one is NOT built here: the `outlineInteraction: 'none'` lever omits every outline fill by design, and
+ *   emitting the role there needs the owner's word (`notes.contested`).
  *
  * ── THE TINT, AND THE ONE THING HERE THE OWNER'S DECISION DID NOT SETTLE ────────────────────────────────
  *
@@ -105,8 +117,8 @@ export const tag: ComponentDef = {
   },
   // WHEN each axis changes (#1611): selection moves live (a filter toggled), so it is runtime; the type and size
   // are picked once. The selected member is WIDER than the unselected one when the check shows — the check takes
-  // a cell in the row — and `figmaProperties.footprintVaries` states it. Whether the unselected tag reserves the
-  // check's width is held for the owner (`notes.contested`).
+  // a cell in the row — and `figmaProperties.footprintVaries` states it. The unselected tag does not reserve the
+  // check's width (owner, 2026-09-29).
   axisKinds: { type: 'authoring', selection: 'runtime', size: 'authoring' },
 
   // The selection-control grammar, minus its bare `{slot}` fallback: every key names its selection value. The
@@ -248,7 +260,7 @@ export const tag: ComponentDef = {
         // gate on `selection` is the whole rule and no second gate on `type` is needed.
         presentWhen: { selection: ['selected'] },
         optional: true,
-        note: 'The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check mark switch hides it, leaving the tint and the 2px outline.',
+        note: 'The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the Check icon switch hides it, leaving the tint and the 2px outline.',
       },
       dismiss: {
         kind: 'box',
@@ -313,7 +325,8 @@ export const tag: ComponentDef = {
     texts: { label: { part: 'label', default: 'Tag' } },
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
-      showCheck: { part: 'check', figmaName: 'check mark', default: true },
+      // Owner, 2026-09-29: `Check icon`. It toggles the Select check only; the Dismissible × has no switch.
+      showCheck: { part: 'check', figmaName: 'Check icon', default: true },
     },
     swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
   },
@@ -386,10 +399,8 @@ export const tag: ComponentDef = {
 
   notes: {
     contested: [
-      'The selected tint (owner decision E named `interactive.primary.subtle-fill.selected`): that role exists only under the solid-tint outline-interaction lever, which no corpus brand sets. The def binds `interactive.primary.overlay.selected`, which the lever repoints to the named role on a solid-tint brand; on the default overlay-neutral lever it is a 20% neutral wash (not a primary tint), and under `none` it is dropped, leaving the 2px outline and the check. Held for the owner: accept the lever-following binding, emit `subtle-fill.selected` in every brand (a new guaranteed token name, CONTRACT MINOR), or bind another role. Measured in 20 cells: the neutral label on the wash ≥ 10.04:1 and on the solid-tint tint ≥ 10.19:1.',
+      'The selected tint (owner decision E named `interactive.primary.subtle-fill.selected`): that role exists only under the solid-tint outline-interaction lever, which no corpus brand sets. The def binds `interactive.primary.overlay.selected`, which the lever repoints to the named role on a solid-tint brand; on the default overlay-neutral lever it is a 20% neutral wash (not a primary tint), and under `none` it is dropped, leaving the 2px outline and the check. Held for the owner: accept the lever-following binding, emit `subtle-fill.selected` in every brand (a new guaranteed token name, CONTRACT MINOR), or bind another role. Measured in 20 cells: the neutral label on the wash ≥ 10.04:1 and on the solid-tint tint ≥ 10.19:1. The owner\'s answer (2026-09-29) is to emit that one role in every brand; it is held because the `none` lever omits every outline fill by design, and a brand on `none` would then carry the role.',
       'The selected label and check ink stay the unselected neutral ink. The owner fixed the tint and the outline, not the ink; the primary ink fails 4.5:1 on the tint in 11 of 20 cells on overlay-neutral (lowest 2.70:1, aurora/dark) and 13 of 20 on solid-tint (lowest 3.02:1, aurora/light). Held for the owner.',
-      'Selected hover and pressed: the tint holds and the 2px edge steps (`interactive.primary.border.hover` / `.pressed`), as an outline\'s edge does. The owner did not specify them. Held for the owner.',
-      'Whether an unselected select tag reserves the check mark\'s width. Today the check is a flow cell present only while selected, so a selected tag with the check on is one glyph and one gap wider than its unselected twin, and a group reflows on toggle — against owner decision E\'s "nothing reflows". Reserving it would need the cell present at unselected with no ink, a second presence rule. Held for the owner.',
       'The dismissible hit target: the whole tag, or only the × slot. Open by owner decision C; `codeOnly` states both. The Figma structure is the same, and the × slot is 44px at medium on comfortable density either way.',
       'The × glyph size in its slot binds the tag\'s own icon rung (`size.{size}.icon`, 24px at medium), the same rung the check and the leading icon use. Held for the owner, with the slot\'s inner padding it implies.',
       'A long label wraps in code, and the row centers the leading icon, the check mark and the × slot on the label block (`align: center`, as in Figma, where the label is one line). Whether they should sit on the first line instead is held for the owner.',
@@ -407,6 +418,9 @@ export const tag: ComponentDef = {
       'The overlay-neutral selected wash is a 20% neutral over the page. Whether it reads as "selected" beside the 10% hover wash of an unselected tag is a visual question no gate asks; the 2px primary outline is the measured separation.',
     ],
     evolution: [
+      'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (32px at medium), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
+      'Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.',
+      'Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',
       'Badge\'s hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) Tag is a pill with an outline at rest, a tint and a 2px primary outline when selected; the status badge has a small radius and a tone fill, and binds no interactive role. (5) Tag no longer nests IconButton.Neutral: the × is a glyph in a square slot. `test.ts` holds (1) and (4) against Badge\'s projected rest paint.',
       'Two types, Select and Dismissible (owner, 2026-09-28), replace the three interactions (clickable | selectable | removable) of 2026-09-27. The plain clickable tag is dropped: an action in place is a Button. `type` is the variant axis name Badge shares (Badge\'s `genre` was renamed to match), and the code prop of the same name replaces `interaction`.',
       'The dual-action tag (select the body, remove with the ×, brief §2) is gone: Select has no dismiss at all (#1743), which also removed the × on the selected fill that measured 2.09–2.86:1.',

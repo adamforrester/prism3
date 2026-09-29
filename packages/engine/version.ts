@@ -2949,6 +2949,9 @@
  *   dropped silently. Tag's prose no longer says selecting never reflows: the label keeps its width, and the
  *   check mark adds a cell. `figmaPropertyErrors` refuses a boolean whose variant gate lands only on excluded
  *   coordinates. Badge's contested note says `type`. Emitted prose moves; no projected member does. Same version.
+ *   Owner decisions 2026-09-29: the Select check's Figma switch is `Check icon` (the plan digest moves, the
+ *   member count does not); the widening check and the stepping selected edge are recorded as decided. Same
+ *   version. The one emitted `subtle-fill.selected` for every brand is held (the `none` lever omits it by design).
  *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read

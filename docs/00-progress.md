@@ -83,6 +83,23 @@
   - R6: the shim's `boundFloor` zeroed → plugin **`tag min width`**, measured 38 × 44.
   - R7: the excluded-gate refusal disabled → **`#1743 a boolean whose VARIANT gate lands only on excluded coordinates`**.
 
+**The owner's Tag decisions of 2026-09-29 (same PR, same version).** Three are built and one is held.
+- **Built: the check widens the tag.** It stays as built, so `tag selected width` (+32px at medium) now pins an owner decision, and its message says so. The reservation item leaves `notes.contested` for `notes.evolution`, and the skill's selection pattern states it.
+- **Built: the Figma switch is `Check icon`** (it was `check mark`). It toggles only the Select check. The Dismissible × has no switch because it is the tag's action. The code prop stays `showCheck`. The component surface was re-accepted for `tag`, `tag@outline-solid-tint` and `tag@outline-none`: the member count holds at 45, and the plan digest moves because the property name is in the plan.
+- **Built: selected hover and pressed keep the tint, and the 2px outline steps darker.** This is pinned by a new arm, `tag selected hover|pressed (owner decision 2026-09-29)`, and the item leaves `notes.contested`.
+- **HELD: one `interactive.primary.subtle-fill.selected` emitted in every brand, with Tag bound to it.** This stopped on the orchestrator's own stop condition.
+  - **What `none` omits by design.** `outlineInteraction: 'none'` omits every outline/text fill. The lever's description (`levers.ts`) reads "How outline/text controls express hover/pressed/selected … none = omit", and `token-contract.ts` demotes all 27 `overlay.*` paths to `brandDependent` because `minimal-levers` pulls `none`.
+  - **Why the role would be the first exception.** A guaranteed role has to be emitted by `minimal-levers` too, so a CONTRACT MINOR puts a selected outline fill on every `none` brand, the first outline fill that lever would not omit. Today a selected tag on a `none` brand keeps only its outline and check.
+  - **Why it wasn't half-built.** Binding the tag to a role absent under `none` would trip `lint-lever-sweep`, and a `brandDependent` role would not be the CONTRACT MINOR the decision asked for.
+  - **What the role would be, measured** (the solid-tint derivation of the selected step on the page ground: the primary fill at `opacity.30`, composited over `background.primary`):
+    - prism3 light: `#1e1eff` at 30% → `#bcbcff`, label 10.84:1, check 10.84:1
+    - NB light: `#cf0b2c` at 30% → `#f1b6c0`, label 11.26:1, check 11.26:1
+    - Across prism3's and NB's four modes, the lowest is 10.84.
+- **Mutations** (committed first, restored from HEAD):
+  - D3: the property renamed back to `check mark` → **`tag check mark: … behind a 'Check icon' switch`**, plus `lint-component-surface` `surface/tag` ×3.
+  - D4: the selected hover edge key dropped → **`tag selected hover (owner decision 2026-09-29)`**, plus `tag contrast (selected outline against the page.hover)`.
+  - The tint and emission mutations were not run, because that decision is held.
+
 ---
 
 ## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)

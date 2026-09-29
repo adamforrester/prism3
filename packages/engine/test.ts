@@ -5036,18 +5036,19 @@ for (const b of brands) {
   ok(dismissibles.length === 15 && xWrong.length === 0,
     `tag × slot: on all 15 dismissible members it is the last cell of the pill, after the label row${xWrong.length ? ` — wrong: ${xWrong.slice(0, 4).map((m) => `${m.name} [${((m.plan.root.children ?? []) as any[]).map((c) => c.name).join(', ')}]`).join(' | ')}` : ''} (${dismissibles.length} dismissible members)`);
   // THE CHECK IS TRAILING AND OPTIONAL (owner decision B): on every selected member it is the LAST cell of the
-  // label row, after the label (never beside the leading icon), and it carries the `check mark` switch, which
+  // label row, after the label (never beside the leading icon), and it carries the `Check icon` switch (owner,
+  // 2026-09-29; it was `check mark`), which
   // defaults ON; no unselected member has it.
   const checkWrong = tagMembers.filter((m) => {
     const content = findNode(m.plan.root, 'content');
     const order = (content?.children ?? []).map((c: any) => c.name);
     const check = findNode(m.plan.root, 'check');
     if (m.selection === 'unselected') return !!check;
-    return !(order[order.length - 1] === 'check' && order.indexOf('label') === order.length - 2 && check?.visibleProp === 'check mark' && check?.visible !== false);
+    return !(order[order.length - 1] === 'check' && order.indexOf('label') === order.length - 2 && check?.visibleProp === 'Check icon' && check?.visible !== false);
   });
-  const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'check mark');
+  const checkProp = planSetProperties(tagSet as any).find((p) => p.name === 'Check icon');
   ok(checkWrong.length === 0 && checkProp?.type === 'BOOLEAN' && checkProp?.default === true,
-    `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'check mark' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
+    `tag check mark: on every selected member it is the last cell of the label row, after the label, behind a 'Check icon' switch that defaults on; no unselected member has one (property ${JSON.stringify(checkProp)})${checkWrong.length ? ` — wrong: ${checkWrong.slice(0, 4).map((m) => m.name).join(' | ')}` : ''}`);
   // THE × SLOT IS SQUARE AT THE TAG'S HEIGHT, AND THE MINIMUM WIDTH IS THE HEIGHT (owner decisions C and D), per
   // size, as the literal variable names the tier emits.
   const HEIGHT_VAR: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
@@ -5083,14 +5084,21 @@ for (const b of brands) {
     const b = findNode(restOf('select', 'selected', size).plan.root, 'label')?.textStyle;
     ok(!!a && a === b, `tag label weight is constant (${size}): the selected label's text style equals the unselected one's, so the label keeps its width when selected (${a} / ${b})`);
   }
-  // THE SELECTED TAG'S WIDTH, as built (the shipped prose says the label keeps its width and the check mark adds
-  // a cell; whether the unselected tag reserves that cell is held for the owner). An independent model of Figma's
+  // SELECTED HOVER AND PRESSED (owner, 2026-09-29): the tint holds and the 2px outline steps darker, on every size.
+  for (const [st, edge] of [['hover', 'color/interactive/primary/border/hover'], ['pressed', 'color/interactive/primary/border/pressed']] as const) {
+    const at = tagMembers.filter((m) => m.type === 'select' && m.selection === 'selected' && m.state === st);
+    const wrong = at.filter((m) => !(m.plan.root.paints?.fills === TAG_REST.selected.fill && m.plan.root.paints?.strokes === edge && m.plan.root.bound?.strokeWeight === 'border-width/thick'));
+    ok(at.length === 3 && wrong.length === 0,
+      `tag selected ${st} (owner decision 2026-09-29): the tint holds (${TAG_REST.selected.fill}) and the 2px outline steps to ${edge}, on all 3 sizes${wrong.length ? ` — wrong: ${wrong.map((m) => `${m.name} (fill ${m.plan.root.paints?.fills}, edge ${m.plan.root.paints?.strokes} at ${m.plan.root.bound?.strokeWeight})`).join(' | ')}` : ''}`);
+  }
+  // THE SELECTED TAG'S WIDTH — AN OWNER DECISION (2026-09-29: "let it widen"). The label keeps its width and
+  // the check mark adds a cell; the unselected tag does not reserve it. An independent model of Figma's
   // hugging row over the PLAN — the flow children only (a hidden or absolutely placed node takes no cell), plus
   // the padding, one gap between cells and the root's bound minWidth; the strokes are drawn inside and take no
   // width — with each variable's px read from the brand's built tree and a label of a fixed 30px. EXPECTED is a
   // literal: the check mark is a 24px glyph plus an 8px gap, 32px at medium in every corpus brand, and with the
-  // `check mark` switch off the two members are one width. If the owner chooses to reserve the check's width,
-  // the first half flips here, deliberately.
+  // `Check icon` switch off the two members are one width. A change that reserves the check's width reverses
+  // the owner's decision, and fails here by name.
   {
     const LABEL_W = 30;
     const CHECK_PLUS_GAP_MD = 32;
@@ -5118,7 +5126,7 @@ for (const b of brands) {
       const sel = widthOf(selRoot);
       const selOff = widthOf(hideCheck(selRoot));
       ok(sel - un === CHECK_PLUS_GAP_MD && selOff === un,
-        `tag selected width (${b}, medium): with the check mark on, a selected tag is ${CHECK_PLUS_GAP_MD}px wider than its unselected twin (a 24px glyph and an 8px gap), and with it off the two are one width (unselected ${un}, selected ${sel}, check off ${selOff})`);
+        `tag selected width (${b}, medium): owner decision 2026-09-29, the check widens the tag — with the check mark on, a selected tag is ${CHECK_PLUS_GAP_MD}px wider than its unselected twin (a 24px glyph and an 8px gap), and with it off the two are one width (unselected ${un}, selected ${sel}, check off ${selOff})`);
     }
   }
   // THE TINT THE OWNER NAMED, where it exists: on a solid-tint brand the lever repoints the wash to exactly
@@ -12528,7 +12536,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       '#1331 a boolean on a STATE-gated part is refused BY NAME — a boolean composes with a variant presence gate only');
     //       And a VARIANT gate that lands only on coordinates `excludeCoordinates` removes is refused: Tag's check
     //       mark gated to `type=dismissible, selection=selected`, the one pair the set excludes, would declare a
-    //       `check mark` switch on the set wired to a node on no member. Tag as shipped validates clean.
+    //       `Check icon` switch on the set wired to a node on no member. Tag as shipped validates clean.
     const tagForGate = componentDefs.find((d) => d.id === 'tag')!;
     const tagParts = tagForGate.anatomy!.parts;
     const checkOnExcluded = { ...tagForGate, anatomy: { ...tagForGate.anatomy!, parts: { ...tagParts, check: { ...tagParts.check, presentWhen: { type: ['dismissible'], selection: ['selected'] } } } } };

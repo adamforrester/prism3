@@ -259,7 +259,7 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   'tag.check': {
     glyph: 'check',
     at: { selection: ['selected'] },
-    why: "the selected indicator AFTER a select tag's label (owner, 2026-09-28: trailing, and switchable by the `check mark` boolean) — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the tint alone. Present only at `selection=selected` (`presentWhen`), which only a select tag reaches — `dismissible × selected` is excluded; there is no glyph for `unselected`",
+    why: "the selected indicator AFTER a select tag's label (owner, 2026-09-28: trailing, and switchable by the `Check icon` boolean) — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the tint alone. Present only at `selection=selected` (`presentWhen`), which only a select tag reaches — `dismissible × selected` is excluded; there is no glyph for `unselected`",
   },
   // TAG'S × (owner, 2026-09-28) — a plain glyph in the dismissible tag's square trailing slot, replacing the
   // nested IconButton.Neutral that showed the file's placeholder icon (a nest cannot set the nested swap).
