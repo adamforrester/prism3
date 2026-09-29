@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimen
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
@@ -1260,9 +1260,9 @@ for (const b of brands) {
       ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
       ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
       // WENDYS EARNS ITS PLACE rather than padding the list: it is the brand that does NOT land on the
-      // same indices as the others (500 / 350 against 550 / 400), so it is the one that would expose a
-      // rule quietly relying on "every brand lands at the same step". Its boundary neighbours measure
-      // 3.95 and 4.06 — both under the floor — so the most-vivid arm is exercised on a brand where the
+      // same indices as the others (600 / 300 against 650 / 350 since #1626 re-picked against every state
+      // fill; 500 / 350 against 550 / 400 before), so it is the one that would expose a rule quietly relying
+      // on "every brand lands at the same step" — the most-vivid arm is exercised on a brand where the
       // answer differs, not just confirmed three more times on brands that agree.
       ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
     ];
@@ -1317,8 +1317,15 @@ for (const b of brands) {
           // one step toward the fill = lighter on a light fill, darker on a dark one
           const toward = [...ramp].sort((a: any, b: any) => (fillIsLight ? a.num - b.num : b.num - a.num))
             .filter((st: any) => (fillIsLight ? st.num < chosen?.num : st.num > chosen?.num)).pop();
-          if (chosen && toward && contrast(toward.rgb, rgb255(fill)) >= FLOOR)
-            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears (${contrast(toward.rgb, rgb255(fill)).toFixed(2)}:1)`);
+          // #1626 (owner, 2026-09-29): the ink must clear EVERY state fill of the inverse button, rest through
+          // selected, so "most vivid that passes" means the neighbour toward the fill must fail on at least
+          // ONE of the five. Read off the emitted tree, not the producer: a rest-only neighbour check here
+          // would call the new, deeper pick "too far" and pass a revert to the rest-only rule.
+          const stateFills = ['rest', 'hover', 'pressed', 'focused', 'selected']
+            .map((st) => hexAt(tree, `color.inverse.interactive.primary.fill.${st}`, mode)).filter((h): h is string => !!h);
+          const worst = (rgb: any) => Math.min(...stateFills.map((h) => contrast(rgb, rgb255(h))));
+          if (chosen && toward && stateFills.length === 5 && worst(toward.rgb) >= FLOOR)
+            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears every state (worst ${worst(toward.rgb).toFixed(2)}:1)`);
         }
       }
     }
@@ -1333,7 +1340,7 @@ for (const b of brands) {
       '#1244 …and hc-light / hc-dark keep their MAX-EXTREME ink rather than the brand step — HC exists for low-vision users, and a brand step there clears the 4.5 floor while dropping ~73% of the contrast, which a flat-floor arm cannot distinguish from the fix'
       + (hcWeak.length ? ` — WEAKENED: ${hcWeak.join('; ')}` : ''));
     ok(notVivid.length === 0,
-      '#1244 …and it is the MOST VIVID passing step, not merely a passing one — the step one closer to the fill must FAIL the floor, or the selector is being unnecessarily extreme'
+      '#1244 / #1626 …and it is the MOST VIVID step that clears every state fill, not merely a passing one — the step one closer to the fill must FAIL the floor on at least one state, or the selector is being unnecessarily extreme'
       + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));
   }
 
@@ -1569,11 +1576,13 @@ for (const b of brands) {
     // destructive, neutral, and a declared interactive palette (an nb variant carrying `accent`, so the
     // declared-palette category is represented, not assumed). Ratios recomputed from emitted hexes.
     //
-    // The PAGE ground is measured too, in every mode but `dark`: there the page fill steps LIGHTER under an
-    // already-neutral near-white label (primary and destructive, lever ON or OFF, down to ~2.4:1). The lever's
-    // mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the page ink already IS
-    // the neutral extreme; fixing it means re-picking the ink per state or re-stepping the fill, a design call
-    // held in #1626. Excluding that one mode is named here and asserted as represented below, not silent.
+    // The PAGE ground is measured too, in every mode but `dark`: there the page HOVER / PRESSED fills step
+    // LIGHTER under an already-neutral near-white label (primary and destructive, lever ON or OFF, down to
+    // ~2.4:1). The lever's mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the
+    // page ink already IS the neutral extreme. #1626 (owner, 2026-09-29) settled the persistent states by
+    // putting focused / selected on the rest step, and kept hover / pressed exempt; the `(4c) #1626` arm holds
+    // every page focused/selected pair in `dark` too. Excluding that one mode here is named and asserted as
+    // represented below, not silent.
     const strictDips: string[] = [];
     const strictSeen = new Set<string>();
     let strictCells = 0;
@@ -7041,7 +7050,20 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!isWhite(p(D, 'inverse.background.primary')), 'dark inverse surface is near-white, not pure white');
   ok(isWhite(p(L, 'background.primary')), 'light base page stays pure white (the one allowed pure extreme)');
   // on-fill softening: dark interactive on-fill is near-black (950), light keeps pure white; HC keeps pure
-  ok(!isBlack(p(D, 'interactive.primary.on-fill')), 'dark interactive on-fill is softened (near-black, not pure)');
+  // #1773 (owner, 2026-09-29): the page fill now also clears 3:1 against `background.tertiary`, which moves this
+  // brand's dark primary fill one step lighter. There neither softened ink (neutral 025 / 950) clears 4.5:1, so
+  // `onColor` escalates to a pure extreme — its documented fallback, the one place pure black is allowed (and
+  // on a near-tie in a dark-family mode, white, by the owner's #1773 rule). The pin is therefore "softened
+  // UNLESS neither softened ink clears", recomputed from the emitted hexes here.
+  {
+    const dInk = p(D, 'interactive.primary.on-fill');
+    const hx = (k: string) => D[k].hex as string;
+    const nSteps = (th as any).palettes.find((q: any) => q.palette === (th as any).roleToPalette.neutral).steps as Array<{ key: string; rgb: any }>;
+    const nSoft = ['025', '950'].map((st) => { const x = nSteps.find((q) => q.key === st); return x ? hex(x.rgb) : undefined; });
+    const softClears = nSoft.some((h) => h && contrast(hexToRgb(h), hexToRgb(hx('interactive.primary.fill.rest'))) >= 4.5);
+    ok(!isBlack(dInk) || (!softClears && contrast(hexToRgb(hx('interactive.primary.on-fill')), hexToRgb(hx('interactive.primary.fill.rest'))) >= 4.5),
+      `dark interactive on-fill is softened (near-black, not pure) unless neither softened ink clears 4.5:1 on the fill (ink ${dInk}, softened clears: ${softClears})`);
+  }
   ok(isWhite(p(L, 'interactive.primary.on-fill')), 'light interactive on-fill stays pure white (user preference)');
   ok(isWhite(p(HCD, 'interactive.primary.on-fill')) || isBlack(p(HCD, 'interactive.primary.on-fill')), 'HC keeps pure extremes for on-fill (max contrast)');
   ok(isBlack(p(HCL, 'inverse.background.primary')), 'HC inverse stays a pure extreme (max contrast)');
@@ -8958,7 +8980,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // Two groups, both consequences of the relaxed fills rather than independent decisions:
 //   1. `foreground/*` — the relaxed bold fills themselves.
 //   2. `text|icon/on-*` (dark) — the fill moved toward its anchor and got DARKER, so the winning ink
-//      side FLIPS from NB's dark 950 to a light 025 (or to black, now permitted on a fill).
+//      side FLIPS from NB's dark 950 to a light 025 (or to a pure extreme, now permitted on a fill).
+//      `on-info` is pure WHITE since the owner's dark-family tie rule reached the status inks (#1773,
+//      2026-09-29): on NB's info.500 `#317bb2` black led white by 0.048:1 (4.607 vs 4.559), inside the tie.
 //
 // `border/focus` USED TO BE A THIRD GROUP and is no longer, which is the useful direction to record it
 // in: through 0.67.0 the ring derived from `actionRest` and so diverged from NB in DARK (engine red/550
@@ -9003,12 +9027,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'dark', name: 'color/text/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/text/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/text/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
-  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/white' },
   { mode: 'dark', name: 'color/icon/on-brand', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
-  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/white' },
   // FIFTH group (#570): muted semantic ink in HC-LIGHT only. NB authored muted at a FIXED rung, so
   // its hc-light values are byte-identical to its light ones — the high-contrast mode did nothing for
   // the one ink family named for being low-emphasis (measured 3.85 in both, against a 4.5 HC bar).
@@ -9053,6 +9077,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-dark', name: 'color/text/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
   { mode: 'hc-dark', name: 'color/icon/link/hover', nb: 'palette/red/250', engine: 'palette/red/200' },
   { mode: 'hc-dark', name: 'color/icon/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
+  // SEVENTH group (#1782): the three FIELD STATUS borders. NB authored `border.danger|warning|success` at 500
+  // (hc-dark success at 450) against the page alone. A text field / textarea / select with a status draws that
+  // border over `background.secondary` and over its own hover wash too, and the engine now also gates those
+  // three roles on those grounds (`alsoClear` in modes.ts), compositing the wash at the alpha NB SHIPS —
+  // `rgba(0, 0, 0, 0.1)` / Figma `a: 0.1`, not the hex dialect's 26/255. Each row is here for ONE of three
+  // reasons, stated per row because they are not the same claim, and ratios are the authored step's worst
+  // ground (the wash composited over `background.secondary`) at alpha 0.1:
+  //   WCAG — the authored step misses SC 1.4.11's 3:1 on that ground: a real non-text contrast miss, the same
+  //          owner stance as groups 1 and 4.
+  //   HC   — the authored step CLEARS 3:1 but misses the high-contrast modes' own 4.5:1 non-text floor on the
+  //          extra grounds. That floor is an OWNER DECISION (2026-09-29, #1782 decision 1), not a WCAG miss.
+  //   FOCUS — the step the contrast rule alone would pick is `border.focus`'s step, so the engine moves one
+  //          further (#1782 decision 2: an errored field must not share its edge color with a focused one).
+  // `border.brand` and `border.info` are not field statuses and are ABSENT here — still byte-checked against
+  // NB, which is the check that the move is scoped. So is nb DARK WARNING: amber.500 measures 3.02:1 at the
+  // shipped 0.1 (2.999 only at the hex dialect's 0.102), so it stays NB's authored step.
+  { mode: 'light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/550' },     // WCAG: 500 at 2.96:1
+  { mode: 'dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/400' },           // WCAG: 500 at 2.96:1; FOCUS: 450 is border.focus in nb dark
+  { mode: 'dark', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/450' },      // WCAG: 500 at 2.78:1
+  { mode: 'hc-light', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/600' },       // HC: 500 at 3.66:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/600' },  // HC: 500 at 3.59:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/550' },  // HC: 500 at 3.90:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },        // HC: 500 at 3.82:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },   // HC: 500 at 3.89:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },   // HC: 450 at 4.26:1 (clears 3:1)
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -13247,6 +13296,183 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
 
+  // ---- #1782: A STATUS FIELD'S BORDER CLEARS 3:1 (SC 1.4.11) ON THE PAGE AND ON ITS OWN HOVER WASH ----
+  // At `state=hover` a field control fills with the translucent `interactive.neutral.overlay.hover` wash, and a
+  // non-default status keeps its status border (`border.danger` / `.warning` / `.success`). The border is then
+  // drawn between two grounds: the page OUTSIDE the control and the wash composited over that page INSIDE it.
+  // Contracted against `background.primary` alone, the status borders measured 2.64–3.00:1 on the inside
+  // (132 members, 44 brand × mode × stroke × ground cells, found by #1772's extension of the #1710 sweep).
+  //
+  // STANDALONE on purpose: #1772's #1710 sweep holds this coordinate out with a pointer to #1782, and whichever
+  // of the two lands second deletes that exclusion. This block does not depend on it.
+  //
+  // WHAT THE TWO SIDES ARE, per docs/34 question 1.
+  //   SUBJECT — the paint the PROJECTED member carries: `figmaAnatomySet` walked for every hover member with a
+  //     non-default status, each visible stroked node contributing its own stroke + fill (shape 1's #536 fix —
+  //     read the plan, not `def.tokens`). The defs are PINNED by name and every def × status must be
+  //     represented, so a def or a status that drops out of the projection fails instead of shrinking the sweep.
+  //   ORACLE — contrast RECOMPUTED from resolved hexes against two page grounds written here as literals, with
+  //     the wash composited at its EMITTED alpha (the primitive's `$value`, not the role's recorded `ratio`,
+  //     `against` or `min` — the roles declare `against: background.primary` only, which is the defect). The
+  //     floor is the literal 3 of SC 1.4.11, not the mode's `nonTextMin`. Never imports the engine's
+  //     `FIELD_STATUS_BORDERS` / `alsoClear` grounds — dropping a ground there must fail HERE, by name.
+  //   SHARED, AND ACCEPTED: `contrast` and `composite` are imported from color.ts, the same two functions the
+  //     engine picks with. That is the repo's standing pattern for contrast gates (the WCAG formula and
+  //     source-over compositing are the definition being measured, not a derivation of the subject), so it is
+  //     left as is. What is NOT shared is everything that decides the answer: the grounds, the floors, the
+  //     wash alpha (parsed from the emitted `$value`, never `emittedAlpha`) and the focus value compared below.
+  //
+  // THREE MORE ARMS, from the owner's decisions of 2026-09-29:
+  //   HC — hc-light / hc-dark hold these borders to 4.5:1, not 3:1, on the same four grounds (decision 1: the
+  //     high-contrast modes keep their own non-text floor on the extra grounds). The 3:1 arm cannot see this:
+  //     the HC 500s measure 3.6–3.9:1 on the wash, above 3, so dropping the extra grounds in HC alone left it
+  //     silent. The floor is the literal 4.5, not `nonTextMin`.
+  //   STATUS ≠ FOCUS — no status border resolves to `border.focus`'s value (decision 2: an errored field and a
+  //     focused field must not share an edge color), in every brand × mode here AND in a wireframe variant of
+  //     each, where every chromatic role collapses onto the neutral ramp the focus ring also lands on.
+  {
+    // The NB master theme's brand input, COPIED as literal values (the owner's file, 2026-09-28; identical to
+    // the switch block's `NB_MASTER`), so this check does not move when that file does. It opts out of the
+    // overlay wash (`outlineInteraction: solid-tint`), so its hover members measure on the bare ground.
+    const NB_MASTER_1782: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+    const SH_CORPUS: Array<[string, Theme]> = [
+      ...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+      ['prism3', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input)],
+      ['nb-master', brandTheme(NB_MASTER_1782)],
+    ];
+    const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+    const SH_GROUNDS = ['background.primary', 'background.secondary'];
+    const SH_DEFS = ['text-field', 'textarea', 'select'];
+    const SH_STATUSES = ['error', 'warning', 'success'];
+    const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
+    type ShPaint = { def: string; status: string; coord: string; stroke: string; fill?: string };
+    const shPaints: ShPaint[] = [];
+    for (const id of SH_DEFS) {
+      const d = componentDefs.find((c) => c.id === id);
+      if (!d) continue;                                           // reported by the representation arm below
+      for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+        if (plan.coord.state !== 'hover' || plan.coord.status === undefined || plan.coord.status === 'default') continue;
+        const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
+        const walk = (n: any): void => {
+          if (n.visible !== false && typeof n.paints?.strokes === 'string')
+            shPaints.push({ def: id, status: String(plan.coord.status), coord, stroke: roleOfVar(n.paints.strokes), fill: typeof n.paints.fills === 'string' ? roleOfVar(n.paints.fills) : undefined });
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+      }
+    }
+    const shMissing = SH_DEFS.flatMap((id) => SH_STATUSES.filter((s) => !shPaints.some((p) => p.def === id && p.status === s)).map((s) => `${id}[status=${s}]`));
+    ok(shMissing.length === 0,
+      `a11y(#1782): every pinned field def (text-field, textarea, select) × non-default status (error, warning, success) projects a stroked hover member` + (shMissing.length ? ` — missing: ${shMissing.join(', ')}` : ''));
+
+    const shFails: string[] = [], shHcFails: string[] = [];
+    const shModesSeen = new Set<string>();
+    let shCells = 0, shCellsExpected = 0, shWashed = 0, shWashOptOut = 0, shHcCells = 0, shHcWashed = 0;
+    for (const [brand, th] of SH_CORPUS) {
+      const built = buildTree(th).tree as any;
+      const alphaOf = (path: string): number | undefined => {
+        const v = at(built, path)?.$value;
+        return typeof v === 'string' && !v.startsWith('{') ? parseColor(v).a : undefined;
+      };
+      const modes = resolveAllModes(th);
+      shCellsExpected += modes.length * shPaints.length * SH_GROUNDS.length;
+      for (const m of modes) {
+        shModesSeen.add(m.mode);
+        const brandHasWash = Object.keys(m.roles).some((k) => /^interactive\.[a-z0-9-]+\.overlay\./.test(k));
+        for (const p of shPaints) {
+          const tag = `${brand}/${m.mode} ${p.def}[${p.coord}]`;
+          const b = m.roles[p.stroke];
+          if (!b?.hex) { shFails.push(`${tag} stroke ${p.stroke} unresolved`); continue; }
+          let f = p.fill ? m.roles[p.fill] : undefined;
+          // The one absent fill that is not a failure: a hover WASH in a brand that opts out of overlay tokens
+          // (`outlineInteraction` none / solid-tint). Counted; any other absent fill fails (docs/34 question 3).
+          if (p.fill && !f && /^interactive\.[a-z0-9-]+\.overlay\./.test(p.fill) && !brandHasWash) shWashOptOut++;
+          else if (p.fill && !f) { shFails.push(`${tag} fill ${p.fill} not emitted`); continue; }
+          const fa = f ? alphaOf(f.path) : 0;
+          if (f && (!f.hex || fa === undefined)) { shFails.push(`${tag} fill ${p.fill} alpha unresolved`); continue; }
+          if (f && (fa as number) > 0) shWashed++;
+          const isHc = m.mode === 'hc-light' || m.mode === 'hc-dark';
+          for (const g of SH_GROUNDS) {
+            const ground = m.roles[g];
+            if (!ground?.hex) { shFails.push(`${tag} ground ${g} unresolved`); continue; }
+            const gRgb = hexToRgb(ground.hex);
+            const inside = f ? composite(gRgb, hexToRgb(f.hex), fa as number) : gRgb;
+            const outer = contrast(hexToRgb(b.hex), gRgb), inner = contrast(hexToRgb(b.hex), inside);
+            shCells++;
+            if (outer < 3) shFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+            if (inner < 3) shFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            if (isHc) {
+              shHcCells++;
+              if (f && (fa as number) > 0) shHcWashed++;
+              if (outer < 4.5) shHcFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+              if (inner < 4.5) shHcFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            }
+          }
+        }
+      }
+    }
+    const shModesMissing = SH_MODES.filter((mm) => !shModesSeen.has(mm));
+    // `shWashed > 0` is the arm that keeps the inside comparison from degenerating into the outside one: if no
+    // measured member composited a real wash, the gate would be measuring the page twice and calling it both.
+    ok(shModesMissing.length === 0 && shCells > 0 && shCells === shCellsExpected && shWashed > 0,
+      `a11y(#1782): the status-hover sweep measured every corpus brand × mode × stroked member × ground (${shCells} of ${shCellsExpected} cells; ${shWashed} member-modes composited a hover wash, ${shWashOptOut} with none because the brand opts out of overlay tokens)` + (shModesMissing.length ? ` — modes missing: ${shModesMissing.join(', ')}` : ''));
+    const shGrouped = new Map<string, string[]>();
+    for (const f of shFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shGrouped.set(key, [...(shGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shFails.length === 0,
+      `a11y(#1782): every status field border (danger / warning / success) clears 3:1 (SC 1.4.11) at hover against the page outside the control AND the hover wash composited over it inside, every corpus brand × mode — ${shFails.length} members below, in ${shGrouped.size} cells: ` + [...shGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shGrouped.size > 12 ? '; …' : ''));
+
+    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and at least one HC
+    // member must have composited a real wash — otherwise "inside" would be the page again and the arm would
+    // pass on the outside measurement alone.
+    const shHcGrouped = new Map<string, string[]>();
+    for (const f of shHcFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shHcGrouped.set(key, [...(shHcGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed > 0,
+      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
+    ok(shHcFails.length === 0,
+      `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
+
+    // STATUS ≠ FOCUS ARM (decision 2). The comparison is the resolved hex of each status border against the
+    // resolved hex of `border.focus` in the SAME mode — never the engine's `avoid` list. Wireframe variants are
+    // added because that is the mode where every status and the focus ring share one (neutral) ramp.
+    const SF_STATUSES = ['danger', 'warning', 'success'];
+    const sfCollide: string[] = [];
+    const sfModesSeen = new Set<string>();
+    let sfPairs = 0, sfSharedRamp = 0, sfModes = 0;
+    const sfBrands: Array<[string, Theme]> = [
+      ...SH_CORPUS,
+      ...SH_CORPUS.map(([id, th]) => [`${id}+wireframe`, { ...th, modes: [...th.modes.filter((mm) => mm !== 'wireframe'), 'wireframe'] }] as [string, Theme]),
+    ];
+    for (const [brand, th] of sfBrands) {
+      for (const m of resolveAllModes(th)) {
+        sfModesSeen.add(m.mode);
+        sfModes++;
+        const focus = m.roles['border.focus'];
+        if (!focus?.hex) { sfCollide.push(`${brand}/${m.mode} border.focus unresolved`); continue; }
+        for (const st of SF_STATUSES) {
+          const b = m.roles[`border.${st}`];
+          if (!b?.hex) { sfCollide.push(`${brand}/${m.mode} border.${st} unresolved`); continue; }
+          sfPairs++;
+          // Counted so the arm can show it walked pairs that COULD collide: same palette, different step.
+          if (b.path.split('.').slice(0, -1).join('.') === focus.path.split('.').slice(0, -1).join('.')) sfSharedRamp++;
+          if (b.hex.toLowerCase() === focus.hex.toLowerCase())
+            sfCollide.push(`${brand}/${m.mode} border.${st} = border.focus (${b.path.split('.').slice(-2).join('.')} ${b.hex})`);
+        }
+      }
+    }
+    ok(sfModes > 0 && sfPairs === sfModes * SF_STATUSES.length && ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'].every((mm) => sfModesSeen.has(mm)) && sfSharedRamp > 0,
+      `a11y(#1782) status ≠ focus: compared every status border with border.focus in every brand × mode, wireframe included (${sfPairs} pairs, ${sfSharedRamp} on the focus ring's own ramp)`);
+    ok(sfCollide.length === 0,
+      `a11y(#1782) status ≠ focus: no status field border (danger / warning / success) resolves to border.focus's color (owner decision, 2026-09-29: an errored field and a focused field must not share an edge color), every corpus brand × mode + prism3 + the NB master, and each in wireframe — ${sfCollide.length} collisions: ${sfCollide.slice(0, 12).join('; ')}${sfCollide.length > 12 ? '; …' : ''}`);
+  }
+
   // ---- #1710: THE READ-ONLY FIELD BOUNDARY CLEARS 3:1 (SC 1.4.11) ON ITS FILL AND ITS PAGE GROUND ----
   // A read-only field is still a control — focusable, in the tab order, submitted — so its boundary is the
   // visual information a user needs to identify it, and SC 1.4.11 asks 3:1 of it. The rest/hover border
@@ -13296,12 +13522,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // border holding a value. `focus-visible` and `disabled` are NOT swept: the focus border is gated against
     // the page by its own contract, and disabled is contrast-exempt — the defs' prose claims neither here.
     const RO_SWEPT = ['read-only', 'rest', 'hover', 'filled'];
-    // ONE COORDINATE IS HELD OUT, and counted: a non-default STATUS at `hover`. There the control's fill is
-    // the translucent hover wash, and the status borders (contracted at 3:1 against the page alone) measure
-    // 2.64–3.00:1 against the washed ground inside the control — a pre-existing defect outside #1710, filed
-    // as #1782. Remove this exclusion when #1782 closes. Every other status is swept at every other state.
-    const roHeldOut = (coord: Record<string, unknown>): boolean => coord.state === 'hover' && coord.status !== undefined && coord.status !== 'default';
-    let roHeldOutCount = 0;
+    // Every status is swept at every swept state. The status × hover coordinate was held out here until #1782
+    // (PR #1783) made the status borders clear the hover wash; its own gate is `a11y(#1782)`, and this sweep now
+    // covers the coordinate too.
     const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
     type RoPaint = { def: string; state: string; coord: string; stroke: string; fill?: string };
     const roPaints: RoPaint[] = [];
@@ -13315,7 +13538,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       if (RO_PINNED.includes(d.id))
         for (const st of RO_SWEPT) if (!axis.includes(st)) roUnframed.push(`${d.id}: no projected ${st} member`);
       for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).filter((p) => RO_SWEPT.includes(String(p.coord.state)))) {
-        if (roHeldOut(plan.coord)) { roHeldOutCount++; continue; }
         const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
         let stroked = 0;
         const walk = (n: any): void => {
@@ -13383,7 +13605,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
     for (const want of RO_MODES) if (!roModesSeen.has(want)) roModesMissing.push(`no brand resolved ${want}`);
     ok(roModesMissing.length === 0 && roCells > 0 && roCells === roCellsExpected,
-      `a11y(#1710): the field boundary sweep measured every corpus brand × mode × stroked member × ground (${roCells} of ${roCellsExpected} cells; ${roWashOptOut} member-modes with no hover wash because the brand opts out of overlay tokens, measured on the bare ground; ${roHeldOutCount} status × hover members held out for #1782)` + (roModesMissing.length ? ` — modes missing: ${roModesMissing.join(', ')}` : ''));
+      `a11y(#1710): the field boundary sweep measured every corpus brand × mode × stroked member × ground (${roCells} of ${roCellsExpected} cells; ${roWashOptOut} member-modes with no hover wash because the brand opts out of overlay tokens, measured on the bare ground)` + (roModesMissing.length ? ` — modes missing: ${roModesMissing.join(', ')}` : ''));
     // One line per brand × mode × stroke × ground, naming the defs and coordinates under it, so a failure
     // reads as the cells a reviewer would measure rather than as dozens of near-identical rows.
     const roGroup = (fails: string[]): string => {
@@ -23240,16 +23462,18 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   const prism3 = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input);
 
   // (1) THE OWNER'S DEFECT, as literals. NB master light: the off track is the light #DCDBDB, the on track
-  // the brand-neutral #34383D, and they sit 8.54:1 apart. prism3 light is the control: #DBDBDC / #0B008C,
-  // 10.90:1. Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
+  // the brand-neutral #0B0E10, and they sit 14.01:1 apart. prism3 light is the control: #DBDBDC / #1E1EFF,
+  // 5.65:1. (Before #1626 the on track was `fill.selected`'s own walked step — #34383D at 8.54:1 and
+  // #0B008C at 10.90:1; since 2026-09-29 `fill.selected` takes the rest step, so the on track is the brand's
+  // rest fill.) Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
   // #2D2C2C, 1.18:1 from the on track, and fails the first arm by name.
   const mOff = hexAt(master, 'light', 'off.fill'), mOn = hexAt(master, 'light', 'on.fill');
-  ok(mOff === '#dcdbdb' && mOn === '#34383d' && mOff !== mOn,
-    `#1354 NB master light: the off track is the light #dcdbdb and the on track #34383d — two different tracks (off=${mOff}, on=${mOn})`);
-  ok(ratio(mOff, mOn) === 8.54, `#1354 NB master light: off track vs on track is 8.54:1 (got ${ratio(mOff, mOn)}:1)`);
+  ok(mOff === '#dcdbdb' && mOn === '#0b0e10' && mOff !== mOn,
+    `#1354 NB master light: the off track is the light #dcdbdb and the on track #0b0e10 — two different tracks (off=${mOff}, on=${mOn})`);
+  ok(ratio(mOff, mOn) === 14.01, `#1354 NB master light: off track vs on track is 14.01:1 (got ${ratio(mOff, mOn)}:1)`);
   const pOff = hexAt(prism3, 'light', 'off.fill'), pOn = hexAt(prism3, 'light', 'on.fill');
-  ok(pOff === '#dbdbdc' && pOn === '#0b008c' && ratio(pOff, pOn) === 10.9,
-    `#1354 prism3 light: off track #dbdbdc vs on track #0b008c at 10.90:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
+  ok(pOff === '#dbdbdc' && pOn === '#1e1eff' && ratio(pOff, pOn) === 5.65,
+    `#1354 prism3 light: off track #dbdbdc vs on track #1e1eff at 5.65:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
 
   // (2) THE LEVER DOES NOT REACH THE OFF TRACK. The same brand at `neutralEmphasis` subtle and strong
   // resolves the off track, its border and its thumb to the SAME hexes — while the neutral BUTTON fill
@@ -23276,12 +23500,13 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     `#1354 prism3 light: off thumb #0d0d0e on the off track at 14.04:1 (got ${hexAt(prism3, 'light', 'off.indicator')}, ${ratio(hexAt(prism3, 'light', 'off.indicator'), pOff)}:1)`);
 
   // (4) THE CONTRAST CONTRACTS, every mode of every corpus brand + prism3 + the NB master, recomputed from
-  // resolved hexes. The on-thumb pair is held in every mode but `dark`, where `on-fill` (gated against
-  // `fill.rest`) measures 2.32–2.62:1 on `fill.selected` — the on arm is unchanged by owner decision and
-  // the gap is filed as #1763. The exemption is PINNED, not silent: exactly 10 dark rows fall under 3:1
-  // (every corpus brand's dark mode but aurora's, plus prism3's), and aurora dark holds at 8.59:1.
+  // resolved hexes. The on-thumb pair is held in EVERY mode, `dark` included. Until #1626/#1763 (owner,
+  // 2026-09-29) `dark` was exempt: `on.fill` (`primary.fill.selected`) walked a lighter step than rest and the
+  // light `on-fill` measured 2.32–2.62:1 on it, pinned here as `darkOnGap === 10`. `fill.selected` now takes
+  // the rest step, so the exemption is gone and the dark pair is asserted as LITERALS below — for the switch's
+  // on thumb and, through its own def, the checkbox's checked mark (the same role pair, bound independently).
   const misses: string[] = [];
-  let rows = 0, darkOnGap = 0, auroraDarkOn = 0;
+  let rows = 0;
   for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
     for (const m of resolveAllModes(theme)) {
       rows++;
@@ -23292,18 +23517,152 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       need('off thumb vs off track', ratio(h('off.indicator'), h('off.fill')));
       need('off glyph vs off thumb', ratio(h('off.icon'), h('off.indicator')));
       need('on track vs page', ratio(h('on.fill'), page));
-      if (m.mode === 'dark') {
-        if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++;
-        if (id.startsWith('aurora')) auroraDarkOn = ratio(h('on.indicator'), h('on.fill'));
-      }
-      else { need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill'))); need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator'))); }
+      need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill')));
+      need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator')));
     }
   ok(rows >= 40 && misses.length === 0,
-    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`) — misses: ${misses.join('; ') || 'none'}`);
-  ok(darkOnGap === 10,
-    `#1763 the dark-mode on-thumb exemption covers exactly 10 rows under 3:1 — every corpus brand's dark mode but aurora's, plus prism3's (got ${darkOnGap}); a new row under 3:1 is a regression, one fewer means #1763 moved`);
-  ok(auroraDarkOn === 8.59,
-    `#1763 aurora dark keeps its on thumb at 8.59:1 against the on track — the one dark mode outside the exemption (got ${auroraDarkOn}:1)`);
+    `#1354 / #1763 switch contrast: off border, off thumb, off glyph, on track, on thumb and on glyph clear 3:1 in all ${rows} brand×mode rows, dark included — misses: ${misses.join('; ') || 'none'}`);
+  // THE DARK LITERALS (#1763). Measured 2026-09-29 once the fix landed; before it these read 2.32–2.62:1
+  // everywhere but aurora. One row per corpus palette (the six minimal fixtures share one) plus prism3; the
+  // NB master theme ships light only. Switch: on thumb vs on track. Checkbox: checked mark vs checked box,
+  // read through `checkbox-control`'s own bindings. Re-measured after the tertiary gate (#1773): nb, harbor,
+  // wendys and prism3 moved their dark rest fill one step lighter, and the label escalated to a pure extreme.
+  // Aurora dark then moved 4.60 → 4.56 with the owner's dark-family tie rule (black 4.601 → white 4.565).
+  const DARK_ON: Record<string, number> = { nb: 4.58, aurora: 4.56, harbor: 4.58, wendys: 4.8, minimal: 4.63, prism3: 4.58 };
+  const cbRole = (key: string) => (checkboxControl.tokens[key] ?? '').replace(/^color\./, '');
+  const darkWrong: string[] = [];
+  let darkSeen = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }]) {
+    const short = id.split(' ')[0];
+    if (!(short in DARK_ON)) continue;
+    const dm = resolveAllModes(theme).find((m) => m.mode === 'dark');
+    if (!dm) { darkWrong.push(`${short}: no dark mode`); continue; }
+    darkSeen++;
+    const sw = ratio(dm.roles[role('on.indicator')].hex, dm.roles[role('on.fill')].hex);
+    const cb = ratio(dm.roles[cbRole('checked.icon')]?.hex ?? '#808080', dm.roles[cbRole('checked.fill')]?.hex ?? '#808080');
+    if (sw !== DARK_ON[short]) darkWrong.push(`${short} switch on thumb ${sw}:1 (want ${DARK_ON[short]})`);
+    if (cb !== DARK_ON[short]) darkWrong.push(`${short} checkbox checked mark ${cb}:1 (want ${DARK_ON[short]})`);
+  }
+  ok(darkSeen === 6 && darkWrong.length === 0,
+    `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals (nb 4.58, aurora 4.56, harbor 4.58, wendys 4.80, minimal 4.63, prism3 4.58:1) — seen ${darkSeen}; wrong: ${darkWrong.join('; ') || 'none'}`);
+
+  // THE DARK-FAMILY TIE RULE (#1773, owner, 2026-09-29): when pure white and pure black both clear 4.5:1 on a
+  // fill and sit within 0.05:1 of each other, a dark-family mode takes WHITE; otherwise the higher ratio wins,
+  // and light modes are unchanged. (a) prism3 dark's primary label is white at 4.58:1 on `#3d68fc`, where black
+  // measures 4.584 against white's 4.581 — removing the rule paints it black and fails here by name. (b) The same
+  // near-tie fill in a LIGHT-family mode still takes the higher ratio, black. (c) A fill where white is under
+  // 4.5:1 (`#7398f8`, white 2.83) still takes black in a dark-family mode — the rule never trades legibility.
+  {
+    const pDark = resolveAllModes(prism3).find((m) => m.mode === 'dark')!;
+    const pInk = pDark.roles['interactive.primary.on-fill'], pFill = pDark.roles['interactive.primary.fill.rest'];
+    ok(pInk.hex === '#ffffff' && pFill.hex === '#3d68fc' && ratio(pInk.hex, pFill.hex) === 4.58,
+      `#1773 tie rule: prism3 dark's primary label is white #ffffff at 4.58:1 on #3d68fc (got ${pInk.hex} on ${pFill.hex}, ${ratio(pInk.hex, pFill.hex)}:1)`);
+    const tieFill = hexToRgb('#3d68fc'), lightFill = hexToRgb('#7398f8');
+    ok(pureExtremeInk(tieFill, 'light', 4.5) === 'black',
+      `#1773 tie rule: a near-tie in a LIGHT-family mode still takes the higher ratio (black 4.584 over white 4.581 on #3d68fc; got ${pureExtremeInk(tieFill, 'light', 4.5)})`);
+    ok(ratio('#ffffff', '#7398f8') < 4.5 && pureExtremeInk(lightFill, 'dark', 4.5) === 'black',
+      `#1773 tie rule: where white is under 4.5:1 (#7398f8, white ${ratio('#ffffff', '#7398f8')}:1) a dark-family mode still takes black (got ${pureExtremeInk(lightFill, 'dark', 4.5)})`);
+
+    // (d) THE TIE IS 0.05:1, NOT WIDER (review of #1773). `#767676` in a dark-family mode: both extremes clear
+    // 4.5:1 (white 4.54, black 4.62) but black leads by 0.08, above `EXTREME_TIE`, so the higher ratio wins.
+    // Widening the tie to 0.2 paints it white and fails here by name.
+    const nearMiss = hexToRgb('#767676');
+    const nmW = contrast(hexToRgb('#ffffff'), nearMiss), nmB = contrast(hexToRgb('#000000'), nearMiss);
+    ok(nmW >= 4.5 && nmB >= 4.5 && nmB - nmW > 0.05 && nmB - nmW < 0.1 && pureExtremeInk(nearMiss, 'dark', 4.5) === 'black',
+      `#1773 tie rule: a dark-family near-miss outside the 0.05:1 tie still takes the higher ratio (#767676: white ${nmW.toFixed(3)}, black ${nmB.toFixed(3)}, gap ${(nmB - nmW).toFixed(3)}; got ${pureExtremeInk(nearMiss, 'dark', 4.5)})`);
+    // (e) THE BOTH-CLEAR GUARD. At the engine's 4.5:1 on-fill floor the guard cannot fire: two inks within
+    // 0.05:1 of each other sit at 4.558:1 or above (they meet at 4.583, the fill where white and black tie),
+    // so neither is under 4.5. It protects a RAISED floor, so the witness raises it: at 7:1 on `#3d68fc`
+    // neither extreme clears (white 4.581, black 4.584), and the rule must not trade the higher ratio for
+    // white. Dropping the guard paints it white and fails here by name.
+    ok(pureExtremeInk(tieFill, 'dark', 7) === 'black',
+      `#1773 tie rule: when an extreme misses the floor (7:1 on #3d68fc, white 4.581, black 4.584) a dark-family near-tie still takes the higher ratio (got ${pureExtremeInk(tieFill, 'dark', 7)})`);
+  }
+
+  // THE TIE RULE ON THE STATUS ON-COLORS (owner, 2026-09-29, extending #1773). `text.on-<status>` /
+  // `icon.on-<status>` on the solid status fill take white on a dark-family near-tie, like the interactive
+  // on-fill. One representative moved cell per corpus palette plus prism3, as LITERALS: the fill, white ink
+  // on it, and the ratio read off the resolved hexes (every one still clears 4.5:1). The rule off for the
+  // status caller paints each black and fails here by name. The full list of 42 moved cells is in the
+  // `docs/00-progress.md` entry.
+  {
+    const STATUS_TIE: Array<[string, string, string, number]> = [
+      ['nb', 'info', '#317bb2', 4.56], ['aurora', 'brand', '#7269ca', 4.58], ['harbor', 'danger', '#cd4840', 4.57],
+      ['wendys', 'info', '#317bb2', 4.56], ['minimal', 'danger', '#c94c44', 4.56], ['prism3', 'success', '#2e8554', 4.57],
+    ];
+    const byId = new Map<string, Theme>([...corpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]), ['prism3', prism3]]);
+    const statusWrong: string[] = [];
+    let statusSeen = 0;
+    for (const [id, status, fillHex, want] of STATUS_TIE) {
+      const dm = resolveAllModes(byId.get(id)!).find((m) => m.mode === 'dark')!;
+      const fill = dm.roles[`foreground.${status}`].hex;
+      for (const slot of ['text', 'icon']) {
+        statusSeen++;
+        const ink = dm.roles[`${slot}.on-${status}`].hex;
+        if (fill !== fillHex || ink !== '#ffffff' || ratio(ink, fill) !== want)
+          statusWrong.push(`${id} dark ${slot}.on-${status}: ${ink} on ${fill} ${ratio(ink, fill)}:1 (want #ffffff on ${fillHex} ${want}:1)`);
+      }
+    }
+    ok(statusSeen === 12 && statusWrong.length === 0,
+      `#1773 tie rule on the status on-colors: dark text.on-/icon.on- take white at the pinned literals (nb info 4.56, aurora brand 4.58, harbor danger 4.57, wendys info 4.56, minimal danger 4.56, prism3 success 4.57:1) — seen ${statusSeen}; wrong: ${statusWrong.join('; ') || 'none'}`);
+  }
+
+  // AN AUTHORED ANCHOR PIN THAT MISSES THE TERTIARY TIER IS REPORTED (review of #1773). A pin is `exact`
+  // (#331), so it skips the tertiary gate and ships as authored; the tier check reports its miss the way a
+  // missed override is reported: a `warnings` entry, here naming `background.tertiary` as its ground, and one
+  // failed mode check in `buildTree`'s stats. Literals: the minimal brand with `modeAnchors.dark.primary: 550`
+  // emits primary.550 `#3661b5` at 2.69:1 on tertiary (3.02:1 on the floor, which it clears). The same brand
+  // unpinned reports nothing. Removing the tier check fails here by name.
+  {
+    const pinned = brandTheme({ ...MINIMAL_BRAND, modeAnchors: { dark: { primary: 550 } } } as BrandInput);
+    const dm = resolveAllModes(pinned).find((m) => m.mode === 'dark')!;
+    const fill = dm.roles['interactive.primary.fill.rest'];
+    const tierWarn = (dm.warnings ?? []).filter((w) => w.role === 'interactive.primary.fill.rest' && w.against === 'background.tertiary');
+    const pinnedStats = buildTree(pinned).stats;
+    const plain = resolveAllModes(brandTheme(MINIMAL_BRAND));
+    const plainStats = buildTree(brandTheme(MINIMAL_BRAND)).stats;
+    ok(fill.hex === '#3661b5' && ratio(fill.hex, dm.roles['background.tertiary'].hex) === 2.69
+      && tierWarn.length === 1 && Number(tierWarn[0].ratio.toFixed(2)) === 2.69 && tierWarn[0].min === 3
+      && pinnedStats.modeChecks - pinnedStats.modePass === 1
+      && plain.every((m) => !(m.warnings ?? []).some((w) => w.against === 'background.tertiary')) && plainStats.modePass === plainStats.modeChecks,
+      `#1773 a pinned anchor that misses background.tertiary is reported: minimal dark primary pinned at 550 emits ${fill.hex} at ${ratio(fill.hex, dm.roles['background.tertiary'].hex)}:1 on tertiary, with ${tierWarn.length} tier warning(s) (${tierWarn.map((w) => `${w.ratio.toFixed(2)}:1 < ${w.min}`).join(', ') || 'none'}) and ${pinnedStats.modeChecks - pinnedStats.modePass} failed mode check(s); unpinned: ${plainStats.modePass}/${plainStats.modeChecks}`);
+  }
+
+  // THE SELECTED FILL ON EVERY PAGE TIER (#1773, owner, 2026-09-29). The radio's checked dot, the checkbox's
+  // checked box and the switch's on track each read `interactive.primary.fill.selected` (the rest step), and
+  // each must clear SC 1.4.11's 3:1 on `background.primary`, `.secondary` AND `.tertiary` in every mode — the
+  // tertiary arm is the owner's option 2 (before it, dark tertiary read 2.71–2.86:1 in nb, harbor, wendys and
+  // prism3). LITERALS per brand × mode, [P, S, T], read through EACH def's own binding, so a rebind of one of
+  // the three is measured on its own; removing the tertiary gate in `modes.ts` fails the T column by name.
+  const TIER: Record<string, [number, number, number]> = {
+    'nb light': [5.62, 4.62, 4.08], 'nb dark': [4.24, 3.92, 3.49], 'nb hc-light': [10.03, 10.03, 10.03], 'nb hc-dark': [8.77, 8.77, 8.77],
+    'aurora light': [4.56, 3.76, 3.3], 'aurora dark': [4.26, 3.92, 3.52], 'aurora hc-light': [10.03, 10.03, 10.03], 'aurora hc-dark': [8.59, 8.59, 8.59],
+    'harbor light': [5.59, 4.91, 4.32], 'harbor dark': [4.24, 3.91, 3.5], 'harbor hc-light': [9.96, 9.96, 9.96], 'harbor hc-dark': [8.72, 8.72, 8.72],
+    'wendys light': [5.88, 4.85, 4.25], 'wendys dark': [4.05, 3.73, 3.32], 'wendys hc-light': [9.77, 9.77, 9.77], 'wendys hc-dark': [9.19, 9.19, 9.19],
+    'minimal light': [4.97, 4.1, 3.59], 'minimal dark': [3.91, 3.61, 3.22], 'minimal hc-light': [8.65, 8.65, 8.65], 'minimal hc-dark': [8.44, 8.44, 8.44],
+    'prism3 light': [7.82, 6.44, 5.65], 'prism3 dark': [4.24, 3.91, 3.51], 'prism3 hc-light': [9.38, 9.38, 9.38], 'prism3 hc-dark': [8.88, 8.88, 8.88],
+    'NB master light': [19.36, 15.95, 14.01],
+  };
+  const tierWrong: string[] = [];
+  let tierCells = 0;
+  const tierBinds: Array<[string, ComponentDef, string]> = [['radio checked dot', radioControl, 'checked.indicator'], ['checkbox checked box', checkboxControl, 'checked.fill'], ['switch on track', switchControl, 'on.fill']];
+  for (const { id, theme } of [...corpus().filter((b) => ['nb', 'aurora', 'harbor', 'wendys', 'minimal'].includes(b.id.split(' ')[0])), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }]) {
+    const short = id === 'NB master' ? id : id.split(' ')[0];
+    for (const m of resolveAllModes(theme)) {
+      const want = TIER[`${short} ${m.mode}`];
+      if (!want) { tierWrong.push(`${short} ${m.mode}: no literal row`); continue; }
+      for (const [label, def, key] of tierBinds) {
+        const fillHex = m.roles[(def.tokens[key] ?? '').replace(/^color\./, '')]?.hex ?? '#808080';
+        (['primary', 'secondary', 'tertiary'] as const).forEach((tier, i) => {
+          tierCells++;
+          const r = ratio(fillHex, m.roles[`background.${tier}`].hex);
+          if (r !== want[i] || r < 3) tierWrong.push(`${short} ${m.mode} ${label} on ${tier} ${r}:1 (want ${want[i]})`);
+        });
+      }
+    }
+  }
+  ok(tierCells === Object.keys(TIER).length * 3 * 3 && tierWrong.length === 0,
+    `#1773 the radio's checked dot, the checkbox's checked box and the switch's on track clear 3:1 on background.primary, .secondary and .tertiary in every mode, at the pinned literals (${tierCells} cells) — wrong: ${tierWrong.slice(0, 6).join('; ') || 'none'}${tierWrong.length > 6 ? ` (+${tierWrong.length - 6})` : ''}`);
 
   // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
   // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every
@@ -23326,6 +23685,123 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     }
   ok(disRows >= 40 && disMisses.length === 0,
     `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all ${disRows} brand×mode rows — misses: ${disMisses.join('; ') || 'none'}`);
+
+  // (4c) #1626 / #1763 — EVERY `on-fill` MEASURED AGAINST EVERY FILL STATE IT SITS ON. The mode contract
+  // gates `interactive.<c>.on-fill` (and its `inverse.` twin) against `fill.rest` only, so the four engaged
+  // fills were never measured against the label painted on them. This arm measures all five, for every
+  // on-fill role the engine emits (page and inverse ground, every family), in every mode of every corpus
+  // brand, prism3 and the NB master theme, from RESOLVED hexes — never a role's own `ratio`.
+  //
+  // The floor is AUTHORED here: `on-fill` is a TEXT ink (the button label), so 4.5:1 (SC 1.4.3). The same
+  // role also paints non-text marks — the switch's on thumb and the checkbox's checked mark, whose 1.4.11
+  // floor is 3:1 — but it is one role with one declared min, so the stricter bar governs; a role that
+  // declares any other min fails the drift arm below rather than silently moving this bar.
+  //
+  // What each state is held to:
+  //   rest               — the floor.
+  //   hover / pressed    — MEASURED, EXEMPT: transient states, exempt from the ink contract by the owner
+  //                        (#1456 on the inverse band; #1626 on the page). Counted in the represented line.
+  //   focused / selected — the floor, no exemption: these persist (a checked checkbox, an on switch).
+  //
+  // Before the owner's 2026-09-29 decision ("rest fill + deeper inverse ink") 113 focused/selected pairs
+  // missed and sat in a pinned register here. The fix moved the page's focused/selected fills onto the rest
+  // step and re-picked the inverse brand ink against every state fill, so the register is empty and the
+  // arm asserts zero misses. A regression back to the old page step (2.32–2.62:1 in `dark`) or to the
+  // rest-only inverse ink (2.53–3.55:1 on selected) fails `#1626 no on-fill falls under …` by name.
+  {
+    const ONFILL_FLOOR = 4.5;
+    const ONFILL_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
+    const TRANSIENT = new Set(['hover', 'pressed']);
+    const ONFILL_ROLE = /^(inverse\.)?interactive\.[^.]+\.on-fill$/;
+    const restUnder: string[] = [], minDrift: string[] = [], unmeasured: string[] = [], persistentUnder: string[] = [];
+    const grounds = new Set<string>(), families = new Set<string>();
+    const perState: Record<string, number> = {};
+    let onRows = 0, onRoles = 0, transientUnder = 0;
+    const brandsForOnFill = [
+      ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
+      { id: 'prism3', theme: prism3 }, { id: 'NB-master', theme: master },
+    ];
+    for (const { id, theme } of brandsForOnFill)
+      for (const m of resolveAllModes(theme)) {
+        onRows++;
+        for (const k of Object.keys(m.roles).filter((r) => ONFILL_ROLE.test(r))) {
+          onRoles++;
+          const ink = m.roles[k];
+          const base = k.slice(0, -'on-fill'.length);
+          grounds.add(k.startsWith('inverse.') ? 'inverse' : 'page');
+          families.add(k.split('.').slice(-2)[0]);
+          if (ink.min !== ONFILL_FLOOR) minDrift.push(`${id} ${m.mode} ${k} declares min ${ink.min}`);
+          // The fill states the ENGINE emitted for this family — read off the role set, independent of
+          // ONFILL_STATES, so a state this arm stops measuring is reported by name rather than skipped.
+          for (const r of Object.keys(m.roles).filter((r) => r.startsWith(`${base}fill.`))) {
+            const st = r.slice(`${base}fill.`.length);
+            if (!ONFILL_STATES.includes(st)) unmeasured.push(`${id} ${m.mode} ${r}`);
+          }
+          for (const st of ONFILL_STATES) {
+            const fill = m.roles[`${base}fill.${st}`];
+            if (!fill) { unmeasured.push(`${id} ${m.mode} ${base}fill.${st} MISSING`); continue; }
+            perState[st] = (perState[st] ?? 0) + 1;
+            const r = ratio(ink.hex, fill.hex);
+            if (r >= ONFILL_FLOOR) continue;
+            if (st === 'rest') restUnder.push(`${id} ${m.mode} ${k} rest ${r}:1`);
+            else if (TRANSIENT.has(st)) transientUnder++;
+            else persistentUnder.push(`${id} ${m.mode} ${k} ${st} ${r}:1`);
+          }
+        }
+      }
+    ok(onRows >= 40 && grounds.size === 2 && ['primary', 'destructive', 'neutral'].every((f) => families.has(f))
+      && ONFILL_STATES.every((st) => (perState[st] ?? 0) === onRoles),
+      `#1626 on-fill × fill-state represented: ${onRoles} on-fill roles across ${onRows} brand×mode rows, page and inverse ground (${[...grounds].sort().join('/')}), families ${[...families].sort().join('/')}, every state measured once per role (${ONFILL_STATES.map((s) => `${s}=${perState[s] ?? 0}`).join(', ')}); ${transientUnder} hover/pressed pairs under ${ONFILL_FLOOR}:1, exempt`);
+    ok(unmeasured.length === 0,
+      `#1626 every fill state the engine emits under an on-fill's family is measured against that on-fill — unmeasured: ${unmeasured.slice(0, 6).join('; ') || 'none'}${unmeasured.length > 6 ? ` (+${unmeasured.length - 6})` : ''}`);
+    ok(minDrift.length === 0,
+      `#1626 every on-fill role declares the ${ONFILL_FLOOR}:1 text floor this arm measures by — drift: ${minDrift.slice(0, 6).join('; ') || 'none'}`);
+    ok(restUnder.length === 0,
+      `#1626 every on-fill clears ${ONFILL_FLOOR}:1 on its rest fill — under: ${restUnder.slice(0, 6).join('; ') || 'none'}`);
+    ok(persistentUnder.length === 0,
+      `#1626 no on-fill falls under ${ONFILL_FLOOR}:1 on a focused or selected fill, in any brand or mode — under: ${persistentUnder.slice(0, 6).join('; ') || 'none'}${persistentUnder.length > 6 ? ` (+${persistentUnder.length - 6})` : ''}`);
+
+    // A `fill.rest` OVERRIDE CARRIES TO ITS FOCUSED / SELECTED TWINS (review of #1773). The override layer
+    // rewrites one role, and `on-fill` re-picks against the overridden rest, so a rest override that left
+    // the twins on the derived step read 3.28:1 on selected with no warning (prism3 dark, rest → primary.300,
+    // selected stuck at primary.550, on-fill → neutral.950). Literals: all three land on primary.300 #86a7f7
+    // and the ink clears 8.22:1 on them. Removing `withFillStateTwins` fails this by name.
+    {
+      const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
+      const pOv = brandTheme({ ...pIn, overrides: { ...((pIn as any).overrides ?? {}), dark: { ...(((pIn as any).overrides ?? {}).dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' } } } } as BrandInput);
+      const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
+      const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
+      const inkHex = dm.roles['interactive.primary.on-fill'].hex;
+      const twinsUnder = ['rest', 'focused', 'selected'].map((st) => `${st} ${fh(st)} ${ratio(inkHex, fh(st))}:1`).filter((x) => Number(x.split(' ')[2].slice(0, -2)) < ONFILL_FLOOR);
+      ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#86a7f7' && twinsUnder.length === 0 && ratio(inkHex, fh('selected')) === 8.22,
+        `#1626 a fill.rest override carries to focused and selected: prism3 dark rest → primary.300 puts all three on #86a7f7 and on-fill clears 8.22:1 on each (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}, on-fill ${inkHex} on selected ${ratio(inkHex, fh('selected'))}:1${twinsUnder.length ? `; under: ${twinsUnder.join(', ')}` : ''})`);
+    }
+    // AN EXPLICIT TWIN OVERRIDE BEATS THE CARRIED REST (review of #1773). Same brand and rest override, plus
+    // an explicit `fill.selected` → primary.600: rest and focused carry `#86a7f7`, selected stays on its own
+    // `#1e1eff`. Carrying the rest over an explicit twin fails here by name.
+    {
+      const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
+      const prev = ((pIn as any).overrides ?? {});
+      const pOv = brandTheme({ ...pIn, overrides: { ...prev, dark: { ...(prev.dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' }, 'interactive.primary.fill.selected': { palette: 'primary', step: '600' } } } } as BrandInput);
+      const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
+      const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
+      ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#1e1eff',
+        `#1626 an explicit fill.selected override beats the carried fill.rest override: prism3 dark rest → primary.300, selected → primary.600 (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}; want #86a7f7, #86a7f7, #1e1eff)`);
+    }
+    // THE PAGE `fill.selected` WORDING IS PAGE-ONLY (#1773). The owner's sentence ships on the page ground; the
+    // inverse band's selected fill still steps off rest (#1456), so it keeps the shared lead. Literals for both,
+    // from the live `.ai.json` of prism3. Dropping the `!inverse` scope gives the inverse role the page sentence
+    // and fails here by name.
+    {
+      const aiP3 = buildAiMetadata(prism3, buildTree(prism3).tree) as any;
+      const pageW: string = aiP3?.color?.['interactive.primary.fill.selected']?.when_to_use ?? '';
+      const invW: string = aiP3?.color?.['inverse.interactive.primary.fill.selected']?.when_to_use ?? '';
+      ok(pageW.startsWith('The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline.'),
+        `#1773 page interactive.primary.fill.selected carries the owner's wording in .ai.json (got ${JSON.stringify(pageW.slice(0, 120))})`);
+      ok(invW.startsWith('The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active.') && !invW.includes('same color as the rest fill'),
+        `#1773 inverse.interactive.primary.fill.selected keeps its old .ai.json wording (got ${JSON.stringify(invW.slice(0, 120))})`);
+    }
+  }
 
   // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
   // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.

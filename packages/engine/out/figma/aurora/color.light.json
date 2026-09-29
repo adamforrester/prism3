@@ -1247,13 +1247,13 @@
       "description": "Primary fill, focused — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/600"
+        "name": "ads/core/palette/accent/500"
       }
     },
     {
@@ -1266,13 +1266,13 @@
       "description": "Primary fill, selected — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/700"
+        "name": "ads/core/palette/accent/500"
       }
     },
     {
@@ -1609,14 +1609,14 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/600"
+        "name": "ads/core/palette/danger/500"
       }
     },
     {
@@ -1628,14 +1628,14 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/700"
+        "name": "ads/core/palette/danger/500"
       }
     },
     {
@@ -1949,14 +1949,14 @@
       ],
       "description": "Neutral fill, focused",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 0.8078431487083435,
+        "g": 0.8078431487083435,
+        "b": 0.8156862854957581,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/neutral/150"
       }
     },
     {
@@ -1968,14 +1968,14 @@
       ],
       "description": "Neutral fill, selected",
       "value": {
-        "r": 0.6039215922355652,
-        "g": 0.6039215922355652,
-        "b": 0.6196078658103943,
+        "r": 0.8078431487083435,
+        "g": 0.8078431487083435,
+        "b": 0.8156862854957581,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/350"
+        "name": "ads/core/palette/neutral/150"
       }
     },
     {
@@ -2434,14 +2434,14 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
+        "name": "ads/core/palette/danger/550"
       }
     },
     {
@@ -3245,16 +3245,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest only",
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
       "value": {
         "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
+        "g": 0.3294117748737335,
+        "b": 0.4627451002597809,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/500"
+        "name": "ads/core/palette/accent/650"
       }
     },
     {
@@ -3585,16 +3585,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.5568627715110779,
+        "g": 0.1764705926179886,
+        "b": 0.15294118225574493,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
+        "name": "ads/core/palette/danger/650"
       }
     },
     {

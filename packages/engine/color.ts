@@ -136,6 +136,19 @@ export const composite = (base: RGB, over: RGB, a: number): RGB => ({
 });
 
 /**
+ * The alpha a translucent colour token CARRIES once emitted in a theme's `colorFormat` — the value a
+ * renderer applies, not the nominal one the engine picked. The hex dialect writes 8-digit hex, so the
+ * alpha is quantized to 1/255 (10% ships as `1a` = 26/255 = 0.102); the rgb dialect (NB) writes
+ * `rgba(…, 0.1)`, rounded to two decimals, so 10% ships as exactly 0.1. `tree.ts`'s `alphaColorValue`
+ * writes through this, and `modes.ts` composites through it (#1782), so a contract measured on a
+ * composited wash is measured at the alpha that ships in THAT brand's dialect. `test.ts` does not import
+ * it: the #1782 gate parses the alpha back out of the emitted `$value`, which is what catches the two
+ * disagreeing.
+ */
+export const emittedAlpha = (a: number, fmt: 'rgb' | 'hex'): number =>
+  fmt === 'hex' ? Math.round(a * 255) / 255 : Math.round(a * 100) / 100;
+
+/**
  * Luminance window in which a color clears `ratio`:1 against BOTH white and
  * black. For 4.5 it is the famously narrow [~0.175, ~0.183] — this is what
  * makes the Mid-Tone 500 step (the dual-side AA pivot) a placed role, not an

@@ -2926,6 +2926,44 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.202.0 — #1626 / #1763 (owner-decided 2026-09-29, "rest fill + deeper inverse ink"): the `on-fill` label
+ * is measured against every interactive fill state it sits on. On the page, `interactive.<c>.fill.focused` and
+ * `.fill.selected` resolve to the rest step in every mode (they used to walk like hover/pressed, and in `dark`
+ * that put the near-white label at 2.32–2.62:1 on the switch's on track and the checkbox's checked box). On the
+ * inverse band, the brand `on-fill` (primary, destructive) is re-picked by `brandOnFill`'s own rule over all
+ * five state fills — the most vivid step clearing 4.5:1 on every one — so it lands a deeper step at rest too
+ * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision.
+ * A `fill.rest` override now carries to its page `focused` / `selected` twins (`withFillStateTwins`), so an
+ * overridden rest cannot strand the twins on the derived step (review of #1773). Every page interactive
+ * `fill.rest` (and so focused/selected) now also clears its floor against `background.tertiary` (owner,
+ * 2026-09-29, the #1352 pattern): in `dark` nb, harbor, wendys and prism3 move one step lighter. An authored
+ * anchor pin stays `exact` and skips that gate, so its tertiary miss is now reported: a `warnings` entry with
+ * `against: 'background.tertiary'` and a `tierChecks` entry that `tree.ts` counts into `modeChecks` /
+ * `modePass`, the way a missed override counts (review of #1773). The page `fill.selected` `.ai.json`
+ * guidance says selection must show by other means. `onColor`'s pure-extreme pick takes WHITE on a near-tie
+ * (both clear 4.5:1, within 0.05:1) in dark-family modes (owner, `pureExtremeInk`), for the interactive
+ * on-fill and, extended by the owner the same day, the `text.on-<status>` / `icon.on-<status>` inks: prism3,
+ * aurora, harbor and minimal dark on-fill labels and 42 dark status cells move black → white. Emitted values
+ * move in every brand, and the projected surface moves wherever a def binds a focused/selected fill or the
+ * inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
+ *
+ * 0.201.0 — #1782: the three FIELD STATUS borders (`border.danger` / `border.warning` / `border.success`)
+ * clear their non-text floor on the grounds a status field actually draws them on. `text-field`, `textarea`
+ * and `select` keep the status border at hover, where the control fills with the translucent
+ * `interactive.neutral.overlay.hover` wash; contracted against `background.primary` alone, the 500 anchor
+ * measured 2.64–3.00:1 against that wash composited over `background.secondary` (132 members, 44 cells).
+ * The roles now also clear `background.secondary` and the wash composited over either page ground, through
+ * `pickBrand`'s existing `alsoClear` at the role's own `nonTextMin` (4.5 in HC — an owner decision, since
+ * the HC 500s already cleared 3:1), with the wash at the alpha the brand's dialect EMITS (`emittedAlpha`:
+ * 26/255 in hex, 0.1 in NB's rgb). A status border also never takes `border.focus`'s colour (owner
+ * decision): the three roles pass the resolved ring to `pickBrand` as `avoid`, which moved nb dark
+ * `border.danger` red.450 (the ring's step) → red.400. Values move one rung in light/dark (light → 550,
+ * dark → 450) wherever 500 missed, and one or two rungs in HC (hc-light → 550/600, hc-dark → 400/450);
+ * 103 role-modes across the corpus + prism3, none in the NB master theme (no wash, and 500 already clears
+ * `background.secondary`). `border.brand` / `border.info` are not field statuses and do not move. NB's
+ * authored values now diverge in nine role-modes (`NB_KNOWN_DIVERGENCES` group seven). Emitted values move
+ * in every washed brand → ENGINE bump. CONTRACT STANDS at 13.2.0 (no token name or projected member moves).
+ *
  * 0.200.0 — Tag: Select and Dismissible types; Badge: a smaller radius for status labels (owner decisions,
  * 2026-09-28; closes #1741 and #1743). TAG: a `type` variant axis (`select | dismissible`) and code prop
  * replace `interaction`; the plain clickable tag is dropped. Select carries an
@@ -4163,7 +4201,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.200.0';
+export const ENGINE_VERSION = '0.202.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

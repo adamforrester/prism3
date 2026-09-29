@@ -1212,7 +1212,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.800}",
+              "$value": "{hds.core.palette.primary.700}",
               "$description": "primary interactive fill — focused, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1227,8 +1227,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "hds.core.palette.primary.800",
-                  "contrast": 10.11,
+                  "aliasOf": "hds.core.palette.primary.700",
+                  "contrast": 7.21,
                   "against": "neutral.100",
                   "min": 7
                 }
@@ -1236,7 +1236,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.900}",
+              "$value": "{hds.core.palette.primary.700}",
               "$description": "primary interactive fill — selected, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1251,8 +1251,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "hds.core.palette.primary.900",
-                  "contrast": 12.95,
+                  "aliasOf": "hds.core.palette.primary.700",
+                  "contrast": 7.21,
                   "against": "neutral.100",
                   "min": 7
                 }
@@ -1588,7 +1588,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.800}",
+              "$value": "{hds.core.palette.danger.700}",
               "$description": "destructive interactive fill — focused, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1603,8 +1603,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "hds.core.palette.danger.800",
-                  "contrast": 10.32,
+                  "aliasOf": "hds.core.palette.danger.700",
+                  "contrast": 7.24,
                   "against": "neutral.100",
                   "min": 7
                 }
@@ -1612,7 +1612,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{hds.core.palette.danger.900}",
+              "$value": "{hds.core.palette.danger.700}",
               "$description": "destructive interactive fill — selected, clears 7:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -1627,8 +1627,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "hds.core.palette.danger.900",
-                  "contrast": 13.2,
+                  "aliasOf": "hds.core.palette.danger.700",
+                  "contrast": 7.24,
                   "against": "neutral.100",
                   "min": 7
                 }
@@ -2056,7 +2056,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{hds.core.palette.success.500}",
+          "$value": "{hds.core.palette.success.600}",
           "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -2071,8 +2071,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "hds.core.palette.success.500",
-              "contrast": 4.6,
+              "aliasOf": "hds.core.palette.success.600",
+              "contrast": 6.7,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2080,7 +2080,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{hds.core.palette.warning.500}",
+          "$value": "{hds.core.palette.warning.600}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -2095,8 +2095,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "hds.core.palette.warning.500",
-              "contrast": 4.6,
+              "aliasOf": "hds.core.palette.warning.600",
+              "contrast": 6.72,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2104,7 +2104,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{hds.core.palette.danger.500}",
+          "$value": "{hds.core.palette.danger.600}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1",
           "$extensions": {
             "prism3": {
@@ -2119,8 +2119,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "hds.core.palette.danger.500",
-              "contrast": 4.57,
+              "aliasOf": "hds.core.palette.danger.600",
+              "contrast": 6.8,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2690,108 +2690,10 @@
                 }
               }
             },
-            "fill": {
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.100",
-                    "contrast": 15.2,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.200",
-                    "contrast": 11.67,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.100",
-                    "contrast": 15.2,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.200",
-                    "contrast": 11.67,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              }
-            },
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.black}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -3036,108 +2938,10 @@
                 }
               }
             },
-            "fill": {
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.100",
-                    "contrast": 15.2,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.200",
-                    "contrast": 11.67,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.100",
-                    "contrast": 15.2,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "hds.core.palette.neutral.200",
-                    "contrast": 11.67,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              }
-            },
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.black}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",

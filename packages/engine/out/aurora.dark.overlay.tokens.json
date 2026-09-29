@@ -595,78 +595,6 @@
             }
           }
         },
-        "on-brand": {
-          "$type": "color",
-          "$value": "{ads.core.palette.black}",
-          "$description": "Text on a solid brand fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "ads.core.palette.black",
-              "contrast": 4.59,
-              "against": "foreground.brand",
-              "min": 4.5
-            }
-          }
-        },
-        "on-danger": {
-          "$type": "color",
-          "$value": "{ads.core.palette.black}",
-          "$description": "Text on a solid danger fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "ads.core.palette.black",
-              "contrast": 4.6,
-              "against": "foreground.danger",
-              "min": 4.5
-            }
-          }
-        },
-        "on-info": {
-          "$type": "color",
-          "$value": "{ads.core.palette.black}",
-          "$description": "Text on a solid info fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "ads.core.palette.black",
-              "contrast": 4.61,
-              "against": "foreground.info",
-              "min": 4.5
-            }
-          }
-        },
         "link": {
           "default": {
             "$type": "color",
@@ -1007,78 +935,6 @@
             }
           }
         },
-        "on-brand": {
-          "$type": "color",
-          "$value": "{ads.core.palette.black}",
-          "$description": "Icon on a solid brand fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "ads.core.palette.black",
-              "contrast": 4.59,
-              "against": "foreground.brand",
-              "min": 4.5
-            }
-          }
-        },
-        "on-danger": {
-          "$type": "color",
-          "$value": "{ads.core.palette.black}",
-          "$description": "Icon on a solid danger fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "ads.core.palette.black",
-              "contrast": 4.6,
-              "against": "foreground.danger",
-              "min": 4.5
-            }
-          }
-        },
-        "on-info": {
-          "$type": "color",
-          "$value": "{ads.core.palette.black}",
-          "$description": "Icon on a solid info fill — 4.5:1",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "ads.core.palette.black",
-              "contrast": 4.61,
-              "against": "foreground.info",
-              "min": 4.5
-            }
-          }
-        },
         "link": {
           "hover": {
             "$type": "color",
@@ -1203,78 +1059,6 @@
                   "against": "neutral.900",
                   "min": 3
                 }
-              }
-            },
-            "focused": {
-              "$type": "color",
-              "$value": "{ads.core.palette.accent.400}",
-              "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "ads.core.palette.accent.400",
-                  "contrast": 5.34,
-                  "against": "neutral.900",
-                  "min": 3
-                }
-              }
-            },
-            "selected": {
-              "$type": "color",
-              "$value": "{ads.core.palette.accent.300}",
-              "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "ads.core.palette.accent.300",
-                  "contrast": 7.32,
-                  "against": "neutral.900",
-                  "min": 3
-                }
-              }
-            }
-          },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{ads.core.palette.black}",
-            "$description": "Ink on the primary interactive fill",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "ads.core.palette.black",
-                "contrast": 4.6,
-                "against": "interactive.primary.fill.rest",
-                "min": 4.5
               }
             }
           },
@@ -1629,78 +1413,6 @@
                   "against": "neutral.900",
                   "min": 3
                 }
-              }
-            },
-            "focused": {
-              "$type": "color",
-              "$value": "{ads.core.palette.danger.400}",
-              "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "ads.core.palette.danger.400",
-                  "contrast": 5.41,
-                  "against": "neutral.900",
-                  "min": 3
-                }
-              }
-            },
-            "selected": {
-              "$type": "color",
-              "$value": "{ads.core.palette.danger.300}",
-              "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "ads.core.palette.danger.300",
-                  "contrast": 7.42,
-                  "against": "neutral.900",
-                  "min": 3
-                }
-              }
-            }
-          },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{ads.core.palette.black}",
-            "$description": "Ink on the destructive interactive fill",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "ads.core.palette.black",
-                "contrast": 4.6,
-                "against": "interactive.destructive.fill.rest",
-                "min": 4.5
               }
             }
           },
@@ -2080,7 +1792,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{ads.core.palette.neutral.750}",
+              "$value": "{ads.core.palette.neutral.850}",
               "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -2095,15 +1807,15 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.neutral.750",
-                  "contrast": 1.53,
+                  "aliasOf": "ads.core.palette.neutral.850",
+                  "contrast": 1.11,
                   "against": "neutral.900"
                 }
               }
             },
             "selected": {
               "$type": "color",
-              "$value": "{ads.core.palette.neutral.650}",
+              "$value": "{ads.core.palette.neutral.850}",
               "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
@@ -2118,8 +1830,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.neutral.650",
-                  "contrast": 2.2,
+                  "aliasOf": "ads.core.palette.neutral.850",
+                  "contrast": 1.11,
                   "against": "neutral.900"
                 }
               }
@@ -2641,6 +2353,78 @@
               "aliasOf": "ads.core.palette.neutral.300",
               "contrast": 8.1,
               "against": "background.primary"
+            }
+          }
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{ads.core.palette.success.450}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "ads.core.palette.success.450",
+              "contrast": 5.07,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{ads.core.palette.warning.450}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "ads.core.palette.warning.450",
+              "contrast": 4.99,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{ads.core.palette.danger.450}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "ads.core.palette.danger.450",
+              "contrast": 4.95,
+              "against": "background.primary",
+              "min": 3
             }
           }
         },
@@ -3231,7 +3015,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3255,7 +3039,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3279,7 +3063,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.9:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3303,7 +3087,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 3:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3322,6 +3106,30 @@
                     "against": "inverse.background.primary",
                     "min": 3
                   }
+                }
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.350}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "ads.core.palette.accent.350",
+                  "contrast": 7.36,
+                  "against": "inverse.interactive.primary.fill.rest",
+                  "min": 4.5
                 }
               }
             },
@@ -3657,7 +3465,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3681,7 +3489,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3.1:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3705,7 +3513,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.9:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3729,7 +3537,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 3.1:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3748,6 +3556,30 @@
                     "against": "inverse.background.primary",
                     "min": 3
                   }
+                }
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{ads.core.palette.danger.350}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "ads.core.palette.danger.350",
+                  "contrast": 7.44,
+                  "against": "inverse.interactive.destructive.fill.rest",
+                  "min": 4.5
                 }
               }
             },
