@@ -23,6 +23,8 @@
  *   · routes/<cmd>: the UI message and the agent command reach the same `ACTIONS` entry
  *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted
  *   · envelope: every field of the result envelope, for every command
+ *   · one-run: a style guide asked for from the panel or the link while the other's run is mid-yield is refused by
+ *     name, the refusal reaches only the side that asked, and an agent's run shows on the panel (#1785)
  *   · claim-before-run: the id is in `claimed` while its handler runs
  *   · order: two commands sent together run in send order, one per poll
  *   · no-rerun: a claimed command is never run again, even with its result gone
@@ -250,6 +252,73 @@ section('style-guide — tables reach the handler; a table reading is progress, 
   ok(!posted.some((m) => m.type === 'style-guide-progress'), 'style-guide: an agent run\'s table readings are not forwarded to the panel as verdicts');
 }
 
+/* ── one style-guide run at a time (#1785) ──────────────────────────────────────────────────────────── */
+section('one-run — a style guide asked for from one entry point while the other\'s run draws is refused by name (#1785)');
+{
+  // A file the real `styleGuide` can run over: one color variable, the two cell sets, no token page (so its one table
+  // is a named skip). What matters is that the run YIELDS: `realYield` is a 0ms `setTimeout`, held here apart from the
+  // poll's 1000ms one, so a run stays mid-yield until `release()` — through `main.ts`'s own gate, not a stub.
+  const held: (() => void)[] = [];
+  const pollTimeout = g.setTimeout as unknown as (fn: () => void, ms?: number) => number;
+  g.setTimeout = ((fn: () => void, ms?: number) => { if (!ms) { held.push(fn); return 0; } return pollTimeout(fn, ms); }) as unknown as typeof setTimeout;
+  const release = async (): Promise<void> => {
+    for (let i = 0; i < 20 && held.length; i++) { for (const fn of held.splice(0)) fn(); for (let j = 0; j < 40; j++) await settle(); }
+  };
+  const r0 = root as Record<string, unknown>;
+  const saved = { load: host.loadAllPagesAsync, vars: host.variables, find: r0.findAllWithCriteria };
+  host.loadAllPagesAsync = async () => undefined;
+  host.variables = {
+    getLocalVariableCollectionsAsync: async () => [{ id: 'C:1', name: 'ramp', modes: [{ modeId: 'm:0', name: 'Value' }], defaultModeId: 'm:0' }],
+    getLocalVariablesAsync: async () => [{ id: 'V:1', name: 'ramp/100', variableCollectionId: 'C:1', resolvedType: 'COLOR', description: '', valuesByMode: { 'm:0': { r: 1, g: 0, b: 0, a: 1 } } }],
+    setBoundVariableForPaint: (p: unknown) => p,
+  };
+  r0.findAllWithCriteria = () => [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
+  type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string; busy?: boolean };
+  const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
+
+  // THE PANEL FIRST: a click starts a run, which holds at its yield; the agent link then asks for one.
+  posted.length = 0;
+  await toUi({ type: 'style-guide', options: {} });
+  const heldPanel = held.length;
+  const { id: a1 } = await send('style-guide', {});
+  await tick();
+  const r1 = (await read(a1)) as AgentResult;
+  const v1 = r1.result?.verdict as Verdict | null;
+  ok(heldPanel > 0 && r1.ok === false && v1?.busy === true && v1.headline === '✗ already drawing' && /^A style guide started from the panel is still drawing, so this request was not run/.test(v1.summary ?? ''),
+    `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused, naming the panel's run (${v1?.headline}: ${String(v1?.summary).slice(0, 60)})`);
+  ok(results_().length === 0, 'one-run/agent: the refusal goes to the agent alone — the panel still shows its own run, with no verdict over it');
+  await release();
+  const p1 = results_();
+  ok(p1.length === 1 && !p1[0].busy, `one-run: the panel's run then finishes and reports (${p1.map((m) => m.headline).join(', ')})`);
+
+  // THE AGENT FIRST: a command starts a run, which holds at its yield; a click then asks for one.
+  posted.length = 0;
+  const { id: a2 } = await send('style-guide', {});
+  await tick();
+  const first = posted.find((m) => m.type === 'style-guide-progress');
+  ok(held.length > 0 && first?.done === 0 && first?.total === 1,
+    `one-run/panel: an agent's run posts its readings to the panel too, the first (done 0) before its first table, so the panel's row goes pending (${JSON.stringify(first)})`);
+  await toUi({ type: 'style-guide', options: {} });
+  const b = results_();
+  ok(b.length === 1 && b[0].busy === true && b[0].headline === '✗ already drawing' && /^A style guide started from the agent link is still drawing/.test(b[0].summary ?? ''),
+    `one-run/panel: a click while the agent's run is mid-yield is refused, naming the agent link's run (${b.map((m) => m.headline).join(', ')})`);
+  await release();
+  await tick();
+  const r2 = (await read(a2)) as AgentResult;
+  const v2 = r2.result?.verdict as Verdict | null;
+  ok(v2?.type === 'style-guide-result' && !v2.busy && results_().some((m) => !m.busy && m.headline === v2.headline),
+    `one-run: the agent's run then finishes, and its verdict reaches the panel (${v2?.headline})`);
+
+  // And the gate is open again: a click runs.
+  posted.length = 0;
+  await toUi({ type: 'style-guide', options: {} });
+  await release();
+  ok(results_().length === 1 && !results_()[0].busy, 'one-run: once both have reported, the next click runs');
+
+  host.loadAllPagesAsync = saved.load; host.variables = saved.vars; r0.findAllWithCriteria = saved.find;
+  g.setTimeout = pollTimeout as unknown as typeof setTimeout;
+}
+
 /* ── envelope ───────────────────────────────────────────────────────────────────────────────────────── */
 section('envelope — every field, every command');
 for (const r of results) {
@@ -332,7 +401,7 @@ section('failures — answered, never silent');
   await tick();
   const rf = (await read(sf.id)) as AgentResult;
   ok(rf.ok === false && rf.error?.code === 'bad-args' && calls.length === 0, 'style-guide with valueFormat cmyk → bad-args');
-  for (const [tables, what] of [['Primary — nbds', 'a string'], [[], 'an empty list'], [['Primary — nbds', ''], 'an empty name']] as const) {
+  for (const [tables, what] of [['Primary — nbds', 'a string'], [[], 'an empty list'], [['Primary — nbds', ''], 'an empty name'], [['Primary — nbds', '   '], 'a name of spaces alone']] as const) {
     calls.length = 0;
     const st = await send('style-guide', { tables });
     await tick();

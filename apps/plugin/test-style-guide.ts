@@ -27,20 +27,29 @@
  *      groups within each root and names it in the title, grounds stay in their root, a rerun over the live
  *      run's tables rewrites old titles and reports the per-root tables as replaced and kept; an unbound swatch is a ⚠
  *      with its count; named values lead a ramp;
- *  10. a RERUN RE-STACKS the generator's tables when one grows, leaving a designer-moved table alone. Column widths (sections 2 and 5) are read off the shim's own
- *      layout model — 7px a character, a HUG track as wide as its widest cell's content — never off the plugin's arithmetic;
+ *  10. a RERUN RE-STACKS the generator's tables when one grows, leaving a designer-moved table alone; a grid that drops its
+ *      HUG column or row tracks, and a header that does not take its table's width, are named. Column widths (sections 2
+ *      and 5) are read off the shim's own layout model — 7px a character, a HUG track as wide as its widest cell's
+ *      content, 2px between tracks — never off the plugin's arithmetic;
  *  11. SUPERSEDED tables (owner decision, 2026-09-28): an unedited replaced or stale table is deleted, header and
  *      cells with it, and the stack closes over it; one with a text cell retyped, one moved, one with no
  *      fingerprint and a duplicate of one are kept and reported apart; a frame the generator did not make is
  *      never touched, whatever its name. The edits are made to the shim's nodes here, never through the plugin;
- *  12. THE OWNER'S GRID MODEL (owner decision, 2026-09-29): HUG tracks, every cell FILL on both axes, text on one line;
- *      the header spans its table, not the header component's 2,517px; a grid dragged wider is filled by its tracks
- *      and every cell follows (the shim's even share of the extra is its own assumption, so no share is asserted);
+ *  12. THE OWNER'S GRID MODEL (owner decisions, 2026-09-29): HUG tracks 2px apart, every cell FILL on both axes, the
+ *      swatch FIXED at its component's size inside its cell, text on one line; the header spans its table, not the
+ *      header component's 2,517px; a grid dragged wider keeps every cell as wide as its track, and the table and its
+ *      header follow the grid. Whether the HUG tracks take up the extra width is NOT asserted: the typings define HUG
+ *      as CSS `fit-content(100%)`, which does not grow past its content, so that is a live-check (docs/45 §7);
  *  13. the TABLES FILTER (#1778): one table drawn in place, the 42 others untouched and never stale; a filtered run
- *      re-stacks only its own page, moving the tables below by exactly the drawn table's growth; any case, or a key;
- *      an unknown name reported with the titles, and not a pass;
+ *      moves only the tables below the drawn one, in its column, by exactly its change in height, growing or
+ *      shrinking — it closes no gap, leaves a table a designer moved and a table with no position record alone, and
+ *      writes no record for a table it does not move; any case, or a key; an unknown name reported with the first 8
+ *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
- *      least 12 yields inside the 124-row Inverse table, never more than 10 rows apart.
+ *      least 12 yields inside the 124-row Inverse table, never more than 10 rows apart;
+ *  15. ONE RUN AT A TIME (#1785): a run asked for from the agent link while a panel run is mid-yield is refused, naming
+ *      the panel's run, and exactly one set of tables results. (`test-agent-link.ts` drives the same gate through
+ *      `main.ts`'s two real entry points.)
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -77,22 +86,26 @@
  *   - ground affinity off → "9: each root's text is drawn on its own root's background" fails;
  *   - size tracks from the header row only / never hug the cell root → "2: no text in the owner's cells is wider
  *     than its column" fails;
- *   - the swatch column measures its header → "5: every swatch column is the swatch plus its padding: 80" fails;
- *   - no description wrap → "5: a long description wraps at 360px rather than clipping" fails;
+ *   - (retired 2026-09-29 with #1749's FIXED columns: "5: every swatch column is the swatch plus its padding: 80" and
+ *     "5: a long description wraps at 360px rather than clipping". Their successors are "5: a swatch column is the
+ *     wider of the specimen and its mode header…" and "5: the description column is its longest line…");
  *   - a palette row shows its full path → "5: a palette table leads with the step alone…" fails;
  *   - steps sorted without named-first → "9: named values lead, in file order, then steps ascending" fails;
  *   - a role keeps its family in its name → "2: the adopted type=Text swatch is used for a text role" fails;
  *   - no header rewrite / rewrite over an edit → "9: an earlier run's title is rewritten…" / "9: a title the
  *     designer typed is kept" fail;
  *   - replaced folded into stale → "9: the per-root table is reported as replaced…" fails;
- *   - wrap a description in `fit`, before the columns are sized → "5: a long description wraps to its column
- *     less the cell's padding: 360 − 16 − 16 = 328" fails;
+ *   - (retired 2026-09-29, nothing wraps: "5: a long description wraps to its column less the cell's padding: 360 −
+ *     16 − 16 = 328")
  *   - wrap a mode header to the specimen before the columns are sized → "5: a swatch column is the wider of the
  *     specimen and its mode header…", "5: every header in every table sits on one line" fail;
- *   - skip the re-stack → "10: a table that grows by 10 rows pushes the next table down 720px" fails;
+ *   - skip the re-stack → "10: a table that grows by 10 rows pushes the next table down 740px" fails (720 before the
+ *     2px track gap);
  *   - re-stack without reading the position record → "10: a table a designer moved stays where they put it" fails;
  *   - leave unrecorded tables out of the stack → "10: tables from before the position record are re-flowed too" fails;
- *   - drop the track read-back → "10: a grid that did not keep its column widths is named" fails;
+ *   - drop the track read-back → "10: a grid that did not keep its hugging tracks is named" fails (its column arm);
+ *     drop its row clause alone → "10: a grid that did not keep its hugging ROW tracks is named" fails;
+ *   - drop the header-width miss → "10: a header the host will not size to its table is named…" fails;
  *   - the fingerprint compare ignored, so every candidate that reaches it is deleted → "11: a replaced table with one
  *     text cell changed by hand is kept, reported as edited" fails;
  *   - the edit check always true, so nothing is deleted → "6: an unedited stale table is deleted", "11: an unedited
@@ -127,6 +140,16 @@
  *     fails; the header left at its component width → "2: the table and its header are as wide as its grid…" and "12:
  *     the table and its header hug the grid…" fail; a FIXED column track → "5: every column and row track of every
  *     table is HUG" fails; a text cell left hugging → "5: every text cell FILLs its track, both axes" fails.
+ *   - (review of f95a2cb3 and the owner decisions of 2026-09-29; docs/00-progress.md 2026-09-29) the track gap left at 0
+ *     → "5: every table's grid has a 2px gap…" and "2: the table and its header are as wide as its grid, 2854px…"
+ *     fail; the swatch's FIXED sizing dropped → "5: every swatch keeps its component's 48 × 48, FIXED…" fails; the
+ *     filtered run's gap-closing re-stack restored → "13: a filtered run whose table keeps its height moves no
+ *     table…", "13: a table a designer moved and a table with no position record are left alone…" and "13:
+ *     shrinking back by 148px…" fail; the header-width miss dropped → "10: a header the host will not size…" fails;
+ *     the row clause of the track read-back dropped → "10: a grid that did not keep its hugging ROW tracks…" fails; the title list uncapped → "13: an unknown
+ *     name is reported by name, with the first 8 titles…" fails; the renamed-table note dropped → "13: a filtered
+ *     run that draws a renamed group's new table says the old one stays…" fails; the gate's refusal removed → "15: a
+ *     run asked for from the agent link while a panel run is mid-yield is refused…" fails.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -140,7 +163,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy } from './src/style-guide';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
@@ -351,9 +374,9 @@ class N {
 // ── The shim's grid model (the owner's, measured live on "↳ Style Guide Examples", 2026-09-29) ─────────────────
 // A HUG track is as wide as its widest cell's CONTENT: a FILL cell counts what it would hug, any other its own width.
 // A FILL cell then takes the whole track. A hugging grid is its tracks and gaps. A grid a designer dragged wider
-// (FIXED) spreads the extra across its HUG tracks EVENLY — the shim's assumption, CSS grid's auto-track stretch;
-// only the host can say how Figma shares it, so the assertions built on it claim only that every cell follows its
-// track and that the tracks fill the grid, never a particular share.
+// (FIXED) leaves its HUG tracks at their content: the typings define HUG as CSS `fit-content(100%)`, which does not
+// grow past its content. Whether the host shares the extra out at all is a live-check (docs/45 §7), so section 12
+// asserts only what holds either way: a FILL cell is as wide as its track.
 /** A node's width as it hugs its content, whatever its own sizing says. */
 const contentW = (n: N): number => {
   if (n.type === 'TEXT') return n.textAutoResize === 'WIDTH_AND_HEIGHT' ? naturalOf(n) : n.w;
@@ -370,7 +393,7 @@ const contentH = (n: N): number => {
   const hs = n.children.filter((k) => k.visible !== false).map((k) => k.height);
   return padY(n) + (n.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
 };
-/** A track's own size before a resized grid shares out its extra: FIXED is its value, HUG (or FLEX) its widest cell. */
+/** A track's size: FIXED is its value, HUG (or FLEX) its widest cell. */
 const baseTrack = (g: N, axis: 'col' | 'row', i: number): number => {
   const s = (axis === 'col' ? g.gridColumnSizes : g.gridRowSizes)[i];
   if (s?.type === 'FIXED') return Number(s.value);
@@ -379,12 +402,7 @@ const baseTrack = (g: N, axis: 'col' | 'row', i: number): number => {
 };
 const tracks = (g: N, axis: 'col' | 'row'): number[] => {
   const sizes = axis === 'col' ? g.gridColumnSizes : g.gridRowSizes;
-  const base = sizes.map((_, i) => baseTrack(g, axis, i));
-  const gap = Number((axis === 'col' ? g.gridColumnGap : g.gridRowGap) ?? 0) * Math.max(0, sizes.length - 1);
-  const fixedGrid = axis === 'col' ? g.lsh === 'FIXED' : g.layoutSizingVertical === 'FIXED';
-  const flexible = sizes.map((s, i) => (s.type === 'FIXED' ? -1 : i)).filter((i) => i >= 0);
-  const extra = fixedGrid ? (axis === 'col' ? g.w : g.h) - gap - base.reduce((a, b) => a + b, 0) : 0;
-  return base.map((b, i) => (extra > 0 && flexible.includes(i) ? b + extra / flexible.length : b));
+  return sizes.map((_, i) => baseTrack(g, axis, i));
 };
 /** A grid's tracks for the current epoch: computed on the first read after any write, then reused. */
 const trackMemo = new WeakMap<N, { e: number; col?: number[]; row?: number[] }>();
@@ -511,8 +529,9 @@ const prism3Variables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
 const input = parseDesignMd(readFileSync(join(here, '../../packages/engine/examples/prism3.design.md'), 'utf8')).input;
 const contract = resolveAllModes(brandTheme(input));
 
-/** The owner-cell Text table's width (section 2): its fourteen HUG tracks, by the shim's own metric. */
-const TEXT_OWNER_W = 2828;
+/** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,828px by the shim's own metric, and the
+ *  thirteen 2px gaps between them. */
+const TEXT_OWNER_W = 2828 + 13 * 2;
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -650,7 +669,7 @@ const main = async (): Promise<void> => {
     ok(!!g && trackW(g, descCol) === 694 && ownDesc?.textAutoResize === 'WIDTH_AND_HEIGHT' && linesOf(ownDesc) === 1 && ownCell?.width === 694,
       `2: the owner's description column is its longest line, 630 + 24 + 40 = 694, the text on one line (got ${g ? trackW(g, descCol) : '?'}, ${ownDesc?.textAutoResize}, ${ownDesc ? linesOf(ownDesc) : '?'} lines)`);
     // THE HEADER SPANS ITS TABLE (owner decision, 2026-09-29): the table is as wide as its grid, and so is its header,
-    // not the header component's 2,517px. 2,828 is the owner-cell Text table's fourteen tracks, by the shim's metric.
+    // not the header component's 2,517px. 2,854 is the owner-cell Text table's fourteen tracks and thirteen 2px gaps.
     const hdr = text?.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'header');
     ok(!!g && !!hdr && g.width === TEXT_OWNER_W && text!.width === TEXT_OWNER_W && hdr.width === TEXT_OWNER_W,
       `2: the table and its header are as wide as its grid, ${TEXT_OWNER_W}px, not the header component's 2,517 (table ${text?.width}, grid ${g?.width}, header ${hdr?.width})`);
@@ -725,6 +744,14 @@ const main = async (): Promise<void> => {
     ok(textCells.length > 0 && hugging.length === 0, `5: every text cell FILLs its track, both axes (${hugging.length} of ${textCells.length} do not)`);
     const grounds = grids.flatMap((x) => x.children.filter((k) => k.name === 'Ground'));
     ok(grounds.length > 0 && grounds.every((k) => k.lsh === 'FILL' && k.layoutSizingVertical === 'FILL'), '5: every specimen ground FILLs its track, both axes');
+    // THE OWNER'S EXAMPLES (owner decisions, 2026-09-29): a 2px gap between tracks, rows and columns alike, and the swatch
+    // at its component's fixed size inside a cell that FILLs its track. 48 is the built swatch member's size (48 × 48).
+    const offGap = grids.filter((x) => x.gridRowGap !== 2 || x.gridColumnGap !== 2);
+    ok(offGap.length === 0, `5: every table's grid has a 2px gap between its rows and between its columns (${offGap.slice(0, 3).map((x) => `${x.parent?.name}: ${x.gridRowGap}/${x.gridColumnGap}`).join('; ')})`);
+    const swatchesIn = grounds.flatMap((k) => k.children.filter((c) => c.type === 'INSTANCE'));
+    const stretched = swatchesIn.filter((x) => x.lsh !== 'FIXED' || x.layoutSizingVertical !== 'FIXED' || x.width !== 48 || x.height !== 48);
+    ok(swatchesIn.length === grounds.length && stretched.length === 0 && grounds.every((k) => k.width > 48),
+      `5: every swatch keeps its component's 48 × 48, FIXED on both axes, inside a cell that FILLs its wider track (${stretched.length} of ${swatchesIn.length} do not: ${stretched.slice(0, 2).map((x) => `${x.lsh}/${x.layoutSizingVertical} ${x.width}×${x.height}`).join('; ')})`);
     const texts = textCells.flatMap((k) => k.findAll((x) => x.type === 'TEXT'));
     const wrapped = texts.filter((x) => x.textAutoResize !== 'WIDTH_AND_HEIGHT' || x.textTruncation !== 'DISABLED' || linesOf(x) !== String(x.characters).split('\n').length);
     ok(texts.length > 0 && wrapped.length === 0, `5: every text hugs its words — WIDTH_AND_HEIGHT, never truncated, never wrapped (${wrapped.slice(0, 3).map((x) => x.characters).join('; ')})`);
@@ -963,10 +990,10 @@ const main = async (): Promise<void> => {
     border.y += 5000;
     const [bx, by, iconY, textH] = [border.x, border.y, icon.y, text.height];
     const grow = (n: number, tag: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: 'New', valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
-    // Ten new rows, each as tall as its specimen: 48 + 12 + 12 = 72.
+    // Ten new rows, each as tall as its specimen, 48 + 12 + 12 = 72, and the 2px gap above it: 74.
     grow(10, 'grow');
     await draw(r.api, contract, { collections: ['color'] });
-    ok(text.height - textH === 720 && icon.y - iconY === 720, `10: a table that grows by 10 rows pushes the next table down 720px (Text +${text.height - textH}, Icon +${icon.y - iconY})`);
+    ok(text.height - textH === 740 && icon.y - iconY === 740, `10: a table that grows by 10 rows pushes the next table down 740px (Text +${text.height - textH}, Icon +${icon.y - iconY})`);
     ok(border.x === bx && border.y === by, '10: a table a designer moved stays where they put it');
     ok(gaps(order().filter((n) => n !== border)).every((d) => d === 160), `10: the rest stay 160px apart (${gaps(order().filter((n) => n !== border)).join(', ')})`);
     // Tables drawn before the position was recorded: re-flowed while they keep the stack's x.
@@ -976,7 +1003,7 @@ const main = async (): Promise<void> => {
     const [fx, fy, iconY2] = [field.x, field.y, icon.y];
     grow(5, 'more');
     await draw(r.api, contract, { collections: ['color'] });
-    ok(icon.y - iconY2 === 360, `10: tables from before the position record are re-flowed too: Icon +360 (got +${icon.y - iconY2})`);
+    ok(icon.y - iconY2 === 370, `10: tables from before the position record are re-flowed too: Icon +370 (got +${icon.y - iconY2})`);
     ok(field.x === fx && field.y === fy, "10: a table from before the record, off the stack's x, is taken as moved and left alone");
 
     // A host that does not keep the grid's HUG tracks is named, not drawn silently wrong.
@@ -990,6 +1017,33 @@ const main = async (): Promise<void> => {
     };
     const qr = await draw(q.api, contract, { collections: ['legacy'] });
     ok(qr.misses.includes('Legacy: the grid did not keep its hugging tracks, so a column may not fit its widest cell'), '10: a grid that did not keep its hugging tracks is named');
+    // The same, for the ROW tracks alone: the columns kept, the rows not.
+    const qrow = await fullFile();
+    const mkRow = qrow.api.createFrame.bind(qrow.api);
+    (qrow.api as unknown as { createFrame: () => N }).createFrame = () => {
+      const n = mkRow() as unknown as N;
+      let sizes: { type: string; value?: number }[] = [];
+      Object.defineProperty(n, 'gridRowSizes', { get: () => sizes, set: (v: { type: string }[]) => { if (v.every((x) => x.type === 'FLEX')) sizes = v; } });
+      return n;
+    };
+    const qrr = await draw(qrow.api, contract, { collections: ['legacy'] });
+    ok(qrr.misses.includes('Legacy: the grid did not keep its hugging tracks, so a column may not fit its widest cell'), `10: a grid that did not keep its hugging ROW tracks is named (${qrr.misses.join('; ') || 'no miss'})`);
+
+    // A header the host will not size: it refuses FILL, and `resize` leaves it at its component's 2,517px. The wrapper
+    // then hugs the header, not the grid, and the verdict names the table and both widths.
+    const hq = await fullFile();
+    const med = setsNamed(hq.pages, '_Section-header')[0].children.find((c) => c.name === 'Size=Medium')!;
+    const mkHeader = med.createInstance.bind(med);
+    med.createInstance = (): N => {
+      const i = mkHeader();
+      Object.defineProperty(i, 'layoutSizingHorizontal', { get: () => 'FIXED', set: (v: string) => { if (v !== 'FIXED') throw new Error(`${v} refused`); } });
+      i.resize = () => undefined;
+      return i;
+    };
+    const hr = await draw(hq.api, contract, { collections: ['legacy'] });
+    const legGrid = gridOf(tableFrame(hq.prim, 'Legacy')!);
+    ok(hr.misses.includes(`Legacy: the header did not take the table's width, so the table is 2517px wide around a ${Math.round(legGrid.width)}px grid`) && legGrid.width < 2517,
+      `10: a header the host will not size to its table is named, with the table's width and its grid's (${hr.misses.filter((m) => m.includes('header')).join('; ') || 'no miss'})`);
   }
 
   console.log('11. superseded tables: deleted when unedited, kept when a designer touched them');
@@ -1172,7 +1226,7 @@ const main = async (): Promise<void> => {
     ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 7 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 7 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
   }
 
-  console.log("12. the owner's grid model: a table dragged wider reflows");
+  console.log("12. the owner's grid model: a table dragged wider");
   {
     const rf = await fullFile();
     await draw(rf.api, contract, { collections: ['color'] });
@@ -1181,16 +1235,13 @@ const main = async (): Promise<void> => {
     const hdr = t.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'header')!;
     const w0 = g.width;
     ok(w0 > 0 && t.width === w0 && hdr.width === w0, `12: the table and its header hug the grid, ${w0}px, not the header component's 2,517 (table ${t.width}, header ${hdr.width})`);
-    const before = new Map(g.children.map((k) => [k, k.width]));
-    // A designer drags the grid 140px wider. The shim fixes its width, as a drag does, and shares the extra across
-    // the HUG tracks (its own assumption, stated at `tracks`): asserted is only that the tracks fill the grid and
-    // every cell follows its track.
+    // A designer drags the grid 140px wider; the shim fixes its width, as a drag does. Asserted is only what holds
+    // whatever the host does with the extra width: every cell is as wide as its track (a FILL cell takes its track),
+    // and the wrapper and header follow the grid. Whether the HUG tracks take up the extra at all is a live-check
+    // (docs/45 §7): the typings define HUG as CSS `fit-content(100%)`, which does not grow past its content.
     g.resize(w0 + 140, g.height);
-    const sum = g.gridColumnSizes.map((_, c) => trackW(g, c)).reduce((a, b) => a + b, 0);
-    ok(g.lsh === 'FIXED' && Math.abs(sum - (w0 + 140)) < 1e-6, `12: dragged 140px wider, the grid's tracks fill it (${sum} of ${w0 + 140})`);
     const off = g.children.filter((k) => Math.abs(k.width - trackW(g, k.gridCol!)) > 1e-6);
-    const narrower = g.children.filter((k) => k.width < before.get(k)! - 1e-6);
-    ok(off.length === 0 && narrower.length === 0 && g.children.every((k) => k.width > before.get(k)!), `12: every cell follows its track: each as wide as its column, each wider than before (${off.length} off its track, ${narrower.length} narrower)`);
+    ok(g.lsh === 'FIXED' && off.length === 0, `12: dragged 140px wider, every cell is still as wide as its track (${off.length} off its track)`);
     ok(t.width === w0 + 140 && hdr.width === w0 + 140, `12: the table and its header follow the grid to ${w0 + 140}px (table ${t.width}, header ${hdr.width})`);
   }
 
@@ -1201,15 +1252,22 @@ const main = async (): Promise<void> => {
     const PRIMARY = 'Primary — nbds';
     const target = tableFrame(f13.prim, PRIMARY)!;
     const PRINT = 'prism3-style-guide-print';
+    const AT = 'prism3-style-guide-at';
     const others = [...tablesOn(f13.prim), ...tablesOn(f13.sem)].filter((n) => n !== target);
-    const snap = new Map(others.map((n) => [n, { page: n.parent, grid: gridOf(n).id, print: n.pluginData[PRINT], x: n.x, y: n.y }]));
     const targetGrid = gridOf(target).id;
-    // A table on the page the filtered run does NOT draw on, drawn before the position record and sitting 50px off
-    // the stack: an unfiltered run re-flows it (section 10), so it moves only if that page is re-stacked.
+    // THE DESIGNER'S HAND, before the filtered runs. On the primitive page, the page the filter draws on: the fourth
+    // table, Accent, dragged 600px aside, which leaves a gap in the stack; and Warning, drawn before the position
+    // record, sitting 50px off the stack. On the semantic page, which the filter does not draw on, Text — nbds the
+    // same way. An unfiltered run re-flows a record-less table (section 10); a filtered run must touch none of them.
+    const accent = tableFrame(f13.prim, 'Accent — nbds')!;
+    accent.x += 600;
+    const warning = tableFrame(f13.prim, 'Warning — nbds')!;
+    delete warning.pluginData[AT];
+    warning.y += 50;
     const textNb = tableFrame(f13.sem, 'Text — nbds')!;
-    delete textNb.pluginData['prism3-style-guide-at'];
+    delete textNb.pluginData[AT];
     textNb.y += 50;
-    const textNbY = textNb.y;
+    const snap = new Map(others.map((n) => [n, { page: n.parent, grid: gridOf(n).id, print: n.pluginData[PRINT], x: n.x, y: n.y, at: n.pluginData[AT] }]));
     const p500 = f13.vars.find((v) => v.name === 'nbds/core/palette/primary/500')!;
     p500.valuesByMode['core:0'] = { r: 0.1, g: 0.2, b: 0.3, a: 1 };
     const r1 = await draw(f13.api, contract, { tables: [PRIMARY] });
@@ -1219,34 +1277,56 @@ const main = async (): Promise<void> => {
       '13: a filtered rerun updates its table in place: the same frame, a new grid, primary/500 reported changed');
     ok(r1.stale.length === 0 && r1.replaced.length === 0 && r1.deleted.length === 0 && r1.kept.length === 0,
       `13: the tables a filtered run skips are not stale, not replaced, not deleted and not reported (stale ${r1.stale.length}, deleted ${r1.deleted.length}, kept ${r1.kept.length})`);
-    const moved = [...snap].filter(([n, x]) => n.parent !== x.page || gridOf(n).id !== x.grid || n.pluginData[PRINT] !== x.print);
-    ok(tablesOn(f13.prim).length + tablesOn(f13.sem).length === 43 && moved.length === 0, `13: every other table is untouched: all 43 still drawn, each with its own grid and fingerprint (${moved.length} touched)`);
-    ok([...snap].every(([n, x]) => n === textNb || (n.x === x.x && n.y === x.y)), '13: a filtered run that does not change its table\'s height moves no table');
-    ok(textNb.y === textNbY, `13: the semantic page, which the filtered run did not draw on, is not re-stacked (Text — nbds at ${textNb.y}, left at ${textNbY})`);
+    const touched = [...snap].filter(([n, x]) => n.parent !== x.page || gridOf(n).id !== x.grid || n.pluginData[PRINT] !== x.print);
+    ok(tablesOn(f13.prim).length + tablesOn(f13.sem).length === 43 && touched.length === 0, `13: every other table is untouched: all 43 still drawn, each with its own grid and fingerprint (${touched.length} touched)`);
+    // THE REVIEW'S PROBE (S1): with a gap in the stack and a record-less table beside it, a run that does not change
+    // its table's height moves nothing and records nothing. The gap-closing re-stack moved 16 tables up and pulled
+    // Warning in.
+    const movedAt = (m: typeof snap): N[] => [...m].filter(([n, x]) => n.x !== x.x || n.y !== x.y).map(([n]) => n);
+    const recorded = (m: typeof snap): N[] => [...m].filter(([n, x]) => (n.pluginData[AT] ?? '') !== (x.at ?? '')).map(([n]) => n);
+    ok(movedAt(snap).length === 0 && recorded(snap).length === 0,
+      `13: a filtered run whose table keeps its height moves no table and writes no position record — the gap Accent left stays open, Warning stays off the stack (${movedAt(snap).length} moved: ${movedAt(snap).slice(0, 3).map((n) => n.name).join(', ')}; ${recorded(snap).length} recorded)`);
+    ok(textNb.y === snap.get(textNb)!.y && !textNb.pluginData[AT], `13: the semantic page, which the filtered run did not draw on, is not re-stacked (Text — nbds at ${textNb.y}, left at ${snap.get(textNb)!.y})`);
     ok(styleGuideSummary(r1).ok && styleGuideSummary(r1).headline === '✓ style guide: 1 table', `13: the verdict counts the one table (${styleGuideSummary(r1).headline})`);
 
-    // THE RE-STACK, filtered: two new steps grow the table by 2 × 72px. The tables below it on its page move down by
-    // that much, the one above does not move, and the other page is untouched.
-    const at = new Map([...tablesOn(f13.prim), ...tablesOn(f13.sem)].map((n) => [n, n.y]));
+    // GROWTH, then SHRINKAGE: two new steps grow the table by 2 × (72 + 2) = 148px, and removing them shrinks it back.
+    // The tables below it in its column that sit where the generator left them move by exactly that, their records with
+    // them; Accent (moved aside by hand) and Warning (no record) do not move and gain no record, and the gap Accent left
+    // stays open. Nothing above it and nothing on the other page moves.
+    const onPage = (): N[] => tablesOn(f13.prim).filter((n) => n !== target);
+    const at0 = new Map([...tablesOn(f13.prim), ...tablesOn(f13.sem)].map((n) => [n, { x: n.x, y: n.y, at: n.pluginData[AT] }]));
+    const below = onPage().filter((n) => at0.get(n)!.y > at0.get(target)!.y && n !== accent && n !== warning);
+    const above = onPage().filter((n) => at0.get(n)!.y < at0.get(target)!.y);
     const h0 = target.height;
-    for (const step of ['960', '970']) f13.vars.push({ id: `VariableID:nb-grow:${step}`, name: `nbds/core/palette/primary/${step}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: '', valuesByMode: { 'core:0': { r: 0, g: 0, b: 0, a: 1 } } });
+    const steps = ['960', '970'].map((step) => ({ id: `VariableID:nb-grow:${step}`, name: `nbds/core/palette/primary/${step}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: '', valuesByMode: { 'core:0': { r: 0, g: 0, b: 0, a: 1 } } }));
+    f13.vars.push(...steps);
     await draw(f13.api, contract, { tables: [PRIMARY] });
-    const below = tablesOn(f13.prim).filter((n) => at.get(n)! > at.get(target)!);
-    const above = tablesOn(f13.prim).filter((n) => at.get(n)! < at.get(target)!);
-    ok(target.height - h0 === 144, `13: two new steps grow ${PRIMARY} by 2 × 72 = 144px (got ${target.height - h0})`);
-    ok(below.length === 19 && below.every((n) => n.y - at.get(n)! === 144), `13: a filtered run re-stacks its own page: the 19 tables below ${PRIMARY} move down by its growth, 144px (${below.map((n) => n.y - at.get(n)!).slice(0, 3).join(', ')}…)`);
-    ok(above.length === 1 && above.every((n) => n.y === at.get(n)), `13: the table above it does not move (${above.map((n) => n.name).join(', ')})`);
-    ok(tablesOn(f13.sem).every((n) => n.y === at.get(n)), '13: and no table on the other page moves');
+    const shiftOf = (n: N): number => n.y - at0.get(n)!.y;
+    const inStep = (n: N): boolean => n.pluginData[AT] === `${n.x},${n.y}`;
+    ok(target.height - h0 === 148, `13: two new steps grow ${PRIMARY} by 2 × (72 + 2) = 148px (got ${target.height - h0})`);
+    ok(below.length === 17 && below.every((n) => shiftOf(n) === 148 && inStep(n)),
+      `13: a filtered run moves only the tables below its table, in its column and where the generator left them, by exactly its growth, 148px, each record moved with it (${below.length} tables: ${[...new Set(below.map(shiftOf))].join(', ')})`);
+    ok(accent.x === at0.get(accent)!.x && accent.y === at0.get(accent)!.y && accent.pluginData[AT] === at0.get(accent)!.at
+      && warning.y === at0.get(warning)!.y && !warning.pluginData[AT],
+      `13: a table a designer moved and a table with no position record are left alone, and neither gains a record (Accent +${shiftOf(accent)}, Warning +${shiftOf(warning)}, Warning's record "${warning.pluginData[AT] ?? ''}")`);
+    ok(above.length === 1 && above.every((n) => shiftOf(n) === 0) && tablesOn(f13.sem).every((n) => shiftOf(n) === 0),
+      `13: the table above it does not move, nor any table on the other page (${above.map((n) => n.name).join(', ')})`);
+    for (const st of steps) f13.vars.splice(f13.vars.indexOf(st), 1);
+    await draw(f13.api, contract, { tables: [PRIMARY] });
+    ok(target.height === h0 && below.every((n) => shiftOf(n) === 0 && inStep(n)) && shiftOf(accent) === 0 && shiftOf(warning) === 0 && !warning.pluginData[AT],
+      `13: shrinking back by 148px moves the same 17 tables up by exactly that, and leaves Accent and Warning where they are (${[...new Set(below.map(shiftOf))].join(', ')})`);
 
     // NAMED IN ANY CASE, OR BY KEY.
     const r3 = await draw(f13.api, contract, { tables: ['primary — NBDS', 'color|variablecollectionid:color|pds3/color/text'] });
     ok(JSON.stringify(r3.tables.map((t) => t.title)) === JSON.stringify([PRIMARY, 'Text — pds3']) && r3.unmatched.length === 0, `13: a table is named by its title in any case, or by its key (${r3.tables.map((t) => t.title).join(', ')})`);
 
-    // A NAME THAT MATCHES NOTHING is reported by name, with the titles this run could draw, and is not a pass.
+    // A NAME THAT MATCHES NOTHING is reported by name, with the first 8 of the 43 titles this run can draw and a count
+    // of the rest, and is not a pass.
     const r4 = await draw(f13.api, contract, { tables: [PRIMARY, 'Primry — nbds'] });
     const s4 = styleGuideSummary(r4);
-    ok(JSON.stringify(r4.unmatched) === JSON.stringify(['Primry — nbds']) && s4.summary.includes('No table is titled or keyed "Primry — nbds"; the tables this run can draw are Core — nbds base, Primary — nbds, Neutral — nbds,'),
-      `13: an unknown name is reported by name, with the titles this run can draw (${s4.summary.slice(0, 120)})`);
+    const first8 = 'Core — nbds base, Primary — nbds, Neutral — nbds, Accent — nbds, Success — nbds, Warning — nbds, Info — nbds, Danger — nbds';
+    ok(JSON.stringify(r4.unmatched) === JSON.stringify(['Primry — nbds']) && s4.summary.includes(`No table is titled or keyed "Primry — nbds"; the tables this run can draw are ${first8} and 35 more`),
+      `13: an unknown name is reported by name, with the first 8 titles this run can draw and "and 35 more" (${s4.summary.slice(0, 160)})`);
     ok(!s4.ok && s4.headline === '⚠ 1 drawn, 1 not found', `13: an unknown name is not a pass: "⚠ 1 drawn, 1 not found" (got "${s4.headline}")`);
     const r5 = await draw(f13.api, contract, { tables: ['Nope'] });
     const s5 = styleGuideSummary(r5);
@@ -1254,6 +1334,14 @@ const main = async (): Promise<void> => {
       `13: a filter that matches nothing draws nothing, deletes nothing and says so: "✗ no table matched" (got "${s5.headline}")`);
     const p13 = planStyleGuide({ collections: f13.cols, variables: f13.vars }, contract, { types: ['dimension'], tables: [PRIMARY] });
     ok(JSON.stringify(p13.unmatched) === JSON.stringify([PRIMARY]) && p13.notes.includes(`No table is titled or keyed "${PRIMARY}"; this run draws no tables`), '13: a name asked for in a run that draws no color is still reported');
+
+    // A RENAMED GROUP, drawn under its new title by a filtered run: the new table is created, and the old one, which
+    // the generator no longer draws, stays until an unfiltered run judges it — and the report says so.
+    for (const v of f13.vars) if (v.name.startsWith('nbds/core/palette/info/')) v.name = v.name.replace('/info/', '/notice/');
+    const r6 = await draw(f13.api, contract, { tables: ['Notice — nbds'] });
+    ok(r6.tables.length === 1 && r6.tables[0].status === 'created' && !!tableFrame(f13.prim, 'Info — nbds')
+      && styleGuideSummary(r6).summary.includes('Style guide — Info — nbds stays in place: the generator no longer draws it, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete it'),
+      `13: a filtered run that draws a renamed group's new table says the old one stays until a run without a Tables filter (${styleGuideSummary(r6).summary.slice(0, 200)})`);
   }
 
   console.log('14. one table at a time, yielding to the host (#1778)');
@@ -1283,6 +1371,34 @@ const main = async (): Promise<void> => {
     const gaps = rowsAt.map((n, i) => n - (i ? rowsAt[i - 1] : 0));
     ok(rowsAt.length >= 12 && rowsAt[rowsAt.length - 1] === 124 && Math.max(...gaps) <= 10,
       `14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
+  }
+
+  console.log('15. one run at a time, from either entry point (#1785)');
+  {
+    // The gate `main.ts` routes the panel and the agent link through. A panel run draws the prism3 file; at its third
+    // yield, mid-table, the agent link asks for a run through the same gate.
+    const gate = createStyleGuideGate();
+    const f15 = await fullFile();
+    const hold: { second?: ReturnType<typeof gate.run<StyleGuideResult>> } = {};
+    let yields = 0;
+    const yieldTo = async (): Promise<void> => {
+      if (++yields === 3) hold.second = gate.run('agent', () => draw(f15.api, contract));
+      await fastYield();
+    };
+    const first = await gate.run('panel', () => draw(f15.api, contract, {}, { yieldTo }));
+    const second = await hold.second;
+    ok(first.ran && second?.ran === false && second.running === 'panel',
+      `15: a run asked for from the agent link while a panel run is mid-yield is refused, naming the panel's run (${JSON.stringify(second && { ran: second.ran, running: second.ran ? null : second.running })})`);
+    const busy = styleGuideBusy('panel');
+    ok(!busy.ok && busy.headline === '✗ already drawing' && busy.summary.startsWith('A style guide started from the panel is still drawing, so this request was not run')
+      && styleGuideBusy('agent').summary.startsWith('A style guide started from the agent link is still drawing'), `15: the refusal says which run is still drawing: "${busy.headline}" — ${busy.summary.slice(0, 80)}…`);
+    const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
+    const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
+    ok(wraps.length === 22 && keys.size === 22 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
+      && first.ran && first.value.tables.length === 22 && first.value.tables.every((t) => t.status === 'created'),
+      `15: exactly one set of tables results: 22, each key once, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
+    const third = await gate.run('agent', () => draw(f15.api, contract, { collections: ['legacy'] }));
+    ok(third.ran && gate.running() === null, '15: once that run reports, the next is let through, from either entry point');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

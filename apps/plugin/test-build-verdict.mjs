@@ -610,8 +610,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.locator('details.contracts summary', { hasText: 'Customize' }).first().click();
   await page.locator('.knob', { hasText: 'Color value' }).locator('select').selectOption('hsl');
   await page.locator('.knob', { hasText: 'Display style' }).locator('select').selectOption('border');
-  // #1778: the Tables field — titles separated by commas, sent as a list, blanks dropped.
-  await page.locator('.knob', { hasText: 'Tables' }).locator('input').fill('Primary — nbds,  Text — pds3, ');
+  // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
+  await page.locator('.knob', { hasText: 'Tables' }).locator('textarea').fill('Primary — nbds,  Text — pds3, ');
   const clicked = await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#259 the Draw style guide control can be clicked');
   // postMessage delivers asynchronously; a real condition rather than a sleep.
@@ -633,6 +633,36 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const done = await readSg();
   ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
   ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+
+  // #1785: a run the AGENT LINK started, which the panel did not click for. Its first reading (done 0, posted before
+  // its first table) puts the page's row pending, the button disabled, so a click cannot start a second run over it.
+  await post(page, { type: 'style-guide-progress', done: 0, total: 22, tableMs: 0 });
+  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '⋯ Drawing…'), null, { timeout: 3000 }).catch(() => {});
+  const agentRun = await readSg();
+  ok(agentRun.button === '⋯ Drawing…' && agentRun.disabled === true && agentRun.pendingText[0] === 'Drawing table 1 of 22…',
+    `#1785 an agent-link run's first reading puts the page's row pending, the button disabled — read "${agentRun.button}", disabled ${agentRun.disabled}, ${JSON.stringify(agentRun.pendingText)}`);
+  // A click that raced that reading is refused as `busy`: the row stays on the run in flight, no verdict pill over it.
+  await post(page, { type: 'style-guide-result', ok: false, busy: true, headline: '✗ already drawing', summary: 'A style guide started from the agent link is still drawing, so this request was not run' });
+  await post(page, { type: 'style-guide-progress', done: 4, total: 22, tableMs: 900 });
+  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row .bar-seed')].some((n) => n.textContent === 'Drawing table 5 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const still = await readSg();
+  ok(still.button === '⋯ Drawing…' && still.verdict.length === 0 && still.pendingText[0] === 'Drawing table 5 of 22…',
+    `#1785 a busy refusal leaves the row pending on the run in flight, with no verdict pill — read "${still.button}", ${JSON.stringify(still.verdict)}, ${JSON.stringify(still.pendingText)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
+  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '▦ Draw style guide'), null, { timeout: 5000 }).catch(() => {});
+  const agentDone = await readSg();
+  ok(agentDone.disabled === false && agentDone.verdict.length === 1 && agentDone.verdict[0].includes('✓ style guide: 1 table'), `#1785 the agent's verdict ends it on the page's row — read ${JSON.stringify(agentDone.verdict)}`);
+
+  // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
+  const custom = page.locator('details.contracts', { hasText: 'Customize' }).first();
+  if (!(await custom.evaluate((d) => d.open))) await custom.locator('summary').click();
+  await page.locator('.knob', { hasText: 'Tables' }).locator('textarea').fill('Brand, legacy — nbds\nText — pds3\n');
+  await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__sent.length > 1, null, { timeout: 3000 }).catch(() => {});
+  const lines = await readSg();
+  ok(JSON.stringify(lines.sent[1]?.options?.tables) === JSON.stringify(['Brand, legacy — nbds', 'Text — pds3']),
+    `#1778 a Tables field with a line break sends a title a line, its comma kept — sent ${JSON.stringify(lines.sent[1]?.options?.tables)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
   ok(errors.length === 0, `#259 no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }

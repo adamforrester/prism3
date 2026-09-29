@@ -160,7 +160,8 @@ export interface HostCommit {
         // so it needs its own verdict slot and cannot overwrite theirs.
         | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
         // #259 — the outcome of a `style-guide` run, its own slot.
-        | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+        // `busy` (#1785): refused because a run from the other entry point is still drawing.
+        | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; busy?: true }
         | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
         // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
         // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
@@ -244,7 +245,7 @@ const figmaCommit = (): HostCommit => ({
         | {
             type?: string; ok?: boolean; present?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
             families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
-            applied?: unknown; count?: unknown; pillOnly?: unknown;
+            applied?: unknown; count?: unknown; pillOnly?: unknown; busy?: unknown;
           }
         | undefined;
       if (!m) return;
@@ -268,7 +269,7 @@ const figmaCommit = (): HostCommit => ({
       } else if (m.type === 'style-guide-result') {
         // #259. Same headline fallback, same reason.
         const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ style guide written' : '✗ style guide failed';
-        cb({ kind: 'style-guide-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
+        cb({ kind: 'style-guide-result', ok: !!m.ok, headline, summary: String(m.summary ?? ''), ...(m.busy === true ? { busy: true as const } : {}) });
       } else if (m.type === 'component-progress') {
         // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
         // above, which fall back to a default headline. A result is a fact the designer is waiting for,

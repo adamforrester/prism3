@@ -161,8 +161,9 @@ export type MainToUi =
    *  ≤24-char pill budget; `summary` names the pages created and any font miss on the template assets. */
   | { type: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `style-guide` run (#259) — the same `{ok, headline, summary}` shape, its own kind and slot.
-   *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip. */
-  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+   *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip.
+   *  `busy` (#1785): refused, because a style-guide run from the other entry point is still drawing. */
+  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string; busy?: true }
   /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
    *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
    *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text

@@ -904,6 +904,9 @@ commit.onHostMessage((m) => {
     return;
   }
   if (m.kind === 'style-guide-result') {
+    // #1785. A refusal: the panel's click met a run the agent link started, which is still drawing. The row
+    // stays pending on that run, whose readings and result reach the panel too.
+    if (m.busy) { if (styleGuideState !== 'pending') pendStyleGuide(); return; }
     // #259. The file-setup handling, against its own slot and row.
     styleGuideState = { ok: m.ok, headline: m.headline, summary: m.summary };
     styleGuideProgress = null;
@@ -915,7 +918,16 @@ commit.onHostMessage((m) => {
   if (m.kind === 'style-guide-progress') {
     // #1778. The `component-progress` handling below, for the style guide's own pill: accepted only while a run
     // is in flight, written as text into every live pending pill rather than re-rendering the bar.
-    if (styleGuideState !== 'pending') return;
+    // #1785. The one exception: a run's FIRST reading (`done: 0`, posted before its first table) while the row
+    // is not pending is a run the agent link started. The row goes pending on it, its button disabled, so a
+    // click cannot start a second run over it. A later reading never does, so one arriving after its own
+    // result cannot bring a finished run back.
+    if (styleGuideState !== 'pending') {
+      if (m.done !== 0) return;
+      styleGuideProgress = { done: m.done, total: m.total };
+      pendStyleGuide();
+      return;
+    }
     styleGuideProgress = { done: m.done, total: m.total };
     const text = styleGuidePendingText();
     for (const node of styleGuidePendingEls) {
@@ -5241,7 +5253,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
       'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'),
     knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
-    knob('Tables', tablesField(), 'Draws only the tables named, by title and separated by commas (Primary — nbds). Empty draws every table.'),
+    knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'),
   );
   sec.append(det);
 
@@ -5261,20 +5273,34 @@ const renderStyleGuidePage = (host: PageHost): void => {
   host.append(sec);
 };
 
-/** The Tables filter (#1778): a comma-separated list of table titles, sent as `tables` and left out when empty.
- *  A text field rather than a checklist of titles: the titles are the main thread's plan of this file's
- *  variables, which the panel does not hold until a run reports them. A name that matches nothing comes back
- *  in the verdict with every title this run can draw. */
-const tablesField = (): HTMLInputElement => {
-  const input = el('input', 'tf-in') as HTMLInputElement;
-  input.type = 'text'; input.spellcheck = false; input.placeholder = 'Every table';
-  input.setAttribute('aria-label', 'Tables to draw, separated by commas');
-  input.value = (styleGuideOptions.tables ?? []).join(', ');
+/** The Tables filter (#1778): table titles, sent as `tables` and left out when empty. One title a line, or
+ *  several on one line separated by commas: a field with a line break splits on line breaks ONLY, so a title
+ *  with a comma in it survives on a line of its own. A text field rather than a checklist of titles: the titles
+ *  are the main thread's plan of this file's variables, which the panel does not hold until a run reports them.
+ *  A name that matches nothing comes back in the verdict with the titles this run can draw. */
+const tableNames = (text: string): string[] =>
+  text.split(/\r?\n/.test(text) ? /\r?\n/ : ',').map((x) => x.trim()).filter(Boolean);
+const tablesField = (): HTMLTextAreaElement => {
+  const input = el('textarea', 'tf-in') as HTMLTextAreaElement;
+  input.rows = 2; input.spellcheck = false; input.placeholder = 'Every table';
+  input.setAttribute('aria-label', 'Tables to draw: one a line, or separated by commas');
+  const kept = styleGuideOptions.tables ?? [];
+  // Shown again the way it reads back: a line each (every line closed, so one title still reads as a line)
+  // once any title holds a comma.
+  input.value = kept.some((x) => x.includes(',')) ? kept.map((x) => `${x}\n`).join('') : kept.join(', ');
   input.oninput = () => {
-    const names = input.value.split(',').map((x) => x.trim()).filter(Boolean);
+    const names = tableNames(input.value);
     if (names.length) styleGuideOptions.tables = names; else delete styleGuideOptions.tables;
   };
   return input;
+};
+
+/** Put the style-guide row in its pending state for a run the panel did not start (#1785): an agent link's. The
+ *  button's own click does the same before it posts. `styleGuideProgress` is the caller's. */
+const pendStyleGuide = (): void => {
+  styleGuideState = 'pending'; openDetail = null;
+  if (barHost) { renderBar(); syncApplyDetail(); }
+  syncStyleGuideRow();
 };
 
 /** The style guide's live pending text (#1778): the table being drawn, counted from 1. Before the first

@@ -439,6 +439,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
  * any case. A name that matches nothing is reported by name, with the titles this run could draw, so a typo is
  * never a silent no-op. Applied after the plan is built, so a title means what it means in an unfiltered run.
  */
+const TITLES_LISTED = 8;
 const narrow = (tables: SgTable[], notes: string[], want: readonly string[] | undefined): SgPlan => {
   if (!want) return { tables, notes, unmatched: [] };
   const hit = (t: SgTable, name: string): boolean => {
@@ -447,7 +448,10 @@ const narrow = (tables: SgTable[], notes: string[], want: readonly string[] | un
   };
   const unmatched = [...new Set(want)].filter((name) => !tables.some((t) => hit(t, name)));
   if (unmatched.length) {
-    const here = tables.length ? `the tables this run can draw are ${tables.map((t) => t.title).join(', ')}` : 'this run draws no tables';
+    // The first TITLES_LISTED titles, then a count: the owner's file draws 43, which is no longer a note.
+    const titles = tables.map((t) => t.title);
+    const listed = titles.length > TITLES_LISTED ? `${titles.slice(0, TITLES_LISTED).join(', ')} and ${titles.length - TITLES_LISTED} more` : titles.join(', ');
+    const here = tables.length ? `the tables this run can draw are ${listed}` : 'this run draws no tables';
     notes.push(`No table is titled or keyed ${unmatched.map((n) => `"${n}"`).join(', ')}; ${here}`);
   }
   return { tables: tables.filter((t) => want.some((name) => hit(t, name))), notes, unmatched };
@@ -641,6 +645,8 @@ const fontKeyOf = (f: { family: string; style: string }): string => `${f.family}
 const PLACEHOLDER_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0, b: 0 } };
 const WHITE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }];
 const TABLE_GAP = 160;
+/** The gap between a table's tracks, rows and columns alike: the owner's examples' 2px (owner decision, 2026-09-29). */
+const TRACK_GAP = 2;
 const PART_KEY = 'prism3-style-guide-part';
 /** The header text a run wrote, so the next run can tell its own words from a designer's. */
 const TITLE_KEY = 'prism3-style-guide-title';
@@ -857,7 +863,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   };
 
   // The specimen: a ground frame bound to the ground variable (or plain white), the swatch inside it bound to
-  // the token, and BOTH pinned to the column's mode so the binding resolves in that mode, live.
+  // the token, and BOTH pinned to the column's mode so the binding resolves in that mode, live. The ground is
+  // the grid cell; the swatch keeps its component's fixed size inside it.
   const unboundIn = new Map<string, number>();
   const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
     const ground = api.createFrame();
@@ -881,6 +888,13 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
       inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
       ground.appendChild?.(inst);
+      // THE SWATCH KEEPS ITS COMPONENT'S SIZE (owner decision, 2026-09-29, #259): FIXED on both axes at the
+      // member's own width and height, as `_style-guide-swatches` sits in the owner's examples. The ground is the
+      // cell and FILLs the track; the swatch inside it never stretches with the column.
+      const [w, h] = [num(v.width), num(v.height)];
+      sizing(inst, 'FIXED');
+      try { inst.layoutSizingVertical = 'FIXED'; } catch { /* a host that refuses it leaves the instance as created */ }
+      if (w > 0 && h > 0) inst.resize?.(w, h);
     }
     return ground;
   };
@@ -902,6 +916,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
 
   const headerColor = options.header === 'light' ? 'white' : 'dark';
   const drawnOn = new Set<SgPage>();
+  /** Every table this run drew, and how much taller it is than before (0 for a new one). */
+  const drawn: { frame: SgNode; page: SgPage; created: boolean; delta: number }[] = [];
   const drawTable = async (t: SgTable): Promise<void> => {
     const page = pages.get(t.page);
     if (!page) { skip(t, 'no-page'); return; }
@@ -953,6 +969,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       }
     }
 
+    // The table's height before this run, which a filtered run's re-stack moves the tables below it by (#1778).
+    const before = created ? 0 : num(wrap.height);
     // The grid is rebuilt every run: the values are static text, refreshed here.
     for (const c of (wrap.children ?? []) as SgNode[]) if (c.getPluginData?.(PART_KEY) === 'table') c.remove?.();
     const grid = api.createFrame();
@@ -962,8 +980,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     grid.layoutMode = 'GRID';
     grid.gridRowCount = t.rows.length + 1;
     grid.gridColumnCount = t.columns.length;
-    grid.gridRowGap = 0;
-    grid.gridColumnGap = 0;
+    // A 2px gap between tracks, both ways, as in the owner's examples (owner decision, 2026-09-29, #259).
+    grid.gridRowGap = TRACK_GAP;
+    grid.gridColumnGap = TRACK_GAP;
     // THE OWNER'S GRID MODEL (owner decision, 2026-09-29, #259), measured live on their "↳ Style Guide Examples":
     // every column and row track HUGs, every cell FILLs its track on both axes, and every text hugs its words on
     // one line. A track takes its widest cell's content, and a designer who drags the grid wider widens the
@@ -1021,16 +1040,17 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (header && !near(num(wrap.width), num(grid.width))) misses.push(`${t.title}: the header did not take the table's width, so the table is ${Math.round(num(wrap.width))}px wide around a ${Math.round(num(grid.width))}px grid`);
 
     const after = snapshotOf(t);
-    const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
+    const was = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));
     // Stamped last, once the table holds everything this run writes: the frame it was written on, and what it holds.
     wrap.setPluginData?.(MARK_KEY, `${String(page.id)}|${String(wrap.id)}`);
     wrap.setPluginData?.(PRINT_KEY, await fingerprintOf(wrap));
     out.push(created
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
-      : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(before, after) });
+      : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(was, after) });
     if (created) anchor(page).y += (wrap.height ?? 0) + TABLE_GAP;
     drawnOn.add(page);
+    drawn.push({ frame: wrap, page, created, delta: created ? 0 : num(wrap.height) - before });
   };
   // ONE TABLE AT A TIME, YIELDING BETWEEN THEM (#1778): the host repaints, the panel's pill counts up, and a
   // designer can scroll while the rest draw.
@@ -1107,14 +1127,48 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
   }
 
+  // A FILTERED run that draws a table for the first time, where the same collection still holds a table the
+  // generator no longer draws — a group renamed, drawn under its new title — says the old table stays: it judges
+  // no superseded table, so without this note the designer would see both and not know why.
+  const notes = [...plan.notes];
+  if (options.tables) {
+    const newCols = new Set(out.filter((o) => o.status === 'created').map((o) => plan.tables.find((t) => t.key === o.key)?.collectionId));
+    const everyKey = new Set(planStyleGuide(catalog, contract, { ...options, tables: undefined }).tables.map((t) => t.key));
+    const left = api.root.children.flatMap((p) => framesOn(p)).filter((f) => {
+      const k = f.getPluginData?.(TABLE_KEY) || '';
+      return !!k && !everyKey.has(k) && newCols.has(k.split('|')[1]);
+    }).map((f) => String(f.name));
+    if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
+  }
+
   // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
   // "Neutral — nbds", still at 3,585). The generator's own tables on each page it drew on are re-flowed in their
   // order down the page, TABLE_GAP apart, from the topmost. A table is where the generator left it while it sits at
   // the position recorded then; one that does not was moved by a designer and is left alone. A table from before the
   // record has none, and is taken as the generator's while it keeps the stack's x. A deleted table's place counts
   // as the top when it was higher, so deleting the first table does not leave a gap above the rest.
+  //
+  // A FILTERED run (#1778) does not re-flow: it draws a few tables on a page it did not lay out, so it only keeps
+  // them from overlapping. Each table below a drawn one, in that table's column, moves by exactly the drawn table's
+  // change in height — and only while it sits where the generator left it (its position record matches). No other
+  // gap on the page closes, a table a designer moved stays put, and a table from before the record is neither
+  // moved nor recorded. A table it moves has its record moved with it, so the next run still reads it as where the
+  // generator left it rather than as moved by hand.
   const byY = (a: SgNode, b: SgNode): number => num(a.y) - num(b.y);
-  for (const p of drawnOn) {
+  const leftAt = (n: SgNode): boolean => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); };
+  if (options.tables) for (const p of drawnOn) {
+    const grown = drawn.filter((d) => d.page === p && !d.created && !near(d.delta, 0));
+    if (!grown.length) continue;
+    const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+    const y0 = new Map(ours.map((n) => [n, num(n.y)]));
+    for (const n of ours.filter(leftAt)) {
+      const shift = grown.filter((d) => d.frame !== n && near(num(d.frame.x), num(n.x)) && (y0.get(d.frame) ?? 0) < (y0.get(n) ?? 0)).reduce((s, d) => s + d.delta, 0);
+      if (near(shift, 0)) continue;
+      n.y = num(n.y) + shift;
+      n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+    }
+  }
+  else for (const p of drawnOn) {
     const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
     const left = ours.filter((n) => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); });
     const unrecorded = ours.filter((n) => !recordOf(n));
@@ -1135,7 +1189,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
 
   const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
-  return { tables: out, stale, replaced, deleted, kept, unbound, notes: plan.notes, misses, unmatched: plan.unmatched };
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched };
 };
 
 /**
@@ -1213,3 +1267,37 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
     : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'No color variables in this file' };
 };
+
+/**
+ * ONE STYLE-GUIDE RUN AT A TIME (#1785). A run yields to the host (#1778), so the panel stays live while it draws,
+ * and the panel's button and the agent link's `style-guide` command are two entry points into one file. Two runs
+ * meet at their yields: the second's `drawTable` removes the first's grid mid-build, and the first then writes into
+ * a grid no longer on the page. The gate holds one run per plugin session; a second request, from either entry
+ * point, is REFUSED by name rather than queued, since a queued run would redraw every table the first just drew.
+ * `main.ts` makes one gate and routes both entry points through it.
+ */
+export type StyleGuideEntry = 'panel' | 'agent';
+
+export const createStyleGuideGate = () => {
+  let running: StyleGuideEntry | null = null;
+  return {
+    /** Who started the run in flight, or null. */
+    running: (): StyleGuideEntry | null => running,
+    /** Run `fn` unless a run is in flight; then return who started that one, and do not run. */
+    async run<T>(entry: StyleGuideEntry, fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; running: StyleGuideEntry }> {
+      if (running) return { ran: false, running };
+      running = entry;
+      try { return { ran: true, value: await fn() }; } finally { running = null; }
+    },
+  };
+};
+
+/** The headline of a refused second run. */
+export const STYLE_GUIDE_BUSY = '✗ already drawing';
+
+/** The verdict a refused second run reports: which entry point's run is still drawing, and what to do. */
+export const styleGuideBusy = (running: StyleGuideEntry): { ok: false; headline: string; summary: string } => ({
+  ok: false,
+  headline: STYLE_GUIDE_BUSY,
+  summary: `A style guide started from the ${running === 'agent' ? 'agent link' : 'panel'} is still drawing, so this request was not run — two runs at once draw over each other's tables. Run it again once that one reports its result`,
+});
