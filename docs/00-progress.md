@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-09-30) — Skills gate: an all-caps name a skill quotes is declared where the skill places it (#1725)
+
+**STATUS: PR open from `lane/lint-skills-constants`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-skills.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252). `regen --check` stays in sync. Fixes #1725.
+
+**The defect.** `prism3-build-component` names about thirty hand-kept lists and version constants (`INTERACTIVE`, `NO_SIZE_AXIS`, `COMPOSED_GLYPH`, `EXPECTED_ARTIFACTS`, …). `lint-skills` resolved only dotted names, snake_case names and `*.ts` paths, so an all-caps name was never read. #1725 measured it: renaming `COMPOSED_GLYPH` in the skill exited 0.
+
+**The fix: check 5.** Every backticked word that is entirely `[A-Z0-9_]` is read as a claim that an identifier by that name is declared. The index comes from the source, not from the skills: every `const`/`let`/`var`/`function`/`class`/`enum`/`type`/`interface` declaration in the `.ts` files under `packages/`, `apps/` and `tools/` and at the repo root, skipping `node_modules`, `dist` and `out`. **Where** the name must be declared depends on what the skill says:
+- "`X` in `path.ts`" (or in a `lint-*` gate), even across a line break, means that file.
+- A table row whose first cell names a `*.ts` path or a `lint-*` gate means that file, for every name in the row. This is why a location is needed at all: `MUST_COVER` is declared in six gates, so "declared somewhere" would pass a rename of the one the `lint-rung-names` row means.
+- Otherwise, any source file.
+
+A `lint-*` gate that resolves to no source file, or to more than one, is a finding. It does not fall back to "anywhere".
+
+**False positives: an explicit rule, not a narrower scan.** Requiring an underscore would have been the easy filter, and it would silently drop `TAXONOMY`, `STATES`, `INTERACTIVE` and `EXCLUDED`: four real list constants the skill quotes today. So the pattern stays wide. An all-caps word that is not an identifier is admitted by name in `NOT_DECLARED`, with a reason, the same rule as `NOT_EN_GB`. There is one admission: `COMPONENT_CONTRACT_VERSION`, which §8 of the skill names as a decided direction and, in the next sentence, says does not exist in code. The list is checked both ways: an admitted word that becomes declared fails as stale, and so does one no skill quotes. The existing counter-example exemption ("not `X`") applies as it does to every name.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).** Subject side, with `origin/main`'s gate run over the same edit for contrast:
+
+| Mutation | This branch | `main` |
+|---|---|---|
+| M1 skill: `COMPOSED_GLYPH` → `COMPOSED_GLYPHS` (#1725's measurement) | `[misplaced identifier] COMPOSED_GLYPHS is not declared in packages/engine/lint-glyph-geometry.ts` | exit 0 |
+| M2 a made-up `FAKE_RAMP_LIST` added to `prism3-consume` | `[undeclared identifier] FAKE_RAMP_LIST is not declared in any source file` | exit 0 |
+| M3 gate side: `MUST_COVER` renamed in `lint-rung-names.ts` only | `[misplaced identifier] MUST_COVER is not declared in packages/engine/lint-rung-names.ts` (declared in the five other gates) | exit 0 |
+| M4 `TAXONOMY` renamed in `apps/plugin/src/file-taxonomy.ts` | `[misplaced identifier] TAXONOMY …` at both places the skill names it | exit 0 |
+
+Gate side, each failing the self-check by name:
+
+| Mutation | Fails |
+|---|---|
+| M5 check 5 neutered (`if (false && …)`) | `an UNDECLARED all-caps identifier is no longer detected`, and three more |
+| M6 `placedIn` returns nothing | `a table-row identifier declared only in ANOTHER gate passes`; `a prose "X in file.ts" placement naming the WRONG file passes`; the unresolvable-gate arm |
+| M7 `UPPER` narrowed to require an underscore | `an undeclared all-caps word with NO underscore is no longer detected` |
+| M8 an unresolvable site falls back to "anywhere" | `a table row naming a gate with no source file passes` |
+| M9 `ENGINE_VERSION` admitted in `NOT_DECLARED` | `[stale admission] … it is now declared in packages/engine/version.ts` |
+| M10 `WCAG` admitted, quoted by no skill | `[stale admission] NOT_DECLARED admits WCAG, which no skill quotes any more` |
+| M11 the admission is not consulted | `an admitted NOT_DECLARED word is now flagged` |
+
+**Trap for whoever re-verifies.** The first M8 (`if (!file && !where)`) survived, and that was the mutation's fault, not the gate's. With `file` undefined, the `else if (!where?.has(file))` branch still fires and names the row as misplaced. A mutation meant to test "falls back to anywhere" has to skip the placement entirely (`if (site && siteFile(site).file)`), which is the M8 in the table.
+
+---
+
 ## (2026-09-29) — Paste-path theme cleanup: read nothing off an object after removing it (#1790)
 
 **STATUS: PR open from `lane/cleanup-read-after-remove`, labeled DO NOT MERGE.** ENGINE 0.203.0 → **0.208.0** (a plugin write-path behavior change; `out/**` and `schema/*` move only their version stamp). 0.208.0 because `main` carries 0.207.0 (#1793, after #1792's 0.206.0) and an open lane holds 0.205.0 (#1788); the rule is the next free minor above `main` and every open branch at push time. CONTRACT stands at 14.0.0 (#1792's). Fixes #1790.
