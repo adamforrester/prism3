@@ -1691,6 +1691,11 @@ for (const b of brands) {
     'color role-families carry surface/ink/stroke scopes by family (#1484: foreground is a surface, not text)'
     + (familyScopeChecked !== 7 ? ` — swept ${familyScopeChecked} families, expected 7` : '')
     + (familyScopeBad.length ? ` — WRONG SCOPE: ${familyScopeBad.join('; ')}` : ''));
+  // #1318 — the veil's CLEAR ends are fill-only like the rungs: a stop color for a wash, never ink or a stroke.
+  // Named leaves, not the family representative above, so a clear end scoped apart from its family fails here.
+  const clearScopeBad = ['color/veil/dark/clear', 'color/veil/light/clear'].filter((l) => scopeOf(l) !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL']));
+  ok(clearScopeBad.length === 0,
+    `veil: both clear ends are scoped FRAME_FILL + SHAPE_FILL, like the rungs${clearScopeBad.length ? ` — WRONG: ${clearScopeBad.map((l) => `${l}=${scopeOf(l)}`).join('; ')}` : ''}`);
 
   // (f) overlays (docs/20 §6): each colour has hover/pressed/selected washes, mode-adaptive
   //     (black-alpha light / white-alpha dark), and the COMPOSITED result is a gated contract
@@ -7820,7 +7825,10 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   {
     const light = veilModes.find((m) => m.mode === 'light')!.roles;
     const paths = Object.keys(light).filter((k) => k.startsWith('veil.'));
-    ok(paths.length === 6, `veil: six leaves — two polarities × three rungs (got ${paths.length}: ${paths.sort().join(', ')})`);
+    // SIX RUNGS PLUS TWO CLEAR ENDS (#1318) — the rungs are what this arm derives; the `clear` pair is the
+    // far stop of a directional veil and is asserted in its own block below.
+    ok(paths.length === 8 && ['dark', 'light'].every((p) => paths.includes(`veil.${p}.clear`)),
+      `veil: eight leaves — two polarities × three rungs, plus each polarity's clear end (got ${paths.length}: ${paths.sort().join(', ')})`);
     const notMinimal: string[] = [], short: string[] = [];
     for (const polarity of ['dark', 'light']) {
       for (const rung of Object.keys(WCAG_FLOOR)) {
@@ -7923,6 +7931,46 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     }
     ok(wrongBase.length === 0,
       `veil: each polarity aliases its OWN alpha ramp in every mode — a light veil is white in dark mode too${wrongBase.length ? ` — WRONG BASE: ${wrongBase.slice(0, 4).join(', ')}` : ''}`);
+
+    // ARM D — THE CLEAR ENDS (#1318), in every brand, at 0% alpha and in their OWN polarity's hue. Resolved
+    // to the COLOR each one lands on, through the committed tree's own alias chain, and parsed from the
+    // emitted string (hex8 or `rgba()`, whichever the brand writes) — never read off `modes.ts` or the alias
+    // NAME, because "aliases something called transparent" would pass a clear-black light end, which is the
+    // exact defect the second role exists for: Figma interpolates stops unpremultiplied, so a white wash
+    // fading to clear black goes gray. Every mode entry is resolved too, so a clear end that follows the
+    // theme fails here as well as in arm B's invariance.
+    const WANT_RGB: Record<string, [number, number, number]> = { dark: [0, 0, 0], light: [255, 255, 255] };
+    const parseColor = (v: string): [number, number, number, number] | null => {
+      const h = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(v);
+      if (h) return [parseInt(h[1].slice(0, 2), 16), parseInt(h[1].slice(2, 4), 16), parseInt(h[1].slice(4, 6), 16), h[2] ? parseInt(h[2], 16) / 255 : 1];
+      const r = /^rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\s*\)$/.exec(v);
+      return r ? [Number(r[1]), Number(r[2]), Number(r[3]), r[4] === undefined ? 1 : Number(r[4])] : null;
+    };
+    const clearBad: string[] = [];
+    let clearChecked = 0;
+    for (const brand of trees) {
+      const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+      const deref = (v: unknown, hops = 0): unknown => {
+        if (typeof v !== 'string' || !/^\{.+\}$/.test(v) || hops > 10) return v;
+        const leaf = v.slice(1, -1).split('.').reduce<any>((n, s) => n?.[s], tree); // eslint-disable-line @typescript-eslint/no-explicit-any
+        return deref(leaf?.$value, hops + 1);
+      };
+      for (const polarity of ['dark', 'light']) {
+        const leaf = tree[root]?.color?.veil?.[polarity]?.clear;
+        if (!leaf) { clearBad.push(`${brand}: color.veil.${polarity}.clear MISSING`); continue; }
+        const values = [leaf.$value, ...Object.values((leaf.$extensions?.prism3?.modes ?? {}) as Record<string, { $value?: string }>).map((e) => e?.$value)];
+        for (const v of values) {
+          clearChecked++;
+          const c = parseColor(String(deref(v)));
+          const [r, g, b] = WANT_RGB[polarity];
+          if (!c || c[3] !== 0 || c[0] !== r || c[1] !== g || c[2] !== b)
+            clearBad.push(`${brand}: veil.${polarity}.clear → ${String(v)} resolves to ${String(deref(v))}, want ${polarity === 'dark' ? 'black' : 'white'} at alpha 0`);
+        }
+      }
+    }
+    ok(clearBad.length === 0 && clearChecked >= trees.length * 2,
+      `veil: every brand emits veil.dark.clear as 0% BLACK and veil.light.clear as 0% WHITE, in every mode (${clearChecked} values checked)${clearBad.length ? ` — ${clearBad.slice(0, 4).join('; ')}` : ''}`);
   }
 
   // ── #1234 — THE TWO #1231 DESK-QA FIXES, GATED. #1208 (uniform neutral inverse fill) and #576's engine
@@ -8823,6 +8871,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // had (the default `color.field.fill` aliases it). A palette var, so it appears only in the palette
       // collection; EXACT name, so a spurious sibling still fails.
       'palette/transparent',
+      // #1318 — 0% WHITE, the clear end a light veil fades to (`veil.light.clear`). The white alpha ramp
+      // otherwise starts at 5%, and NB's export has no such step. EXACT name, like `transparent` above.
+      'palette/white-alpha/0',
       // #1486 — the new `pressed` link state, on both the text and icon link families. NB's export
       // predates a pressed link, so these are engine additions (the changed hover/visited values are
       // divergences of EXISTING vars, recorded in `NB_KNOWN_DIVERGENCES` above). EXACT names, not a
@@ -14228,7 +14279,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -14717,6 +14768,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
                 const was = (prev?.[i] as { boundVariables?: { color?: { id: string } } } | undefined)?.boundVariables?.color?.id;
                 return was === id || (paint.opacity ?? 1) === 1 ? paint : { ...paint, opacity: 1 };
               });
+              // #1318 — ACCEPT-AND-DISCARD, TAUGHT FOR A GRADIENT (`opts.gradientDiscard`). Off by default. A
+              // host that takes a gradient fill and keeps nothing (`paint`) or keeps the gradient without its
+              // stop bindings (`bindings`) — the two ways "gradient set, not retained" can be true. Modelled so
+              // both executors' gradient read-back has a case where it MUST speak.
+              if (key === 'fills' && opts.gradientDiscard && backing.some((p) => /^GRADIENT_/.test(String((p as { type?: string })?.type))))
+                backing = opts.gradientDiscard === 'paint'
+                  ? backing.filter((p) => !/^GRADIENT_/.test(String((p as { type?: string })?.type)))
+                  : backing.map((p) => {
+                    const g = p as { type?: string; gradientStops?: { position: number; color: unknown }[] };
+                    return /^GRADIENT_/.test(String(g.type)) ? { ...g, gradientStops: (g.gradientStops ?? []).map(({ position, color }) => ({ position, color })) } : p;
+                  });
             },
           });
         }
@@ -14729,6 +14791,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // assignment back into the array is the thing under test elsewhere in this block.
           setBoundVariableForPaint: (p: object, field: string, v: { id: string }) =>
             ({ ...p, boundVariables: { [field]: { id: v.id } } }),
+          // A gradient STOP's binding (#1318), the same shape as the plugin shim's, so the parity gate drives
+          // both executors' gradient writes against one host model.
+          createVariableAlias: (v: { id: string }) => ({ type: 'VARIABLE_ALIAS' as const, id: v.id }),
         },
         // `fontName` on every style, because the payload loads the STYLE'S font before writing text —
         // `setTextStyleIdAsync` pulls in a family/style pair that need not be what `createText` starts on.
@@ -16927,6 +16992,81 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           }
         }
 
+        // #1318 — THE VEIL'S GRADIENT WASHES, BUILT BY BOTH EXECUTORS. Each path is read off its own page and
+        // held to a HAND-WRITTEN expectation first — a linear gradient on every directional member, stop 0
+        // bound to the (value, intensity) role and stop 1 to that value's clear end, a solid on every `full`
+        // member — and only then compared with the other path. Per path first, for the #1430 reason: two
+        // executors that both drop the gradient agree perfectly, so equality alone would pass that. The
+        // stub's variable id is `V:<root-relative name>`, so a stop's binding reads back as a name here.
+        {
+          const veilSet = figmaAnatomySet(componentDefs.find((d) => d.id === 'veil')!);
+          const veilOpts: StubOpts = { vars: [...new Set(veilSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))] };
+          const vPaste: StubPage = { children: [] };
+          const vPlug: StubPage = { children: [] };
+          const vPasted = await runPayload(planSetToPluginJs(veilSet), { ...veilOpts, page: vPaste });
+          const vPlugged = await plugRun(veilSet, { ...veilOpts, page: vPlug });
+          ok(vPlugged.misses.length === 0 && vPasted.misses.length === 0,
+            `#1318 both executors build the 30-member veil clean — plugin ${JSON.stringify(vPlugged.misses.slice(0, 3))}, paste ${JSON.stringify(vPasted.misses.slice(0, 3))}`);
+          const fillOf = (page: StubPage): Map<string, string> => {
+            const set = page.children.find((c) => c.type === 'COMPONENT_SET');
+            return new Map(((set?.children ?? []) as Record<string, unknown>[]).map((m) => {
+              const f = ((m.fills as Record<string, unknown>[] | undefined) ?? [])[0] as { type?: string; gradientTransform?: unknown; gradientStops?: { position: number; boundVariables?: { color?: { id?: string } } }[]; boundVariables?: { color?: { id?: string } } } | undefined;
+              const desc = !f ? 'NONE'
+                : f.type === 'SOLID' ? `SOLID ${f.boundVariables?.color?.id ?? 'UNBOUND'}`
+                : `${f.type} ${JSON.stringify(f.gradientTransform)} ${(f.gradientStops ?? []).map((s) => `${s.position}:${s.boundVariables?.color?.id ?? 'UNBOUND'}`).join(' ')}`;
+              return [String(m.name), desc] as const;
+            }));
+          };
+          // The EXPECTATION, written out: the four matrices are the literal Figma transforms for CSS `to bottom`,
+          // `to top`, `to right`, `to left` — stated here, not computed by `gradientTransformFor`.
+          const WANT_T: Record<string, number[][]> = {
+            'from-top': [[0, 1, 0], [-1, 0, 1]], 'from-bottom': [[0, -1, 1], [1, 0, 0]],
+            'from-left': [[1, 0, 0], [0, 1, 0]], 'from-right': [[-1, 0, 1], [0, -1, 1]],
+          };
+          const want = new Map<string, string>();
+          for (const v of ['dark', 'light']) for (const i of ['subtle', 'medium', 'strong']) for (const d of ['full', ...Object.keys(WANT_T)])
+            want.set(`value=${v}, intensity=${i}, direction=${d}`, d === 'full'
+              ? `SOLID V:color/veil/${v}/${i}`
+              : `GRADIENT_LINEAR ${JSON.stringify(WANT_T[d])} 0:V:color/veil/${v}/${i} 1:V:color/veil/${v}/clear`);
+          for (const [label, page] of [['plugin', vPlug], ['paste', vPaste]] as const) {
+            const got = fillOf(page);
+            const off = [...want].filter(([k, w]) => got.get(k) !== w).map(([k, w]) => `${k}: got ${got.get(k) ?? 'NO MEMBER'}, want ${w}`);
+            ok(got.size === 30 && off.length === 0,
+              `#1318 ${label}: all 30 veil members carry the right fill — 24 two-stop linear gradients (stop 0 the intensity at the named edge, stop 1 that value's clear end) and 6 solid washes${off.length ? ` — ${off.slice(0, 2).join(' | ')}` : ''}`);
+          }
+          const a = fillOf(vPlug), b = fillOf(vPaste);
+          const diff = [...a.keys()].filter((k) => a.get(k) !== b.get(k));
+          ok(a.size === 30 && b.size === 30 && diff.length === 0,
+            `#1318 parity: both executors write the IDENTICAL fill on every veil member${diff.length ? ` — differ on ${diff.slice(0, 2).map((k) => `${k}: plugin ${a.get(k)} / paste ${b.get(k)}`).join(' | ')}` : ''}`);
+          // A STARVED FILE: the light clear end is missing. Both paths report the SAME miss and leave the
+          // light directional members CLEAR — never a one-stop gradient over a placeholder colour.
+          const starved: StubOpts = { vars: (veilOpts.vars ?? []).filter((n) => n !== 'color/veil/light/clear') };
+          const sPaste: StubPage = { children: [] };
+          const sPlug: StubPage = { children: [] };
+          const sPasted = await runPayload(planSetToPluginJs(veilSet), { ...starved, page: sPaste });
+          const sPlugged = await plugRun(veilSet, { ...starved, page: sPlug });
+          const lightDir = [...fillOf(sPlug)].filter(([k]) => k.startsWith('value=light') && !k.endsWith('direction=full'));
+          ok(lightDir.length === 12 && lightDir.every(([, f]) => f === 'NONE') && [...fillOf(sPaste)].filter(([k]) => k.startsWith('value=light') && !k.endsWith('direction=full')).every(([, f]) => f === 'NONE'),
+            `#1318 a missing clear end leaves the 12 light directional members clear on both paths (${lightDir.slice(0, 2).map(([k, f]) => `${k}=${f}`).join('; ')})`);
+          const missSet = (m: string[]) => JSON.stringify([...new Set(m)].sort());
+          ok(missSet(sPlugged.misses) === missSet(sPasted.misses) && sPlugged.misses.some((m) => m === 'wash.fills -> color/veil/light/clear'),
+            `#1318 parity: both executors report the missing clear end with the same miss — plugin ${missSet(sPlugged.misses).slice(0, 200)} vs paste ${missSet(sPasted.misses).slice(0, 200)}`);
+          // PROOF OF LIFE for both executors' "gradient set, not retained" read-back. Every name resolves and
+          // both executors write correctly; the HOST then keeps nothing (`paint`) or keeps the gradient with its
+          // stop bindings stripped (`bindings`). Each executor must report the member's wash as DISCARDED, by
+          // name, on all 24 directional members — and a clean host (the runs above) must report none.
+          const DISCARD = 'wash.fills -> DISCARDED (gradient set, not retained)';
+          for (const mode of ['paint', 'bindings'] as const) {
+            const pd = await runPayload(planSetToPluginJs(veilSet), { ...veilOpts, page: { children: [] }, gradientDiscard: mode });
+            const gd = await plugRun(veilSet, { ...veilOpts, page: { children: [] }, gradientDiscard: mode });
+            for (const [label, r] of [['paste', pd], ['plugin', gd]] as const)
+              ok(r.misses.filter((m) => m === DISCARD).length === 24,
+                `#1318 ${label}: a host that ${mode === 'paint' ? 'drops the gradient' : 'strips its stop bindings'} after the write is reported '${DISCARD}' on all 24 directional members (${r.misses.filter((m) => m === DISCARD).length}; ${JSON.stringify(r.misses.filter((m) => m !== DISCARD).slice(0, 2))})`);
+          }
+          ok(!vPlugged.misses.includes(DISCARD) && !vPasted.misses.includes(DISCARD),
+            '#1318 a host that keeps the gradient reports no DISCARDED on either path — the read-back does not cry wolf');
+        }
+
         // #1514/#1567 — THE STYLE SURVIVES BOTH PATHS, EACH FOR ITS OWN REASON, AND THEY STILL AGREE.
         //
         // This block used to witness two post-wire re-asserts against a stub that modelled a characters-bind
@@ -18346,11 +18486,31 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         'variant-product self-check: the clean 432-member set reports nothing');
     }
 
+    // THE VEIL BEFORE #1318 — value × intensity, solid washes only. Built by removing exactly what #1318 added
+    // (the `direction` axis and prop, the part's `gradient`, the two clear-end bindings), and used twice: as the
+    // sparse-grid block's small 2 × 3 fixture, and as the baseline the `full` members are held to below.
+    const veilNow = componentDefs.find((d) => d.id === 'veil')!;
+    const veilPreGradient = (() => {
+      const { direction: _dir, ...variants } = veilNow.variants!;
+      const { direction: _kind, ...axisKinds } = veilNow.axisKinds!;
+      const { gradient: _g, ...wash } = veilNow.anatomy!.parts.wash;
+      const { 'dark.clear': _dc, 'light.clear': _lc, ...tokens } = veilNow.tokens;
+      return {
+        ...veilNow, variants, axisKinds, tokens,
+        props: veilNow.props.filter((p) => p.name !== 'direction'),
+        anatomy: { ...veilNow.anatomy!, parts: { wash } },
+        figmaProperties: { ...veilNow.figmaProperties!, variantAxes: ['value', 'intensity'] },
+      } as ComponentDef;
+    })();
+    ok(validateComponentDef(veilPreGradient).errors.length === 0 && figmaAnatomySet(veilPreGradient).length === 6,
+      `#1318 fixture: the pre-#1318 veil (value × intensity, solid) validates and projects 6 members (${validateComponentDef(veilPreGradient).errors.slice(0, 2).join('; ')})`);
+
     // THE SPARSE GRID, apart from Badge (`figmaProperties.excludeCoordinates`, 2026-09-28). A small synthetic
     // def — the veil's 2 × 3 grid (value × intensity) with one coordinate removed — so the mechanism is held on
-    // its own terms and a change to Badge cannot be what keeps it green. Expectations are literals.
+    // its own terms and a change to Badge cannot be what keeps it green. Expectations are literals. Since
+    // #1318 the real veil carries a third axis, so the 2 × 3 grid is the pre-#1318 veil above.
     {
-      const veilDef = componentDefs.find((d) => d.id === 'veil')!;
+      const veilDef = veilPreGradient;
       const withEx = (excludeCoordinates: Record<string, string[]>[]): ComponentDef =>
         ({ ...veilDef, figmaProperties: { ...veilDef.figmaProperties!, excludeCoordinates } }) as ComponentDef;
       const one = withEx([{ value: ['light'], intensity: ['strong'] }]);
@@ -18386,6 +18546,68 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       refuses('an exclusion that leaves a declared value on no member', /leaves intensity=strong on no member/, [{ intensity: ['strong'] }]);
       refuses("the set's first member (Figma's default)", /removes the set's first member \(value=dark, intensity=subtle\)/, [{ value: ['dark'], intensity: ['subtle'] }]);
       refuses('the code default (each axis prop\'s default)', /removes the code default \(value=dark, intensity=medium\)/, [{ value: ['dark'], intensity: ['medium'] }]);
+    }
+
+    // #1318 — THE VEIL'S DIRECTIONAL WASHES, AT THE PROJECTOR. Every expectation is a literal written here:
+    // the member count, the four Figma matrices, the stop order and the two variables each stop binds.
+    // `gradientTransformFor` is not called — this is the second opinion about what it produces.
+    {
+      const set = figmaAnatomySet(veilNow);
+      const names = set.map(planComponentName);
+      const DIRS = ['full', 'from-top', 'from-bottom', 'from-left', 'from-right'];
+      ok(set.length === 30 && new Set(names).size === 30
+        && DIRS.every((d) => names.filter((n) => n.endsWith(`direction=${d}`)).length === 6),
+        `#1318 veil: value(2) × intensity(3) × direction(5) = 30 members, six per direction (got ${set.length}; ${DIRS.map((d) => `${d}:${names.filter((n) => n.endsWith(`direction=${d}`)).length}`).join(', ')})`);
+
+      // `full` IS THE VEIL AS IT WAS: the same solid fill binding, no gradient, and a plan tree equal to the
+      // pre-#1318 def's member at the same (value, intensity) — the member NAME aside, which gains
+      // `direction=full` by construction.
+      const fullOff: string[] = [];
+      for (const v of ['dark', 'light']) for (const i of ['subtle', 'medium', 'strong']) {
+        const now = figmaAnatomyPlan(veilNow, undefined, { value: v, intensity: i, direction: 'full' } as never).root;
+        const was = figmaAnatomyPlan(veilPreGradient, undefined, { value: v, intensity: i } as never).root;
+        if (now.paints?.fills !== `color/veil/${v}/${i}` || now.gradientFill !== undefined) fullOff.push(`${v}/${i}: fills ${now.paints?.fills}, gradient ${JSON.stringify(now.gradientFill)}`);
+        if (JSON.stringify(now) !== JSON.stringify(was)) fullOff.push(`${v}/${i}: plan differs from the pre-#1318 member`);
+      }
+      ok(fullOff.length === 0, `#1318 veil: the six full members bind the same solid fill as before and project the same tree${fullOff.length ? ` — ${fullOff.slice(0, 2).join('; ')}` : ''}`);
+
+      // EACH DIRECTION: the literal matrix, and the CONSEQUENCE a designer would see — the gradient's
+      // parameter (the matrix's first row applied to a layer point) is 0 at the midpoint of the NAMED edge
+      // and 1 at the opposite edge, so stop 0 sits on the named edge. Stop 0 binds the (value, intensity) role
+      // at position 0; stop 1 binds that value's clear end at position 1 — in that order.
+      const WANT: Record<string, { t: number[][]; near: [number, number]; far: [number, number] }> = {
+        'from-top':    { t: [[0, 1, 0], [-1, 0, 1]], near: [0.5, 0], far: [0.5, 1] },
+        'from-bottom': { t: [[0, -1, 1], [1, 0, 0]], near: [0.5, 1], far: [0.5, 0] },
+        'from-left':   { t: [[1, 0, 0], [0, 1, 0]],  near: [0, 0.5], far: [1, 0.5] },
+        'from-right':  { t: [[-1, 0, 1], [0, -1, 1]], near: [1, 0.5], far: [0, 0.5] },
+      };
+      const param = (t: number[][], [x, y]: [number, number]) => t[0][0] * x + t[0][1] * y + t[0][2];
+      const dirOff: string[] = [];
+      for (const [d, w] of Object.entries(WANT)) for (const v of ['dark', 'light']) for (const i of ['subtle', 'medium', 'strong']) {
+        const at = `${d} ${v}/${i}`;
+        // A direction the def no longer declares is REFUSED by the projector; caught and named, so the rest of
+        // the suite still runs and this assertion reports which direction went missing.
+        let root: AnatomyPlan['root'];
+        try { root = figmaAnatomyPlan(veilNow, undefined, { value: v, intensity: i, direction: d } as never).root; }
+        catch (err) { dirOff.push(`${at}: not projectable — ${(err as Error).message}`); continue; }
+        const g = root.gradientFill;
+        if (!g) { dirOff.push(`${at}: no gradientFill`); continue; }
+        if (root.paints?.fills) dirOff.push(`${at}: carries a solid fill beside the gradient`);
+        if (JSON.stringify(g.gradientTransform) !== JSON.stringify(w.t)) dirOff.push(`${at}: matrix ${JSON.stringify(g.gradientTransform)}, want ${JSON.stringify(w.t)}`);
+        if (param(g.gradientTransform, w.near) !== 0 || param(g.gradientTransform, w.far) !== 1) dirOff.push(`${at}: stop 0 is not on the named edge (t=${param(g.gradientTransform, w.near)} there)`);
+        const want = [{ position: 0, variable: `color/veil/${v}/${i}` }, { position: 1, variable: `color/veil/${v}/clear` }];
+        if (JSON.stringify(g.stops) !== JSON.stringify(want)) dirOff.push(`${at}: stops ${JSON.stringify(g.stops)}, want ${JSON.stringify(want)}`);
+      }
+      ok(dirOff.length === 0,
+        `#1318 veil: each direction projects its literal matrix with stop 0 on the named edge — the intensity at position 0, that value's clear end at position 1 (24 members)${dirOff.length ? ` — ${dirOff.slice(0, 2).join('; ')}` : ''}`);
+
+      // A LIGHT VEIL FADES TO CLEAR WHITE, never to the dark clear end: fading a white wash to clear BLACK
+      // passes through gray, because Figma interpolates stops unpremultiplied. Named on its own so the
+      // mutation that repoints it fails an assertion that says what went wrong.
+      const lightFar = set.filter((p) => planComponentName(p).startsWith('value=light') && p.root.gradientFill)
+        .map((p) => p.root.gradientFill!.stops[1].variable);
+      ok(lightFar.length === 12 && lightFar.every((v) => v === 'color/veil/light/clear'),
+        `#1318 veil: every light directional member's clear stop binds color/veil/light/clear, not the dark clear end (${[...new Set(lightFar)].join(', ')})`);
     }
 
     // WHAT PROTECTS THE 189-VS-756 RULE NOW (#795). Until #795 this pair asserted that a fifth declared
@@ -22176,6 +22398,161 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1354 MUTATION: the thumb WITHOUT radius (size only) is refused — the exemption keys on radius, not size alone`);
   ok(validateComponentDef(patchThumb({ size: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
     `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
+}
+
+// ---- #1354 (owner, 2026-09-28): THE LIGHT OFF TRACK + THE `State icon` BOOLEAN ------------------------
+//
+// The owner saw the NB master theme's switch draw its off and on tracks as the same near-black: the off
+// track borrowed the neutral BUTTON fill, which `neutralEmphasis: 'strong'` darkens (#2D2C2C), beside a
+// brand-neutral on track (#34383D). Decided: the off track reads a light surface step the lever does not
+// move, keeps its dark hairline, and its thumb turns dark; and the thumb glyph becomes ONE Figma BOOLEAN,
+// `State icon`, default on, over both glyph parts. Every expectation below is a LITERAL (hexes and ratios
+// measured once and written down) or a relation computed from RESOLVED hexes — never read back off the def
+// the check is about, so a rebind fails by name rather than agreeing with itself (docs/34).
+{
+  const sc = switchControl;
+  // The NB master theme's brand input, COPIED here as literal values (the owner's file, 2026-09-28) — a
+  // fixture, not a path, so the test does not move when that file does.
+  const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+  const role = (key: string) => { const ref = sc.tokens[key]; ok(!!ref && ref.startsWith('color.'), `#1354 switch-control binds '${key}' to a color role (got ${ref})`); return (ref ?? '').replace(/^color\./, ''); };
+  const hexAt = (theme: Theme, mode: string, key: string): string => resolveAllModes(theme).find((m) => m.mode === mode)!.roles[role(key)]?.hex ?? '(missing)';
+  const ratio = (a: string, b: string) => Number(contrast(hexToRgb(a), hexToRgb(b)).toFixed(2));
+  const master = brandTheme(NB_MASTER);
+  const prism3 = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input);
+
+  // (1) THE OWNER'S DEFECT, as literals. NB master light: the off track is the light #DCDBDB, the on track
+  // the brand-neutral #34383D, and they sit 8.54:1 apart. prism3 light is the control: #DBDBDC / #0B008C,
+  // 10.90:1. Rebinding `off.fill` to `interactive.neutral.fill.rest` puts the master's off track at
+  // #2D2C2C, 1.18:1 from the on track, and fails the first arm by name.
+  const mOff = hexAt(master, 'light', 'off.fill'), mOn = hexAt(master, 'light', 'on.fill');
+  ok(mOff === '#dcdbdb' && mOn === '#34383d' && mOff !== mOn,
+    `#1354 NB master light: the off track is the light #dcdbdb and the on track #34383d — two different tracks (off=${mOff}, on=${mOn})`);
+  ok(ratio(mOff, mOn) === 8.54, `#1354 NB master light: off track vs on track is 8.54:1 (got ${ratio(mOff, mOn)}:1)`);
+  const pOff = hexAt(prism3, 'light', 'off.fill'), pOn = hexAt(prism3, 'light', 'on.fill');
+  ok(pOff === '#dbdbdc' && pOn === '#0b008c' && ratio(pOff, pOn) === 10.9,
+    `#1354 prism3 light: off track #dbdbdc vs on track #0b008c at 10.90:1 (off=${pOff}, on=${pOn}, ${ratio(pOff, pOn)}:1)`);
+
+  // (2) THE LEVER DOES NOT REACH THE OFF TRACK. The same brand at `neutralEmphasis` subtle and strong
+  // resolves the off track, its border and its thumb to the SAME hexes — while the neutral BUTTON fill
+  // (the old binding) moves, which is what proves the lever was really exercised.
+  for (const [id, input] of [['NB master', NB_MASTER], ['prism3', parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input]] as const) {
+    const subtle = brandTheme({ ...input, neutralEmphasis: 'subtle' } as BrandInput), strong = brandTheme({ ...input, neutralEmphasis: 'strong' } as BrandInput);
+    const button = (t: Theme) => resolveAllModes(t).find((m) => m.mode === 'light')!.roles['interactive.neutral.fill.rest'].hex;
+    ok(button(subtle) !== button(strong), `#1354 ${id}: the neutralEmphasis lever moves the neutral button fill (${button(subtle)} → ${button(strong)}) — the probe is live`);
+    for (const key of ['off.fill', 'off.border', 'off.indicator', 'off.icon'])
+      ok(hexAt(subtle, 'light', key) === hexAt(strong, 'light', key),
+        `#1354 ${id}: '${key}' does not move with neutralEmphasis (subtle ${hexAt(subtle, 'light', key)} vs strong ${hexAt(strong, 'light', key)})`);
+  }
+
+  // (3) THE OFF THUMB IS DARK AND ITS GLYPH INK IS LIGHT, in the NB master theme — the brand where the old
+  // thumb ink (`neutral.on-fill`) turned WHITE. Literals: thumb #0e0d0d on track #dcdbdb at 14.05:1, and the
+  // X in the track's own light ink. Leaving the thumb on `neutral.on-fill` paints it #ffffff and fails here.
+  const mThumb = hexAt(master, 'light', 'off.indicator'), mGlyph = hexAt(master, 'light', 'off.icon');
+  ok(mThumb === '#0e0d0d' && luminance(hexToRgb(mThumb)) < luminance(hexToRgb(mOff)),
+    `#1354 NB master light: the off thumb is the dark #0e0d0d, darker than its track (thumb=${mThumb}, track=${mOff})`);
+  ok(ratio(mThumb, mOff) === 14.05, `#1354 NB master light: off thumb vs off track is 14.05:1 (got ${ratio(mThumb, mOff)}:1)`);
+  ok(mGlyph === '#dcdbdb' && luminance(hexToRgb(mGlyph)) > luminance(hexToRgb(mThumb)) && ratio(mGlyph, mThumb) === 14.05,
+    `#1354 NB master light: the off glyph (the X) is the light #dcdbdb on the dark thumb, 14.05:1 (glyph=${mGlyph}, thumb=${mThumb})`);
+  ok(hexAt(prism3, 'light', 'off.indicator') === '#0d0d0e' && ratio(hexAt(prism3, 'light', 'off.indicator'), pOff) === 14.04,
+    `#1354 prism3 light: off thumb #0d0d0e on the off track at 14.04:1 (got ${hexAt(prism3, 'light', 'off.indicator')}, ${ratio(hexAt(prism3, 'light', 'off.indicator'), pOff)}:1)`);
+
+  // (4) THE CONTRAST CONTRACTS, every mode of every corpus brand + prism3 + the NB master, recomputed from
+  // resolved hexes. The on-thumb pair is held in every mode but `dark`, where `on-fill` (gated against
+  // `fill.rest`) measures 2.32–2.62:1 on `fill.selected` — the on arm is unchanged by owner decision and
+  // the gap is filed as #1763. The exemption is PINNED, not silent: exactly 10 dark rows fall under 3:1
+  // (every corpus brand's dark mode but aurora's, plus prism3's), and aurora dark holds at 8.59:1.
+  const misses: string[] = [];
+  let rows = 0, darkOnGap = 0, auroraDarkOn = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
+    for (const m of resolveAllModes(theme)) {
+      rows++;
+      const h = (key: string) => m.roles[role(key)]?.hex ?? '#808080';
+      const page = m.roles['background.primary'].hex;
+      const need = (label: string, r: number) => { if (r < 3) misses.push(`${id} ${m.mode} ${label} ${r.toFixed(2)}:1`); };
+      need('off border vs page', ratio(h('off.border'), page));
+      need('off thumb vs off track', ratio(h('off.indicator'), h('off.fill')));
+      need('off glyph vs off thumb', ratio(h('off.icon'), h('off.indicator')));
+      need('on track vs page', ratio(h('on.fill'), page));
+      if (m.mode === 'dark') {
+        if (ratio(h('on.indicator'), h('on.fill')) < 3) darkOnGap++;
+        if (id.startsWith('aurora')) auroraDarkOn = ratio(h('on.indicator'), h('on.fill'));
+      }
+      else { need('on thumb vs on track', ratio(h('on.indicator'), h('on.fill'))); need('on glyph vs on thumb', ratio(h('on.icon'), h('on.indicator'))); }
+    }
+  ok(rows >= 40 && misses.length === 0,
+    `#1354 switch contrast: off border, off thumb, off glyph and on track clear 3:1 in all ${rows} brand×mode rows (on thumb/glyph outside \`dark\`) — misses: ${misses.join('; ') || 'none'}`);
+  ok(darkOnGap === 10,
+    `#1763 the dark-mode on-thumb exemption covers exactly 10 rows under 3:1 — every corpus brand's dark mode but aurora's, plus prism3's (got ${darkOnGap}); a new row under 3:1 is a regression, one fewer means #1763 moved`);
+  ok(auroraDarkOn === 8.59,
+    `#1763 aurora dark keeps its on thumb at 8.59:1 against the on track — the one dark mode outside the exemption (got ${auroraDarkOn}:1)`);
+
+  // (4b) THE DISABLED GLYPH IS VISIBLE (#1764, owner-directed 2026-09-28). Disabled is contrast-exempt, so
+  // the bar is visibility, not legibility: the glyph ink must sit > 1.5:1 from the disabled thumb in every
+  // brand×mode row. Literals for the NB master theme (#c1c1c0 on #6a6868, 3.07:1) and prism3 light
+  // (#c0c1c2 on #67696b, 3.06:1). Rebinding `disabled.icon.on-fill` to the thumb's `disabled.on-fill`
+  // puts the glyph at 1.00:1 and fails every arm here by name.
+  const disThumb = (t: Theme, mode: string) => hexAt(t, mode, 'disabled.indicator.on-fill');
+  const disGlyph = (t: Theme, mode: string) => hexAt(t, mode, 'disabled.icon.on-fill');
+  ok(disGlyph(master, 'light') === '#c1c1c0' && disThumb(master, 'light') === '#6a6868' && ratio(disGlyph(master, 'light'), disThumb(master, 'light')) === 3.07,
+    `#1764 NB master light: the disabled glyph #c1c1c0 reads on the disabled thumb #6a6868 at 3.07:1 (glyph=${disGlyph(master, 'light')}, thumb=${disThumb(master, 'light')}, ${ratio(disGlyph(master, 'light'), disThumb(master, 'light'))}:1)`);
+  ok(disGlyph(prism3, 'light') === '#c0c1c2' && disThumb(prism3, 'light') === '#67696b' && ratio(disGlyph(prism3, 'light'), disThumb(prism3, 'light')) === 3.06,
+    `#1764 prism3 light: the disabled glyph #c0c1c2 reads on the disabled thumb #67696b at 3.06:1 (glyph=${disGlyph(prism3, 'light')}, thumb=${disThumb(prism3, 'light')}, ${ratio(disGlyph(prism3, 'light'), disThumb(prism3, 'light'))}:1)`);
+  const disMisses: string[] = [];
+  let disRows = 0;
+  for (const { id, theme } of [...corpus(), { id: 'prism3', theme: prism3 }, { id: 'NB master', theme: master }])
+    for (const m of resolveAllModes(theme)) {
+      disRows++;
+      const r = ratio(m.roles[role('disabled.icon.on-fill')]?.hex ?? '#808080', m.roles[role('disabled.indicator.on-fill')]?.hex ?? '#808080');
+      if (!(r > 1.5)) disMisses.push(`${id} ${m.mode} ${r.toFixed(2)}:1`);
+    }
+  ok(disRows >= 40 && disMisses.length === 0,
+    `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all ${disRows} brand×mode rows — misses: ${disMisses.join('; ') || 'none'}`);
+
+  // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes
+  // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
+  const set = figmaAnatomySet(sc);
+  const props = planSetProperties(set);
+  ok(set.length === 24, `#1354 switch-control still projects 24 members — the State icon boolean does not multiply the set (got ${set.length})`);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'State icon', type: 'BOOLEAN', default: true }]),
+    `#1354 switch-control's set declares exactly one property, the BOOLEAN 'State icon' defaulting to true (got ${JSON.stringify(props)})`);
+  type GNode = { name: string; visibleProp?: string; visible?: boolean; children: GNode[] };
+  const glyphNodes = (n: GNode): GNode[] => [...(n.name === 'onGlyph' || n.name === 'offGlyph' ? [n] : []), ...n.children.flatMap(glyphNodes)];
+  const glyphs = set.flatMap((p) => glyphNodes(p.root as unknown as GNode));
+  const byName = (nm: string) => glyphs.filter((g) => g.name === nm);
+  ok(byName('onGlyph').length === 12 && byName('offGlyph').length === 12
+    && glyphs.every((g) => g.visibleProp === 'State icon' && (g.visible ?? true) === true),
+    `#1354 both glyph nodes (12 checks, 12 X's — one per member) carry visibleProp 'State icon', built visible (on=${byName('onGlyph').length}, off=${byName('offGlyph').length}, props=[${[...new Set(glyphs.map((g) => `${g.visibleProp}/${g.visible ?? true}`))].join(', ')}])`);
+
+  // (6) THE CODE DEFAULT matches the Figma default: `showStateLabel` is `true` on the atom AND on the Row
+  // that exposes it. A literal `true` — the owner's decision, not the boolean's `default` read back.
+  const codeDefault = (d: ComponentDef) => d.props?.find((p) => p.name === 'showStateLabel')?.default;
+  ok(codeDefault(sc) === true && codeDefault(switchRow) === true,
+    `#1354 showStateLabel defaults to true in code on switch-control and switch-row (atom=${codeDefault(sc)}, row=${codeDefault(switchRow)})`);
+
+  // (7) THE LOOSENED REFUSAL, PINNED (docs/34). `figmaPropertyErrors` used to refuse ANY boolean on a
+  // `presentWhen`-gated part; it now admits a boolean over two or more parts gated on one shared axis whose
+  // values they cover. The oracle is the refusal's own message; each arm drives the check over a patched def.
+  const PRESENCE_REFUSAL = /also declares? presentWhen/;
+  const withBool = (part: string | readonly string[], parts?: Record<string, unknown>): ComponentDef =>
+    ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts, ...(parts ?? {}) } },
+      figmaProperties: { ...sc.figmaProperties!, booleans: { showStateLabel: { part, default: true, figmaName: 'State icon' } } } } as ComponentDef);
+  ok(!figmaPropertyErrors(sc).some((e) => PRESENCE_REFUSAL.test(e)),
+    `#1354 the authored State icon boolean over the check and the X is NOT refused (errors: ${figmaPropertyErrors(sc).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
+  ok(figmaPropertyErrors(withBool('onGlyph')).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: a boolean over ONE presentWhen-gated glyph is still refused — some members would have nothing to toggle');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on'] } } })).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: two gated glyphs that leave `selection=off` uncovered are refused — coverage is checked, not assumed');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: undefined } })).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: a gated glyph mixed with an ungated one is refused — the narrowing admits only all-gated parts');
+  ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on', 'off'] } } })).some((e) => PRESENCE_REFUSAL.test(e)),
+    '#1354 MUTATION: two gated glyphs that BOTH exist at `selection=on` are refused — the gates must partition the axis, so every member builds exactly one node');
+  // THE `when` REFUSAL. A `when`-gated part under a boolean is refused outright: `present()` returns early
+  // for a boolean part with no `presentWhen`, so without this refusal an absolute focus ring (or an
+  // overlay) would be built at EVERY member instead of only at its state.
+  const WHEN_REFUSAL = /→ part 'focusRing' also declares when/;
+  const ringBool = withBool('focusRing', { focusRing: { ...sc.anatomy!.parts.focusRing, optional: true } });
+  ok(figmaPropertyErrors(ringBool).some((e) => WHEN_REFUSAL.test(e)),
+    `#1354 a boolean over a \`when\`-gated part (the focus ring) is refused BY NAME — otherwise the ring would build at every member (errors: ${figmaPropertyErrors(ringBool).join('; ') || 'none'})`);
 }
 
 // ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----

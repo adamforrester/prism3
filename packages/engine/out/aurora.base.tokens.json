@@ -2977,6 +2977,18 @@
           }
         },
         "white-alpha": {
+          "0": {
+            "$type": "color",
+            "$value": "#ffffff00",
+            "$description": "White alpha 0% — clear white, the end a light veil fades to",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "alpha": 0,
+                "note": "composites over any surface"
+              }
+            }
+          },
           "5": {
             "$type": "color",
             "$value": "#ffffff0d",
@@ -7970,6 +7982,29 @@
                 }
               }
             }
+          },
+          "clear": {
+            "$type": "color",
+            "$value": "{ads.core.palette.transparent}",
+            "$description": "Media veil, dark — the clear end (0% black) a directional dark veil fades to. Identical in every mode",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.palette.transparent",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
           }
         },
         "light": {
@@ -8027,6 +8062,29 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "ads.core.palette.white-alpha.60",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "clear": {
+            "$type": "color",
+            "$value": "{ads.core.palette.white-alpha.0}",
+            "$description": "Media veil, light — the clear end (0% white) a directional light veil fades to. Clear white, not clear black, so the fade stays white instead of passing through gray. Identical in every mode",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.palette.white-alpha.0",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -15513,7 +15571,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.195.0",
+      "version": "0.197.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

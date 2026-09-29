@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.195.0 — #259 phase 1: the style-guide generator, COLOR (owner decisions, 2026-09-27/28). A plugin
+ * 0.197.0 — #259 phase 1: the style-guide generator, COLOR (owner decisions, 2026-09-27/28). A plugin
  * feature: `apps/plugin/src/style-guide.ts` draws one table per color group onto `↳ Primitive tokens` /
  * `↳ Semantic tokens` from the file's own variables, with modes side by side (each swatch bound and
  * mode-pinned), each specimen on its contracted ground, and a contrast column from `resolveAllModes`.
@@ -2934,6 +2934,32 @@
  * step and `style-guide` agent command. A plugin behavior change (principle 5) → ENGINE bump; no engine
  * emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at
  * 13.1.0 (no token name moves). Design record: `docs/45-style-guide-generator.md`.
+ *
+ * 0.196.0 — #1318 (owner decisions, 2026-09-28): the veil's DIRECTIONAL GRADIENT washes, Prism 2's
+ * `Gradient from top/bottom/left/right` scrim variants. A new variant axis `direction` (`full | from-top |
+ * from-bottom | from-left | from-right`, default `full`) takes the veil from 6 members to 30; the six `full`
+ * members bind the same solid fill as before. The engine gains COMPONENT-LEVEL gradient paint: a box part
+ * declares `gradient` (the axis, a CSS angle per value, the far-stop binding key), and the projector writes
+ * `gradientFill` — a linear gradient whose two stops are each bound to a color variable — which both
+ * executors build in lockstep (the plugin through `write-styles.ts`'s stop binding, the paste through a
+ * splice only a gradient payload carries). Two new roles, `veil.dark.clear` and `veil.light.clear`, and one
+ * new primitive, `palette.white-alpha.0` (CONTRACT 13.2.0, below). Token trees move by the new leaves and
+ * the stamp; the projected surface moves for `veil` only → ENGINE MINOR.
+ *
+ * 0.195.0 — #1354 (owner-decided 2026-09-28): the switch's off track is a light surface step in every brand,
+ * and its thumb glyph is a Figma BOOLEAN. `switch-control`'s `off.fill` / `off.icon` move from the neutral
+ * button fill (`interactive.neutral.fill.*`, which `neutralEmphasis: 'strong'` darkens — the NB master theme
+ * drew #2D2C2C off beside #34383D on) to `background.tertiary`; `off.indicator` moves from `neutral.on-fill`
+ * to the dark `interactive.neutral.border.rest`; the off `.hover`/`.pressed` fills are dropped and fall
+ * through to rest. The check and the X ride one `State icon` BOOLEAN (default true) via #1331's
+ * node-visibility mechanism, so the set stays at 24 members; `figmaProperties.booleans` gains a list form
+ * (`part: [...]`) and `figmaPropertyErrors` admits `presentWhen`-gated parts only when they share one axis
+ * and cover its values. `showStateLabel` defaults to `true` on switch-control and switch-row (a prop
+ * DEFAULT change, not a rename). The disabled glyph (`disabled.icon.on-fill`) moves from `disabled.on-fill` —
+ * the disabled thumb's own ink, which hid it — to `disabled.border`, 3.04–5.49:1 on the thumb (#1764). Off
+ * hover/pressed show no visible change, owner-decided. Projected members move (`schema/component-surface.json`, the paint
+ * census) → ENGINE MINOR. CONTRACT STANDS at 13.1.0: no emitted token name moves — the def binds existing
+ * roles.
  *
  * 0.194.0 — #1751: `'fill'` sizing projects as FILL. It used to project as AUTO (hug), and the sizing modes were
  * applied x→primary, y→counter whatever the direction, so a column that filled across and hugged down read
@@ -4071,7 +4097,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.195.0';
+export const ENGINE_VERSION = '0.197.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -4514,6 +4540,13 @@ export const ENGINE_VERSION = '0.195.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 13.2.0 — #1318 adds THREE guaranteed names: `color.veil.dark.clear` and `color.veil.light.clear`, the clear
+ * ends a directional veil fades to (0% black and 0% white, appearance-invariant and fill-only like the other
+ * veil roles), and `core.palette.white-alpha.0`, the 0%-white primitive the light one aliases. The dark one
+ * aliases the existing `core.palette.transparent`, which is already 0% black. Every brand emits all three, so
+ * all three land in the GUARANTEED intersection. A pure ADDITION — a new name cannot break an existing
+ * reference — so a clean MINOR: 13.1.0 → 13.2.0. Nothing is removed or retyped. (#1318)
+ *
  * 13.1.0 — #1670 adds FOUR guaranteed names. The two roles: `motion.duration.spin` (800ms, one turn of a
  * spinner) and `motion.duration-reduced.spin` (2600ms, the slow turn under reduced motion). And the two
  * value-keyed primitives they alias, `motion.duration-ms.800` and `motion.duration-ms.2600`: the turn is not
@@ -4584,7 +4617,7 @@ export const ENGINE_VERSION = '0.195.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '13.1.0';
+export const CONTRACT_VERSION = '13.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

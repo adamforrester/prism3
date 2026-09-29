@@ -282,6 +282,12 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
   // to hold still with the veil, and no semantic text role does.
   if (group === 'veil') {
     const ink = variant === 'dark' ? 'light' : 'dark';
+    // The CLEAR end (#1318) is not a wash to pick: it is the far stop of a directional veil's fade.
+    if (state === 'clear')
+      return {
+        when_to_use: `The clear end of a directional ${variant} veil — the stop a gradient wash fades to, opposite the edge that carries the ${variant} intensity. Clear ${variant === 'dark' ? 'black' : 'white'}, so the fade keeps its hue rather than passing through gray.`,
+        avoid_when: 'Do not use as a solid fill — it paints nothing on its own; it is only the far stop of a veil gradient.',
+      };
     return {
       when_to_use: `A ${state} ${variant} wash over a photograph or video, to lift ${ink} text off it. Pick the polarity from the image (${variant} veil under ${ink} text), then the intensity for how much the image needs muting; verify contrast against your own photo. The ink must stay ${ink} in every mode, as the veil does — the page and inverse text roles flip in dark mode, so neither is a safe pair.`,
       avoid_when: 'Do not use as a modal backdrop (use `scrim.default`) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.',

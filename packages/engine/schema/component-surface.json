@@ -207,11 +207,11 @@
     },
     "switch-control": {
       "members": 24,
-      "sha256": "7db2f188de8576f8126285a70f260c9e22eea99cfd0579f8f70716b34963adbc"
+      "sha256": "ffafc00785e8ccc8170bd3d403ba80571261457e0c77d43d6f3cada9d775c596"
     },
     "switch-row": {
       "members": 2,
-      "sha256": "6386898f2d9e6f585eae72abee7d2fff30d24cd9a56244d9779ae9a105ee0e5c"
+      "sha256": "2300f02b49191794bc83806464dd8cca9cbbfacda24fd81a322b07edd4ac9e7c"
     },
     "select": {
       "members": 24,
@@ -226,8 +226,8 @@
       "sha256": "a24436c9f43477309a51bf881059e568f0d71963ae9ad3207b21784417556ea0"
     },
     "veil": {
-      "members": 6,
-      "sha256": "0803049f853289625b15eb8e2f5630db0f5236845728e061d0e90ae33fffe18d"
+      "members": 30,
+      "sha256": "9ec72c8b779ffd29fb811acea3af4005675f3e00a98835125a2061afef57ea5b"
     },
     "image-placeholder": {
       "members": 3,

@@ -969,6 +969,29 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         'self', 0);
       roles[`veil.${polarity}.${rung}`].alpha = step / 100;
     }
+    /*
+     * THE CLEAR END (#1318) — what a DIRECTIONAL veil fades to. The `veil` component's gradient members run
+     * from the chosen rung at the named edge to this at the opposite edge, two stops, linear.
+     *
+     * CLEAR IN THE POLARITY'S OWN HUE, and that is the whole reason these are two roles and not one
+     * `transparent`. Figma interpolates a gradient's stops UNPREMULTIPLIED, so a white wash fading to clear
+     * BLACK passes through translucent gray on the way — a light veil that darkens the photo in its middle.
+     * Fading to clear WHITE keeps every intermediate stop white. The dark end has no such problem with the
+     * existing no-paint primitive, because it is 0% black already.
+     *
+     * THE PRIMITIVES, and the asymmetry is deliberate. `veil.dark.clear` aliases `palette.transparent` —
+     * alpha 0 over BLACK, exactly this role's hue, so a second 0%-black primitive would be a duplicate.
+     * `veil.light.clear` aliases `palette.white-alpha.0`, the one primitive this adds (`tree.ts`), because no
+     * existing leaf is 0% white. Appearance-invariant like the rungs above, for the same reason, and fill-only
+     * like them (`emit-figma-color.ts` scopes the `veil` family as a whole).
+     */
+    put(`veil.${polarity}.clear`,
+      { path: polarity === 'dark' ? `${ns}.transparent` : `${ns}.white-alpha.0`, rgb: wash, ratio: 1 },
+      `Media veil, ${polarity} — the clear end (0% ${base}) a directional ${polarity} veil fades to. `
+      + (polarity === 'light' ? 'Clear white, not clear black, so the fade stays white instead of passing through gray. ' : '')
+      + `Identical in every mode`,
+      'self', 0);
+    roles[`veil.${polarity}.clear`].alpha = 0;
   }
 
   // -------------------------------------------------------------- foregrounds

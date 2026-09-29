@@ -9,7 +9,7 @@
 
 ## (2026-09-28) — Style guide generator, phase 1: cell components and color tables (#259)
 
-**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.194.0 → **0.195.0** (renumbered at net after #1748, #1753, #1759 and #1757 took 0.191.0–0.194.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
+**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.196.0 → **0.197.0** (renumbered at net after #1748, #1753, #1759, #1757, #1765 and #1766 took 0.191.0–0.196.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
 
 **What it does.**
 - **Tables.** `apps/plugin/src/style-guide.ts` draws one table per color group from the file's own variables:
@@ -195,6 +195,118 @@ The fixtures are literal, one per field group, each at the same size unless size
 **Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable), and two new ones from the live run: the full path dropped from palette tables and the 360px description column. The second live run adds two: a swatch column widening to its mode header, and the re-stack, including earlier builds' unrecorded tables. The deletion adds two: the report wording and what the fingerprint covers (an edit to a cell component reads as an edit to every table). **Host-unverified, for the deletion:** that a fingerprint read on the next run with nothing touched matches the one recorded at write (if not, nothing is ever deleted). **Live-check,** both failing safe: whether deleting a variable or collection detaches bindings or drops pinned modes (if so, a stale table reads as edited and is kept), and whether "Move to page" keeps a node's ID (if not, a moved table reads as a copy and is kept). **Host-unverified:** GRID rendering and FIXED tracks with FIXED-width cells, a HEIGHT text keeping its set width, HUG on an adopted instance's layers, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
 
 ---
+
+---
+
+## (2026-09-28) — Veil: directional gradient washes, and component-level gradient paint (#1318)
+
+**Owner-decided (three decisions on #1318).** Veil gains a variant axis `direction` (`full | from-top | from-bottom | from-left | from-right`, default `full`), so the set goes from 6 to 30 members. A directional member is a two-stop linear gradient: the (value, intensity) role at full strength on the named edge, fading to clear at the opposite edge. The clear end is a role per polarity, `veil.dark.clear` and `veil.light.clear`. ENGINE 0.195.0 → **0.196.0** (renumbered at net after #1757 and #1765 took 0.194.0 and 0.195.0); CONTRACT 13.1.0 → **13.2.0** (MINOR, three adds).
+
+**Primitives.** `veil.dark.clear` aliases the existing `palette.transparent`, which is already 0% black, so a `black-alpha.0` would duplicate it. `veil.light.clear` aliases one new primitive, `palette.white-alpha.0`; no existing leaf is 0% white. The white ramp is the only one with a 0 step, and `tree.ts` says why. Clear WHITE matters because Figma interpolates stops unpremultiplied: a white wash fading to clear black passes through gray. Both roles are appearance-invariant and fill-only, like the rungs. `inverse-coverage.ts` lists them with the veil's existing structural reason.
+
+**The capability.** `PartDef.gradient` on a box that declares `fill` has three parts: the axis, a CSS `linear-gradient()` angle per axis value, and `fadeTo`, the far stop's binding key (`{value}.clear`). At a coordinate whose axis value has an angle, the projector writes `FigmaNodePlan.gradientFill` in place of `paints.fills`. Stop 0 is the fill the box would have painted. Stop 1 is `fadeTo`, resolved through `resolveKey`, which throws on a miss. The matrix comes from `gradientTransformFor`, the function the brand gradient Paint Styles already use, so one CSS angle reads the same in both places. That function moved unchanged from `write-plan.ts` into its own `gradient-transform.ts`, which `write-plan.ts` re-exports. The first draft imported `write-plan.ts` from `anatomy-figma.ts`, and `check:ignore` caught it: the studio bundle had picked up five emitters (51 engine files against 46; 47 now). At `full` nothing changes: the six solid members project the same tree as before, and a test compares each one against the pre-#1318 def. `paintKeyErrors` exempts the keys `fadeTo` fills to from template governance, the way it exempts a nested component's binding. Without that, `dark.clear` would read as intensity=`clear`. `anatomyErrors` refuses a gradient on a non-box, on a box with no fill, with an axis or angle key the def lacks, or with a far stop that fills to a non-color key.
+
+**Both executors.** The plugin (`write-components.ts`) binds each stop through `bindGradientStops`, which was extracted from `write-styles.ts`'s Paint Style loop, so there is one binder. The paste twin (`anatomy-figma.ts`) is a splice that only a gradient payload carries (`GRADIENT_SLOT`), plus a zero-byte claim splice in `claimDefaults`' fill test. The `ComponentsApi` port gained `createVariableAlias`. A stop whose variable the file lacks is reported (`wash.fills -> <var>`, byte-identical on both paths) and leaves the node clear, never half a gradient. The read-back requires a linear gradient whose every stop still carries its binding. `anatomy-readback.ts` gains a `gradientFill` predicate (24 nodes exercised in the round-trip). `lint-unclaimed-defaults`' own host stub needed `createVariableAlias` too; without it the gate crashed on the first veil member.
+
+**Paste budget.** It is untouched for every non-gradient def. With the splices in place, button, icon-button and textarea chunk to exactly the bytes they did before the change (measured). Veil's 30 members pack into one chunk at 36,904 of `SET_CHUNK_BYTES`' 42,000.
+
+**Gates.** `lint-paint`: the census rows carry the matrix and both stops in order. Reachability walks gradient stops. A new arm 1b checks both stops of every gradient against the coordinate's own family axis. Arm 1 reads keys and cannot see a `fadeTo` hard-wired to `dark.clear`; arm 1b does (mutation M2b below). `lint-paint-placement` gains a `gradientFill` property, the rule "never beside a solid fill on one node", and a schema negative control. `lint-axis-values` registers `direction` as `sole`. `VARIANT_AXES` gains its twentieth name, argued in its header. Re-accepted for veil only, after reading the diffs: `lint-paint --accept` (veil 6→30 set and grid, all other defs byte-identical) and `lint-component-surface --accept` (veil 6→30 members). Code guidance is in `codeOnly`: `linear-gradient(to bottom, var(--color-veil-dark-strong), var(--color-veil-dark-clear))` for from-top, and so on.
+
+**Tests** (`test.ts`, literal expectations): 30 members, 6 per direction; the six `full` members bind `color/veil/<v>/<i>` with no gradient and equal the pre-#1318 plan; each direction's literal matrix, plus the consequence check (the first row gives t=0 at the named edge's midpoint and t=1 opposite); stop order `0:<v>/<i>`, `1:<v>/clear`; light members fade to `color/veil/light/clear`; both executors build the 30 members to a hand-written table and agree with each other; a starved file leaves the 12 light directional members clear on both paths with the same miss; every brand emits both clear ends at alpha 0 in their own hue in every mode, resolved through the committed trees; both clear ends are scoped fill-only.
+
+**Mutations** (each committed first, restored from HEAD):
+- M1, stop order swapped in the projector: `#1318 veil: each direction projects its literal matrix…`, `#1318 plugin/paste: all 30 veil members…` and the light-clear assertion fail, plus `lint-paint` census/veil set+grid.
+- M2, `'light.clear'` bound to `color.veil.dark.clear`: `lint-paint` `provenance: veil|light.clear` and 12 × `gradient provenance`, plus the `test.ts` literals.
+- M2b, `fadeTo` hard-wired to `'dark.clear'`: arm 1 is silent, and arm 1b fires 12 ×.
+- M3a, paste splice dropped: `#1318 paste: …` and `#1318 parity: … IDENTICAL fill` fail (the members read `SOLID UNBOUND`, the frame's white default).
+- M3b, plugin write dropped: `#1318 plugin: …`, the parity line, and `test:roundtrip` `veil (24)`.
+- M4, `from-right` removed from the axis: `#1318 veil: … 30 members` fails, and so do the schema (`gradient.angles names 'from-right'`), `lint-axis-values` and `lint-component-surface` (24 vs 30). The first run of M4 crashed the suite at the projector's refusal instead of failing by name; the direction loop now catches and names it.
+- M5, `veil.light.clear` aliased to `transparent` (regen'd): `veil: every brand emits … 0% WHITE` fails in every brand.
+
+**Review follow-ups (independent review of #1766).** Three new checks could be disabled with nothing failing:
+- The `gradientFill` read-back met only correctly built veils. `test-roundtrip.ts` now damages one built member after the write, two ways: it drops the far stop's binding, and it reverses the stops. The reader must name each (`stop 1 NOT BOUND`; `stop 0 at 1` with `stop 0→…/veil/light/clear`).
+- Both executors' "gradient set, not retained" read-back. `test.ts`'s host stand-in gains a taught accept-and-discard (`gradientDiscard`: the host drops the gradient, or strips its stop bindings). Each executor must report `wash.fills -> DISCARDED (gradient set, not retained)` on all 24 directional members, and neither may report it on a clean host.
+
+Nits: the veil prose no longer says the rest of the photo stays unmuted, which was true only at the far edge. `docs/20` gains a dated forward note that the veil is now eight roles.
+
+**Not decided here, and held:** radial or corner directions, and how a veil sits on an inverse band (the existing structural reason covers the clear ends as the same wash at 0%, and no new decision was made). TokenPress and the exporter gate read the token tier only; the clear roles are ordinary color variables there.
+
+---
+
+---
+
+## (2026-09-28) — Switch: a light off track in every brand, and the thumb glyph is a `State icon` boolean (#1354)
+
+**The defect the owner saw.** In the NB master theme the switch's off and on tracks looked the same. `switch-control` bound the off track to `interactive.neutral.fill.rest`, the neutral BUTTON fill. `neutralEmphasis: 'strong'` darkens that fill to a near-black button (#2D2C2C). The master's action palette is brand-neutral, so the on track (`primary.fill.selected`) is #34383D. The two tracks measured 1.18:1 apart. In the default prism3 brand the off track is #CECECF, so only strong neutral emphasis shows the problem.
+
+**Owner decisions (2026-09-28), as built.**
+- The off track reads `background.tertiary`, a surface step no interactive lever moves (NB master #DCDBDB, prism3 #DBDBDC). It keeps its hairline in `interactive.neutral.border.rest`.
+- The off thumb turns dark: `interactive.neutral.border.rest`, the border's own ink. This is Material 3's unselected shape, where the handle and the track outline share one `outline` role. It also matches Prism 2 (#C6C6C6 track, #6A6A6A handle). The old `neutral.on-fill` thumb flips WHITE under strong emphasis, so it could not stay.
+- The X's ink is `background.tertiary`, the off-track color. The "glyph ink = its selection's track fill" invariant still holds.
+- The on arm is unchanged.
+- The glyph is ONE Figma BOOLEAN, `State icon`, default true, over both glyph parts. `showStateLabel` defaults to `true` on switch-control and switch-row. The name is kept, so this is a default change and not a rename.
+
+**The mechanism change that made one boolean drive two glyphs.** `figmaProperties.booleans` mapped a prop to ONE part and refused any boolean on a `presentWhen`-gated part (#1331). The check (`selection=on`) and the X (`selection=off`) are gated parts that never coexist, so two changes were needed:
+- `part` now accepts a list (`booleanPartsOf`).
+- `figmaPropertyErrors` admits gated parts only when the boolean targets two or more parts, all gated on ONE shared variant axis whose values they cover between them. Every member then builds exactly one node for the boolean to toggle. A single gated part, an uncovered value, a mixed gated/ungated list, a `state` gate and `when` all stay refused.
+- `present()` lets a boolean part fall through to its variant gate. It also keeps an `optional` boolean part once the gate passes; that `optional` fallback was what dropped both glyphs on the first run.
+- The set stays at 24 members, and `planSetProperties` declares `State icon` once.
+
+**Measured** (token-contract corpus + prism3 + the NB master, every mode, from resolved hexes):
+
+| Pair | Range | NB master light | prism3 light |
+|---|---|---|---|
+| Off border vs page | 15.98–21:1 | | |
+| Off thumb vs off track (also X vs thumb) | 12.36–21:1 | 14.05:1 | 14.04:1 |
+| Off track vs on track | 5.70–18.21:1 | 8.54:1 | 10.90:1 |
+| On track vs page | 6.91–18.21:1 | | |
+
+High-contrast modes flatten every `background.*` step to the page, so the off track is page-colored there and the border and thumb carry it.
+
+**Found, not fixed (filed).**
+- **#1763.** The ON thumb (`primary.on-fill` on `primary.fill.selected`) measures 2.32–2.62:1 in every `dark` mode but aurora's. `on-fill` is gated against `fill.rest`, not the lighter selected step. The checkbox checked mark has the same pair. The header's old "6.85–9.96:1" was light-only.
+- Checkbox and radio do not bind the neutral fill (their off state is `field.border.*`), so strong emphasis leaves them alone. Nothing to file there.
+
+**Off hover/pressed: no visible change (owner-decided, 2026-09-28, on #1765).** This matches checkbox and radio at unchecked. The old `off.fill.hover`/`.pressed` keys are dropped, so both states fall through to the rest fill. The tier has no surface step darker than `tertiary`. The overlay wash is not an option either: it REPLACES a box's single `fills` paint (`paintSlots` precedence) rather than layering on it, and a 10% wash over white (#E6E6E6) reads LIGHTER than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound, but `interactive.neutral.border.*` resolves all three states to one value. The rejected alternative was a new darker surface role, which would mint a token and move CONTRACT a MINOR.
+
+**The disabled glyph (#1764, fixed here on the owner's direction).** At `disabled`, the glyph and the thumb both bound `color.disabled.on-fill`, so the glyph drew in its own thumb's color. That predates this lane, but the default-on glyph made it visible in every disabled member. `disabled.icon.on-fill` now binds `color.disabled.border`. That role equals the disabled TRACK (`disabled.fill`) in every corpus mode, so it repeats the rest-state "glyph = track" inversion in the muted disabled inks.
+- Glyph vs disabled thumb measures **3.04–5.49:1** over the token-contract corpus, prism3 and the NB master. NB master light is #c1c1c0 on #6a6868 at 3.07:1; prism3 light is #c0c1c2 on #67696b at 3.06:1.
+- `disabled.text` (and its twin `disabled.icon`) was measured and rejected at 1.21–1.79:1, since harbor light and hc-light sit at 1.21.
+- Disabled stays contrast-exempt (1.4.3). The test asserts > 1.5:1 as a visibility bar, not a legibility claim.
+
+**Tests and mutations.** Each mutation was committed first and restored from HEAD.
+- `off.fill` back to `interactive.neutral.fill.rest` fails:
+  - `NB master light: the off track is the light #dcdbdb…`
+  - `off track vs on track is 8.54:1 (got 1.18:1)`
+  - the prism3 literal
+  - both `'off.fill' does not move with neutralEmphasis`
+  - the corpus contrast sweep
+  - the existing glyph-ink invariant
+- The glyph's `visibleProp` stripped in the projector fails `declares exactly one property, the BOOLEAN 'State icon'…` and `both glyph nodes … carry visibleProp 'State icon'`.
+- The def's boolean narrowed to `['onGlyph']` fails the structural-validity arms and the refusal pin `the authored State icon boolean … is NOT refused`.
+- The default flipped to false fails `showStateLabel defaults to true in code…`.
+- The disabled glyph ink back to `disabled.on-fill` fails `#1764 NB master light: the disabled glyph #c1c1c0…`, `#1764 prism3 light: the disabled glyph #c0c1c2…` and `#1764 the disabled glyph sits > 1.5:1 from the disabled thumb in all 45 brand×mode rows`.
+- The off thumb left on `neutral.on-fill` fails `the off thumb is the dark #0e0d0d`, `off thumb vs off track is 14.05:1 (got 1.38:1)`, the X arm and both `'off.indicator' does not move with neutralEmphasis`.
+- Disabling the presentWhen refusal fails the three `MUTATION:` refusal arms plus #1331's own `a boolean on a presentWhen-gated part is refused BY NAME`.
+- Dropping the partition clause (`named.length === covered.size`) fails "MUTATION: two gated glyphs that BOTH exist at selection=on are refused…".
+- Disabling the `when` refusal fails "a boolean over a when-gated part (the focus ring) is refused BY NAME".
+- Lowering the pinned dark-row count to 9 fails "#1763 the dark-mode on-thumb exemption covers exactly 10 rows…".
+
+**What moved.**
+- `schema/component-surface.json`, re-accepted. switch-control's plans changed. switch-row changed only because its `codeOnly` prose rides in the plan payload. Both stay at 24 and 2 members.
+- `schema/paint-census.json`, re-accepted: switch-control, still 86 assignments, repointed.
+- Paste size: switch-control single-shot 66,791 → 67,438 B, chunks 41,033/40,689/39,950 → 41,132/40,854/40,333 B, under the 42,000 budget. The largest chunk in the registry is unchanged (button-destructive, 41,961 B).
+- ENGINE 0.194.0 → 0.195.0. CONTRACT stands at 13.1.0: every binding is an existing role, and no emitted token name moves.
+
+### Review round (independent review of ea68a31e; no blocking findings)
+
+- **The #1763 exemption is pinned, not silent.** The first version's comment claimed the dark-row count was "printed in the message". It was not: `ok()` prints only failures, so every dark row was exempt with nothing watching. The test now asserts `darkOnGap === 10` (every corpus brand's dark mode but aurora's, plus prism3's) and that aurora dark stays at 8.59:1.
+- **The `when` refusal has a test.** Without it, `present()` returns early for a boolean part with no `presentWhen`, so a focus ring or overlay under a boolean would build at every member.
+- **The gates must partition, not just cover.** The first version accepted overlapping gates (`{on}` + `{on, off}`), which put two nodes at `on` while the prose said "exactly one". `figmaPropertyErrors` now also refuses a value named twice.
+- **Dropped the `axis !== STATE_GATE` and per-part single-axis clauses.** Neither could change the result: `state` is never a `variants` key, so its declared list is empty, and a two-axis part already puts two names in `axes`. The comment says so.
+- **Skill.** `skills/prism3-build-component/SKILL.md` documents the list form and the narrowed refusal.
+
+**Trap.** The NB master's brand input is copied into `test.ts` as a literal `BrandInput`. It is a fixture, so it will not follow the owner's file if that file changes.
 
 ## (2026-09-28) — Projector: `'fill'` sizing projects as FILL, and textarea's message row wraps (#1751)
 

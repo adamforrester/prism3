@@ -451,6 +451,10 @@ const paintRows = (n: FigmaNodePlan, path: string, member: string, out: string[]
   if (n.paints?.fills) out.push(`${member}|${p}|fills=${n.paints.fills}`);
   if (n.paints?.strokes) out.push(`${member}|${p}|strokes=${n.paints.strokes}`);
   if (n.descendantFills) out.push(`${member}|${p}|descendantFills=${n.descendantFills}`);
+  // A GRADIENT fill (#1318) is one row carrying its matrix and both stops in order — so a swapped stop
+  // order, a moved direction or a rebound stop each changes the hash, where a row per variable would let
+  // a swap of the two stops hash identically.
+  if (n.gradientFill) out.push(`${member}|${p}|gradientFill=${JSON.stringify(n.gradientFill.gradientTransform)}:${n.gradientFill.stops.map((s) => `${s.position}@${s.variable}`).join(',')}`);
   for (const c of n.children) paintRows(c, p, member, out);
 };
 
@@ -624,6 +628,62 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
 };
 
 /**
+ * ARM 1b — PROVENANCE AT A GRADIENT'S STOPS, read from the COORDINATE (#1318).
+ *
+ * Arm 1 reads each binding KEY against its ref, so it checks `light.clear` → `color.veil.light.clear` and
+ * is satisfied. What it cannot see is WHICH key a gradient's far stop asks for at a given coordinate: the
+ * part's `gradient.fadeTo` is a template, and one spelled `dark.clear` (no `{value}`) would hand every
+ * LIGHT member a dark clear end — a light wash fading through gray — while every key in the def still
+ * satisfies arm 1. So this asks the owner's rule directly: **at a coordinate whose family axis reads `v`,
+ * BOTH stops of every gradient paint a role in family `v`.**
+ *
+ * INDEPENDENCE (`docs/34`). EXPECTED is the coordinate this file enumerates itself (the declared grid,
+ * the census's own walk) and the axis values that lead a colour key in the def's `tokens`. ACTUAL is the
+ * stop variables the projector wrote, split at `FAMILY_SEGMENT` like arm 1. Neither is derived from the
+ * other, and nothing here asks the projector which key it resolved.
+ *
+ * A FAMILY AXIS is one whose values lead some colour key in the def and that `NON_FAMILY_AXES` does not
+ * exempt — the same premise arm 1 rests on, read per def. The arm FAILS when a def declares a gradient
+ * and no stop was checked: a rule over an empty set is not a pass.
+ */
+const gradientStopFailures = (): { failures: string[]; stops: number; defs: string[] } => {
+  const out: string[] = [];
+  let stops = 0;
+  const defs: string[] = [];
+  for (const def of censusable()) {
+    if (!Object.values(def.anatomy?.parts ?? {}).some((p) => p.gradient)) continue;
+    defs.push(def.id);
+    const leads = new Set(Object.entries(def.tokens ?? {}).filter(([, r]) => typeof r === 'string' && r.startsWith('color.')).map(([k]) => k.split('.')[0]));
+    const familyAxes = Object.entries(def.variants ?? {})
+      .filter(([a, vs]) => a !== 'size' && !(a in NON_FAMILY_AXES) && vs.some((v) => leads.has(v)))
+      .map(([a]) => a);
+    const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
+    const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
+    let combos: Record<string, string>[] = [{}];
+    for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
+    const states: (string | undefined)[] = [undefined, ...(def.states ?? []).filter((s) => s !== 'rest')];
+    for (const size of sizes) for (const c of combos) for (const st of states) {
+      if (excludedFromSet(def, size, c)) continue;
+      const plan = figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading: true, trailing: true, swapTarget: 'FPO-default-icon' } as never);
+      const walk = (n: FigmaNodePlan): void => {
+        for (const stop of n.gradientFill?.stops ?? []) {
+          stops++;
+          const segs = stop.variable.split('/');
+          for (const axis of familyAxes)
+            if (segs[FAMILY_SEGMENT] !== c[axis])
+              out.push(`${def.id} ${Object.entries(c).map(([k, v]) => `${k}=${v}`).join(',')} ${n.name}: gradient stop ${stop.position} binds '${stop.variable}', but this coordinate's ${axis} is '${c[axis]}' — a ${c[axis]} wash would fade through another ${axis}'s color`);
+        }
+        for (const ch of n.children) walk(ch);
+      };
+      walk(plan.root);
+    }
+  }
+  if (defs.length && stops === 0)
+    out.push(`gradient stops: [${defs.join(', ')}] declare a gradient and no stop was projected at any coordinate — this arm checked nothing`);
+  return { failures: out, stops, defs };
+};
+
+/**
  * Colour bindings that are legitimately never returned by the projector, each with the reason.
  *
  * Listed by exact key and checked in BOTH directions, same discipline as `PROVENANCE_EXCEPTIONS`: a
@@ -706,7 +766,9 @@ const reachability = (): { covered: { id: string; reached: number; total: number
 
     const hit = new Set<string>();
     const walk = (n: FigmaNodePlan): void => {
-      for (const v of [n.paints?.fills, n.paints?.strokes, n.descendantFills]) if (v) hit.add(v);
+      // A gradient's stops are paint too (#1318) — without them the clear ends a directional veil fades to
+      // read as bound and painting nothing.
+      for (const v of [n.paints?.fills, n.paints?.strokes, n.descendantFills, ...(n.gradientFill?.stops ?? []).map((s) => s.variable)]) if (v) hit.add(v);
       for (const c of n.children) walk(c);
     };
     for (const size of sizes) for (const c of combos) for (const st of states)
@@ -796,7 +858,7 @@ const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; 
         p.underPaint ||= underPaint;
         pairs.set(k, p);
       }
-      for (const c of n.children) walk(c, here, underPaint || !!n.paints?.fills);
+      for (const c of n.children) walk(c, here, underPaint || !!n.paints?.fills || !!n.gradientFill);
     };
     const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
     const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
@@ -869,6 +931,10 @@ const main = (): void => {
   // that quietly spelled its keys so the rule never matched is not noticeable at all.
   for (const [axis, why] of Object.entries(NON_FAMILY_AXES))
     console.log(`  provenance NOT checked on axis '${axis}' — ${exempted.get(axis) ?? 0} binding(s) exempted: ${why.split(':')[0]}`);
+  // ── ARM 1b ────────────────────────────────────────────────────────────────────────────────────
+  const grad = gradientStopFailures();
+  for (const f of grad.failures) fails.push(`gradient provenance: ${f}`);
+  console.log(`  gradient stops … ${grad.failures.length === 0 ? 'ok' : `${grad.failures.length} violation(s)`} (${grad.stops} stop(s) across [${grad.defs.join(', ')}], each against its coordinate's family axis)`);
 
   // ── ARM 2 ─────────────────────────────────────────────────────────────────────────────────────
   const actual: Census['defs'] = {};

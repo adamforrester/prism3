@@ -25,7 +25,7 @@ import type { StylesPlan, GradientTransform } from '@prism3/engine/write-plan';
 import type { FigmaEffect } from '@prism3/engine/emit-figma-styles';
 
 /** A colour as Figma stores it on an effect/stop — RGBA floats 0–1 (matches the engine's `FigmaColor`). */
-type Rgba = { r: number; g: number; b: number; a: number };
+export type Rgba = { r: number; g: number; b: number; a: number };
 
 /** Figma's variable-reference value. Structurally identical to `write-figma.ts`'s, declared here
  *  rather than imported because that module is the *variables* executor and this one only needs the
@@ -96,6 +96,40 @@ export type StylesApplyResult = {
   misses: string[];
 };
 
+/** One gradient stop as the binder takes it: where it sits, the colour Figma stores, and the variable NAME it
+ *  binds to (`null` for a stop traced to no variable — a normal state for an authored hex, never a miss). */
+export type StopToBind = { position: number; color: Rgba; alias: string | null };
+
+/**
+ * THE ONE GRADIENT-STOP BINDER (#236, reused by #1318). Builds the `gradientStops` array: position and colour
+ * always, and `boundVariables.color` wherever the stop names a variable this file has. A named variable the
+ * file lacks is reported through `onMiss` and its stop keeps the colour alone.
+ *
+ * SHARED by the Paint Style executor below and the component executor (`write-components.ts`, the veil's
+ * directional washes), because both are binding the SAME Figma shape: a `ColorStop` carries its own
+ * binding, constructed inline — `setBoundVariableForPaint` handles only a `SolidPaint`. Two copies of this
+ * would be two places for that asymmetry to be forgotten. What each caller does with a partial result is
+ * its own call: a style keeps the baked colour (it is the right one), a component clears the fill (its stop
+ * colour is only a placeholder). `bound` is the count that decides.
+ */
+export const bindGradientStops = <V extends StyleVariable>(
+  stops: readonly StopToBind[],
+  varByName: ReadonlyMap<string, V>,
+  alias: (v: V) => VariableAlias,
+  onMiss: (name: string) => void,
+): { stops: GradientPaint['gradientStops']; bound: number } => {
+  let bound = 0;
+  const out = stops.map((stop) => {
+    const base = { position: stop.position, color: stop.color };
+    if (!stop.alias) return base;
+    const v = varByName.get(stop.alias);
+    if (!v) { onMiss(stop.alias); return base; }
+    bound++;
+    return { ...base, boundVariables: { color: alias(v) } };
+  });
+  return { stops: out, bound };
+};
+
 /**
  * Materialise the styles plan into Figma Effect + Paint Styles. Idempotent find-by-name for each:
  * reuse an existing style with the same name (overwrite its props), else create one.
@@ -125,18 +159,12 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
     let s = paintByName.get(row.name);
     if (!s) { s = styles.createPaintStyle(); s.name = row.name; paintByName.set(row.name, s); paintsCreated++; }
     s.description = row.description;
-    const gradientStops: GradientPaint['gradientStops'] = row.stops.map((stop) => {
-      // Position + baked colour always; the binding only when the plan traced this stop to a palette
-      // leaf AND this file actually has that variable. `alias: null` is the ordinary case for an
-      // authored hex, so it is not a miss — only a named target we cannot find is.
-      const base = { position: stop.position, color: stop.color };
-      if (!stop.alias) return base;
-      const v = varByName.get(stop.alias);
-      if (!v) { misses.push(stop.alias); return base; }
-      bound++;
-      return { ...base, boundVariables: { color: styles.variables.createVariableAlias(v) } };
-    });
-    s.paints = [{ type: row.paintType, gradientTransform: row.gradientTransform, gradientStops }];
+    // Position + baked colour always; the binding only when the plan traced this stop to a palette
+    // leaf AND this file actually has that variable. `alias: null` is the ordinary case for an
+    // authored hex, so it is not a miss — only a named target we cannot find is.
+    const res = bindGradientStops(row.stops, varByName, (v) => styles.variables.createVariableAlias(v), (name) => misses.push(name));
+    bound += res.bound;
+    s.paints = [{ type: row.paintType, gradientTransform: row.gradientTransform, gradientStops: res.stops }];
   }
 
   return {

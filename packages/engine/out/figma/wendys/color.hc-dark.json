@@ -2534,6 +2534,25 @@
       }
     },
     {
+      "name": "wds/color/veil/dark/clear",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil, clear end — transparent black, where a dark gradient veil fades to.",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/transparent"
+      }
+    },
+    {
       "name": "wds/color/veil/light/subtle",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2588,6 +2607,25 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/palette/white-alpha/60"
+      }
+    },
+    {
+      "name": "wds/color/veil/light/clear",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Media veil, clear end — transparent white, where a light gradient veil fades to.",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/white-alpha/0"
       }
     },
     {
