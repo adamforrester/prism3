@@ -56,7 +56,7 @@
  * regions by BORDER (the ≥4.5:1 border target), not by near-invisible tints.
  */
 import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
-import { RGB, contrast, hex, hexToRgb, composite, deltaE2000 } from './color';
+import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
 
@@ -107,11 +107,21 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0): Rate
  * than one surface (semantic ink sits on the page AND on its own subtle tint). The reported `ratio`
  * stays measured against `surface`, which is the ground the role's `against` names; the extra grounds
  * only tighten which step is eligible. Empty by default, so a single-ground role is unaffected.
+ *
+ * `avoid` names COLOURS the step must not equal — for a role that must stay visibly distinct from another
+ * role drawn in the same place (#1782 decision 2: a status field border must never take the focus ring's
+ * colour, or an errored field and a focused one share an edge). Compared by emitted hex, not by palette
+ * path, so it also holds where two palettes collapse onto one ramp (wireframe) or two steps share a hex. An
+ * avoided anchor is treated as a miss, so the pick moves to the nearest step that clears every ground AND
+ * is not avoided — at least one ramp step away. `exact` still wins (an authored pin is applied verbatim),
+ * and with no eligible step the anchor falls back as before, where the contrast sweep names the miss.
+ * Empty by default, so every other role is unaffected.
  */
-const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = []): RatedNum => {
+const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = []): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
   const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
-  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= min);
+  const avoidHex = new Set(avoid.map(hex));
+  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= min) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
   // applied verbatim even when it misses the floor — the app's apply-but-warn policy (#331). The
   // substitution below is a DERIVATION aid for an unpinned role, not an override guard: silently
@@ -657,10 +667,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const wf = cfg.kind === 'wireframe';                       // B — behaviour by kind, not name
   const neutralPal = r2p.neutral;
   const palOf = (palette: string): string => (wf && palette !== neutralPal ? neutralPal : palette);
-  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = []): RatedNum => {
-    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear);
+  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = []): RatedNum => {
+    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear, avoid);
     return wf && palette !== neutralPal
-      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear) // same position, greyscaled
+      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear, avoid) // same position, greyscaled
       : pick;
   };
   const paletteRole = (r: Role, surf: RGB, min: number): RatedNum =>
@@ -1938,7 +1948,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // than one surface must ALSO clear — the semantic-ink precedent). The anchor stays 500 wherever it clears
   // every ground; otherwise the nearest step that does. The extra grounds take the role's OWN floor
   // (`nonTextMin`: 3 in light/dark, 4.5 in HC), the same bar `field.border.*` holds on its ground, so in HC
-  // the step moves one or two rungs where the 500 measured 3.6–3.9:1 on the wash. The reported
+  // the step moves one or two rungs where the 500 measured 3.6–3.9:1 on the wash — above SC 1.4.11's 3:1, so
+  // the HC floor on the extra grounds is an OWNER DECISION (2026-09-29), not a WCAG requirement. The reported
   // `ratio` and `against` stay the page's, as `alsoClear` documents. A brand that opts out of the overlay
   // wash (`outlineInteraction` none / solid-tint) has no washed ground, so only `background.secondary` is
   // added. `info` and `brand` are not field statuses and keep the page-only contract.
@@ -1950,18 +1961,36 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const fieldInsetRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
   const fieldWash = roles['interactive.neutral.overlay.hover'];
   const fieldWashRgb = fieldWash ? asGround('interactive.neutral.overlay.hover', rgbByRole.get('interactive.neutral.overlay.hover')!) : undefined;
-  // The alpha a renderer actually applies, not the nominal one: the wash primitive is emitted as 8-digit hex
-  // (`#0000001a`), so 10% renders as 26/255 = 0.102. At the nominal 0.1 two cells (aurora and wendys light)
-  // cleared 3:1 here and measured 2.99–3.00 in the emitted tokens — a contract has to hold on what ships.
-  const fieldWashA = fieldWash?.alpha !== undefined ? Math.round(fieldWash.alpha * 255) / 255 : undefined;
+  // The alpha a renderer actually applies, not the nominal one, and it is the BRAND'S DIALECT that decides
+  // it (`emittedAlpha`, the rule `tree.ts` writes through). The hex dialect emits 8-digit hex
+  // (`#0000001a`), so 10% renders as 26/255 = 0.102; at the nominal 0.1, aurora and wendys light cleared
+  // 3:1 here and measured 2.99–3.00 in the emitted tokens. The rgb dialect (NB) emits `rgba(0, 0, 0, 0.1)`
+  // and Figma `a: 0.1`, so compositing NB at 0.102 held it to a wash darker than the one it ships (nb dark
+  // warning moved 500 → 450 on that difference alone). A contract has to hold on what ships, per dialect.
+  const fieldWashA = fieldWash?.alpha !== undefined ? emittedAlpha(fieldWash.alpha, theme.colorFormat) : undefined;
   const fieldStatusGrounds: RGB[] = [
     fieldInsetRgb,
     ...(fieldWashRgb && fieldWashA !== undefined
       ? [composite(fieldPageRgb, fieldWashRgb, fieldWashA), composite(fieldInsetRgb, fieldWashRgb, fieldWashA)]
       : []),
   ];
-  for (const r of SEMANTICS)
-    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin, false, FIELD_STATUS_BORDERS.includes(r) ? fieldStatusGrounds : []), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
+  // #1782 DECISION 2 (owner, 2026-09-29) — A STATUS BORDER NEVER TAKES THE FOCUS RING'S COLOUR. A field swaps
+  // its border to `border.focus` when focused and to its status border when validated, on the same edge, so
+  // the two must read as different states. Where the danger palette IS the action palette (NB: `red` for
+  // both), the #1782 move put nb dark `border.danger` on red.450 — the step `border.focus` already held —
+  // and an errored field was indistinguishable from a focused one by its edge. So the focus ring is
+  // resolved FIRST and passed to the three field status borders as `avoid`: the pick moves at least one
+  // ramp step off it, to the nearest step that still clears every ground above. Applied to all three, not
+  // danger alone: warning and success share the focus ring's ramp wherever a brand maps them onto the
+  // action palette, and in wireframe EVERY chromatic role collapses onto the neutral ramp. Compared against
+  // the value `border.focus` will carry (`asGround`, so a brand override of the ring is honoured).
+  // `test.ts` (`a11y(#1782) status ≠ focus`) gates the resolved hexes, not this list.
+  const focusBorder = hc ? rated(actionRest, baseRgb) : focusRing(baseRgb);
+  const focusAvoid = [asGround('border.focus', focusBorder.rgb)];
+  for (const r of SEMANTICS) {
+    const field = FIELD_STATUS_BORDERS.includes(r);
+    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin, false, field ? fieldStatusGrounds : [], field ? focusAvoid : []), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
+  }
   // The default ring adapts against the page in the STANDARD modes; in HC it keeps `actionRest` (#1336).
   // HC already made the default ring respond — `actionRest` is gated at the escalated HC fill bar
   // (`actionMin` 7:1) and so already resolves a dark ring on the white HC page and a light one on the
@@ -1972,7 +2001,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the page at `actionMin`, leaving the HC ring — already correct, already at max contrast, already
   // NB-faithful — untouched. (The inverse ring below has no such NB-authored HC pick to preserve and
   // was frozen in HC too, so it takes `focusRing` in every mode.)
-  put('border.focus', hc ? rated(actionRest, baseRgb) : focusRing(baseRgb), `Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1 on background.primary`, 'background.primary', cfg.nonTextMin);
+  put('border.focus', focusBorder, `Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1 on background.primary`, 'background.primary', cfg.nonTextMin);
 
   // The inverse edge set. Same rules, inverse ground: the neutrals keep their decorative targets, the
   // semantics keep the SC 1.4.11 floor (#892 step 5).

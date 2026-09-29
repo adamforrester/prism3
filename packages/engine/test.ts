@@ -8776,23 +8776,30 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-dark', name: 'color/icon/link/hover', nb: 'palette/red/250', engine: 'palette/red/200' },
   { mode: 'hc-dark', name: 'color/icon/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
   // SEVENTH group (#1782): the three FIELD STATUS borders. NB authored `border.danger|warning|success` at 500
-  // against the page alone; a text field / textarea / select with a status draws that border over its own
-  // hover wash too, where 500 measured 2.76–3.00:1 (dark, and light warning) — under SC 1.4.11. The engine now
-  // also gates those three roles against `background.secondary` and the hover wash composited over either
-  // page ground (`alsoClear` in modes.ts), each at the mode's own non-text floor (4.5 in HC), so they land
-  // one rung stronger (two in hc-light danger/warning). `border.brand` and `border.info` are not field
-  // statuses and are ABSENT here — still byte-checked against NB, which is the check that the move is scoped.
-  // Same owner stance as groups 1 and 4: NB's authored value is a real non-text contrast miss, not conservatism.
-  { mode: 'light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/550' },
-  { mode: 'dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },
-  { mode: 'dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },
-  { mode: 'dark', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/450' },
-  { mode: 'hc-light', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/600' },
-  { mode: 'hc-light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/600' },
-  { mode: 'hc-light', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/550' },
-  { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },
-  { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },
-  { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },
+  // (hc-dark success at 450) against the page alone. A text field / textarea / select with a status draws that
+  // border over `background.secondary` and over its own hover wash too, and the engine now also gates those
+  // three roles on those grounds (`alsoClear` in modes.ts), compositing the wash at the alpha NB SHIPS —
+  // `rgba(0, 0, 0, 0.1)` / Figma `a: 0.1`, not the hex dialect's 26/255. Each row is here for ONE of three
+  // reasons, stated per row because they are not the same claim, and ratios are the authored step's worst
+  // ground (the wash composited over `background.secondary`) at alpha 0.1:
+  //   WCAG — the authored step misses SC 1.4.11's 3:1 on that ground: a real non-text contrast miss, the same
+  //          owner stance as groups 1 and 4.
+  //   HC   — the authored step CLEARS 3:1 but misses the high-contrast modes' own 4.5:1 non-text floor on the
+  //          extra grounds. That floor is an OWNER DECISION (2026-09-29, #1782 decision 1), not a WCAG miss.
+  //   FOCUS — the step the contrast rule alone would pick is `border.focus`'s step, so the engine moves one
+  //          further (#1782 decision 2: an errored field must not share its edge color with a focused one).
+  // `border.brand` and `border.info` are not field statuses and are ABSENT here — still byte-checked against
+  // NB, which is the check that the move is scoped. So is nb DARK WARNING: amber.500 measures 3.02:1 at the
+  // shipped 0.1 (2.999 only at the hex dialect's 0.102), so it stays NB's authored step.
+  { mode: 'light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/550' },     // WCAG: 500 at 2.96:1
+  { mode: 'dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/400' },           // WCAG: 500 at 2.96:1; FOCUS: 450 is border.focus in nb dark
+  { mode: 'dark', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/450' },      // WCAG: 500 at 2.78:1
+  { mode: 'hc-light', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/600' },       // HC: 500 at 3.66:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/600' },  // HC: 500 at 3.59:1 (clears 3:1)
+  { mode: 'hc-light', name: 'color/border/success', nb: 'palette/green/500', engine: 'palette/green/550' },  // HC: 500 at 3.90:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/danger', nb: 'palette/red/500', engine: 'palette/red/450' },        // HC: 500 at 3.82:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/warning', nb: 'palette/amber/500', engine: 'palette/amber/450' },   // HC: 500 at 3.89:1 (clears 3:1)
+  { mode: 'hc-dark', name: 'color/border/success', nb: 'palette/green/450', engine: 'palette/green/400' },   // HC: 450 at 4.26:1 (clears 3:1)
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -12975,6 +12982,20 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   //     `against` or `min` — the roles declare `against: background.primary` only, which is the defect). The
   //     floor is the literal 3 of SC 1.4.11, not the mode's `nonTextMin`. Never imports the engine's
   //     `FIELD_STATUS_BORDERS` / `alsoClear` grounds — dropping a ground there must fail HERE, by name.
+  //   SHARED, AND ACCEPTED: `contrast` and `composite` are imported from color.ts, the same two functions the
+  //     engine picks with. That is the repo's standing pattern for contrast gates (the WCAG formula and
+  //     source-over compositing are the definition being measured, not a derivation of the subject), so it is
+  //     left as is. What is NOT shared is everything that decides the answer: the grounds, the floors, the
+  //     wash alpha (parsed from the emitted `$value`, never `emittedAlpha`) and the focus value compared below.
+  //
+  // THREE MORE ARMS, from the owner's decisions of 2026-09-29:
+  //   HC — hc-light / hc-dark hold these borders to 4.5:1, not 3:1, on the same four grounds (decision 1: the
+  //     high-contrast modes keep their own non-text floor on the extra grounds). The 3:1 arm cannot see this:
+  //     the HC 500s measure 3.6–3.9:1 on the wash, above 3, so dropping the extra grounds in HC alone left it
+  //     silent. The floor is the literal 4.5, not `nonTextMin`.
+  //   STATUS ≠ FOCUS — no status border resolves to `border.focus`'s value (decision 2: an errored field and a
+  //     focused field must not share an edge color), in every brand × mode here AND in a wireframe variant of
+  //     each, where every chromatic role collapses onto the neutral ramp the focus ring also lands on.
   {
     // The NB master theme's brand input, COPIED as literal values (the owner's file, 2026-09-28; identical to
     // the switch block's `NB_MASTER`), so this check does not move when that file does. It opts out of the
@@ -13010,9 +13031,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(shMissing.length === 0,
       `a11y(#1782): every pinned field def (text-field, textarea, select) × non-default status (error, warning, success) projects a stroked hover member` + (shMissing.length ? ` — missing: ${shMissing.join(', ')}` : ''));
 
-    const shFails: string[] = [];
+    const shFails: string[] = [], shHcFails: string[] = [];
     const shModesSeen = new Set<string>();
-    let shCells = 0, shCellsExpected = 0, shWashed = 0, shWashOptOut = 0;
+    let shCells = 0, shCellsExpected = 0, shWashed = 0, shWashOptOut = 0, shHcCells = 0, shHcWashed = 0;
     for (const [brand, th] of SH_CORPUS) {
       const built = buildTree(th).tree as any;
       const alphaOf = (path: string): number | undefined => {
@@ -13036,6 +13057,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           const fa = f ? alphaOf(f.path) : 0;
           if (f && (!f.hex || fa === undefined)) { shFails.push(`${tag} fill ${p.fill} alpha unresolved`); continue; }
           if (f && (fa as number) > 0) shWashed++;
+          const isHc = m.mode === 'hc-light' || m.mode === 'hc-dark';
           for (const g of SH_GROUNDS) {
             const ground = m.roles[g];
             if (!ground?.hex) { shFails.push(`${tag} ground ${g} unresolved`); continue; }
@@ -13045,6 +13067,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             shCells++;
             if (outer < 3) shFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
             if (inner < 3) shFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            if (isHc) {
+              shHcCells++;
+              if (f && (fa as number) > 0) shHcWashed++;
+              if (outer < 4.5) shHcFails.push(`${tag} ${p.stroke} outside on ${g}: ${outer.toFixed(2)}`);
+              if (inner < 4.5) shHcFails.push(`${tag} ${p.stroke} inside on ${g}+${p.fill}: ${inner.toFixed(2)}`);
+            }
           }
         }
       }
@@ -13062,6 +13090,53 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
     ok(shFails.length === 0,
       `a11y(#1782): every status field border (danger / warning / success) clears 3:1 (SC 1.4.11) at hover against the page outside the control AND the hover wash composited over it inside, every corpus brand × mode — ${shFails.length} members below, in ${shGrouped.size} cells: ` + [...shGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shGrouped.size > 12 ? '; …' : ''));
+
+    // HC ARM (decision 1). Representation first: both HC modes must have been measured, and at least one HC
+    // member must have composited a real wash — otherwise "inside" would be the page again and the arm would
+    // pass on the outside measurement alone.
+    const shHcGrouped = new Map<string, string[]>();
+    for (const f of shHcFails) {
+      const mm = /^(\S+) (\S+)\[([^\]]*)\] (.*)$/.exec(f);
+      const key = mm ? `${mm[1]} ${mm[4]}` : f;
+      shHcGrouped.set(key, [...(shHcGrouped.get(key) ?? []), mm ? mm[2] : '']);
+    }
+    ok(shModesSeen.has('hc-light') && shModesSeen.has('hc-dark') && shHcCells > 0 && shHcWashed > 0,
+      `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
+    ok(shHcFails.length === 0,
+      `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
+
+    // STATUS ≠ FOCUS ARM (decision 2). The comparison is the resolved hex of each status border against the
+    // resolved hex of `border.focus` in the SAME mode — never the engine's `avoid` list. Wireframe variants are
+    // added because that is the mode where every status and the focus ring share one (neutral) ramp.
+    const SF_STATUSES = ['danger', 'warning', 'success'];
+    const sfCollide: string[] = [];
+    const sfModesSeen = new Set<string>();
+    let sfPairs = 0, sfSharedRamp = 0, sfModes = 0;
+    const sfBrands: Array<[string, Theme]> = [
+      ...SH_CORPUS,
+      ...SH_CORPUS.map(([id, th]) => [`${id}+wireframe`, { ...th, modes: [...th.modes.filter((mm) => mm !== 'wireframe'), 'wireframe'] }] as [string, Theme]),
+    ];
+    for (const [brand, th] of sfBrands) {
+      for (const m of resolveAllModes(th)) {
+        sfModesSeen.add(m.mode);
+        sfModes++;
+        const focus = m.roles['border.focus'];
+        if (!focus?.hex) { sfCollide.push(`${brand}/${m.mode} border.focus unresolved`); continue; }
+        for (const st of SF_STATUSES) {
+          const b = m.roles[`border.${st}`];
+          if (!b?.hex) { sfCollide.push(`${brand}/${m.mode} border.${st} unresolved`); continue; }
+          sfPairs++;
+          // Counted so the arm can show it walked pairs that COULD collide: same palette, different step.
+          if (b.path.split('.').slice(0, -1).join('.') === focus.path.split('.').slice(0, -1).join('.')) sfSharedRamp++;
+          if (b.hex.toLowerCase() === focus.hex.toLowerCase())
+            sfCollide.push(`${brand}/${m.mode} border.${st} = border.focus (${b.path.split('.').slice(-2).join('.')} ${b.hex})`);
+        }
+      }
+    }
+    ok(sfModes > 0 && sfPairs === sfModes * SF_STATUSES.length && ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'].every((mm) => sfModesSeen.has(mm)) && sfSharedRamp > 0,
+      `a11y(#1782) status ≠ focus: compared every status border with border.focus in every brand × mode, wireframe included (${sfPairs} pairs, ${sfSharedRamp} on the focus ring's own ramp)`);
+    ok(sfCollide.length === 0,
+      `a11y(#1782) status ≠ focus: no status field border (danger / warning / success) resolves to border.focus's color (owner decision, 2026-09-29: an errored field and a focused field must not share an edge color), every corpus brand × mode + prism3 + the NB master, and each in wireframe — ${sfCollide.length} collisions: ${sfCollide.slice(0, 12).join('; ')}${sfCollide.length > 12 ? '; …' : ''}`);
   }
 
   // #1623 sign-off (C1/TF-5 + C1/TA-4) — ONE VALIDATION API ACROSS THE FIELD FAMILY. text-field, textarea and

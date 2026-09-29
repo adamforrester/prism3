@@ -6292,7 +6292,7 @@
       "avoid_when": "Do not use as warning ink or fill — use `text.warning` or `foreground.warning`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.amber.550}",
-        "dark": "{nbds.core.palette.amber.450}",
+        "dark": "{nbds.core.palette.amber.500}",
         "hc-light": "{nbds.core.palette.amber.600}",
         "hc-dark": "{nbds.core.palette.amber.450}"
       },
@@ -6312,7 +6312,7 @@
       "avoid_when": "Do not use as danger ink or fill — use `text.danger` or `foreground.danger`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.500}",
-        "dark": "{nbds.core.palette.red.450}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.600}",
         "hc-dark": "{nbds.core.palette.red.450}"
       },
@@ -8371,6 +8371,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
@@ -9014,6 +9015,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.foreground.warning",
         "color.icon.warning-subtle",
         "color.inverse.border.warning",

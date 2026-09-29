@@ -13,7 +13,7 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex, hexToRgb } from './color';
+import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
@@ -27,9 +27,11 @@ const rgbStr = ({ r, g, b }: RGB) => `rgb(${r}, ${g}, ${b})`;
 const colorValue = (rgb: RGB, fmt: 'rgb' | 'hex') => (fmt === 'hex' ? hex(rgb) : rgbStr(rgb));
 const rgbFromHex = (h: string): RGB => ({ r: parseInt(h.slice(1, 3), 16), g: parseInt(h.slice(3, 5), 16), b: parseInt(h.slice(5, 7), 16) });
 const colorValueFromHex = (h: string, fmt: 'rgb' | 'hex') => (fmt === 'hex' ? h : rgbStr(rgbFromHex(h)));
-const alphaHex = (a: number) => Math.round(a * 255).toString(16).padStart(2, '0');
+// The alpha is quantized by `emittedAlpha` (color.ts) in both dialects — the one rule `modes.ts` also
+// composites through (#1782), so the engine measures a translucent wash at the alpha written here.
+const alphaHex = (a: number) => Math.round(emittedAlpha(a, 'hex') * 255).toString(16).padStart(2, '0');
 const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
-  fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${round(a, 2)})`;
+  fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${emittedAlpha(a, 'rgb')})`;
 // Shared opacity/alpha step set (percent). Ramps use 5–90; the opacity scale full.
 const ALPHA_STEPS = OPACITY_STEPS;
 

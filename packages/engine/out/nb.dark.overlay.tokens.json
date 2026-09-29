@@ -2886,7 +2886,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{nbds.core.palette.amber.450}",
+          "$value": "{nbds.core.palette.amber.500}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
@@ -2901,8 +2901,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "nbds.core.palette.amber.450",
-              "contrast": 5.13,
+              "aliasOf": "nbds.core.palette.amber.500",
+              "contrast": 4.32,
               "against": "background.primary",
               "min": 3
             }
@@ -2910,7 +2910,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{nbds.core.palette.red.450}",
+          "$value": "{nbds.core.palette.red.400}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
@@ -2925,8 +2925,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "nbds.core.palette.red.450",
-              "contrast": 5.05,
+              "aliasOf": "nbds.core.palette.red.400",
+              "contrast": 5.98,
               "against": "background.primary",
               "min": 3
             }

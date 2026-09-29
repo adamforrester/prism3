@@ -540,8 +540,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.tertiary | neutral.300 | — | — | · |
 | border.brand | red.500 | 4.24 | 3 | ✅ |
 | border.success | green.450 | 4.73 | 3 | ✅ |
-| border.warning | amber.450 | 5.13 | 3 | ✅ |
-| border.danger | red.450 | 5.05 | 3 | ✅ |
+| border.warning | amber.500 | 4.32 | 3 | ✅ |
+| border.danger | red.400 | 5.98 | 3 | ✅ |
 | border.info | info.500 | 4.27 | 3 | ✅ |
 | border.focus | red.450 | 5.05 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |

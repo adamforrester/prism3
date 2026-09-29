@@ -9989,9 +9989,9 @@
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{nbds.core.palette.amber.450}",
-                  "aliasOf": "nbds.core.palette.amber.450",
-                  "contrast": 5.13,
+                  "$value": "{nbds.core.palette.amber.500}",
+                  "aliasOf": "nbds.core.palette.amber.500",
+                  "contrast": 4.32,
                   "against": "background.primary",
                   "min": 3
                 },
@@ -10038,9 +10038,9 @@
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{nbds.core.palette.red.450}",
-                  "aliasOf": "nbds.core.palette.red.450",
-                  "contrast": 5.05,
+                  "$value": "{nbds.core.palette.red.400}",
+                  "aliasOf": "nbds.core.palette.red.400",
+                  "contrast": 5.98,
                   "against": "background.primary",
                   "min": 3
                 },
