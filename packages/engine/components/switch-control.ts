@@ -123,7 +123,8 @@
  * modes measured 2.32–2.62:1 here: `fill.selected` walked a lighter step than the `fill.rest` the ink is
  * gated against. Since 2026-09-29 (owner) `fill.selected` takes the rest step, so the on track is the brand's
  * rest fill and the pair clears in every mode. The cost, measured: in `dark` the on track sits closer to the
- * dark off track (2.71–14.01:1 across modes; prism3 dark 2.71:1). Thumb position still carries the state.
+ * dark off track (2.71–14.01:1 across modes; prism3 dark and wendys dark both 2.71:1). Thumb position still
+ * carries the state.
  */
 import { ComponentDef } from '../component-schema';
 

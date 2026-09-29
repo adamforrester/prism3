@@ -22608,6 +22608,22 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       `#1626 every on-fill clears ${ONFILL_FLOOR}:1 on its rest fill — under: ${restUnder.slice(0, 6).join('; ') || 'none'}`);
     ok(persistentUnder.length === 0,
       `#1626 no on-fill falls under ${ONFILL_FLOOR}:1 on a focused or selected fill, in any brand or mode — under: ${persistentUnder.slice(0, 6).join('; ') || 'none'}${persistentUnder.length > 6 ? ` (+${persistentUnder.length - 6})` : ''}`);
+
+    // A `fill.rest` OVERRIDE CARRIES TO ITS FOCUSED / SELECTED TWINS (review of #1773). The override layer
+    // rewrites one role, and `on-fill` re-picks against the overridden rest, so a rest override that left
+    // the twins on the derived step read 3.28:1 on selected with no warning (prism3 dark, rest → primary.300,
+    // selected stuck at primary.550, on-fill → neutral.950). Literals: all three land on primary.300 #86a7f7
+    // and the ink clears 8.22:1 on them. Removing `withFillStateTwins` fails this by name.
+    {
+      const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
+      const pOv = brandTheme({ ...pIn, overrides: { ...((pIn as any).overrides ?? {}), dark: { ...(((pIn as any).overrides ?? {}).dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' } } } } as BrandInput);
+      const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
+      const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
+      const inkHex = dm.roles['interactive.primary.on-fill'].hex;
+      const twinsUnder = ['rest', 'focused', 'selected'].map((st) => `${st} ${fh(st)} ${ratio(inkHex, fh(st))}:1`).filter((x) => Number(x.split(' ')[2].slice(0, -2)) < ONFILL_FLOOR);
+      ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#86a7f7' && twinsUnder.length === 0 && ratio(inkHex, fh('selected')) === 8.22,
+        `#1626 a fill.rest override carries to focused and selected: prism3 dark rest → primary.300 puts all three on #86a7f7 and on-fill clears 8.22:1 on each (rest=${fh('rest')}, focused=${fh('focused')}, selected=${fh('selected')}, on-fill ${inkHex} on selected ${ratio(inkHex, fh('selected'))}:1${twinsUnder.length ? `; under: ${twinsUnder.join(', ')}` : ''})`);
+    }
   }
 
   // (5) THE FIGMA PLAN: one BOOLEAN `State icon`, default true, on the 24-member set; both glyph nodes

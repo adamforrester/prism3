@@ -420,6 +420,31 @@ export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | un
 }
 
 /**
+ * THE REST → FOCUSED / SELECTED OVERRIDE TWINS (#1626). On the page, `interactive.<c>.fill.focused` and
+ * `.fill.selected` ARE the rest step (owner, 2026-09-29) — `fillStateCand` returns the derived rest for both.
+ * The override layer rewrites exactly one role, so an override on `fill.rest` alone moved rest and left the two
+ * twins on the derived step, while `on-fill` re-picked against the NEW rest (the pre-derivation `asGround`
+ * path). Measured on prism3 dark with rest overridden to `primary.300`: on-fill turned `neutral.950` and read
+ * 3.28:1 on the stale selected fill — #1763 again, with no warning. So a `fill.rest` override is carried to its
+ * `focused` / `selected` twins, unless a twin carries its own explicit override, which wins. The inverse band
+ * is deliberately NOT matched: its focused/selected step off the rest absolute by design (#1456).
+ */
+const FILL_TWIN_OF_REST = /^(interactive\.[^.]+\.)fill\.rest$/;
+export function withFillStateTwins(ov: ModeOverrides | undefined): ModeOverrides | undefined {
+  if (!ov) return ov;
+  const out: ModeOverrides = { ...ov };
+  for (const [rolePath, ref] of Object.entries(ov)) {
+    const m = FILL_TWIN_OF_REST.exec(rolePath);
+    if (!m) continue;
+    for (const st of ['focused', 'selected']) {
+      const twin = `${m[1]}fill.${st}`;
+      if (!(twin in ov)) out[twin] = ref;               // an explicit twin override wins
+    }
+  }
+  return out;
+}
+
+/**
  * THE ENGINE'S DEFINITION OF A GROUND (#985) — every role whose colour some other role's `ratio`
  * depends on. Named and exported so the one definition the override refusal reads has a place to be
  * checked against, rather than living inline where a second reader could quietly diverge from it.
@@ -1987,7 +2012,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = withIconTwins(theme.overrides?.[mode]);
+  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode]));
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];

@@ -40,11 +40,39 @@
 - `.ai.json` `when_to_use` for `fill.focused` / `fill.selected` drops its generated "drops below 4.5:1 in dark mode" clause.
 - Emitted paths that moved: page `fill.focused` / `fill.selected`, inverse `fill.*` descriptions (the label notes), and inverse `on-fill`. No `text.*`, `icon.*` or `border.*` role moved, so #1367's pairs are untouched.
 - Radio's checked dot (`fill.selected` on the page) is now 3.30–10.03:1 corpus-wide, still above 3:1. Its prose, and the tag and switch prose, are updated.
-- **For the owner:** in `dark` the switch's on track now sits closer to the dark off track, at 2.71–14.01:1 across modes (prism3 dark 2.71:1, from 5.70 minimum before). No gate requires off vs on track at 3:1, since thumb position carries the state, but it is a visible cost of the decision.
+- **For the owner:** in `dark` the switch's on track now sits closer to the dark off track, at 2.71–14.01:1 across modes (prism3 dark and wendys dark both 2.71:1, from 5.70 minimum before). No gate requires off vs on track at 3:1, since thumb position carries the state, but it is a visible cost of the decision.
+
+**Review follow-ups (independent review of #1773 at 18287261).**
+- **A `fill.rest` override left focused/selected behind.** The override layer rewrites one role, and `on-fill` re-picks against the overridden rest (the pre-derivation `asGround` path), so the two twins stayed on the derived step. Repro: prism3 dark with rest overridden to `primary.300` gave on-fill `neutral.950` at 3.28:1 on selected, with no warning. `withFillStateTwins` now carries a page `fill.rest` override to `fill.focused` / `fill.selected` unless a twin has its own override, beside `withIconTwins`. The inverse band is not matched. The test pins all three on `#86a7f7` with the ink at 8.22:1. No corpus brand overrides `fill.rest`, so `out/` does not move.
+- **Held for the owner: the selected fill on darker dark-mode surfaces.** The radio's checked dot, the checkbox's checked box and the switch's on track all bind `interactive.primary.fill.selected`, which is now the rest step. The rest fill is gated at 3:1 against `background.secondary`, the floor every page fill uses, so on `background.tertiary` in `dark` it misses 1.4.11:
+
+  | brand | mode | before (selected step) P / S / T | after (rest step) P / S / T |
+  |---|---|---|---|
+  | nb | dark | red.350 6.97 / 6.44 / 5.73 | red.550 3.46 / 3.20 / **2.85** |
+  | aurora | dark | accent.300 7.95 / 7.32 / 6.57 | accent.500 4.26 / 3.92 / 3.52 |
+  | harbor | dark | primary.350 6.91 / 6.37 / 5.70 | primary.550 3.46 / 3.19 / **2.86** |
+  | wendys | dark | primary.300 7.14 / 6.59 / 5.87 | primary.500 3.30 / 3.05 / **2.71** |
+  | minimal | dark | primary.300 7.80 / 7.21 / 6.42 | primary.500 3.91 / 3.61 / 3.22 |
+  | prism3 | dark | primary.350 7.01 / 6.46 / 5.80 | primary.550 3.28 / 3.03 / **2.71** |
+  | nb | light | red.750 12.08 / 9.94 / 8.78 | red.550 5.62 / 4.62 / 4.08 |
+  | aurora | light | accent.700 10.03 / 8.27 / 7.26 | accent.500 4.56 / 3.76 / 3.30 |
+  | harbor | light | primary.800 11.49 / 10.11 / 8.88 | primary.600 5.59 / 4.91 / 4.32 |
+  | wendys | light | primary.700 11.42 / 9.41 / 8.25 | primary.500 5.88 / 4.85 / 4.25 |
+  | minimal | light | primary.700 10.29 / 8.48 / 7.44 | primary.500 4.97 / 4.10 / 3.59 |
+  | prism3 | light | primary.800 15.08 / 12.42 / 10.90 | primary.600 7.82 / 6.44 / 5.65 |
+  | NB master | light | brand-neutral.750 11.80 / 9.72 / 8.54 | brand-neutral.950 19.36 / 15.95 / 14.01 |
+
+  P, S and T are `background.primary`, `.secondary` and `.tertiary`. HC modes flatten the tiers and measure 8.44–10.03 after. A filled button at rest already sits at these same numbers on a tertiary card; the selected controls now share them. The options are for the owner:
+  1. Accept, and document `background.secondary` as the darkest tier a filled control is contracted on.
+  2. Gate every page interactive fill against `background.tertiary`, the #1352 pattern for destructive ink. Measured in `dark`: rest moves one step lighter in nb, harbor, wendys and prism3 (red.500, primary.500, primary.450, primary.500; 3.32–3.51:1 on tertiary; aurora and minimal already clear). The label escalates to pure white at 4.58–4.80:1. This moves every dark filled button.
+  3. Rebind only the radio dot, the one of the three drawn straight on the page with no fill of its own, to a role gated against `background.tertiary`. No primary role at 3:1 against tertiary exists today, and the primary border/icon inks are #1367's pairs, so this needs a new role or #1367 first.
+- Nits: the radio prose says 3.28–10.03 (prism3 dark 3.28) and names the tertiary gap; the switch low of 2.71 names prism3 dark and wendys dark.
+- Proposed, not shipped: `.ai.json` `when_to_use` for page `fill.selected` still reads "selectable rows when selected / active" (the shared `STATE_WHEN` in `ai-metadata.ts`). The draft replacement is in the PR body for owner and voice review.
 
 **Mutations** (committed first, restored from HEAD):
 - MA, `selected` walks again (`modes.ts`): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb dark selected 2.6:1, …), `#1763 dark mode: the switch's on thumb and the checkbox's checked mark measure the pinned literals`, and `#1354 / #1763 switch contrast … dark included`.
 - MB, the inverse re-pick disabled (`alsoClear` emptied): `#1626 no on-fill falls under 4.5:1 on a focused or selected fill` (nb light inverse focused 3.33:1, …). The `#1244` arm does not fire here: a rest-only pick is shallower, not too far. `(4c)` is the arm that holds it.
+- MD, `withFillStateTwins` removed from the override pass: `#1626 a fill.rest override carries to focused and selected` fails (focused and selected `#294cfd`, on-fill 3.28:1).
 - MC, main's #1763 exemption block restored: `#1763 the dark-mode on-thumb exemption covers exactly 10 rows … (got 0)` and `#1763 aurora dark keeps its on thumb at 8.59:1 … (got 4.6:1)`.
 - The first commit's register arm was mutated too (arm disabled, `selected` dropped from the measured states, one row deleted). The `unmeasured` arm and the represented line survive into this version unchanged.
 

@@ -2933,6 +2933,8 @@
  * inverse band, the brand `on-fill` (primary, destructive) is re-picked by `brandOnFill`'s own rule over all
  * five state fills — the most vivid step clearing 4.5:1 on every one — so it lands a deeper step at rest too
  * (prism3 primary.500 → 650 light, 350 dark). Hover/pressed stay exempt by the owner's decision. Emitted
+ * A `fill.rest` override now carries to its page `focused` / `selected` twins (`withFillStateTwins`), so an
+ * overridden rest cannot strand the twins on the derived step (review of #1773). Emitted
  * values move in every brand, and the projected surface moves wherever a def binds a focused/selected fill
  * or the inverse on-fill → ENGINE MINOR. CONTRACT STANDS at 13.2.0: no token name moves.
  *
