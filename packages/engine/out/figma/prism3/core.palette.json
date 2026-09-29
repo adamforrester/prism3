@@ -2910,6 +2910,25 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "pds3/core/palette/white-alpha/0",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "White at 0% — composites over any surface",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "pds3/core/palette/white-alpha/5",
       "resolvedType": "COLOR",
       "scopes": [

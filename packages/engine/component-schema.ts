@@ -424,6 +424,32 @@ export type PartDef = {
    *  translucent overlay on the same node. That rule used to be a hardcoded `??` in the projector with
    *  a paragraph explaining it; as a declaration it is visible in the def that depends on it. */
   paintSlots?: readonly string[];
+  /** For `box` parts: a LINEAR GRADIENT form of the box's `fill` (#1318), chosen by one variant axis.
+   *
+   *  At a coordinate whose `axis` value is a key of `angles`, the box's fill is not a solid: it is a
+   *  two-stop linear gradient running from the fill the box would otherwise have painted (stop 0) to the
+   *  role `fadeTo` names (stop 1), in the direction the angle gives. At any other value of `axis` the box
+   *  paints its solid fill exactly as it did before this field existed, so a def keeps its solid members
+   *  byte-identical by leaving their axis value out of `angles`.
+   *
+   *  `angles` holds CSS `linear-gradient()` angles in degrees — the direction the gradient RUNS, from stop 0
+   *  to stop 1 (180 is CSS `to bottom`: stop 0 at the top edge). Stored as the CSS angle rather than a Figma
+   *  matrix because it is the one value both surfaces read: the code guidance spells it as `to bottom`, and
+   *  the projector converts it with the same `gradientTransformFor` the brand gradient styles use.
+   *
+   *  `fadeTo` is a BINDING KEY, resolved from the coordinate the way an anatomy geometry key is (`{value}`
+   *  fills from the member's own axis value) and required to resolve — a gradient with no far stop is the
+   *  silent-loss shape, so a miss throws rather than painting half a gradient. It is not a `paintKeys`
+   *  template: the far stop is not a slot any other part asks for, so `paintKeyErrors` treats the keys it
+   *  names as governed by the anatomy, the way a nested component's own binding is.
+   *
+   *  Only a box that declares `fill` may carry it: the gradient REPLACES the fill, so a box with no fill has
+   *  nothing to fade from. Projected as `FigmaNodePlan.gradientFill`. */
+  gradient?: {
+    axis: string;
+    angles: Readonly<Record<string, number>>;
+    fadeTo: string;
+  };
   /** For `box` parts: whether the frame CROPS content that overflows its bounds — Figma's
    *  `clipsContent` (#1316's image-placeholder). Absent means `false`, which is what every box in the
    *  corpus was hardcoded to before this field, so an omission is unchanged behaviour rather than a new
@@ -2729,12 +2755,25 @@ export type State = (typeof STATES)[number];
  * values are self-describing (`status`, not `default`). It is an AUTHORING axis in `axisKinds` — chosen when
  * the badge is placed, never moved on screen — so the three genres may differ in size, where the runtime
  * `tone` beside it may not. `lint-axis-values.ts` carries `['status', 'count', 'dot']` as a `sole` set.
+ *
+ * ── `direction`: THE TWENTIETH NAME, FOR THE VEIL'S GRADIENT WASHES (owner-decided, 2026-09-28, #1318) ──
+ *
+ * `direction` (`full | from-top | from-bottom | from-left | from-right`) is WHERE a veil's wash sits across
+ * the image: evenly over all of it (`full`, the solid wash), or strongest at one named edge and fading to
+ * clear at the opposite one — Prism 2's `Gradient from top/bottom/left/right`. The owner named it, and it
+ * clears this list's bar the way the veil's first two did: a distinct kind of distinction no existing name
+ * expresses, with the nearest defeated. `intensity` is how STRONG the wash is and `value` is its polarity;
+ * this is its SPATIAL distribution, which neither touches — a `from-top` strong wash and a `full` strong wash
+ * reach the same strength at the top edge. `offset` is a nested part's DISPLACEMENT, `style` a stroke
+ * treatment and `shape` a corner silhouette; none is an orientation across the surface. Naming it `intensity`
+ * would claim a fade is a weaker wash, which it is not at its named edge; naming it `style` would put a
+ * spatial choice into a stroke axis. `lint-axis-values.ts` carries the five values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'genre',
+  'status', 'emphasis', 'shape', 'genre', 'direction',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -2971,8 +3010,25 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
   const nestedIds = new Set(
     Object.values(def.anatomy?.parts ?? {}).flatMap((p) => (p.nests ? [p.nests] : [])),
   );
+  /*
+   * A SECOND KIND, read from the def the same way: a GRADIENT'S FAR STOP (#1318). A box's `gradient.fadeTo`
+   * is a binding key the ANATOMY names and the projector resolves through `resolveKey`, which throws on a
+   * miss — not a slot any template answers. `veil`'s `dark.clear` has the arity of `{value}.{intensity}` and
+   * would be read as intensity='clear'. Exempt only the keys the template actually fills to, over the
+   * declared values, so a key merely SHAPED like one stays governed.
+   */
+  const fadeKeys = new Set(
+    Object.values(def.anatomy?.parts ?? {}).flatMap((p) => {
+      if (!p.gradient) return [];
+      let fills: Record<string, string>[] = [{}];
+      for (const ph of paintKeyPlaceholders(p.gradient.fadeTo))
+        fills = fills.flatMap((c) => (variantsOf(def)[ph] ?? []).map((v) => ({ ...c, [ph]: v })));
+      return fills.flatMap((c) => { const k = fillKey(p.gradient!.fadeTo, c); return k ? [k] : []; });
+    }),
+  );
   const governed = (key: string): boolean => {
     if (nestedIds.has(key)) return false;
+    if (fadeKeys.has(key)) return false;
     // The `disabled` LEAD only — see the note above. The branch supplies that segment itself, so a
     // `disabled.*` key is not described by any template and must not be read through one: text-field's
     // `{slot}.{state}` matches `disabled.fill` by shape and would report `{slot}='disabled'` and
@@ -3881,6 +3937,45 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const dupes = p.paintSlots.filter((s, i) => p.paintSlots!.indexOf(s) !== i);
       if (dupes.length)
         e.push(`anatomy part '${n}': paintSlots repeats [${[...new Set(dupes)].join(', ')}] — order is precedence, so a repeat can only ever be unreachable`);
+    }
+    // ---- `gradient`, the BOX kind's directional fill (#1318) ----
+    // Every clause is a way the field could validate clean and project nothing: on another kind, or on a box
+    // with no fill to fade from, the projector never reads it; an axis the def does not declare is never
+    // supplied; an angle keyed by a value the axis lacks is never reached; and a far stop that resolves to no
+    // colour binding would throw mid-projection rather than here, where the author reads it.
+    if (p.gradient !== undefined) {
+      const g = p.gradient;
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'gradient' — only a 'box' carries a fill for a gradient to replace`);
+      else if (!(p.paintSlots ?? []).includes('fill'))
+        e.push(`anatomy part '${n}' declares 'gradient' but no 'fill' in paintSlots — the gradient fades FROM the box's fill, so a box with no fill has no first stop`);
+      const axisValues = variantsOf(def)[g.axis];
+      if (!axisValues)
+        e.push(`anatomy part '${n}': gradient.axis '${g.axis}' is not a variant axis this def declares — nothing would ever supply it, so the gradient is reached at no coordinate`);
+      const keys = Object.keys(g.angles ?? {});
+      if (!keys.length)
+        e.push(`anatomy part '${n}': gradient.angles is empty — a gradient with no direction is reached at no coordinate; omit the field instead`);
+      for (const k of keys) {
+        if (axisValues && !axisValues.includes(k))
+          e.push(`anatomy part '${n}': gradient.angles names '${k}', which is not a value of '${g.axis}' [${axisValues.join(', ')}] — that direction is reached at no coordinate`);
+        if (!Number.isFinite(g.angles[k]))
+          e.push(`anatomy part '${n}': gradient.angles['${k}'] is not a finite number of degrees`);
+      }
+      // The far stop must resolve to a COLOUR binding at every coordinate the template can be filled at.
+      const phs = paintKeyPlaceholders(g.fadeTo ?? '');
+      const bad = phs.filter((ph) => !variantsOf(def)[ph]);
+      if (bad.length)
+        e.push(`anatomy part '${n}': gradient.fadeTo '${g.fadeTo}' names [${bad.join(', ')}], which is not a declared variant axis`);
+      else {
+        let fills: Record<string, string>[] = [{}];
+        for (const ph of phs) fills = fills.flatMap((c) => (variantsOf(def)[ph] ?? []).map((v) => ({ ...c, [ph]: v })));
+        for (const c of fills) {
+          const key = fillKey(g.fadeTo, c);
+          const ref = key ? def.tokens?.[key] : undefined;
+          if (typeof ref !== 'string' || !ref.startsWith('color.'))
+            e.push(`anatomy part '${n}': gradient.fadeTo '${g.fadeTo}' fills to '${key}', which ${ref === undefined ? 'tokens does not bind' : `binds '${ref}', not a color role`} — the gradient would have no far stop`);
+        }
+      }
     }
     // ---- `clipsContent`, the BOX kind's crop flag (#1316) ----
     // The same wrong-kind rule `paintSlots` gets: only the frame-creating branch of each executor reads

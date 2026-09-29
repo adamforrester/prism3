@@ -59,6 +59,9 @@ import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anato
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
+// #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
+import { bindGradientStops } from './write-styles';
+import type { VariableAlias, Rgba } from './write-styles';
 import type { PartialWriteFacts } from './apply-summary';
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
@@ -296,6 +299,10 @@ export interface ComponentsApi {
       field: 'color',
       variable: unknown,
     ): unknown;
+    /** A GRADIENT STOP's binding (#1318). `setBoundVariableForPaint` takes only a solid, so a gradient binds
+     *  each stop inline (`ColorStop.boundVariables.color`) with an alias built here — the same call the
+     *  Paint Style executor makes (`write-styles.ts`). `variable: unknown` for the variance reason above. */
+    createVariableAlias(variable: unknown): VariableAlias;
   };
   getLocalTextStylesAsync(): Promise<CompStyle[]>;
   getLocalEffectStylesAsync(): Promise<CompStyle[]>;
@@ -826,6 +833,19 @@ const boundPaint = (arr: unknown): boolean => {
   return !!(first && first.boundVariables && first.boundVariables.color);
 };
 
+/** A GRADIENT reads back as held only when the host kept a linear gradient with every stop still carrying
+ *  its own binding (#1318) — a gradient's bindings live on its STOPS, so `boundPaint` above, which reads the
+ *  paint object, would call a perfectly bound gradient unbound. */
+const boundGradient = (arr: unknown, stops: number): boolean => {
+  const first = (arr as { type?: string; gradientStops?: { boundVariables?: { color?: unknown } }[] }[] | null | undefined)?.[0];
+  return !!(first && first.type === 'GRADIENT_LINEAR' && first.gradientStops?.length === stops
+    && first.gradientStops.every((s) => !!s.boundVariables?.color));
+};
+
+/** The colour a bound gradient stop carries beneath its binding — the gradient twin of the solid path's
+ *  `{ r: 0, g: 0, b: 0 }`: required by the host, overridden by the variable, never what renders. */
+const GRADIENT_STOP_PLACEHOLDER: Rgba = { r: 0, g: 0, b: 0, a: 1 };
+
 /** Is `node` INSIDE a nested instance, walking ancestors up to (not including) `stop`? A node whose
  *  ancestry crosses an INSTANCE is a sublayer of ANOTHER component and cannot hold this set's reference.
  *  The node ITSELF being an instance does not count — select's `leadingVisual` swap slot and `message`
@@ -1023,7 +1043,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
         // NO NEUTRAL VALUE EXISTS for a text fill: `[]` is invisible text, which is a worse defect than
         // an unclaimed one and would be found by eye just as late. So an unpainted label is REPORTED.
         if (!n?.paints?.fills) misses.push(`${where}.fills -> UNCLAIMED on a TEXT node (a label with no paint is invisible, so this is reported rather than neutralized — the def must declare a text paint) — #865`);
-      } else if (!n?.paints?.fills) set('fills', []);
+      // A GRADIENT fill (#1318) is a claimed fill too — it lives in its own plan field, not `paints.fills`.
+      } else if (!n?.paints?.fills && !n?.gradientFill) set('fills', []);
       if (!n?.paints?.strokes) {
         set('strokes', []);
         // Both are set by the paints branch when it strokes; neutralized together with `strokes` so the
@@ -1721,6 +1742,24 @@ const writeComponentSet = async (
       // stays as the floor for any other declared-but-unresolvable fill (a stale file, a held inverse tint).
       else if (node.type !== 'TEXT') node.fills = [];
     }
+    // A GRADIENT FILL (#1318) — the veil's directional washes. Each stop is bound through the Paint Style
+    // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). The stop colour
+    // is a placeholder the variable overrides, like the solid path's black, so a stop whose variable the
+    // file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
+    // an unresolvable fill. The miss strings are the paste payload's, byte for byte (the parity gate).
+    let paintedGradient = false;
+    if (n.gradientFill) {
+      const res = bindGradientStops(
+        n.gradientFill.stops.map((s) => ({ position: s.position, color: GRADIENT_STOP_PLACEHOLDER, alias: s.variable })),
+        byName,
+        (v) => api.variables.createVariableAlias(v),
+        (name) => misses.push(`${n.name}.fills -> ${name}`),
+      );
+      if (res.bound === n.gradientFill.stops.length) {
+        node.fills = [{ type: 'GRADIENT_LINEAR', gradientTransform: n.gradientFill.gradientTransform, gradientStops: res.stops }];
+        paintedGradient = true;
+      } else node.fills = [];
+    }
     if (n.paints?.strokes) {
       const p = paint(n.paints.strokes, 'strokes');
       if (p) {
@@ -1770,6 +1809,7 @@ const writeComponentSet = async (
     for (const prop of wrote)
       if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
     if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
+    if (paintedGradient && !boundGradient(node.fills, n.gradientFill!.stops.length)) misses.push(`${n.name}.fills -> DISCARDED (gradient set, not retained)`);
     if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
 
     // FLOW CHILDREN FIRST, absolute ones after — three passes, because an absolute child is positioned

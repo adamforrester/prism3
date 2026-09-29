@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.195.0",
+  "engineVersion": "0.196.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -4235,8 +4235,8 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "Wash over media so text stays legible. Intensity is a magnitude — verify contrast.",
-      "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
+      "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
+      "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
       "props": [
         {
           "name": "value",
@@ -4260,6 +4260,20 @@
             "strong"
           ],
           "description": "How much the wash mutes the image, weakest to strongest. A magnitude, not a contrast promise — a stronger wash darkens (or lightens) the photo more, and whether the text on top clears its floor depends on the image, so verify contrast against your own photo. subtle keeps the image most present; strong mutes it most."
+        },
+        {
+          "name": "direction",
+          "type": "enum: 'full' | 'from-top' | 'from-bottom' | 'from-left' | 'from-right'",
+          "default": "full",
+          "required": false,
+          "values": [
+            "full",
+            "from-top",
+            "from-bottom",
+            "from-left",
+            "from-right"
+          ],
+          "description": "Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge. The intensity applies at the named edge only, so verify contrast where the text actually sits."
         }
       ],
       "states": [],
@@ -4278,6 +4292,16 @@
             "strong"
           ],
           "kind": "authoring"
+        },
+        "direction": {
+          "values": [
+            "full",
+            "from-top",
+            "from-bottom",
+            "from-left",
+            "from-right"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -4294,9 +4318,10 @@
         "labelPattern": "A veil carries no text of its own — it is a wash behind other content. Where its variants are named in a UI, name the polarity and the magnitude plainly: \"Dark, medium\" rather than a WCAG floor, because the rung is a magnitude and not a contrast promise."
       },
       "docs": {
-        "usage": "Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.",
+        "usage": "Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge, fading to clear at the opposite edge. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.",
         "do": [
           "Pick the polarity from the image — a dark wash under light text, a light wash under dark text",
+          "Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom",
           "Verify the text's contrast against the actual photo; the intensity is a magnitude, not a guaranteed ratio",
           "Size the veil to its media container and keep the text and controls as siblings on top of it",
           "Mark the veil aria-hidden — it is a presentational background layer"
@@ -4305,14 +4330,14 @@
           "Read the intensity as a contrast promise — a stronger wash mutes the image more, but whether text clears its floor depends on the photo",
           "Reach for a veil as the modal backdrop — that is scrim.default, a separate mode-varying fill dialogs reference directly",
           "Put the text inside the veil node — the text is a sibling on top, so assistive tech reads it directly and the wash stays decorative",
-          "Expect a gradient wash — the top/bottom/left/right gradients are not built yet; only solid washes exist today"
+          "Set text in the clear half of a directional wash — the intensity holds only at the named edge, so text away from it sits on the unmuted photo"
         ],
         "contentGuidelines": "The veil holds no copy. Where its variants surface in a UI, name the polarity and magnitude (\"Dark, strong\") rather than a contrast floor."
       },
       "ai": {
         "primaryPurpose": "Place a designer-selected wash over a photograph or video so text set on top of it stays legible, choosing the wash's polarity and magnitude per image.",
-        "whenToUse": "Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, and verify contrast against the real photo.",
-        "avoidWhen": "The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).",
+        "whenToUse": "Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, then the direction — full for text anywhere, or a fade from the edge the text sits on — and verify contrast against the real photo where the text sits.",
+        "avoidWhen": "The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or the text sits in the clear half of a directional wash (move it to the named edge or use full).",
         "commonPartners": [
           "icon",
           "button",
@@ -4327,7 +4352,10 @@
           "photo overlay",
           "text over image",
           "darken image",
-          "media wash"
+          "media wash",
+          "gradient scrim",
+          "gradient overlay",
+          "fade overlay"
         ],
         "generationPriority": 3
       },

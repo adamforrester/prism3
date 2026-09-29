@@ -543,6 +543,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'control\'s emphasis/render strategy) — this is the strength of an overlay, argued in `VARIANT_AXES`.',
   },
   {
+    axis: 'direction',
+    values: ['full', 'from-top', 'from-bottom', 'from-left', 'from-right'],
+    defs: ['veil'],
+    relation: 'sole',
+    reason:
+      'The media veil\'s SPATIAL DISTRIBUTION (#1318, owner-decided 2026-09-28) — a solid wash over the '
+      + 'whole image (`full`, the default and every member before #1318), or the intensity at one named '
+      + 'edge fading linearly to clear at the opposite one: Prism 2\'s `Gradient from top/bottom/left/right`. '
+      + 'FIVE values — the solid wash and the four edges; no corner or radial form, which the owner did not '
+      + 'decide. `from-*` names the edge that carries the wash, so `from-top` is strongest at the top. '
+      + 'Distinct from `intensity` (how strong the wash is) and `offset`/`style`/`shape` — this is where the '
+      + 'wash sits across the surface, argued in `VARIANT_AXES`.',
+  },
+  {
     axis: 'ratio',
     values: ['1:1', '4:3', '16:9'],
     defs: ['image-placeholder'],
