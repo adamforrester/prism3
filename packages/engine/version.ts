@@ -2944,7 +2944,9 @@
  * loaded and the column's mode pinned before any font binding; all four radius corners bound. And the owner's live QA
  * (decisions 13 restated and 16): a palette swatch FILLs its cell (floored at 80px), and tables flow left to right in
  * one row per category (color, dimension, font variables, text styles), the rows stacked down the page; Set up file's
- * spacing and radius cells built in the owner's layer structure.
+ * spacing and radius cells built in the owner's layer structure. After the owner's live run of 0.205.0: a spacing
+ * specimen is sized by a bound `paddingLeft` (the host silently drops a width written to a layer inside an
+ * instance), its frame set to HUG again after the bind and read back; cells that cannot be sized are named once.
  *
  * 0.204.0 — #1778 + #259 (numbered 0.199.0 on its branch; renumbered above main's 0.203.0) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
