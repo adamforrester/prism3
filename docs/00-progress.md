@@ -9,7 +9,7 @@
 
 ## (2026-09-29) — Badge's neutral pairs are mode contracts, not example-brand measurements (#1745)
 
-**The gap.** Badge's accessibility lines rest on three neutral pairs, and `test.ts` measured each only in the five example brands. The engine contracted none of them: `border.secondary` carried `min: 0`, `inverse.foreground.tertiary` was a `self` surface, and `inverse.text.primary` is contracted against the inverse BAND, not the band's third step that Badge paints its bold neutral with. A client brand got no check. ENGINE 0.196.0 → **0.197.0** (MINOR; renumbered at net). CONTRACT stands at 13.2.0 (no token name moves).
+**The gap.** Badge's accessibility lines rest on three neutral pairs, and `test.ts` measured each only in the five example brands. The engine contracted none of them: `border.secondary` carried `min: 0`, `inverse.foreground.tertiary` was a `self` surface, and `inverse.text.primary` is contracted against the inverse BAND, not the band's third step that Badge paints its bold neutral with. A client brand got no check. ENGINE 0.197.0 → **0.198.0** (MINOR; renumbered at net after #1749 took 0.197.0). CONTRACT stands at 13.2.0 (no token name moves).
 
 **What is contracted now** (`modes.ts`, the same `against`/`min` every tone pair uses):
 - `border.secondary` against `background.primary` at the mode's non-text bar, `cfg.nonTextMin` — 3:1, 4.5:1 in HC, the bar `border.<tone>` already uses.
@@ -47,6 +47,228 @@ A trap for whoever re-checks arm F: removing the `inverseBase=650` case does NOT
 - **The floor never fires in the dark family.** It is in the pick for every mode, but the dark and high-contrast targets (3.96:1 and 9.9:1) sit well above their bars, so no step under the bar is ever the closest. A mutation that drops the floor only outside light survived review across 168 dark and HC cells, none of which changed. The floor is exercised in light only, and that is what the edge fixture holds.
 
 **Held for the owner.** (1) The bar in the high-contrast modes is the engine's non-text bar, 4.5:1, not the issue's flat 3:1 — it matches `border.<tone>`, and every corpus brand clears it by 2x (9.84:1 and 21:1), so nothing moves; a flat 3:1 is a one-line change if preferred. (2) Badge's shipped prose still says "measured in every mode of the example brands", which stays true; strengthening it to cite the contract is a copy change, and #1767 is rewriting that def. (3) The `$description` / Figma lines for the two roles do not cite their new bar. (4) Out of scope and unchanged: the tone bold fills are contracted against the floor, not the page (the issue's fourth row) — measured, they clear the page at 3.46:1 or more.
+
+---
+
+## (2026-09-29) — Quiet buttons: the hover and pressed fill is a rule across the whole grid, not three spot fixes (#1387)
+
+**STATUS: PR open, labeled DO NOT MERGE.** Files: `packages/engine/test.ts` (one new block; the NB master fixture moved to module scope so the block can read it) and this entry. The review follow-up (per-family counts, per-brand register, plugin materialization) landed as new commits on the same PR. No engine behavior moves, so `ENGINE_VERSION` stands at 0.196.0 and `CONTRACT_VERSION` at 13.2.0.
+
+**Premise re-check: the defect is already fixed on `main`.** #1387's raw `#ffffff` came from the host, not the plan. A plan's `paints.fills` is a variable NAME. The set named the overlay wash, a `solid-tint` or `none` brand did not emit it, and Figma kept its default white fill on the frame. Three merged PRs closed it: #1394 clears an unresolvable fill to transparent in both executors, #1608 rebinds the def per `outlineInteraction` before projection (`applyOutlineInteraction` via `outlineFillRole`), and #1613 emits the inverse tinted wash. The measurement below confirms it. It covers the 10 contract-corpus brands plus the NB master theme, under all three methods, over every quiet member (`outline` / `text` / `ghost`; icon-button's quiet appearance is `ghost`, not `text`) × `hover` / `pressed` × both surfaces × every mode. Result: 0 fills that are not a `color/` variable, 0 members with no fill (other than at `none`), and 0 refs the brand does not emit.
+
+**Why `lint-paint` never saw it.** Its universe is plan variable names. Arm 1 compares key and ref, arm 2 is a characterization, and arm 3 asks whether the projector ever returns a key. None of them asks whether a name resolves against a brand's emission, and the white itself was host state that no plan carries. So the new check lives in `test.ts`, next to the brand emission, not in `lint-paint`.
+
+**The gate (`test.ts`, `#1387` block).** Subject: every quiet hover/pressed member of the six button families, 432 per brand × method, half on the inverse band. Each member is projected from the def as the plugin builds it, through `materializeForBrand`'s chain (`applyControlShape`, `applyWeightIntent`, `applyOutlineInteraction`, `applyButtonLayout`). The chain is restated in the test, as `lint-lever-sweep.ts` restates it, because the engine must not import a surface. So the NB master's hairline corners and edge-pinned icons are what gets walked. No corpus input sets a raw-input lever, so the corpus brands take the defaults. Oracles, none read off the subject: the family each method binds is written out as a regex (it is not asked of `outlineFillRole`). "Emitted" means `buildFigmaColor`'s variables. The floors are WCAG's (4.5:1 label, 3:1 glyph). The ratios come from the block's own luminance and compositing over `resolveAllModes`, not from any `ratio` the solver stored. The block is deliberately AA-only, in every mode; the solver already holds hc modes to 7:1. Six assertions:
+- the walk looked at all 14,256 members, half of them inverse;
+- the cells per family × surface × ink kind × state match literal counts: 1,968 per button-family label or glyph and 984 per icon-button glyph (41 brand-modes × 2 fill-painting methods). A family, surface or ink kind that stops projecting fails by name; a single "more than zero" check let every icon-button cell vanish in review;
+- every fill is the method's emitted variable on its own surface;
+- every hover label clears 4.5:1 and every hover glyph 3:1 on the composited fill, in every mode and on both surfaces;
+- no pressed label or glyph falls below 4.5:1 outside `HELD_PRESSED`;
+- every `HELD_PRESSED` entry still measures its exact pinned ratio.
+
+Measured hover minimums: overlay-neutral 5.26 (page) and 5.04 (inverse); solid-tint 5.23 (page) and 4.80 (inverse, NB master destructive).
+
+**OWNER DECISION (2026-09-29): keep the #1281 pressed exemption.** Pressed is exempt from ink contrast (#1281, decision 1). On #1387 the owner chose to keep that exemption for the quiet pressed cells, so the block pins them rather than flooring them. `HELD_PRESSED` holds 44 entries, keyed per brand, method, mode, fill role and ink kind, each with its exact ratio to 2 dp. That covers 11 brands × {primary, destructive} × {label, glyph}. All of them are `solid-tint` on the inverse band in light mode at `opacity.30`: primary 3.47–3.82:1 (NB master 3.51) and destructive 4.09–4.48:1. A cell that appears, moves or starts to pass fails by name. The pooled first version keyed `method|surface|mode|color` across brands and never checked the ratio, so a single brand could move or clear silently. The options put to the owner, for the record: at `opacity.20` the same cells measure 5.06–5.58 (primary) and 5.98–6.55 (destructive), with ΔE00 14.1–14.7 against the band; the alternative was per-mode steps (#1646). Every overlay-neutral pressed cell clears 4.5:1 (minimum 4.93), and so does every page cell at solid-tint (minimum 4.88).
+
+**Mutations** (each committed first, restored from HEAD), against the final block:
+- M1, `button` binds the literal `'#ffffff'` on `outline.overlay.hover`: `#1387 every quiet button hover/pressed container fill is the method's emitted color variable…` fails (2376), plus the cell-count assertion. #1608's emission check and the binding-resolution checks fail beside them.
+- M2, `icon-button` drops `outline.overlay.hover`: the same #1387 fill assertion fails (792), plus the cell count, beside #1225's binding counts. Dropping it from `button` instead crashes an older test that reads the key directly, so that form proves nothing by name.
+- M3, `applyOutlineInteraction` stops rebinding: the #1387 fill assertion fails (4752), along with the cell count and the stale-register assertion.
+- M4, the host's transparent fallback (`write-components.ts`) removed: `apps/plugin/test-write-components.ts` `#1387 no built node keeps an opaque #ffffff literal…` fails (11 white). That is the existing host gate, re-proved.
+- M5, one brand's pressed cell moves (wendys `primary` `#C8102E` → `#A8102E`): only `#1387 every held quiet pressed cell still measures exactly as pinned…` fails, on exactly wendys' two primary cells (3.82 → 3.56).
+- M6, pressed nominal step `opacity.30` → `opacity.40`: both register assertions fail (60 new cells, 44 moved).
+- M7, the slot branch stops projecting glyph ink (`descendantFills = paintOf('icon')` removed): `#1387 every family × surface × ink kind × state measured its full cell count…` fails (24 glyph keys at 0), plus the stale register. This is the reviewer's mutation that the earlier `hoverCells > 0` let through.
+
+---
+
+## (2026-09-28) — Style guide generator, phase 1: cell components and color tables (#259)
+
+**STATUS: PR open from `lane/style-guide-color`, labeled DO NOT MERGE. Part of #259.** ENGINE 0.196.0 → **0.197.0** (renumbered at net after #1748, #1753, #1759, #1757, #1765 and #1766 took 0.191.0–0.196.0), a plugin behavior change. `out/**` and `schema/*` get a stamp-only regen. CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move. The design record for every phase is **`docs/45-style-guide-generator.md`**, which also carries the owner's decisions as a `Decided` heading, indexed in `docs/42`.
+
+**What it does.**
+- **Tables.** `apps/plugin/src/style-guide.ts` draws one table per color group from the file's own variables:
+  - each primitive palette as a numerically ordered scale on `↳ Primitive tokens`;
+  - each semantic family on `↳ Semantic tokens`.
+- **Columns:** Token · [specimen · value + alias chip · contrast] per mode · Description.
+- **Specimens.** Every specimen is an instance of `_style-guide-swatches`, with its paint bound to the variable and the collection's mode pinned per column. It sits in a ground frame bound to the role's contracted ground, pinned to the same mode.
+- **Contrast.** The column reads `resolveAllModes(brandTheme(restoreInput(root)))`, never prose: `19.42:1 — clears the 7:1 floor` / `on background/primary`. An ink-on-wash role measures its `legibleFor` ink over the composite.
+- **Headers and reruns.** Each table opens with a `_Section-header` Size=Medium. A rerun finds a table by its plugin-data key, rebuilds the grid in place and diffs the rows it last wrote: added, removed, changed.
+- **Cell sets.** `style-guide-cells.ts` builds the three cell sets on `↳ File Components` during Set up file, or adopts ones the file already has, anywhere and in any case, with nothing moved or rebuilt.
+- **Controls.** Panel: a Figma-only **Style guide** rail step with a folded *Customize* (value format, header, display style defaulting to the token's role, aliases, description). Agent link: `style-guide {collections?, types?, …}`.
+
+**The two defects of the owner's earlier plugin that shaped the design.**
+- Its white-drawn specimens made inverse text and white `on-*` icons invisible. The fix is one decision: the specimen's ground IS the contrast column's ground, the same variable, so what the table measures is what it shows.
+- Its rows sorted as text. `naturalCompare` sorts `5, 50, 100, 900`.
+
+**Traps for whoever works here next.**
+- **`{ node: … }` in plugin main-thread code fails the build.** `build.mjs` rejects the `node:` substring as a builtin import. `pickVariant` returns `{ member, exact }` for that reason, the same trap `file-setup.ts` records.
+- **The panel posts asynchronously.** `test-build-verdict.mjs` waits on the captured `style-guide` message rather than reading it on the click's tick.
+- **A partial run is not a pass.** "⚠ 11 drawn, 11 skipped" is ok:false, so the detail opens. An earlier draft called it ✓ and hid the missing page.
+
+**Tests, literal and offline.**
+- `apps/plugin/test-style-guide.ts`, in the plugin `test` chain, checks:
+  - the tables per page and the explicit mode per column;
+  - bound swatches and the specimen's ground;
+  - literal ratios (text.primary 19.42 / 18.13 / 21.00 / 21.00 across the four modes);
+  - numeric order;
+  - the in-place rerun and its diff (`3.27:1 — below the 7:1 floor`);
+  - adoption of the owner's `_Style-Guide-Swatches` on "Style Guide Components";
+  - every skip.
+- `test-agent-link.ts` covers the new command and its bad-args.
+- `test:verdict` covers the page, the fold, the options crossing the bridge and the verdict on the row.
+
+**Mutations,** each after a `wip:` commit, restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| drop the explicit mode | "5: every text/primary swatch pins its column's mode" |
+| unbind the swatch | "5: every text/primary swatch is bound to text/primary" |
+| ground forced to white | "5: inverse/text/primary is drawn on inverse/background/primary" |
+| lexical sort | "4: foreign ramp in numeric order" |
+| skip the plugin-data lookup | "6: rerun: still 11 tables on the semantic page" |
+| always build cells | "2: the adopted swatch set is not duplicated" |
+| diamond at x 24, y 8.44 | "1: the icon diamond's box is 8.44–39.56 on both axes…" |
+| ink on the bare ground | "3: text/primary over interactive.primary.overlay.hover on background.primary, light: 15.42:1" |
+| `groundModeFor` → column mode | "3: foreground.brand on neutral/050, light: 6.44:1" |
+| key by name / by relative group | "8: a sibling group added to legacy…", "8: a renamed collection keeps its tables" |
+| stale ignores types | "8: a dimension-only run reports no color table stale" |
+| no font segments read / miss dropped | "8: a mixed-font cell loads every segment's font…" / "8: a cell whose fonts cannot be read is named…" |
+| header claims regardless | "8: Accent header…" / "8: Scrim header…" |
+| rows by name / printed value | "8: a renamed variable is a rename…" / "8: switching Hex to RGBA changes no row" |
+| uncontracted mode unnamed | "8: a file mode the engine does not contract is named" |
+
+**Review fixes (net review, same PR).**
+- **The diamond was off the swatch.** Figma turns a node counterclockwise about its top-left corner, which becomes the diamond's LEFT point, so `x = 24, y = 8.44` put its box at x 24–55, y −7–24. The fix is `x = 24 − 11√2 ≈ 8.44, y = 24`. The shim's `createInstance` drops `rotation`, so the test reads the set member itself and computes the box from the typings' transform. It asserts 8.44–39.56 on both axes. This blocked because adopted cell sets are never rebuilt: a wrong diamond would persist in every file it reached.
+- **Two of three contrast paths had no literal.** Now they do: `foreground.brand` on `neutral/050` (6.44:1, the ground in another collection, resolved in its own default mode) and the ink over the hover wash (15.42:1, 19.42 without the wash). The engine's `legibleFor` ink for the overlay is `text.primary`, which the test asserts. Before this, forcing `groundModeFor` to the column's mode turned 66 palette-contracted roles to "—" with nothing red.
+- **The key moved.** `color|<name>|<prefix-relative group>` changed when a sibling group shortened the shared prefix, or when the collection was renamed. Now it is `color|<collection ID>|<full path>`, and the stale filter maps names to IDs.
+- **Stale over-reported.** `{types:['dimension']}` called every color table stale. The check now covers only the run's types.
+- **Mixed fonts.** A `figma.mixed` `fontName` returned false with no miss. Now every segment's font is loaded; an unreadable one is named.
+- **Header claims.** "referenced by the semantic roles" printed on Accent, which nothing references, and "each measured" printed on Scrim and Veil. Each clause is now a count the plan checked, dropped at zero.
+- **Rerun report.** Keyed by variable ID with a `renamed` list, comparing raw values (alias + RGBA), so Hex→RGBA is no change. A mode the brand does not contract ("L (HC)") is named in the notes.
+- **Studio note** cut to one line, with no issue number.
+- **The trap:** a substitution that unbalances a parenthesis reads as a crash, not a failure. The first header mutation did exactly that and had to be split into two clean ones. Read the battery's output for a stack trace, not just for exit 1.
+
+**Live-run fixes (the owner's test file, plugin built from `9a151d54`).** The shim passed; the file did not. The file holds two roots, `nbds/…` and `pds3/…`, in the same collections, and its adopted cells are not shaped like ours.
+- **368 swatches unbound.** The owner's `type=default` member has no layers; its fill sits on the component. `bindTarget` searched descendants only. Now it falls back to the instance itself when the member paints its own fill (or stroke, for border) or has no layers inside.
+- **The verdict hid it.** "✓ style guide: 21 tables" sat over 368 per-token misses. Now the misses are a count, per variant. The result carries `unbound`, and any unbound swatch makes the pill `⚠ 368 swatches unbound`, not ok. The owner's example "⚠ 21 tables, 368 swatches unbound" is 33 characters against a 24-character pill, so the table count is dropped from the headline.
+- **One 28,627px table per root.** The `color` collection has no shared prefix across `nbds/color/*` and `pds3/color/*`, so the family was taken to be the root. A collection with no shared prefix but a shared one *below* its first segment is now multi-root. It groups within each root, and its titles name the root ("Text — nbds", "Primary — nbds", "Core — nbds base"). A one-root collection's titles are unchanged. Grounds prefer the role's own root (`nearest`, by shared leading segments). Before this, the nbds text would have been drawn on, and measured against, the pds3 background. Keys are still collection ID + full path, so the live run's primitive keys are unchanged.
+- **Clipped text.** The owner's text cells are a fixed 120px wide. Every text cell now hugs its words: truncation off, `WIDTH_AND_HEIGHT`, and every auto-layout frame set to HUG from the inside out. A description wraps at 360px. Each column is then FIXED at its widest cell and every cell FILLs it, so the rules line up. A swatch column hugs the specimen, 48 + 16 + 16 = 80. Its header wraps to that width rather than widening it: "hc-light" would make it 88.
+- **Rows lead with their name inside the group.** A palette row is its step ("025"), in ramp order: named values first, in file order, then numeric steps ascending. A role is relative to its family ("primary" in Text). The full path is dropped from primitive tables (proposed). The title already names the palette and root, and the bound swatch reveals the variable.
+- **Rerun over the live run's tables.** The frame name and header title are rewritten while they still read what a run wrote. What was written is recorded in plugin data. A table from before that record counts its title as ours while the frame is still named after it. A designer's edit is kept. A table whose key is an ancestor of a planned key is reported as `replaced`, not `stale`, and left in place: the live run's one-per-root semantic tables (`…|nbds` → `…|nbds/color/text`). Deleting them is the owner's call.
+- **The shim now models width.** A text is 7px per character. HUG sums in-flow children plus padding. FILL takes a FIXED grid track. The layout setters throw where the host does. `clipped()` reads content width off that model, never off the plugin's arithmetic. The owner's clipping cell is reproduced in `ownerSet`: fixed 120, label FILL, truncating. The "cell root never hugs" mutation below shows the model catches it: 242px of words in a 120px column.
+
+| Mutation | Fails |
+|---|---|
+| `bindTarget` descendants only | "2: a type=default swatch with no layers binds the instance's own fill" |
+| unbound not in ok/headline | "9: unbound swatches are not a pass…" |
+| multi-root detection off | "9: a two-root color collection groups by family within each root…", "9: the two Primary palettes are told apart…" |
+| ground affinity off | "9: each root's text is drawn on its own root's background" |
+| tracks from the header row only | "2: no text in the owner's cells is wider than its column", "5: no cell in any table is wider than its column" |
+| the cell root never hugs | "2: no text in the owner's cells is wider than its column" |
+| the swatch column measures its header | "5: every swatch column is the swatch plus its padding: 80", "5: the "hc-light" header wraps…" |
+| description not wrapped | "5: a long description wraps at 360px rather than clipping" |
+| primitive row shows its full path | "5: a palette table leads with the step alone…", "9: rows are named inside their group…" |
+| steps without named-first | "9: named values lead, in file order, then steps ascending" |
+| semantic row keeps its family | "2: the adopted type=Text swatch is used for a text role" |
+| header rewrite off | "9: an earlier run's title is rewritten to name its root" |
+| rewrite ignores designer edits | "9: a title the designer typed is kept" |
+| replaced folded into stale | "9: the per-root table is reported as replaced…" |
+
+**Second live run (plugin at `5e53e6a5`).** "✓ 41 tables", 0 unbound, 19 tables updated in place, and the semantic tables drawn per family per root. Two bugs showed only in the host.
+- **Text wrapped to ~29px.** The description cells were 155px wide, but their text was HEIGHT-resizing at 29×368, one word a line, and "Default" was 30×32 inside a 115px cell. The Inverse tables were 51,000px tall. The cause was the order: a text was wrapped (set to HEIGHT at a width) before its column had a width. The first pass measured cells hugging their words and then squeezed them. The order is now:
+  - measure every cell unwrapped;
+  - fix each column at its widest cell, with a description column stopping at 360;
+  - set every cell to its column's width;
+  - wrap only a text whose words do not fit, to the column less the cell's padding.
+  A header is never narrower than its words, so a swatch column now widens to "hc-light" (88) rather than wrapping it. The tracks are read back, and a grid that did not keep them is named.
+- **Tables overlapped on a rerun.** A rerun rebuilt each grid in place, but nothing moved the tables below one that grew. After every run, the generator's tables on each page are now re-stacked in their order, 160px apart. Each table's position is recorded in plugin data (`prism3-style-guide-at`), and one that is not where the generator put it was moved by a designer, so it stays. A table from before the record is re-flowed while it keeps the stack's x.
+- **The shim now models height.** A text is 20px a line and wraps word by word, breaking a word wider than its box. A HEIGHT text keeps its set width. A grid is the sum of its rows' tallest cells, and a vertically hugging frame is its padding plus its children. The live bug reproduces offline: the "wrap before sizing" mutation gives a 360px description HEIGHT in a column it cannot fill.
+- **Trap for re-verifying.** The earlier shim had no height and no word breaks, so "Default" squeezed to 30px still counted as one line, and the first round's width assertions passed over exactly this bug. An assertion on the text's *line count* is what catches it, not one on the cell's width.
+
+| Mutation | Fails |
+|---|---|
+| wrap the description before the columns are sized | "5: a long description wraps to its column less the cell's padding: 360 − 16 − 16 = 328", "5: no cell in any table is wider than its column", "2: no text in the owner's cells is wider than its column" |
+| wrap a mode header to the specimen before sizing | "5: a swatch column is the wider of the specimen and its mode header: 80, 80, 88, 81", "5: the "Default" header sits on one line in its 81px column", "5: every header in every table sits on one line" |
+| skip the re-stack | "10: a table that grows by 10 rows pushes the next table down 720px", "10: the rest stay 160px apart", "10: tables from before the position record are re-flowed too" |
+| re-stack ignores the position record | "10: a table a designer moved stays where they put it" |
+| unrecorded tables left out of the stack | "10: tables from before the position record are re-flowed too: Icon +360" |
+| drop the track read-back | "10: a grid that did not keep its column widths is named" |
+
+**Owner decision (2026-09-28): "Yes, delete superseded tables if unedited."** Recorded as `docs/45` §2 decision 9; the two *proposed* items it settles (stale tables left in place, the live run's per-root tables left in place) leave §8.
+- **What "unedited" means.** Each write records a fingerprint (`prism3-style-guide-print`) and the frame's own node ID (`prism3-style-guide-mark`). The fingerprint hashes every node in the frame, in order, with its type, name, visibility, size, text, fills and strokes, and pinned modes. A bound paint counts by its variable's ID, not its color, so a changed value is not an edit. Position is the re-stack's `prism3-style-guide-at` record, kept out of the fingerprint so a re-stacked table is not "edited". A superseded table is deleted only when it has a fingerprint, its mark is its own ID, it sits at its recorded position and its fingerprint matches. Anything else is kept and reported: edited, moved, a copy, or no record.
+- **Why a mark as well as the key.** The brief's "generator marker" is the table key, and a frame without it is never a candidate. But plugin data travels with a duplicate. A designer's in-place copy of a table carries the key, the fingerprint and the position record, and matches all three. Only the node ID tells it apart.
+- **The check runs before the re-stack**, so the stack closes over a deleted table. A deleted table's place counts as the top when it was higher, so deleting the first table leaves no gap above the rest.
+- **Report (first draft, reworded in the review round below).** "1 superseded table deleted: Style guide — Scrim". "1 superseded table edited — left in place: Style guide — Legacy (moved)". For a table with no fingerprint: "… left in place — it predates the edit record, so the generator cannot tell whether it was edited; delete it by hand if no longer needed: …". `deleted` and `kept` (with the reason) are in the result the agent link returns; `stale` and `replaced` still name every superseded table.
+- **Trap: "survive one more run" does not hold.** The brief expected the owner's pre-fingerprint tables to survive one more run. They survive every run: a superseded table is never rewritten, so it never gains a fingerprint. No earlier record is as strong as a fingerprint: the rows snapshot, the title and description records and the position record say nothing about a cell's text or paint. **Decided by the owner, 2026-09-28:** those tables are never deleted by the generator. The owner deletes them by hand, and the report says to. Recorded under `docs/45` §2 decision 9.
+- **Trap: the key check is shadowed.** Removing `!k` from the candidate filter alone turns nothing red: a frame without the key has type `''`, which the run's type scope refuses on the next line. The comment beside it says so. The test that a frame named like a table is never touched still holds under that mutation, for that reason.
+- **Test label moved.** "6: rerun: still 11 tables on the semantic page" is now "6: rerun: 10 tables on the semantic page — none duplicated, the emptied Scrim deleted". The emptied Scrim table was drawn by this build, so it is deleted. The mutation above that cites the old label now fails the new one.
+
+| Mutation (each after a `wip:` commit, restored from HEAD) | Fails |
+|---|---|
+| fingerprint compare ignored: every candidate reaching it is deleted | "11: a replaced table with one text cell changed by hand is kept, reported as edited" |
+| edit check always true: nothing is deleted | "6: an unedited stale table is deleted", "11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light", "11: the deleted table's header and cells go with it" |
+| generator-marker (node ID) check removed | "11: a duplicate of a generator table is never deleted; the table it copies is" |
+| no-fingerprint check removed | "11: a table with no fingerprint is kept", "9: the per-root table has no fingerprint, so it is left in place" (still kept, as a copy, since it has no mark either) |
+| position check removed | "11: a moved table is kept" |
+| text left out of the fingerprint | "11: a replaced table with one text cell changed by hand is kept…" (the retyped value is the same length, so no size moves) |
+| the stack ignores a deleted table above it | "11: the stack closes over the deleted table: Dark starts where Legacy stood, Light 160px below it" |
+| the key filter removed alone | nothing: shadowed by the type scope, as above |
+
+**Review round on the deletion (net review of `ee4ea6de`).** One blocking finding and five should-fixes, all taken.
+- **The fingerprint missed visible edits (blocking).** A shadow, 8px corners and one cell made bold, at the same size, matched the recorded fingerprint, so a designer-edited table would have been deleted. The fingerprint now adds corner radii, effects and effect style, stroke weight and alignment, layer opacity and blend mode, fill and stroke styles, auto-layout mode, padding and spacing, and the text font (family and style, size, weight, text style; a mixed-font text reads its segments). An instance adds its main component, read with `getMainComponentAsync` under dynamic-page, and its component properties. Each field is read inside a `try`, since a host getter can throw. `figma.mixed` reads as "mixed".
+- **Scope.** Only a table whose parent is the page itself is deleted. A designer's "Frame selection" wrapper puts the first table at 0,0 inside it, which matches its position record. The mark is now `<page ID>|<frame ID>`, so a table moved to an archive page at the same x and y is kept.
+- **Guards.** Nothing is deleted when the run drew nothing, or when a table's collection is no longer in the file. Moving the variables to a published library leaves a local catalog of 0, and before this every table would have been deleted. Both are reported with the reason.
+- **Bound paint opacity** is out of the key. The host carries a color variable's alpha in the paint's `opacity`, so a scrim's alpha changing read as an edit.
+- **Report.** Kept tables are grouped by their actual reason: edited, moved, a copy, collection not in this file, nothing drawn, could not be deleted. An unedited table the host will not remove was reported as edited; now it reads "could not be deleted". Each list is capped at three names plus "and N more". The headline counts deletions ("✓ 7 tables, 4 deleted"). The wording drops the internal terms "superseded" and "the edit record" for "no longer draws" and "drawn before edits were tracked" (proposed, owner to confirm).
+- **Trap for re-verifying: the shim does not repaint.** A bound paint's color and opacity follow the variable in the host. The shim's `setBoundVariableForPaint` stamps a placeholder color and never updates it, so a test that changes a variable's value proves nothing unless it replays the repaint onto the drawn nodes. Test (e) does that, and asserts at least one paint was repainted. Before it, keying bound paints by color survived every test.
+
+The fixtures are literal, one per field group, each at the same size unless size is the edit. A control run with nothing touched deletes the table, so every "kept" is the edit's doing. Each mutation below was run after a `wip:` commit and restored from HEAD.
+
+| Mutation | Fails by name |
+|---|---|
+| (a) fills and strokes dropped from the fingerprint | "11: a replaced table with a cell's fill repainted by hand is kept, reported as edited", "… with a stroke added to a cell …" |
+| (b) width and height dropped | "11: a replaced table with a cell widened by 40px, nothing else by hand is kept, reported as edited" |
+| (c) pinned modes dropped | "11: a replaced table with a swatch's pinned mode changed by hand is kept, reported as edited" |
+| (d) y dropped from the moved check | "11: a table moved straight down is kept, reported as moved" |
+| (e) bound paints keyed by color, not variable ID | "11: a table whose bound variable's value (and alpha) changed between runs is still deleted" |
+| (e2) bound paints keep their opacity | "11: a table whose bound variable's value (and alpha) changed between runs is still deleted" |
+| corner radii dropped | "11: a replaced table with 8px corners on a cell by hand is kept, reported as edited" |
+| effects dropped | "11: a replaced table with a drop shadow on the table by hand is kept, reported as edited" |
+| stroke weight and align dropped | "11: a replaced table with a stroke weight and alignment changed by hand is kept, reported as edited" |
+| layer opacity and blend mode dropped | "11: a replaced table with a cell's layer opacity and blend mode changed by hand is kept, reported as edited" |
+| fill and stroke style IDs dropped | "11: a replaced table with a fill style applied to a cell by hand is kept, reported as edited" |
+| auto-layout mode, padding and spacing dropped | "11: a replaced table with a cell's auto-layout padding changed by hand is kept, reported as edited" |
+| text font dropped | "11: a replaced table with one cell made bold by hand is kept, reported as edited" |
+| instance main component and properties dropped | "11: a replaced table with a swatch swapped to another component by hand is kept…", "… with a header's component property toggled …" |
+| scope: parent-is-page check removed | "11: a table put inside a designer's frame, at the same x and y, is kept" |
+| scope: page ID in the mark not checked | "11: a table moved to another page at the same x and y is kept" |
+| guard: collection-in-catalog check removed | "11: a table whose collection is no longer in the file is kept while the rest are drawn", "11: variables moved to a library: every table kept, its collection not in this file" |
+| guard: empty-plan check removed | "11: a run that draws nothing deletes nothing: 22 tables kept (22 deleted)" |
+| fingerprint compare ignored | every "11: a replaced table with … by hand is kept" arm, the reviewer's example included |
+| edit check always true | "6: an unedited stale table is deleted", "11: an unedited replaced table is deleted…", "11: four deleted: three named and \"and 1 more\"…" and 11 more |
+| node-ID mark check removed | "11: a duplicate of a generator table is never deleted; the table it copies is" |
+| no-fingerprint check removed | "11: a table with no fingerprint is kept", "9: the per-root table has no fingerprint, so it is left in place" |
+| text dropped | "11: a replaced table with one text cell retyped … by hand is kept, reported as edited" |
+| the stack ignores a deleted table above it | "11: the stack closes over the deleted table…" |
+| an unremovable table reported as edited | "11: an unedited table that cannot be removed is reported as \"could not be deleted\"" |
+
+**Third live run (plugin at `ec4512f8`, the owner's test file).** 22 tables, all created, in 129s. The description column still wrapped one word a line.
+- **Root cause, measured live by the orchestrator.** The owner's default text cell holds a text layer named "100", 29px wide in the main component. On a TEXT inside an INSTANCE, `layoutSizingHorizontal = 'FIXED'` + `textAutoResize = 'HEIGHT'` + `resize(296, h)` leaves the width at 29, in every order tried. `textAutoResize = 'HEIGHT'` then `layoutSizingHorizontal = 'FILL'` gives 296×32, and the cell 360×96.
+- **Fix.** `wrapTo` sets HEIGHT then FILL when the text's parent is auto layout. The cell is already FIXED at its column's width, so FILL gives the column less the padding, and less any sibling such as an alias chip. FIXED + resize stays only as the fallback for a parent that is not auto layout.
+- **Trap: the shim obeyed the resize the host ignores.** That is why every width assertion passed over this bug. The shim now ignores `resize`'s width on a FIXED text inside an instance, keeping the stored width the instance was cloned with. It breaks lines at the width the text lays out at (a FILL text's parent less padding), not the stored one. `ownerSet` now carries the owner's measured padding (24 left, 40 right) and a 29px label named "100". The owner's swatch column is therefore 99: its "light" header is 35 + 24 + 40.
+- **Two edit fixtures from the orchestrator's net, folded in.** "A cell renamed in the layers panel" is kept, and its mutation fails by name. "A swatch hidden" did not isolate visibility: hiding the swatch shrank its hugging ground frame, so the size field caught it with visibility blanked. It now hides the Specimen layer inside the swatch, whose parent is not auto layout, so visibility is the only field that moves.
+
+| Mutation (after a `wip:` commit, restored from HEAD) | Fails by name |
+|---|---|
+| `wrapTo` reverted to FIXED + resize | "2: the owner's description text wraps to 360 − 24 − 40 = 296 (got 29, HEIGHT)", "2: the owner's description row is not one word a line (24 lines for 15 words)", "5: a long description wraps to its column less the cell's padding: 360 − 16 − 16 = 328" |
+| visibility dropped from the fingerprint | "11: a replaced table with a swatch layer hidden, nothing else by hand is kept, reported as edited" |
+| name dropped from the fingerprint | "11: a replaced table with a cell renamed in the layers panel by hand is kept, reported as edited" |
+
+**Held for the owner, from the third run: the table is 2,517px wide.** Its `_Section-header` instance keeps the component's FIXED width, 2,517 (the page-width header `page-header.ts` places), while the grid is 732. The wrapper hugs its widest child. Nothing chose this; the generator never sizes the header. The owner decides whether a table's header spans the page, as now, or hugs the table.
+
+**Held for the owner.** Every item marked *proposed* in `docs/45` §8, including the sample text "Abc 123" (changeable), and two new ones from the live run: the full path dropped from palette tables and the 360px description column. The second live run adds two: a swatch column widening to its mode header, and the re-stack, including earlier builds' unrecorded tables. The deletion adds two: the report wording and what the fingerprint covers (an edit to a cell component reads as an edit to every table). **Host-unverified, for the deletion:** that a fingerprint read on the next run with nothing touched matches the one recorded at write (if not, nothing is ever deleted). **Live-check,** both failing safe: whether deleting a variable or collection detaches bindings or drops pinned modes (if so, a stale table reads as edited and is kept), and whether "Move to page" keeps a node's ID (if not, a moved table reads as a copy and is kept). **Host-unverified:** GRID rendering and FIXED tracks with FIXED-width cells, a HEIGHT text keeping its set width, HUG on an adopted instance's layers, the diamond's rotated geometry, and whether an instance inherits the ground frame's pinned mode (it pins its own as well).
+
+---
 
 ---
 
