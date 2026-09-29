@@ -40,6 +40,7 @@ import {
 } from './src/prune-figma';
 import type { PruneInput, PruneApi, StyleKind, StyleNames, FileStyles } from './src/prune-figma';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
+import { dead, dieOnRemove, removeOnce } from './removal-shim';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -63,30 +64,9 @@ const fileStyles = (partial: Partial<FileStyles>): FileStyles =>
 // modelled as taking its variables with it (Figma's cascade), so a "survivor" is a live object in a live
 // collection.
 //
-// A REMOVED OBJECT IS DEAD, as it is in the host. Reading any property of it but `id` and `removed` throws
-// the host's own error — the style message is the one a confirmed prune hit live, on a real Figma test
-// file, at engine 0.202.0: `prune failed: in get_name: The style with id "S:…" does not exist`. Before
-// this, `remove()` only set a flag, so an executor that read `.name` after `.remove()` passed here and threw
-// in Figma. The messages are literals, not derived from the executor.
-const dead = (what: string, id: string, prop: string): Error =>
-  new Error(`in get_${prop}: The ${what} with id "${id}" does not exist`);
-/** Define `props` on `obj` as accessors that throw once `obj.removed` is set. Initial values are kept. */
-const dieOnRemove = (obj: { id: string; removed: boolean }, what: string, props: string[]): void => {
-  for (const prop of props) {
-    let value = (obj as unknown as Record<string, unknown>)[prop];
-    Object.defineProperty(obj, prop, {
-      get: () => { if (obj.removed) throw dead(what, obj.id, prop); return value; },
-      set: (v: unknown) => { if (obj.removed) throw dead(what, obj.id, prop); value = v; },
-      enumerable: true,
-      configurable: true,
-    });
-  }
-};
-/** `remove()` on an object that is already gone throws too — the host has nothing left to remove. */
-const removeOnce = (obj: { id: string; removed: boolean }, what: string): void => {
-  if (obj.removed) throw dead(what, obj.id, 'remove');
-  obj.removed = true;
-};
+// A REMOVED OBJECT IS DEAD, as it is in the host: reading any property of it but `id` and `removed` throws
+// the host's own error. The helpers live in `removal-shim.ts` (moved there unchanged, so `test-mcp-paste.ts`
+// models the same host); its header holds the live failure they reproduce.
 class RVar {
   removed = false;
   constructor(public id: string, public name: string, public variableCollectionId: string) {
