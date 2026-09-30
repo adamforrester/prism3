@@ -44,7 +44,7 @@ import { sizeColumnHeader } from './size-labels';
 import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import {
-  needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
+  needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin, type SeedOutcome,
 } from './provenance';
 import {
@@ -9151,7 +9151,7 @@ const componentPendingText = (): string => {
 const componentPendingEls = new Set<HTMLElement>();
 
 /**
- * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedInfo`
+ * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedOutcome`
  * rendered — this ticket lands the model, and where the three outcomes are properly surfaced is
  * #533's decision (#721 is its fifth client, and its first whose status is not the result of an
  * action the user took). No new class, no new slot, no new scope.
@@ -9313,7 +9313,7 @@ function renderBar(): void {
   // pill, shown only until the first apply, after which the write's own result is the newer fact and
   // "what was in the file when I opened it" is no longer what the designer is asking about.
   if (commit.isFigma) {
-    // #480: independent of the applyState/seedInfo slot below — a restore refusal is a fact about
+    // #480: independent of the applyState/seedOutcome slot below — a restore refusal is a fact about
     // BOOT, not about the write button, and must stay visible even once an apply (or the read-back)
     // has something else to say in that slot.
     if (host.restoreError) {

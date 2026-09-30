@@ -198,8 +198,9 @@ export interface HostCommit {
 /** The wire shape the iframe posts to the main thread is the plugin's own `UiToMain` (#1813), imported
  *  as a TYPE, so it is erased from both bundles and no plugin code reaches the web one. It used to be
  *  re-declared here message by message, with a comment asking that the two be kept in sync and nothing
- *  checking that they were. Every post below goes through `post`, whose parameter is that union, so a
- *  field added, dropped or renamed on either side is a compile error here. */
+ *  checking that they were. Every post below goes through `post`, whose parameter is that union, and each
+ *  message is written as a literal of its own member type, so a field dropped or renamed on either side
+ *  is a compile error here. (A new optional field on the plugin side is not: the UI simply does not send it.) */
 type ApplyTheme = Extract<UiToMain, { type: 'apply-theme' }>;
 /** The style guide's Customize fields (#259): `messages.ts` `StyleGuideOptions`, under the name the UI uses. */
 export type StyleGuideOptionsMsg = StyleGuideOptions;
@@ -218,13 +219,17 @@ const figmaCommit = (): HostCommit => ({
     // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the
     // main thread distinguishes absent (means Button) from present, and `postMessage` structured-clones,
     // so an explicit `undefined` would arrive as a present key holding nothing.
-    post({ type: 'build-components', ...(def ? { def } : {}) });
+    // A typed local, not a spread: a conditional spread escapes the excess-property check, so a renamed
+    // `def` in `messages.ts` would compile and post a build with no def.
+    const msg: Extract<UiToMain, { type: 'build-components' }> = def ? { type: 'build-components', def } : { type: 'build-components' };
+    post(msg);
   },
   postFileSetup() {
     post({ type: 'file-setup' });
   },
   postStyleGuide(options) {
-    post({ type: 'style-guide', ...(options ? { options } : {}) });
+    const msg: Extract<UiToMain, { type: 'style-guide' }> = options ? { type: 'style-guide', options } : { type: 'style-guide' };   // typed local, as above
+    post(msg);
   },
   postPrune(input, confirm) {
     post({ type: 'prune', input: input as ApplyTheme['input'], confirm });

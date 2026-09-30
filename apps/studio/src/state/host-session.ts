@@ -57,21 +57,21 @@ export interface HostSession {
   readonly inputRecovered: boolean;
   /** Set when the host REFUSED to rehydrate the knobs (#480): a `BrandInput` blob is stored in this
    *  file, but it's an old/foreign shape or a schema version this build doesn't recognize (the
-   *  pre-#341/#415 shape is exactly this case). A separate slot from `seedInfo` for the same reason
+   *  pre-#341/#415 shape is exactly this case). A separate slot from `seedOutcome` for the same reason
    *  the other boot facts are separate — this answers "could your saved knobs be restored", which
-   *  `seedInfo` (the file's Figma-variable contract) does not. */
+   *  `seedOutcome` (the file's Figma-variable contract) does not. */
   readonly restoreError: string | null;
   /** The state of the Apply-to-Figma write. `null` = never run this session; `pending` = posted and the
    *  host has not answered yet; otherwise the host's verdict.
    *
-   *  A SEPARATE slot from `seedInfo` on purpose. Both arrive as `{ok, summary}` and both wanted the one
+   *  A SEPARATE slot from `seedOutcome` on purpose. Both arrive as `{ok, summary}` and both wanted the one
    *  pill, so an apply used to overwrite the boot read-back and render as if it WERE the boot read-back —
    *  the only surface for "what happened when I pressed the button" was a pill labeled with what was in
    *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
    *  over a large file looked like a button that did nothing. Two facts, two slots. */
   readonly applyState: ActionState;
   /** The state of the Build-Button-set write (#483) — same shape, its own slot, for the same reason
-   *  `applyState` is not `seedInfo`: two actions, two buttons, two verdicts. A component build cannot
+   *  `applyState` is not `seedOutcome`: two actions, two buttons, two verdicts. A component build cannot
    *  report into the theme write's pill without claiming something about the variables it never touched,
    *  and with no slot of its own it would have nowhere to be `pending` while it writes hundreds of nodes. */
   readonly componentState: ActionState;
@@ -96,7 +96,7 @@ export interface HostSession {
    *  says how far. */
   readonly componentProgress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null;
   /** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
-   *  `seedInfo`: the prune is its own action and its verdict must not land in another write's pill.
+   *  `seedOutcome`: the prune is its own action and its verdict must not land in another write's pill.
    *  `pruneBusy` is the in-flight state — a preview being computed or a delete running — and disables the
    *  button; `prunePreview` holds a ready preview whose confirm dialog is open; `pruneVerdict` is the pill
    *  text after a preview finds nothing stale or after a delete completes. */
