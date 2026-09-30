@@ -76,6 +76,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
+import { leverManifest } from '@prism3/engine/levers';
 import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
@@ -4666,6 +4667,69 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const headerCalls = mainCode.split('\n').filter((l) => /\bplaceHeader\(/.test(l) && !/const placeHeader\b/.test(l));
   ok(headerCalls.length === 1 && /\}, \(\{ page, defId \}\) => placeHeader\(page, defId\)\);/.test(headerCalls[0]) && /await labelAfterBuilds\(/.test(mainCode),
     `#1750 main.ts places headers only as the label of labelAfterBuilds, never inside a build (${headerCalls.length} call site(s): ${headerCalls.map((l) => l.trim()).join(' / ')})`);
+}
+
+
+// ── #1812: every lever's manifest default is what the COMPONENT MATERIALIZER does with the lever unset ──
+// The engine half of this check (`packages/engine/test.ts`, #1812) runs the token emission both ways. A
+// lever the token tree cannot see is resolved here instead, when a def is materialized for a brand: the
+// button settings (`brandButtonLayout`'s `?? DEFAULT_BUTTON_LAYOUT`) and `controlShape`'s `boxed`/`pill`
+// (`?? 'rounded'`). SUBJECT = `leverManifest[].default`. ORACLE = `materializeForBrand` over every
+// component def, for a base brand with the lever UNSET and with it set to the manifest default. The
+// expected side is the materializer's own output, never the manifest.
+//
+// Bases: a literal minimal brand (the three required fields), aurora (`actionPalette: accent`, sharp
+// corners) and nb-redesign (the owner's NB shape: hairline controls, edge-locked button icons). Three,
+// not every brief: each materialization runs one `brandTheme` per def, and this arm is the slowest in
+// the file at three.
+//
+// Sensitivity (docs/34 shape 4): every (lever, value) PAIR the engine arm lists as TREE-BLIND must move
+// this materialization, or the no-op check above measured nothing for that value. Pairs, not levers:
+// `controlShape` moves the tree at `hairline` but not at `boxed` or `pill`, and a wrong `pill` default
+// is visible only here. The list is a literal copy of the engine arm's `TREE_BLIND_PAIRS`, deliberately
+// not imported: the engine arm fails if its list goes stale, and this one fails if a listed pair stops
+// reaching the defs.
+//
+// TRAP (2026-09-30): a main merge once resolved this whole block away (the conflict resolver matched on
+// an import it shared with main's new block) and verify stayed 67/67 green with the arm gone, because a
+// deleted arm fails nothing inside itself. So the ENGINE arm (`packages/engine/test.ts`, #1812) reads this
+// file and fails by name unless the sensitivity assertion below and every pair literal are present.
+{
+  const TREE_BLIND_PAIRS: [string, unknown][] = [
+    ['buttonContentSize', 'smaller'],
+    ['buttonIcons', 'edges'],
+    ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
+    ['controlShape', 'boxed'], ['controlShape', 'pill'],
+  ];
+  const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
+  const setIn = (o: any, key: string, v: unknown): any => {
+    const c = structuredClone(o); const ps = key.split('.'); let a = c;
+    for (const p of ps.slice(0, -1)) a = a[p] ??= {};
+    a[ps[ps.length - 1]] = v; return c;
+  };
+  const materialized = (input: BrandInput): string => JSON.stringify(componentDefs.map((d) => materializeForBrand(d, input)));
+  const brief = (f: string): BrandInput => parseDesignMd(readFileSync(new URL(`../../packages/engine/examples/${f}`, import.meta.url), 'utf8')).input;
+  const minimal = { id: 'minimal-1812', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  const bases: [string, BrandInput][] = [['minimal', minimal], ['aurora', brief('aurora.design.md')], ['nb-redesign', brief('nb-redesign.design.md')]];
+  const baseOut = new Map(bases.map(([id, b]) => [id, materialized(b)]));
+  const withDefault = leverManifest.filter((l) => l.default !== undefined);
+  const drift: string[] = [];
+  const unexercised: string[] = [];
+  for (const l of withDefault) {
+    let exercised = 0;
+    for (const [id, base] of bases) {
+      if (getIn(base, l.key) !== undefined) continue;
+      exercised++;
+      if (materialized(setIn(base, l.key, l.default)) !== baseOut.get(id)) drift.push(`${l.key}=${JSON.stringify(l.default)} on ${id}`);
+    }
+    if (!exercised) unexercised.push(l.key);
+  }
+  ok(unexercised.length === 0, `#1812 every lever with a manifest default is left unset by at least one base brand${unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''}`);
+  ok(drift.length === 0, `#1812 every lever's manifest default is what materializeForBrand does with the lever unset${drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''}`);
+
+  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
+    .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
+  ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
 
 if (failed) process.exit(1);

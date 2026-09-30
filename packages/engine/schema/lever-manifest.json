@@ -102,7 +102,6 @@
       "group": "color",
       "label": "Link palette",
       "control": "palette-ref",
-      "default": "primary",
       "description": "Which palette drives link color. Defaults to following the action palette; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role."
     },
     {
