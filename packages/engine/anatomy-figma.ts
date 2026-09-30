@@ -4805,20 +4805,39 @@ ${PAYLOAD_CHUNK_RETURN}
   // allows: it cannot be split, and its own `bytes` reports it.
   //
   // THE DIGIT HAS PUSHED NO CHUNK OVER IN ANY CASE MEASURED, and the reason is one byte nobody wrote
-  // down: the estimate charges a comma for every variant, and a chunk of k variants ships k - 1. So each packed chunk measures
-  // at least one byte under its estimate, and that byte absorbs the wider `TOTAL`. The loop does not rely
-  // on it. Each pass either returns or moves one variant one chunk later, so it ends; the bound only turns
-  // a bug into an error instead of a hang.
-  const bound = specs.length * (specs.length + 1);
+  // down: the estimate charges a comma for every variant, and a chunk of k variants ships k - 1. So each
+  // packed chunk measures at least one byte under its estimate, and that byte absorbs the wider `TOTAL`.
+  // The loop, `settleChunks` below, does not rely on it.
+  return settleChunks(groups, budgetBytes, (slice, i, total, last) => {
+    const js = emit(slice, i, total, last);
+    return { index: i, total, variants: slice.map((c) => c.name), js, bytes: js.length };
+  });
+};
+
+/**
+ * THE RE-MEASURE LOOP `planSetChunks` ends with (#1814), apart from it so `test.ts` can drive it with a
+ * made-up `ship` and reach the branch real sets never do: a move out of a MIDDLE chunk. Its variant goes to
+ * the FRONT of the next chunk, so plan order holds; a move out of the last chunk starts a new one.
+ *
+ * `ship` measures one chunk as it will ship, at its final index, total and last-ness. Each pass ships every
+ * chunk, returns them if every chunk of more than one item fits, and otherwise moves the last item of the
+ * first chunk that does not. A single-item chunk is never split: it cannot be, and taking its item would
+ * leave an empty chunk. Each pass moves one item one chunk later, so the loop ends; the bound turns a bug
+ * into an error instead of a hang. `groups` is moved in place.
+ */
+export const settleChunks = <T, C extends { bytes: number }>(
+  groups: T[][],
+  budgetBytes: number,
+  ship: (slice: T[], index: number, total: number, last: boolean) => C,
+): C[] => {
+  const items = groups.reduce((n, g) => n + g.length, 0);
+  const bound = items * (items + 1);
   for (let pass = 0; ; pass++) {
-    const out = groups.map((slice, i) => {
-      const js = emit(slice, i, groups.length, i === groups.length - 1);
-      return { index: i, total: groups.length, variants: slice.map((c) => c.name), js, bytes: js.length };
-    });
-    const i = out.findIndex((c) => c.variants.length > 1 && c.bytes > budgetBytes);
+    const out = groups.map((slice, i) => ship(slice, i, groups.length, i === groups.length - 1));
+    const i = out.findIndex((c, k) => groups[k].length > 1 && c.bytes > budgetBytes);
     if (i < 0) return out;
     if (pass >= bound)
-      throw new Error(`planSetChunks: chunk ${i + 1} of ${out.length} still measures ${out[i].bytes} bytes against a ${budgetBytes}-byte budget after ${pass} moves`);
+      throw new Error(`settleChunks: chunk ${i + 1} of ${out.length} still measures ${out[i].bytes} bytes against a ${budgetBytes}-byte budget after ${pass} moves`);
     const moved = groups[i].pop()!;
     if (i === groups.length - 1) groups.push([moved]);
     else groups[i + 1].unshift(moved);

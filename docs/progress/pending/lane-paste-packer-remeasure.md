@@ -9,3 +9,7 @@
 **What the tests can and cannot catch.** The textarea set at 124 budgets (30,000 to 42,000 in 97-byte steps) needs a move at 14 of them, always off the last chunk. With the loop disabled, those 14 ship an over-budget last chunk, and the sweep arm fails by name. Replacing the new code with `main`'s leaves every arm green, because `main`'s one move already handled the last chunk and the digit case never occurs. The move into a middle chunk is likewise unreachable with real sets.
 
 **2. The out-of-order guard.** Chunk 2 of #1798's split grid, pasted on an empty page, now has a test: `set: null`, the literal `NOT FOUND … paste the chunks in order` miss, and nothing on the page. Mutating `FIRST` to `true` fails it by name.
+
+**Review round.** The middle-chunk move was unreachable with real sets, so two reviewer mutations were not caught. One sent the moved variant to the back of the next chunk instead of the front, and the suite stayed green. The other let a one-variant chunk be split, which crashed the suite with a TypeError instead of failing by name. Two changes close them:
+- The loop is now its own export, `settleChunks`, taking a `ship` function. A test drives it with made-up weights, worked by hand, that force a move out of a middle chunk. It asserts the exact chunks: order kept, no chunk empty, and a one-item chunk over budget left alone.
+- `test.ts` now prints the failures it has already recorded when a later line throws. Before this, the crash that the second mutation causes at the first `planSetChunks` call hid the arm that had already named it.
