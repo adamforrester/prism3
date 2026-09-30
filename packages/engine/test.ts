@@ -75,6 +75,7 @@ import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -11313,7 +11314,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // tool catalogue
   const tools = (rpc('tools/list')?.result as any)?.tools as any[];
   ok(Array.isArray(tools) && tools.map((t) => t.name).sort().join(',') === 'export_theme,list_levers,score_consumption,theme_brand,theme_from_brief,validate_brand', 'MCP: tools/list advertises all six tools');
-  ok(tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand === brandSchema, 'MCP: theme_brand takes { brand, include } with the BrandInput schema under `brand`');
+  ok(tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand?.$id === (brandSchema as any).$id, 'MCP: theme_brand takes { brand, include } with the BrandInput schema (its own $id) under `brand`');
   ok(toolDefs(brandSchema).length === 6, 'MCP: toolDefs is a pure function of the brand schema');
   // Current MCP tool UX: a display title and behaviour annotations on every tool. Every tool is
   // idempotent + closed-world; all but one are pure reads.
@@ -11330,10 +11331,96 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'MCP: export_theme states readOnlyHint:false explicitly rather than omitting it');
   // The brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
   // discover three tools, and the second copy told a client nothing the first had not. The 60k ceiling
-  // keeps the MCP surface lean for clients; a new lever fits by COMPRESSION, not by raising it (#1368
-  // `faces`: open keys + a terse description + a `{family, style}` leaf, no schema bloat).
+  // keeps the MCP surface lean for clients and is our own number, not a client's (owner directive
+  // 2026-09-15: compress, don't raise).
+  //
+  // #1760: the ceiling now fails with HEADROOM left, not at the wall. Trimming prose to fit had reached
+  // 31 characters of margin, so the next lever would fail and every lever after it would cut guidance
+  // from another. The inline copy is now COMPACTED (every description cut to a one-line summary, full
+  // prose one `list_levers describe` call away), which took the list from 59,969 to 42,314. A
+  // compacted top-level field measured a median ~220 characters, so 5,000 is room for ~20 more levers
+  // at ~250 each. When this fails, the list is 5,000 short of the wall and still passes the hard
+  // limit, so there is time to scale again rather than trim.
   const listChars = JSON.stringify(tools).length;
-  ok(listChars < 60_000, `MCP: tools/list stays under 60,000 chars — the schema is inlined once (${listChars.toLocaleString()})`);
+  ok(listChars <= 55_000,
+    `MCP: tools/list keeps 5,000 chars of headroom under its 60,000 ceiling, room for ~20 more levers (${listChars.toLocaleString()} chars; fails above 55,000)`);
+
+  // #1760: the compacted inline schema. Walked against the FILE, in parallel, by this test's own walker
+  // (not mcp.ts's compaction): every keyword except `description` must match exactly, and every
+  // description must be a non-empty PREFIX of the file's (a summary truncates, never rewrites), at most
+  // 200 characters. The cap is what makes the headroom above hold: a lever's inline cost is its
+  // structure plus one sentence, however long its full description grows.
+  {
+    const inline = tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand;
+    const drift: string[] = [], notPrefix: string[] = [], tooLong: string[] = [], midSentence: string[] = [];
+    const walk = (a: any, b: any, path: string): void => {
+      if (Array.isArray(b)) {
+        if (!Array.isArray(a) || a.length !== b.length) { drift.push(path); return; }
+        b.forEach((x, i) => walk(a[i], x, `${path}/${i}`));
+        return;
+      }
+      if (b && typeof b === 'object') {
+        if (!a || typeof a !== 'object' || Array.isArray(a)) { drift.push(path); return; }
+        if (Object.keys(a).sort().join(',') !== Object.keys(b).sort().join(',')) drift.push(`${path} (keys)`);
+        for (const k of Object.keys(b)) {
+          if (k === 'description' && typeof b[k] === 'string') {
+            const sum = a[k];
+            if (typeof sum !== 'string' || !sum.trim() || !b[k].startsWith(sum)) notPrefix.push(`${path}/description`);
+            else if (sum.length > 200) tooLong.push(`${path} (${sum.length})`);
+            // Where the cut falls, checked without mcp.ts's sentence splitter: a summary is the whole
+            // text, or it ends in "." and the full text goes on with whitespace (never mid-word).
+            if (typeof sum === 'string' && sum !== b[k] && !(sum.endsWith('.') && /^\s/.test(b[k].slice(sum.length)))) midSentence.push(`${path}/description`);
+          } else walk(a[k], b[k], `${path}/${k}`);
+        }
+        return;
+      }
+      if (a !== b) drift.push(path);
+    };
+    walk(inline, brandSchema, '#');
+    ok(drift.length === 0, `MCP: the inline brand schema matches the file in every keyword but description — types, enums, ranges, defaults, $defs, $ref, $id (drift: ${drift.slice(0, 5).join(', ') || 'none'})`);
+    ok(notPrefix.length === 0, `MCP: every inline schema description is a non-empty prefix of the file's full text (not: ${notPrefix.slice(0, 5).join(', ') || 'none'})`);
+    ok(midSentence.length === 0, `MCP: every inline schema summary is the full text or ends at a "." the full text follows with whitespace — never cut mid-word (cut: ${midSentence.slice(0, 5).join(', ') || 'none'})`);
+    ok(tooLong.length === 0, `MCP: every inline schema description summary is at most 200 chars — split a longer first sentence (over: ${tooLong.join(', ') || 'none'})`);
+    // Literal summaries: a status tag carries on to the first real sentence, and `e.g.` / `mobile?` are
+    // not sentence ends.
+    ok(inline?.properties?.radiusHairline?.description === 'OPTIONAL, OPT-IN (off by default). `true` adds a fixed, unscaled `radius.hairline` = 1px sentinel alongside the pills.',
+      `MCP: radiusHairline's inline summary is its tag plus first sentence (got: ${inline?.properties?.radiusHairline?.description})`);
+    ok(inline?.properties?.id?.description === "Brand identifier (e.g. 'aurora').",
+      `MCP: an \`e.g.\` does not end a summary (got: ${inline?.properties?.id?.description})`);
+    ok(inline?.properties?.typography?.properties?.sizeOverrides?.description === 'OPTIONAL. Opt-in per-rung DESKTOP/MOBILE size override (#1587): group -> rung -> { desktop?, mobile? }.',
+      `MCP: a \`?\` inside an optional-key shape does not end a summary (got: ${inline?.properties?.typography?.properties?.sizeOverrides?.description})`);
+    ok(/list_levers with `describe`/.test(tools.find((t) => t.name === 'theme_brand')?.description ?? ''),
+      'MCP: theme_brand says its field descriptions are summaries and names where the full text is');
+
+    // Every field stays DESCRIBABLE in full: `describe` over every key returns the file's properties and
+    // every $defs entry they reach, deep-equal. Expected is the file, read above; actual is the tool.
+    const every = callTool('list_levers', { describe: Object.keys((brandSchema as any).properties) }, brandSchema);
+    const described = every.isError ? {} : (every.structuredContent as any)?.described ?? {};
+    ok(isDeepStrictEqual(described.properties, (brandSchema as any).properties),
+      'MCP: list_levers describe returns every BrandInput field exactly as the schema file has it, full prose included');
+    const fileDefs = (brandSchema as any).$defs ?? {};
+    const missingDefs = Object.keys(fileDefs).filter((k) => !isDeepStrictEqual(described.$defs?.[k], fileDefs[k]));
+    ok(Object.keys(fileDefs).length > 0 && missingDefs.length === 0,
+      `MCP: list_levers describe returns every $defs entry the fields reference, in full (missing or altered: ${missingDefs.join(', ') || 'none'})`);
+    const surfaces = (callTool('list_levers', { describe: ['surfaces'] }, brandSchema).structuredContent as any)?.described;
+    ok(Object.keys(surfaces?.$defs ?? {}).join(',') === 'neutralSurfaceSpec,surfaceMode,surfaceSpec',
+      `MCP: describe follows $ref transitively (surfaces → surfaceMode → neutralSurfaceSpec + surfaceSpec; got ${Object.keys(surfaces?.$defs ?? {}).join(',')})`);
+    const hairline = (callTool('list_levers', { describe: ['radiusHairline'] }, brandSchema).structuredContent as any)?.described?.properties?.radiusHairline?.description ?? '';
+    ok(/near-sharp 1px corner/.test(hairline) && /radiusScale\/baseMd/.test(hairline),
+      'MCP: radiusHairline\'s full description carries its when-to-use cue and its relation to radiusScale/baseMd (#1760 restored it)');
+    const ghost = callTool('list_levers', { describe: ['radiusHairline', 'notAField'] }, brandSchema);
+    ok(ghost.isError === true && /notAField/.test(ghost.content[0].text) && /"radiusHairline"/.test(ghost.content[0].text),
+      'MCP: describe on an unknown field is a tool error that names it and lists the valid fields');
+    // list_levers' outputSchema admits both result shapes and still requires the catalog fields on a
+    // catalog call. Checked against the literal required sets, and against both real results.
+    const llOut = tools.find((t) => t.name === 'list_levers')?.outputSchema;
+    const branches = ((llOut?.anyOf ?? []) as { required?: string[] }[]).map((b) => (b.required ?? []).join(','));
+    ok(branches.join(' | ') === 'levers,nonLeverFields,required | described',
+      `MCP: list_levers outputSchema is anyOf [catalog fields] | [described] (got: ${branches.join(' | ') || 'none'})`);
+    const satisfies = (obj: any): boolean => ((llOut?.anyOf ?? []) as { required?: string[] }[]).some((b) => (b.required ?? []).every((k) => obj && k in obj));
+    ok(satisfies(callTool('list_levers', {}, brandSchema).structuredContent) && satisfies(callTool('list_levers', { describe: ['id'] }, brandSchema).structuredContent),
+      'MCP: both list_levers result shapes (catalog, describe) satisfy its outputSchema');
+  }
 
   // list_levers now covers the WHOLE input surface, not just the UI knobs. This is the gate on the
   // defect it was written for: the manifest advertised 21 of the schema's 33 top-level fields, and the
