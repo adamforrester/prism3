@@ -5,7 +5,7 @@
 //
 // Renders the BUILT concept-v6.html in Chromium and measures what is on screen, independent of the
 // build's declared pairs. v5's audit, extended to v6. Every state runs in light and dark, at 1280 and
-// at 380: each Color sub-page with Roles off and on (Palettes, Surfaces & fills, Interactive), Brand,
+// at 380: Palettes, then Surfaces & fills and Interactive with Roles off and on, Brand,
 // Depth & motion, Layout, the build failure (plugin), Inspect › Contrast, the plugin, and the plugin
 // with the Agent popover open. At 380 the Roles, Depth and Layout states show the Preview pane.
 // In each it measures, outside the brand's own preview content ([data-content]):
@@ -15,6 +15,7 @@
 //     on the top bar, in an inset), every selected indicator, every glyph, status dot, progress fill,
 //     spinner arc and link underline: 3:1;
 //   - the focus ring of every stop in the Tab order: 3:1 and at least 2px;
+//   - that Inspect sits on the preview title's row (v6 review: it wrapped under a long Roles subtitle);
 //   - every control's hit target: 24 × 24;
 //   - that no text node is heavier than 600, and no element or pseudo-element computes a shadow (T5);
 //   - which face Chromium drew (CDP CSS.getPlatformFontsForNode): the embedded Inter and JetBrains Mono.
@@ -23,7 +24,7 @@
 //     scrolling the levers panel, focusing any section and changing a lever never change the preview;
 //     the preview header offers no view select.
 //   - V12: nothing on the page offers "Keep this view".
-//   - V2: on each Color sub-page, Roles switches the preview to the editable role × mode matrix of that
+//   - V2, v6 review #3: Palettes offers no Roles toggle (NO_ROLES); on the other Color sub-pages, Roles switches the preview to the editable role × mode matrix of that
 //     sub-page's families only (ROLE_FAMILIES), with the header row and role column pinned, derived
 //     columns hatched and read-only, light cells editable with the swatch-grid step picker (V9); and
 //     the view's own tab switches back.
@@ -63,11 +64,12 @@ const EXPECT_HOME = {
   layout: ['layout', 'Layout'],
   components: ['comps', 'Components'],
 };
-// V2: the role families each Color sub-page's Roles matrix may show (a family header must start with
-// one of `allow`), and the ones it must show (`need`). From the decision, not from HOMES.
+// V2, v6 review #3: the Color sub-pages with a Roles toggle, the role families each matrix may show (a
+// family header must start with one of `allow`), and the ones it must show (`need`). Palettes has no
+// Roles toggle (palettes are primitives). From the decisions, not from HOMES.
+const NO_ROLES = ['palettes'];
 const ROLE_FAMILIES = {
-  palettes: { allow: ['text', 'icon'], need: ['text', 'icon'], deny: ['text.link', 'icon.link'] },
-  fills: { allow: ['background', 'foreground', 'border', 'inverse', 'scrim', 'veil'], need: ['background', 'foreground', 'border', 'inverse.background'], deny: ['inverse.interactive', 'inverse.text.link'] },
+  fills: { allow: ['text', 'icon', 'background', 'foreground', 'border', 'inverse', 'scrim', 'veil'], need: ['text', 'icon', 'background', 'foreground', 'border', 'inverse.background'], deny: ['text.link', 'icon.link', 'inverse.interactive', 'inverse.text.link', 'inverse.icon.link'] },
   interactive: { allow: ['interactive', 'inverse.interactive', 'text.link', 'icon.link', 'inverse.text.link', 'inverse.icon.link', 'disabled', 'inverse.disabled', 'field', 'inverse.field'], need: ['interactive.primary', 'text.link'], deny: [] },
 };
 
@@ -284,7 +286,6 @@ async function focusRings() {
 // [hash, what to do after load (or null), show the Preview pane at 380]
 const STATES = {
   palettes: ['', null, false],
-  'palettes-roles': ['domain=color&sub=palettes&roles=1', null, true],
   fills: ['domain=color&sub=fills', null, false],
   'fills-roles': ['domain=color&sub=fills&roles=1', null, true],
   interactive: ['domain=color&sub=interactive', null, false],
@@ -332,6 +333,13 @@ for (const theme of ['light', 'dark']) {
       const counts = { text: m.text.length, checks: m.checks.length, rings: fr.rings.length, hits: m.hits.length };
       for (const [col, n] of Object.entries(counts)) { const floor = col === 'rings' && act === 'agent' ? 0 : FLOOR[col]; if (n < floor) all.push({ what: `${col} column`, kind: `measured only ${n} (floor ${floor})`, r: 0, floor: 0 }); }
       const min = (arr) => arr.reduce((a, b) => (b.r < a.r ? b : a), { r: Infinity });
+      // v6 review: Inspect stays on the title row. Its box must overlap the title's row vertically, in every
+      // state that shows the preview header's title (Inspect has its own tab row).
+      if (st !== 'inspect' && (w === '1280' || pv380)) {
+        const row = await page.evaluate(() => { const i = document.getElementById('pv-inspect'); const t = document.querySelector('#pvh .pvtabs, #pvh .pvtitle'); if (!i || !t || !i.getClientRects().length) return null; const a = i.getBoundingClientRect(), b = t.getBoundingClientRect(); return { same: a.top < b.bottom - 1 && a.bottom > b.top + 1, it: Math.round(a.top), tt: Math.round(b.top), tb: Math.round(b.bottom) }; });
+        if (!row) all.push({ what: 'the preview header', kind: 'Inspect row: no Inspect button or title', r: 0, floor: 0 });
+        else if (!row.same) all.push({ what: `#pv-inspect at y ${row.it}, title rows ${row.tt}–${row.tb}`, kind: 'Inspect row: Inspect wrapped off the title row', r: 0, floor: 0 });
+      }
       const edges = m.checks.filter((c) => c.kind === 'edge');
       results.push({ theme, w, st, text: m.text.length, textMin: min(m.text), checks: m.checks.length, checkMin: min(m.checks), edgeMin: min(edges), edgeMax: edges.reduce((a, b) => (b.r > a.r ? b : a), { r: -Infinity }), rings: fr.rings.length, capped: fr.capped, ringMin: min(fr.rings.filter((r) => !r.pseudo && !r.none)), hits: m.hits.length, hitMin: m.hits.reduce((a, b) => Math.min(a, b.w, b.h), Infinity), kinds: m.kinds, fails: all });
     }
@@ -393,8 +401,17 @@ for (const p of PAGES) {
 
 // ── V2: the Roles toggle on each Color sub-page ───────────────────────────────────────────────
 let rolesChecks = 0;
-for (const p of PAGES.filter((x) => x.d.id === 'color')) {
-  const spec = ROLE_FAMILIES[p.sp.id]; if (!spec) { failed('V2 roles', p.key, 'has no decided role families'); continue; }
+for (const id of NO_ROLES) {
+  const p = PAGES.find((x) => x.key === `color/${id}`); if (!p) { failed('V2 no roles', `color/${id}`, 'is not a page'); continue; }
+  await goto(p);
+  const n = await page.evaluate(() => document.querySelectorAll('#pvh #pvt-roles, #pvh [data-act="roles"]').length);
+  const t = await title();
+  if (n) failed('V2 no roles', p.key, `offers a Roles toggle (${n}); palettes are primitives (v6 review #3)`);
+  if (t !== EXPECT_HOME[p.key][1] || await page.$('#pvh .pvtabs')) failed('V2 no roles', p.key, `titles its preview "${t}" as tabs; want the plain title "${EXPECT_HOME[p.key][1]}"`);
+}
+for (const p of PAGES.filter((x) => x.d.id === 'color' && !NO_ROLES.includes(x.sp.id) && !ROLE_FAMILIES[x.sp.id])) failed('V2 roles', p.key, 'is a Color sub-page with no decided role families');
+for (const p of PAGES.filter((x) => x.d.id === 'color' && ROLE_FAMILIES[x.sp.id])) {
+  const spec = ROLE_FAMILIES[p.sp.id];
   await goto(p);
   const home = EXPECT_HOME[p.key][0];
   if (!(await page.$('#pvt-roles'))) { failed('V2 roles', p.key, 'has no Roles toggle beside the preview title'); continue; }
@@ -549,7 +566,7 @@ if (SHOTS) {
     await extra(`frame=380&theme=${theme}&domain=color&sub=fills`, `v6-${theme}-380-fills-preview.png`, "document.getElementById('pane-p').click()");
     await extra(`frame=1280&theme=${theme}&domain=color&sub=fills`, `v6-${theme}-1280-fills-picker.png`, "document.getElementById('fl-brand').click(); setTimeout(() => scrollWithin(document.getElementById('fl-brand'), 'start'), 50)");
     await extra(`frame=1280&theme=${theme}&domain=color&sub=fills`, `v6-${theme}-1280-gradients.png`, "scrollWithin(document.getElementById('lv-gradients'), 'start'); const c = [...document.querySelectorAll('#pvb .card')].pop(); scrollWithin(c, 'start')");
-    await extra(`frame=1280&theme=${theme}&domain=color&sub=palettes&roles=1`, `v6-${theme}-1280-roles-picker.png`, "document.getElementById('rc-text-secondary-light')?.click()");
+    await extra(`frame=1280&theme=${theme}&domain=color&sub=fills&roles=1`, `v6-${theme}-1280-roles-picker.png`, "document.getElementById('rc-text-secondary-light')?.click()");
     await extra(`frame=1280&theme=${theme}&domain=color&sub=interactive`, `v6-${theme}-1280-interactive-links.png`, "const c = document.querySelectorAll('#pvb .card')[1]; scrollWithin(c, 'start')");
     await extra(`frame=1280&theme=${theme}&domain=depth`, `v6-${theme}-1280-depth-motion.png`, "scrollWithin(document.getElementById('dv-motion'), 'start')");
   }
@@ -573,7 +590,7 @@ console.log(`Controls and indicators by kind, all states: ${Object.entries(kindT
 console.log(`Smallest target: ${Math.round(Math.min(...results.map((r) => r.hitMin)))}px.`);
 console.log(`Fonts drawn (CDP, embedded): ${[...fontsSeen].join('; ') || 'none'}.`);
 console.log(`V1: ${homeChecks} pages each on their one home, ${scrollChecks} scroll checks, ${focusChecks} section focus checks, a lever change and Inspect checked; the header offers no view select.`);
-console.log(`V12: no page offers Keep this view. V2: ${rolesChecks} Roles toggles checked (families, pinned header and role column, hatched derived columns, editable light cells, the step picker, back to the home view).`);
+console.log(`V12: no page offers Keep this view. V2: Palettes offers no Roles toggle; ${rolesChecks} Roles toggles checked (families, pinned header and role column, hatched derived columns, editable light cells, the step picker, back to the home view).`);
 console.log(`IA-2: light ${layers.light?.preview} / ${layers.light?.levers} / ${layers.light?.bar}; dark ${layers.dark?.preview} / ${layers.dark?.levers} / ${layers.dark?.bar} (preview / levers / top bar).`);
 console.log('IA-3: the Agent chip reads Off, opens the switch, reads On; the drawer holds no switch; the agent scenario reads On; the chip is in the 380 top row.');
 console.log(`F2: open on start, collapse ${COLLAPSE_MS}ms after a success, stay open on failure and warning, agent, button, 380 strip and sheet checked.`);
@@ -582,7 +599,7 @@ console.log(`Coverage (rendered): ${mKeys.length - covMissing.length} of ${mKeys
 console.log(`Network requests: ${requests.length}${requests.length ? ' — ' + requests.slice(0, 3).join(', ') : ''}. Page errors: ${pageErrors.length}${pageErrors.length ? ' — ' + pageErrors.slice(0, 2).join(' | ') : ''}.`);
 if (requests.length) failed('network', 'the page made network requests');
 if (pageErrors.length) failed('page error', pageErrors[0]);
-const detail = (x) => (/^(font|shadow|focus ring \(none|unmarked|unknown|measured only)/.test(x.kind) ? '' : x.kind.startsWith('weight') ? ` ${x.r} > ${x.floor}` : ` ${(x.r || 0).toFixed(2)} < ${x.floor}`);
+const detail = (x) => (/^(font|shadow|focus ring \(none|unmarked|unknown|measured only|Inspect row)/.test(x.kind) ? '' : x.kind.startsWith('weight') ? ` ${x.r} > ${x.floor}` : ` ${(x.r || 0).toFixed(2)} < ${x.floor}`);
 let n = fails.length;
 for (const r of results) for (const x of r.fails) { console.log(`  ✗ ${r.theme} ${r.w} ${r.st}: ${x.kind} ${x.what}${detail(x)}`); n++; }
 for (const x of fails) console.log(`  ✗ ${x}`);

@@ -15,9 +15,10 @@
 //      exactly one home view from `views`; a tab with sub-pages declares none of its own; a section
 //      declares none. A home that is an Inspect view, a view that is no page's home, and a duplicate
 //      key anywhere in the HOMES text (JSON.parse keeps the last of two keys silently) all fail.
-//   3. ROLES (V2). Every color role the default theme emits (oracle: packages/engine/out/
+//   3. ROLES (V2, v6 review #3). Every color role the default theme emits (oracle: packages/engine/out/
 //      prism3.tokens.json, not the page) belongs to exactly one Color sub-page's Roles matrix, by the
-//      longest `roles` prefix that matches it; no prefix is declared twice.
+//      longest `roles` prefix that matches it; no prefix is declared twice. Surfaces & fills and
+//      Interactive carry a matrix; Palettes must not (literals ROLES_PAGES and NO_ROLES).
 //   4. CHROME CSS (F3, T1-T6). `<style id="chrome-css">`, or any inline `style=""` in the source (after
 //      runtime `${…}` values are taken out), carries a raw hex, color function, length or duration, or
 //      any shadow; or an SVG in the source paints with a raw hex.
@@ -147,9 +148,15 @@ for (const [v, where] of homeCount) console.log(`  ${v.padEnd(12)} ${where.join(
 const tokensDoc = JSON.parse(readFileSync(join(engine, 'out', 'prism3.tokens.json'), 'utf8'));
 const emittedRoles = [...leaves(tokensDoc.pds3.color)].map(([path]) => path.join('.'));
 const colorTab = homes.domains.find((d) => d.id === 'color');
+// Which Color sub-pages carry a Roles toggle: a literal from the v6 review (#3). Palettes are primitives,
+// so Palettes has none; text and icon belong to Surfaces & fills.
+const ROLES_PAGES = ['fills', 'interactive'], NO_ROLES = ['palettes'];
+for (const id of [...ROLES_PAGES, ...NO_ROLES]) if (!(colorTab?.subpages || []).some((sp) => sp.id === id)) errors.push(`Color has no sub-page ${id}, which the v6 review names`);
 const prefixOwner = new Map();
 for (const sp of colorTab?.subpages || []) {
-  if (!Array.isArray(sp.roles) || !sp.roles.length) { errors.push(`Color sub-page with no Roles families: ${sp.label}`); continue; }
+  const has = Array.isArray(sp.roles) && sp.roles.length > 0;
+  if (NO_ROLES.includes(sp.id)) { if (has || 'roles' in sp) errors.push(`Color sub-page that must have no Roles toggle declares roles: ${sp.label} → ${JSON.stringify(sp.roles)} (v6 review: palettes are primitives)`); continue; }
+  if (!has) { errors.push(`Color sub-page with no Roles families: ${sp.label}`); continue; }
   for (const pre of sp.roles) {
     if (prefixOwner.has(pre)) errors.push(`Roles prefix declared twice: ${pre} (${prefixOwner.get(pre)} and ${sp.label})`);
     else prefixOwner.set(pre, sp.label);

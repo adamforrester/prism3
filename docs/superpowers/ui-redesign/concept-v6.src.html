@@ -567,7 +567,9 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 
 /* ── Preview pane ──────────────────────────────────────────────────────────────────────── */
 .pvh { flex: none; background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.pvh-r1 { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h); padding: 0 var(--t-cv-pad); flex-wrap: wrap; }
+.pvh-r1 { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h); padding: 0 var(--t-cv-pad); flex-wrap: nowrap; }
+/* v6 review: Inspect stays on the title row. The row never wraps; the Roles subtitle gives way first. */
+.pvh-r1 > .pvtabs, .pvh-r1 > .pvtitle, .pvh-r1 > .popwrap { flex: none; }
 .pvh-r2 { display: flex; align-items: center; gap: var(--p3-space-100); padding: 0 var(--t-cv-pad) var(--p3-space-150); flex-wrap: wrap; }
 .pvh .modesel { display: none; }
 .pvh .why { font-size: var(--p3-fs-12); color: var(--p3-text-2); }
@@ -936,7 +938,10 @@ pre.sample { background: var(--p3-fill-1); padding: var(--p3-space-150) var(--p3
 .pvtabs { display: flex; gap: var(--p3-space-300); align-self: stretch; }
 .pvtabs .tab { min-height: var(--p3-bar-h); font-size: var(--p3-fs-20); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); }
 .pvtabs .tab[aria-selected="false"] { font-weight: var(--p3-fw-default); }
-.pvsub { font-size: var(--p3-fs-12); color: var(--p3-text-2); }
+.pvsub { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--p3-fs-12); color: var(--p3-text-2); }
+.app[data-w="narrow"] .pvtabs { gap: var(--p3-space-200); }
+.app[data-w="narrow"] .pvtabs .tab, .app[data-w="narrow"] .pvtitle h2 { font-size: var(--p3-fs-16); }
+.app[data-w="narrow"] .pvh-r1 > .popwrap .btn { padding: 0 var(--p3-space-100); }
 .app[data-w="narrow"] .pvsub { display: none; }
 .sec-h .hrow { display: flex; align-items: center; gap: var(--p3-space-050); }
 
@@ -1132,7 +1137,7 @@ pre.sample { background: var(--p3-fill-1); padding: var(--p3-space-150) var(--p3
   {"title":"Personality","desc":"Each word fills settings you have not set yet. Settings you set win.","rows":[{"ctl":"personality","schemaOnly":["personality"]}]},
   {"title":"Modes","rows":[{"ctl":"modes","schemaOnly":["modes","customModes"]}]}]},
  {"id":"color","label":"Color","subpages":[
-  {"id":"palettes","label":"Palettes","home":"palettes","roles":["text","icon"],"intro":"The ramps every color role draws from. Your colors are pinned as anchors, never shifted.","sections":[
+  {"id":"palettes","label":"Palettes","home":"palettes","intro":"The ramps every color role draws from. Your colors are pinned as anchors, never shifted.","sections":[
    {"title":"Primary","rows":[{"ctl":"primary","keys":["primary"]}]},
    {"title":"Brand colors","desc":"Each color grows into its own 20-step ramp.","rows":[{"ctl":"brandColors","keys":["brandColors"]}]},
    {"title":"Neutrals","rows":[{"ctl":"neutral","keys":["neutral.hue","neutral.chroma"]}]},
@@ -1142,7 +1147,7 @@ pre.sample { background: var(--p3-fill-1); padding: var(--p3-space-150) var(--p3
     {"ctl":"status","keys":["status.warning"]},
     {"ctl":"status","keys":["status.danger"]},
     {"ctl":"status","keys":["status.info"]}]}]},
-  {"id":"fills","label":"Surfaces & fills","home":"surfaces","roles":["background","foreground","border","scrim","veil","inverse"],"intro":"The page and its tiers, the inverse band, the bold fills and the gradients.","sections":[
+  {"id":"fills","label":"Surfaces & fills","home":"surfaces","roles":["text","icon","background","foreground","border","scrim","veil","inverse"],"intro":"The page and its tiers, the inverse band, the bold fills and the gradients.","sections":[
    {"title":"Surfaces","desc":"Set for light; dark and the derived modes follow unless set per mode.","rows":[{"ctl":"surfaces","keys":["surfaces"],"drive":"surface"}]},
    {"title":"Foreground fills","desc":"Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.","rows":[{"ctl":"fills","schemaOnly":["overrides"]}]},
    {"title":"Gradients","rows":[{"ctl":"gradients","keys":["gradients"]}]}]},
@@ -2294,7 +2299,7 @@ function renderPvh() {
   const title = p.roles
     ? `<div class="pvtabs" role="tablist" aria-label="${esc(p.name)} preview">${[['0', VIEW_LABEL[p.home]], ['1', 'Roles']].map(([on, l]) => { const sel = (on === '1') === !!S.roles; return `<button type="button" role="tab" class="tab" id="pvt-${on === '1' ? 'roles' : 'home'}" aria-selected="${sel}" aria-controls="pvb" tabindex="${sel ? 0 : -1}" data-act="roles" data-on="${on}">${esc(l)}</button>`; }).join('')}</div>${S.roles ? `<span class="pvsub" id="pv-sub">${esc(fams.length > 3 ? `${fams.length} families, from ${fams[0]} to ${fams[fams.length - 1]}` : fams.join(', '))} · every mode</span>` : ''}`
     : `<div class="pvtitle"><h2 id="pv-title">${esc(VIEW_LABEL[S.view])}</h2></div>`;
-  if (S.narrow) { $('#pvh').innerHTML = `<div class="pvh-r1">${title}</div><div class="pvh-r2">${sel}<span class="grow"></span>${insp}</div>`; return; }
+  if (S.narrow) { $('#pvh').innerHTML = `<div class="pvh-r1">${title}<span class="grow"></span>${insp}</div><div class="pvh-r2">${sel}</div>`; return; }
   $('#pvh').innerHTML = `<div class="pvh-r1">${title}<span class="grow"></span>${insp}</div>
     <div class="pvh-r2">${seg}${sel}
     <button type="button" class="btn sm" id="pv-cmp" aria-pressed="${cmpOn}" data-act="compare"${why ? ' disabled aria-describedby="cmp-why"' : ''}>Compare</button>
@@ -3080,7 +3085,7 @@ function gotoKey(domain, key) {
 /** V2: a role opens in its Color sub-page's Roles matrix, with the step picker on its cell. */
 function gotoRole(role, mode) {
   const m = isDerived(mode) ? follows(mode) : mode;
-  const sub = subOfRole(role) || 'palettes';
+  const sub = subOfRole(role) || 'fills';
   goPage('color', sub);
   const fam = roleFamilies(sub).find((f) => f.roles.includes(role)); if (fam) S.famOpen[fam.fam] = true;
   S.roles = true; S.roleSel = { role, mode: m, where: 'matrix' }; S.listMode = m;
