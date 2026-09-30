@@ -43,6 +43,7 @@ import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
 import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
+import { describeControl, paletteRefOptions, leverHook, type ControlOption } from './levers/controls';
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin, type SeedOutcome,
@@ -553,12 +554,41 @@ const removeButton = (onClick: () => void, title = 'Remove', cls = ''): HTMLButt
 const knobBody = (...kids: Node[]): HTMLElement => { const r = el('div', 'knob-body'); r.append(...kids); return r; };
 /** The knob scaffold: `label.knob-label`, the control body (one node or several), then `p.knob-desc`.
  *  Every control — generic or bespoke — shares this shape. */
-const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => {
+const knob = (label: string | null, body: Node | Node[], desc: string): HTMLElement => {
   const wrap = el('div', 'knob');
-  wrap.append(el('label', 'knob-label', label));
+  // A chip group names itself with its own `<legend>` (#1675), so it takes no `label` beside it.
+  if (label !== null) wrap.append(el('label', 'knob-label', label));
   wrap.append(...(Array.isArray(body) ? body : [body]));
   wrap.append(hook(el('p', 'knob-desc', desc), 'control-description'));
   return wrap;
+};
+/** Segmented chips for a 2-4-option enum lever (#1675): a native radio group, so arrow keys, focus
+ *  and the screen-reader announcement come from the platform. The `<legend>` is the lever label and
+ *  the chips are the radios' labels. The selected chip is filled AND carries a check mark and a
+ *  heavier weight, so the state does not rest on color alone.
+ *
+ *  `checked` is set as a PROPERTY, never as the attribute, the same way `optionEl` sets `selected`.
+ *  That keeps a freshly built group's `outerHTML` identical to the live one, so the region reconcile
+ *  (#771) keeps the live group when nothing else changed. When something else in the region changed, the
+ *  region is swapped, and `renderWorkspace` focuses the same chip in the new group.
+ *
+ *  The radio `name` is the lever key, not a counter, for the same reason: a counter would make every
+ *  rebuilt group differ from the live one. One lever renders at most once per page. */
+const chipGroup = (key: string, legend: string, options: readonly ControlOption[], cur: unknown, onPick: (value: string | number) => void): HTMLFieldSetElement => {
+  const fs = hook(el('fieldset', 'chips') as HTMLFieldSetElement, leverHook(key));
+  fs.append(el('legend', 'chips-legend', legend));
+  const row = el('div', 'chips-row');
+  for (const o of options) {
+    const opt = el('label', 'chips-opt');
+    const input = el('input', 'chips-in') as HTMLInputElement;
+    input.type = 'radio'; input.name = `lever:${key}`; input.value = String(o.value);
+    input.checked = String(o.value) === String(cur);
+    input.onchange = () => { if (input.checked) onPick(o.value); };
+    opt.append(input, el('span', 'chips-face', o.label));
+    row.append(opt);
+  }
+  fs.append(row);
+  return fs;
 };
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
@@ -1141,9 +1171,16 @@ const renderPrimitives = (host: PageHost): void => {
  *  guard that is not written. */
 const renderControl = (lever: Lever, commit: () => void = apply): HTMLElement => {
   const live = LIVE_CONTROLS.has(lever.control);
+  // Which control this lever gets is the descriptor's call (`levers/controls.ts`, #1675), not this
+  // function's. A 2-4-option enum is chips; the rest keep the controls they had.
+  const d = describeControl(lever);
   let body: HTMLElement;
 
-  if (lever.control === 'slider') {
+  if (d.kind === 'chips') {
+    // The same write and the same commit the select made; only the control differs.
+    const cur = getPath(brandState, lever.key) ?? lever.default;
+    return knob(null, chipGroup(lever.key, lever.label, d.options, cur, (v) => { setPath(brandState, lever.key, v); commit(); }), lever.description);
+  } else if (lever.control === 'slider') {
     const input = rangeInput({ min: lever.min, max: lever.max, step: lever.step, value: (getPath(brandState, lever.key) ?? lever.default ?? lever.min ?? 0) as number });
     input.disabled = !live;
     const val = el('span', 'knob-val', `${input.value}${lever.unit ?? ''}`);
@@ -1151,7 +1188,7 @@ const renderControl = (lever: Lever, commit: () => void = apply): HTMLElement =>
     body = knobBody(input, val);
   } else if (lever.control === 'palette-ref' && live) {
     const sel = selectEl('sm');
-    const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+    const palettes = paletteRefOptions(lever.key, (brandState.brandColors ?? []).map((b) => b.name));
     const cur = String(getPath(brandState, lever.key) ?? lever.default ?? 'primary');
     for (const p of palettes) sel.append(optionEl(p, p, p === cur));
     sel.onchange = () => { setPath(brandState, lever.key, sel.value); commit(); };
@@ -1206,6 +1243,12 @@ const renderPerModeTempo = (lever: Lever): HTMLElement =>
   renderPerModeSelect(lever, 'tempo', TEMPO_OPTS, () => String(brandState.motionPersonality?.tempo ?? (lever.default as string) ?? 'standard'), (s) => s, 'tempo');
 const renderPerModeDensity = (lever: Lever): HTMLElement => hook(
   renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density'), 'per-mode-density');
+/** The levers that carry a per-mode "Auto" select outside the base mode, by lever key. */
+const PER_MODE_SELECTS: Record<string, (lever: Lever) => HTMLElement> = {
+  radiusScale: renderPerModeRadius,
+  density: renderPerModeDensity,
+  'motionPersonality.tempo': renderPerModeTempo,
+};
 
 /** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
  *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
@@ -2509,7 +2552,11 @@ const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?:
   if (!o.lead) main.append(hook(swatch(o.swatchBg ?? '#000000', 'asw'), 'role-swatch'));
   const mid = hook(el('div', 'amid'), 'role-body');
   if (o.label) mid.append(el('div', 'alabel', o.label));
-  const ctl = hook(el('div', 'sf-ctlblock'), 'role-source'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
+  const ctl = hook(el('div', 'sf-ctlblock'), 'role-source');
+  // A chip group (#1675) names itself with its `<legend>`, the lever label, which takes the place of
+  // the small caption a select is given here. Both would name one control twice.
+  if (!(o.select instanceof HTMLFieldSetElement)) ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'));
+  ctl.append(o.select); mid.append(ctl);
   if (o.pill) mid.append(tokenPill(o.pill));
   if (o.desc) mid.append(el('p', 'adesc', o.desc));
   if (o.warn) mid.append(el('p', 'fz-warn', o.warn));
@@ -2895,12 +2942,15 @@ const renderLinksSection = (): HTMLElement | null => {
 };
 
 // ---- lead controls + global behaviors ------------------------------------
-/** An enum lever as a `.cap` select that writes the input + rebuilds (a lever change re-derives roles the
- *  matrix reads, so applyFull, not apply). */
-const iEnumSelect = (key: string): HTMLSelectElement => {
+/** An enum lever as the lead control of a matrix section: chips or a `.cap` select, whichever the
+ *  descriptor says (#1675). It writes the input and rebuilds (a lever change re-derives roles the
+ *  matrix reads, so applyFull, not apply). `cur` defaults to the working input's value; the Neutral
+ *  lead passes the last good one, which is what it has always shown. */
+const iEnumControl = (key: string, cur: unknown = getPath(brandState, key) ?? leverByKey(key)!.default): HTMLElement => {
   const lever = leverByKey(key)!;
+  const d = describeControl(lever);
+  if (d.kind === 'chips') return chipGroup(key, lever.label, d.options, cur, (v) => { setPath(brandState, key, v); applyFull(); });
   const sel = selectEl('cap');
-  const cur = getPath(brandState, key) ?? lever.default;
   for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
   sel.onchange = () => { setPath(brandState, key, sel.value); applyFull(); };
   return sel;
@@ -2909,7 +2959,7 @@ const iEnumSelect = (key: string): HTMLSelectElement => {
 /** The Primary section's lead: the Action-palette choice (which palette drives primary actions). */
 const actionPaletteLead = (): HTMLElement => {
   const sel = selectEl('cap');
-  const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const palettes = paletteRefOptions('actionPalette', (brandState.brandColors ?? []).map((b) => b.name));
   const cur = String(brandState.actionPalette ?? 'primary');
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
   sel.onchange = () => { setPath(brandState, 'actionPalette', sel.value); applyFull(); };
@@ -2925,7 +2975,7 @@ const actionPaletteLead = (): HTMLElement => {
  *  picker shows the resolved palette (`theme.linkPalette`); selecting one decouples links onto it. */
 const linkPaletteLead = (): HTMLElement => {
   const sel = selectEl('cap');
-  const palettes = ['primary', 'neutral', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const palettes = paletteRefOptions('linkPalette', (brandState.brandColors ?? []).map((b) => b.name));
   const cur = String(theme.linkPalette);
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
   sel.onchange = () => { setPath(brandState, 'linkPalette', sel.value); applyFull(); };
@@ -2937,12 +2987,8 @@ const linkPaletteLead = (): HTMLElement => {
 
 /** The Neutral section's lead: the emphasis choice (subtle grey surface vs bold near-black/white fill). */
 const neutralEmphasisLead = (): HTMLElement => {
-  const sel = selectEl('cap');
-  const cur = lastGoodInput.neutralEmphasis ?? 'subtle';
-  for (const [ne, label] of NEUTRAL_EMPHASES) sel.append(optionEl(ne, capWord(label), ne === cur));
-  sel.onchange = () => { setPath(brandState, 'neutralEmphasis', sel.value); applyFull(); };
   const roles = iRoles();
-  return iRow({ lead: true, label: 'Button emphasis', srcLabel: 'Emphasis', select: sel,
+  return iRow({ lead: true, label: 'Button emphasis', srcLabel: 'Emphasis', select: iEnumControl('neutralEmphasis', lastGoodInput.neutralEmphasis ?? 'subtle'),
     desc: 'A neutral / secondary button as a subtle light-gray surface, or a bold near-black/white fill. Shared across modes.',
     example: iExample(exBtn(roles['interactive.neutral.fill.rest']?.hex ?? '#eeeeee', roles['interactive.neutral.on-fill']?.hex ?? '#111111')) });
 };
@@ -2994,7 +3040,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     : outlineFillFamily(theme.outlineInteraction).opaque
       ? ohRes.hex              // opaque — no method is since #1614, but an opaque one paints its own hex
       : rgbaOf(ohRes);
-  oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
+  oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumControl('outlineInteraction'),
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent', false, undefined, undefined, { ink: ohInk })],
                    ['Hover', exOutline(ohEdge, ohWash, false, undefined, undefined, { ink: ohInk })]) }));
   host.append(oh);
@@ -3026,7 +3072,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
       ['On page', exTextOnPage(r['disabled.text']?.hex ?? '#9a9aa6', 'Save'), iBadge(r['disabled.text'])]);
   };
   let dsEx = dsExample();
-  ds.append(iRow({ lead: true, srcLabel: 'Contrast', select: iEnumSelect('disabledStrategy'),
+  ds.append(iRow({ lead: true, srcLabel: 'Contrast', select: iEnumControl('disabledStrategy'),
     desc: 'Full guarantees AA text (4.5:1); Reduced dims to a floor you set, no lower than 3:1.',
     // The affordance caveat, surfaced where the choice is made rather than left to be discovered:
     // at 4.5:1 the label is as legible as body copy, so "disabled" reads from fill/border/cursor.
@@ -3063,7 +3109,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
 
   const ic = palSection('Icon colors', 'Should icons match your text color, or take a distinct (lighter) color? The example shows both.');
   const txt = roles['text.primary']?.hex ?? '#191920', lighter = roles['text.tertiary']?.hex ?? '#9a9aa6';
-  ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iEnumSelect('iconContrast'),
+  ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iEnumControl('iconContrast'),
     desc: 'Match text keeps icons at full text legibility; Distinct lets them sit lighter (WCAG non-text 3:1).',
     example: twoUp(['Match text', exIconLabel(txt, txt)], ['Distinct', exIconLabel(lighter, txt)]) }));
   host.append(ic);
@@ -4195,9 +4241,10 @@ const leverControl = (key: string, perMode: boolean, commit?: () => void): HTMLE
   // The three per-mode variants already commit through `applyFull` (see `renderPerModeSelect`), which
   // is why #800 was never visible outside Light: there, changing the tempo re-renders the page and the
   // Duration ramp comes back current. Only the global control had it.
-  if (key === 'radiusScale' && perMode) return renderPerModeRadius(l);
-  if (key === 'density' && perMode) return renderPerModeDensity(l);
-  if (key === 'motionPersonality.tempo' && perMode) return renderPerModeTempo(l);
+  // Outside the base mode these three add an "Auto — follows global" entry. A choice set with an Auto
+  // entry stays a select (#1675), so they keep the per-mode selects; chips are the base mode's control.
+  const perModeSelect = perMode ? PER_MODE_SELECTS[key] : undefined;
+  if (perModeSelect) return perModeSelect(l);
   return renderControl(l, commit);
 };
 /** A `.psec` concept section built from a set of lever keys (doc 26). Returns null when none of its
@@ -7674,9 +7721,6 @@ const renderMotionSpecimen = (): HTMLElement => {
 // icon-contrast payoff is the "Icon colors" global section's match-vs-distinct example — no separate
 // preview needed.
 
-/** The neutral-emphasis option labels — subtle (a light-grey surface) vs strong (a bold near-black/white
- *  fill). Drives the Neutral section's "Button emphasis" lead in the interactive matrix. */
-const NEUTRAL_EMPHASES: Array<['subtle' | 'strong', string]> = [['subtle', 'subtle · light gray'], ['strong', 'strong · bold fill']];
 
 // ---- Gradient editor (docs/23 §2 "Gradients") -----------------------------
 // The gradient axis was on/off only; this edits the DEFINITION — kind (linear/radial), angle or
@@ -8443,7 +8487,19 @@ function renderWorkspace(): void {
   // second surface. Their POSITION is still stated here and only here, which is #772's own reason for
   // leaving placement out of the declaration: this is the only code that knows where the hero ended up.
   regions.splice(barAt, 0, ...workspace.querySelectorAll<HTMLElement>(':scope > [data-chrome]'));
+  // A chip group's arrow keys commit on every press, and a commit that changes anything else in the
+  // region (an example, a warning line) swaps the region, taking the focused radio with it. Focus would
+  // fall to <body> and the second arrow press would do nothing. So the focused radio is found again by
+  // its group name and value in the swapped-in region, and focused there.
+  const focusedRadio = document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'radio'
+    && workspace.contains(document.activeElement) ? document.activeElement : null;
+  const radioName = focusedRadio?.name, radioValue = focusedRadio?.value;
   reconcileRegions(workspace, regions);
+  if (focusedRadio && !focusedRadio.isConnected && radioName) {
+    const again = [...workspace.querySelectorAll<HTMLInputElement>('input[type="radio"]')]
+      .find((r) => r.name === radioName && r.value === radioValue);
+    again?.focus({ preventScroll: true });
+  }
   // Every declared surface refreshed ONCE, after the regions have landed — the placement half of the
   // mode strip's `syncLast` (see `applyFull`). The workspace is in the document by now, so every
   // surface's paint is honest: `syncErrorBar` judges itself by `isConnected` (#772), and syncing before
