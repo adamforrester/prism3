@@ -53,7 +53,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -190,6 +190,15 @@ if (!import.meta.url.endsWith('?cov')) {
 
 let pass = 0; const fails: string[] = [];
 const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(msg); };
+// A THROW NOTHING CAUGHT STILL NAMES WHAT FAILED BEFORE IT (#1814 review). Without this, an arm that records
+// a failure and a later line that throws print only the stack: the review's mutation that let the chunk
+// packer empty a chunk failed `#1814 settleChunks` by name, then crashed the first `planSetChunks` call
+// with a TypeError, and the name never reached the output. Exits 1, as the crash did.
+process.on('uncaughtException', (err) => {
+  console.log(`\nPrism3 engine tests: THREW after ${pass} passed, ${fails.length} failed — ${err.stack ?? err.message}`);
+  for (const f of fails) console.log(`  ❌ ${f}`);
+  process.exit(1);
+});
 const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 
 // ---- #1836 AN EXAMPLE BRAND THE ENGINE REFUSES FAILS BY NAME, AND THE SUITE CARRIES ON ------------
@@ -15554,6 +15563,27 @@ arm: {
     // the strokeWeight gate above records, hit again by the gate written to remember it.
     ok((setJs.match(/figma\.combineAsVariants\(/g) || []).length === 1, 'anatomy/set: one combineAsVariants call — the set is atomic from the caller\'s point of view');
 
+    // ── #1814: THE RE-MEASURE LOOP, ON A MADE-UP PACKING ─────────────────────────────────────────
+    // `settleChunks` is the loop `planSetChunks` ends with. A real set only ever needs a move off its LAST
+    // chunk (the packer's estimate runs a byte over each chunk), so the middle-chunk branch is driven here with
+    // items of made-up weight: a chunk ships 10 + the digits of the total + its weights, + 5 when last.
+    // Budget 100. Worked by hand: [a40 b40] 91, [c50 d45] 106 → over, so d moves to the FRONT of the next
+    // chunk: [c] 61, [d45 e10] 66. [f120] ships 136, over, and stays: one item cannot be split. Placed before
+    // the suite's first `planSetChunks` call, so a mutation that breaks the loop is named here even if a
+    // later call throws.
+    {
+      type Item = { id: string; w: number };
+      const it = (id: string, w: number): Item => ({ id, w });
+      const ship = (slice: Item[], _i: number, total: number, last: boolean) =>
+        ({ ids: slice.map((x) => x.id).join(''), bytes: 10 + String(total).length + slice.reduce((n, x) => n + x.w, 0) + (last ? 5 : 0) });
+      let settled = '';
+      try {
+        settled = JSON.stringify(settleChunks([[it('a', 40), it('b', 40)], [it('c', 50), it('d', 45)], [it('e', 10)], [it('f', 120)]], 100, ship));
+      } catch (e) { settled = `threw: ${(e as Error).message}`; }
+      ok(settled === JSON.stringify([{ ids: 'ab', bytes: 91 }, { ids: 'c', bytes: 61 }, { ids: 'de', bytes: 66 }, { ids: 'f', bytes: 136 }]),
+        `#1814 settleChunks: a middle chunk over budget passes its last item to the FRONT of the next chunk, order a..f is kept, no chunk is empty, and a one-item chunk over budget stays (${settled})`);
+    }
+
     // ── COMMENTS ARE STRIPPED ON THE WAY OUT, and stay in the source ─────────────────────────────
     // Two halves, and BOTH are the assertion. That the payload carries no comments is only half the
     // claim — a strip pass that had accidentally been applied to the SOURCE strings, or a payload
@@ -18132,6 +18162,36 @@ arm: {
         await applyComponentPlan(probe, makeFigmaStub({ ...probeOpts, page: plugPage }) as any);
         ok(geometry(page) === geometry(whole.pg) && geometry(page) === geometry(plugPage),
           `#1798: the split probe grid lays out exactly as the unsplit paste and the plugin do — split ${JSON.parse(geometry(page))[0]}, unsplit ${JSON.parse(geometry(whole.pg))[0]}, plugin ${JSON.parse(geometry(plugPage))[0]}`);
+        // #1814 — A LATER CHUNK PASTED FIRST IS REFUSED, NOT COMBINED. Chunk 2 of the split grid onto an empty page:
+        // no set to append into, so the payload returns `set: null` with the one literal miss, and the page stays
+        // empty. Without the guard it would combine its own slice into a second, partial set.
+        const earlyPage: { children: Record<string, unknown>[] } = { children: [] };
+        const early = await runPayload(split[1].js, { ...probeOpts, page: earlyPage });
+        ok(early.set === null && early.added === 0 && earlyPage.children.length === 0
+          && JSON.stringify(early.misses) === JSON.stringify([`set -> button NOT FOUND on this page (chunk 2 of ${split.length} appends into the set chunk 1 creates — paste the chunks in order)`]),
+          `#1814 chunk 2 pasted before chunk 1 is refused with the literal miss and builds nothing on the page (set=${String(early.set)}, added=${early.added}, ${earlyPage.children.length} top-level; ${JSON.stringify(early.misses)})`);
+      }
+
+      // ---- #1814: THE PACKER RE-MEASURES WHAT IT SHIPS ----------------------------------------------------
+      // The textarea set packed at 124 budgets, 30,000 to 42,000 in 97-byte steps. At 14 of them the last chunk,
+      // which carries the properties, measures over the budget it was packed to, so a variant has to move. Judged
+      // on the SHIPPED payloads against the budget the test passed in: `js.length`, never the packer's `bytes`.
+      {
+        const taPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'textarea')!, { swapTarget: 'FPO-default-icon' });
+        const taNames = JSON.stringify(taPlans.map(planComponentName));
+        const over: string[] = [];
+        const lost: number[] = [];
+        let budgets = 0;
+        for (let b = 30_000; b <= 42_000; b += 97) {
+          budgets++;
+          const cs = planSetChunks(taPlans, b);
+          for (const c of cs) if (c.variants.length > 1 && c.js.length > b) over.push(`${b}: chunk ${c.index + 1} of ${cs.length}, ${c.variants.length} variants, ${c.js.length} B`);
+          if (JSON.stringify(cs.flatMap((c) => c.variants)) !== taNames) lost.push(b);
+        }
+        ok(budgets === 124 && taPlans.length === 24 && over.length === 0,
+          `#1814 at every one of 124 budgets, no shipped chunk of more than one variant is over the budget (${taPlans.length} variants; ${over.length} over${over.length ? `: ${over.slice(0, 3).join('; ')}` : ''})`);
+        ok(lost.length === 0,
+          `#1814 ...and every budget ships all 24 variants once, in plan order (${lost.length ? `not at ${lost.slice(0, 5).join(', ')}` : 'all 124'})`);
       }
 
       // ---- #1809: THE CHUNKED PASTE REFUSES A SET WHOSE AXES CHANGED, AND PLACES A NEW SET BESIDE THE PAGE'S CONTENT ----
