@@ -71,6 +71,45 @@ Note: `buildTree` (the DTCG generator) lives in the **pure** `tree.ts` (no `node
 Node ≥ 20. No `npm install` needed — the color math is self-contained
 (`color.ts`), so the engine runs without a network.
 
+## Connect an agent (MCP)
+
+The engine ships an MCP server, `mcp.ts`. It speaks MCP over stdio, supports protocol versions
+`2026-07-28` and `2024-11-05`, and has no dependencies. You need Node 20 or later and a clone of
+this repo. There is no `npm install`; `npx` fetches `tsx` on first run.
+
+Register it with Claude Code, using the absolute path to your clone:
+
+```bash
+claude mcp add prism3 -- npx tsx /path/to/prism3/packages/engine/mcp.ts
+```
+
+Other stdio clients take the same command. For example, in a `mcpServers` config:
+
+```json
+{ "mcpServers": { "prism3": { "command": "npx", "args": ["tsx", "/path/to/prism3/packages/engine/mcp.ts"] } } }
+```
+
+To check it by hand, run `npx tsx packages/engine/mcp.ts`. It prints a ready line on stderr naming
+the six tools, then waits for JSON-RPC on stdin.
+
+| Tool | What it does |
+|---|---|
+| `list_levers` | Lists what a brand input can set, with labels, types, options and defaults. Call it first. |
+| `validate_brand` | Checks a brand input against the schema without generating anything. |
+| `theme_brand` | Generates a token system from a brand input and verifies it. By default it returns the contrast results and the decisions log; ask for `tokens` or `aiMetadata` with `include`. |
+| `theme_from_brief` | Does the same from a design.md brief (YAML frontmatter plus prose), and reports the brand input it derived. |
+| `score_consumption` | Scores generated output against a brand's tokens: invented tokens, primitive leaks, and contrast for the pairs you give it. |
+| `export_theme` | Writes `tokens.json`, `ai-metadata.json` and a `figma/` folder, and returns a list of what it wrote. |
+
+`export_theme` writes relative to the directory the client starts the server in; in Claude Code
+that is your project. It refuses absolute paths and `..`. Use it instead of
+`theme_brand` with `include: ["tokens"]` when you want the files: a four-mode token tree runs to
+about 890,000 characters.
+
+What it doesn't do:
+- It doesn't write to Figma. That goes through the Figma plugin's agent link (`apps/plugin/README.md`).
+- It has no hosted endpoint yet, so a client that can only reach a URL can't connect (#1859).
+
 ## Files
 
 - `color.ts` — sRGB ↔ OKLCH, sRGB → CIELAB, CIEDE2000, WCAG contrast + dual-side window, gamut-aware max chroma. No deps.
