@@ -16,7 +16,7 @@
 **The fix: check 5.** Every backticked word that is entirely `[A-Z0-9_]` is read as a claim that an identifier by that name is declared. The index comes from the source, not from the skills: every `const`/`let`/`var`/`function`/`class`/`enum`/`type`/`interface` declaration in the `.ts` files under `packages/`, `apps/` and `tools/` and at the repo root, skipping `node_modules`, `dist` and `out`. **Where** the name must be declared depends on what the skill says:
 - "`X` in `path.ts`" (or in a `lint-*` gate), even across a line break, means that file.
 - A table row whose first cell names a `*.ts` path or a `lint-*` gate means that file, for every name in the row. This is why a location is needed at all: `MUST_COVER` is declared in six gates, so "declared somewhere" would pass a rename of the one the `lint-rung-names` row means.
-- Otherwise, any source file.
+- Otherwise, exactly one source file (an unplaced name declared in several fails as ambiguous; see the review round).
 
 A `lint-*` gate that resolves to no source file, or to more than one, is a finding. It does not fall back to "anywhere".
 
@@ -44,6 +44,23 @@ Gate side, each failing the self-check by name:
 | M11 the admission is not consulted | `an admitted NOT_DECLARED word is now flagged` |
 
 **Trap for whoever re-verifies.** The first M8 (`if (!file && !where)`) survived, and that was the mutation's fault, not the gate's. With `file` undefined, the `else if (!where?.has(file))` branch still fires and names the row as misplaced. A mutation meant to test "falls back to anywhere" has to skip the placement entirely (`if (site && siteFile(site).file)`), which is the M8 in the table.
+
+**Review round (independent review, approved with a required follow-up).** Four findings, all fixed on top of the branch:
+1. **Unplaced names fell back to "anywhere".** 9 of the 39 references have no placement. The reviewer renamed `STATES` to `STATE_NAMES` throughout `component-schema.ts`, and the gate still exited 0 because `test.ts` and two studio files also declare `STATES`. Now an unplaced name declared in more than one file fails as `ambiguous identifier`. The skill places `STATES` in `packages/engine/component-schema.ts`. It was the only ambiguous real reference.
+2. **No live placement check.** The wiring floor counted `scanText` runs, not placements. If someone reformatted the gate table, all 30 placed names would fall back to the unplaced rule and still pass. `PLACED_FLOOR = 31` is a literal, hand-counted: the table's 27, three prose placements, and `STATES`. It fails by name on a drop.
+3. **`DECL` matched in comments and strings.** "the type SET" and "a var NB" counted as declarations, which is the dangerous direction. `DECL` now requires the keyword to open a line. I tried stripping comments first and measured it: a `/*` inside a glob string opened a "comment" that ate real code, and the index lost 166 names, `CONTROL_DEFS` among them. Anchoring loses only comment, string and loop-binding matches (checked name by name). Its ceiling is stated in the header: a multi-line template or block-comment line that opens with a keyword.
+4. **The admission fixture used the live list.** The self-check now builds its own index and admission through the same `indexOf`/`declaredNames` the live run uses. Removing the live `COMPONENT_CONTRACT_VERSION` admission now fails only the real skill, with the accurate `undeclared identifier` message.
+
+| Mutation | Fails |
+|---|---|
+| R1 `STATES` → `STATE_NAMES` throughout `component-schema.ts` (the reviewer's) | `[misplaced identifier] STATES is not declared in packages/engine/component-schema.ts` |
+| R1b the same rename, pre-review skill (unplaced), floor held at 30 | `[ambiguous identifier] STATES is declared in 3 files …` (and in 4 files before the rename) |
+| R2 indent the `lint-standalone-floor` table row | `only 30 quoted identifier(s) … carry a placement, below the floor of 31` |
+| R2b un-backtick the `lint-rung-names` first cell | `only 25 … below the floor of 31` |
+| R3 `DECL` unanchored again | `a name that appears only in a // COMMENT now counts as declared`, the `/** */` twin, `a name declared only inside a STRING …` |
+| R3b a skill quotes `SET` (declared only in prose) | `[undeclared identifier] SET` |
+| R4 ambiguity rule disabled | `an unplaced name declared in TWO files passes` |
+| R5 the live `COMPONENT_CONTRACT_VERSION` admission removed | real skill only: `[undeclared identifier] COMPONENT_CONTRACT_VERSION`; the self-check stays green |
 
 ---
 
