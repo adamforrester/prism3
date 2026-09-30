@@ -1493,7 +1493,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const LONG = 'x'.repeat(70);
   const mainOf = (n: Node | undefined) => (n as (Node & { _main?: Node }) | undefined)?._main;
 
-  // ---- the nested label and message track the FIELD's width, and wrap at it ----
+  // ---- the nested MESSAGE tracks the FIELD's width, and wraps at it (the label is below, #1762) ----
   // Each host's control is measured at its own 320 floor and again widened to 400 (a designer's resize);
   // the nested instance must be as wide as the control both times. The long string goes on the nested
   // component's own text, so the instance's height is the text reflowed at the instance's width.
@@ -1520,9 +1520,38 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       `#1757 ${host} ${part} wraps at the field's width: on every member the ${part} is as wide as the control (320, and 400 when widened) and a ${LONG.length}-character ${part} is two ${LINE}px lines (${off.length} off — ${off[0] ?? 'none'})`);
   };
   await nestedWraps('text-field', 'message', 'text');
-  await nestedWraps('text-field', 'label', 'text');
-  await nestedWraps('select', 'label', 'text');
   await nestedWraps('select', 'message', 'text');
+
+  // ---- the nested LABEL stretches with the field, and its name wraps at field-label's 316 (#1762) ----
+  // #1757 had the label's name wrap at the field's width. Since #1762 the name hugs and wraps at a max width
+  // on the main component (320 less the 4px marker gap), so the INSTANCE still stretches with the control —
+  // 320, and 400 when widened — while the NAME stays 316 wide on two lines both times. That second half is the
+  // owner's accepted tradeoff, pinned here: a field stretched wider does not move the wrap point.
+  const nestedLabelWraps = async (host: string) => {
+    const members = await setOf(host);
+    const off: string[] = [];
+    for (const m of members) {
+      const ctl = find(m, 'control');
+      const inst = find(m, 'label');
+      const text = find(mainOf(inst), 'text');
+      if (!ctl || !inst || !text) { off.push(`${m.name}: incomplete`); continue; }
+      const was = text.characters;
+      const floor = ctl.minWidth;
+      text.characters = LONG;
+      const at320 = [W(ctl), W(inst), W(text), H(text)];
+      ctl.minWidth = WIDER;
+      const at400 = [W(ctl), W(inst), W(text), H(text)];
+      ctl.minWidth = floor;
+      text.characters = was;
+      if (!(near(at320[0], 320) && near(at320[1], 320) && near(at320[2], 316) && near(at320[3], 2 * LINE)
+        && near(at400[0], WIDER) && near(at400[1], WIDER) && near(at400[2], 316) && near(at400[3], 2 * LINE)))
+        off.push(`${m.name}: at 320 the control/label/name are ${at320.slice(0, 3).join('/')} wide and the name ${at320[3]} tall; widened, ${at400.slice(0, 3).join('/')} and ${at400[3]}`);
+    }
+    ok(members.length > 0 && off.length === 0,
+      `#1762 ${host} label stretches with the field but its name wraps at 316: on every member the label instance is as wide as the control (320, and 400 when widened), and a ${LONG.length}-character name stays 316 wide on two ${LINE}px lines both times (${off.length} off — ${off[0] ?? 'none'})`);
+  };
+  await nestedLabelWraps('text-field');
+  await nestedLabelWraps('select');
 
   // ---- a BARE field-message / field-label wraps at its 320 build width, not at its default string's ----
   const bareWraps = async (id: string) => {

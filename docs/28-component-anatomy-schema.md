@@ -710,9 +710,8 @@ edge: the owner saw "Label ··· *" at 320. In code the marker flows inline aft
 in #1762, the owner chose the third: the name **hugs** its text and **wraps at a max width**.
 
 **The mechanism.** `PartDef.wrap: 'hug'` projects a `maxWidth` on the text node and leaves it auto-width with
-no grow. The marker sits right after the name's box: after the last word on a one-line name, and beside the
-wrapped box on a longer one (a separate node cannot follow a line break; that was option 2, a second-colored
-run inside the name's text node).
+no grow. The marker sits right after the name's box, which is after the last word on a one-line name. A
+separate node cannot follow a line break; that was option 2, a second-colored run inside the name's text node.
 
 **The max width is derived, not a new literal.** It is the root's `placementWidth` (320, the field's default
 width, #1757) less one row gap per sibling, in px on the fixed space scale: 320 − 4 (`space.050`, the gap
@@ -724,8 +723,14 @@ of `*` in the brand's font at the label's size, and the engine holds no font met
 - A field stretched wider in Figma does not widen the wrap point. The label instance stretches with the field;
   the name still wraps at 316.
 - A required name long enough to wrap overruns the 320 field by the marker's width.
-- With the marker off, the 4px gap stays reserved, so the name wraps 4px short of 320. Turning the marker on
-  does not move the wrap point.
+
+**Consequences of the mechanism, for the owner to confirm at the live check** (derived when it was built,
+not decided):
+
+- With the marker off, the 4px gap stays reserved, so the name wraps at 316, 4px short of 320. Turning the
+  marker on does not move the wrap point.
+- On a name long enough to wrap, the marker sits beside the wrapped box at 316 + 4, not after the last word
+  of the last line.
 
 **Scope.** Every host nests the one field-label: select, text-field, textarea, checkbox-group and radio-group.
 In code nothing changes: the marker flows inline after the name, and the name wraps at the field's width.
