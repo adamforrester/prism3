@@ -352,6 +352,14 @@ reads the committed artifact**; this is the next one along:
 
 `--accept` is therefore a separate, deliberate act, and the only thing that ever writes that file.
 
+**The baseline records no `ENGINE_VERSION` (#1807).** It used to carry an `engineVersion` field,
+stamped from the constant. The field recorded nothing the contract promises, and its only effect was
+to fail `--check` with "informational fields only" on every engine bump. So every bumping PR ran an
+`--accept` that recorded no contract change, and rewrote the line next to `contractVersion`, where any
+two such PRs conflicted. An engine bump now leaves the baseline alone and needs no `--accept`.
+`--check` refuses a baseline that still carries the field, by name, and `--accept` writes it without
+one. `lint-component-surface.ts` keeps its own baseline free of the field for the same reason.
+
 One consequence worth knowing about: the US-English gate imports its scope from `regen.ts`, so
 keeping this artifact out of regen also kept it out of that gate. It is named explicitly in
 `lint-us-english.ts` to close the hole. **Anything else deliberately excluded from regen needs the

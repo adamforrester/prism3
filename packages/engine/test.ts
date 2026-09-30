@@ -20536,7 +20536,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'version: a minor change accepts a minor OR a major bump (over-bumping is safe, under-bumping is not)');
   ok(!satisfiesBump('1.0.0', '1.0.1', 'minor'), 'version: a patch bump does NOT cover an added path');
 
-  const base = { contractVersion: '1.0.0', engineVersion: '0.1.0', note: '', corpus: [],
+  const base = { contractVersion: '1.0.0', note: '', corpus: [],
     guaranteed: { 'color.text.primary': 'color', 'space.100': 'dimension' }, brandDependent: [], deprecations: [] };
   ok(classify(base, { ...base.guaranteed }).level === 'none', 'contract: an identical surface classifies as no change');
   ok(classify(base, { 'space.100': 'dimension' }).level === 'major', 'contract: a REMOVED path is breaking');
@@ -20607,6 +20607,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'contract: the COMMITTED baseline still matches the engine (run token-contract.ts --accept after reviewing the diff)');
   ok(committed.contractVersion === CONTRACT_VERSION,
     `contract: the baseline's stamped version tracks CONTRACT_VERSION (${committed.contractVersion} vs ${CONTRACT_VERSION})`);
+  // #1807: no engine version in the baseline, so no ENGINE bump can move it. Both key lists are literals:
+  // the committed file's, and what `buildContract` would write. The last check is the property itself:
+  // the serialized contract nowhere contains the engine version string, under any key.
+  ok(Object.keys(committed).join(',') === 'contractVersion,note,corpus,guaranteed,brandDependent,deprecations',
+    `#1807 contract: the COMMITTED baseline carries no engineVersion (keys ${Object.keys(committed).join(',')})`);
+  ok(Object.keys(live).join(',') === 'contractVersion,note,corpus,guaranteed,brandDependent,deprecations',
+    `#1807 contract: buildContract writes no engineVersion (keys ${Object.keys(live).join(',')})`);
+  ok(!JSON.stringify(live).includes(`"${ENGINE_VERSION}"`),
+    `#1807 contract: the contract carries no copy of ENGINE_VERSION (${ENGINE_VERSION}), so an engine bump cannot move it`);
 
   // ---- #1768: the gate compares the NUMBERS, not only the paths ----
   // Every expectation below is a literal. The pure arm first: which way the constant moved against the
@@ -20646,8 +20655,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   {
     const dir = mkdtempSync(join(tmpdir(), 'prism3-contract-'));
     const fixture = join(dir, 'token-contract.json');
-    const runCli = (mode: '--check' | '--accept', recorded: string) => {
-      const bytes = JSON.stringify({ ...live, contractVersion: recorded }, null, 2) + '\n';
+    const runCli = (mode: '--check' | '--accept', recorded: string, extra: Record<string, unknown> = {}) => {
+      const bytes = JSON.stringify({ ...live, contractVersion: recorded, ...extra }, null, 2) + '\n';
       writeFileSync(fixture, bytes);
       const r = spawnSync('npx', ['tsx', resolve(HERE, 'token-contract.ts'), mode], {
         encoding: 'utf8', env: { ...process.env, PRISM3_CONTRACT_BASELINE: fixture },
@@ -20674,6 +20683,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const accept = injectionHeld ? runCli('--accept', '999.0.0') : undefined;
       ok(!!accept && accept.status === 1 && /CONTRACT_VERSION moved BACKWARDS/.test(accept.out) && accept.untouched,
         `#1768 contract CLI: --accept refuses BY NAME when CONTRACT_VERSION is below the baseline, and leaves the baseline unwritten (${accept ? `exit ${accept.status}, untouched ${accept.untouched}` : 'not run: the injection did not hold'})`);
+
+      // #1807: the baseline carries no `engineVersion`. The fixture is the live contract at
+      // CONTRACT_VERSION plus the field, so the field is the only thing wrong with it; the value is a
+      // literal, not ENGINE_VERSION, so the refusal cannot depend on the field agreeing with the constant.
+      const stale = runCli('--check', CONTRACT_VERSION, { engineVersion: '0.213.0' });
+      ok(stale.status === 1 && stale.out.includes('✗ the baseline carries a retired `engineVersion` field (#1807).'),
+        `#1807 contract CLI: --check refuses BY NAME a baseline that still carries engineVersion (exit ${stale.status})`);
+      // --accept is the repair: it writes the baseline without the field. Read back from the file the
+      // CLI wrote, so a `buildContract` or `serialize` that brought the field back fails here.
+      const healed = injectionHeld ? runCli('--accept', CONTRACT_VERSION, { engineVersion: '0.213.0' }) : undefined;
+      const written = healed ? Object.keys(JSON.parse(readFileSync(fixture, 'utf8'))).join(',') : '';
+      ok(!!healed && healed.status === 0 && written === 'contractVersion,note,corpus,guaranteed,brandDependent,deprecations',
+        `#1807 contract CLI: --accept writes the baseline WITHOUT engineVersion (${healed ? `exit ${healed.status}, keys ${written}` : 'not run: the injection did not hold'})`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
