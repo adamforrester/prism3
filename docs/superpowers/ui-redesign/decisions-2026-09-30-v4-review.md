@@ -26,3 +26,12 @@ The owner's first review of the v4 mockup (#1826). It records the answers to the
 | 8 | Compare repeats the surface switch | One shared switch. |
 | 9 | Studio font warnings | A preview marker only in the studio. No Health warning, because only the plugin's "in this Figma" affects Apply. |
 | 10 | Style guide option values | Settle them when #1784 and #1788 land. |
+
+## From the style tiles (`style-tiles/`, #1851)
+
+| # | Topic | Decision |
+|---|---|---|
+| T1 | Direction | **A · Quiet panels.** v5 applies it. The owner notes it does **not yet meet the final bar** for a modern, spacious, light UI like the reference images, so v5 also lightens it (T4). |
+| T2 | Namespace flag | **Keep it as proposed.** When the namespace is still `prism` or `pds3`, the field warns that it is reserved or a placeholder, and asks for the brand's namespace before export. |
+| T3 | Token gaps | **Checked again against the owner's challenges, and none is filed as an engine issue.** (1) Focus: `interactive.neutral.border.rest` already does the job, so a neutral focus role isn't needed. (2) Raised surface: the `foreground.*` roles do lift in dark. The snag is only that in light they go gray rather than white, so the chrome uses them for inset groups rather than white cards. (3) Selected fill: equal to rest by design (`primary.fill.selected` equals rest too), so selected is shown by a 2px edge and a check, not an inverse fill. (5) Soft fill: C only. (6) `text.tertiary` sits at 3:1 by design, for large or non-essential text. (7) Panel width: the chrome's own layout, not a brand token. (8) Shadow tint: fixed and known in the default theme. (2, radius) The default theme's radius roles stop at 6px, so v5 uses `radius.lg` for panels; whether it should offer a larger role is held as an owner question. |
+| T4 | Lightening A in v5 | Page on `background.primary` (white), with no gray ground. Panels are separated by space and a hairline, and `foreground.primary` is used only for inset groups. Selected chips and segments keep their fill and change the edge, plus a check. Lighter heading weights. Fewer boxed controls. The primary action is the only inverse-filled element. Every boundary still meets 3:1. |
