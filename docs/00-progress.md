@@ -214,6 +214,7 @@ The owner also decided two held items (decision 20):
 | (R11, decision 21) the built frame not resized to 0.01 at rest | 10 checks, among them "1: the spacing members are the owner's restructured tree exactly: hug frames 0.01×20 and 0.01×16… (…8x20…)", "22: the built bracket is drawn at its value… (w 8)", "22: a bracket grown to 24 and rebound to 2 shrinks to 2… (8 right 7)" |
 | (R12, decision 20) the pixels option still honored, passed on as an option (`test-agent-link.ts`) | "style-guide: the phase-2 options reach the handler as sent, and a retired pixels arrives as retired, not as an option (…"pixels":false…)", "style-guide: pixels "yes" is accepted and ignored, not refused (true; {"pixels":"yes"})" |
 | (R13, decision 20) the letter-spacing REM missing | 5 checks: "18: the text-style table: … letter spacing and its REM", "18: body/lg/default reads … and "—" for the REM…", "18: paragraph spacing (with its REM) and decoration toggled on add their columns", "18: a link style reads "0px" paragraph spacing, "0rem" beside it…", "18: a letter spacing of 0.8px reads "0.05rem" beside it…" |
+| (R14, decision 20) the Pixels field restored in the panel (`test-build-verdict.mjs`, on the rebuilt `dist/ui.html`) | "#259 decision 20: Customize has no Pixels field" |
 
 The resize-guard, `right-bar`, one-verdict and repaint-probe rows above test code the 0.205.0 live run removed (the resize, the MAX override and move, the per-failure buckets, the manual repaint); they stand as the record of that round.
 
