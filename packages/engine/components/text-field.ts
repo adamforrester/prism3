@@ -341,9 +341,9 @@ export const textField: ComponentDef = {
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
-        // control holds at 320, so a long name wraps at the field's width instead of running past it.
+        // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular). Fills the field\'s width, so a long name wraps.',
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular). Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
       },
       // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
@@ -602,7 +602,7 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
-      'The field\'s width (#1518, #1757): the control carries a `minWidth: 320` floor, the label and the message stretch across the column it holds (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So the field reads at 320, the label and message wrap at that width, and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
+      'The field\'s width (#1518, #1757): the control carries a `minWidth: 320` floor, the label and the message stretch across the column it holds (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So the field reads at 320, the message wraps at that width, the label\'s name wraps at FieldLabel\'s own 316 max width (#1762), and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
       'A long value or placeholder CLIPS at `content`\'s edge in Figma (`clipsContent`, #1758), with no ellipsis — the native single-line input it stands for scrolls with the caret, so the full text stays reachable in code. The clip is modelled offline; the live host has not been checked.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],

@@ -183,6 +183,9 @@ export interface CompNode {
   /** #1343a/#1345 — the auto-layout minimum width. Written only where the plan carries it (`select`'s
    *  control), inside the `layoutMode` branch; Figma accepts it only on an auto-layout frame. */
   minWidth?: unknown;
+  /** #1762 — the hugging wrap's max width: a TEXT node that hugs its glyphs and wraps here. Written by the
+   *  PARENT after the append (Figma takes it only on an auto-layout frame or its direct child), read back. */
+  maxWidth?: unknown;
   /** The reserved-lines floor (textarea's `rows`): a TEXT node's minimum height, `minLines` × its own line
    *  height, written by the PARENT after the append and read back. Figma types it `number | null`. */
   minHeight?: number | null;
@@ -1946,6 +1949,13 @@ const writeComponentSet = async (
       // A FILLING NEST'S OWN MODE (#1751): the stretch above is only the supplier — an instance whose root
       // hugs goes on hugging until its own mode on that axis is FIXED. Lockstep with the paste executor.
       if (c.instanceSizing) Object.assign(kid, c.instanceSizing);
+      // THE HUGGING WRAP'S MAX WIDTH (#1762, `FigmaNodePlan.maxWidth`): the text hugs and wraps at this width,
+      // so the sibling after it sits after the last word. Applied here, after the append, because Figma takes a
+      // max width only on an auto-layout frame or its direct child. Read back. Lockstep with the paste executor.
+      if (c.maxWidth) {
+        kid.maxWidth = c.maxWidth;
+        if (kid.maxWidth !== c.maxWidth) misses.push(`${c.name}.maxWidth -> DISCARDED (set ${c.maxWidth}, reads ${String(kid.maxWidth)})`);
+      }
       // THE RESERVED LINES (textarea's `rows`). Applied by the PARENT after the append, like `layoutAlign`:
       // a minimum size is a property of an auto-layout CHILD. The plan carries the COUNT; the line height is
       // the host's, read off the node its style was applied to — `PIXELS` as is, `PERCENT` of the font size.

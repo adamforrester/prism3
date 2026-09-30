@@ -25,7 +25,7 @@
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, Density } from './scale';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, visibleGapStep } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -447,6 +447,14 @@ export type FigmaNodePlan = {
    *  `n.textAutoResize ?? 'WIDTH_AND_HEIGHT'`. Paired with `layoutGrow: 1` for a wrapping label: the grow
    *  fixes the width and this lets the height flow. Set from `PartDef.wrap`. */
   textAutoResize?: 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' | 'NONE';
+  /** For a `TEXT` node that HUGS AND WRAPS (#1762, `PartDef.wrap: 'hug'`): the literal px its auto-width box
+   *  wraps at. The node stays `WIDTH_AND_HEIGHT` with no `layoutGrow`, so it is as wide as its text up to this
+   *  width, and a sibling after it sits right after the last word. DERIVED, not stated: the root's
+   *  `placementWidth` less one row gap per sibling (`spacePx`). Applied by the PARENT after the append, beside
+   *  `layoutAlign` — Figma takes a max width only on an auto-layout frame or its direct child. Carried ONLY on
+   *  such a text, so every other plan is byte-identical; the paste twin splices its line in only for a payload
+   *  that carries it. */
+  maxWidth?: number;
   /** For a `TEXT` node: the LINE COUNT its box reserves — the node's `minHeight` is this many lines of its
    *  own line height (textarea's `rows`). A COUNT, not pixels, so the plan stays brand-invariant: the
    *  executor multiplies it by the line height the host reports for the node once its style is applied
@@ -1735,7 +1743,23 @@ export const figmaAnatomyPlan = (
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a floor, a fixed or filled width, or a root's `placementWidth`), or the text keeps the width
       // of its default string and wraps there (#1757).
-      ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      ...(p.kind === 'text' && p.wrap === true ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // THE HUGGING WRAP (#1762, `wrap: 'hug'`): no grow and no `HEIGHT` — the text hugs — and a max width it
+      // wraps at, so a sibling after it follows the last word. The root's build width less one row gap per
+      // declared sibling, the gap resolved at this coordinate and turned into px on the fixed space scale.
+      // The siblings' own widths are NOT subtracted (a glyph advance is the brand font's, which the engine
+      // does not hold). `anatomyErrors` has proven the parent is a padless root row with a ladder gap; the
+      // throws are the backstop for a caller that skipped validation.
+      ...(p.kind === 'text' && p.wrap === 'hug'
+        ? (() => {
+            const root = a.parts[a.root];
+            if (parentName !== a.root || root.placementWidth === undefined)
+              throw new Error(`${def.id}: part '${name}' hugs and wraps, but its parent is not a root with a placementWidth to derive the max width from`);
+            const siblings = (root.children ?? []).length - 1;
+            const gap = siblings > 0 && root.gap ? spacePx(resolveKey(root.gap, 'gap')) : 0;
+            return { maxWidth: root.placementWidth - siblings * gap };
+          })()
+        : {}),
       // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
       // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
       ...(p.kind === 'box' && p.grow ? { layoutGrow: 1 } : {}),
@@ -3374,6 +3398,16 @@ const PLACEMENT_SLOT = '__PLACEMENT__';
 const PAYLOAD_PLACEMENT = `    if(n.placementWidth){node.resize(n.placementWidth,node.height);if(node.width!==n.placementWidth)misses.push(n.name+'.placementWidth -> DISCARDED');}`;
 const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.children.some(hasPlacement);
 /**
+ * THE HUGGING WRAP'S MAX WIDTH (#1762, `maxWidth`), spliced into the child loop ONLY for a payload whose plans
+ * carry one, and on the reserved-lines slot's own line so a payload without it gains no byte — the
+ * `MIN_LINES_SLOT` budget decision again. After the append, beside `layoutAlign`: Figma takes a max width only
+ * on an auto-layout frame or its direct child. Read back. Lockstep with the plugin executor (`write-components.ts`).
+ */
+const MAX_WIDTH_SLOT = '__MAX_WIDTH__';
+const PAYLOAD_MAX_WIDTH = `
+    if(c.maxWidth){kid.maxWidth=c.maxWidth;if(kid.maxWidth!==c.maxWidth)misses.push(c.name+'.maxWidth -> DISCARDED');}`;
+const hasMaxWidth = (n: FigmaNodePlan): boolean => n.maxWidth !== undefined || n.children.some(hasMaxWidth);
+/**
  * THE GRADIENT FILL (#1318, the veil's directional washes), spliced ONLY into a payload whose plans carry a
  * `gradientFill` — the `MIN_LINES_SLOT` budget decision once more: an unconditional line here would ship in
  * every chunk of every set. (Written when the #536 probe grid had single-digit bytes of margin under a
@@ -3399,13 +3433,14 @@ const GRADIENT_CLAIM_SLOT = '__GRADIENT_CLAIM__';
 const PAYLOAD_GRADIENT_CLAIM = '&&!m.gradientFill';
 const hasGradient = (n: FigmaNodePlan): boolean => n.gradientFill !== undefined || n.children.some(hasGradient);
 /** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons, the corner pin, the root's
- *  build width and the gradient fill spliced in where one of them needs it. */
+ *  build width, the hugging wrap's max width and the gradient fill spliced in where one of them needs it. */
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
   PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
+    .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
     .replace(GRADIENT_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT : '')
     .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '');
 
@@ -3730,7 +3765,7 @@ ${GRADIENT_SLOT}
     // guard on a line of its own costs 25 bytes in every chunk's shell. (Chosen when the #536 probe grid had to
     // stay one chunk; #1798 replaced that rule with the indivisible-unit headroom and a tested split.)
     if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;Object.assign(kid,c.instanceSizing);
-${MIN_LINES_SLOT}
+${MIN_LINES_SLOT}${MAX_WIDTH_SLOT}
 ${PIN_LIFT_SLOT}
   }
   // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the

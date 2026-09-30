@@ -173,6 +173,13 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
 // used to ride on.
 /** The space ladder "one step" is measured on, in order. */
 export const SPACE_LADDER: readonly string[] = SPACE_KEYS;
+/** A `space.<key>` ref's px on the fixed `SPACE_BASE` rhythm — the same px every brand emits, since the
+ *  space scale is not a brand lever. Throws on a ref that is not a step of the ladder. */
+export const spacePx = (ref: string): number => {
+  const m = /^space\.([0-9]+)$/.exec(ref);
+  if (!m || !SPACE_KEYS.includes(m[1])) throw new Error(`spacePx: '${ref}' is not a step of the space ladder`);
+  return (Number(m[1]) / 100) * SPACE_BASE;
+};
 /** How many ladder steps each density moves a comfortable spacing step. */
 export const DENSITY_SPACE_SHIFT: Record<Density, number> = { compact: -1, comfortable: 0, spacious: 1 };
 /** A def's comfortable `space.<key>` ref, moved for `density`: one step down at compact, one up at spacious,
