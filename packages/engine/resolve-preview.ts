@@ -53,9 +53,10 @@ export type ResolvedPreview = {
    *  `unresolvedType` — so a reader has to guard, and cannot paint a fabricated value (#1720). */
   type: Partial<Record<string, ResolvedType>>;
   /** Type bindings the spec names that this theme's tree does not carry, sorted. Empty for a brand
-   *  that emits every bound style. Since #1632 a brand may decline `strong` in display/title, and the
-   *  spec binds `type.display.lg.strong` / `type.title.*.strong` by name, so this is reachable from a
-   *  legal input. It used to resolve to `sans-serif / 0 / 0px` in `type` with no error (#1720). */
+   *  that emits every bound style. Reachable from a legal input by two routes: a brand may decline
+   *  `strong` in display/title (#1632), and `typography.displayCeiling: 'sm' | 'md'` drops `display.lg`
+   *  (a studio lever). The spec binds `type.display.lg.strong` / `type.title.*.strong` by name. It used
+   *  to resolve to `sans-serif / 0 / 0px` in `type` with no error (#1720). */
   unresolvedType: string[];
   /** every shadow in the ramp (`shadow.xs`…`shadow.2xl`, `shadow.inset`) → per-mode CSS
    *  `box-shadow` string (the whole ramp, so the elevation specimen can show it; bound
@@ -149,8 +150,9 @@ export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): R
     // `node?.$value ?? {}`, and every accessor below then fell through to its own default, so a
     // missing style resolved to `sans-serif / 0 / 0px` with no error anywhere.
     //
-    // Reported rather than thrown, because the miss is reachable from a LEGAL input: since #1632 a
-    // brand may decline `strong` in display/title, and the studio calls this on every edit (its
+    // Reported rather than thrown, because the miss is reachable from a LEGAL input by two routes (a
+    // brand may decline `strong` in display/title since #1632, and `displayCeiling: 'sm' | 'md'` drops
+    // `display.lg`, a lever the studio exposes), and the studio calls this on every edit (its
     // `rebuild()` treats a throw as a rejected edit, and its boot call is uncaught). A throw would
     // make the studio refuse a valid brand over a value it never paints. The shadow read below throws
     // instead, and the difference is deliberate: an unreadable mode entry can only be an engine bug.

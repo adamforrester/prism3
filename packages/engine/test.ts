@@ -8691,8 +8691,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 }
 // (10a) #1720 — a type binding the brand does not emit is NAMED, never resolved to a default. The read
 // was `node?.$value ?? {}`, and every accessor after it fell through to its own default, so a missing
-// style came back as `sans-serif / 0 / 0px` with no error. Reachable from a legal input since #1632: a
-// brand may decline `strong` in display/title, and the spec binds three `*.strong` styles by name.
+// style came back as `sans-serif / 0 / 0px` with no error. The spec binds three `*.strong` styles by
+// name, and two legal inputs drop them: declining `strong` in display/title (#1632), and
+// `typography.displayCeiling: 'sm' | 'md'`, which drops `display.lg` (a lever the studio exposes).
 //
 // The expected keys are LITERALS, not derived from `previewSpec` or from the tree: deriving them would
 // make this agree with whatever the resolver happens to return (docs/34). If the spec's bindings move,
@@ -8710,6 +8711,13 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const body = rp.type['type.body.md.default'];
   ok(!!body && !!body.fontFamily && body.fontSizePx > 0 && body.fontWeight > 0,
     `#1720 a brand declining strong still resolves type.body.md.default (got ${body ? `${body.fontFamily}/${body.fontWeight}/${body.fontSizePx}px` : 'nothing'})`);
+
+  // The second legal route: `displayCeiling: 'md'` keeps display.sm and display.md only, so the one
+  // display binding goes missing while both title bindings (which keep `strong`) still resolve.
+  const ceiling = { ...hinput, typography: { ...hinput.typography, displayCeiling: 'md' } } as BrandInput;
+  const ceilingRp = resolvePreview(brandTheme(ceiling));
+  ok(JSON.stringify(ceilingRp.unresolvedType) === JSON.stringify(['type.display.lg.strong']) && !('type.display.lg.strong' in ceilingRp.type),
+    `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound, with no entry in rp.type (got ${ceilingRp.unresolvedType.join(', ') || 'none'})`);
 
   // The same read over a hand-built spec, so the arm does not depend on which weights the real spec
   // happens to bind: one bogus binding beside one real one, on a brand that ships everything.

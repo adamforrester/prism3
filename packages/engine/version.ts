@@ -2928,8 +2928,9 @@
  *
  * 0.213.0 — #1720: `resolvePreview` no longer resolves a type binding the brand does not emit to
  * `sans-serif / 0 / 0px`. It read `node?.$value ?? {}` and every accessor after it fell through to its own
- * default. Since #1632 a brand may decline `strong` in display/title while the preview spec binds
- * `type.display.lg.strong` and `type.title.*.strong` by name, so this was reachable from a legal input. Such a
+ * default. The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and two legal
+ * inputs drop them: declining `strong` in display/title (#1632), and `typography.displayCeiling: 'sm' | 'md'`,
+ * which drops `display.lg` (a lever the studio exposes). Such a
  * binding is now absent from `ResolvedPreview.type` (typed `Partial`, so a reader has to guard) and named in
  * the new `unresolvedType` list. Reported rather than thrown: the studio calls `resolvePreview` on every edit
  * and would otherwise refuse a valid brand over a value it never paints. `visualize.ts` throws by name on a
