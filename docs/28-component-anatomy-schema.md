@@ -679,6 +679,28 @@ rejects. The studio says so wherever it sets a per-mode density, in the density 
 
 > Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.
 
+#### 5.4.4 Decided (2026-09-29): a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads
+
+From live QA on a real Figma file, dismissible tags only. The label-and-check row (`labelCheck`) takes a
+4px leading inset (`space.050`), FIXED at every density, and the content row's icon→label gap drops to
+match — at comfortable, 6 → 2, 8 → 4 and 12 → 4 at small, medium and large. The eye reads the two
+together: icon→label is 6 / 8 / 8, and with no leading icon the label sits padding-x + 4 from the left
+edge (12 / 16 / 20). A dismissible tag is 4px wider (small, 20px label, no icon: 8 + 4 + 20 + 0 + 36 =
+68). A select tag does not change.
+
+**Density.** The def states the VISIBLE icon→label (`size.{size}.dismissible.visible-gap`, 6 / 8 / 8) as
+its density-following gap, and the layer gap is derived from it: visible − 4, never below 0
+(`ComponentDef.visibleGaps`, `visibleGapStep`, written by `applySpacingDensity`). So §5.4.1's 4px floor
+applies to the visible distance, not to the layer gap — a 2px layer gap at comfortable small, and 0 at
+compact small, are intended. The #325 ordering reads the same sum (content gap + inset < padding-x) and
+holds at every size and density:
+
+| density | layer gap + inset = visible (small · medium · large) | padding-x |
+|---|---|---|
+| compact | 0+4=4 · 2+4=6 · 2+4=6 | 6 · 8 · 12 |
+| comfortable | 2+4=6 · 4+4=8 · 4+4=8 | 8 · 12 · 16 |
+| spacious | 4+4=8 · 8+4=12 · 8+4=12 | 12 · 16 · 20 |
+
 ---
 
 ## 6. Next step
