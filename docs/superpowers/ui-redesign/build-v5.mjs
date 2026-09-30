@@ -117,7 +117,7 @@ const VARS = [...TILE_VARS];
 // "the chrome's own layout"), and a viewport cap needs vw/vh.
 const LAYOUT = [
   ['l-dialog', '640px'], ['l-dialog-vw', '94vw'], ['l-dialog-vh', '90vh'], ['l-dbody-vh', '62vh'],
-  ['l-menu', '240px'], ['l-brand', '260px'], ['l-viewsel', '200px'], ['l-num', '104px'], ['l-hex', '88px'], ['l-cell', '152px'],
+  ['l-menu', '240px'], ['l-brand', '260px'], ['l-num', '104px'], ['l-measure', '75ch'], ['l-hex', '88px'], ['l-cell', '152px'], ['l-field-col', '200px'],
   ['l-cell-mx', '184px'], ['l-step', '72px'], ['l-picker', '480px'], ['l-pm-label', '96px'], ['l-matrix-h', '520px'],
   ['l-strip-bar', '72px'], ['l-drawer', '440px'], ['l-pick', '240px'], ['l-opt', '200px'], ['l-shape', '96px'],
   ['l-curve', '96px'], ['l-bp', '72px'], ['l-gsw', '56px'], ['l-gbar', '160px'],

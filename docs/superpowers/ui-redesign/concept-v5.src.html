@@ -64,7 +64,7 @@ svg.ico { width: var(--p3-icon-xs); height: var(--p3-icon-xs); flex: none; displ
 .hgroup .selwrap .field { --t-btn-h: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); padding-left: var(--p3-space-150); }
 .hver { color: var(--p3-text-2); }
 .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; }
-.frame { background: var(--p3-bg-page); width: 100%; height: 100%; position: relative; overflow: hidden; }
+.frame { background: var(--p3-bg-page); width: 100%; height: 100%; position: relative; overflow: clip; }
 .frame.f-1280 { width: var(--p3-h-frame-wide); height: var(--p3-h-frame-tall); flex: none; outline: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); }
 .frame.f-380 { width: var(--p3-h-frame-narrow); height: var(--p3-h-frame-short); flex: none; outline: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); }
 .app {
@@ -111,7 +111,10 @@ svg.ico { width: var(--p3-icon-xs); height: var(--p3-icon-xs); flex: none; displ
   border-radius: var(--p3-radius-pill); background: var(--p3-icon); border: var(--p3-bw-thick) solid var(--p3-bg-page);
 }
 .btn .sdot.bad { background: var(--p3-bad-icon); }
-.btn .sdot.run { background: var(--p3-bg-page); border-color: var(--p3-icon); }
+.btn .sdot.run {
+  width: calc(var(--p3-dot) + 2 * var(--p3-bw-thick)); height: calc(var(--p3-dot) + 2 * var(--p3-bw-thick)); background: var(--p3-bg-page);
+  border-color: var(--p3-fill-2); border-top-color: var(--p3-icon); animation: spin var(--t-spin) linear infinite;
+}
 .lnk {
   display: inline-flex; align-items: center; min-height: var(--p3-hit-min); border: 0; background: none;
   padding: 0 var(--p3-space-025); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); cursor: pointer; font-size: inherit;
@@ -204,9 +207,28 @@ input.w-num { width: var(--p3-l-num); }
 }
 .colorfield input[type="text"]:focus-visible { outline: none; }
 .colorfield .meta { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 0 var(--p3-space-150); color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
-input[type="checkbox"]:not([role="switch"]), input[type="radio"].native {
-  width: var(--p3-icon-xs); height: var(--p3-icon-xs); margin: 0; accent-color: var(--p3-ctl-edge); flex: none;
+/* Checkboxes and radios in the chip pattern: the page fill, the field edge; selected keeps the fill and
+   takes a 2px neutral edge plus a check (or a dot), so it is never the edge alone. 6px corners. */
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input), input[type="radio"].native {
+  appearance: none; -webkit-appearance: none; position: relative; flex: none; margin: 0; cursor: pointer;
+  width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-lg);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge); background: var(--p3-bg-page);
+  transition: border-color var(--t-dur) var(--p3-ease);
 }
+input[type="radio"].native { border-radius: var(--p3-radius-pill); }
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input):hover, input[type="radio"].native:hover { border-color: var(--p3-field-edge-hover); }
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input):checked, input[type="radio"].native:checked { border: var(--p3-bw-thick) solid var(--p3-ctl-edge); }
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input):checked::after {
+  content: ""; position: absolute; left: 50%; top: 45%; width: calc(var(--p3-space-050) + var(--p3-bw-hairline)); height: calc(var(--p3-space-100) + var(--p3-bw-hairline));
+  border-right: var(--p3-bw-thick) solid var(--p3-icon); border-bottom: var(--p3-bw-thick) solid var(--p3-icon); transform: translate(-50%, -50%) rotate(45deg);
+}
+input[type="radio"].native:checked::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: var(--p3-dot); height: var(--p3-dot); border-radius: var(--p3-radius-pill);
+  background: var(--p3-icon); transform: translate(-50%, -50%);
+}
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input):disabled { cursor: not-allowed; border-style: dashed; border-width: var(--p3-bw-hairline); border-color: var(--p3-field-edge); }
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input):disabled::after { border-color: var(--p3-icon-2); }
+input[type="checkbox"]:not([role="switch"], .chip > input, .seg input):focus-visible, input[type="radio"].native:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
 label.chk { display: inline-flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs); cursor: pointer; }
 label.hit { display: inline-flex; align-items: center; justify-content: center; gap: var(--p3-space-050); min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); cursor: pointer; }
 .flab { display: grid; gap: var(--p3-space-050); font-size: var(--p3-fs-12); color: var(--p3-text-2); min-width: 0; }
@@ -468,7 +490,7 @@ fieldset.lever > legend + * { clear: both; }
 .le .it { display: flex; gap: var(--p3-space-100); align-items: center; flex-wrap: wrap; min-width: 0; }
 .le .it > input[type="text"] { flex: 1 1 var(--p3-l-num); min-width: 0; }
 .le .it .nm { min-width: var(--p3-l-pm-label); }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--p3-l-cell), 1fr)); gap: var(--p3-space-150) var(--p3-space-200); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--p3-l-field-col), 1fr)); gap: var(--p3-space-150) var(--p3-space-200); }
 .group { display: grid; gap: var(--p3-space-150); padding: var(--p3-space-200); border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .group-h { display: flex; align-items: center; gap: var(--p3-space-100); flex-wrap: wrap; }
 
@@ -492,7 +514,7 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 .mx .rn { position: sticky; left: 0; z-index: 1; font-family: var(--p3-font-mono); font-weight: var(--p3-fw-default); white-space: nowrap; color: var(--p3-text); border-right: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .mx thead th:first-child { left: 0; z-index: 3; border-right: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .mx th.der, .mx td.der { background-image: var(--hatch); }
-.mx th.cur, .mx td.cur { background-color: var(--p3-fill-1); }
+.mx thead th.cur { color: var(--p3-text); box-sizing: border-box; border-bottom: var(--p3-bw-thick) solid var(--p3-text); }
 .mx thead th .sub { display: block; font-weight: var(--p3-fw-default); }
 .famh td { padding: 0 !important; }
 .famh button {
@@ -532,8 +554,6 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 .pvh { flex: none; background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .pvh-r1 { display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h); padding: 0 var(--t-cv-pad); flex-wrap: wrap; }
 .pvh-r2 { display: flex; align-items: center; gap: var(--p3-space-100); padding: 0 var(--t-cv-pad) var(--p3-space-150); flex-wrap: wrap; }
-.pvh .vsel { width: var(--p3-l-viewsel); }
-.pvh .vsel select { font-weight: var(--p3-fw-emphasis); }
 .pvh .modesel { display: none; }
 .pvh .why { font-size: var(--p3-fs-12); color: var(--p3-text-2); }
 .pvp[data-w="slim"] .pvh .seg.modes { display: none; }
@@ -542,9 +562,13 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 .insp-tabs { display: flex; gap: var(--p3-space-250); align-self: stretch; }
 .insp-tabs .tab { min-height: var(--p3-bar-h); }
 .pvb { flex: 1; overflow: auto; padding: var(--t-cv-pad); min-height: 0; }
-.cv { display: grid; gap: var(--p3-space-500); align-content: start; }
-.cv-head { display: flex; align-items: baseline; gap: var(--p3-space-150); flex-wrap: wrap; }
-.cv-head h2 { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); }
+.cv { display: grid; gap: var(--p3-space-300); align-content: start; }
+.cv > .card + .card, .cmp > div > .card + .card { margin-top: var(--p3-space-200); }
+.cmp > div { gap: var(--p3-space-300); }
+.cv-head { margin: 0; }
+.pvtitle { display: flex; align-items: baseline; gap: var(--p3-space-150); min-width: 0; }
+.pvtitle h2 { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); white-space: nowrap; }
+.pvtitle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p3-space-300); }
 .cmp > div { min-width: 0; display: grid; gap: var(--p3-space-200); align-content: start; }
 .cmph { margin: 0; display: flex; gap: var(--p3-space-100); align-items: center; font-weight: var(--p3-fw-emphasis); }
@@ -557,7 +581,7 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 .kv > :nth-child(odd) { color: var(--p3-text-2); }
 .nf { display: inline-flex; align-items: center; gap: var(--p3-space-050); font-size: var(--p3-fs-12); color: var(--p3-text-2); white-space: nowrap; }
 .nf .ico { color: var(--p3-warn-icon); width: var(--p3-space-150); height: var(--p3-space-150); }
-.markers { display: flex; flex-wrap: wrap; gap: var(--p3-space-050) var(--p3-space-200); }
+.markers { display: flex; flex-wrap: wrap; gap: var(--p3-space-050) var(--p3-space-200); margin: 0; }
 .toolbar { display: flex; align-items: center; gap: var(--p3-space-150); flex-wrap: wrap; }
 .callout {
   position: sticky; bottom: 0; display: flex; gap: var(--p3-space-150); align-items: center; flex-wrap: wrap;
@@ -582,6 +606,10 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 .rampg .anc-k b { font-weight: var(--p3-fw-strong); }
 .rampg .k .hx { display: block; }
 .pvp:not([data-w="wide"]) .rampg { grid-template-columns: repeat(10, minmax(0, 1fr)); row-gap: var(--p3-space-150); }
+.pvp[data-w="slim"] .rampg { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pvp[data-w="slim"] .rampg > li:nth-child(10n + 1) .c, .pvp[data-w="slim"] .rampg > li:nth-child(10n) .c { border-radius: 0; }
+.pvp[data-w="slim"] .rampg > li:nth-child(5n + 1) .c { border-radius: var(--p3-radius-lg) 0 0 var(--p3-radius-lg); }
+.pvp[data-w="slim"] .rampg > li:nth-child(5n) .c { border-radius: 0 var(--p3-radius-lg) var(--p3-radius-lg) 0; }
 .pvp:not([data-w="wide"]) .rampg > li .c { border-radius: 0; }
 .pvp:not([data-w="wide"]) .rampg > li:nth-child(10n + 1) .c { border-radius: var(--p3-radius-lg) 0 0 var(--p3-radius-lg); }
 .pvp:not([data-w="wide"]) .rampg > li:nth-child(10n) .c { border-radius: 0 var(--p3-radius-lg) var(--p3-radius-lg) 0; }
@@ -591,11 +619,11 @@ table.t .ico { display: inline-block; vertical-align: middle; }
 .bars .bx { display: grid; justify-items: center; gap: var(--p3-space-050); font-size: var(--p3-fs-12); }
 .bars .bx i { display: block; width: var(--p3-ctl-h); border: var(--p3-bw-hairline) solid var(--p3-field-edge); border-radius: var(--p3-radius-md); background: var(--p3-fill-1); }
 .bars .bx i.sp { width: auto; min-width: var(--p3-bw-hairline); background: var(--p3-fill-2); border-color: var(--p3-line-2); }
-.rsample { display: inline-block; width: var(--p3-ctl-h); height: var(--p3-ctl-h-xs); border: var(--p3-bw-thick) solid var(--p3-ctl-edge); }
+.rsample { display: inline-block; width: var(--p3-ctl-h); height: var(--p3-ctl-h-xs); border: var(--p3-bw-thick) solid var(--p3-icon-2); }
 .shapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--p3-l-cell), 1fr)); gap: var(--p3-space-150); }
 .shp { display: grid; gap: var(--p3-space-100); justify-items: start; padding: var(--p3-space-150); border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-line-1); font-size: var(--p3-fs-12); }
 .shp.on { border: var(--p3-bw-thick) solid var(--p3-ctl-edge); padding: calc(var(--p3-space-150) - var(--p3-bw-hairline)); font-weight: var(--p3-fw-emphasis); }
-.shp i { display: block; width: var(--p3-l-shape); height: var(--p3-ctl-h-sm); border: var(--p3-bw-thick) solid var(--p3-ctl-edge); }
+.shp i { display: block; width: var(--p3-l-shape); height: var(--p3-ctl-h-sm); border: var(--p3-bw-thick) solid var(--p3-icon-2); }
 .bl { display: grid; gap: var(--p3-space-200); }
 .bl .brow { display: flex; gap: var(--p3-space-150); align-items: center; flex-wrap: wrap; }
 .bl .lab { width: var(--p3-l-cell); font-size: var(--p3-fs-12); }
@@ -633,6 +661,14 @@ details > summary::-webkit-details-marker { display: none; }
 details.small summary { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text-2); }
 details.small summary:hover { color: var(--p3-text); }
 .drawer.open .dwrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Review pass (better-typography, better-ui): a measure cap on running prose, and press feedback that
+   reduced motion turns off. */
+.opb p, .egroup p, .hint, .loglist, .tip, .note span, .dintro { max-width: var(--p3-l-measure); }
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition: background-color var(--t-dur) var(--p3-ease), border-color var(--t-dur) var(--p3-ease), transform var(--t-dur) var(--p3-ease); }
+  .btn:active:not([disabled]) { transform: scale(0.96); }
+}
 
 /* ── Activity drawer (F2) ──────────────────────────────────────────────────────────────── */
 .drawer { flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--p3-bg-page); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
@@ -674,7 +710,7 @@ details.small summary:hover { color: var(--p3-text); }
 .egroup p { margin: 0; line-height: var(--p3-lh-cozy); }
 .egroup .fix { display: flex; gap: var(--p3-space-150); align-items: center; flex-wrap: wrap; margin-top: var(--p3-space-050); }
 .egroup .fix .rep { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
-.notice { display: flex; gap: var(--p3-space-100); align-items: center; flex-wrap: wrap; padding: var(--p3-space-150) var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); font-size: var(--p3-fs-12); }
+.notice { display: flex; gap: var(--p3-space-100); align-items: center; flex-wrap: wrap; font-size: var(--p3-fs-12); }
 .pick { display: grid; max-height: var(--p3-l-pick); overflow: auto; border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); padding: var(--p3-space-050); }
 .pick label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-100); border-radius: var(--p3-radius-md); cursor: pointer; font-size: var(--p3-fs-14); }
 .pick label:hover { background: var(--p3-overlay-hover); }
@@ -766,7 +802,6 @@ pre.sample { background: var(--p3-fill-1); padding: var(--p3-space-150) var(--p3
 .app[data-w="narrow"] .pvp { overflow: auto; display: block; position: static; }
 .app[data-w="narrow"] .pvh-r1 { min-height: 0; padding: var(--p3-space-150) var(--t-cv-pad) var(--p3-space-100); }
 .app[data-w="narrow"] .pvh-r2 { padding-bottom: var(--p3-space-150); }
-.app[data-w="narrow"] .pvh .vsel { width: auto; flex: 1 1 auto; }
 .app[data-w="narrow"] .pvb { overflow: visible; }
 .app[data-w="narrow"] .drawer { display: none; }
 .app[data-w="narrow"] .drawer.open { display: flex; position: absolute; inset: 0; height: auto; z-index: 30; border-top: 0; }
@@ -792,18 +827,18 @@ pre.sample { background: var(--p3-fill-1); padding: var(--p3-space-150) var(--p3
 [data-content].spec .b.d { background: var(--dsf); color: var(--dson); }
 [data-content].spec .b.x { background: var(--df); color: var(--don); cursor: not-allowed; }
 [data-content].spec .btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
-[data-content].spec .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-top: 12px; }
-[data-content].spec .card { background: var(--bg2); border: 1px solid var(--bd); border-radius: var(--rad-lg); padding: 16px; box-shadow: var(--sh); }
-[data-content].spec .card h3 { font-family: var(--b-title); font-weight: var(--w-title); margin: 8px 0 4px; font-size: 17px; }
-[data-content].spec .card p { margin: 0 0 8px; font-size: 13.5px; color: var(--t2); }
-[data-content].spec .card .media { height: 84px; border-radius: var(--rad-md); background: var(--bg3); }
+[data-content].spec .scards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-top: 12px; }
+[data-content].spec .scard { background: var(--bg2); border: 1px solid var(--bd); border-radius: var(--rad-lg); padding: 16px; box-shadow: var(--sh); }
+[data-content].spec .scard h3 { font-family: var(--b-title); font-weight: var(--w-title); margin: 8px 0 4px; font-size: 17px; }
+[data-content].spec .scard p { margin: 0 0 8px; font-size: 13.5px; color: var(--t2); }
+[data-content].spec .scard .media { height: 84px; border-radius: var(--rad-md); background: var(--bg3); }
 [data-content].spec .price { font-weight: 600; color: var(--t1); }
 [data-content].spec a { color: var(--lk); text-decoration: underline; text-underline-offset: 2px; }
 [data-content].spec .badge { display: inline-flex; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--sbg); color: var(--sfg); }
-[data-content].spec .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; margin-top: 16px; max-width: 320px; }
-[data-content].spec .field .lb { color: var(--t1); font-weight: 600; }
-[data-content].spec .field .inp { min-height: var(--h-md); border: 1px solid var(--fb); border-radius: var(--rad-sm); padding: 0 12px; display: flex; align-items: center; color: var(--fph); background: var(--ffill); }
-[data-content].spec .field .msg { color: var(--t2); font-size: 12px; }
+[data-content].spec .sfield { display: flex; flex-direction: column; gap: 4px; font-size: 13px; margin-top: 16px; max-width: 320px; }
+[data-content].spec .sfield .lb { color: var(--t1); font-weight: 600; }
+[data-content].spec .sfield .inp { min-height: var(--h-md); border: 1px solid var(--fb); border-radius: var(--rad-sm); padding: 0 12px; display: flex; align-items: center; color: var(--fph); background: var(--ffill); }
+[data-content].spec .sfield .msg { color: var(--t2); font-size: 12px; }
 [data-content].spec .swrow { display: flex; gap: 8px; flex-wrap: wrap; }
 [data-content].spec .swb { display: flex; flex-direction: column; gap: 4px; font: 11px var(--mono, monospace); color: var(--t2); min-width: 76px; border: 0; background: none; padding: 0; text-align: left; }
 [data-content].spec .swb i { display: block; height: 36px; border-radius: 6px; border: 1px solid var(--bd); }
@@ -1675,7 +1710,7 @@ function rolesMatrix({ readOnly }) {
       return row + pick;
     }).join('');
   }).join('');
-  return `<div class="mxwrap" tabindex="0" role="region" aria-label="Roles by mode${readOnly ? ', read-only' : ''}"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div><span class="sub">Hatched columns are derived and read-only. The tinted column is the mode in the preview. Scroll sideways for more modes.</span>`;
+  return `<div class="mxwrap" tabindex="0" role="region" aria-label="Roles by mode${readOnly ? ', read-only' : ''}"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div><span class="sub">Hatched columns are derived and read-only. The underlined column is the mode in the preview. Scroll sideways for more modes.</span>`;
 }
 
 /* =====================================================================================
@@ -1830,7 +1865,7 @@ function followSection(key, why) {
   if (!key || key === S.activeSec) return;
   S.activeSec = key;
   const home = homeOfSec(key);
-  if (S.pin || S.inspect || !home || home === S.view) return;
+  if (S.pin || S.inspect || !home || home === S.view) { if (!S.inspect) renderPvh(); return; }
   clearTimeout(followT);
   followT = setTimeout(() => {
     if (S.pin || S.inspect || homeOfSec(S.activeSec) !== home || S.view === home) return;
@@ -1860,7 +1895,7 @@ function followFromTab() {
   S.activeSec = null; const el = sectionInView(); if (el) followSection(el.dataset.sec, 'tab');
 }
 function openInspect(v) {
-  S.inspect = v; S.menu = null; if (S.narrow) S.pane = 'preview';
+  S.inspect = v; S.menu = null; S.pane = 'preview'; // the pane only matters at 380
   renderTop(); renderPreview(); applyPane(); announce(`Inspecting ${VIEW_LABEL[v]}`);
   $('#insp-' + v)?.focus();
 }
@@ -1960,10 +1995,15 @@ function renderPvh() {
   }
   const seg = `<div class="seg sm modes" role="group" aria-label="Preview mode">${ms.map((m) => { const f = R.st.per[m].f; return `<button type="button" id="pm-seg-${m}" class="${isDerived(m) ? 'der' : ''}" aria-pressed="${m === S.mode}" data-act="mode" data-mode="${m}">${esc(mLabel(m))}<span class="mdot" aria-hidden="true"><span class="dot ${f ? 'fail' : 'ok'}"></span>${f ? f : ''}</span><span class="sr">${isDerived(m) ? ', derived' : ''}, ${f ? f + ' below floor' : 'all pairs at or above floor'}</span></button>`; }).join('')}</div>`;
   const sel = `<span class="modesel">${selectRaw(`id="pv-mode" data-act="modesel" aria-label="Preview mode"`, ms.map((m) => `<option value="${m}"${m === S.mode ? ' selected' : ''}>${esc(mLabel(m))}${isDerived(m) ? ' (derived)' : ''} · ${R.st.per[m].f ? R.st.per[m].f + ' below floor' : 'all pass'}</option>`).join(''), true)}</span>`;
-  $('#pvh').innerHTML = `<div class="pvh-r1"><span class="vsel">${selectRaw(`id="pv-view" data-act="viewsel" aria-label="View"`, VIEWS.map(([v, l]) => `<option value="${v}"${v === S.view ? ' selected' : ''}>${l}</option>`).join(''))}</span>
-    <button type="button" class="btn sm" id="pv-pin" aria-pressed="${S.pin}" data-act="pin">${gl(S.pin ? 'check' : 'pin')}Keep this view</button>
-    <span class="grow"></span>
-    <div class="popwrap"><button type="button" class="btn sm trail" id="pv-inspect" aria-expanded="${S.menu === 'inspect'}" aria-controls="insp-menu" data-act="menu" data-menu="inspect">${gl('layers')}Inspect${gl('chev')}</button>${S.menu === 'inspect' ? `<div class="pop right" id="insp-menu" role="group" aria-label="Inspect">${INSPECT.map(([v, l]) => `<button type="button" class="mi" id="im-${v}" data-act="inspect" data-view="${v}">${l}${v === 'contrast' ? `<span class="k">${esc(R.st.fail ? `${R.st.fail} below floor` : 'all pass')}</span>` : ''}</button>`).join('')}</div>` : ''}</div></div>
+  const pin = `<button type="button" class="btn sm" id="pv-pin" aria-pressed="${S.pin}" data-act="pin">${gl(S.pin ? 'check' : 'pin')}Keep this view</button>`;
+  const insp = `<div class="popwrap"><button type="button" class="btn sm trail" id="pv-inspect" aria-expanded="${S.menu === 'inspect'}" aria-controls="insp-menu" data-act="menu" data-menu="inspect">${gl('layers')}Inspect${gl('chev')}</button>${S.menu === 'inspect' ? `<div class="pop right" id="insp-menu" role="group" aria-label="Inspect">${INSPECT.map(([v, l]) => `<button type="button" class="mi" id="im-${v}" data-act="inspect" data-view="${v}">${l}${v === 'contrast' ? `<span class="k">${esc(R.st.fail ? `${R.st.fail} below floor` : 'all pass')}</span>` : ''}</button>`).join('')}</div>` : ''}</div>`;
+  // F1: the view is never picked by hand. The title names it and the section it follows; Keep this view
+  // holds it. A link inside a view ("see Components") can still show another view until the next section.
+  const sec = (() => { if (!S.activeSec) return null; const [d, i] = S.activeSec.split(':'); const dd = HOMES.domains.find((x) => x.id === d); const ss = dd?.sections[Number(i)]; return ss ? `${dd.label} › ${ss.title}` : null; })();
+  const follows = S.pin ? 'Kept by Keep this view' : !sec ? '' : homeOfSec(S.activeSec) === S.view ? `Follows ${sec}` : 'Shown from a link; the next section brings its own view';
+  const title = `<div class="pvtitle"><h2 id="pv-title">${esc(VIEW_LABEL[S.view])}</h2><span class="muted small" id="pv-follows">${esc(follows)}</span></div>`;
+  if (S.narrow) { $('#pvh').innerHTML = `<div class="pvh-r1">${title}<span class="grow"></span>${insp}</div><div class="pvh-r2">${sel}<span class="grow"></span>${pin}</div>`; return; }
+  $('#pvh').innerHTML = `<div class="pvh-r1">${title}<span class="grow"></span>${pin}${insp}</div>
     <div class="pvh-r2">${seg}${sel}
     <button type="button" class="btn sm" id="pv-cmp" aria-pressed="${cmpOn}" data-act="compare"${why ? ' disabled aria-describedby="cmp-why"' : ''}>Compare</button>
     ${cmpOn ? selectRaw(`id="pv-cmpmode" data-act="cmpmode" aria-label="Compare with"`, ms.filter((m) => m !== S.mode).map((m) => `<option value="${m}"${m === S.cmpMode ? ' selected' : ''}>with ${esc(mLabel(m))}</option>`).join(''), true) : ''}
@@ -1977,13 +2017,13 @@ function renderPvb() {
   const pvb = $('#pvb'); const st = pvb.scrollTop;
   const v = curView(); const V = VIEW_FN[v];
   const why = compareWhy();
-  const head = (m) => `<div class="cv-head"><h2>${esc(VIEW_LABEL[v])}</h2><span class="muted small">${S.inspect ? 'Inspect · every mode' : ALL_VIEW_MODES[v] === null ? 'Same in every mode' : ALL_VIEW_MODES[v] ? 'Every mode' : `Preview · ${esc(FULL_MODE_LABEL[m] || m)}`}</span></div>`;
+  const head = (m) => `<p class="cv-head muted small">${ALL_VIEW_MODES[v] === null ? 'Same in every mode' : ALL_VIEW_MODES[v] ? 'Every mode' : `Previewing ${esc(FULL_MODE_LABEL[m] || m)}`}</p>`;
   let html;
   try {
     const tb = !S.inspect && VIEW_TOOLBAR[v] ? VIEW_TOOLBAR[v]() : '';
     html = S.compare && !why && !S.inspect
-      ? `${head(S.mode).replace(/Preview · [^<]+/, `Compare · ${esc(mLabel(S.mode))} and ${esc(mLabel(S.cmpMode))}`)}${tb}<div class="cmp"><div><p class="cmph">${esc(mLabel(S.mode))}</p>${V(S.mode)}</div><div><p class="cmph">${esc(mLabel(S.cmpMode))}${isDerived(S.cmpMode) ? ' <span class="tag der">Derived</span>' : ''}</p>${V(S.cmpMode)}</div></div>`
-      : `${head(S.mode)}${tb}${V(S.mode)}`;
+      ? `${head(S.mode).replace(/Previewing [^<]+/, `Comparing ${esc(mLabel(S.mode))} and ${esc(mLabel(S.cmpMode))}`)}${tb}<div class="cmp"><div><p class="cmph">${esc(mLabel(S.mode))}</p>${V(S.mode)}</div><div><p class="cmph">${esc(mLabel(S.cmpMode))}${isDerived(S.cmpMode) ? ' <span class="tag der">Derived</span>' : ''}</p>${V(S.cmpMode)}</div></div>`
+      : `${tb}${V(S.mode)}`;
   } catch (e) { html = `<p class="err">This view could not draw: ${esc(e.message)}</p>`; console.error(e); }
   pvb.innerHTML = `<div class="cv">${html}</div>`; pvb.dataset.view = v; pvb.scrollTop = st;
   pvb.setAttribute('role', S.inspect ? 'tabpanel' : 'region'); pvb.setAttribute('aria-label', S.inspect ? `Inspect: ${VIEW_LABEL[v]}` : `Preview: ${VIEW_LABEL[v]}`);
@@ -2078,8 +2118,8 @@ const VIEW_FN = {
         <span class="b x" data-role="${I}disabled.on-fill" data-drive="disabled" aria-disabled="true">Unavailable</span>
       </div>
       <p><a data-role="${I}text.link.default" data-drive="link">View all details</a> <span style="color:var(--t3)" data-role="${I}text.tertiary">· Ships in 3 to 5 days</span></p>
-      <div class="cards">${cards.map(([b, h, p, pr]) => `<div class="card" data-role="${S.surface === 'page' ? '' : I}background.${S.surface === 'page' ? 'secondary' : 'primary'}"><div class="media" data-role="${I}background.tertiary"></div><span class="badge" data-role="${I}text.success">${b}</span><h3 data-role="${I}text.primary">${h}</h3><p data-role="${I}text.secondary">${p}</p><span class="price">${pr}</span></div>`).join('')}</div>
-      <div class="field"><span class="lb">Email address</span><div class="inp" data-role="${I}field.placeholder">name@example.com</div><span class="msg" data-role="${I}text.secondary">Used for order updates only.</span></div>
+      <div class="scards">${cards.map(([b, h, p, pr]) => `<div class="scard" data-role="${S.surface === 'page' ? '' : I}background.${S.surface === 'page' ? 'secondary' : 'primary'}"><div class="media" data-role="${I}background.tertiary"></div><span class="badge" data-role="${I}text.success">${b}</span><h3 data-role="${I}text.primary">${h}</h3><p data-role="${I}text.secondary">${p}</p><span class="price">${pr}</span></div>`).join('')}</div>
+      <div class="sfield"><span class="lb">Email address</span><div class="inp" data-role="${I}field.placeholder">name@example.com</div><span class="msg" data-role="${I}text.secondary">Used for order updates only.</span></div>
       <p class="sech">Backgrounds</p><div class="swrow" data-drive="surface">${sw(I + 'background.primary', 'primary')}${sw(I + 'background.secondary', 'secondary')}${sw(I + 'background.tertiary', 'tertiary')}</div>
       <p class="sech">Foregrounds</p><div class="swrow">${['brand', 'success', 'warning', 'danger', 'info'].map((k) => sw(I + 'foreground.' + k, k)).join('')}</div>
       <p class="sech">Text</p><div class="swrow">${['primary', 'secondary', 'tertiary', 'brand', 'danger'].map((k) => sw(I + 'text.' + k, k)).join('')}</div>
@@ -2107,7 +2147,8 @@ const VIEW_FN = {
   },
 
   roles() {
-    return board('Role × mode', rolesMatrix({ readOnly: true }), `<span class="grow"></span><button type="button" class="lnk" data-act="goto" data-domain="color" data-key="overrides" id="roles-edit">Edit in Color › Roles</button>`);
+    const beside = S.domain === 'color' && !S.search && !S.narrow; // the editable matrix is already open in the levers
+    return board('Role × mode', rolesMatrix({ readOnly: true }), beside ? '<span class="small muted">Read-only. Edit in the matrix under Color › Roles.</span>' : `<span class="grow"></span><button type="button" class="lnk" data-act="goto" data-domain="color" data-key="overrides" id="roles-edit">Edit in Color › Roles</button>`);
   },
 
   type(m) {
@@ -2670,7 +2711,7 @@ function gotoKey(domain, key) {
   if (S.narrow) S.pane = 'settings';
   renderTop(); renderLevers(); applyPane();
   const el = $$('#lvbody [data-keys]').find((x) => x.dataset.keys.split(' ').includes(key)) || (row && $(`#lv-${slug(key)}`));
-  if (el) { el.scrollIntoView({ block: 'start', behavior: 'auto' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 1600); const f = el.querySelector('input,select,button:not(.info)'); if (f) f.focus({ preventScroll: true }); }
+  if (el) { scrollWithin(el, 'start'); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 1600); const f = el.querySelector('input,select,button:not(.info)'); if (f) f.focus({ preventScroll: true }); }
 }
 function gotoRole(role, mode) {
   const m = isDerived(mode) ? follows(mode) : mode;
@@ -2678,10 +2719,21 @@ function gotoRole(role, mode) {
   S.roleSel = { role, mode: m }; S.listMode = m;
   gotoKey('color', 'overrides');
   const cell = document.getElementById(`rc-${slug(role)}-${m}`) || document.getElementById(`rcl-${slug(role)}-${m}`);
-  if (cell) { cell.scrollIntoView({ block: 'center' }); cell.focus({ preventScroll: true }); }
+  if (cell) { scrollWithin(cell, 'center'); cell.focus({ preventScroll: true }); }
   if (m !== mode) toast(`${mLabel(mode)} is derived from ${mLabel(m)}: edit ${role} there.`);
 }
-function setView(v) { S.view = v; S.inspect = null; S.menu = null; if (S.narrow) S.pane = 'preview'; renderTop(); renderPreview(); applyPane(); announce(`Showing ${VIEW_LABEL[v]}`); }
+/** Scrolls `el` into view inside its own scrollers only (the matrix, the levers), never the frame. */
+function scrollWithin(el, block) {
+  for (let n = el.parentElement; n && !n.matches('#app'); n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if (!/(auto|scroll)/.test(cs.overflowY + cs.overflowX) || (n.scrollHeight <= n.clientHeight && n.scrollWidth <= n.clientWidth)) continue;
+    const r = el.getBoundingClientRect(), b = n.getBoundingClientRect();
+    const dy = block === 'center' ? (r.top + r.height / 2) - (b.top + n.clientHeight / 2) : r.top - b.top - 16;
+    n.scrollTop += dy;
+    if (r.left < b.left || r.right > b.left + n.clientWidth) n.scrollLeft += r.left - b.left - 16;
+  }
+}
+function setView(v) { S.view = v; S.inspect = null; S.menu = null; S.pane = 'preview'; renderTop(); renderPreview(); applyPane(); announce(`Showing ${VIEW_LABEL[v]}`); }
 function applyPane() { $('#work').dataset.pane = S.pane; }
 function renderAll() { renderTop(); renderBanner(); renderLevers(); renderPreview(); renderDrawer(); applyPane(); syncHarness(); }
 
@@ -2778,7 +2830,7 @@ document.addEventListener('change', (e) => {
   if (el.closest('#dlg') || el.closest('.harness')) return;
   if (el.dataset.k) { onControlChange(el); return; }
   const act = el.dataset.act;
-  const V = { viewsel: () => setView(el.value), modesel: () => { S.mode = el.value; renderPreview(); if (S.domain === 'color') renderLevers(); $('#pv-mode')?.focus(); }, cmpmode: () => { S.cmpMode = el.value; renderPvb(); },
+  const V = { modesel: () => { S.mode = el.value; renderPreview(); if (S.domain === 'color') renderLevers(); $('#pv-mode')?.focus(); }, cmpmode: () => { S.cmpMode = el.value; renderPvb(); },
     domsel: () => { S.domain = el.value; S.search = ''; renderLevers(); $('#domsel').focus(); },
     tokgroup: () => { S.tokGroup = el.value; renderPvb(); $('#tok-group').focus(); }, pickpal: () => { S.roleSel.pal = el.value; renderLevers(); $('#pk-pal').focus(); },
     surface: () => { S.surface = el.value; S.sel = null; renderPvb(); document.getElementById(el.id)?.focus(); }, ctonly: () => { S.contrastOnlyFail = el.checked; renderPvb(); $('#ct-only').focus(); },
@@ -2829,7 +2881,7 @@ $('#lvp').addEventListener('scroll', onLeversScroll, true);
 document.addEventListener('focusin', (e) => { const sec = e.target.closest && e.target.closest('#lvp [data-home]'); if (sec) followSection(sec.dataset.sec, 'focus'); });
 
 /* ---------------- width classes (the CSS keys off data-w; see BREAKS) ---------------- */
-new ResizeObserver(() => {
+const widthObserver = new ResizeObserver(() => {
   const app = $('#app'), aw = app.getBoundingClientRect().width;
   const n = aw <= BREAKS.appNarrow;
   app.dataset.w = n ? 'narrow' : aw <= BREAKS.appMid ? 'mid' : 'wide';
@@ -2840,7 +2892,8 @@ new ResizeObserver(() => {
   // for a running operation becomes the strip.
   if (n !== S.narrow) { S.narrow = n; if (n && S.drawer.open && S.drawer.auto) { S.drawer.open = false; S.drawer.stripOp = S.busy; } renderTop(); renderPreview(); renderDrawer(); applyPane(); }
   updateTabCue();
-}).observe($('#app'));
+});
+for (const el of ['#app', '#pvp', '#lvp']) widthObserver.observe($(el));
 
 /* ---------------- theme (F3) ----------------
    Studio: Light, Dark or System (System follows the device). Plugin: follows Figma's theme. The harness
@@ -2933,7 +2986,7 @@ if (H0.get('frame')) HARNESS.frame(H0.get('frame'));
 if (H0.get('domain')) { S.domain = H0.get('domain'); if (H0.get('adv')) S.adv[S.domain] = true; renderLevers(); followFromTab(); }
 if (H0.get('scenario')) HARNESS.scenario(H0.get('scenario'));
 if (H0.get('inspect')) openInspect(H0.get('inspect'));
-requestAnimationFrame(() => { const el = sectionInView(); if (el) { S.activeSec = el.dataset.sec; } });
+requestAnimationFrame(() => { const el = sectionInView(); if (el) { S.activeSec = el.dataset.sec; renderPvh(); } });
 // Text widths change once the embedded faces load, so anything measured before then is measured again.
 document.fonts.ready.then(() => updateTabCue());
 </script>

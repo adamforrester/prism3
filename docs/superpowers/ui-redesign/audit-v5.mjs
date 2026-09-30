@@ -167,7 +167,7 @@ async function measure() {
         if (host && host.matches('.seg > label')) return ['text', host];
         return ['unknown', host || el];
       }
-      if (el.matches('input[type=radio], input[type=checkbox]')) return ['native', el];
+      if (el.matches('input[type=radio], input[type=checkbox]')) return getComputedStyle(el).appearance === 'none' && edgeColor(el) ? [el.checked ? 'indicator' : 'edge', el] : ['native', el];
       if (el.matches('.colorfield input')) return ['edge', el.closest('.colorfield')];
       if (el.matches(TEXTY)) return [edgeColor(el) && el.matches('[aria-pressed=true], [aria-selected=true], [aria-expanded=true]') ? 'indicator' : 'text', el];
       if (el.matches(GLYPHY)) return ['glyph', el];
@@ -285,8 +285,9 @@ for (const theme of ['light', 'dark']) {
       const themeKey = isPlugin ? `fig=${theme}` : `theme=${theme}`;
       const hash = [`frame=${w}`, themeKey, h].filter(Boolean).join('&').replace('scrollto=sec-color-3', '');
       await open(hash);
-      if (st === 'roles') { await page.evaluate(() => { const el = document.getElementById('sec-color-3'); if (el) el.scrollIntoView({ block: 'start' }); }); await wait(500); }
-      if (w === '380' && (st === 'inspect')) { /* the verdict dot moves to the Preview pane */ }
+      if (st === 'roles') { await page.evaluate(() => { const el = document.getElementById('sec-color-3'); if (el) scrollWithin(el, 'start'); }); await wait(500); }
+      // The screenshot comes first: the focus-ring pass below tabs through the page and moves it.
+      if (SHOTS) await page.locator('#frame').screenshot({ path: join(SHOTS, `v5-${theme}-${w}-${st}.png`) });
       const m = await measure();
       const fontFails = [];
       if (w === '1280' && st === 'default') {
@@ -302,12 +303,13 @@ for (const theme of ['light', 'dark']) {
       const all = [...m.fails, ...fontFails, ...ringFails.map((r) => ({ what: r.what, kind: r.none ? 'focus ring (none drawn)' : 'focus ring', r: r.r ?? 0, floor: 3 }))];
       // Each column must have measured something: a LITERAL floor per width, never derived from the page,
       // so a selector that stops matching cannot report an empty column's Infinity as a pass.
-      const FLOOR = { '1280': { text: 80, checks: 40, rings: 35, hits: 30 }, '380': { text: 12, checks: 12, rings: 20, hits: 12 } }[w];
+      // The 380 floors are set by its smallest state, Inspect › Contrast in the Preview pane (12 Tab
+      // stops and 10 targets in view when this was written).
+      const FLOOR = { '1280': { text: 80, checks: 40, rings: 35, hits: 30 }, '380': { text: 12, checks: 12, rings: 10, hits: 8 } }[w];
       const counts = { text: m.text.length, checks: m.checks.length, rings: fr.rings.length, hits: m.hits.length };
       for (const [col, n] of Object.entries(counts)) if (n < FLOOR[col]) all.push({ what: `${col} column`, kind: `measured only ${n} (floor ${FLOOR[col]})`, r: 0, floor: 0 });
       const min = (arr) => arr.reduce((a, b) => (b.r < a.r ? b : a), { r: Infinity });
       results.push({ theme, w, st, text: m.text.length, textMin: min(m.text), checks: m.checks.length, checkMin: min(m.checks), rings: fr.rings.length, capped: fr.capped, ringMin: min(fr.rings.filter((r) => !r.pseudo && !r.none)), hits: m.hits.length, hitMin: m.hits.reduce((a, b) => Math.min(a, b.w, b.h), Infinity), kinds: m.kinds, fails: all });
-      if (SHOTS) await page.locator('#frame').screenshot({ path: join(SHOTS, `v5-${theme}-${w}-${st}.png`) });
     }
   }
 }
@@ -353,7 +355,11 @@ await page.click('#tab-type'); await wait(450);
 { const v = await view(); if (v !== 'contrast') failed('F1 inspect', 'Inspect', `gave way to ${v} on a tab change`); }
 await page.click('#insp-close'); await wait(300);
 { const v = await view(); if (v !== 'type') failed('F1 inspect', 'closing Inspect', `shows ${v}, want type`); }
-{ const inSelect = await page.evaluate(() => [...document.querySelectorAll('#pv-view option')].map((o) => o.value)); for (const [id] of HOMES.inspect) if (inSelect.includes(id)) failed('F1 inspect', `${id}`, 'is still in the view select'); }
+// F1: the reader never picks a view by hand while editing, so the preview header offers no view select.
+{ const n = await page.evaluate(() => document.querySelectorAll('#pvh select:not(#pv-mode):not(#pv-cmpmode)').length); if (n) failed('F1 select', 'the preview header', `offers ${n} hand-picked view select(s)`); }
+// and the title names the view the section brought
+await page.click('#tab-motion'.replace('motion', 'depth')); await wait(450);
+{ const t = await page.textContent('#pv-title'); const want = HOMES.views.find(([id]) => id === HOMES.domains.find((d) => d.id === 'depth').sections[0].home)[1]; if (t.trim() !== want) failed('F1 title', 'the preview title', `reads "${t.trim()}", want "${want}"`); }
 
 // ── F2: the Activity drawer ──────────────────────────────────────────────────────────────────
 const drawerOpen = () => page.evaluate(() => document.getElementById('drawer').classList.contains('open'));
@@ -420,7 +426,7 @@ if (SHOTS) {
     await extra(`frame=1280&host=plugin&fig=${theme}&scenario=agent`, `v5-${theme}-1280-agent.png`);
     await extra(`frame=380&theme=${theme}`, `v5-${theme}-380-preview.png`, "document.getElementById('pane-p').click()");
     await extra(`frame=1280&theme=${theme}&domain=shape`, `v5-${theme}-1280-permode.png`, "document.getElementById('pm-radiusScale').click()");
-    await extra(`frame=1280&theme=${theme}&domain=color`, `v5-${theme}-1280-picker.png`, "document.getElementById('sec-color-3').scrollIntoView(); document.getElementById('rc-text-primary-dark')?.click() || (document.getElementById('fam-text').click(), document.getElementById('rc-text-primary-dark')?.click())");
+    await extra(`frame=1280&theme=${theme}&domain=color`, `v5-${theme}-1280-picker.png`, "scrollWithin(document.getElementById('sec-color-3'), 'start'); document.getElementById('rc-text-primary-dark')?.click() || (document.getElementById('fam-text').click(), document.getElementById('rc-text-primary-dark')?.click())");
   }
 }
 await browser.close();
