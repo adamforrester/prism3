@@ -7,6 +7,88 @@
 
 ---
 
+## (2026-09-30) — resolvePreview names a type binding the brand does not emit, instead of resolving it to 0px (#1720)
+
+**STATUS: merging from `lane/resolve-preview-missing-binding` (#1802).** ENGINE 0.212.0 → **0.213.0** (a read-model behavior change; `out/**` and `schema/*` move only their version stamp). 0.213.0 was claimed while `main` carried 0.211.0 and an open lane held 0.212.0 (#1799, since merged). CONTRACT stands at 14.0.0. Fixes #1720.
+
+**The defect.** The preview spec binds `type.display.lg.strong`, `type.title.lg.strong` and `type.title.md.strong` by name, and two legal inputs drop them. Since #1632 a brand may decline `strong` in display and title. And `typography.displayCeiling: 'sm' | 'md'` drops `display.lg`, so harbor at `'md'` loses `type.display.lg.strong`; the studio exposes that lever directly. For such a brand `resolvePreview` read `at(data, ref)` → `undefined`, then `node?.$value ?? {}`, and each accessor after it fell through to its own default: `sans-serif / 0 / 0px`, no error. Latent: nothing in the studio renders `rp.type` (the `cssVarAdapter` type atoms are set but `typeVar` has no reader), and `visualize.ts` builds its chips' fonts from the tree directly.
+
+**The fix: report, don't throw.** An unbound type style is now absent from `ResolvedPreview.type` and named in a new sorted `unresolvedType` list. `type` is typed `Partial<Record<…>>`, the L-16 precedent `colors` already follows, so a reader has to guard: dropping the guard in `write-adapter.ts` fails the studio `typecheck` with `'t' is possibly 'undefined'`. The structured miss beats a throw because of how the callers use it. The studio calls `resolvePreview` from `rebuild()` on every edit, where a throw is treated as a rejected edit, and once at boot, uncaught. The miss is reachable from a legal input, so a throw would make the studio refuse a valid brand, or fail to boot on a persisted one, over a value it never paints. The shadow read in the same function throws, and that difference is deliberate: an unreadable mode entry can only be an engine bug. `visualize.ts` is a build-time generator over a fixed brand list, so it throws by name on a non-empty `unresolvedType`.
+
+**The corpus.** No current caller passes a brand that relies on the fallback: every theme `resolvePreview` is called with (studio's example brands, `visualize.ts`'s four, `lint-ramp-values.ts`'s corpus, and the `test.ts` arms) emits all three `strong` styles. Probed across every `examples/*.design.md`: one brief declines them, and no caller resolves a preview for it. So no binding in the spec needed changing. Whether the spec should bind a heading by intent against `weightAvailability` (the #1602 pattern) is the issue's other option and a design call, left open. So is whether the studio shows `unresolvedType` to the user.
+
+**Tests.** A new `(10a)` block in `test.ts` builds harbor with `weights: { display: ['emphasis'], title: ['emphasis'] }` and asserts `unresolvedType` equals the literal list of the three `strong` keys, that none of them has an entry in `rp.type`, and that `type.body.md.default` still resolves. A hand-built spec with one bogus binding (`type.body.md.nonesuch`) beside a real one must name only that key. The expected keys are literals, not derived from `previewSpec`. The existing harbor arm and the example-brands loop now also assert an empty `unresolvedType`.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).** Restoring `node?.$value ?? {}` fails 3 by name: `#1720 a brand declining strong … names each unbound preview type style (… got none)`, `#1720 an unbound type style gets no entry in rp.type — GOT type.display.lg.strong=sans-serif/0/0px, …`, and `#1720 a spec binding a type style no brand emits names that key alone`. Reporting the key but still writing the fabricated composite fails 2 (the no-entry arm and the bogus-spec arm). Treating every binding as unbound fails 8, including `harbor emits every type style` and each `example brand '<id>': emits every type style`. Dropping the studio guard fails `typecheck` (TS18048 ×3). Pointing `visualize.ts`'s harbor theme at that strong-declining brief stops it with `visualize: 'harbor' does not emit the type styles the preview spec binds: type.display.lg.strong, type.title.lg.strong, type.title.md.strong`.
+
+### Review round (independent review of #1802 at ffbaecfd; approved)
+
+The reviewer's own mutation, reversing the sort, failed by name. Two follow-ups landed on top:
+
+- **A second legal route (MEDIUM).** `typography.displayCeiling: 'sm' | 'md'` drops `display.lg` (`buildComposites` in `theme.ts`), so harbor at `'md'` resolves `unresolvedType` to `['type.display.lg.strong']`. The studio exposes that lever directly. The prose that said the miss is reachable only since #1632 is corrected here, in `resolve-preview.ts`, in `version.ts` and in the README, and the route strengthens the no-throw call. A new arm asserts the literal list and that there is no `rp.type` entry. Mutation: resolving the arm over plain harbor instead of the ceiling brand fails `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound … (got none)`, and only that. I probed the other type levers over harbor (`titleFloor` 16/18, `typeScale` compact/default/expressive, and `displayCeiling` lg through 3xl): none drops a bound style.
+- **Stale atoms in the studio (LOW).** `cssVarAdapter` said an absent style was "left unset", which held only on first paint: a property set by an earlier apply stayed on the scope. It now removes the three atoms of every `unresolvedType` ref. A new `apps/studio/test-write-adapter.ts`, added to the studio `test` script, drives the real `cssVarAdapter` over a fake scope: apply harbor, then harbor at `displayCeiling: 'md'`, and the three `--type-display-lg-strong-*` properties (literal names, not built with `typeAtomName`) must be gone while the `--type-title-md-strong-*` ones stay. Mutation: dropping the removal loop fails `displayCeiling 'md' apply removes --type-display-lg-strong-{family,weight,size} — STILL SET: … --type-display-lg-strong-size=72px`, and only that.
+
+**Checked and not filed.** Dimension bindings have the same `?? 0` shape (`pxOf` of a missing node is 0), but a brand cannot remove a radius or space step name, and `test.ts`'s binding-validity gate already fails on a spec ref the default tree lacks. So a dimension miss is not reachable from a legal input today.
+
+---
+
+## (2026-09-30) — Skills gate: an all-caps name a skill quotes is declared where the skill places it (#1725)
+
+**STATUS: PR open from `lane/lint-skills-constants`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-skills.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252). `regen --check` stays in sync. Fixes #1725.
+
+**The defect.** `prism3-build-component` names about thirty hand-kept lists and version constants (`INTERACTIVE`, `NO_SIZE_AXIS`, `COMPOSED_GLYPH`, `EXPECTED_ARTIFACTS`, …). `lint-skills` resolved only dotted names, snake_case names and `*.ts` paths, so an all-caps name was never read. #1725 measured it: renaming `COMPOSED_GLYPH` in the skill exited 0.
+
+**The fix: check 5.** Every backticked word that is entirely `[A-Z0-9_]` is read as a claim that an identifier by that name is declared. The index comes from the source, not from the skills: every `const`/`let`/`var`/`function`/`class`/`enum`/`type`/`interface` declaration in the `.ts` files under `packages/`, `apps/` and `tools/` and at the repo root, skipping `node_modules`, `dist` and `out`. **Where** the name must be declared depends on what the skill says:
+- "`X` in `path.ts`" (or in a `lint-*` gate), even across a line break, means that file.
+- A table row whose first cell names a `*.ts` path or a `lint-*` gate means that file, for every name in the row. This is why a location is needed at all: `MUST_COVER` is declared in six gates, so "declared somewhere" would pass a rename of the one the `lint-rung-names` row means.
+- Otherwise, exactly one source file (an unplaced name declared in several fails as ambiguous; see the review round).
+
+A `lint-*` gate that resolves to no source file, or to more than one, is a finding. It does not fall back to "anywhere".
+
+**False positives: an explicit rule, not a narrower scan.** Requiring an underscore would have been the easy filter, and it would silently drop `TAXONOMY`, `STATES`, `INTERACTIVE` and `EXCLUDED`: four real list constants the skill quotes today. So the pattern stays wide. An all-caps word that is not an identifier is admitted by name in `NOT_DECLARED`, with a reason, the same rule as `NOT_EN_GB`. There is one admission: `COMPONENT_CONTRACT_VERSION`, which §8 of the skill names as a decided direction and, in the next sentence, says does not exist in code. The list is checked both ways: an admitted word that becomes declared fails as stale, and so does one no skill quotes. The existing counter-example exemption ("not `X`") applies as it does to every name.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).** Subject side, with `origin/main`'s gate run over the same edit for contrast:
+
+| Mutation | This branch | `main` |
+|---|---|---|
+| M1 skill: `COMPOSED_GLYPH` → `COMPOSED_GLYPHS` (#1725's measurement) | `[misplaced identifier] COMPOSED_GLYPHS is not declared in packages/engine/lint-glyph-geometry.ts` | exit 0 |
+| M2 a made-up `FAKE_RAMP_LIST` added to `prism3-consume` | `[undeclared identifier] FAKE_RAMP_LIST is not declared in any source file` | exit 0 |
+| M3 gate side: `MUST_COVER` renamed in `lint-rung-names.ts` only | `[misplaced identifier] MUST_COVER is not declared in packages/engine/lint-rung-names.ts` (declared in the five other gates) | exit 0 |
+| M4 `TAXONOMY` renamed in `apps/plugin/src/file-taxonomy.ts` | `[misplaced identifier] TAXONOMY …` at both places the skill names it | exit 0 |
+
+Gate side, each failing the self-check by name:
+
+| Mutation | Fails |
+|---|---|
+| M5 check 5 neutered (`if (false && …)`) | `an UNDECLARED all-caps identifier is no longer detected`, and three more |
+| M6 `placedIn` returns nothing | `a table-row identifier declared only in ANOTHER gate passes`; `a prose "X in file.ts" placement naming the WRONG file passes`; the unresolvable-gate arm |
+| M7 `UPPER` narrowed to require an underscore | `an undeclared all-caps word with NO underscore is no longer detected` |
+| M8 an unresolvable site falls back to "anywhere" | `a table row naming a gate with no source file passes` |
+| M9 `ENGINE_VERSION` admitted in `NOT_DECLARED` | `[stale admission] … it is now declared in packages/engine/version.ts` |
+| M10 `WCAG` admitted, quoted by no skill | `[stale admission] NOT_DECLARED admits WCAG, which no skill quotes any more` |
+| M11 the admission is not consulted | `an admitted NOT_DECLARED word is now flagged` |
+
+**Trap for whoever re-verifies.** The first M8 (`if (!file && !where)`) survived, and that was the mutation's fault, not the gate's. With `file` undefined, the `else if (!where?.has(file))` branch still fires and names the row as misplaced. A mutation meant to test "falls back to anywhere" has to skip the placement entirely (`if (site && siteFile(site).file)`), which is the M8 in the table.
+
+**Review round (independent review, approved with a required follow-up).** Four findings, all fixed on top of the branch:
+1. **Unplaced names fell back to "anywhere".** 9 of the 39 references have no placement. The reviewer renamed `STATES` to `STATE_NAMES` throughout `component-schema.ts`, and the gate still exited 0 because `test.ts` and two studio files also declare `STATES`. Now an unplaced name declared in more than one file fails as `ambiguous identifier`. The skill places `STATES` in `packages/engine/component-schema.ts`. It was the only ambiguous real reference.
+2. **No live placement check.** The wiring floor counted `scanText` runs, not placements. If someone reformatted the gate table, all 30 placed names would fall back to the unplaced rule and still pass. `PLACED_FLOOR = 31` is a literal, hand-counted: the table's 27, three prose placements, and `STATES`. It fails by name on a drop.
+3. **`DECL` matched in comments and strings.** "the type SET" and "a var NB" counted as declarations, which is the dangerous direction. `DECL` now requires the keyword to open a line. I tried stripping comments first and measured it: a `/*` inside a glob string opened a "comment" that ate real code, and the index lost 166 names, `CONTROL_DEFS` among them. Anchoring loses only comment, string and loop-binding matches (checked name by name). Its ceiling is stated in the header: a multi-line template or block-comment line that opens with a keyword.
+4. **The admission fixture used the live list.** The self-check now builds its own index and admission through the same `indexOf`/`declaredNames` the live run uses. Removing the live `COMPONENT_CONTRACT_VERSION` admission now fails only the real skill, with the accurate `undeclared identifier` message.
+
+| Mutation | Fails |
+|---|---|
+| R1 `STATES` → `STATE_NAMES` throughout `component-schema.ts` (the reviewer's) | `[misplaced identifier] STATES is not declared in packages/engine/component-schema.ts` |
+| R1b the same rename, pre-review skill (unplaced), floor held at 30 | `[ambiguous identifier] STATES is declared in 3 files …` (and in 4 files before the rename) |
+| R2 indent the `lint-standalone-floor` table row | `only 30 quoted identifier(s) … carry a placement, below the floor of 31` |
+| R2b un-backtick the `lint-rung-names` first cell | `only 25 … below the floor of 31` |
+| R3 `DECL` unanchored again | `a name that appears only in a // COMMENT now counts as declared`, the `/** */` twin, `a name declared only inside a STRING …` |
+| R3b a skill quotes `SET` (declared only in prose) | `[undeclared identifier] SET` |
+| R4 ambiguity rule disabled | `an unplaced name declared in TWO files passes` |
+| R5 the live `COMPONENT_CONTRACT_VERSION` admission removed | real skill only: `[undeclared identifier] COMPONENT_CONTRACT_VERSION`; the self-check stays green |
+
+---
+
 ## (2026-09-29) — Style guide, phase 2: dimension, font-variable and text-style tables (#259)
 
 **STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE **0.216.0** (0.200.0, then 0.205.0 after main's 0.203.0 was merged in, then 0.210.0 above #1792–#1794; renumbered above main's 0.213.0 and #1804's 0.214.0; #1784's release is 0.215.0 here). Also fixes #1795, a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
@@ -220,88 +302,6 @@ A palette row is now 48px, its bare swatch, where it was 72 inside a ground, so 
 |---|---|
 | a ground on a palette row (primitive rows drawn through `specimen`) | "5: a palette row has no ground frame: its cell is the type=default swatch, 48 × 48 and FIXED (Ground … 168 grounds in the primitive tables)", "13: two new steps grow Primary — nbds by 2 × (48 + 2) = 100px (got 148)" |
 | a filled square for a text role (`autoDisplay` never returns `text`) | "5: a text.* row draws letters, the type=text member with its "Aa" fill bound to the token, on its ground, with no filled square (type=default…)", "5: text/primary uses the text swatch", "3: a text role draws the text swatch", "2: the adopted type=Text swatch is used for a text role" |
-## (2026-09-30) — resolvePreview names a type binding the brand does not emit, instead of resolving it to 0px (#1720)
-
-**STATUS: merging from `lane/resolve-preview-missing-binding` (#1802).** ENGINE 0.212.0 → **0.213.0** (a read-model behavior change; `out/**` and `schema/*` move only their version stamp). 0.213.0 was claimed while `main` carried 0.211.0 and an open lane held 0.212.0 (#1799, since merged). CONTRACT stands at 14.0.0. Fixes #1720.
-
-**The defect.** The preview spec binds `type.display.lg.strong`, `type.title.lg.strong` and `type.title.md.strong` by name, and two legal inputs drop them. Since #1632 a brand may decline `strong` in display and title. And `typography.displayCeiling: 'sm' | 'md'` drops `display.lg`, so harbor at `'md'` loses `type.display.lg.strong`; the studio exposes that lever directly. For such a brand `resolvePreview` read `at(data, ref)` → `undefined`, then `node?.$value ?? {}`, and each accessor after it fell through to its own default: `sans-serif / 0 / 0px`, no error. Latent: nothing in the studio renders `rp.type` (the `cssVarAdapter` type atoms are set but `typeVar` has no reader), and `visualize.ts` builds its chips' fonts from the tree directly.
-
-**The fix: report, don't throw.** An unbound type style is now absent from `ResolvedPreview.type` and named in a new sorted `unresolvedType` list. `type` is typed `Partial<Record<…>>`, the L-16 precedent `colors` already follows, so a reader has to guard: dropping the guard in `write-adapter.ts` fails the studio `typecheck` with `'t' is possibly 'undefined'`. The structured miss beats a throw because of how the callers use it. The studio calls `resolvePreview` from `rebuild()` on every edit, where a throw is treated as a rejected edit, and once at boot, uncaught. The miss is reachable from a legal input, so a throw would make the studio refuse a valid brand, or fail to boot on a persisted one, over a value it never paints. The shadow read in the same function throws, and that difference is deliberate: an unreadable mode entry can only be an engine bug. `visualize.ts` is a build-time generator over a fixed brand list, so it throws by name on a non-empty `unresolvedType`.
-
-**The corpus.** No current caller passes a brand that relies on the fallback: every theme `resolvePreview` is called with (studio's example brands, `visualize.ts`'s four, `lint-ramp-values.ts`'s corpus, and the `test.ts` arms) emits all three `strong` styles. Probed across every `examples/*.design.md`: one brief declines them, and no caller resolves a preview for it. So no binding in the spec needed changing. Whether the spec should bind a heading by intent against `weightAvailability` (the #1602 pattern) is the issue's other option and a design call, left open. So is whether the studio shows `unresolvedType` to the user.
-
-**Tests.** A new `(10a)` block in `test.ts` builds harbor with `weights: { display: ['emphasis'], title: ['emphasis'] }` and asserts `unresolvedType` equals the literal list of the three `strong` keys, that none of them has an entry in `rp.type`, and that `type.body.md.default` still resolves. A hand-built spec with one bogus binding (`type.body.md.nonesuch`) beside a real one must name only that key. The expected keys are literals, not derived from `previewSpec`. The existing harbor arm and the example-brands loop now also assert an empty `unresolvedType`.
-
-**Mutations (on a `wip:` commit, each restored by `git checkout --`).** Restoring `node?.$value ?? {}` fails 3 by name: `#1720 a brand declining strong … names each unbound preview type style (… got none)`, `#1720 an unbound type style gets no entry in rp.type — GOT type.display.lg.strong=sans-serif/0/0px, …`, and `#1720 a spec binding a type style no brand emits names that key alone`. Reporting the key but still writing the fabricated composite fails 2 (the no-entry arm and the bogus-spec arm). Treating every binding as unbound fails 8, including `harbor emits every type style` and each `example brand '<id>': emits every type style`. Dropping the studio guard fails `typecheck` (TS18048 ×3). Pointing `visualize.ts`'s harbor theme at that strong-declining brief stops it with `visualize: 'harbor' does not emit the type styles the preview spec binds: type.display.lg.strong, type.title.lg.strong, type.title.md.strong`.
-
-### Review round (independent review of #1802 at ffbaecfd; approved)
-
-The reviewer's own mutation, reversing the sort, failed by name. Two follow-ups landed on top:
-
-- **A second legal route (MEDIUM).** `typography.displayCeiling: 'sm' | 'md'` drops `display.lg` (`buildComposites` in `theme.ts`), so harbor at `'md'` resolves `unresolvedType` to `['type.display.lg.strong']`. The studio exposes that lever directly. The prose that said the miss is reachable only since #1632 is corrected here, in `resolve-preview.ts`, in `version.ts` and in the README, and the route strengthens the no-throw call. A new arm asserts the literal list and that there is no `rp.type` entry. Mutation: resolving the arm over plain harbor instead of the ceiling brand fails `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound … (got none)`, and only that. I probed the other type levers over harbor (`titleFloor` 16/18, `typeScale` compact/default/expressive, and `displayCeiling` lg through 3xl): none drops a bound style.
-- **Stale atoms in the studio (LOW).** `cssVarAdapter` said an absent style was "left unset", which held only on first paint: a property set by an earlier apply stayed on the scope. It now removes the three atoms of every `unresolvedType` ref. A new `apps/studio/test-write-adapter.ts`, added to the studio `test` script, drives the real `cssVarAdapter` over a fake scope: apply harbor, then harbor at `displayCeiling: 'md'`, and the three `--type-display-lg-strong-*` properties (literal names, not built with `typeAtomName`) must be gone while the `--type-title-md-strong-*` ones stay. Mutation: dropping the removal loop fails `displayCeiling 'md' apply removes --type-display-lg-strong-{family,weight,size} — STILL SET: … --type-display-lg-strong-size=72px`, and only that.
-
-**Checked and not filed.** Dimension bindings have the same `?? 0` shape (`pxOf` of a missing node is 0), but a brand cannot remove a radius or space step name, and `test.ts`'s binding-validity gate already fails on a spec ref the default tree lacks. So a dimension miss is not reachable from a legal input today.
-
----
-
-## (2026-09-30) — Skills gate: an all-caps name a skill quotes is declared where the skill places it (#1725)
-
-**STATUS: PR open from `lane/lint-skills-constants`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-skills.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252). `regen --check` stays in sync. Fixes #1725.
-
-**The defect.** `prism3-build-component` names about thirty hand-kept lists and version constants (`INTERACTIVE`, `NO_SIZE_AXIS`, `COMPOSED_GLYPH`, `EXPECTED_ARTIFACTS`, …). `lint-skills` resolved only dotted names, snake_case names and `*.ts` paths, so an all-caps name was never read. #1725 measured it: renaming `COMPOSED_GLYPH` in the skill exited 0.
-
-**The fix: check 5.** Every backticked word that is entirely `[A-Z0-9_]` is read as a claim that an identifier by that name is declared. The index comes from the source, not from the skills: every `const`/`let`/`var`/`function`/`class`/`enum`/`type`/`interface` declaration in the `.ts` files under `packages/`, `apps/` and `tools/` and at the repo root, skipping `node_modules`, `dist` and `out`. **Where** the name must be declared depends on what the skill says:
-- "`X` in `path.ts`" (or in a `lint-*` gate), even across a line break, means that file.
-- A table row whose first cell names a `*.ts` path or a `lint-*` gate means that file, for every name in the row. This is why a location is needed at all: `MUST_COVER` is declared in six gates, so "declared somewhere" would pass a rename of the one the `lint-rung-names` row means.
-- Otherwise, exactly one source file (an unplaced name declared in several fails as ambiguous; see the review round).
-
-A `lint-*` gate that resolves to no source file, or to more than one, is a finding. It does not fall back to "anywhere".
-
-**False positives: an explicit rule, not a narrower scan.** Requiring an underscore would have been the easy filter, and it would silently drop `TAXONOMY`, `STATES`, `INTERACTIVE` and `EXCLUDED`: four real list constants the skill quotes today. So the pattern stays wide. An all-caps word that is not an identifier is admitted by name in `NOT_DECLARED`, with a reason, the same rule as `NOT_EN_GB`. There is one admission: `COMPONENT_CONTRACT_VERSION`, which §8 of the skill names as a decided direction and, in the next sentence, says does not exist in code. The list is checked both ways: an admitted word that becomes declared fails as stale, and so does one no skill quotes. The existing counter-example exemption ("not `X`") applies as it does to every name.
-
-**Mutations (on a `wip:` commit, each restored by `git checkout --`).** Subject side, with `origin/main`'s gate run over the same edit for contrast:
-
-| Mutation | This branch | `main` |
-|---|---|---|
-| M1 skill: `COMPOSED_GLYPH` → `COMPOSED_GLYPHS` (#1725's measurement) | `[misplaced identifier] COMPOSED_GLYPHS is not declared in packages/engine/lint-glyph-geometry.ts` | exit 0 |
-| M2 a made-up `FAKE_RAMP_LIST` added to `prism3-consume` | `[undeclared identifier] FAKE_RAMP_LIST is not declared in any source file` | exit 0 |
-| M3 gate side: `MUST_COVER` renamed in `lint-rung-names.ts` only | `[misplaced identifier] MUST_COVER is not declared in packages/engine/lint-rung-names.ts` (declared in the five other gates) | exit 0 |
-| M4 `TAXONOMY` renamed in `apps/plugin/src/file-taxonomy.ts` | `[misplaced identifier] TAXONOMY …` at both places the skill names it | exit 0 |
-
-Gate side, each failing the self-check by name:
-
-| Mutation | Fails |
-|---|---|
-| M5 check 5 neutered (`if (false && …)`) | `an UNDECLARED all-caps identifier is no longer detected`, and three more |
-| M6 `placedIn` returns nothing | `a table-row identifier declared only in ANOTHER gate passes`; `a prose "X in file.ts" placement naming the WRONG file passes`; the unresolvable-gate arm |
-| M7 `UPPER` narrowed to require an underscore | `an undeclared all-caps word with NO underscore is no longer detected` |
-| M8 an unresolvable site falls back to "anywhere" | `a table row naming a gate with no source file passes` |
-| M9 `ENGINE_VERSION` admitted in `NOT_DECLARED` | `[stale admission] … it is now declared in packages/engine/version.ts` |
-| M10 `WCAG` admitted, quoted by no skill | `[stale admission] NOT_DECLARED admits WCAG, which no skill quotes any more` |
-| M11 the admission is not consulted | `an admitted NOT_DECLARED word is now flagged` |
-
-**Trap for whoever re-verifies.** The first M8 (`if (!file && !where)`) survived, and that was the mutation's fault, not the gate's. With `file` undefined, the `else if (!where?.has(file))` branch still fires and names the row as misplaced. A mutation meant to test "falls back to anywhere" has to skip the placement entirely (`if (site && siteFile(site).file)`), which is the M8 in the table.
-
-**Review round (independent review, approved with a required follow-up).** Four findings, all fixed on top of the branch:
-1. **Unplaced names fell back to "anywhere".** 9 of the 39 references have no placement. The reviewer renamed `STATES` to `STATE_NAMES` throughout `component-schema.ts`, and the gate still exited 0 because `test.ts` and two studio files also declare `STATES`. Now an unplaced name declared in more than one file fails as `ambiguous identifier`. The skill places `STATES` in `packages/engine/component-schema.ts`. It was the only ambiguous real reference.
-2. **No live placement check.** The wiring floor counted `scanText` runs, not placements. If someone reformatted the gate table, all 30 placed names would fall back to the unplaced rule and still pass. `PLACED_FLOOR = 31` is a literal, hand-counted: the table's 27, three prose placements, and `STATES`. It fails by name on a drop.
-3. **`DECL` matched in comments and strings.** "the type SET" and "a var NB" counted as declarations, which is the dangerous direction. `DECL` now requires the keyword to open a line. I tried stripping comments first and measured it: a `/*` inside a glob string opened a "comment" that ate real code, and the index lost 166 names, `CONTROL_DEFS` among them. Anchoring loses only comment, string and loop-binding matches (checked name by name). Its ceiling is stated in the header: a multi-line template or block-comment line that opens with a keyword.
-4. **The admission fixture used the live list.** The self-check now builds its own index and admission through the same `indexOf`/`declaredNames` the live run uses. Removing the live `COMPONENT_CONTRACT_VERSION` admission now fails only the real skill, with the accurate `undeclared identifier` message.
-
-| Mutation | Fails |
-|---|---|
-| R1 `STATES` → `STATE_NAMES` throughout `component-schema.ts` (the reviewer's) | `[misplaced identifier] STATES is not declared in packages/engine/component-schema.ts` |
-| R1b the same rename, pre-review skill (unplaced), floor held at 30 | `[ambiguous identifier] STATES is declared in 3 files …` (and in 4 files before the rename) |
-| R2 indent the `lint-standalone-floor` table row | `only 30 quoted identifier(s) … carry a placement, below the floor of 31` |
-| R2b un-backtick the `lint-rung-names` first cell | `only 25 … below the floor of 31` |
-| R3 `DECL` unanchored again | `a name that appears only in a // COMMENT now counts as declared`, the `/** */` twin, `a name declared only inside a STRING …` |
-| R3b a skill quotes `SET` (declared only in prose) | `[undeclared identifier] SET` |
-| R4 ambiguity rule disabled | `an unplaced name declared in TWO files passes` |
-| R5 the live `COMPONENT_CONTRACT_VERSION` admission removed | real skill only: `[undeclared identifier] COMPONENT_CONTRACT_VERSION`; the self-check stays green |
-
----
-
 ## (2026-09-29) — Rung names: the scope floor names every size-axis def, checked in both directions (#1724)
 
 **STATUS: PR open from `lane/rung-names-floor`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-rung-names.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252); `regen --check` stays in sync. Fixes #1724.
