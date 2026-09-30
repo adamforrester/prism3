@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.210.0 — #259 phase 2 and #1795 (0.200.0, then 0.205.0, on its branch; renumbered above #1792–#1794, which claim 0.206.0–0.208.0): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
+ * 0.216.0 — #259 phase 2 and #1795 (0.200.0, 0.205.0, then 0.210.0, on its branch; renumbered above main's 0.213.0 and #1804's 0.214.0): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
  * `dimension` table per collection (spacing and size as a spacing cell at the value's width, its width bound; a radius
  * as the radius swatch, its corners bound), one table per font kind per collection ("Abc 123" with the one property
  * bound), and one text-style table ("Abc 123" with the style applied, sizes per `type-sets` mode). Values in px and
@@ -2948,9 +2948,14 @@
  * specimen is sized by a bound `paddingLeft` (the host silently drops a width written to a layer inside an
  * instance), its frame set to HUG again after the bind and read back; cells that cannot be sized are named once.
  * Owner decisions 18 and 19: one spacing style per run (filled by default), and REM in its own column. #1795: a
- * superseded table's name and place are read before it is removed, never after.
+ * superseded table's name and place are read before it is removed, never after. After the live QA of 0.210.0
+ * (decision 21): Set up file's spacing frames rest 0.01 wide with no padding (an instance's layer never hugs
+ * narrower than its main), a zero value's specimen is hidden and counted as drawn, and every padding bind is
+ * followed by FIXED then HUG so a smaller value shrinks the frame. Decision 20: the Pixels option is removed (the
+ * agent link accepts and ignores `pixels`, named in the run's notes), and a text style's letter spacing and
+ * paragraph spacing get REM columns.
  *
- * 0.209.0 — #1778 + #259 (0.199.0 on its own branch, 0.204.0 here earlier; renumbered above #1792–#1794) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
+ * 0.215.0 — #1778 + #259 (0.199.0 on its own branch, 0.204.0 then 0.209.0 here earlier; renumbered above main's 0.213.0 and #1804's 0.214.0) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
  * unknown name is reported; a filtered run supersedes nothing and re-stacks only its own pages. The executor
  * yields to the host after every table and every ~28 cells (the component writer's `realYield`), and reports
@@ -2963,6 +2968,41 @@
  * cell, a filtered run that moves only the tables below the ones it redrew, and one style-guide run at a time
  * across the panel and the agent link (#1785). Owner decision 13, clarified: the specimen by role, with a ground
  * only where it must sit on something — a palette row's swatch sits in its cell with no ground.
+ * 0.213.0 — #1720: `resolvePreview` no longer resolves a type binding the brand does not emit to
+ * `sans-serif / 0 / 0px`. It read `node?.$value ?? {}` and every accessor after it fell through to its own
+ * default. The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and two legal
+ * inputs drop them: declining `strong` in display/title (#1632), and `typography.displayCeiling: 'sm' | 'md'`,
+ * which drops `display.lg` (a lever the studio exposes). Such a
+ * binding is now absent from `ResolvedPreview.type` (typed `Partial`, so a reader has to guard) and named in
+ * the new `unresolvedType` list. Reported rather than thrown: the studio calls `resolvePreview` on every edit
+ * and would otherwise refuse a valid brand over a value it never paints. `visualize.ts` throws by name on a
+ * non-empty list. A read-model behavior change → ENGINE bump; no emitted value moves, so `out/**` and
+ * `schema/*` move only their version stamp. CONTRACT STANDS (no token name moves).
+ *
+ * 0.212.0 — the dismissible Tag's label inset (owner-decided 2026-09-29 from live QA on a real Figma file;
+ * decision record `docs/28` §5.4.4). On a dismissible tag the label-and-check row (`labelCheck`) takes a FIXED
+ * 4px leading inset (`space.050`, every density), and the content row's icon→label gap drops to match (6/8/12
+ * → 2/4/4 at comfortable), so the visible icon→label is 6/8/8 and a dismissible tag is 4px wider. The def
+ * states the visible distance (density-following, held by the 4px gap floor) and the layer gap is derived as
+ * visible − inset, never below 0 (`ComponentDef.visibleGaps`, `visibleGapStep`, applied in
+ * `applySpacingDensity`). Select tags are pixel-identical; their `labelCheck` now binds explicit 0 paddings.
+ * The projected component surface moves (dismissible `itemSpacing`, `labelCheck` padding bindings) → ENGINE
+ * bump. CONTRACT STANDS at 14.0.0 (no token name moves; the new keys are def-internal bindings to existing
+ * `space.*` steps).
+ *
+ * 0.211.0 — #1781: a nested part whose target is a component SET could resolve to a member of the WRONG set
+ * with the same member name. Both executors matched the def's coordinate inside the named set, then looked
+ * the matched member NAME up again in the document-wide COMPONENT map, where every set's `size=small` shares
+ * one key and the last one searched wins. On a rebuild with stale sets renamed aside, `checkbox-group` nested
+ * `switch-row`, `radio-group` and `__old__radio-group` rows, and `checkbox-row` nested `radio-control`'s
+ * identically named member, each reported as success. Both executors now call one shared
+ * `resolveNestMember` (the paste payload ships its source): the member is instantiated out of the named set's
+ * own `children`, the set is matched by EXACT name (a renamed `__old__` copy never answers), and two sets
+ * under the exact name are reported by name and nothing is nested. `anatomy-readback.ts`'s `nestTarget`
+ * predicate now reads the instance's `mainComponent.parent` and fails by name on the wrong set. A PLUGIN
+ * write-path and paste-payload behavior change (principle 5) → ENGINE bump; no token or projected surface
+ * moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
  * 0.208.0 — #1790: the paste path's theme cleanup (`runCleanupTheme`, the `use_figma` scratch-file wipe)
  * had the read-after-remove defect that `applyPrunePlan` was fixed for in 0.203.0. It read `.name` off
  * each style and each collection right after calling its `remove()`, and on the next collection it read `variableCollectionId`
@@ -4286,7 +4326,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.210.0';
+export const ENGINE_VERSION = '0.216.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -5356,6 +5396,35 @@ export const satisfiesBump = (prev: string, next: string, level: Level): boolean
   if (level === 'major') return na > pa;
   if (level === 'minor') return na > pa || (na === pa && ni > pi);
   return na > pa || (na === pa && ni > pi) || (na === pa && ni === pi && np > pp);
+};
+
+/**
+ * Does `CONTRACT_VERSION` disagree with the baseline's recorded `contractVersion` in a way no surface
+ * change can explain (#1768)? Read by BOTH `token-contract.ts` modes, before either decides anything.
+ *
+ *  - `'behind'` — the constant is LOWER than the version the baseline records. Always wrong, at every
+ *    level: the only thing that ever raises the baseline's number is an `--accept` that saw the constant
+ *    at that value, so a lower constant is a revert, a bad merge resolution or a hand edit. A consumer
+ *    pinned to the higher number would read a lower one for the same surface. `--check` printed
+ *    "unchanged" over this, because `classify` compares PATHS and never looked at the numbers.
+ *  - `'ahead'` — the constant is HIGHER and no guaranteed path moved, so the bump has nothing to record.
+ *    `--accept` already refused this (`satisfiesBump(…, 'none')` is equality) while `--check` printed
+ *    "unchanged" over it: the two modes of one gate gave opposite verdicts on the same tree.
+ *
+ * DELIBERATELY NOT FLAGGED: a bump LARGER than a real diff requires (a MAJOR for an added path, or two
+ * majors for one removal). `docs/30` states the rule as "raised by AT LEAST the increment the diff
+ * requires", and `satisfiesBump` pins over-bumping as safe. Over-bumping costs a consumer a needless
+ * review, never a silent miss, so it stays the owner's policy call rather than this gate's.
+ *
+ * Compares numerically per component, never as strings: `'9.10.0' < '9.9.0'` lexically.
+ */
+export const contractVersionDrift = (baseline: string, current: string, level: Level): 'behind' | 'ahead' | undefined => {
+  const [ba, bi, bp] = parse(baseline);
+  const [ca, ci, cp] = parse(current);
+  const order = ca !== ba ? ca - ba : ci !== bi ? ci - bi : cp - bp;
+  if (order < 0) return 'behind';
+  if (order > 0 && level === 'none') return 'ahead';
+  return undefined;
 };
 
 /**

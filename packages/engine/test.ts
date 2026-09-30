@@ -37,7 +37,7 @@ import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
-import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
+import { ENGINE_VERSION, CONTRACT_VERSION, classify, contractVersionDrift, satisfiesBump, DEPRECATIONS } from './version';
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, type RenameMap } from './rename-map';
 import {
   MATERIALIZATION_RENAMES, MATERIALIZATION_DELETIONS, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
@@ -72,7 +72,9 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -2862,7 +2864,7 @@ for (const b of brands) {
       'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
-      tag: { keys: ['padding-x', 'gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
+      tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -2873,7 +2875,9 @@ for (const b of brands) {
       select: { compact: 'bare 12/6/6', comfortable: 'bare 16/8/8', spacious: 'bare 20/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
       'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
-      tag: { compact: 'small 6/4/4/6/0 · medium 8/6/4/8/0 · large 12/8/6/12/0', comfortable: 'small 8/6/4/8/0 · medium 12/8/6/12/0 · large 16/12/8/16/0', spacious: 'small 12/8/6/12/0 · medium 16/12/8/16/0 · large 20/16/12/20/0' },
+      // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
+      // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
+      tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -2898,6 +2902,10 @@ for (const b of brands) {
     // THE GAP FLOOR (owner, 2026-09-29, `docs/28` §5.4.1): no gap below 4px at any density; paddings are not
     // floored. The gap keys are listed here, per def, literally. The floor's one move in the corpus is compact
     // small Tag's label→check, which the bare step rule takes to 2px (`space.025`); the table above holds it at 4.
+    // A `+` entry is a VISIBLE gap, the sum of the layer gap and the inset after it, each read off the
+    // materialized tokens (owner, 2026-09-29): Tag's icon→label is its content gap plus the label row's leading
+    // inset, 0 on a select tag and 4px on a dismissible one. The floor holds the SUM; the dismissible layer gap
+    // alone is 2px at comfortable small and 0 at compact small, on purpose.
     const GAP_KEYS: Record<string, string[]> = {
       button: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'button-destructive': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -2906,14 +2914,19 @@ for (const b of brands) {
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
-      tag: ['size.small.gap', 'size.medium.gap', 'size.large.gap', 'size.small.check-gap', 'size.medium.check-gap', 'size.large.check-gap'],
+      tag: ['small', 'medium', 'large'].flatMap((v) => [
+        `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
     const under: string[] = [];
     for (const [id, keys] of Object.entries(GAP_KEYS)) {
       const def = componentDefs.find((d) => d.id === id)!;
       for (const d of densities) {
         const m = applySpacingDensity(def, d);
-        for (const k of keys) { const px = SPACE_PX.get(m.tokens[k]); if (!(px !== undefined && px >= 4)) under.push(`${id}@${d} ${k}: ${px ?? m.tokens[k]}`); }
+        for (const k of keys) {
+          const parts = k.split('+').map((p) => SPACE_PX.get(m.tokens[p]));
+          const px = parts.some((p) => p === undefined) ? undefined : parts.reduce((a, b) => a! + b!, 0);
+          if (!(px !== undefined && px >= 4)) under.push(`${id}@${d} ${k}: ${px ?? k.split('+').map((p) => m.tokens[p]).join('+')}`);
+        }
       }
     }
     const tagCheck = SPACE_PX.get(applySpacingDensity(componentDefs.find((d) => d.id === 'tag')!, 'compact').tokens['size.small.check-gap']);
@@ -2932,7 +2945,9 @@ for (const b of brands) {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'bare', lt: [['gap', 'pad-x']] },
       select: { prefix: 'bare', lt: [['gap', 'pad-x']] },
-      tag: { prefix: 'sized', lt: [['gap', 'padding-x'], ['check-gap', 'padding-x']] },
+      // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
+      // type: the sum is what must stay under the padding. A `+` key is summed.
+      tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -2963,6 +2978,15 @@ for (const b of brands) {
     const corpus326 = lacks326(componentDefs);
     ok(corpus326.length === 0 && fixture326.join() === 'tag',
       `spacing ordering: a def that states padding-x-visual carries the #326 rule (gap < padding-x-visual < padding-x) — corpus lacking it: ${corpus326.join(', ') || 'none'}; the fixture (tag with a padding-x-visual and a #325-only rule) is caught: ${fixture326.join(', ') || 'NOT caught'}`);
+    // A def with a layer gap under an inset (`visibleGaps`) orders the SUM, so its rule must carry `gap+inset`
+    // for each entry; a rule that orders the layer gap alone would pass on a value no one sees.
+    const unsummed = componentDefs.filter((d) => d.visibleGaps?.length).flatMap((d) => d.visibleGaps!.map((g) => {
+      const strip = (k: string) => (RULES[d.id]?.prefix === 'sized' ? k.replace(/^size\.\{size\}\./, '') : k);
+      const want = `${strip(g.gap)}+${strip(g.inset)}`;
+      return RULES[d.id]?.lt.some(([lo]) => lo === want) ? '' : `${d.id} (${want})`;
+    })).filter(Boolean);
+    ok(unsummed.length === 0 && componentDefs.some((d) => d.visibleGaps?.length),
+      `spacing ordering: every visible gap (a layer gap plus the inset after it) is ordered as the sum${unsummed.length ? ` — NOT ORDERED: ${unsummed.join(', ')}` : ''}`);
     const broken: string[] = [];
     let checks = 0;
     for (const [id, rule] of Object.entries(RULES)) {
@@ -2972,7 +2996,8 @@ for (const b of brands) {
         const m = applySpacingDensity(def, d);
         for (const v of sizes)
           for (const [lo, hi] of rule.lt) {
-            const at = (k: string) => SPACE_PX.get(m.tokens[v ? `size.${v}.${k}` : k]);
+            const one = (k: string) => SPACE_PX.get(m.tokens[v ? `size.${v}.${k}` : k]);
+            const at = (k: string) => { const ps = k.split('+').map(one); return ps.some((p) => p === undefined) ? undefined : ps.reduce((a, b) => a! + b!, 0); };
             const a = at(lo), b = at(hi);
             checks++;
             if (!(a !== undefined && b !== undefined && a < b)) broken.push(`${id}@${d}${v ? `/${v}` : ''}: ${lo} ${a} !< ${hi} ${b}`);
@@ -5239,6 +5264,31 @@ for (const b of brands) {
     const errs = errsWith(part, patch);
     ok(errs.some((e) => want.test(e)), `tag innerTarget refused on ${what} (${errs.join('; ') || 'no refusal'})`);
   }
+  // `visibleGaps` REFUSALS (owner, 2026-09-29, the dismissible label inset): each rule on its own synthetic Tag,
+  // each against the literal error it must produce. The corpus Tag validates clean (above), so every one of
+  // these is a refusal the fixture alone introduced.
+  const DS = tagDef.densitySpacing!;
+  const withSpacing = (densitySpacing: string[], tokens: Record<string, string> = {}) =>
+    validateComponentDef({ ...tagDef, densitySpacing, tokens: { ...tagDef.tokens, ...tokens } } as ComponentDef).errors;
+  const VG_REFUSALS: [string, string[], string][] = [
+    ['(a) a visible gap that does not follow density',
+      withSpacing(DS.filter((k) => k !== 'size.{size}.dismissible.visible-gap')),
+      "visibleGaps names 'size.small.dismissible.visible-gap' as the visible gap, but it is not a density-following gap (in densitySpacing, named 'gap' or '-gap') — the floor and the step rule read it"],
+    ['(b) a derived layer gap that also follows density',
+      withSpacing([...DS, 'size.{size}.dismissible.gap']),
+      "visibleGaps derives 'size.small.dismissible.gap', which is also in densitySpacing — a derived layer gap must not be stepped or floored on its own"],
+    ['(c) a comfortable layer gap that is not visible − inset',
+      withSpacing(DS, { 'size.small.dismissible.gap': 'space.075' }),
+      "visibleGaps: 'size.small.dismissible.gap' is 6px at comfortable, but 'size.small.dismissible.visible-gap' (6px) − 'size.small.dismissible.label-inset' (4px) is 2px"],
+    ['(d) an inset that follows density',
+      withSpacing([...DS, 'size.{size}.dismissible.label-inset']),
+      "visibleGaps names 'size.small.dismissible.label-inset' as the fixed inset, but it is in densitySpacing — the inset holds at every density, so it must not follow it"],
+    ['(e) a visible − inset off the ladder at spacious (24 → 32, less 4 = 28)',
+      withSpacing(DS, { 'size.large.dismissible.visible-gap': 'space.300', 'size.large.dismissible.gap': 'space.250' }),
+      "visibleGaps: at spacious density 'size.large.dismissible.visible-gap' steps to 32px and 'size.large.dismissible.label-inset' is 4px, so 'size.large.dismissible.gap' would be 28px, which is not a step of the space ladder"],
+  ];
+  for (const [what, errs, want] of VG_REFUSALS)
+    ok(errs.includes(want), `tag visibleGaps refused: ${what} (${errs.join('; ') || 'no refusal'})`);
   const aria = tagDef.accessibility.aria;
   ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
     'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
@@ -5384,8 +5434,13 @@ for (const b of brands) {
   //   · a 24px label alone: 12+24+12 = 48, under the 64px floor, so 64 (the content centers in it);
   //   · a 24px label and the check: 12+24+6+24+12 = 78;
   //   · a 67px label, the leading icon and the check: 12+24+8+67+6+24+12 = 153;
-  //   · a dismissible tag, 24px label: 12+24+0+44 = 80 — no inset before the × slot (decision M);
   //   · the check widens a tag above its floor by one glyph and one gap, 24+6 = 30, and not at all with it off.
+  // and the DISMISSIBLE tag at every size (owner, 2026-09-29, decision N): padding-x, then the icon, the content
+  // gap and the label row's 4px leading inset, then the label, no inset before the × slot (decision M), and the
+  // square slot. The content gap is the icon→label less 4 (2/4/4), so the icon→label reads 6/8/8:
+  //   · small, 20px label: 8+4+20+0+36 = 68; with the 20px icon: 8+20+2+4+20+36 = 90;
+  //   · medium, 24px label: 12+4+24+0+44 = 84; with the 24px icon: 12+24+4+4+24+44 = 112;
+  //   · large, 24px label: 16+4+24+0+56 = 100; with the 32px icon: 16+32+4+4+24+56 = 136.
   {
     const widthBrands: [string, any][] = [['nb', nbTheme()], ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any])];
     for (const [b, th] of widthBrands) {
@@ -5407,21 +5462,60 @@ for (const b of brands) {
       };
       const set = (n: any, name: string, visible: boolean): any => ({ ...n, ...(n.name === name ? { visible } : {}), children: (n.children ?? []).map((c: any) => set(c, name, visible)) });
       const mat = figmaAnatomySet(applyMinWidthRatio(applySpacingDensity(tagDef, th.dims.density), sizeRefPx(th.dims.sizes)), { swapTarget: 'FPO-default-icon' });
-      const rest = (type: string, sel: string) => mat.find((p) => p.size === 'medium' && new RegExp(`type=${type}, selection=${sel}, size=medium, state=rest`).test(planComponentName(p)))!.root;
-      const un = rest('select', 'unselected'), sel = rest('select', 'selected'), dis = rest('dismissible', 'unselected');
+      const rest = (type: string, sel: string, size = 'medium') => mat.find((p) => p.size === size && new RegExp(`type=${type}, selection=${sel}, size=${size}, state=rest`).test(planComponentName(p)))!.root;
+      const un = rest('select', 'unselected'), sel = rest('select', 'selected');
       const got = {
         alone: widthOf(set(un, 'leadingVisual', false), 24),
         check: widthOf(set(sel, 'leadingVisual', false), 24),
         full: widthOf(set(sel, 'leadingVisual', true), 67),
-        dismissible: widthOf(set(dis, 'leadingVisual', false), 24),
         widen: widthOf(set(sel, 'leadingVisual', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
         widenOff: widthOf(set(set(sel, 'leadingVisual', false), 'check', false), 67) - widthOf(set(un, 'leadingVisual', false), 67),
       };
-      const WANT = { alone: 64, check: 78, full: 153, dismissible: 80, widen: 30, widenOff: 0 };
+      const WANT = { alone: 64, check: 78, full: 153, widen: 30, widenOff: 0 };
       ok(JSON.stringify(got) === JSON.stringify(WANT),
-        `tag rendered width (${b}, medium, comfortable): the owner's worked examples — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, dismissible 80, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
+        `tag rendered width (${b}, medium, comfortable): the owner's worked examples for a select tag — label alone 64 (the floor), label + check 78, icon + 67px label + check 153, and the check widens a tag above its floor by 30 and by 0 when switched off (got ${JSON.stringify(got)})`);
+      const DIS_LABEL: Record<string, number> = { small: 20, medium: 24, large: 24 };
+      const gotDis = Object.fromEntries(['small', 'medium', 'large'].map((sz) => {
+        const dis = rest('dismissible', 'unselected', sz);
+        return [sz, `${widthOf(set(dis, 'leadingVisual', false), DIS_LABEL[sz])}/${widthOf(set(dis, 'leadingVisual', true), DIS_LABEL[sz])}`];
+      }));
+      const WANT_DIS = { small: '68/90', medium: '84/112', large: '100/136' };
+      ok(JSON.stringify(gotDis) === JSON.stringify(WANT_DIS),
+        `tag dismissible rendered width (${b}, comfortable): label alone / with the leading icon — small 68/90 (20px label), medium 84/112, large 100/136 (24px label), the label row inset 4px and the icon→label 6/8/8 (got ${JSON.stringify(gotDis)})`);
     }
   }
+  // THE DISMISSIBLE ICON→LABEL, per size and density (owner, 2026-09-29, decision N), read off the PROJECTED
+  // members: the content row's itemSpacing and the label row's paddingLeft as Figma receives them, each variable's
+  // px read off the space scale. A dismissible tag's label row is inset a FIXED 4px at every density; its content
+  // gap is the visible icon→label (6/8/8 at comfortable, moved one ladder step by density and floored at 4px)
+  // less that 4, never below 0. The floor is on the VISIBLE distance: the layer gap is 2px at comfortable small
+  // and 0 at compact small, on purpose. A select tag is untouched: no inset, and its own gap. EXPECTED is
+  // literal, `gap+inset=visible` per size, small · medium · large.
+  {
+    const SPACE_VAR_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
+    const DISMISSIBLE: Record<string, string> = {
+      compact: '0+4=4 · 2+4=6 · 2+4=6', comfortable: '2+4=6 · 4+4=8 · 4+4=8', spacious: '4+4=8 · 8+4=12 · 8+4=12',
+    };
+    const SELECT: Record<string, string> = {
+      compact: '4+0=4 · 6+0=6 · 8+0=8', comfortable: '6+0=6 · 8+0=8 · 12+0=12', spacious: '8+0=8 · 12+0=12 · 16+0=16',
+    };
+    const wrong: string[] = [];
+    for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+      const mat = figmaAnatomySet(applySpacingDensity(tagDef, d), { swapTarget: 'FPO-default-icon' });
+      for (const [type, want] of [['dismissible', DISMISSIBLE[d]], ['select', SELECT[d]]] as const) {
+        const got = ['small', 'medium', 'large'].map((sz) => {
+          const m = mat.find((p) => p.size === sz && new RegExp(`type=${type}, selection=unselected, size=${sz}, state=rest`).test(planComponentName(p)))!;
+          const gap = SPACE_VAR_PX.get(findNode(m.root, 'content')?.bound?.itemSpacing);
+          const inset = SPACE_VAR_PX.get(findNode(m.root, 'labelCheck')?.bound?.paddingLeft);
+          return `${gap}+${inset}=${gap !== undefined && inset !== undefined ? gap + inset : '?'}`;
+        }).join(' · ');
+        if (got !== want) wrong.push(`${type}@${d}: ${got} (want ${want})`);
+      }
+    }
+    ok(wrong.length === 0,
+      `tag dismissible icon→label: the content gap plus the label row's fixed 4px inset, per size at compact / comfortable / spacious, and a select tag's gap unchanged with no inset${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''}`);
+  }
+
   // THE TINT (owner, 2026-09-29, "respect none"): `interactive.primary.subtle-fill.selected` on the default and
   // solid-tint levers, and NO FILL on `none` — there a selected tag shows its 2px outline and its check only. Read
   // off the materialized def per lever and off the projected `none` members (a fill that appears is a failure).
@@ -8280,6 +8374,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(Object.keys(rp.dims).length > 0 && badDim.length === 0, 'resolved preview: every dimension binding → positive px' + (badDim.length ? ` — BAD: ${badDim.join(', ')}` : ''));
   const badType = Object.entries(rp.type).filter(([, t]) => !t.fontFamily || !(t.fontSizePx > 0)).map(([k]) => k);
   ok(Object.keys(rp.type).length > 0 && badType.length === 0, 'resolved preview: every type binding → family + positive size' + (badType.length ? ` — BAD: ${badType.join(', ')}` : ''));
+  ok(rp.unresolvedType.length === 0, 'resolved preview: harbor emits every type style the preview spec binds' + (rp.unresolvedType.length ? ` — UNRESOLVED: ${rp.unresolvedType.join(', ')}` : ''));
 
   // Per-mode geometry (docs/11 1b): with no wireframe, dims carry NO overrides; opting into
   // wireframe surfaces a radius→0 override the preview reads for the wireframe column, while
@@ -8685,7 +8780,48 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const broken = rp.contracts.flatMap((c) =>
       rp.modes.filter((m) => c.byMode[m] && !c.byMode[m].pass).map((m) => `${c.component}/${c.variant} ${m}:${c.byMode[m].ratio}<${c.min}`));
     ok(broken.length === 0, `example brand '${id}': every preview contract holds (all 4 modes)` + (broken.length ? ` — FAIL: ${broken.join('; ')}` : ''));
+    ok(rp.unresolvedType.length === 0, `example brand '${id}': emits every type style the preview spec binds` + (rp.unresolvedType.length ? ` — UNRESOLVED: ${rp.unresolvedType.join(', ')}` : ''));
   }
+}
+// (10a) #1720 — a type binding the brand does not emit is NAMED, never resolved to a default. The read
+// was `node?.$value ?? {}`, and every accessor after it fell through to its own default, so a missing
+// style came back as `sans-serif / 0 / 0px` with no error. The spec binds three `*.strong` styles by
+// name, and two legal inputs drop them: declining `strong` in display/title (#1632), and
+// `typography.displayCeiling: 'sm' | 'md'`, which drops `display.lg` (a lever the studio exposes).
+//
+// The expected keys are LITERALS, not derived from `previewSpec` or from the tree: deriving them would
+// make this agree with whatever the resolver happens to return (docs/34). If the spec's bindings move,
+// this list moves with them by hand, and that edit is the point.
+{
+  const hinput = parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input;
+  const declined = { ...hinput, typography: { ...hinput.typography, weights: { ...hinput.typography?.weights, display: ['emphasis'], title: ['emphasis'] } } } as BrandInput;
+  const rp = resolvePreview(brandTheme(declined));
+  const expected = ['type.display.lg.strong', 'type.title.lg.strong', 'type.title.md.strong'];
+  ok(JSON.stringify(rp.unresolvedType) === JSON.stringify(expected),
+    `#1720 a brand declining strong in display/title names each unbound preview type style (want ${expected.join(', ')}; got ${rp.unresolvedType.join(', ') || 'none'})`);
+  const fabricated = expected.filter((k) => k in rp.type).map((k) => `${k}=${rp.type[k]?.fontFamily}/${rp.type[k]?.fontWeight}/${rp.type[k]?.fontSizePx}px`);
+  ok(fabricated.length === 0, `#1720 an unbound type style gets no entry in rp.type (no fabricated composite)` + (fabricated.length ? ` — GOT ${fabricated.join(', ')}` : ''));
+  // The styles the brand still emits resolve as before: the miss is per binding, not per brand.
+  const body = rp.type['type.body.md.default'];
+  ok(!!body && !!body.fontFamily && body.fontSizePx > 0 && body.fontWeight > 0,
+    `#1720 a brand declining strong still resolves type.body.md.default (got ${body ? `${body.fontFamily}/${body.fontWeight}/${body.fontSizePx}px` : 'nothing'})`);
+
+  // The second legal route: `displayCeiling: 'md'` keeps display.sm and display.md only, so the one
+  // display binding goes missing while both title bindings (which keep `strong`) still resolve.
+  const ceiling = { ...hinput, typography: { ...hinput.typography, displayCeiling: 'md' } } as BrandInput;
+  const ceilingRp = resolvePreview(brandTheme(ceiling));
+  ok(JSON.stringify(ceilingRp.unresolvedType) === JSON.stringify(['type.display.lg.strong']) && !('type.display.lg.strong' in ceilingRp.type),
+    `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound, with no entry in rp.type (got ${ceilingRp.unresolvedType.join(', ') || 'none'})`);
+
+  // The same read over a hand-built spec, so the arm does not depend on which weights the real spec
+  // happens to bind: one bogus binding beside one real one, on a brand that ships everything.
+  const spec = { components: [{ id: 'probe', label: 'probe', description: 'probe', variants: [
+    { name: 'a', bindings: { type: 'type.body.md.default' } },
+    { name: 'b', bindings: { type: 'type.body.md.nonesuch' } },
+  ] }] };
+  const probe = resolvePreview(brandTheme(hinput), spec);
+  ok(JSON.stringify(probe.unresolvedType) === JSON.stringify(['type.body.md.nonesuch']) && !('type.body.md.nonesuch' in probe.type) && (probe.type['type.body.md.default']?.fontSizePx ?? 0) > 0,
+    `#1720 a spec binding a type style no brand emits names that key alone (got ${probe.unresolvedType.join(', ') || 'none'})`);
 }
 // (10b) #63 — CLOSED, by fixing the cause rather than accepting it. History, because the shape of the
 // mistake is the reusable part: nb's semantic text on the `-subtle` tint measured ~4.0–4.2:1 in LIGHT,
@@ -15780,10 +15916,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // different Figma from the plugin's would turn that comparison into a comparison of stubs.
           findAllWithCriteria: (criteria?: { types?: string[] }) => {
             const types = criteria?.types ?? ['COMPONENT'];
-            const mk = (name: string, i: number) => ({
-              name, id: `73:${37 + i}`,
+            // `owner` — the set a member belongs to, or the page (#1781). Recorded by the stub at the moment
+            // `createInstance` is called on THIS object, as the instance's `mainComponent.parent`, so a nest's
+            // resolved set is read off the host rather than off the name the payload asked for.
+            const mk = (name: string, i: number, owner: { name: string; type: string } = { name: 'Page 1', type: 'PAGE' }) => ({
+              name, id: `73:${37 + i}`, type: 'COMPONENT',
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
+                Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
                 // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
                 // into them and can collide with the host's own part names (select nests field-label AND
                 // field-message, both carrying a `text` part). Each refuses a reference write — it is a
@@ -15817,8 +15957,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mk(name, seq++));
             for (const f of opts.fileNodes ?? []) {
               if (f.type === 'COMPONENT_SET') {
-                if (types.includes('COMPONENT_SET')) found.push({ ...mk(f.name, seq++), children: (f.variants ?? []).map((v) => ({ name: v })) });
-                if (types.includes('COMPONENT')) for (const v of f.variants ?? []) found.push(mk(v, seq++));
+                // Members AS COMPONENTS, the same objects a COMPONENT search returns, each knowing its set
+                // (#1781) — a ComponentSetNode's children are ComponentNodes, and the payload now
+                // instantiates the member out of the set it matched rather than re-looking it up by name.
+                const members = (f.variants ?? []).map((v) => mk(v, seq++, { name: f.name, type: 'COMPONENT_SET' }));
+                if (types.includes('COMPONENT_SET')) found.push({ name: f.name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members });
+                if (types.includes('COMPONENT')) for (const m of members) found.push(m);
               } else if (types.includes(f.type)) found.push(mk(f.name, seq++));
             }
             return found;
@@ -16462,6 +16606,92 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // can distinguish those two implementations.
       ok(nestVariantMatch({ color: 'default' }, ['color=default', 'color=default']) === null,
         'anatomy/ring #681: two members carrying the same coordinate resolve to NOTHING — the first hit is creation order wearing a different hat');
+
+      // ---- #1781: THE PASTE PATH NESTS FROM ITS OWN DEF'S SET, never by member name across sets ----
+      // The payload's half of the plugin gate in `apps/plugin/test-write-components.ts` (`#1781 nests resolve
+      // to their own set`), against the same file: `checkbox-control` and `radio-control` sharing member
+      // names, the three rows and two groups sharing `size=*`, and renamed `__old__checkbox-row` /
+      // `__old__radio-group` copies. Both executors call one `resolveNestMember`, but this one calls its
+      // SOURCE inside the payload, so a regression in how the payload wires it is only visible here.
+      //
+      // The oracle is the stub's record of which object `createInstance` was called on
+      // (`mainComponent.parent`), and the expectation is the plan's `nestTarget` plus its `nestVariant`
+      // compared axis by axis here — not through `nestVariantMatch`. Both file orders, because last-wins is
+      // only wrong for whichever set comes last.
+      {
+        const NEST_SETS = [checkboxControl, radioControl, switchControl, fieldLabel, checkboxRow, radioRow, switchRow, checkboxGroup, radioGroup];
+        const membersOf = (d: ComponentDef): string[] => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
+        const nestFile: StubFileNode[] = [
+          ...NEST_SETS.map((d) => ({ name: d.id, type: 'COMPONENT_SET' as const, variants: membersOf(d) })),
+          { name: '__old__checkbox-row', type: 'COMPONENT_SET', variants: membersOf(checkboxRow) },
+          { name: '__old__radio-group', type: 'COMPONENT_SET', variants: membersOf(radioGroup) },
+        ];
+        for (const [order, file] of [['forward', nestFile], ['reversed', [...nestFile].reverse()]] as const) {
+          const wrong: string[] = [];
+          const nestMisses: string[] = [];
+          let checked = 0, planned = 0;
+          for (const d of [checkboxRow, radioRow, switchRow, checkboxGroup, radioGroup]) {
+            for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+              const want = new Map<string, { target: string; variant: Record<string, string> }>();
+              const walkPlan = (n: { name: string; nestTarget?: string; nestVariant?: Record<string, string>; children?: unknown[] }): void => {
+                if (n.nestTarget) want.set(n.name, { target: n.nestTarget, variant: n.nestVariant ?? {} });
+                for (const c of (n.children ?? []) as (typeof n)[]) walkPlan(c);
+              };
+              walkPlan(plan.root as unknown as Parameters<typeof walkPlan>[0]);
+              planned += want.size;
+              const page: StubPage = { children: [] };
+              const r = await runPayload(planToPluginJs(plan), {
+                vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root),
+                comps: ['FPO-default-icon'], fileNodes: file, page,
+              });
+              nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant) ->|THREW/.test(m)).map((m) => `${d.id}/${planComponentName(plan)}: ${m}`));
+              const walkBuilt = (n: Record<string, unknown>): void => {
+                const main = (n as { mainComponent?: { name: string; parent?: { name: string; type: string } } }).mainComponent;
+                const w = want.get(String(n.name));
+                if (n.type === 'INSTANCE' && main && w) {
+                  checked++;
+                  const coord = new Map(main.name.split(', ').map((kv) => kv.split('=') as [string, string]));
+                  const coordOk = coord.size === Object.keys(w.variant).length && Object.entries(w.variant).every(([k, v]) => coord.get(k) === v);
+                  if (main.parent?.type !== 'COMPONENT_SET' || main.parent.name !== w.target || !coordOk)
+                    wrong.push(`${d.id}/${planComponentName(plan)} ${String(n.name)} -> ${main.parent?.name}/${main.name} (want ${w.target})`);
+                }
+                for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walkBuilt(c);
+              };
+              for (const c of page.children) walkBuilt(c);
+            }
+          }
+          ok(checked > 0 && checked === planned && wrong.length === 0 && nestMisses.length === 0,
+            `#1781 paste path: nests resolve to their own set (${order} file order) — ${checked}/${planned} nested instances checked; ${wrong.length ? `WRONG SET: ${wrong.slice(0, 4).join(' | ')}` : 'none wrong'}; ${nestMisses.length ? `misses: ${nestMisses.slice(0, 2).join(' | ')}` : 'no nest misses'}`);
+        }
+        // AMBIGUOUS on the paste path, worded exactly as the plugin words it (one shared function).
+        const grpPlan = figmaAnatomySet(checkboxGroup, { swapTarget: 'FPO-default-icon' })[0];
+        const ambPage: StubPage = { children: [] };
+        const amb = await runPayload(planToPluginJs(grpPlan), {
+          vars: [...planBoundVars(grpPlan.root), ...planPaintVars(grpPlan.root)], styles: planTextStyles(grpPlan.root),
+          comps: ['FPO-default-icon'], fileNodes: [...nestFile, { name: 'checkbox-row', type: 'COMPONENT_SET', variants: membersOf(checkboxRow) }], page: ambPage,
+        });
+        const ambMiss = amb.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+        ok(ambMiss.length > 0 && ambMiss.every((m) => m.includes('found 2 COMPONENT_SETs named checkbox-row') && m.includes('nothing built')),
+          `#1781 paste path: two sets named exactly checkbox-row are reported by name and nothing is picked (${ambMiss[0] ?? JSON.stringify(amb.misses.slice(0, 2))})`);
+        // MISSING on the paste path: `checkbox-row` is gone and only `__old__checkbox-row` remains. The renamed
+        // copy does not stand in; the four-way diagnosis names the target as absent, and no row is built from
+        // the old set. Mirrors the plugin arm `#1781 with checkbox-row missing …`.
+        const gonePage: StubPage = { children: [] };
+        const gone = await runPayload(planToPluginJs(grpPlan), {
+          vars: [...planBoundVars(grpPlan.root), ...planPaintVars(grpPlan.root)], styles: planTextStyles(grpPlan.root),
+          comps: ['FPO-default-icon'], fileNodes: nestFile.filter((f) => f.name !== 'checkbox-row'), page: gonePage,
+        });
+        const goneMiss = gone.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+        const fromOld: string[] = [];
+        const walkOld = (n: Record<string, unknown>): void => {
+          const main = (n as { mainComponent?: { parent?: { name?: string } } }).mainComponent;
+          if (n.type === 'INSTANCE' && main?.parent?.name === '__old__checkbox-row') fromOld.push(String(n.name));
+          for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walkOld(c);
+        };
+        for (const c of gonePage.children) walkOld(c);
+        ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && fromOld.length === 0,
+          `#1781 paste path: with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${fromOld.length} rows from __old__; ${goneMiss[0] ?? JSON.stringify(gone.misses.slice(0, 2))})`);
+      }
 
       // ---- #682: the payload's unlock is exercised, not just grepped ----------------------------
       // `unlockAt` above greps the emitted STRING; this asserts the RUN. The stub's nodes start
@@ -20377,6 +20607,77 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'contract: the COMMITTED baseline still matches the engine (run token-contract.ts --accept after reviewing the diff)');
   ok(committed.contractVersion === CONTRACT_VERSION,
     `contract: the baseline's stamped version tracks CONTRACT_VERSION (${committed.contractVersion} vs ${CONTRACT_VERSION})`);
+
+  // ---- #1768: the gate compares the NUMBERS, not only the paths ----
+  // Every expectation below is a literal. The pure arm first: which way the constant moved against the
+  // baseline's recorded version, at a given surface level.
+  ok(contractVersionDrift('13.2.0', '13.1.0', 'none') === 'behind',
+    '#1768 contract: a CONTRACT_VERSION below the baseline is BEHIND, even with no surface change');
+  ok(contractVersionDrift('14.0.0', '13.9.9', 'major') === 'behind',
+    '#1768 contract: a CONTRACT_VERSION below the baseline is BEHIND even when the surface moved — no diff excuses a backwards number');
+  ok(contractVersionDrift('9.10.0', '9.9.0', 'none') === 'behind',
+    '#1768 contract: versions compare per component, not as strings (9.9.0 is below 9.10.0, though it sorts above it)');
+  ok(contractVersionDrift('14.0.0', '14.0.0', 'none') === undefined,
+    '#1768 contract: an equal version over an unchanged surface is not drift');
+  // Every component decides on its own (review of #1803): the literals above all carry patch .0 or let
+  // the major decide, so a comparison that ignored the patch or the minor passed every one of them.
+  ok(contractVersionDrift('14.0.1', '14.0.0', 'none') === 'behind',
+    '#1768 contract: a PATCH-only step down (14.0.1 → 14.0.0) is BEHIND');
+  ok(contractVersionDrift('14.0.0', '14.0.1', 'none') === 'ahead',
+    '#1768 contract: a PATCH-only step up (14.0.0 → 14.0.1) over an unchanged surface is AHEAD');
+  ok(contractVersionDrift('14.1.0', '14.0.5', 'none') === 'behind',
+    '#1768 contract: a MINOR-only step down (14.1.0 → 14.0.5) is BEHIND, whatever the patch says');
+  ok(contractVersionDrift('14.0.5', '14.1.0', 'none') === 'ahead',
+    '#1768 contract: a MINOR-only step up (14.0.5 → 14.1.0) over an unchanged surface is AHEAD, whatever the patch says');
+  const malformed = ['14.0.0-rc.1', 'v14.0.0', '14.0'].map((v) => {
+    try { contractVersionDrift(v, '14.0.0', 'none'); return 'no throw'; } catch (e) { return (e as Error).message; }
+  });
+  ok(malformed.join('|') === 'not a semver: 14.0.0-rc.1|not a semver: v14.0.0|not a semver: 14.0',
+    `#1768 contract: a baseline version that is not MAJOR.MINOR.PATCH is refused, never ordered (got ${malformed.join(' | ')})`);
+  ok(contractVersionDrift('14.0.0', '14.1.0', 'none') === 'ahead',
+    '#1768 contract: a raised CONTRACT_VERSION over an unchanged surface is AHEAD — a bump with nothing to record');
+  ok(contractVersionDrift('14.0.0', '15.0.0', 'minor') === undefined && contractVersionDrift('14.0.0', '16.0.0', 'major') === undefined,
+    '#1768 contract: a bump LARGER than the diff requires is not drift (docs/30: "at least the increment")');
+
+  // And the CALL SITE, because a pure arm nobody calls passes every assertion above (docs/34, "mutate the
+  // call site"). The CLI is run over an injected baseline: the LIVE surface, so no path moves and the
+  // recorded version is the only variable, with that version set to a literal chosen here. The first run
+  // is the control — at CONTRACT_VERSION it must pass, or a failure below proves nothing about the number.
+  {
+    const dir = mkdtempSync(join(tmpdir(), 'prism3-contract-'));
+    const fixture = join(dir, 'token-contract.json');
+    const runCli = (mode: '--check' | '--accept', recorded: string) => {
+      const bytes = JSON.stringify({ ...live, contractVersion: recorded }, null, 2) + '\n';
+      writeFileSync(fixture, bytes);
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'token-contract.ts'), mode], {
+        encoding: 'utf8', env: { ...process.env, PRISM3_CONTRACT_BASELINE: fixture },
+      });
+      return { status: r.status, out: `${r.stdout}${r.stderr}`, untouched: readFileSync(fixture, 'utf8') === bytes };
+    };
+    try {
+      const control = runCli('--check', CONTRACT_VERSION);
+      // The path the run says it READ, not merely that the variable was set: `--accept` below writes to that
+      // path, so it runs only once the control proves the fixture is what the CLI reads. A broken injection
+      // must fail these assertions, never write the committed baseline.
+      const injectionHeld = control.out.includes(`reading ${fixture}`);
+      ok(control.status === 0 && /token contract unchanged/.test(control.out) && injectionHeld,
+        `#1768 contract CLI: the control (injected baseline at CONTRACT_VERSION) passes, reading the injected fixture (exit ${control.status}, fixture read ${injectionHeld})`);
+      const check = runCli('--check', '999.0.0');
+      ok(check.status === 1 && /CONTRACT_VERSION moved BACKWARDS/.test(check.out) && check.out.includes("below the baseline's 999.0.0"),
+        `#1768 contract CLI: --check fails BY NAME when CONTRACT_VERSION is below the baseline (exit ${check.status}; ${check.out.split('\n').find((l) => l.includes('✗') || l.includes('✓')) ?? 'no verdict line'})`);
+      const bad = runCli('--check', '14.0.0-rc.1');
+      ok(bad.status === 1 && bad.out.includes('✗ the versions cannot be compared: not a semver: 14.0.0-rc.1') && !/^\s+at /m.test(bad.out),
+        `#1768 contract CLI: a malformed baseline version fails BY NAME, not as a stack trace (exit ${bad.status})`);
+      const ahead = runCli('--check', '0.0.1');
+      ok(ahead.status === 1 && /CONTRACT_VERSION is AHEAD of the baseline with nothing to record/.test(ahead.out),
+        `#1768 contract CLI: --check fails BY NAME when CONTRACT_VERSION is above the baseline and no path moved (exit ${ahead.status})`);
+      const accept = injectionHeld ? runCli('--accept', '999.0.0') : undefined;
+      ok(!!accept && accept.status === 1 && /CONTRACT_VERSION moved BACKWARDS/.test(accept.out) && accept.untouched,
+        `#1768 contract CLI: --accept refuses BY NAME when CONTRACT_VERSION is below the baseline, and leaves the baseline unwritten (${accept ? `exit ${accept.status}, untouched ${accept.untouched}` : 'not run: the injection did not hold'})`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 
   // ---- #1639: every type category keeps a weight; label keeps emphasis (owner-decided 2026-09-26) ----
   // The refusals are asserted per category, from a list authored HERE (docs/34: not read off

@@ -245,6 +245,13 @@
       "section": "5.4.3"
     },
     {
+      "date": "2026-09-29",
+      "issue": null,
+      "title": "a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.4.4"
+    },
+    {
       "date": "2026-09-30",
       "issue": 259,
       "title": "the Pixels toggle removed, and REM for a text style's letter spacing and paragraph spacing",

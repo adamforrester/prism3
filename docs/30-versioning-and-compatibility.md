@@ -330,6 +330,18 @@ npx tsx packages/engine/token-contract.ts --accept    # rewrite the baseline (re
 than remembered, and an under-bump (minor for a breaking change) is rejected just as firmly as no
 bump at all.
 
+Both modes also compare the **numbers**, not only the paths (#1768). `CONTRACT_VERSION` must never sit
+below the baseline's `contractVersion`: the baseline only records a version an `--accept` saw, so a
+lower constant is a revert, a merge resolution or a hand edit, and a consumer pinned to the higher
+number would read a lower one for the same surface. `--check` fails that by name and `--accept`
+refuses it. The same arm fails a constant raised **above** the baseline when no guaranteed path moved:
+a bump with nothing to record, which `--accept` already refused while `--check` reported "unchanged".
+
+**An over-bump over a real change is not flagged.** A MAJOR for an added path, or a jump of two
+majors for one removal, passes: the rule above is "at least the increment the diff requires", and an
+over-bump costs a consumer a needless review, never a silent miss. Tightening that to "exactly" is a
+policy change for this document, not a gate edit.
+
 **The baseline must never become a `regen.ts` artifact.** `regen` rewrites every generated file and
 `regen --check` proves the committed copies match. Run that way, deleting a token would rewrite the
 baseline to agree with the deletion, and *both* gates would go green. #281's lesson was **no gate
