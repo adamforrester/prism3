@@ -67,7 +67,8 @@
  * constant:
  *
  *   · every emitted tree's `$extensions.generator.version` — stamped from `ENGINE_VERSION`
- *   · `schema/token-contract.json`'s `engineVersion` field — likewise
+ *   · (until #1807) `schema/token-contract.json`'s `engineVersion` field — likewise. It is gone now,
+ *     for this reason among others, and `token-contract.ts --check` refuses a baseline that carries it
  *
  * So a gate comparing any stamp to the constant compares `ENGINE_VERSION` to itself and agrees
  * perfectly at every commit, including the ones this exists to catch. Bump the constant and every

@@ -124,10 +124,9 @@ the whole batch, so fix such a break **in the fold PR**, before the version and 
 
 What to check before you push the fold:
 
-- **`token-contract.ts --check`.** While `schema/token-contract.json` still records `engineVersion`,
-  a fold that moves the version needs a stamp-only `npx tsx packages/engine/token-contract.ts --accept`.
-  Once that field is gone (#1817), it needs nothing. `fold.ts` reads the file and prints the step only
-  while it applies.
+- **`token-contract.ts --check` needs nothing from a fold.** The contract baseline records no engine
+  version (#1817), so moving `ENGINE_VERSION` leaves it clean. Run `--accept` only if a folded PR
+  really moved the contract, which that PR should already have done.
 - **Hand-authored version literals.** A PR that added a rename rule wrote a provisional `since` into
   `MATERIALIZATION_RENAMES` or `COLLECTION_RENAMES`, and `test.ts`'s tables for them. Set those to the
   fold's version in the fold PR (#1816 tracks doing this without a person remembering).

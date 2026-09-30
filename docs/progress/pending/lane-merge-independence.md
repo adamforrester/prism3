@@ -35,7 +35,7 @@
 
 **Traps for whoever folds first.**
 
-- **`schema/token-contract.json` still records `engineVersion`** until the other lane's removal lands (proposal step 5, `lane/contract-baseline-no-engine-version`). Until then a fold that moves the version needs a stamp-only `token-contract.ts --accept`.
+- **The contract baseline no longer records `engineVersion`** (#1817 landed first), so a fold needs no `token-contract.ts --accept`. An earlier revision of this PR printed a stamp-only `--accept` step from `fold.ts` while the field existed; it was removed once #1817 merged.
 - **Rename-rule `since` stamps are authored version literals** (`MATERIALIZATION_RENAMES`, `COLLECTION_RENAMES`, and `test.ts`'s tables for them). A PR adding one cannot know its version; the fold PR sets it by hand for now. Filed as #1816.
 - **Folded headings are history.** The FOLDED ENTRIES arm finds an entry by its title and landing day, so a later edit to a folded heading fails it by name. Correct the body, not the heading.
 
@@ -47,4 +47,4 @@
 - **Shallow clones (MEDIUM).** `lint-progress-order` refused every shallow clone, and agent sessions clone about 50 deep. It now refuses only when the clone stops after the pending directory was introduced, where every file would look added at the boundary.
 - **Every PR but a fold carries a fragment** (owner decision). A fold is recognized by content, never by branch name: it deletes a pending fragment or note, and the FOLDED ENTRIES arm passed. The arm is skipped only on a push run; elsewhere a HEAD equal to its base fails. This PR's own entry moved from the log into this file.
 - **No literal double brace in the log or the changelog.** The reviewer's mutation, a fold that never substituted, left the placeholder in the log with every gate green. Both gates now fail it by name, and a fragment or note carrying a double brace other than the placeholder fails its shape arm, since the fold would copy it into the log.
-- **Docs:** how to revert a merged PR that is not folded yet (keep its note and fragment, add your own), one fragment and one note per entry in the migration steps, and that a branch which has not merged `main` since this landed can pass locally and fail in CI. `fold.ts` prints the stamp-only `token-contract --accept` step only while the baseline still records `engineVersion`.
+- **Docs:** how to revert a merged PR that is not folded yet (keep its note and fragment, add your own), one fragment and one note per entry in the migration steps, and that a branch which has not merged `main` since this landed can pass locally and fail in CI.

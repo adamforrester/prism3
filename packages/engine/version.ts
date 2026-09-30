@@ -5329,7 +5329,7 @@ export type Level = typeof LEVELS[number];
 /** The committed baseline's shape (`schema/token-contract.json`). */
 export type Contract = {
   contractVersion: string;
-  engineVersion: string;
+  /** No `engineVersion` (#1807): `token-contract.ts --check` refuses a baseline that carries one. */
   note: string;
   corpus: string[];
   /** path (below the root) → DTCG `$type`. Every corpus brand emits every one of these. */

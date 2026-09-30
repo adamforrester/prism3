@@ -317,12 +317,8 @@ if (next !== current) {
   }
 }
 
-// While the contract baseline still records `engineVersion` (it stops with #1817), a moved version needs a
-// stamp-only accept. Read from the file rather than assumed, so this line retires itself.
-const contractStamp = next !== current && readFileSync(join(repo, 'packages/engine/schema/token-contract.json'), 'utf8').includes('"engineVersion"');
 console.log(`
-✓ folded. Next, by hand (CONTRIBUTING.md, "How to fold"):${contractStamp ? `
-    npx tsx packages/engine/token-contract.ts --accept   # stamp-only: the baseline still records engineVersion (until #1817)` : ''}
+✓ folded. Next, by hand (CONTRIBUTING.md, "How to fold"):
     git add -A && git commit -m "Fold: ENGINE_VERSION ${next}"
     npm run verify
     push, and open the fold PR. Its CI is the first run of every gate over main plus this whole batch.`);

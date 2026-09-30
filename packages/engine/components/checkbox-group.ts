@@ -58,8 +58,8 @@
  * def, a renamed baseline key), which is an `ENGINE_VERSION` trigger. It does NOT move the versioned TOKEN
  * contract: `schema/token-contract.json` is the emitted token-name surface, and no component id or prop
  * name lives in it. So `CONTRACT_VERSION` STANDS at 10.0.0 (`token-contract.ts --check` confirms the
- * guaranteed set unchanged; `--accept` refreshes only the informational `engineVersion` stamp), exactly
- * as the #1354/#1348/#1330 decomposition PRs did. The #1347 orchestration brief called for a MAJOR
+ * guaranteed set unchanged; `--accept` then refreshed only the informational `engineVersion` stamp, a field
+ * the baseline no longer carries since #1807), exactly as the #1354/#1348/#1330 decomposition PRs did. The #1347 orchestration brief called for a MAJOR
  * CONTRACT bump to 11.0.0; that is surfaced as a correction, not fabricated — see `docs/00-progress.md`.
  */
 import { ComponentDef } from '../component-schema';

@@ -491,7 +491,9 @@ sees a different part of a def:
 
 A new def therefore takes a change note declaring `engine: minor`, with its reason as the prose.
 Run `npx tsx packages/engine/regen.ts` as usual; the version stamps in `out/**` stay where they are
-until the fold restamps them. A skill-only change like this file needs no note.
+until the fold restamps them. The token-contract baseline records no engine version, so
+`npx tsx packages/engine/token-contract.ts --check` stays clean and needs no `--accept`. A
+skill-only change like this file needs no note.
 
 `CONTRACT_VERSION` answers *"can my app still resolve the names it references?"* and covers the
 guaranteed **token-name** surface only. A component id, prop name or variant value is not a

@@ -70,8 +70,8 @@
  * amount that matters, and skipping it would make the two most consequential transitions invisible.
  * `text-field` and `textarea` are the two defs in that state today.
  *
- * NO `engineVersion` FIELD IN THE BASELINE, unlike `token-contract.json` which carries one. That field
- * buys a forced `--accept` on every bump, and here it would buy a false failure instead: a pure VALUE
+ * NO `engineVersion` FIELD IN THE BASELINE, and since #1807 `token-contract.json` carries none either.
+ * There that field bought a forced `--accept` on every bump, and here it would buy a false failure instead: a pure VALUE
  * change bumps `ENGINE_VERSION` and moves no component surface, and a version field would make this
  * gate demand a re-accept while reporting that the projection moved. The baseline records the SURFACE
  * and nothing else; the version lives in `version.ts`, where both arms read it.
