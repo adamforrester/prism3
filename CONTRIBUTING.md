@@ -48,8 +48,9 @@ one at a time. Now:
   existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
   A **pure** fold is exempt because it
   consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
-  the log, and it touches nothing but the log, the pending directories, `version.ts` and `out/`. A fold
-  PR that also fixes a semantic conflict carries a fragment for the fix.
+  the log, and it touches nothing but the log, the pending directories, `version.ts`, `out/` and the
+  rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
+  the fix.
 - **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
 
   ```
@@ -67,6 +68,16 @@ one at a time. Now:
   stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
   the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
   as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
+- **A rename rule's `since`** (#1816) is the other version number a PR used to write. A PR that adds an
+  entry to `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` or `COLLECTION_RENAMES` stamps it
+  `since: '{{ENGINE_VERSION}}'`, and writes the same quoted placeholder in `test.ts`'s table for it
+  (`EXPECTED_SINCE` or `EXPECTED_COLLECTION_SINCE`). **The same diff adds a change note**; another PR's
+  pending note does not count, because the fold may consume it before your PR merges. The fold fills
+  both stamps with the version it assigns. **An existing stamp never changes**, in a fold or out of
+  one: a rule whose change needs a new stamp is a new rule, with a new id, the placeholder and a note.
+  A fold only fills placeholders; it adds no stamp of its own. `lint-emission-version.ts`'s RENAME
+  STAMPS arm fails each of these by name. In those three files the quoted placeholder is reserved for
+  stamps, because the fold replaces every one: a test fixture that needs it builds it by concatenation.
 - **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
   bumps it itself and runs `token-contract.ts --accept`. Contract bumps are rare and carry real
   baseline content, so two of them *should* meet.
@@ -125,7 +136,7 @@ Then push and open the PR. What the fold does, in order:
    any note declares. With no notes the version does not move.
 5. It writes the constant and a changelog section under the FOLD MARKER in `version.ts`, newest merge
    first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
-   day it landed. It fills in `{{ENGINE_VERSION}}` in both.
+   day it landed. It fills in `{{ENGINE_VERSION}}` in both, and in every pending rename stamp (#1816).
 6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
 
 **The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
@@ -139,9 +150,11 @@ What to check before you push the fold:
 - **`token-contract.ts --check` needs nothing from a fold.** The contract baseline records no engine
   version (#1817), so moving `ENGINE_VERSION` leaves it clean. Run `--accept` only if a folded PR
   really moved the contract, which that PR should already have done.
-- **Hand-authored version literals.** A PR that added a rename rule wrote a provisional `since` into
-  `MATERIALIZATION_RENAMES` or `COLLECTION_RENAMES`, and `test.ts`'s tables for them. Set those to the
-  fold's version in the fold PR (#1816 tracks doing this without a person remembering).
+- **Rename stamps need nothing by hand.** A PR that added a rename rule stamped it with the quoted
+  placeholder, and the fold fills it (#1816). The dry run lists each file and count under "rename
+  stamps". The fold refuses a pending stamp when no note is pending, since the version would not move.
+  RENAME STAMPS in `lint-emission-version.ts` fails the fold PR if a placeholder is left, is filled with
+  another version, or if the fold adds or changes a stamp itself.
 - **A refusal is information.** The fold refuses on a malformed file, a pending file no merge added,
   or landing dates that run backwards. It writes nothing when it refuses. Fix the cause; do not
   hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check

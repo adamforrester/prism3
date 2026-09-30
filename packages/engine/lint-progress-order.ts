@@ -99,7 +99,8 @@
  *                    A fold is recognized by CONTENT, never by a branch name. FOLD-SHAPED: the diff deletes
  *                    a pending fragment or change note AND the FOLDED ENTRIES arm passed. PURE: it also
  *                    touches nothing a fold does not write (the log, the pending directories, version.ts,
- *                    out/). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
+ *                    out/, and the three rename-stamp files when their whole diff is the fold filling
+ *                    `'{{ENGINE_VERSION}}'` with its version, #1816). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
  *                    semantic conflict carries one for the fix, and a normal PR cannot pass as a fold by
  *                    hand-moving another PR's fragment into the log. Skipped ONLY on a push run
  *                    (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD equal to its base or an
@@ -132,6 +133,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
@@ -385,7 +387,22 @@ if (foldFails.length) {
     const all = git('diff', '--name-only', '--no-renames', base, 'HEAD');
     if (!all.ok) cannotRun('git diff --name-only failed.', all.err);
     const touched = all.out.split('\n').map((x) => x.trim()).filter(Boolean);
-    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)));
+    // THE RENAME STAMPS (#1816). The fold also fills the quoted `'{{ENGINE_VERSION}}'` a PR wrote as a
+    // rename rule's `since`, in these three files. Such a file is a fold write only when its WHOLE diff is
+    // that substitution with HEAD's version: the base copy, substituted here, is byte-identical to HEAD's.
+    // Any other edit in the file is a change of its own and carries a fragment. The paths and the
+    // substitution are restated rather than imported from `fold-stamps.ts`, the subject (docs/34 shape 2).
+    // The comparison itself is `onlyFilledStamps` in `rename-stamp-audit.ts`, a pure function so `test.ts`
+    // can drive it with fixtures (#1842 review: "any stamp-file edit counts" survived every committed check).
+    const STAMP_FILES: string[] = Object.values(STAMP_PATHS);
+    const headVersionLine = /ENGINE_VERSION\s*=\s*'(\d+\.\d+\.\d+)'/.exec(git('show', 'HEAD:packages/engine/version.ts').out);
+    const isFilledStampFile = (f: string): boolean => {
+      if (!STAMP_FILES.includes(f) || !headVersionLine) return false;
+      const was = git('show', `${base}:${f}`);
+      const now = git('show', `HEAD:${f}`);
+      return was.ok && now.ok && onlyFilledStamps(was.out, now.out, headVersionLine[1]);
+    };
+    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)) && !isFilledStampFile(f));
     const foldShaped = (deletedFrags.length > 0 || deletedNotes.length > 0) && foldFails.length === 0;
     const pureFold = foldShaped && beyond.length === 0;
     const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
