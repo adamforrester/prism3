@@ -5262,6 +5262,31 @@ for (const b of brands) {
     const errs = errsWith(part, patch);
     ok(errs.some((e) => want.test(e)), `tag innerTarget refused on ${what} (${errs.join('; ') || 'no refusal'})`);
   }
+  // `visibleGaps` REFUSALS (owner, 2026-09-29, the dismissible label inset): each rule on its own synthetic Tag,
+  // each against the literal error it must produce. The corpus Tag validates clean (above), so every one of
+  // these is a refusal the fixture alone introduced.
+  const DS = tagDef.densitySpacing!;
+  const withSpacing = (densitySpacing: string[], tokens: Record<string, string> = {}) =>
+    validateComponentDef({ ...tagDef, densitySpacing, tokens: { ...tagDef.tokens, ...tokens } } as ComponentDef).errors;
+  const VG_REFUSALS: [string, string[], string][] = [
+    ['(a) a visible gap that does not follow density',
+      withSpacing(DS.filter((k) => k !== 'size.{size}.dismissible.visible-gap')),
+      "visibleGaps names 'size.small.dismissible.visible-gap' as the visible gap, but it is not a density-following gap (in densitySpacing, named 'gap' or '-gap') — the floor and the step rule read it"],
+    ['(b) a derived layer gap that also follows density',
+      withSpacing([...DS, 'size.{size}.dismissible.gap']),
+      "visibleGaps derives 'size.small.dismissible.gap', which is also in densitySpacing — a derived layer gap must not be stepped or floored on its own"],
+    ['(c) a comfortable layer gap that is not visible − inset',
+      withSpacing(DS, { 'size.small.dismissible.gap': 'space.075' }),
+      "visibleGaps: 'size.small.dismissible.gap' is 6px at comfortable, but 'size.small.dismissible.visible-gap' (6px) − 'size.small.dismissible.label-inset' (4px) is 2px"],
+    ['(d) an inset that follows density',
+      withSpacing([...DS, 'size.{size}.dismissible.label-inset']),
+      "visibleGaps names 'size.small.dismissible.label-inset' as the fixed inset, but it is in densitySpacing — the inset holds at every density, so it must not follow it"],
+    ['(e) a visible − inset off the ladder at spacious (24 → 32, less 4 = 28)',
+      withSpacing(DS, { 'size.large.dismissible.visible-gap': 'space.300', 'size.large.dismissible.gap': 'space.250' }),
+      "visibleGaps: at spacious density 'size.large.dismissible.visible-gap' steps to 32px and 'size.large.dismissible.label-inset' is 4px, so 'size.large.dismissible.gap' would be 28px, which is not a step of the space ladder"],
+  ];
+  for (const [what, errs, want] of VG_REFUSALS)
+    ok(errs.includes(want), `tag visibleGaps refused: ${what} (${errs.join('; ') || 'no refusal'})`);
   const aria = tagDef.accessibility.aria;
   ok(/Name the remove control "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
     'tag aria: the remove control is named "Remove" followed by the label, never a bare "Remove" or "×"');
