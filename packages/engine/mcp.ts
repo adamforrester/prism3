@@ -638,12 +638,13 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown, io?: ExportIo):
       return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
 
     // 2024-11-05 — removed by the newer revision, kept answering so pinned clients still work.
-    // Echoes the client's version when we speak it. Otherwise it answers the newest version we speak
-    // that still has this handshake (HANDSHAKE_PROTOCOL_VERSION), which is what that spec asks: never
-    // `2026-07-28`, which a handshake client cannot use (#1867).
+    // Echoes the client's version when it is a handshake revision we speak. Otherwise it answers
+    // HANDSHAKE_PROTOCOL_VERSION, never `2026-07-28` (#1867). The spec's MUST is "another version it
+    // supports"; its SHOULD says the latest, which we read as the latest a handshake client can use,
+    // because `2026-07-28` has no `initialize` and a client that sent one cannot use that answer.
     case 'initialize': {
       const want = req.params?.protocolVersion;
-      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
+      const version = typeof want === 'string' && want !== LATEST_PROTOCOL_VERSION && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
       return ok({ protocolVersion: version, capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
     }
     case 'notifications/initialized':

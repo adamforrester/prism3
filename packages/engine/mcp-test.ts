@@ -204,6 +204,13 @@ await new Promise((r) => setTimeout(r, 3000));
   const initClaudeCode = await resultOf('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '2' } });
   ok(initClaudeCode?.protocolVersion === '2024-11-05',
     `#1867 conformance: initialize from a 2025-11-25 client (Claude Code) answers 2024-11-05 over stdio (got ${initClaudeCode?.protocolVersion})`);
+  const init0618 = await resultOf('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  ok(init0618?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize from a 2025-06-18 client answers 2024-11-05 over stdio (got ${init0618?.protocolVersion})`);
+  // A handshake can never usefully answer 2026-07-28, even when a confused client asks for it.
+  const init0728 = await resultOf('initialize', { protocolVersion: '2026-07-28', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  ok(init0728?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize asking for 2026-07-28 (a revision with no handshake) still answers 2024-11-05 (got ${init0728?.protocolVersion})`);
 
   // structuredContent must AGREE with the text block, or a client reading one sees different data
   // from a client reading the other.
