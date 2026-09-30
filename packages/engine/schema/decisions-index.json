@@ -215,6 +215,13 @@
       "title": "a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads",
       "doc": "docs/28-component-anatomy-schema.md",
       "section": "5.4.4"
+    },
+    {
+      "date": "2026-09-30",
+      "issue": 1807,
+      "title": "a PR declares the engine bump in a change note, and a fold assigns one version per batch",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }
