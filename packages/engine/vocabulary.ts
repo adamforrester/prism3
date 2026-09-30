@@ -7,9 +7,8 @@
  *
  * THE PROBLEM. `brandTheme({ id, primary, neutral })` produces a complete 575-token system from the
  * three required fields, and logs the 15 decisions it made on your behalf. But a brand brief does
- * not speak in numbers. It says *"corners are generous and the UI has room to breathe"* (aurora),
- * *"restrained on purpose — low chroma"* (harbor), *"bold, not loud"* (wendys). Nothing carried that
- * intent to a lever: `design.md` prose is parsed and discarded, and the 9 slider levers had no
+ * not speak in numbers. It says *"corners are generous"* (aurora) or *"restrained on purpose — low
+ * chroma"* (harbor). Nothing carried that intent to a lever: `design.md` prose is parsed and discarded, and the 9 slider levers had no
  * vocabulary at all, so an agent working from a brief had to invent a number — and its guess went
  * unrecorded, which is the part that matters. A *logged* default is auditable; a guessed one is not.
  *
@@ -44,13 +43,21 @@
  * vocabulary. **The fuzzy step stays in the agent, the auditable step stays in the engine.** This is
  * the same seam `standardToBrandInput` already draws between a loose input and a precise BrandInput.
  *
- * WHERE THE WORDS COME FROM. Not invented — read off the three example briefs, which annotate their
- * own mapping ("*energetic* → snappy tempo; *premium restraint* → tighter tracking"). Every trait
- * below quotes `packages/engine/examples/*.design.md` in its `why` string, and `test.ts` checks each
- * quote verbatim against the brief it names (#1685). Every trait but one is attested there as asked
- * for; `dense` is not, and its `why` says it stands as the opposite pole of `generous`. A tenth candidate
- * (`confident`, in both aurora and wendys) was dropped as redundant against `bold` rather than
- * shipped for the sake of a rounder number.
+ * WHERE THE WORDS COME FROM. Not invented — read off the committed example briefs, which annotate
+ * their own mapping ("*energetic* → snappy tempo; *premium restraint* → tighter tracking"). Every trait
+ * but one is attested there as asked for; `dense` is not, and stands as the opposite pole of
+ * `generous`. A tenth candidate (`confident`, in two of the briefs) was dropped as redundant against
+ * `bold` rather than shipped for the sake of a rounder number.
+ *
+ * PROVENANCE IS NOT THE NOTE (#1824). A trait's `why` ships: `resolveVocabulary` copies it into
+ * `theme.notes`, which the MCP server serves, the emitted tree carries as `decisions`, and every bundle
+ * that includes the engine inlines. Until #1824 it quoted the briefs by name, so a customer's workspace
+ * would have shown another brand's name and brief text — and some example briefs are real brands' briefs.
+ * So `why` now says what the trait sets and why, in the UI register, naming no source; the research
+ * citation lives in `test.ts` (PROVENANCE, the vocabulary block), which ships nowhere and checks each
+ * quote verbatim against the committed briefs (#1685). This comment names no brand either, because an
+ * unminified bundle carries `//` comments from this file. `lint-voice.ts`'s CLIENT NAMES arm fails a
+ * bundle, or a rendered note, that names one.
  */
 
 /** Named stops for the slider levers where a word genuinely names a design intent.
@@ -77,7 +84,8 @@ export const SLIDER_STOPS: Record<string, Record<string, number>> = {
 export type Trait = {
   /** Lever path → value. A string is either a stop name in `SLIDER_STOPS` or a literal enum value. */
   levers: Record<string, number | string>;
-  /** Cited justification. Ships in the note, so a reader can audit the inference, not just see it. */
+  /** What the trait sets and why, in the UI register. Ships in `theme.notes`, so a reader sees the reason
+   *  for the inference, not only its values. Names no source brand (#1824): provenance is in `test.ts`. */
   why: string;
 };
 
@@ -92,53 +100,39 @@ export type Trait = {
 export const TRAITS: Record<string, Trait> = {
   energetic: {
     levers: { 'motionPersonality.tempo': 'snappy', 'typography.typeScale': 'expressive' },
-    why: 'aurora: "Energetic, premium, confident … Motion is quick and responsive (snappy)"; wendys: "high-energy"',
+    why: 'Faster motion and larger headings — interactions respond quickly and the hierarchy reads at a glance.',
   },
   calm: {
     levers: { 'motionPersonality.tempo': 'relaxed', neutralEmphasis: 'subtle' },
-    why: 'harbor: "Trustworthy, calm … Motion is unhurried (relaxed)"; aurora: "the working UI should feel calm and precise"',
+    why: 'Slower motion and a subtle neutral fill — transitions settle gently and controls stay quiet.',
   },
   premium: {
     levers: { 'typography.typeScale': 'expressive', 'shadow.softness': 'crisp', neutralEmphasis: 'subtle' },
-    // Citation deliberately TRUNCATED rather than reworded: the clause that follows in aurora's
-    // brief ends on an en-GB spelling, and a `why` string is inlined into `apps/studio/dist/main.js` where
-    // the US-English gate rightly fails it. Quoting an en-GB source into US-gated shipped prose is a
-    // real tension; shortening the quote keeps it faithful, where editing the words would not. (This
-    // comment is phrased around the word rather than using it for the same reason — engine prose
-    // reaches the bundle whether it is a string or a comment.) Only the brief's own words sit inside
-    // the quotes: its annotation reads `"premium restraint" → tighter tracking`, with the arrow outside
-    // its quote marks, and `test.ts` checks every quoted span verbatim against the brief (#1685).
-    why: 'aurora: "Energetic, premium, confident"; its brief maps "premium restraint" to tighter tracking',
+    why: 'Larger headings, crisp shadows and a subtle neutral fill — hierarchy comes from type, not surface effects.',
   },
   restrained: {
     levers: { neutralEmphasis: 'subtle', 'neutral.chroma': 'subtle', 'shadow.softness': 'crisp' },
-    why: 'harbor: "The palette is restrained on purpose — low chroma, nothing that fights the content"',
+    why: 'Lower-chroma grays, crisp shadows and a subtle neutral fill — color comes from the content, not the interface.',
   },
   bold: {
     levers: { neutralEmphasis: 'strong', 'typography.typeScale': 'expressive', 'typography.displayCeiling': '3xl' },
-    // Two quotes where there was one: the brief sets "Bold, not loud" in markdown bold, so the span
-    // across it is not verbatim text in the file (#1685).
-    why: 'wendys: "Bold, not loud" + "confident use of the red on white" + "Confident hierarchy"',
+    why: 'A strong neutral fill, larger headings and all six display sizes — hierarchy set by size and weight.',
   },
   generous: {
     levers: { density: 'spacious', radiusScale: 'round', 'layout.containerNarrow': 'generous' },
-    why: 'aurora: "Corners are generous"; wendys: "Confident hierarchy, generous whitespace"',
+    why: 'Spacious density, round corners and a wider reading column — more room around and between elements.',
   },
   dense: {
     levers: { density: 'compact', 'layout.containerMax': 'wide' },
-    // Re-sourced when aurora moved to comfortable density (#1215): its brief no longer says "dense".
-    // No example brief asks for density, so the trait stands as the opposite pole of `generous` and
-    // the `why` says so outright; the quote is a brief turning density DOWN, not asking for it (#1685).
-    why: 'the opposite pole of `generous`: no example brief asks for density, and harbor names it only to reject it: "not a dense dashboard"',
+    why: 'Compact density and a wider container — more content per screen; the opposite pole of generous.',
   },
   soft: {
     levers: { radiusScale: 'soft', 'shadow.softness': 'soft' },
-    why: 'aurora: "The page is a soft, tinted off-white … the product should feel considered, not clinical"',
+    why: 'Rounder corners and more diffuse shadows — edges and elevation read as gentle rather than hard.',
   },
   sharp: {
     levers: { radiusScale: 'sharp', 'shadow.softness': 'crisp' },
-    // It cited no brief until #1685 made every `why` quote one; nb-redesign asks for it outright.
-    why: 'nb-redesign: "Corners are sharp"; also the opposite pole of `soft`, so a brief can state the intent rather than only its absence',
+    why: 'Square corners and crisp shadows — edges and elevation read as precise; the opposite pole of soft.',
   },
 };
 

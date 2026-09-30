@@ -21203,50 +21203,68 @@ arm: {
     }
   }
 
-  // ---- every trait's `why` quotes a brief, verbatim (#1685) ----
-  // The arm this replaces asserted only `why.length > 20`, so any sentence passed, and the `dense`
-  // trait kept going green after aurora's brief stopped asking for density. Independence (docs/34):
-  // the EXPECTED text is read off `examples/*.design.md` on disk, and the brief names come from that
-  // directory listing, never from the `why` itself. Each double-quoted span must occur in the brief
-  // named most recently before it (outside quotes), after collapsing whitespace (line wraps) and
-  // case, nothing else; a `…` inside a quote marks an elision, so its fragments must occur in order.
-  // A quote under no brief name, or a `why` with no quote at all, fails by the trait's name.
+  // ---- every trait is attested in a committed brief, verbatim (#1685), and the note names none (#1824) ----
+  // #1685 made every `why` quote a brief, so an uncited mapping could not ship. #1824 moved the quotes
+  // OUT of `why`: it ships in `theme.notes`, and some example briefs are real brands' briefs, so a
+  // customer workspace was showing another brand's name and words. The provenance now lives HERE, in
+  // a file that ships nowhere, and still has to be verbatim. What is lost is WHICH brief a quote came
+  // from: this table names none, so a quote passes if it occurs in ANY committed brief's prose. That
+  // is the price of not naming a client in a public repo, and it is small: the quote is still checked
+  // character for character, after collapsing whitespace (line wraps) and case, nothing else; a `…`
+  // inside a quote marks an elision, so its fragments must occur in order in one brief.
+  // Independence (docs/34): the EXPECTED text is read off `examples/*.design.md` on disk, and the brief
+  // ids the note must not name come from that directory listing, never from TRAITS.
   {
+    const PROVENANCE: Record<string, string[]> = {
+      energetic: ['Energetic, premium, confident … Motion is quick and responsive (snappy)', 'high-energy'],
+      calm: ['Trustworthy, calm … Motion is unhurried (relaxed)', 'the working UI should feel calm and precise'],
+      // Only the brief's own words: its annotation reads `"premium restraint" → tighter tracking`, with
+      // the arrow outside its quote marks.
+      premium: ['Energetic, premium, confident', 'premium restraint'],
+      restrained: ['The palette is restrained on purpose — low chroma, nothing that fights the content'],
+      // Two quotes where there was one: the brief sets the first phrase in markdown bold, so a span
+      // across it is not verbatim text in the file.
+      bold: ['Bold, not loud', 'confident use of the red on white', 'Confident hierarchy'],
+      generous: ['Corners are generous', 'Confident hierarchy, generous whitespace'],
+      // No example brief asks for density (re-sourced in #1215): the trait is the opposite pole of
+      // `generous`, and this quote is a brief turning density DOWN, not asking for it.
+      dense: ['not a dense dashboard'],
+      soft: ['The page is a soft, tinted off-white … the product should feel considered, not clinical'],
+      sharp: ['Corners are sharp'],
+    };
     const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
     const briefText = new Map(readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md'))
       // THE BRIEF'S PROSE ONLY (#1688 net): the text after the frontmatter's closing `---`. The frontmatter is
-      // settings and the engine authors' `#` comments, not the brand's words, so a `why` quoting `density:
+      // settings and the engine authors' `#` comments, not the brand's words, so a quote of `density:
       // comfortable` or a `# … sharp-ish corners` comment would otherwise pass as brief language.
       .map((f) => [f.slice(0, -'.design.md'.length), norm(readFileSync(resolve(HERE, `./examples/${f}`), 'utf8').split(/^---$/m).slice(2).join('---'))] as const));
     const traits = Object.entries(TRAITS);
     ok(traits.length >= 9 && briefText.size >= 4 && [...briefText.values()].every((t) => t.length > 200),
-      `vocabulary: the trait-citation check runs over the nine traits and the committed briefs (found ${traits.length} traits, ${briefText.size} briefs)`);
-    for (const [name, { why }] of traits) {
-      const quotes = [...why.matchAll(/"([^"]*)"/g)];
-      const outside = why.replace(/"[^"]*"/g, (q) => ' '.repeat(q.length));
-      const problems: string[] = [];
-      if (quotes.length === 0) problems.push('no quoted brief text');
-      for (const q of quotes) {
-        let brief: string | undefined;
-        let at = -1;
-        for (const id of briefText.keys()) {
-          for (const m of outside.slice(0, q.index).matchAll(new RegExp(`(?<![\\w-])${id.replace(/-/g, '\\-')}(?![\\w-])`, 'g'))) {
-            if (m.index! > at) { at = m.index!; brief = id; }
-          }
-        }
-        if (!brief) { problems.push(`"${q[1]}" names no example brief before it`); continue; }
-        const text = briefText.get(brief)!;
-        let from = 0;
-        for (const frag of q[1].split('…').map(norm)) {
-          const hit = frag ? text.indexOf(frag, from) : -1;
-          if (hit < 0) { problems.push(`"${q[1]}" is not verbatim in ${brief}.design.md (missing: "${frag}")`); break; }
-          from = hit + frag.length;
-        }
+      `vocabulary: the trait-provenance check runs over the nine traits and the committed briefs (found ${traits.length} traits, ${briefText.size} briefs)`);
+    const inBrief = (quote: string): boolean => [...briefText.values()].some((text) => {
+      let from = 0;
+      for (const frag of quote.split('…').map(norm)) {
+        const hit = frag ? text.indexOf(frag, from) : -1;
+        if (hit < 0) return false;
+        from = hit + frag.length;
       }
-      ok(problems.length === 0,
-        `vocabulary: trait '${name}' names an example brief and quotes it verbatim (an uncited mapping is an invention)`
-        + (problems.length ? ` — ${problems.join('; ')}` : ''));
+      return true;
+    });
+    for (const [name, { why }] of traits) {
+      const quotes = PROVENANCE[name] ?? [];
+      const missing = quotes.filter((q) => !inBrief(q));
+      ok(quotes.length > 0 && missing.length === 0,
+        `vocabulary: trait '${name}' is attested verbatim in a committed brief (an uncited mapping is an invention)`
+        + (quotes.length ? '' : ' — NO PROVENANCE ENTRY') + (missing.length ? ` — not verbatim in any brief: ${missing.map((q) => `"${q}"`).join('; ')}` : ''));
+      // The note is the UI register: it names no brief and quotes none (#1824). Brief ids come from the
+      // directory listing, matched as whole slugs, so `harbor` is caught and `sharp` is not `harbor`.
+      const named = [...briefText.keys()].filter((id) => new RegExp(`(?<![\\w-])${id.replace(/-/g, '\\-')}(?![\\w-])`, 'i').test(why));
+      ok(named.length === 0 && !/["“”]/.test(why),
+        `vocabulary: trait '${name}'s note names no source brief and quotes none`
+        + (named.length ? ` — names: ${named.join(', ')}` : '') + (/["“”]/.test(why) ? ' — carries a quotation' : ''));
     }
+    const orphans = Object.keys(PROVENANCE).filter((k) => !TRAITS[k]);
+    ok(orphans.length === 0, `vocabulary: every PROVENANCE entry is a trait the engine ships${orphans.length ? ` — ORPHANED: ${orphans.join(', ')}` : ''}`);
   }
 
   // ---- the structural invariant ----
@@ -21275,8 +21293,12 @@ arm: {
   ok(explicit?.includes('(set explicitly)') === true, 'vocabulary: an author-set lever IS attributed to the author');
 
   // ---- every inference is logged, and nothing leaks downstream ----
-  ok(build({ personality: ['calm'] })?.notes.some((n) => n.startsWith("personality 'calm' →") && n.includes('[harbor:')),
-    'vocabulary: each applied trait logs what it set AND the brief language justifying it');
+  // A literal, not a join of TRAITS.calm.why: the note is shipped copy the owner approved (#1824), so a
+  // change to it must show up here as a diff someone reads.
+  const calmNote = build({ personality: ['calm'] })?.notes.find((n) => n.startsWith("personality 'calm' →"));
+  ok(calmNote === "personality 'calm' → motionPersonality.tempo relaxed, neutralEmphasis subtle"
+    + ' [Slower motion and a subtle neutral fill — transitions settle gently and controls stay quiet.]',
+    `vocabulary: each applied trait logs what it set AND why, in the note's approved wording — got: ${calmNote}`);
   ok(build({ radiusScale: 'soft' })?.notes.some((n) => n === "radiusScale 'soft' → 1.5"), 'vocabulary: a resolved stop is logged with both the word and the number');
   ok(build({})?.notes.every((n) => !n.startsWith('personality')), 'vocabulary: a brand that declares no personality gets no personality notes');
   ok((resolveVocabulary({ ...base, personality: ['calm'] }).input as Record<string, unknown>).personality === undefined,
