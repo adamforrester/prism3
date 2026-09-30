@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en-US" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism3 chrome style tile</title>
+<style id="p3-tokens">
+/*@GENERATED-TOKENS@*/
+</style>
+<style id="tile-css">
+/* Tile CSS. Every value comes through a --p3-* variable from the generated block above.
+   build-tiles.mjs fails on any raw hex, color function, length or duration in this block, and on
+   any shadow: elevation is the background/foreground roles plus hairlines (T5). */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--p3-bg-2); }
+body {
+  margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default);
+  line-height: var(--p3-lh-normal); color: var(--p3-text); background: var(--p3-bg-2);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+button, input, select { font: inherit; color: inherit; }
+b, strong { font-weight: var(--p3-fw-emphasis); }
+code, .code, .tabnum { font-variant-numeric: tabular-nums; }
+code, .code { font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.sr {
+  position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; margin: 0; padding: 0; border: 0;
+}
+[hidden] { display: none !important; }
+h1, h2, h3 { text-wrap: balance; }
+p, .note span, .tip { text-wrap: pretty; }
+.notrans, .notrans *, .notrans *::before, .notrans *::after { transition: none !important; }
+svg.ico { width: var(--p3-icon-xs); height: var(--p3-icon-xs); flex: none; display: block; }
+:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+
+/* ── Harness (outside the tile) ─────────────────────────────────────────────────────────── */
+.harness {
+  position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--p3-space-150) var(--p3-space-400); padding: var(--p3-space-150) var(--p3-space-300);
+  background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.harness h1 { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); }
+.hgroup { display: flex; align-items: center; gap: var(--p3-space-150); border: 0; margin: 0; padding: 0; }
+.hgroup legend { float: left; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.why { flex: 1 1 100%; margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.stage { padding: var(--p3-space-400) var(--p3-space-300); overflow-x: auto; }
+
+/* ── Frame ─────────────────────────────────────────────────────────────────────────────── */
+.frame {
+  --t-pad: var(--p3-space-300); --t-cv-pad: var(--p3-space-400);
+  --t-dur: var(--p3-dur-fast); --t-spin: var(--p3-dur-spin);
+  width: var(--p3-h-frame-wide); height: var(--p3-h-frame-tall); margin: 0 auto;
+  outline: var(--p3-bw-hairline) solid var(--p3-line-1); container-type: inline-size;
+  border-radius: var(--p3-radius-lg); overflow: hidden;
+}
+.frame[data-width="narrow"] {
+  width: var(--p3-h-frame-narrow); height: var(--p3-h-frame-narrow-tall);
+  --t-pad: var(--p3-space-250); --t-cv-pad: var(--p3-space-250);
+}
+.frame[data-full] { height: auto; }
+.frame[data-full] .app { height: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .frame { --t-dur: var(--p3-dur-fast-reduced); --t-spin: var(--p3-dur-spin-reduced); }
+}
+
+/* ── App shell: one page surface, regions split by hairlines. Inset groups (segment tracks,
+   tips, the per-mode body, the drawer's cards, badges) sit on foreground.primary, which reads as a
+   tint in light and a lift in dark, so the same mapping holds in both themes. ─────────────── */
+.app {
+  height: 100%; display: grid; grid-template-columns: var(--p3-h-panel) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto; background: var(--p3-bg-page); color: var(--p3-text);
+  font-size: var(--p3-fs-14); overflow: hidden;
+}
+.topbar {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: var(--p3-space-100);
+  min-height: var(--p3-bar-h); padding: 0 var(--t-pad); background: var(--p3-bg-page);
+  border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.topbar .grow { flex: 1 1 auto; }
+.panel { min-height: 0; }
+.levers { grid-column: 1; grid-row: 2 / 4; overflow: auto; background: var(--p3-bg-page); border-right: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.canvas { grid-column: 2; grid-row: 2; overflow: auto; background: var(--p3-bg-page); padding: var(--t-cv-pad); }
+.drawer { grid-column: 2; grid-row: 3; background: var(--p3-bg-page); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+
+/* ── Buttons ───────────────────────────────────────────────────────────────────────────── */
+.btn {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--p3-space-100);
+  min-height: var(--t-btn-h, var(--p3-ctl-h-sm)); padding: 0 var(--p3-space-200); border-radius: var(--p3-radius-lg);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge); background-color: var(--p3-bg-page);
+  color: var(--p3-text); font-weight: var(--p3-fw-emphasis); cursor: pointer; white-space: nowrap;
+  transition: background-color var(--t-dur) var(--p3-ease), border-color var(--t-dur) var(--p3-ease);
+}
+.btn:hover { border-color: var(--p3-field-edge-hover); background-image: linear-gradient(var(--p3-overlay-hover), var(--p3-overlay-hover)); }
+.btn:active { background-image: linear-gradient(var(--p3-overlay-pressed), var(--p3-overlay-pressed)); }
+.btn .ico { color: var(--p3-icon-2); }
+.btn.ghost { border-color: transparent; background-color: transparent; padding: 0 var(--p3-space-150) 0 calc(var(--p3-space-150) - var(--p3-space-025)); }
+.btn.trail { padding-right: calc(var(--p3-space-200) - var(--p3-space-025)); }
+.btn.ghost:hover { border-color: transparent; }
+.btn.primary { background-color: var(--p3-inv-bg); color: var(--p3-inv-text); border-color: var(--p3-inv-bg); }
+.btn.primary:hover { background-image: none; background-color: var(--p3-inv-bg-2); border-color: var(--p3-inv-bg-2); }
+.btn.icon-only { padding: 0; min-width: var(--t-btn-h, var(--p3-ctl-h-sm)); }
+.btn .dot {
+  position: absolute; top: var(--p3-space-075); left: calc(var(--p3-space-150) + var(--p3-icon-xs) - var(--p3-dot));
+  width: calc(var(--p3-dot) + 2 * var(--p3-bw-thick)); height: calc(var(--p3-dot) + 2 * var(--p3-bw-thick));
+  border-radius: var(--p3-radius-pill); background: var(--p3-bad-icon); border: var(--p3-bw-thick) solid var(--p3-bg-page);
+}
+.lnk {
+  border: 0; background: none; padding: 0 var(--p3-space-050); min-height: var(--p3-hit-min);
+  color: var(--p3-text); text-decoration: underline; text-decoration-color: var(--p3-field-edge);
+  text-decoration-thickness: from-font; text-underline-position: from-font; text-decoration-skip-ink: auto; cursor: pointer; font-weight: var(--p3-fw-emphasis);
+}
+.lnk:hover { text-decoration-color: var(--p3-text); }
+.verdict {
+  display: inline-flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-sm);
+  padding: 0 var(--p3-space-200) 0 var(--p3-space-150); border-radius: var(--p3-radius-pill);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge); background: var(--p3-bg-page);
+  color: var(--p3-text); cursor: pointer; white-space: nowrap;
+}
+.verdict:hover { border-color: var(--p3-field-edge-hover); }
+.vdot { display: block; width: var(--p3-dot); height: var(--p3-dot); border-radius: var(--p3-radius-pill); background: var(--p3-ok-icon); flex: none; }
+.vdot.bad { background: var(--p3-bad-icon); }
+
+/* ── Fields ────────────────────────────────────────────────────────────────────────────── */
+.field {
+  width: 100%; min-height: var(--t-btn-h, var(--p3-ctl-h)); padding: 0 var(--p3-space-200);
+  border-radius: var(--p3-radius-lg); background: var(--p3-bg-page); color: var(--p3-text); font-size: var(--p3-fs-14);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge);
+  transition: border-color var(--t-dur) var(--p3-ease);
+}
+.field:hover { border-color: var(--p3-field-edge-hover); }
+.field:focus-visible, .colorfield:focus-within {
+  outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset-field);
+}
+.selwrap { position: relative; display: block; }
+.selwrap .field { appearance: none; padding-right: var(--p3-space-500); cursor: pointer; }
+.selwrap .chev {
+  position: absolute; right: var(--p3-space-150); top: 50%; transform: translateY(-50%);
+  color: var(--p3-icon-2); pointer-events: none;
+}
+.topbar .selwrap { width: auto; }
+.topbar .selwrap .field { --t-btn-h: var(--p3-ctl-h-sm); padding-left: var(--p3-space-150); font-weight: var(--p3-fw-emphasis); }
+.colorfield {
+  display: flex; align-items: center; min-height: var(--p3-ctl-h); border-radius: var(--p3-radius-lg);
+  padding-left: var(--p3-space-100); background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-field-edge);
+  transition: border-color var(--t-dur) var(--p3-ease);
+}
+.colorfield:hover { border-color: var(--p3-field-edge-hover); }
+.colorfield .sw { flex: none; width: var(--p3-hit-min); height: var(--p3-hit-min); border-radius: var(--p3-radius-md); }
+.colorfield input {
+  flex: 1 1 auto; min-width: 0; align-self: stretch; border: 0; background: transparent; padding: 0 var(--p3-space-100);
+  font-family: var(--p3-font-mono); font-size: var(--p3-fs-14); text-transform: uppercase;
+}
+.colorfield input:focus-visible { outline: none; }
+.colorfield .meta { padding: 0 var(--p3-space-150); color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+
+/* ── Levers panel ──────────────────────────────────────────────────────────────────────── */
+.lv-head { padding: 0 var(--t-pad); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.lv-body { padding: var(--p3-space-400) var(--t-pad) var(--p3-space-500); display: grid; gap: var(--p3-space-500); }
+.sec { display: grid; gap: var(--p3-space-300); }
+.sec + .sec { padding-top: var(--p3-space-500); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.sec-h { display: flex; align-items: center; gap: var(--p3-space-050); margin: 0; }
+.sec-h h2 {
+  margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug);
+  line-height: var(--p3-lh-compact);
+}
+.sec-h .crumb { color: var(--p3-text-2); font-weight: var(--p3-fw-default); }
+.row { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; border: 0; min-width: 0; }
+.lab {
+  display: flex; align-items: center; gap: var(--p3-space-050); min-height: var(--p3-hit-min);
+  font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); color: var(--p3-text); line-height: var(--p3-lh-compact); padding: 0;
+}
+fieldset.row > legend.lab { margin-bottom: var(--p3-space-100); }
+.lab .readout { margin-left: auto; color: var(--p3-text-2); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default); }
+.info {
+  flex: none; display: inline-grid; place-items: center; width: var(--p3-hit-min); height: var(--p3-hit-min); padding: 0;
+  border: 0; border-radius: var(--p3-radius-md); background: transparent; color: var(--p3-icon-2); cursor: pointer;
+}
+.info:hover { background: var(--p3-overlay-hover); color: var(--p3-icon); }
+.tip {
+  margin: 0; padding: var(--p3-space-150) var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1);
+  color: var(--p3-text); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy);
+}
+.note { display: flex; gap: var(--p3-space-100); align-items: flex-start; margin: 0; font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); color: var(--p3-text); }
+.note .ico { color: var(--p3-warn-icon); margin-top: var(--p3-space-025); }
+.note.hint { color: var(--p3-text-2); }
+.flag {
+  display: inline-block; margin-left: var(--p3-space-050); padding: 0 var(--p3-space-075); border-radius: var(--p3-radius-md);
+  border: var(--p3-bw-hairline) dashed var(--p3-line-2); color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap;
+}
+
+/* Domain tabs: text tabs with an underline indicator on one hairline */
+.tabs { display: flex; gap: var(--p3-space-300); border: 0; margin: 0; padding: 0; min-width: 0; }
+.tabs label {
+  position: relative; display: inline-flex; align-items: center; min-height: var(--p3-bar-h);
+  color: var(--p3-text-2); cursor: pointer; white-space: nowrap;
+  border-bottom: var(--p3-bw-thick) solid transparent; margin-bottom: calc(-1 * var(--p3-bw-hairline));
+  transition: color var(--t-dur) var(--p3-ease), border-color var(--t-dur) var(--p3-ease);
+}
+.tabs input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.tabs label:hover { color: var(--p3-text); }
+.tabs label:has(:checked) { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); border-bottom-color: var(--p3-text); }
+.tabs label:has(:focus-visible) { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: calc(-1 * var(--p3-space-150)); border-radius: var(--p3-radius-md); }
+
+/* Segmented control (the harness, the 380 Settings/Preview toggle): a tinted track with no outline;
+   the selected segment lifts to the page surface with an edge that clears 3:1 against the track.
+   Concentric corners: the track's 6px = the segment's 4px + the 2px inset. */
+.seg { display: flex; border: 0; margin: 0; padding: var(--p3-space-025); gap: var(--p3-space-025); min-width: 0;
+  background: var(--p3-fill-1); border-radius: var(--p3-radius-lg); }
+.seg label {
+  position: relative; flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center;
+  min-height: calc(var(--p3-ctl-h-sm) - 2 * var(--p3-space-025)); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-md);
+  color: var(--p3-text-2); cursor: pointer; border: var(--p3-bw-hairline) solid transparent; white-space: nowrap;
+  transition: background-color var(--t-dur) var(--p3-ease), color var(--t-dur) var(--p3-ease);
+}
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg label:hover { color: var(--p3-text); }
+.seg label:has(:checked) { background: var(--p3-bg-page); color: var(--p3-text); border-color: var(--p3-field-edge); font-weight: var(--p3-fw-emphasis); }
+.seg label:has(:focus-visible) { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); z-index: 1; }
+.hgroup .seg label { flex: 0 0 auto; min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
+
+/* Chips: a native radio group. Selected keeps the rest fill; the edge goes from 1px field edge to 2px
+   in the neutral control edge, the label to 500, and a check appears, so it is never edge alone.
+   Equal columns and padding that gives back the extra 1px keep the layout still. */
+.chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--p3-space-100); }
+.chip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--p3-space-075);
+  min-height: var(--p3-ctl-h); padding: 0 calc(var(--p3-space-200) - var(--p3-bw-hairline)); border-radius: var(--p3-radius-lg);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge); background: var(--p3-bg-page); cursor: pointer; white-space: nowrap;
+  transition: border-color var(--t-dur) var(--p3-ease);
+}
+.chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.chip .ck { display: none; }
+.chip:hover { border-color: var(--p3-field-edge-hover); }
+.chip:has(:checked) {
+  border: var(--p3-bw-thick) solid var(--p3-ctl-edge); padding: 0 calc(var(--p3-space-200) - var(--p3-bw-thick));
+  font-weight: var(--p3-fw-emphasis);
+}
+.chip:has(:checked) .ck { display: block; }
+.chip:has(:focus-visible) { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+
+/* Slider with named stops: a thin rail, the filled part in the text color, a page-colored thumb */
+.slider { display: grid; gap: var(--p3-space-050); }
+.slider input[type="range"] { appearance: none; width: 100%; height: var(--p3-hit-min); margin: 0; background: transparent; cursor: pointer; }
+.slider input::-webkit-slider-runnable-track {
+  height: var(--p3-space-050); border-radius: var(--p3-radius-pill);
+  background: linear-gradient(to right, var(--p3-icon) var(--pct), var(--p3-line-2) var(--pct));
+}
+.slider input::-moz-range-track { height: var(--p3-space-050); background: var(--p3-line-2); border-radius: var(--p3-radius-pill); }
+.slider input::-moz-range-progress { height: var(--p3-space-050); background: var(--p3-icon); border-radius: var(--p3-radius-pill); }
+.slider input::-webkit-slider-thumb {
+  appearance: none; width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-pill);
+  background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-field-edge-hover);
+  margin-top: calc((var(--p3-space-050) - var(--p3-thumb)) / 2);
+  transition: border-color var(--t-dur) var(--p3-ease);
+}
+.slider input:hover::-webkit-slider-thumb { border-color: var(--p3-ctl-edge); }
+.slider input::-moz-range-thumb { width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-pill); background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-field-edge-hover); }
+.slider input:focus-visible { outline: none; }
+.slider input:focus-visible::-webkit-slider-thumb { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.ticks { position: relative; height: calc(var(--p3-fs-12) * 2); font-size: var(--p3-fs-12); color: var(--p3-text-2); }
+.ticks span { position: absolute; left: var(--at); transform: translateX(-50%); white-space: nowrap; }
+.ticks span:first-child { transform: none; }
+.ticks span:last-child { transform: translateX(-100%); }
+.ticks span.on { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
+
+/* Switch: off is an outlined track with a gray knob; on is the one inverse-filled track */
+.switch { display: inline-flex; align-items: center; gap: var(--p3-space-150); position: relative; }
+.switch .track {
+  position: relative; width: var(--p3-track-w); height: var(--p3-track-h); border-radius: var(--p3-radius-pill);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge); background: var(--p3-bg-page); flex: none;
+  transition: background-color var(--t-dur) var(--p3-ease), border-color var(--t-dur) var(--p3-ease);
+}
+.switch .knob {
+  position: absolute; top: calc(var(--p3-thumb-inset) - var(--p3-bw-hairline)); left: calc(var(--p3-thumb-inset) - var(--p3-bw-hairline));
+  width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-pill); background: var(--p3-icon-2);
+  transition: transform var(--t-dur) var(--p3-ease);
+}
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; width: var(--p3-track-w); }
+.switch:has(:checked) .track { background: var(--p3-inv-bg); border-color: var(--p3-inv-bg); }
+.switch:has(:checked) .knob { background: var(--p3-inv-text); transform: translateX(calc(var(--p3-track-w) - var(--p3-thumb) - 2 * var(--p3-thumb-inset))); }
+.switch:has(:focus-visible) .track { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+
+/* Per mode disclosure: the body is an inset group */
+.pm summary {
+  display: inline-flex; align-items: center; gap: var(--p3-space-050); min-height: var(--p3-hit-min);
+  padding-right: var(--p3-space-050); cursor: pointer; color: var(--p3-text-2); font-size: var(--p3-fs-12);
+  list-style: none; border-radius: var(--p3-radius-md);
+}
+.pm summary::-webkit-details-marker { display: none; }
+.pm summary:hover { color: var(--p3-text); }
+.pm summary b { color: var(--p3-text); }
+.pm summary .ico { transition: transform var(--t-dur) var(--p3-ease); }
+.pm[open] summary .ico { transform: rotate(90deg); }
+.pm .pmb {
+  display: grid; gap: var(--p3-space-050); margin-top: var(--p3-space-100); padding: var(--p3-space-150) var(--p3-space-200);
+  border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); font-size: var(--p3-fs-12);
+}
+.pm .pmrow { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
+
+/* ── Canvas (preview): on the page surface; groups split by space alone ───────────────────── */
+.cv { display: grid; gap: var(--p3-space-500); align-content: start; }
+.cv-head { display: flex; align-items: baseline; gap: var(--p3-space-150); }
+.cv-head h2 { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); }
+.muted { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); }
+.card { display: grid; gap: var(--p3-space-200); }
+.card h3 { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); display: flex; align-items: baseline; gap: var(--p3-space-100); }
+.ramp { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); }
+.ramp .sw { display: block; height: var(--p3-swatch-h); position: relative; }
+.ramp .cell:first-child .sw { border-radius: var(--p3-radius-lg) 0 0 var(--p3-radius-lg); }
+.ramp .cell:last-child .sw { border-radius: 0 var(--p3-radius-lg) var(--p3-radius-lg) 0; }
+.ramp .step { display: block; padding-top: var(--p3-space-100); text-align: center; font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); color: var(--p3-text-2); font-variant-numeric: tabular-nums; }
+.ramp .anchor .step { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
+.ramp .anchor .sw::after {
+  content: ""; position: absolute; left: 50%; bottom: var(--p3-space-075);
+  width: calc(var(--p3-dot) + 2 * var(--p3-bw-thick)); height: calc(var(--p3-dot) + 2 * var(--p3-bw-thick));
+  transform: translateX(-50%); border-radius: var(--p3-radius-pill); background: var(--p3-bg-page);
+  border: var(--p3-bw-thick) solid var(--p3-text);
+}
+.tscroll { overflow-x: auto; }
+table.roles { border-collapse: collapse; width: 100%; font-size: var(--p3-fs-12); }
+.roles th, .roles td { text-align: left; padding: var(--p3-space-150) var(--p3-space-200) var(--p3-space-150) 0; border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); white-space: nowrap; font-weight: var(--p3-fw-default); }
+.roles thead th { color: var(--p3-text-2); font-weight: var(--p3-fw-emphasis); padding-top: 0; }
+.roles tbody tr:last-child > * { border-bottom: 0; padding-bottom: 0; }
+.roles tbody th, .roles thead th:first-child { position: sticky; left: 0; background: var(--p3-bg-page); }
+.aa { display: inline-grid; place-items: center; width: var(--p3-ctl-h-sm); height: var(--p3-ctl-h-xs); border-radius: var(--p3-radius-md); font-weight: var(--p3-fw-strong); font-size: var(--p3-fs-14); }
+.badge {
+  display: inline-flex; align-items: center; gap: var(--p3-space-050); min-height: var(--p3-hit-min);
+  padding: 0 var(--p3-space-100); border-radius: var(--p3-radius-pill); background: var(--p3-fill-1); color: var(--p3-text);
+}
+.badge .ico { color: var(--p3-ok-icon); }
+.badge .floor { color: var(--p3-text-2); }
+
+/* ── Activity drawer ───────────────────────────────────────────────────────────────────── */
+.dbar {
+  display: flex; align-items: center; gap: var(--p3-space-100); width: 100%; min-height: var(--p3-ctl-h-md);
+  padding: 0 var(--t-cv-pad); border: 0; background: transparent; color: var(--p3-text); text-align: left; cursor: pointer;
+}
+.dbar:hover { background-image: linear-gradient(var(--p3-overlay-hover), var(--p3-overlay-hover)); }
+.dbar .grow { flex: 1 1 auto; }
+.dbar .chev { color: var(--p3-icon-2); transition: transform var(--t-dur) var(--p3-ease); }
+.dbar[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.dbody { display: grid; gap: var(--p3-space-150); padding: 0 var(--t-cv-pad) var(--p3-space-300); max-height: 100%; }
+.op { display: grid; gap: var(--p3-space-100); padding: var(--p3-space-050) 0 var(--p3-space-100); }
+.err { display: grid; gap: var(--p3-space-100); padding: var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); }
+.op-h, .err-h { display: flex; align-items: center; gap: var(--p3-space-100); }
+.spin {
+  width: var(--p3-icon-xs); height: var(--p3-icon-xs); border-radius: var(--p3-radius-pill); flex: none;
+  border: var(--p3-bw-thick) solid var(--p3-fill-2); border-top-color: var(--p3-icon); animation: spin var(--t-spin) linear infinite;
+}
+@keyframes spin { to { transform: rotate(1turn); } }
+.prog { height: var(--p3-space-050); border-radius: var(--p3-radius-pill); background: var(--p3-fill-2); overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--p3-text); border-radius: var(--p3-radius-pill); }
+.err-h .ico { color: var(--p3-bad-icon); }
+.err-h b { color: var(--p3-bad-text); }
+.err p { margin: 0; line-height: var(--p3-lh-cozy); }
+.err .acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-150); margin-top: var(--p3-space-050); }
+.err .btn { --t-btn-h: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); font-size: var(--p3-fs-12); }
+
+/* ── Narrow (380): one pane, Settings / Preview toggle, activity strip ─────────────────── */
+.nar { display: none !important; }
+.frame[data-width="narrow"] .wide { display: none !important; }
+.frame[data-width="narrow"] .nar { display: revert !important; }
+.frame[data-width="narrow"] .nar.flexy { display: flex !important; }
+.frame[data-width="narrow"] .app { grid-template-columns: minmax(0, 1fr); }
+.frame[data-width="narrow"] .topbar { flex-wrap: wrap; row-gap: var(--p3-space-150); padding: var(--p3-space-150) var(--t-pad); min-height: 0; }
+.frame[data-width="narrow"] .topbar .selwrap { flex: 1 1 auto; min-width: 0; }
+.frame[data-width="narrow"] .topbar .seg.nar { flex: 1 1 100%; order: 5; }
+.frame[data-width="narrow"] .levers, .frame[data-width="narrow"] .canvas { grid-column: 1; grid-row: 2; border-right: 0; }
+.frame[data-width="narrow"] .drawer { grid-column: 1; grid-row: 3; }
+.frame[data-width="narrow"][data-pane="settings"] .canvas { display: none; }
+.frame[data-width="narrow"][data-pane="preview"] .levers { display: none; }
+.frame[data-width="narrow"] .lv-head { padding: var(--p3-space-250) var(--t-pad) 0; border-bottom: 0; }
+.frame[data-width="narrow"] .lv-body { padding-top: var(--p3-space-300); gap: var(--p3-space-400); }
+.frame[data-width="narrow"] .sec + .sec { padding-top: var(--p3-space-400); }
+/* 380: equal columns would crush the checked label; auto columns share the spare width instead */
+.frame[data-width="narrow"] .chips { grid-template-columns: repeat(3, auto); }
+.frame[data-width="narrow"] .chip { padding: 0 calc(var(--p3-space-150) - var(--p3-bw-hairline)); }
+.frame[data-width="narrow"] .chip:has(:checked) { padding: 0 calc(var(--p3-space-150) - var(--p3-bw-thick)); }
+.frame[data-width="narrow"] .ramp { grid-template-columns: repeat(10, minmax(0, 1fr)); row-gap: var(--p3-space-150); }
+.frame[data-width="narrow"] .ramp .cell .sw { border-radius: 0; }
+.frame[data-width="narrow"] .ramp .cell:nth-child(10n + 1) .sw { border-radius: var(--p3-radius-lg) 0 0 var(--p3-radius-lg); }
+.frame[data-width="narrow"] .ramp .cell:nth-child(10n) .sw { border-radius: 0 var(--p3-radius-lg) var(--p3-radius-lg) 0; }
+.frame[data-width="narrow"] .dbar { white-space: nowrap; }
+.frame[data-width="narrow"] .dbar .d-count { display: none; }
+.vbtn { flex: none; display: inline-grid; place-items: center; width: var(--p3-hit-min); height: var(--p3-hit-min); padding: 0; border: 0; background: transparent; border-radius: var(--p3-radius-pill); cursor: pointer; }
+.menu {
+  position: absolute; z-index: 4; top: calc(100% + var(--p3-space-050)); right: 0; min-width: calc(var(--p3-h-panel) / 2);
+  display: grid; padding: var(--p3-space-050); border-radius: var(--p3-radius-lg); background: var(--p3-bg-page);
+  border: var(--p3-bw-hairline) solid var(--p3-line-2);
+}
+.menu button { text-align: left; border: 0; background: transparent; min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-md); cursor: pointer; }
+.menu button:hover { background: var(--p3-overlay-hover); }
+.popwrap { position: relative; }
+</style>
+</head>
+<body>
+
+<header class="harness" aria-label="Style tile controls">
+  <h1>Prism3 chrome · style tile A, second pass</h1>
+  <fieldset class="hgroup"><legend>Theme</legend><div class="seg">
+    <label><input type="radio" name="h-theme" value="light" checked>Light</label>
+    <label><input type="radio" name="h-theme" value="dark">Dark</label>
+    <label><input type="radio" name="h-theme" value="system">System</label>
+  </div></fieldset>
+  <fieldset class="hgroup"><legend>Width</legend><div class="seg">
+    <label><input type="radio" name="h-w" value="wide" checked>1280</label>
+    <label><input type="radio" name="h-w" value="narrow">380</label>
+  </div></fieldset>
+  <p class="why">A · Quiet panels, reworked: Inter, one light page surface split by hairlines, an inset preview stage, 6px corners, no shadows.</p>
+</header>
+
+<main class="stage">
+<div class="frame" id="frame" data-width="wide" data-pane="settings">
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <span class="selwrap"><select class="field" aria-label="Brand" data-a="edge">
+      <option>prism3 (default)</option><option>aurora</option><option>harbor</option>
+    </select><i class="chev" data-icon="chev"></i></span>
+    <button type="button" class="verdict wide" data-a="edge" aria-haspopup="dialog"><span class="vdot" data-a="fill"></span><span class="sr">Verdict: </span>All 884 pairs at or above floor</button>
+    <button type="button" class="vbtn nar" aria-label="Verdict: all 884 pairs at or above floor. Open Health"><span class="vdot" data-a="fill"></span></button>
+    <span class="grow wide"></span>
+    <fieldset class="seg nar flexy" aria-label="Pane">
+      <legend class="sr">Pane</legend>
+      <label data-a="ind"><input type="radio" name="pane" value="settings" checked>Settings</label>
+      <label data-a="ind"><input type="radio" name="pane" value="preview">Preview</label>
+    </fieldset>
+    <button type="button" class="btn ghost wide" id="act-btn" data-a="text" aria-expanded="true" aria-controls="dbody">
+      <i data-icon="pulse"></i>Activity<span class="dot" data-a="fill"></span><span class="sr">, 1 failed, 1 running</span></button>
+    <button type="button" class="btn wide" data-a="edge">Export</button>
+    <span class="popwrap wide"><button type="button" class="btn trail" id="figma-btn" aria-haspopup="true" aria-expanded="false" aria-controls="figma-menu" data-a="edge">Figma<i data-icon="chev"></i></button>
+      <span class="menu" id="figma-menu" role="group" aria-label="Figma" hidden>
+        <button type="button">Set up file</button><button type="button">Build set…</button>
+        <button type="button">Style guide…</button><button type="button">Read-back</button>
+      </span></span>
+    <button type="button" class="btn primary wide" data-a="fill">Apply Theme</button>
+    <button type="button" class="btn icon-only nar" aria-label="More actions" data-a="edge"><i data-icon="more"></i></button>
+  </header>
+
+  <!-- Levers -->
+  <section class="panel levers" aria-label="Levers">
+    <div class="lv-head">
+      <fieldset class="tabs wide">
+        <legend class="sr">Lever domain</legend>
+        <label data-a="ind"><input type="radio" name="dom" value="brand" checked>Brand</label>
+        <label data-a="ind"><input type="radio" name="dom" value="color">Color</label>
+        <label data-a="ind"><input type="radio" name="dom" value="type">Type</label>
+        <label data-a="ind"><input type="radio" name="dom" value="shape">Shape</label>
+        <label data-a="ind"><input type="radio" name="dom" value="depth">Depth</label>
+        <label data-a="ind"><input type="radio" name="dom" value="layout">Layout</label>
+      </fieldset>
+      <span class="selwrap nar"><select class="field" aria-label="Lever domain" data-a="edge">
+        <option>Brand</option><option>Color</option><option>Type</option><option>Shape</option><option>Depth</option><option>Layout</option>
+      </select><i class="chev" data-icon="chev"></i></span>
+    </div>
+    <div class="lv-body">
+
+      <section class="sec" aria-labelledby="s-id">
+        <div class="sec-h"><h2 id="s-id"><span class="crumb">Brand › </span>Identity</h2>
+          <button type="button" class="info" aria-label="About Identity" aria-expanded="false" aria-controls="tip-id" data-a="glyph"><i data-icon="info"></i></button></div>
+        <p class="tip" id="tip-id" hidden>The name and namespace every emitted token path starts with.</p>
+
+        <div class="row">
+          <div class="lab"><label for="f-name">Brand name</label></div>
+          <input class="field" id="f-name" type="text" value="Prism3" spellcheck="false" data-a="edge">
+        </div>
+
+        <div class="row">
+          <div class="lab"><label for="f-ns">Token namespace</label>
+            <button type="button" class="info" aria-label="About token namespace" aria-expanded="false" aria-controls="tip-ns" data-a="glyph"><i data-icon="info"></i></button></div>
+          <input class="field code" id="f-ns" type="text" value="prism" spellcheck="false" aria-describedby="ns-note" data-a="edge">
+          <p class="tip" id="tip-ns" hidden>Every token path starts with it. Renaming it renames every path.</p>
+          <p class="note" id="ns-note"><i data-icon="warn"></i><span><span id="ns-text"><code>prism</code> is reserved for the shipped catalog. Set your brand's namespace before you export.</span><span class="flag">Proposed · confirm</span></span></p>
+        </div>
+
+        <div class="row">
+          <div class="lab"><label for="f-hex">Primary color</label>
+            <button type="button" class="info" aria-label="About primary color" aria-expanded="false" aria-controls="tip-pc" data-a="glyph"><i data-icon="info"></i></button></div>
+          <div class="colorfield" data-a="edge">
+            <span class="sw" style="background:var(--p3-sample-primary-600)" data-content></span>
+            <input id="f-hex" type="text" value="<!--@PRIMARY_HEX@-->" spellcheck="false" aria-describedby="hex-meta">
+            <span class="meta tabnum wide" id="hex-meta">Step <!--@ANCHOR@--></span>
+          </div>
+          <p class="tip" id="tip-pc" hidden>Pinned at its step on the primary ramp; the other 19 steps are derived.</p>
+        </div>
+      </section>
+
+      <section class="sec" aria-labelledby="s-den">
+        <div class="sec-h"><h2 id="s-den"><span class="crumb">Shape › </span>Density and radius</h2>
+          <button type="button" class="info" aria-label="About density and radius" aria-expanded="false" aria-controls="tip-den" data-a="glyph"><i data-icon="info"></i></button></div>
+        <p class="tip" id="tip-den" hidden>Density sets control heights and component padding. Radius scales every corner.</p>
+
+        <fieldset class="row">
+          <legend class="lab">Density</legend>
+          <div class="chips">
+            <label class="chip" data-a="edge ind"><input type="radio" name="density" value="compact"><i class="ck" data-icon="check"></i>Compact</label>
+            <label class="chip" data-a="edge ind"><input type="radio" name="density" value="comfortable" checked><i class="ck" data-icon="check"></i>Comfortable</label>
+            <label class="chip" data-a="edge ind"><input type="radio" name="density" value="spacious"><i class="ck" data-icon="check"></i>Spacious</label>
+          </div>
+        </fieldset>
+
+        <div class="row">
+          <div class="lab"><label for="f-dd">Density in dark</label></div>
+          <span class="selwrap"><select class="field" id="f-dd" data-a="edge">
+            <option selected>Auto: follows light (Comfortable)</option><option>Compact</option><option>Comfortable</option><option>Spacious</option>
+          </select><i class="chev" data-icon="chev"></i></span>
+        </div>
+
+        <div class="row">
+          <div class="lab"><label for="f-rad">Radius scale</label>
+            <button type="button" class="info" aria-label="About radius scale" aria-expanded="false" aria-controls="tip-rad" data-a="glyph"><i data-icon="info"></i></button>
+            <output class="readout tabnum" id="rad-out" for="f-rad">1.00 × · Default</output></div>
+          <div class="slider">
+            <input type="range" id="f-rad" data-a="pseudo" min="0" max="2" step="0.25" value="1" aria-valuetext="1.00 × · Default" style="--pct:50%">
+            <div class="ticks" aria-hidden="true" id="rad-ticks">
+              <span style="--at:0%" data-v="0">Square</span><span style="--at:25%" data-v="0.5">Subtle</span>
+              <span style="--at:50%" data-v="1" class="on">Default</span><span style="--at:75%" data-v="1.5">Soft</span>
+              <span style="--at:100%" data-v="2">Round</span>
+            </div>
+          </div>
+          <p class="tip" id="tip-rad" hidden>Multiplies every radius step. 0 is square; 2 doubles each corner.</p>
+          <details class="pm">
+            <summary data-a="text"><i data-icon="chevr"></i>Per mode · <b>1 override</b></summary>
+            <div class="pmb">
+              <div class="pmrow"><span>Dark: <b>0.75 × · Subtle</b></span><button type="button" class="lnk" data-a="text">Reset to base</button></div>
+              <div class="pmrow muted">Light is the base: 1.00 ×.</div>
+            </div>
+          </details>
+        </div>
+
+        <div class="row">
+          <div class="lab"><label for="f-grad">Gradients</label></div>
+          <span class="switch"><input type="checkbox" role="switch" id="f-grad" checked><span class="track" aria-hidden="true" data-a="edge"><span class="knob"></span></span><span class="state" id="grad-state">On: one brand gradient</span></span>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- Canvas -->
+  <section class="panel canvas" aria-labelledby="cv-h">
+    <div class="cv">
+      <div class="cv-head"><h2 id="cv-h">Color</h2><span class="muted">Preview · light</span></div>
+      <div class="card">
+        <h3>primary <span class="muted">20 steps · anchor <!--@ANCHOR@--></span></h3>
+        <ol class="ramp" aria-label="primary ramp">
+<!--@RAMP@-->
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Roles <span class="muted">light · 2 of 221 pairs</span></h3>
+        <div class="tscroll"><table class="roles">
+          <thead><tr><th scope="col">Role</th><th scope="col">On</th><th scope="col">Sample</th><th scope="col">Contrast</th></tr></thead>
+          <tbody>
+<!--@ROLE-ROWS@-->
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Activity drawer -->
+  <section class="panel drawer" aria-label="Activity">
+    <button type="button" class="dbar" id="dbar" data-a="text" aria-expanded="true" aria-controls="dbody">
+      <span class="vdot" data-a="fill"></span><span>All 884 pairs at or above floor</span>
+      <span class="muted tabnum">12:04</span><span class="grow"></span>
+      <span class="muted d-count">1 running · 1 failed</span><i class="chev" data-icon="chevup"></i>
+    </button>
+    <div class="dbody" id="dbody">
+      <div class="op">
+        <div class="op-h"><span class="spin" aria-hidden="true"></span><b>Build set · Button</b><span class="muted">Running</span></div>
+        <div class="prog" role="progressbar" aria-label="Build set progress" aria-valuemin="0" aria-valuemax="32" aria-valuenow="18" aria-valuetext="18 of 32 members built"><i style="width:56.25%" data-a="fill"></i></div>
+        <span class="muted tabnum">18 of 32 members built</span>
+      </div>
+      <div class="err" role="group" aria-labelledby="err-h">
+        <div class="err-h" data-a="glyph"><i data-icon="error"></i><b id="err-h">3 text styles skipped</b><span class="muted tabnum">Apply Theme · 12:03</span></div>
+        <p>Playfair Display SemiBold is not installed in this Figma file, so title.md, title.lg and title.xl were not created.</p>
+        <div class="acts"><button type="button" class="btn" data-a="edge">Use Playfair Display Regular</button><button type="button" class="lnk" data-a="text">Show the 3 styles</button></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</div>
+</main>
+
+<script>
+const ICONS = {
+  info: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2v4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.8" r="0.95" fill="currentColor"/></svg>',
+  chev: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chevup: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chevr: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  check: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l6.6 11.7H1.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.3v3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r="0.9" fill="currentColor"/></svg>',
+  error: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.95" fill="currentColor"/></svg>',
+  pulse: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8.5h3l1.8-4.5 3.2 8 1.8-3.5h3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  more: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="12.5" cy="8" r="1.3" fill="currentColor"/></svg>',
+};
+document.querySelectorAll('[data-icon]').forEach((el) => {
+  const t = document.createElement('template'); t.innerHTML = ICONS[el.dataset.icon];
+  const svg = t.content.firstElementChild; if (el.classList.length) svg.classList.add(...el.classList);
+  el.replaceWith(svg);
+});
+
+const $ = (s) => document.querySelector(s);
+const frame = $('#frame');
+function apply() {
+  const g = (n) => document.querySelector(`input[name="${n}"]:checked`).value;
+  const theme = g('h-theme'), w = g('h-w');
+  frame.dataset.width = w; document.documentElement.dataset.theme = theme;
+  const h = new URLSearchParams(location.hash.slice(1)); h.set('theme', theme); h.set('w', w); // keep pane, drawer, full
+  history.replaceState(null, '', `#${h}`);
+}
+const H0 = new URLSearchParams(location.hash.slice(1)); // read once; apply() rewrites the hash
+(function fromHash() {
+  const h = H0;
+  for (const [k, n] of [['theme', 'h-theme'], ['w', 'h-w']]) {
+    const v = h.get(k); const el = v && document.querySelector(`input[name="${n}"][value="${v}"]`); if (el) el.checked = true;
+  }
+  if (h.get('pane')) { const p = document.querySelector(`input[name="pane"][value="${h.get('pane')}"]`); if (p) { p.checked = true; frame.dataset.pane = p.value; } }
+  if (h.get('drawer') === 'closed') setDrawer(false);
+  if (h.get('full')) frame.dataset.full = '1';
+})();
+// A theme flip changes nearly every color at once; suppress transitions for that one frame so it snaps.
+document.querySelectorAll('.harness input').forEach((i) => i.addEventListener('change', () => {
+  document.documentElement.classList.add('notrans'); apply(); void document.body.offsetHeight;
+  requestAnimationFrame(() => document.documentElement.classList.remove('notrans'));
+}));
+apply();
+
+// Narrow pane toggle
+document.querySelectorAll('input[name="pane"]').forEach((i) => i.addEventListener('change', () => { frame.dataset.pane = i.value; }));
+
+// Info toggletips
+document.querySelectorAll('.info').forEach((b) => b.addEventListener('click', () => {
+  const tip = document.getElementById(b.getAttribute('aria-controls'));
+  const open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open)); tip.hidden = !open;
+}));
+
+// Namespace flag (proposed, confirm): placeholder or reserved namespaces
+const RESERVED = { prism: 'reserved for the shipped catalog', pds3: 'the default theme’s placeholder' };
+$('#f-ns').addEventListener('input', (e) => {
+  const v = e.target.value.trim(); const note = $('#ns-note'); const why = RESERVED[v];
+  note.classList.toggle('hint', !why);
+  note.querySelector('svg').style.display = why ? '' : 'none';
+  $('#ns-text').innerHTML = why
+    ? `<code>${v}</code> is ${why}. Set your brand's namespace before you export.`
+    : `Token paths start with <code>${v.replace(/[<&>]/g, '')}</code>, for example <code>${v.replace(/[<&>]/g, '')}.color.text.primary</code>.`;
+});
+
+// Slider readout and named stops
+const STOPS = { 0: 'Square', 0.5: 'Subtle', 1: 'Default', 1.5: 'Soft', 2: 'Round' };
+$('#f-rad').addEventListener('input', (e) => {
+  const v = Number(e.target.value); e.target.style.setProperty('--pct', `${(v / 2) * 100}%`); const txt = `${v.toFixed(2)} ×${STOPS[v] ? ' · ' + STOPS[v] : ''}`;
+  $('#rad-out').textContent = txt; e.target.setAttribute('aria-valuetext', txt);
+  document.querySelectorAll('#rad-ticks span').forEach((s) => s.classList.toggle('on', Number(s.dataset.v) === v));
+});
+
+// Switch state text
+$('#f-grad').addEventListener('change', (e) => { $('#grad-state').textContent = e.target.checked ? 'On: one brand gradient' : 'Off: no gradients emitted'; });
+
+// Activity drawer: the bar and the top-bar Activity button both show and hide it
+function setDrawer(open) {
+  $('#dbody').hidden = !open;
+  $('#dbar').setAttribute('aria-expanded', String(open)); $('#act-btn').setAttribute('aria-expanded', String(open));
+}
+$('#dbar').addEventListener('click', () => setDrawer($('#dbar').getAttribute('aria-expanded') !== 'true'));
+$('#act-btn').addEventListener('click', () => setDrawer($('#act-btn').getAttribute('aria-expanded') !== 'true'));
+// The narrow strip starts collapsed
+const mqNarrow = () => { if (frame.dataset.width === 'narrow') setDrawer(false); };
+document.querySelectorAll('input[name="h-w"]').forEach((i) => i.addEventListener('change', () => { mqNarrow(); if (frame.dataset.width === 'wide') setDrawer(true); }));
+mqNarrow();
+if (H0.get('drawer') === 'open') setDrawer(true);
+
+// Figma menu
+const fb = $('#figma-btn'), fm = $('#figma-menu');
+fb.addEventListener('click', () => { const o = fb.getAttribute('aria-expanded') !== 'true'; fb.setAttribute('aria-expanded', String(o)); fm.hidden = !o; if (o) fm.querySelector('button').focus(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !fm.hidden) { fm.hidden = true; fb.setAttribute('aria-expanded', 'false'); fb.focus(); } });
+</script>
+</body>
+</html>
