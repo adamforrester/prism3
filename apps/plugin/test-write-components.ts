@@ -1334,7 +1334,9 @@ ok(reRun.yieldCalls === reRun.progress.length && reRun.yieldCalls > 0,
 // and the strongest assertion available is `chunkMs >= 0`, which no clock rule can fail. A rule about WHEN a
 // clock starts cannot be gated by a harness in which no clock advances. So the harness charges deliberate,
 // opt-in cost to the three windows the re-stamps exclude (`ShimOpts.burn`, and `instrumented`'s
-// `onYield`), which makes the rule reachable using the very calls the source comments already name.
+// `onYield`), which makes the rule reachable using the very calls the source comments already name. And a
+// fourth, INSIDE a chunk (`burn.member`, #1848), because every exclusion asserts `=== 0` and a `chunkMs`
+// that never measured anything is also 0 (docs/34 shape 4): only a cost the chunk must CARRY can fail it.
 //
 // ON A VIRTUAL CLOCK (#1800). The burns used to hold the thread on the real clock, and every assertion here
 // was a wall-clock bound: the chunk after a 40ms yield had to come in under 20ms of REAL time for five
@@ -1377,7 +1379,7 @@ const timed = (burn?: ShimOpts['burn'], yieldMs = 0) => onVirtualClock(async (cl
 
 // The two shim-charged burns, one run each, keyed by the burn's own name: the controls below MAP over these
 // keys, so a burn cannot be added here without a control.
-const burnRuns = { setup: await timed({ setup: BURN }), combine: await timed({ combine: BURN }) };
+const burnRuns = { setup: await timed({ setup: BURN }), combine: await timed({ combine: BURN }), member: await timed({ member: BURN }) };
 
 // 1. PRE-BUILD-LOOP SETUP. `planSetLayout`, three `getLocal*Async` fetches, `loadAllPagesAsync()` and a
 //    document-wide `findAllWithCriteria` run before the first member is touched. Charged to the last of
@@ -1401,6 +1403,19 @@ const secondBuild = ybRun.progress.filter((p) => p.phase === 'build')[1].chunkMs
 ok(secondBuild === 0,
   `a chunk excludes the ${YIELD_BURN}ms yield that preceded it (2nd build chunk ${secondBuild}ms)`);
 
+// 4. INSIDE A CHUNK, the converse the three above cannot stand in for (#1848). Each of them asserts `=== 0`,
+//    and a `breathe` that reported `chunkMs: 0 * (now - mark)` satisfied all three and the whole plugin
+//    suite. So the first member's `createComponentFromNode` is charged 120ms, which is work the first build
+//    chunk does, and that chunk must report exactly 120. The other four build chunks and all five wire
+//    chunks report 0, so the cost is billed to its own chunk and nowhere else. Literals, 5 per phase, as
+//    pinned above.
+const memberBuild = burnRuns.member.progress.filter((p) => p.phase === 'build').map((p) => p.chunkMs);
+const memberWire = burnRuns.member.progress.filter((p) => p.phase === 'wire').map((p) => p.chunkMs);
+ok(memberBuild[0] === 120,
+  `chunkMs === BURN: the first build chunk carries the ${BURN}ms its own first member build cost (${memberBuild[0]}ms)`);
+ok(JSON.stringify(memberBuild) === '[120,0,0,0,0]' && JSON.stringify(memberWire) === '[0,0,0,0,0]',
+  `the member burn is billed to that one chunk and no other (build ${JSON.stringify(memberBuild)}, wire ${JSON.stringify(memberWire)})`);
+
 // THE POSITIVE CONTROLS, ONE PER BURN AND DERIVED FROM THE BURN LIST SO THERE CANNOT BE TWO OF THREE.
 // Each burn is proven VISIBLE — otherwise the exclusions above are satisfied by a burn that never ran, which
 // is this block's own thesis used against it. The first version of this block controlled `setup` and the
@@ -1419,8 +1434,10 @@ ok(secondBuild === 0,
 for (const key of Object.keys(burnRuns) as (keyof typeof burnRuns)[]) {
   ok(burnRuns[key].advanced === BURN,
     `CONTROL: the ${key} burn really moves the clock the executor reads (+${burnRuns[key].advanced}ms of ${BURN})`);
+  // Named for what it checks: the executor READS this clock. Whether it prices a chunk on it is case 4's
+  // assertion, since reads alone are satisfied by the `elapsedMs` read with `chunkMs` pinned at 0 (#1848).
   ok(burnRuns[key].reads > 0,
-    `CONTROL: the executor prices its chunks on that clock (${burnRuns[key].reads} reads during the ${key}-burned run)`);
+    `CONTROL: the executor reads that clock (${burnRuns[key].reads} reads during the ${key}-burned run)`);
 }
 const ctlNoBurn = await timed();
 ok(ctlNoBurn.progress.length > 0 && ctlNoBurn.advanced === 0 && ctlNoBurn.progress.every((p) => p.chunkMs === 0 && p.elapsedMs === 0),
