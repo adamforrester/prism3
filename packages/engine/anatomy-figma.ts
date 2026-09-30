@@ -4621,6 +4621,19 @@ return {set:set.name,id:set.id,chunk:CHUNK+1,of:TOTAL,added:fresh.length,variant
  * 42,000 rather than 45,000 because 42,040 is the largest payload with a *proven* live paste behind it,
  * and the remaining ~3KB is the margin for what the byte count cannot see (transport framing, and the
  * one variant whose label is longer than any measured here).
+ *
+ * WHAT THE BUDGET BOUNDS, AND WHAT IT DOES NOT (#1798). It bounds one CALL, so the number that can break
+ * a paste is the INDIVISIBLE UNIT: one variant plus the shell every chunk carries. A shell that grows
+ * costs chunks, not correctness. `test.ts` gates that unit by name at 37,800 (90% of this budget) across
+ * the registry, and runs the #536 probe grid split across chunks to prove a split builds what one chunk
+ * does. Measured at #1798: the shell was ~27.8KB of the probe grid's 41,827, and the worst unit was
+ * textarea's 32,090 (76.4%). The other transport is `use_figma`, whose `code` parameter declares
+ * `maxLength: 50000` (read off the tool schema, 2026-09-30). `apps/plugin/mcp-paste.ts` packs to its own
+ * `SCRIPT_CEILING` (45,000) minus the step bundle, not to this constant. The budget stays at 42,000: the
+ * `figma_execute` ceiling it protects was never measured as a rejection point, so nothing here proves it
+ * looser. A one-time preamble chunk for the shared helpers was also ruled out: every call is a fresh
+ * plugin run, so a later chunk could only reach code an earlier one stored by evaluating text read back
+ * out of the file.
  */
 export const SET_CHUNK_BYTES = 42_000;
 
