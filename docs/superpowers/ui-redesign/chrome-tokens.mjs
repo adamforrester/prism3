@@ -205,25 +205,27 @@ export function scanRaw(text, where, errors) {
 }
 
 // ── contrast (WCAG 2.x relative luminance) ─────────────────────────────────────────────────────
-const HEX = /^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i;
-export const hexRgba = (h) => { const x = h.replace('#', ''); const n = (i) => parseInt(x.slice(i, i + 2), 16) / 255; return [n(0), n(2), n(4), x.length === 8 ? n(6) : 1]; };
+// A pair is measured as drawn: the foreground composited over an OPAQUE background. Anything that
+// is not a 6- or 8-digit hex, or a translucent background (there is nothing defined beneath it to
+// composite over), is refused rather than scored — a NaN compares false against every floor, so an
+// unparsed value would otherwise pass silently. `ratio` returns a number, or { refused: why }.
+// (The tile review's fix, carried here so the tiles and v5 share one implementation.)
+export const hexRgba = (h) => {
+  const x = typeof h === 'string' && /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(h) ? h.slice(1) : null;
+  if (!x) return null;
+  const n = (i) => parseInt(x.slice(i, i + 2), 16) / 255;
+  return [n(0), n(2), n(4), x.length === 8 ? n(6) : 1];
+};
 const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 export const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-/**
- * Contrast of `fg` drawn on `bg`, both `#rrggbb` or `#rrggbbaa`. A translucent foreground is composited
- * over the background first, so a 10% black overlay on white scores about 1.2:1, not 21:1. A
- * translucent background or a value that is not a hex color is refused by name: the pair has no single
- * answer, and NaN would compare false against any floor and pass.
- */
-export const ratio = (fg, bg) => {
-  if (!HEX.test(String(fg))) throw new Error(`not a hex color: ${fg}`);
-  if (!HEX.test(String(bg))) throw new Error(`not a hex color: ${bg}`);
-  const b = hexRgba(bg); if (b[3] < 1) throw new Error(`translucent background ${bg}: a pair's ground must be opaque`);
-  const f = hexRgba(fg); const comp = [0, 1, 2].map((i) => f[i] * f[3] + b[i] * (1 - f[3]));
-  const [x, y] = [lum(comp), lum(b)].sort((p, q) => q - p);
+export const ratio = (a, b) => {
+  const fg = hexRgba(a), bg = hexRgba(b);
+  if (!fg || !bg) return { refused: `not a 6- or 8-digit hex (${!fg ? a : b})` };
+  if (bg[3] < 1) return { refused: `translucent background (${b})` };
+  const drawn = fg.slice(0, 3).map((c, i) => c * fg[3] + bg[i] * (1 - fg[3]));
+  const [x, y] = [lum(drawn), lum(bg)].sort((p, q) => q - p);
   const r = (x + 0.05) / (y + 0.05);
-  if (!Number.isFinite(r)) throw new Error(`contrast of ${fg} on ${bg} is not a number`);
-  return r;
+  return Number.isFinite(r) ? r : { refused: `ratio is not a number (${a} on ${b})` };
 };
 /** Floored, never rounded up, so a printed pass is never a rounding artifact. */
 export const fmtRatio = (r) => `${(Math.floor(r * 100) / 100).toFixed(2)}:1`;

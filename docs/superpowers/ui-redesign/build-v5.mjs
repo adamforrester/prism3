@@ -178,7 +178,8 @@ const hexOf = (mode, v) => resolve(MODES[mode], P(VARS.find((x) => x[0] === v)[1
 const rows = PAIRS.map(([fg, bg, floor, what]) => {
   const r = { what, fg, bg, floor };
   for (const mode of ['light', 'dark']) {
-    try { r[mode] = ratio(hexOf(mode, fg), hexOf(mode, bg)); } catch (e) { r[mode] = NaN; errors.push(`pair ${fg} on ${bg} (${what}) refused in ${mode}: ${e.message}`); continue; }
+    r[mode] = ratio(hexOf(mode, fg), hexOf(mode, bg));
+    if (typeof r[mode] !== 'number') { errors.push(`pair ${fg} on ${bg} (${what}) in ${mode}: refused, ${r[mode].refused}`); r[mode] = NaN; continue; }
     if (!(r[mode] >= floor)) errors.push(`pair ${fg} on ${bg} (${what}) is ${r[mode].toFixed(2)}:1 in ${mode}, floor ${floor}:1`);
   }
   return r;

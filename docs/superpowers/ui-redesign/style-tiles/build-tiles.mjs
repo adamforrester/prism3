@@ -141,6 +141,7 @@ const rows = PAIRS.map(([fg, bg, floor, what]) => {
   const r = { what, fg, bg, floor };
   for (const m of ['light', 'dark']) {
     r[m] = ratio(hexOf(m, fg), hexOf(m, bg));
+    if (typeof r[m] !== 'number') { errors.push(`pair ${fg} on ${bg} (${what}) in ${m}: refused, ${r[m].refused}`); r[m] = NaN; continue; }
     if (r[m] < floor) errors.push(`pair ${fg} on ${bg} (${what}) is ${r[m].toFixed(2)}:1 in ${m}, floor ${floor}:1`);
   }
   return r;
@@ -161,6 +162,7 @@ const roleRows = [
   ['text.secondary', 'background.secondary', 'sample-text-2', 'sample-bg-2', 4.5],
 ].map(([fg, bg, fv, bv, floor]) => {
   const r = roleRatio(`color.${fg}`, `color.${bg}`);
+  if (typeof r !== 'number') { errors.push(`role ${fg} on ${bg}: refused, ${r.refused}`); return ''; }
   return `<tr><th scope="row"><code>${fg}</code></th><td><code>${bg}</code></td>`
     + `<td><span class="aa" style="color:var(--p3-${fv});background:var(--p3-${bv})" data-content>Aa</span></td>`
     + `<td><span class="badge">${r >= floor ? '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2"/></svg>' : ''}`
@@ -177,6 +179,7 @@ const html = src
   .replace('/*@GENERATED-TOKENS@*/', generated)
   .replace('<!--@RAMP@-->', rampHtml)
   .replaceAll('<!--@ANCHOR@-->', anchorStep)
+  .replace('<!--@PRIMARY_HEX@-->', resolve(MODES.light, P(`core.palette.primary.${anchorStep}`)).value.toUpperCase())
   .replace('<!--@ROLE-ROWS@-->', roleRows);
 writeFileSync(join(HERE, 'style-tiles.html'), html);
 

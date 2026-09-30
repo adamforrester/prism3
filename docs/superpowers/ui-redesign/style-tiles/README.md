@@ -141,7 +141,10 @@ differs. The build fails when:
    (token, font or harness) that the source never uses, so the token table below stays exact;
 3. a chrome color resolves through the `primary` or `accent` palette, or through a brand, link or
    focus role. Only the `--p3-sample-*` preview content may;
-4. a declared chrome pair measures under its floor in either theme.
+4. a declared chrome pair measures under its floor in either theme. A pair is scored as drawn: an
+   8-digit hex foreground is composited over its background. A translucent background, or any value
+   that is not a 6- or 8-digit hex, is refused by name rather than scored, because a `NaN` ratio
+   compares false against every floor and would pass silently.
 
 `audit-tiles.mjs` renders the built page in Chromium for all 4 states (2 themes × 2 widths) and
 measures what is on screen:
@@ -150,6 +153,15 @@ measures what is on screen:
 - every marked edge, fill, glyph and selected indicator against what is outside it (3:1);
 - the focus ring of every stop in the Tab order (3:1);
 - every control's hit target (24 × 24).
+
+The checks are **represented, not counted** (`docs/34`). Every visible focusable control outside the
+harness carries a `data-a` marker: on itself, an ancestor within two levels, a child, or a sibling it
+sits beside. A control identified by its text alone (a ghost button, a link, a summary) is marked
+`text`. The range input, whose boundary is drawn on pseudo-elements the page can't read, is marked
+`pseudo` and covered by the declared pairs. An unmarked control or an unknown marker fails by name.
+Each column also has a literal minimum per width (`MIN_CHECKS`: at 1280, 80 text, 20 checks, 18 rings
+and 20 targets; at 380, 35, 15, 15 and 15), set below today's counts and not derived from the page, so
+an empty column can't report a minimum of Infinity as a pass.
 
 It also checks that System follows the color scheme, and that reduced motion slows the spinner to
 its token. This pass adds four checks:
@@ -169,6 +181,10 @@ with `git checkout`.
 | `box-shadow: var(--p3-shadow-xs)` on `.card` | build, raw scan | `tile CSS: shadow (T5: no shadows) "box-shadow:"` |
 | the embedded face renamed, so it is not what `Inter` loads | audit, CDP fonts | `font (want Inter, drew DejaVu Sans) .lab label[for="f-name"]`, and `want JetBrains Mono, drew DejaVu Sans Mono` for the values |
 | `.lab { font-weight: bold }` | audit, weights | `weight above 600 label "Brand name" 700 > 600`, one per label |
+| every `data-a` marker removed from the source | audit, representation and floors | `unmarked control button.info "About primary color" <button>`, one per control, and `too few checks (0 < 15) checks column`, in all 4 states |
+| a declared pair with a translucent foreground (`overlay-hover` on `bg-page`) | build, declared pairs | `pair overlay-hover on bg-page (…) is 1.26:1 in light, floor 3:1`; before the fix the alpha was dropped and it scored 21:1 |
+| a declared pair on a non-color value (`radius-lg`) | build, declared pairs | `pair radius-lg on bg-page (…) in light: refused, not a 6- or 8-digit hex (6px)`; before the fix it scored `NaN` and passed |
+| a declared pair on a translucent background (`text` on `overlay-hover`) | build, declared pairs | `pair text on overlay-hover (…) in light: refused, translucent background (#0000001a)` |
 
 ## Behavior (unchanged from the first pass)
 
