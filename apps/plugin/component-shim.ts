@@ -1535,6 +1535,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const kids = set.children as Node[];
         const kidNames = kids.map((m) => String(m.name));
         if (new Set(kidNames).size !== kidNames.length) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
+        // #1780 — MEMBERS ON TWO AXIS LISTS poison the getter the same way, measured live: 6 `veil` members on
+        // `value × intensity` beside 30 on `value × intensity × direction` read "Component set has existing
+        // errors". Modeled over COORDINATE-SHAPED names only (every segment has an `=`): what the host does
+        // with a hand-named child is not measured, and the stray-member case in `test-write-components.ts`
+        // relies on that child being read as it always was.
+        const lists = new Set(kidNames
+          .map((n) => n.split(', '))
+          .filter((segs) => segs.every((s) => s.includes('=')))
+          .map((segs) => segs.map((s) => s.slice(0, s.indexOf('='))).sort().join(',')));
+        if (lists.size > 1) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
         const out: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
         for (const n of kidNames)
           for (const kv of n.split(', ')) {
