@@ -76,7 +76,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
-import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET } from './src/build-deps';
+import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 // #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
@@ -3519,7 +3519,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // MAIN.TS RUNS IT, before the parent's own build.
   const pre = mainSrc.indexOf('await prebuildDependencies(def,');
-  const own = mainSrc.indexOf('await buildOne(def, reports)');
+  const own = mainSrc.indexOf('await buildOne(def, reports, landed)');   // #1750: the call now passes `landed`
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
@@ -4606,6 +4606,18 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(pg2.children.length === 4 && overlaps.length === 0,
     `#1750 no two of the page's ${pg2.children.length} top-level nodes overlap (${overlaps.join(', ') || 'none'})`);
 
+  // (c') A NODE THAT STARTS ABOVE THE ROW AND REACHES INTO IT still shares the row. A frame at x 1000..2900,
+  // y -500..500: its top edge is above the sets' top (0), its bottom is inside the new set's row. Expected
+  // x: 2900 + 160 = 3060. A check that counted only nodes whose TOP edge falls inside the row would miss it
+  // and land the set at 940,0, over the frame.
+  const pgTall: Page = { children: [] };
+  await run(grid, { ...full(), page: pgTall });
+  pgTall.children.push({ type: 'FRAME', name: 'tall', x: 1000, y: -500, width: 1900, height: 1000 } as Node);
+  await run(destructive, { ...fullFor(destructive), page: pgTall });
+  const pastTall = pgTall.children.find((n) => n.name === 'button-destructive')!;
+  ok(at(pastTall) === '3060,0',
+    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 160 = 3060), at 3060,0 (got ${at(pastTall)})`);
+
   // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 760,40.
   const pg3: Page = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 } as Node] };
   await run(grid, { ...full(), page: pg3 });
@@ -4618,6 +4630,42 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const rAgain = await run(grid, { ...full(), page: pg });
   ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
     `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
+}
+
+// ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------
+// `labelAfterBuilds` is the ordering `main.ts` runs its builds under. A header measures its content once, so
+// labeling after the first build (`checkbox-control`) would never cover the `checkbox-row` built next.
+{
+  const log: string[] = [];
+  const out = await labelAfterBuilds<string, string>(async (landed) => {
+    for (const [def, page] of [['checkbox-control', 'Checkbox'], ['checkbox-row', 'Checkbox'], ['focus-ring', 'Focus Ring'], ['checkbox-group', 'Checkbox']]) {
+      log.push(`build ${def}`);
+      landed(page, page);
+    }
+    return 'done';
+  }, async (page) => { log.push(`label ${page}`); });
+  ok(out === 'done' && log.join(' | ') === 'build checkbox-control | build checkbox-row | build focus-ring | build checkbox-group | label Checkbox | label Focus Ring',
+    `#1750 every build runs before any page is labeled, and each page is labeled once, in first-landing order (${log.join(' | ')})`);
+
+  const log2: string[] = [];
+  let thrown = '';
+  try {
+    await labelAfterBuilds<string, void>(async (landed) => {
+      log2.push('build checkbox-control');
+      landed('Checkbox', 'Checkbox');
+      log2.push('build checkbox-row');
+      throw new Error('row failed');
+    }, async (page) => { log2.push(`label ${page}`); });
+  } catch (e) { thrown = (e as Error).message; }
+  ok(thrown === 'row failed' && log2.join(' | ') === 'build checkbox-control | build checkbox-row | label Checkbox',
+    `#1750 a throw still labels the pages whose builds returned, and the original error propagates (${thrown}; ${log2.join(' | ')})`);
+
+  // AND `main.ts` RUNS ITS BUILDS UNDER IT. `main.ts` cannot be imported, so this reads its code lines (the
+  // SWAP_TARGET precedent above): the only call to `placeHeader(` is the label passed to `labelAfterBuilds`.
+  // Name-anchored (docs/34 shape 9): a rename of either function makes this fail, not pass.
+  const headerCalls = mainCode.split('\n').filter((l) => /\bplaceHeader\(/.test(l) && !/const placeHeader\b/.test(l));
+  ok(headerCalls.length === 1 && /\}, \(\{ page, defId \}\) => placeHeader\(page, defId\)\);/.test(headerCalls[0]) && /await labelAfterBuilds\(/.test(mainCode),
+    `#1750 main.ts places headers only as the label of labelAfterBuilds, never inside a build (${headerCalls.length} call site(s): ${headerCalls.map((l) => l.trim()).join(' / ')})`);
 }
 
 if (failed) process.exit(1);

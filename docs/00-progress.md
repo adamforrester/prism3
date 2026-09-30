@@ -19,9 +19,9 @@
 
 **Taxonomy order.** Sets read left to right in build order, which is the taxonomy's order when a family is built as one run (dependencies first, `build-deps.ts`) or page by page in the order `file-taxonomy.ts` lists. A set built out of order goes to the right of its siblings; nothing already placed is reshuffled, since that would move a designer's layout.
 
-**Header.** `main.ts` now places headers once the run's builds are done (in a `finally`, and only for pages whose build returned), so a header first placed over `checkbox-control` + `checkbox-row` spans both. This ordering lives in `main.ts`, which no test can import; `test-page-header.ts` 2b pins the geometry it produces, and the ordering itself is verified only by typecheck and a live run.
+**Header.** Headers are now placed once the run's builds are done, so a header first placed over `checkbox-control` + `checkbox-row` spans both. The ordering is `labelAfterBuilds` in `build-deps.ts` (importable, unlike `main.ts`): it runs the builds, records each page after its build returns, and labels each page once afterwards, also on a throw. `main.ts` runs its dependency and root builds under it. `test-page-header.ts` 2b pins the geometry the ordering produces.
 
-**Tests (literal positions).** `test-write-components.ts`: the first set stays at 0,0 (its 780×120 box pinned as the input); `button-destructive` after `button` lands at 940,0; with a 5000px frame above and a note at 900..1300 in the row, it lands at 1460,0, and no two of the page's four nodes overlap; on a page holding only a frame at 100..600, y 40, it lands at 760,40; a rebuild leaves a hand-moved set at 5000,7000 and its sibling at 940,0. `test-page-header.ts` 2b: sets at 0 and 360 get a header at x 0, width 1000 (the floor), and `placeNewSet` puts a third set at 720,0, not past the header.
+**Tests (literal positions).** `test-write-components.ts`: the first set stays at 0,0 (its 780×120 box pinned as the input); `button-destructive` after `button` lands at 940,0; with a 5000px frame above and a note at 900..1300 in the row, it lands at 1460,0, and no two of the page's four nodes overlap; on a page holding only a frame at 100..600, y 40, it lands at 760,40; a frame at y -500..500 (starting above the row, reaching into it) pushes the set to 3060,0; a rebuild leaves a hand-moved set at 5000,7000 and its sibling at 940,0. `labelAfterBuilds`: builds for Checkbox, Checkbox, Focus Ring, Checkbox, then one label each for Checkbox and Focus Ring; a throw still labels the page that returned and rethrows. A read of `main.ts`'s code lines pins that `placeHeader(` is called only as that label. `test-page-header.ts` 2b: sets at 0 and 360 get a header at x 0, width 1000 (the floor), and `placeNewSet` puts a third set at 720,0, not past the header.
 
 **Mutations (on a `wip:` commit, each restored by `git checkout --`).**
 
@@ -31,6 +31,9 @@
 | P2 the row band ignored (everything on the page pushes) | `#1750 a node in the set's row pushes it right … (got 5160,0)`; `2b: a third set goes beside the row at 720,0 … (got 1160,0)` |
 | P3 the page read as empty (no snapshot) | the same 5 as P1 |
 | P4 a rebuild also places the existing set | `#1750 a rebuild leaves a set the designer moved where they put it … (button at 1916,0, …)` |
+| R1 (review) only nodes whose TOP edge is inside the row count | survived the first round; now `#1750 a node that starts above the row and extends into it still pushes the set right … (got 940,0)` |
+| S1 `labelAfterBuilds` labels each page as it lands | `#1750 every build runs before any page is labeled …`; `#1750 a throw still labels the pages whose builds returned …` |
+| S2 `main.ts` back to placing the header inside each build | `#1750 main.ts places headers only as the label of labelAfterBuilds, never inside a build (… if (page) await placeHeader(…))` |
 
 **Not done here.** The `emitAsComponents` path (`icon`) still lays its components out from the origin on its own page, and the MCP paste payload still combines at the origin. The payload is filed as #1809 with #1780's twin.
 
