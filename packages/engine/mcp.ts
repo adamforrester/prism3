@@ -187,7 +187,7 @@ export const summarizeDescription = (d: string): string => {
  *  WHY, measured on the schema as #1759 left it: the inlined schema was 52,589 of `tools/list`'s 59,969
  *  characters, and 32,333 of those were description prose (191 descriptions). Structure alone was about
  *  17,000. So prose was the part growing, and the part every lever had been trimming to fit. Moving it
- *  out takes the list to about 33,000. A new lever then costs its structure plus a one-line summary
+ *  out takes the list to 42,314 (measured). A new lever then costs its structure plus a one-line summary
  *  (`test.ts` caps a summary at 200 characters). Its full description, however long, costs nothing
  *  here. */
 export const compactSchema = (schema: unknown): unknown => {
@@ -230,18 +230,20 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'list_levers',
     title: 'List brand controls',
-    description: 'List the complete BrandInput surface an agent can set: the lever catalogue (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts. Pass `describe` with field names to get those fields\' full schema descriptions instead.',
+    description: 'List the complete BrandInput surface an agent can set: the lever catalog (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts. Pass `describe` with field names to get those fields\' full schema descriptions instead.',
     inputSchema: {
       type: 'object',
       properties: {
-        describe: { type: 'array', items: { type: 'string' }, description: 'BrandInput field names (e.g. ["typography", "radiusHairline"]). Returns each field\'s schema entry with every description in full, plus the $defs it references, instead of the catalogue.' },
+        describe: { type: 'array', items: { type: 'string' }, description: 'BrandInput field names (e.g. ["typography", "radiusHairline"]). Returns each field\'s schema entry with every description in full, plus the $defs it references, instead of the catalog.' },
       },
       additionalProperties: false,
     },
-    // No `required`: a `describe` call returns `described` alone, and a client validates every result
-    // against this schema. The catalogue call still returns all three catalogue fields.
+    // Two result shapes, one schema: a client validates every result against it, and a `describe` call
+    // returns `described` alone. `anyOf` over the two `required` sets keeps the root an object (what
+    // MCP asks of an outputSchema) while still requiring all three catalog fields on a catalog call.
     outputSchema: {
       type: 'object',
+      anyOf: [{ required: ['levers', 'nonLeverFields', 'required'] }, { required: ['described'] }],
       properties: {
         levers: { type: 'object', description: 'The lever manifest — UI presentation contract.' },
         nonLeverFields: {

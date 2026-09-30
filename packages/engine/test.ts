@@ -11201,7 +11201,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1760: the ceiling now fails with HEADROOM left, not at the wall. Trimming prose to fit had reached
   // 31 characters of margin, so the next lever would fail and every lever after it would cut guidance
   // from another. The inline copy is now COMPACTED (every description cut to a one-line summary, full
-  // prose one `list_levers describe` call away), which took the list from 59,969 to about 42,200. A
+  // prose one `list_levers describe` call away), which took the list from 59,969 to 42,314. A
   // compacted top-level field measured a median ~220 characters, so 5,000 is room for ~20 more levers
   // at ~250 each. When this fails, the list is 5,000 short of the wall and still passes the hard
   // limit, so there is time to scale again rather than trim.
@@ -11216,7 +11216,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // structure plus one sentence, however long its full description grows.
   {
     const inline = tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand;
-    const drift: string[] = [], notPrefix: string[] = [], tooLong: string[] = [];
+    const drift: string[] = [], notPrefix: string[] = [], tooLong: string[] = [], midSentence: string[] = [];
     const walk = (a: any, b: any, path: string): void => {
       if (Array.isArray(b)) {
         if (!Array.isArray(a) || a.length !== b.length) { drift.push(path); return; }
@@ -11231,6 +11231,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const sum = a[k];
             if (typeof sum !== 'string' || !sum.trim() || !b[k].startsWith(sum)) notPrefix.push(`${path}/description`);
             else if (sum.length > 200) tooLong.push(`${path} (${sum.length})`);
+            // Where the cut falls, checked without mcp.ts's sentence splitter: a summary is the whole
+            // text, or it ends in "." and the full text goes on with whitespace (never mid-word).
+            if (typeof sum === 'string' && sum !== b[k] && !(sum.endsWith('.') && /^\s/.test(b[k].slice(sum.length)))) midSentence.push(`${path}/description`);
           } else walk(a[k], b[k], `${path}/${k}`);
         }
         return;
@@ -11240,6 +11243,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     walk(inline, brandSchema, '#');
     ok(drift.length === 0, `MCP: the inline brand schema matches the file in every keyword but description — types, enums, ranges, defaults, $defs, $ref, $id (drift: ${drift.slice(0, 5).join(', ') || 'none'})`);
     ok(notPrefix.length === 0, `MCP: every inline schema description is a non-empty prefix of the file's full text (not: ${notPrefix.slice(0, 5).join(', ') || 'none'})`);
+    ok(midSentence.length === 0, `MCP: every inline schema summary is the full text or ends at a "." the full text follows with whitespace — never cut mid-word (cut: ${midSentence.slice(0, 5).join(', ') || 'none'})`);
     ok(tooLong.length === 0, `MCP: every inline schema description summary is at most 200 chars — split a longer first sentence (over: ${tooLong.join(', ') || 'none'})`);
     // Literal summaries: a status tag carries on to the first real sentence, and `e.g.` / `mobile?` are
     // not sentence ends.
@@ -11271,6 +11275,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const ghost = callTool('list_levers', { describe: ['radiusHairline', 'notAField'] }, brandSchema);
     ok(ghost.isError === true && /notAField/.test(ghost.content[0].text) && /"radiusHairline"/.test(ghost.content[0].text),
       'MCP: describe on an unknown field is a tool error that names it and lists the valid fields');
+    // list_levers' outputSchema admits both result shapes and still requires the catalog fields on a
+    // catalog call. Checked against the literal required sets, and against both real results.
+    const llOut = tools.find((t) => t.name === 'list_levers')?.outputSchema;
+    const branches = ((llOut?.anyOf ?? []) as { required?: string[] }[]).map((b) => (b.required ?? []).join(','));
+    ok(branches.join(' | ') === 'levers,nonLeverFields,required | described',
+      `MCP: list_levers outputSchema is anyOf [catalog fields] | [described] (got: ${branches.join(' | ') || 'none'})`);
+    const satisfies = (obj: any): boolean => ((llOut?.anyOf ?? []) as { required?: string[] }[]).some((b) => (b.required ?? []).every((k) => obj && k in obj));
+    ok(satisfies(callTool('list_levers', {}, brandSchema).structuredContent) && satisfies(callTool('list_levers', { describe: ['id'] }, brandSchema).structuredContent),
+      'MCP: both list_levers result shapes (catalog, describe) satisfy its outputSchema');
   }
 
   // list_levers now covers the WHOLE input surface, not just the UI knobs. This is the gate on the

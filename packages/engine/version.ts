@@ -2930,7 +2930,7 @@
  * `theme_brand`'s `brand` schema is cut to a one-line summary (its first sentence, plus any leading
  * OPTIONAL/OPT-IN tag), and every other keyword is verbatim, so validation is unchanged. `list_levers`
  * gains an optional `describe: [field]` argument that returns the named fields' full schema entries and
- * the `$defs` they reference. `tools/list` drops from 59,969 to about 42,200 characters, against a
+ * the `$defs` they reference. `tools/list` drops from 59,969 to 42,314 characters, against a
  * 60,000 ceiling it had been meeting by trimming lever guidance. The gate now fails with 5,000 characters
  * of headroom left (room for ~20 more levers), and caps each inline summary at 200 characters. Four
  * schema descriptions were split at a semicolon or comma so their first sentence fits that cap.
