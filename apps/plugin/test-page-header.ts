@@ -44,6 +44,7 @@
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName } from './src/page-header';
 import type { HNode, HeaderPage, PageHeaderApi, HeaderCopy } from './src/page-header';
 import { componentDefs } from '@prism3/engine/components/index';
+import { placeNewSet, SET_GAP } from './src/write-components';
 
 let failures = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -229,6 +230,30 @@ console.log('2. a fresh page gets exactly one header');
   const out3 = await ensurePageHeader(api, page3, { title: 'Spinner', description: 'x', primary: 'spinner' });
   const [h3] = await headersOn(page3);
   ok(out3.status === 'placed' && out3.width === 1000 && h3?.width === 1000, `2: 80px content gets a header at the variant's own width, 1000, never 80 (reported ${out3.status === 'placed' ? out3.width : '—'}, got ${h3?.width})`);
+}
+
+// ── 2b. Sets side by side (#1750) ─────────────────────────────────────────────────────────────────────
+// The component build now places a new set 160px right of its siblings, top-aligned (`placeNewSet`), and the
+// header is placed once the run's builds are done. So the header's first measurement sees the family side by
+// side: here a 200px control at 0 and a 200px row at 360 (200 + 160). The header spans both, floored at the
+// variant's 1000. And the NEXT set placed on that page goes beside the row (560 + 160 = 720), not past the
+// wider header above it (1000 + 160): the header sits outside the sets' row.
+console.log('2b. sets side by side, then a third set');
+{
+  const set = makeHeaderSet();
+  const { api } = makeApi([set]);
+  const page = makePage('↳ Checkbox', [
+    { name: 'checkbox-control', x: 0, y: 0, width: 200, height: 300 },
+    { name: 'checkbox-row', x: 360, y: 0, width: 200, height: 300 },
+  ]);
+  const out = await ensurePageHeader(api, page, { title: 'Checkbox', description: 'x', primary: 'checkbox-row' });
+  const [h] = await headersOn(page);
+  ok(out.status === 'placed' && h?.x === 0 && h?.y === -200 && h?.width === 1000,
+    `2b: the header starts at the first set's left edge and spans both, floored at 1000 (got x ${h?.x}, y ${h?.y}, width ${h?.width})`);
+  const boxes = page.children.map((n) => ({ type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0 }));
+  const next = placeNewSet(boxes, 300);
+  ok(next?.x === 720 && next?.y === 0 && SET_GAP === 160,
+    `2b: a third set goes beside the row at 720,0, not past the wider header above it (got ${next ? `${next.x},${next.y}` : 'null'})`);
 }
 
 // ── 3. A second build ────────────────────────────────────────────────────────────────────────────────
