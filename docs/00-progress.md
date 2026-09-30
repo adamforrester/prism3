@@ -29,9 +29,15 @@
 
 | Mutation | Fails, by name |
 |---|---|
-| M1 field-label `text` back to `wrap: true` (layoutGrow + fill) | `#1762 field-label's name HUGS and wraps at maxWidth 316 …`, `#1762 the required marker follows the name in the row, not a filling box …`, `#1751 parity floor (field-label)`, and in `test:roundtrip` `#1762 field-label's required marker follows the name: at x 34 …` |
+| M1 field-label `text` back to `wrap: true` (layoutGrow + fill) | `#1762 field-label's name HUGS and wraps at maxWidth 316 …`, `#1762 the required marker follows the name in the row, not a filling box …`, `#1751 parity floor (field-label)`, and in `test:roundtrip` `#1762 field-label's required marker follows the name: at x 34 …` and `#1762 {text-field,select} label stretches with the field but its name wraps at 316 …` |
 | M2 the paste twin's max-width line not spliced | `#1751 parity floor (field-label)` and `#1751 parity (field-label): the plugin and paste executors leave identical sizing on every node` |
 | M3 the plugin executor's `kid.maxWidth = …` write removed | `every def round-trips … field-label (24)`, `#1762 seed … (text.maxWidth -> DISCARDED …)`, `#1762 field-label's required marker follows the name …`, plus the #1751 parity pair |
+
+### Review round (independent review of #1832 at 05d84f63; merge-ready, three follow-ups)
+
+- **A.** The #1757 `nestedWraps` arms for the text-field and select LABEL still read "wraps at the field's width (320, and 400 when widened)", which #1762 makes false; they passed only by measuring the stretched instance. They are now `#1762 {host} label stretches with the field but its name wraps at 316`: the instance is 320 and 400 wide, and the NAME stays 316 wide on two lines both times, which pins the accepted tradeoff. The message arms keep the #1757 wording, which is still true. M1 (`wrap: true`) fails both new arms by name.
+- **B.** text-field's `notes.unverified` said the label wraps at the field's width; it now says the name wraps at FieldLabel's 316.
+- **C.** `docs/28` §5.5 listed "the name wraps at 316 even with the marker off" as an accepted tradeoff. It is derived, not something the owner accepted, so it moved to a list of consequences for the owner to confirm at the live check, with the wrapped-name marker position.
 
 **Not verified offline, and the live check.** That Figma wraps an auto-width text at its `maxWidth`, keeps the next sibling right after the clamped box, and which line the baseline-aligned marker sits on for a wrapped name. The shims model the first two; nothing models the third. The def lists it under `notes.unverified`. Live steps (owner, in a test file): build field-label with the plugin; select a member, turn `required` on; confirm the name layer reads auto width with max width 316 and "Label *" sits together at the left; type a 70-character name and confirm it wraps at 316 with the marker beside it (note which line it aligns to); then rebuild select, text-field, textarea, checkbox-group and radio-group and check the nested label the same way, including a field stretched to 400 (the name should still wrap at 316).
 
