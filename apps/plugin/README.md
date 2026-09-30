@@ -65,7 +65,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 
 ## Scope (#110 — one build, two outputs: the no-fork capstone)
 
-- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/main.ts` into
+- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/entry.ts` (via `src/ui/entry.ts`) into
   `dist/ui.html` (host=figma), retiring the placeholder. The same source the standalone web app builds;
   not a second UI. `tsconfig.ui.json` repoints at the shared UI so the DOM-clean/no-plugin-typings check
   runs on what's bundled.
@@ -303,7 +303,7 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   Gate: `test-agent-bridge.ts`.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
-The iframe entry is now `src/ui/entry.ts`: it imports `apps/studio/src/main.ts` whole and unchanged (one UI,
+The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,
 no fork) and mounts the agent-link chip beside it, so the web build carries none of it.
 
 ## Run
@@ -327,7 +327,7 @@ found on boot.
 
 ## ⚠️ The plugin does NOT auto-update when the web UI changes
 
-The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines `apps/studio/src/main.ts` into
+The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines the studio UI (entry `apps/studio/src/entry.ts`) into
 `dist/ui.html` at build time (it must: the iframe has no server and ships zero network access). So
 `dist/` is a **gitignored build artifact** that only reflects `apps/studio/src` as of the last build. **Editing
 `apps/studio/src` — or pulling web-lane changes on `main` — does nothing to the plugin until you rebuild.** This

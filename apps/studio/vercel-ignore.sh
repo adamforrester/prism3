@@ -12,7 +12,7 @@
 # stops someone "simplifying" this into a stale deploy.
 #
 # WHAT CAN CHANGE THE SITE. Vercel runs `build:site --workspace @prism3/studio`, which bundles
-# `apps/studio/src/main.ts` and copies `apps/studio/index.html`. Measured against esbuild's own metafile, that
+# `apps/studio/src/entry.ts` (which imports `main.ts`) and copies `apps/studio/index.html`. Measured against esbuild's own metafile, that
 # bundle's only out-of-`apps/studio/` inputs are `packages/engine/**` and `packages/engine/schema/**`. The Figma plugin
 # is NOT part of this build and cannot affect the deployed site, so `apps/plugin/**` is deliberately
 # absent from the trigger list.
