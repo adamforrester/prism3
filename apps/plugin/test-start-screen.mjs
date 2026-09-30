@@ -48,8 +48,12 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
+import { hookGuard } from '../studio/test-hooks.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+// Every element below is LOCATED by its `data-p3` hook (F1), never by a class name or a page title. The
+// guard fails any hook this file names that never rendered, by name (`../studio/test-hooks.mjs`).
+const hooks = hookGuard(import.meta.url);
 const UI = resolve(HERE, 'dist/ui.html');
 const REPO = resolve(HERE, '../..');
 
@@ -105,6 +109,7 @@ const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMess
  */
 const openPanel = async (viewport = { width: 1280, height: 900 }) => {
   const page = await browser.newPage({ viewport });
+  await hooks.watch(page);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -116,22 +121,22 @@ const openPanel = async (viewport = { width: 1280, height: 900 }) => {
 /** Everything about the start moment a designer can read, from the rendered DOM only. */
 const readStart = (page) => page.evaluate(() => {
   const q = (s) => document.querySelector(s);
-  const startview = q('.startview');
+  const startview = q('[data-p3="start-screen"]');
   return {
     start: !!startview,
-    heading: startview ? (q('.start-h')?.textContent ?? null) : null,
-    fromColor: !!q('.start-go'),
-    startBlank: !!(q('.start-row2 .start-alt') && [...document.querySelectorAll('.start-alt')].some((b) => b.textContent === 'Start blank')),
-    chips: [...document.querySelectorAll('.start-chip')].map((c) => c.textContent.trim()),
-    upload: !!q('.start-file'),
+    heading: startview ? (q('[data-p3="start-heading"]')?.textContent ?? null) : null,
+    fromColor: !!q('[data-p3="start-go"]'),
+    startBlank: q('[data-p3="start-blank"]')?.textContent === 'Start blank',
+    chips: [...document.querySelectorAll('[data-p3="start-example"]')].map((c) => c.textContent.trim()),
+    upload: !!q('[data-p3="start-file"]'),
     // The editor's own surfaces — asserted positively so "nothing rendered" cannot pass as "hydrated".
-    editorRail: document.querySelectorAll('.rail button.stage').length,
-    brandSel: q('.brandsel')?.textContent ?? null,
+    editorRail: document.querySelectorAll('[data-p3^="rail-page-"]').length,
+    brandSel: q('[data-p3="brand-switcher"]')?.textContent ?? null,
   };
 });
 
 const waitStart = (page, want) =>
-  page.waitForFunction((w) => !!document.querySelector('.startview') === w, want, { timeout: 4000 })
+  page.waitForFunction((w) => !!document.querySelector('[data-p3="start-screen"]') === w, want, { timeout: 4000 })
     .then(() => true, () => false);
 
 const NB_BRAND = { id: 'restored-brand', root: 'rb', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
@@ -197,7 +202,7 @@ console.log('\n3. variables in the file but no stored brand: start screen, and t
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('.start-chip').first().click();
+  await page.locator('[data-p3="start-example"]').first().click();
   await waitStart(page, false);
   await post(page, { type: 'restore-input-empty' });
   // Give the handler a turn to do the wrong thing before asserting it did not.
@@ -214,10 +219,10 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
   const { page, errors } = await openPanel();
   await post(page, { type: 'restore-input', input: NB_BRAND });
   await waitStart(page, false);
-  await page.click('.brandsel');
-  await page.waitForSelector('.bm-item');
-  const nb = page.locator('.bm-item', { hasText: '+ New brand' }).first();
-  ok(await nb.count() > 0, 'the brand menu offers "+ New brand"');
+  await page.click('[data-p3="brand-switcher"]');
+  await hooks.need(page, '[data-p3="brand-menu"]');
+  const nb = page.locator('[data-p3="brand-menu-new"]');
+  ok(await nb.count() > 0 && (await nb.textContent()) === '+ New brand', 'the brand menu offers "+ New brand"');
   await nb.click();
   ok(await waitStart(page, true), 'clicking it returns to the start moment');
   const s = await readStart(page);
@@ -232,7 +237,7 @@ console.log('\n5. each path lands in the editor');
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('.start-chip').first().click();
+  await page.locator('[data-p3="start-example"]').first().click();
   ok(await waitStart(page, false), 'an example chip enters the editor');
   ok((await readStart(page)).editorRail > 0, 'and the editor rendered');
   await page.close();
@@ -241,7 +246,7 @@ console.log('\n5. each path lands in the editor');
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('.start-alt', { hasText: 'Start blank' }).first().click();
+  await page.locator('[data-p3="start-blank"]').click();
   ok(await waitStart(page, false), '"Start blank" enters the editor');
   await page.close();
 }
@@ -251,7 +256,7 @@ console.log('\n5. each path lands in the editor');
   await waitStart(page, true);
   // The owner's specific want: a real design.md, uploaded through the plugin's own file input.
   const md = resolve(REPO, 'packages/engine/examples/harbor.design.md');
-  await page.setInputFiles('.start-file', md);
+  await page.setInputFiles('[data-p3="start-file"]', md);
   ok(await waitStart(page, false), 'a design.md upload enters the editor — reachable in the plugin for the first time');
   const s = await readStart(page);
   ok((s.brandSel ?? '').toLowerCase().includes('harbor'), `and the uploaded brand is the working brand ("${s.brandSel}")`);
@@ -269,15 +274,15 @@ for (const vp of [{ width: 1280, height: 900 }, { width: 500, height: 560 }, { w
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
   const m = await page.evaluate(() => {
-    const c = document.querySelector('.start-col').getBoundingClientRect();
+    const c = document.querySelector('[data-p3="start-column"]').getBoundingClientRect();
     const doc = document.documentElement;
     const inView = (el) => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= doc.clientWidth; };
     return {
       hOverflow: doc.scrollWidth - doc.clientWidth,
       clippedTop: c.top < 0,
       reachable: doc.scrollHeight >= Math.round(c.bottom),
-      controlsInView: [...document.querySelectorAll('.start-go, .start-alt, .start-chip, .start-upload')].every(inView),
-      cards: document.querySelectorAll('.start-card').length,
+      controlsInView: [...document.querySelectorAll('[data-p3="start-go"], [data-p3="start-blank"], [data-p3="start-example"], [data-p3="start-upload"]')].every(inView),
+      cards: document.querySelectorAll('[data-p3="start-path"]').length,
     };
   });
   const at = `${vp.width}×${vp.height}`;
@@ -421,6 +426,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 40),
         inlineInk: (() => { for (let n = el; n; n = n.parentElement) if (n.style?.color) return true; return false; })(),
         shared: el.closest('#app') !== null,
+        hook: el.getAttribute('data-p3'),
         ...classify(el, cs),
       });
     }
@@ -441,6 +447,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
         caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
         op: round(op), cls: name(el), text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
+        hook: el.getAttribute('data-p3'),
         ...classify(el, cs),
       });
     }
@@ -473,6 +480,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const openThemed = async (viewport, scheme, theme) => {
     const context = await browser.newContext({ viewport, colorScheme: scheme });
     const page = await context.newPage();
+    await hooks.watch(page);
     const errors = [];
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
     page.on('pageerror', (e) => errors.push(String(e)));
@@ -542,17 +550,18 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   // The brand menu's three controls BY IDENTITY — the surface #1031's 1.11:1 lived on, in this bundle.
   // A pass that never opens it is a clean report over a corpus that excludes the defect (docs/34 shape 9),
   // which is the first of the two reasons the studio suite missed #1031.
-  const BRANDMENU_CONTROLS = ['input.bm-in', 'input.bm-in.mono', 'textarea.bm-ta'];
+  // Name, Namespace, and the import textarea, each by its hook.
+  const BRANDMENU_CONTROLS = ['[data-p3="brand-menu-name"]', '[data-p3="brand-menu-namespace"]', '[data-p3="import-text"]'].map(hooks.role);
   const measureBrandMenu = async (page, where) => {
-    await page.locator('.brandsel').click();
-    await page.waitForSelector('.brandmenu .bm-in');
-    await page.locator('.brandmenu .bm-item').filter({ hasText: 'Import design.md' }).click();
-    await page.waitForSelector('.brandmenu .bm-ta');
+    await page.locator('[data-p3="brand-switcher"]').click();
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+    await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]').click();
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
     // Typed into, so the Name row measures glyphs that are on screen rather than an empty field.
-    await page.fill('.brandmenu .bm-in', 'plugin-brand');
+    await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'plugin-brand');
     const m = await measure(page, where);
-    const seen = new Set(m.fields.map((f) => f.cls));
-    for (const want of BRANDMENU_CONTROLS) ok(seen.has(want), `${where}: ${want} is mounted and was measured`);
+    const seen = new Set(m.fields.map((f) => f.hook));
+    for (const want of BRANDMENU_CONTROLS) ok(seen.has(want), `${where}: the "${want}" control is mounted and was measured`);
   };
 
   if (DEFAULT && MIN) {
@@ -565,15 +574,16 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(page, { type: 'restore-input-empty' });
         await waitStart(page, true);
         await measure(page, `${tag} / start screen`);
-        await page.locator('.start-chip').first().click();
+        await page.locator('[data-p3="start-example"]').first().click();
         await waitStart(page, false);
-        await page.waitForSelector('.stage.active');
-        const labels = (await page.locator('.stage .stage-t b').allTextContents()).map((s) => s.trim());
-        for (const label of labels) {
-          await page.locator('.stage').filter({ has: page.locator('.stage-t b', { hasText: label }) }).first().click();
-          await page.waitForFunction((l) => document.querySelector('.stage.active .stage-t b')?.textContent === l, label);
+        await hooks.need(page, '[data-p3^="rail-page-"].active');
+        const rail = await page.$$eval('[data-p3^="rail-page-"]', (els) => els.map((e) => ({
+          hook: e.getAttribute('data-p3'), label: e.querySelector('[data-p3="rail-item-label"]')?.textContent.trim() ?? '' })));
+        for (const { hook, label } of rail) {
+          await page.locator(`[data-p3="${hook}"]`).click();
+          await page.waitForFunction((h) => document.querySelector(`[data-p3="${h}"]`)?.classList.contains('active'), hook);
           await page.evaluate(() => document.fonts.ready);
-          pagesSeen.add(label);
+          pagesSeen.add(hook);
           await measure(page, `${tag} / ${label}`);
         }
         await measureBrandMenu(page, `${tag} / brand menu`);
@@ -585,7 +595,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(small.page, { type: 'restore-input-empty' });
         await waitStart(small.page, true);
         await measure(small.page, `${tag} / start screen @ ${MIN.width}×${MIN.height}`);
-        await small.page.locator('.start-chip').first().click();
+        await small.page.locator('[data-p3="start-example"]').first().click();
         await waitStart(small.page, false);
         await measure(small.page, `${tag} / editor @ ${MIN.width}×${MIN.height}`);
         await small.context.close();
@@ -593,7 +603,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     }
   }
   // REPRESENTED, not counted: the one page only this bundle has must be among those measured.
-  ok(pagesSeen.has('Components'), `the plugin-only Components page was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
+  ok(pagesSeen.has(hooks.role('[data-p3="rail-page-components"]')), `the plugin-only Components page was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
   console.log(`  ${pagesSeen.size} rail pages × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
@@ -603,6 +613,8 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
 
 await browser.close();
 server.close();
+
+hooks.report(ok);
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ ALL PASS');
 process.exit(failed ? 1 : 0);
