@@ -8374,6 +8374,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(Object.keys(rp.dims).length > 0 && badDim.length === 0, 'resolved preview: every dimension binding → positive px' + (badDim.length ? ` — BAD: ${badDim.join(', ')}` : ''));
   const badType = Object.entries(rp.type).filter(([, t]) => !t.fontFamily || !(t.fontSizePx > 0)).map(([k]) => k);
   ok(Object.keys(rp.type).length > 0 && badType.length === 0, 'resolved preview: every type binding → family + positive size' + (badType.length ? ` — BAD: ${badType.join(', ')}` : ''));
+  ok(rp.unresolvedType.length === 0, 'resolved preview: harbor emits every type style the preview spec binds' + (rp.unresolvedType.length ? ` — UNRESOLVED: ${rp.unresolvedType.join(', ')}` : ''));
 
   // Per-mode geometry (docs/11 1b): with no wireframe, dims carry NO overrides; opting into
   // wireframe surfaces a radius→0 override the preview reads for the wireframe column, while
@@ -8779,7 +8780,48 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const broken = rp.contracts.flatMap((c) =>
       rp.modes.filter((m) => c.byMode[m] && !c.byMode[m].pass).map((m) => `${c.component}/${c.variant} ${m}:${c.byMode[m].ratio}<${c.min}`));
     ok(broken.length === 0, `example brand '${id}': every preview contract holds (all 4 modes)` + (broken.length ? ` — FAIL: ${broken.join('; ')}` : ''));
+    ok(rp.unresolvedType.length === 0, `example brand '${id}': emits every type style the preview spec binds` + (rp.unresolvedType.length ? ` — UNRESOLVED: ${rp.unresolvedType.join(', ')}` : ''));
   }
+}
+// (10a) #1720 — a type binding the brand does not emit is NAMED, never resolved to a default. The read
+// was `node?.$value ?? {}`, and every accessor after it fell through to its own default, so a missing
+// style came back as `sans-serif / 0 / 0px` with no error. The spec binds three `*.strong` styles by
+// name, and two legal inputs drop them: declining `strong` in display/title (#1632), and
+// `typography.displayCeiling: 'sm' | 'md'`, which drops `display.lg` (a lever the studio exposes).
+//
+// The expected keys are LITERALS, not derived from `previewSpec` or from the tree: deriving them would
+// make this agree with whatever the resolver happens to return (docs/34). If the spec's bindings move,
+// this list moves with them by hand, and that edit is the point.
+{
+  const hinput = parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input;
+  const declined = { ...hinput, typography: { ...hinput.typography, weights: { ...hinput.typography?.weights, display: ['emphasis'], title: ['emphasis'] } } } as BrandInput;
+  const rp = resolvePreview(brandTheme(declined));
+  const expected = ['type.display.lg.strong', 'type.title.lg.strong', 'type.title.md.strong'];
+  ok(JSON.stringify(rp.unresolvedType) === JSON.stringify(expected),
+    `#1720 a brand declining strong in display/title names each unbound preview type style (want ${expected.join(', ')}; got ${rp.unresolvedType.join(', ') || 'none'})`);
+  const fabricated = expected.filter((k) => k in rp.type).map((k) => `${k}=${rp.type[k]?.fontFamily}/${rp.type[k]?.fontWeight}/${rp.type[k]?.fontSizePx}px`);
+  ok(fabricated.length === 0, `#1720 an unbound type style gets no entry in rp.type (no fabricated composite)` + (fabricated.length ? ` — GOT ${fabricated.join(', ')}` : ''));
+  // The styles the brand still emits resolve as before: the miss is per binding, not per brand.
+  const body = rp.type['type.body.md.default'];
+  ok(!!body && !!body.fontFamily && body.fontSizePx > 0 && body.fontWeight > 0,
+    `#1720 a brand declining strong still resolves type.body.md.default (got ${body ? `${body.fontFamily}/${body.fontWeight}/${body.fontSizePx}px` : 'nothing'})`);
+
+  // The second legal route: `displayCeiling: 'md'` keeps display.sm and display.md only, so the one
+  // display binding goes missing while both title bindings (which keep `strong`) still resolve.
+  const ceiling = { ...hinput, typography: { ...hinput.typography, displayCeiling: 'md' } } as BrandInput;
+  const ceilingRp = resolvePreview(brandTheme(ceiling));
+  ok(JSON.stringify(ceilingRp.unresolvedType) === JSON.stringify(['type.display.lg.strong']) && !('type.display.lg.strong' in ceilingRp.type),
+    `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound, with no entry in rp.type (got ${ceilingRp.unresolvedType.join(', ') || 'none'})`);
+
+  // The same read over a hand-built spec, so the arm does not depend on which weights the real spec
+  // happens to bind: one bogus binding beside one real one, on a brand that ships everything.
+  const spec = { components: [{ id: 'probe', label: 'probe', description: 'probe', variants: [
+    { name: 'a', bindings: { type: 'type.body.md.default' } },
+    { name: 'b', bindings: { type: 'type.body.md.nonesuch' } },
+  ] }] };
+  const probe = resolvePreview(brandTheme(hinput), spec);
+  ok(JSON.stringify(probe.unresolvedType) === JSON.stringify(['type.body.md.nonesuch']) && !('type.body.md.nonesuch' in probe.type) && (probe.type['type.body.md.default']?.fontSizePx ?? 0) > 0,
+    `#1720 a spec binding a type style no brand emits names that key alone (got ${probe.unresolvedType.join(', ') || 'none'})`);
 }
 // (10b) #63 — CLOSED, by fixing the cause rather than accepting it. History, because the shape of the
 // mistake is the reusable part: nb's semantic text on the `-subtle` tint measured ~4.0–4.2:1 in LIGHT,
