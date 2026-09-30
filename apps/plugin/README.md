@@ -65,7 +65,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 
 ## Scope (#110 — one build, two outputs: the no-fork capstone)
 
-- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/main.ts` into
+- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/entry.ts` (via `src/ui/entry.ts`) into
   `dist/ui.html` (host=figma), retiring the placeholder. The same source the standalone web app builds;
   not a second UI. `tsconfig.ui.json` repoints at the shared UI so the DOM-clean/no-plugin-typings check
   runs on what's bundled.

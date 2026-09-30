@@ -36,7 +36,7 @@ const excluded = new Set(block[1].split('\n').map((l) => l.trim()).filter((l) =>
 // configured, and `write: false` gives this build none. Kept in step with `package.json`'s `build`
 // so the metafile below describes the bundle that actually ships.
 const res = await build({
-  entryPoints: [resolve(root, 'src/main.ts')],
+  entryPoints: [resolve(root, 'src/entry.ts')],   // the bundle's entry since #896 — same one `build` names
   bundle: true,
   format: 'esm',
   loader: { '.css': 'text' },

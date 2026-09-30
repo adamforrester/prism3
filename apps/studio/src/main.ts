@@ -27,8 +27,6 @@ import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, de
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { previewSpec } from '@prism3/engine/preview';
-import { resolvePreview } from '@prism3/engine/resolve-preview';
-import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
 import { resolveAllModes, outlineFillFamily, outlineFillRole } from '@prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
@@ -38,95 +36,33 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
-import { hostCommit } from './write-adapter';
+import { hostCommit, type HostCommit } from './write-adapter';
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
-import { persistInput, restoreInput } from './persist-local';
 import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import {
-  provenanceOf, noOrigin, needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
-  type Origin, type Provenance, type SeedOutcome,
+  needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
+  type Origin, type SeedOutcome,
 } from './provenance';
 import {
   ARTIFACTS, defaultSettings, visibleSettings, projectDtcg, fileNames, previewFiles, availableImportSlots,
   type ArtifactId, type SettingsState, type ExportSource,
 } from './export-settings';
-import exampleBrands from '@prism3/engine/schema/example-brands.json';
-// The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769). See the
-// `inlined stylesheet` section near the foot of this file for what that buys and what it costs.
-import STYLE from './styles.css';
+// The BrandInput session — the working input, the resolved theme, the last-good rule, the viewed mode
+// and page — lives in a DOM-free module so a Node test can import it (#896). Its `let`s are live
+// bindings here: read freely, reassigned only through its setters.
+import {
+  BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
+  firstRun, rebuild, syncIdentity, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
+  getPath, setPath, getModeLever, setModeLever,
+  type Mode, type PageKey,
+} from './state/store';
 
-type Mode = ResolvedPreview['modes'][number];
-
-// Boot from a VALIDATED example brand — the emitted schema/example-brands.json (a
-// test.ts gate asserts every brand there resolves all-green on the preview
-// contracts). prism3 is the canonical default theme (#1296): a bright blue (#1E1EFF) as
-// the one interactive color, italic Playfair Display headings over an Inter UI.
-// brandState is the mutable working copy the inputs edit.
-const BRANDS = exampleBrands as Record<string, BrandInput>;
-// Web persists the working brand to localStorage; the plugin uses Figma shared-data instead (restored
-// via the host `restore-input` message below). `PRISM3_HOST` is a build-time define (`'figma'` in the
-// plugin), so this guard is `'figma' !== 'figma'` → the localStorage path is INERT in the plugin —
-// never executed — exactly as the web export-bar commit path is inert in the plugin bundle. On web
-// boot, reopen on the persisted brand if one is stored AND still resolves; otherwise it's a first run —
-// `firstRun` gates the start screen (below), and brandState still holds the demo so the app is in a
-// valid state behind it. (Web only: the plugin never sets firstRun — it seeds via the host restore-input
-// message; a plugin fresh-file start moment is a later cross-lane follow-up.)
-//
-// #722: boot now also decides the ORIGIN, and `firstRun` is derived from it rather than tracked
-// beside it (see `firstRun` below).
-/** The example the studio and the plugin open with — the canonical default theme (#1296). Named once,
- *  so the web demo behind the start screen and the plugin's placeholder cannot boot different brands. */
-const BOOT_BRAND = 'prism3';
-const bootBrand = (): { input: BrandInput; origin: Origin } => {
-  if (PRISM3_HOST !== 'figma') {
-    const restored = restoreInput(localStorage);
-    // Validate the SHAPE (brandTheme must accept it) before booting on it — a stale blob from an older
-    // build could deserialise past the version guard yet fail to resolve; on reject, fall back to the demo.
-    if (restored) {
-      // The persisted web brand is the state as the user last left it — its own origin, not an
-      // example. Which example it once descended from is not recoverable and not what reset means.
-      try { brandTheme(restored); return { input: restored, origin: { kind: 'file' } }; }
-      catch { /* stale/incompatible — fall through */ }
-    }
-    // Web, nothing valid stored → the EMPTY STATE. brandState still holds the demo so the app is in a
-    // valid state behind the start screen, but the origin is `none`: nothing has been chosen yet, so
-    // there is nothing to be dirty against and nothing an import could lose.
-    return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'none' } };
-  }
-  // Plugin: boot on the demo and wait for the host. `restore-input` (#131) may replace this within
-  // milliseconds with the file's own brand — until it arrives, `example` is the honest answer, and a
-  // file with no stored blob correctly keeps it (that is #721's state 2).
-  return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'example', id: BOOT_BRAND } };
-};
-const boot = bootBrand();
-let brandState: BrandInput = boot.input;
-/** Where `brandState` came from, and the baseline it is measured against (#722 / #721). */
-let provenance: Provenance = provenanceOf(boot.origin, brandState);
-/** The provenance object BOOT created, kept by identity so the plugin's fresh-file trigger can ask
- *  "has anything happened yet?" (#1197).
- *
- *  Identity, not value, and the difference is a bug this caught rather than a precaution. Every user
- *  choice goes through `loadBrand`, which ASSIGNS a new provenance — so `provenance === bootProvenance`
- *  is exactly "nothing has been chosen in this session". The value-based version of the same test
- *  ("origin is example/<boot brand> and nothing is dirty") reads TRUE after a designer picks that
- *  brand's chip, because boot's placeholder is the same example, and a late host message then discarded a brand they had
- *  just chosen. Two states that are equal by value and different in every way that matters. */
-const bootProvenance: Provenance = provenance;
-/**
- * The start screen's gate — now a READING of the origin, not an independent boolean (#721).
- *
- * It was `let firstRun = false` set in two places. A flag beside the state can disagree with it; a
- * reading cannot. It is also what makes *returning* to the empty state ordinary rather than a
- * feature: "+ New brand" sets the origin to `none` and the start screen follows, so
- * `preview an example → decide to start blank` is two origin changes instead of a wizard re-entered.
- *
- * Still web-only in effect, because only web ever sets a `none` origin — the plugin's fresh-file
- * start moment is a deferred cross-lane follow-up (#506/#533) and this ticket does not surface it.
- */
-const firstRun = (): boolean => provenance.origin.kind === 'none';
+// The session starts in `entry.ts` (#896): it reads the web's persisted brand, picks the origin, and
+// hands both to the store's `initSession` before anything renders. `firstRun`, the start screen's
+// gate, is the store's reading of that origin.
 
 // A minimal, known-good starting point for "New brand": one mid-indigo primary + a
 // derived neutral, action defaults to primary, namespace at the 'prism' placeholder.
@@ -180,9 +116,7 @@ const NAV = [
   // destination that only makes sense in the Figma channel is present in the plugin host and omitted
   // from the web rail, rather than rendered inert there. Both NAV consumers read `railNav()`.
   { key: 'components', label: 'Components', sub: 'Internal — build the Button set', view: true, figmaOnly: true },
-] as const;
-type PageKey = (typeof NAV)[number]['key'];
-let page: PageKey = 'palettes';
+] as const satisfies readonly { key: PageKey; label: string; sub: string; view?: boolean; figmaOnly?: boolean }[];
 
 /** The destinations this HOST offers. `figmaOnly` entries are absent from the web rail, not disabled
  *  in it — a grayed row still claims the destination exists and just will not open (the same call
@@ -220,13 +154,8 @@ const leversFor = (key: PageKey): Lever[] => leverManifest.filter((l) => !l.adva
 const leverByKey = (k: string): Lever | undefined => leverManifest.find((l) => l.key === k);
 
 // ---- engine read-model -----------------------------------------------------
-let theme: Theme = brandTheme(brandState);
-// The last input that resolved cleanly — the ramps + anchor badges render from THIS, so when a
-// live edit fails (lastError set) the flagged anchor swatch still matches the shown ramp (M-16).
-let lastGoodInput: BrandInput = structuredClone(brandState);
-let rp: ResolvedPreview = resolvePreview(theme);
-let currentMode: Mode = rp.modes[0];
-let lastError: string | null = null;
+// `theme`, `rp`, `lastGoodInput` and `lastError`, with `rebuild()` and its last-good rule, live in
+// `state/store.ts`; what follows is how this file repaints from them.
 
 // #555 — a legible ink for a background whose lightness isn't known statically (a resolved fill that
 // can land on either side of the light/dark line depending on mode, e.g. a neutral surface tier or an
@@ -239,76 +168,6 @@ const legibleInkOn = (bgHex: string, dark = '#191920', light = '#f7f7f7'): strin
   if (!bgHex.startsWith('#')) return dark;
   const bg = hexToRgb(bgHex);
   return contrast(hexToRgb(dark), bg) >= contrast(hexToRgb(light), bg) ? dark : light;
-};
-
-const getPath = (o: any, p: string): any => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
-const setPath = (o: any, p: string, v: unknown): void => {
-  const ks = p.split('.');
-  const last = ks.pop()!;
-  let cur = o;
-  for (const k of ks) { if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {}; cur = cur[k]; }
-  cur[last] = v;
-};
-
-/** Re-resolve from the current brandState. On failure keep the last-good theme/rp and
- *  record the message (the render stays coherent; the edit is what's flagged). */
-const rebuild = (): void => {
-  try {
-    const t = brandTheme(brandState);
-    rp = resolvePreview(t);
-    theme = t;
-    lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
-    lastError = null;
-    if (PRISM3_HOST !== 'figma') persistInput(localStorage, brandState);   // persist the last-good brand (web only; inert in the plugin, best-effort)
-  } catch (e) {
-    lastError = (e as Error).message;
-  }
-};
-
-/**
- * Propagate the IDENTITY fields (`id` / `root`) from the live `brandState` into the LAST-GOOD input,
- * WITHOUT a `rebuild()` — the cheap, per-keystroke half of the #1196 fix.
- *
- * The Name and Namespace fields skip `rebuild()` so the text caret survives keystrokes (#1073/#1075's
- * skip-rebuild-on-rename lineage). But `rebuild()` was the ONLY refresher of `lastGoodInput` (read by
- * Apply's `postTheme`, web persist, the design.md export, and the export filename), so an ISOLATED
- * identity edit — no lever change after it — never reached it. This copies the identity fields across
- * and re-persists so all of those are correct the instant the field changes, with no re-resolve:
- *  · Apply posts `lastGoodInput` (a BrandInput the plugin re-resolves), so the fresh `root` reaches
- *    the plugin's emission from here alone;
- *  · web persist writes `lastGoodInput`, so a reopen restores the fresh name/namespace;
- *  · `slug(lastGoodInput.id)` and `toDesignMd(lastGoodInput)` pick up the fresh name.
- *
- * It does NOT touch the resolved `theme`. That was the original fix's mistake: `theme.root` and
- * `theme.namespace` are SEPARATE fields — `buildTree` roots the tree at `theme.root` but resolves every
- * colour ref under `theme.namespace` (`= <root>.core.palette`, set by `brandTheme`), and `resolveAllModes`
- * bakes ~74% of the aliased refs from `theme.namespace`. Patching only `theme.root` left the tree rooted
- * at the new namespace with the colour refs still pointing at the old one — dangling aliases, WORSE than
- * the coherent-but-wrong pre-fix state. Identity is not "pure namespacing you can copy in": the local
- * `theme` used by the DTCG export must be RE-RESOLVED, which `ensureThemeFresh` does at the export boundary.
- *
- * Persists `lastGoodInput` (not the live `brandState`) so the M-15/M-16 invariant holds — a concurrent
- * failing lever edit must not reach storage, but the identity change, always valid on its own, must.
- */
-const syncIdentity = (): void => {
-  lastGoodInput.id = brandState.id;
-  lastGoodInput.root = brandState.root;
-  if (PRISM3_HOST !== 'figma') persistInput(localStorage, lastGoodInput);   // web reopen reads the fresh identity
-};
-
-/**
- * Re-resolve the module-level `theme` from `brandState` when the namespace has drifted since the last
- * resolve — the load-bearing half of the #1196 fix, deferred to the DTCG-export boundary so it stays
- * off the typing path (a `rebuild()` per keystroke would re-resolve the whole theme while the designer
- * types the root). A namespace change moves `brandState.root` but skips `rebuild()` for the caret, so
- * `theme` (rooted + colour-namespaced at the OLD root) goes stale. The token export reads that local
- * `theme` via `buildTree(theme)`; called first, this makes the tree's root AND every ref inside it agree
- * on the current namespace. A no-op when nothing drifted (the common case), so it is free on every other
- * export. If a concurrent invalid lever edit makes `rebuild()` throw, `theme` keeps its last-good value —
- * coherent under the old namespace (M-16: emit the last-good, never a failing live state).
- */
-const ensureThemeFresh = (): void => {
-  if (theme.root !== (brandState.root ?? 'prism')) rebuild();
 };
 
 // paint() repaints only the current stage's volatile region (ramps or preview) so
@@ -703,7 +562,7 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
-const commit = hostCommit();
+export const commit = hostCommit();
 /**
  * What opening this file yielded (#722, implementing #721) — `null` until the host's boot read-back
  * answers, and always `null` on web (no file to read).
@@ -800,9 +659,10 @@ let hostFonts: string[] = [];
 let hostFontStyles = new Map<string, number>();
 // Host → UI notifications: the #109 read-back seed summary, and the #131 knob-rehydration (the
 // persisted BrandInput). restore-input loads the brand wholesale (loadBrand rebuilds + re-renders),
-// so re-opening a themed Figma file boots on that brand instead of the default. loadBrand is a
-// const defined below — this callback only fires async (after ui-ready), so the ref is resolved.
-commit.onHostMessage((m) => {
+// so re-opening a themed Figma file boots on that brand instead of the default. `entry.ts` subscribes
+// this after the whole module has evaluated, and it only fires async (after ui-ready), so every
+// const it reaches below is defined.
+export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
   if (m.kind === 'restore-input') {
     // The blob is public shared-data (any plugin can write it) — validate the SHAPE the same way
     // Import does (brandTheme must accept it) before loading. A versioned-but-malformed payload
@@ -843,7 +703,7 @@ commit.onHostMessage((m) => {
     // nothing is dirty" also read true straight after a designer clicked the aurora chip. A late empty-restore then threw away the brand they had
     // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
     // chip click, which is the only reason it is not still in here.
-    if (provenance === bootProvenance) { provenance = noOrigin(brandState); build(); }
+    if (provenance === bootProvenance) { clearOrigin(); build(); }
     return;
   }
   if (m.kind === 'restore-input-error') {
@@ -967,7 +827,7 @@ commit.onHostMessage((m) => {
     seedOutcome = joinSeed({ present: m.present, ok: m.ok, detail: m.summary }, inputRecovered);
     if (barHost) renderBar();
   }
-});
+};
 
 // ===========================================================================
 // STAGE 1 — BRAND PRIMITIVES (bespoke)
@@ -1495,44 +1355,8 @@ const renderControl = (lever: Lever, commit: () => void = apply): HTMLElement =>
   return knob(lever.label, body, lever.description);
 };
 
-// ---- per-mode modeLevers read/write (single source for every per-mode editor) ---------------------
-// The per-mode lever axes (radius/tempo/density selects, the typography family/weight/leading/tracking
-// editors, the shadow softness/tint sliders) all read + write `brandState.modeLevers[mode].<path>` with
-// the SAME prune-to-byte-identical invariant: a mode whose overrides are all cleared must revert to
-// exactly the no-override state. These three helpers own that so no editor re-implements it (and can't
-// drift from it). `path` is a dot path into the mode entry (e.g. 'radius', 'families.display',
-// 'shadow.tint.hue').
-const getModeLever = (mode: string, path: string): unknown => {
-  let node: any = brandState.modeLevers?.[mode];
-  for (const p of path.split('.')) { if (node == null) return undefined; node = node[p]; }
-  return node;
-};
-/** Drop empty nested maps and the mode entry (and modeLevers itself) so an all-cleared mode is byte-
- *  identical to never having had an override. */
-const pruneModeLevers = (mode: string): void => {
-  const ml = brandState.modeLevers; if (!ml) return;
-  const e = ml[mode];
-  const dropEmpties = (o: any): void => {
-    for (const k of Object.keys(o)) {
-      const v = o[k];
-      if (v && typeof v === 'object' && !Array.isArray(v)) { dropEmpties(v); if (!Object.keys(v).length) delete o[k]; }
-    }
-  };
-  if (e) { dropEmpties(e); if (!Object.keys(e).length) delete ml[mode]; }
-  if (!Object.keys(ml).length) brandState.modeLevers = undefined;
-};
-/** Set `modeLevers[mode].<path>` to `value` (creating the nested maps), or delete it when `value` is
- *  undefined / '' — then prune empties. Does NOT re-render (callers pick apply/applyFull). */
-const setModeLever = (mode: string, path: string, value: unknown): void => {
-  const ml = brandState.modeLevers ?? (brandState.modeLevers = {});
-  const e: any = ml[mode] ?? (ml[mode] = {});
-  const parts = path.split('.');
-  const last = parts.pop()!;
-  let node: any = e;
-  for (const p of parts) node = node[p] ?? (node[p] = {});
-  if (value !== undefined && value !== '') node[last] = value; else delete node[last];
-  pruneModeLevers(mode);
-};
+// The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
+// live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
 
 /** A per-mode enum select with a natural "Auto" (follows the global lever). Shared by the radius / motion
  *  tempo / density controls — outside the base mode they edit `modeLevers[mode].<key>` instead of the
@@ -3585,7 +3409,7 @@ const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => 
       rm.onclick = () => {
         brandState.customModes!.splice(i, 1);
         if (!brandState.customModes!.length) brandState.customModes = undefined;
-        if (currentMode === cm.name) currentMode = 'light';   // don't strand the view on a gone mode
+        if (currentMode === cm.name) setCurrentMode('light');   // don't strand the view on a gone mode
         applyFull();
       };
       row.append(rm);
@@ -3612,7 +3436,7 @@ const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => 
       if (RESERVED_MODE_NAMES.has(nm) || (brandState.customModes ?? []).some((c) => c.name === nm)) { err.textContent = 'That name is taken (a built-in or existing custom mode).'; return; }
       (brandState.customModes ?? (brandState.customModes = [])).push({ name: nm, base: baseSel.value as 'light' | 'dark' });
       addModeOpen = false; addModeName = '';
-      currentMode = nm as Mode;                               // jump into the new mode to tune it
+      setCurrentMode(nm as Mode);                             // jump into the new mode to tune it
       applyFull();
     };
     const addBtn = el('button', 'mctx-addbtn', 'Add mode') as HTMLButtonElement;
@@ -3654,7 +3478,7 @@ const renderModeContext = (): HTMLElement => {
       : 'Auto-derived from your contrast contracts — a read-only verification view.';
     // `renderWorkspace` repaints the strip itself now (#771), so the mode-change branch does not also
     // ask for it. The re-click branch still does: it repaints ONLY the strip, on purpose.
-    b.onclick = () => { if (currentMode !== m) { currentMode = m; renderWorkspace(); } else { renderModeStrip(); } };
+    b.onclick = () => { if (currentMode !== m) { setCurrentMode(m); renderWorkspace(); } else { renderModeStrip(); } };
     left.append(b);
   }
   strip.append(left);
@@ -5318,15 +5142,21 @@ const knownWeightsOf = (fontName: string | undefined): number[] | null => (fontN
  *  fallback stack, so its measured width matches the bare fallback's. Canvas metrics only —
  *  no network — so this works identically in the plugin iframe (`networkAccess: none`).
  *  Three baselines guard against a false negative when the face happens to match one of them. */
-const _fontProbe = document.createElement('canvas').getContext('2d');
+/** The probe's canvas, made on the first question rather than at import (#896): a module that
+ *  creates a DOM node while it loads cannot be loaded without a DOM. `undefined` = not made yet;
+ *  `null` = made, but this browser gave no 2D context, which reads as "not available" as before. */
+let _fontProbe: CanvasRenderingContext2D | null | undefined;
 const fontAvailable = (name: string | undefined): boolean => {
-  if (!name || !_fontProbe) return false;
+  if (!name) return false;
+  if (_fontProbe === undefined) _fontProbe = document.createElement('canvas').getContext('2d');
+  const ctx = _fontProbe;
+  if (!ctx) return false;
   const probe = 'mmmmmmmmmmlliWWWWWWjgq';
   return ['monospace', 'sans-serif', 'serif'].some((base) => {
-    _fontProbe.font = `72px ${base}`;
-    const w0 = _fontProbe.measureText(probe).width;
-    _fontProbe.font = `72px "${name}", ${base}`;
-    return Math.abs(_fontProbe.measureText(probe).width - w0) > 0.5;
+    ctx.font = `72px ${base}`;
+    const w0 = ctx.measureText(probe).width;
+    ctx.font = `72px "${name}", ${base}`;
+    return Math.abs(ctx.measureText(probe).width - w0) > 0.5;
   });
 };
 
@@ -8216,7 +8046,10 @@ const hero = (title: string, lede: string): HTMLElement => {
   return h;
 };
 // ---- shell -----------------------------------------------------------------
-const app = document.getElementById('app')!;
+/** The root every view mounts into. Handed over by `entry.ts` (`mountApp`) before the first `build()`,
+ *  rather than looked up while this module loads (#896). */
+let app: HTMLElement;
+export const mountApp = (root: HTMLElement): void => { app = root; };
 let workspace: HTMLElement;
 let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
 let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
@@ -8862,14 +8695,10 @@ let outsideBound = false;
  *  A lint script could have checked the same thing by pattern; the required parameter checks it by
  *  construction, over every call site, with no scan to keep in scope. */
 const loadBrand = (input: BrandInput, origin: Origin): void => {
-  brandState = structuredClone(input);
-  // Set from the SAME value assigned above, before any edit can land — the baseline is what was
-  // loaded, not what the state happens to hold when someone next asks.
-  provenance = provenanceOf(origin, brandState);
+  // The store replaces the input, sets the provenance from that same value, and resets the view to
+  // the first page and mode (`loadInput`); what is left here is this file's own menus and the render.
+  loadInput(input, origin);
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
-  page = 'palettes';
-  rebuild();
-  currentMode = rp.modes[0];
   build();
 };
 
@@ -8883,7 +8712,7 @@ const setModes = (dark: boolean, hc: boolean, wire: boolean): void => {
   if (wire) m.push('wireframe');
   brandState.modes = m;
   rebuild();
-  if (!rp.modes.includes(currentMode)) currentMode = rp.modes[0];   // dropped the selected mode
+  if (!rp.modes.includes(currentMode)) setCurrentMode(rp.modes[0]);   // dropped the selected mode
   build();                                                          // bar toggles + preview mode selector both change
 };
 
@@ -9164,7 +8993,7 @@ const renderBrandMenu = (): HTMLElement => {
     // follows, because `firstRun()` reads it. Previously this set a flag that `loadBrand` knew nothing
     // about, which is why re-entry looked like it needed its own path. The working brand is
     // deliberately left in place: it is what the app renders behind the start screen.
-    provenance = noOrigin(brandState);
+    clearOrigin();
     build();
   };
   menu.append(nb);
@@ -9780,7 +9609,7 @@ const renderNavMenu = (): HTMLElement => {
     it.append(t);
     it.onclick = () => {
       navMenuOpen = false;
-      if (page !== s.key) { page = s.key; build(); } else renderBar();
+      if (page !== s.key) { setPage(s.key); build(); } else renderBar();
     };
     menu.append(it);
   });
@@ -9889,7 +9718,7 @@ const renderStartScreen = (): HTMLElement => {
   return view;
 };
 
-const build = (): void => {
+export const build = (): void => {
   // No origin yet: the start moment stands in for the app. It is a ROOT VIEW, not a page — so it goes
   // through `mountView` like the app does and carries whatever surfaces the declaration scopes to it,
   // instead of being the one screen in the studio that renders outside the chrome entirely (#772).
@@ -9908,7 +9737,7 @@ const build = (): void => {
     const t = el('span', 'stage-t');
     t.append(hook(el('b', undefined, s.label), 'rail-item-label'), el('small', undefined, s.sub));
     it.append(t);
-    it.onclick = () => { if (page !== s.key) { page = s.key; build(); } };
+    it.onclick = () => { if (page !== s.key) { setPage(s.key); build(); } };
     rail.append(it);
   });
   rail.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
@@ -9938,23 +9767,10 @@ const build = (): void => {
   renderWorkspace();
 };
 
-// ---- inlined stylesheet (self-contained bundle) ----------------------------
-// The CSS itself lives in `styles.css` (#769) — a real stylesheet, not a template literal — and is
-// pulled in as TEXT by esbuild rather than emitted as a separate asset, so this bundle stays the
-// single self-contained file both hosts need. See that file's header for the loader requirement and
-// for the two gates that read it by path.
-//
-// FAIL LOUD, not blank. An esbuild entry that bundles this file without `--loader:.css=text` gets
-// esbuild's DEFAULT `.css` loader, under which `STYLE` resolves to `{}` and every rule silently
-// vanishes — a fully rendered, completely unstyled app. Entries built with no output path error out
-// on their own ("Cannot import ... without an output path configured"); entries with an outdir do
-// not, so this asserts it at boot instead of shipping a chrome-less page.
-if (typeof STYLE !== 'string' || STYLE.length < 1000) {
-  throw new Error(
-    'apps/studio: styles.css did not arrive as text. The esbuild entry that produced this bundle is ' +
-      'missing `--loader:.css=text` (or `loader: { ".css": "text" }`), so the stylesheet is absent.',
-  );
-}
+// ---- stylesheet install ----------------------------------------------------
+// The CSS itself lives in `styles.css` (#769), pulled in as TEXT by `entry.ts`, which checks it arrived
+// as text and passes it here. See `entry.ts` for that guard and `styles.css`'s header for the loader
+// requirement and for the gate that reads it by path.
 
 /** Properties a UTILITY may declare (#544's invariant, unchanged): type treatment and ink, nothing
  *  that could size, position or space the element it is worn by. */
@@ -9979,7 +9795,7 @@ const NON_BOX_PROP = /^(font(-[a-z-]+)?|color|letter-spacing)$/;
  * It reads the SHIPPED stylesheet string, not the source file, so the thing checked is the thing that
  * renders.
  */
-const installStyles = (css: string): void => {
+export const installStyles = (css: string): void => {
   const decls = css.replace(/\/\*[\s\S]*?\*\//g, '');
   // Top-level rules only: anchored at line start, a run of whole `.class` selectors separated by
   // top-level commas and immediately followed by `{`. A compound (`.pfield.slider`) or a descendant
@@ -10017,7 +9833,6 @@ const installStyles = (css: string): void => {
   styleEl.textContent = css;
   document.head.append(styleEl);
 };
-installStyles(STYLE);
 
 /** Distance from the pointer to the window's edge while the grip is held. The grip sits flush in
  *  the corner, so the dragged size is the pointer position plus this — the same small offset
@@ -10027,11 +9842,11 @@ const GRIP_INSET = 5;
 /** Mount the plugin window's resize grip (#144). Attached to `body`, not `#app`, because `#app` is
  *  re-rendered wholesale on every state change and the grip must outlive that. Pointer capture is
  *  what makes the drag survive the pointer leaving the 16px target — without it the gesture dies
- *  the moment you move faster than the window resizes. Gated on the `PRISM3_HOST` define rather
- *  than `commit.isFigma` so the branch is statically false on web and esbuild really does drop
- *  this function (a runtime check would keep it). The three CSS rules still ride along in the
+ *  the moment you move faster than the window resizes. `entry.ts` calls it behind the `PRISM3_HOST`
+ *  define rather than `commit.isFigma`, so the branch is statically false on web and esbuild really
+ *  does drop this function (a runtime check would keep it). The three CSS rules still ride along in the
  *  shared stylesheet, which is a string constant — not worth splitting for ~150 bytes. */
-const mountResizeGrip = (): void => {
+export const mountResizeGrip = (): void => {
   const grip = el('div', 'resize-grip');
   grip.title = 'Drag to resize the plugin window';
   let dragging = false;
@@ -10059,6 +9874,3 @@ const mountResizeGrip = (): void => {
   grip.addEventListener('pointercancel', end);
   document.body.append(grip);
 };
-if (PRISM3_HOST === 'figma') mountResizeGrip();
-
-build();
