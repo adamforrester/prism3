@@ -13,7 +13,7 @@
 
 Every emission reads `theme.dims.radius`, so nothing else needed wiring: DTCG, per-mode overrides, the Figma `radius` collection, `.ai.json`, `tokens.html`, the modes and fidelity reports.
 
-**Why these two.** The fewest rungs that reach both ends of the 8-16px band. Prism 2's container radius ramp is 2/4/6/8/12/16, which is 0.5/1/1.5/2/3/4 × 4px. The engine's ladder already reproduced its first three steps, so `xl` and `2xl` are its `container.lg` and `container.2xl`. The 12px between them is reached through the lever (`xl` at scale 1.5), not through a third name. The wendys brief corroborates: its own `m` 8 and `xl` 16 now match rungs in the fidelity report, where before they had no equivalent. Doubling also keeps `2xl` under the `round` pill at any legal input (at most `baseMd` 12 × 4 × scale 2 = 96 < 128).
+**Why these two.** The fewest rungs that reach both ends of the 8-16px band. Prism 2's container radius ramp is 2/4/6/8/12/16, which is 0.5/1/1.5/2/3/4 × 4px. The engine's ladder already reproduced its first three steps, so `xl` and `2xl` are its `container.lg` and `container.2xl`. The 12px between them is reached through the lever (`xl` at scale 1.5), not through a third name. The standard-dialect example brief corroborates: its own `m` 8 and `xl` 16 now match rungs in its fidelity report, where before they had no equivalent. Doubling also keeps `2xl` under the `round` pill at any legal input (at most `baseMd` 12 × 4 × scale 2 = 96 < 128).
 
 **The #1015 question does not reopen.** The selection-control corner is still clamped from `radius.sm` (`controlRadius`), so neither new rung reaches a 12-24px box.
 
