@@ -154,7 +154,10 @@ export type ShimOpts = {
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
    *  `loadAllPagesAsync` (pre-build-loop work) and `combine` inside `combineAsVariants` (between-loops
-   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Opt-in per run, so only
+   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Those three are costs a
+   *  chunk must EXCLUDE. `member` is the converse (#1848): it burns inside the FIRST
+   *  `createComponentFromNode` only, which is mid-chunk work, so the first build chunk must INCLUDE it.
+   *  Without it, a `chunkMs` stuck at a constant 0 passed every exclusion. Opt-in per run, so only
    *  the one block that asks pays for it.
    *
    *  CHARGED ON A VIRTUAL CLOCK, through `advance` (#1800). It used to be a busy-wait on the real clock,
@@ -164,7 +167,7 @@ export type ShimOpts = {
    *  a burn advances it; the executor's work then costs 0ms and every reading is exact. A burn without
    *  `advance` throws rather than falling back to a busy-wait, so no run silently goes back to measuring
    *  the machine. */
-  burn?: { setup?: number; combine?: number };
+  burn?: { setup?: number; combine?: number; member?: number };
   /** Advances the run's virtual clock by `ms`. Required when `burn` is set; see `burn`. */
   advance?: (ms: number) => void;
   /**
@@ -404,6 +407,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
     if (!opts.advance) throw new Error('ShimOpts.burn needs ShimOpts.advance: a burn is charged to a virtual clock, never by holding the thread');
     opts.advance(ms);
   };
+  let memberBurned = false;
   /** Copy an instance's `mainComponent` onto a twin the host installs in its place (#1781) — same
    *  non-enumerable shape `createInstance` gives it, so a relocated instance still reads back its source. */
   const carryMain = (from: Node, to: Node): void => {
@@ -1363,7 +1367,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // shim model a host where a converted frame is never a component — and `isExposedInstance`'s precondition
     // is stated in exactly those terms. So the one gap hid the other: a containment rule modelled against a
     // node that never becomes a container could only ever refuse.
-    createComponentFromNode: (n: Node) => { n.type = 'COMPONENT'; return n; },
+    createComponentFromNode: (n: Node) => {
+      // Inside the build loop, once per built member; the burn is charged on the first one only, so it
+      // lands in exactly one chunk (#1848).
+      if (opts.burn?.member && !memberBurned) { memberBurned = true; charge(opts.burn.member); }
+      n.type = 'COMPONENT'; return n;
+    },
     combineAsVariants: (members: Node[], parent?: unknown) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
       // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
