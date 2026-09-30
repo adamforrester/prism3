@@ -52,8 +52,9 @@
  *
  * ── WHAT THIS DOES NOT CHECK, STATED PLAINLY SO A GREEN RUN IS NOT READ AS MORE THAN IT IS ───────
  *
- * One structural property: the dated headings appear in non-increasing date order. It does NOT
- * check that an entry is correct, that an entry is present for a given PR, that the stated date is
+ * The date arm proves one structural property: the dated headings appear in non-increasing date
+ * order. (That an entry is PRESENT for a PR is checked since #1807 — the CARRIES AN ENTRY arm below —
+ * but only that a fragment file exists, not what it says.) Nothing here checks that an entry is correct, that the stated date is
  * the real date the work happened, or that an entry's content matches what shipped. A rebase that
  * silently drops a whole entry, or backdates one to dodge this check, is invisible here — that is
  * prose, and review is its only guard, same limit `lint-decisions-index.ts`'s header states for its
@@ -93,9 +94,18 @@
  *                    order with a real oracle at last: the date sort ties same-day entries and so can
  *                    never order them, and merge order can. It also catches a fold (or a merge
  *                    resolution) that deleted a pending fragment without its entry reaching the log.
- *   CARRIES AN ENTRY — REPORTED, NOT ENFORCED: whether this diff adds a fragment (or a log heading).
- *                    CLAUDE.md asks every PR to carry one; whether a gate should require it is held for
- *                    the owner (#1807 §7), so this prints and never fails.
+ *   CARRIES AN ENTRY — every PR adds at least one fragment, except a FOLD (owner decision, 2026-09-30,
+ *                    #1807 §7.3). SUBJECT: `git diff --name-status <merge base> HEAD -- docs/progress/pending`.
+ *                    A fold is recognized by CONTENT, never by a branch name: the diff deletes a pending
+ *                    fragment or change note AND the FOLDED ENTRIES arm passed, so every entry it consumed
+ *                    reached the log. A heading written straight into the log counts only that way, inside
+ *                    a fold. Skipped ONLY on a push run (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD
+ *                    equal to its base or an unresolvable base FAILS rather than printing n/a.
+ *   NO PLACEHOLDER — the log never carries a literal `{{`: a folded entry still holding `{{ENGINE_VERSION}}`
+ *                    was not folded by `fold.ts` (#1823 review).
+ *
+ * A shallow clone is accepted as long as it reaches the commit that introduced the pending directory;
+ * past that boundary every file looks ADDED at once, and merge order would be invented, so it refuses.
  *
  * INDEPENDENCE (docs/34). The folded-entries arm's oracle is `git log --first-parent`, read here with
  * this file's own code. `fold.ts` reads the same history, which is shape 17's shared ancestor; it is
@@ -107,7 +117,7 @@
  *
  * The arm reads HEAD's first-parent history. On a PR's merge ref (CI) that is `main` itself; on a
  * branch that merged `main` in, folds that reached it through the second parent are simply not seen —
- * less coverage, never a false failure. A SHALLOW clone would hide history silently, so it is refused.
+ * less coverage, never a false failure.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -182,6 +192,8 @@ if (disagreements.length === 0) {
 
 // ---- #1807 ---------------------------------------------------------------------------------------
 const PENDING = 'docs/progress/pending';
+/** Read only to recognize a fold that consumed notes; `lint-emission-version.ts` owns everything else about them. */
+const NOTES = 'packages/engine/changes';
 const git = (...args: string[]): { ok: boolean; out: string; err: string } => {
   const r = spawnSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
   return { ok: r.status === 0, out: r.stdout ?? '', err: (r.stderr ?? '').trim() };
@@ -201,7 +213,9 @@ for (const f of pendingNow) {
   const lines = readFileSync(join(repo, where), 'utf8').replace(/\r\n/g, '\n').trim().split('\n');
   const h = HEADING_RE.exec(lines[0] ?? '');
   if (!h) shapeFails.push(`${where}: the first line is not a \`## (YYYY-MM-DD) — <title>\` heading`);
-  else if (h[2].includes('{{')) shapeFails.push(`${where}: the heading carries a placeholder; only the body may (the title is how the gate finds the entry once folded)`);
+  if (lines.join('\n').replace(/\{\{ENGINE_VERSION\}\}/g, '').includes('{{'))
+    shapeFails.push(`${where}: a \`{{\` other than the version placeholder — the fold would copy it into the log, where a literal \`{{\` fails`);
+  if (h && h[2].includes('{{')) shapeFails.push(`${where}: the heading carries a placeholder; only the body may (the title is how the gate finds the entry once folded)`);
   const extra = lines.slice(1).findIndex((l) => l.startsWith('## '));
   if (extra >= 0) shapeFails.push(`${where}:${extra + 2}: a second \`## \` heading — a fragment is ONE entry; use \`###\` inside it`);
 }
@@ -218,8 +232,17 @@ if (shapeFails.length) {
 // FOLDED ENTRIES
 const shallow = git('rev-parse', '--is-shallow-repository');
 if (!shallow.ok) cannotRun('git is not available to read merge order.', shallow.err);
-if (shallow.out.trim() === 'true')
-  cannotRun('this is a shallow clone, so HEAD\'s history is cut short and folded fragments would be missed silently.', 'CI checks out with `fetch-depth: 0`; locally, `git fetch --unshallow`.');
+// A shallow clone is fine as long as it reaches back past the commit that INTRODUCED the pending
+// directory (#1823 review: agent sessions clone ~50 deep). If the oldest reachable first-parent commit
+// already has the directory, its boundary shows every file there as ADDED at that commit: merge order
+// and landing days would be invented, and fragments folded before it would be missed. Only that refuses.
+if (shallow.out.trim() === 'true') {
+  const oldest = git('rev-list', '--first-parent', 'HEAD').out.trim().split('\n').pop() ?? '';
+  const reached = git('ls-tree', '--name-only', oldest, '--', `${PENDING}/`);
+  if (!reached.ok) cannotRun(`cannot read ${PENDING}/ at the shallow boundary ${oldest.slice(0, 8)}.`, reached.err);
+  if (reached.out.trim())
+    cannotRun(`this shallow clone stops at ${oldest.slice(0, 8)}, after ${PENDING}/ was introduced, so merge order before it is unknowable.`, '`git fetch --deepen=<n>` until the introducing commit is reachable, or `git fetch --unshallow`.');
+}
 // Position on HEAD's first-parent chain, 0 = HEAD. The ONE ordering both walks below are read in: each
 // walk keeps only the commits that touched the directory, so counting within a walk would compare an
 // add's rank among adds with a delete's rank among deletes, which orders nothing.
@@ -289,23 +312,70 @@ if (foldFails.length) {
   console.log(`  ✓ folded entries — ${placed.length} folded fragment(s) found in the log at their landing day, newest merge first`);
 }
 
-// CARRIES AN ENTRY — report only.
+// NO PLACEHOLDER IN THE LOG (#1823 review). `{{ENGINE_VERSION}}` is filled in by the fold; the log never
+// carries a literal `{{`, so one here is a fold that did not substitute, or a fragment pasted in by hand.
 {
-  const baseRef = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main';
-  const mb = git('merge-base', 'HEAD', baseRef);
+  const hits = src.split('\n').map((l, i) => (l.includes('{{') ? i + 1 : 0)).filter(Boolean);
+  if (hits.length) {
+    failed = true;
+    console.error(`\n✗ PLACEHOLDER IN THE LOG — ${FILE} carries a literal \`{{\` at line(s) ${hits.slice(0, 8).join(', ')} (#1807).`);
+    console.error('  The fold fills in `{{ENGINE_VERSION}}`; an entry still carrying it was not folded by fold.ts. Rerun the fold.\n');
+  } else console.log('  ✓ no placeholder — the log carries no literal `{{`');
+}
+
+// CARRIES AN ENTRY — enforced (owner decision, 2026-09-30). Same base-ref ladder as the two version
+// gates, restated rather than shared for the reason `lint-emission-version.ts` gives: GITHUB_BASE_REF is
+// AUTHORITATIVE when set and never falls through, because falling back would judge the wrong diff.
+{
+  const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
+  const candidates = prBase ? [prBase] : ['origin/main', 'main'];
+  const baseRef = candidates.find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
+  if (process.env.GITHUB_EVENT_NAME === 'push') {
+    console.log('  ✓ carries an entry: skipped — a push run (GITHUB_EVENT_NAME=push) has no PR diff; the PR run held it');
+  } else {
+  if (!baseRef) cannotRun(`no base ref for the CARRIES AN ENTRY arm (tried ${candidates.join(', ')}).`, 'In CI `fetch-depth: 0` provides origin/<base>; locally, `git fetch origin main`.');
+  const mb = git('merge-base', 'HEAD', baseRef!);
   const head = git('rev-parse', 'HEAD');
-  if (!mb.ok) console.log(`  · carries an entry: cannot tell — no merge base with ${baseRef} (report only)`);
-  else if (mb.out.trim() === head.out.trim()) console.log(`  · carries an entry: n/a — HEAD is ${baseRef}`);
-  else {
+  if (!mb.ok || !mb.out.trim()) cannotRun(`no merge base between HEAD and ${baseRef}.`, mb.err || '(git printed nothing)');
+  if (mb.out.trim() === head.out.trim()) {
+    // Not "n/a": outside a push run, a HEAD equal to its base is a branch with nothing in it yet, or a
+    // base ref that is wrong, and either way nothing here shows an entry was carried (#1823 review).
+    failed = true;
+    console.error(`\n✗ CARRIES AN ENTRY — HEAD is ${baseRef} itself, so there is no diff to find an entry in (#1807).`);
+    console.error('  Commit your work (with its fragment) first. On a checkout of main itself this arm has nothing to');
+    console.error('  hold; CI\'s push run on main skips it by GITHUB_EVENT_NAME, and nothing else does.\n');
+  } else {
     const base = mb.out.trim();
-    const frags = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', PENDING).out
-      .split('\n').map((l) => l.split('\t')).filter((r) => r[0] === 'A' && isFragment((r[1] ?? '').slice(PENDING.length + 1))).map((r) => r[1]);
-    const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
-    console.log(
-      frags.length ? `  · carries an entry: yes — ${frags.join(', ')}`
-      : logHeads.length ? `  · carries an entry: yes — ${logHeads.length} heading(s) added to ${FILE} directly`
-      : `  · carries an entry: NO — this diff adds no fragment to ${PENDING}/. CLAUDE.md asks every PR to carry one (report only; enforcement is held for the owner, #1807).`,
-    );
+    const d = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', PENDING);
+    if (!d.ok) cannotRun(`git diff over ${PENDING} failed.`, d.err);
+    const rows = d.out.split('\n').map((l) => l.split('\t')).filter((r) => r.length === 2 && isFragment(r[1].slice(PENDING.length + 1)));
+    const addedFrags = rows.filter((r) => r[0] === 'A').map((r) => r[1]);
+    const deletedFrags = rows.filter((r) => r[0] === 'D').map((r) => r[1]);
+    const nd = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', NOTES);
+    if (!nd.ok) cannotRun(`git diff over ${NOTES} failed.`, nd.err);
+    const deletedNotes = nd.out.split('\n').map((l) => l.split('\t')).filter((r) => r[0] === 'D' && isFragment((r[1] ?? '').slice(NOTES.length + 1)));
+    // A FOLD, recognized by CONTENT and never by a branch name: it consumes pending files AND everything it
+    // consumed reached the log (the FOLDED ENTRIES arm above passed). A diff that deletes a fragment and
+    // loses its entry is not a fold; it has already failed above, and gets no exemption here either.
+    const isFold = (deletedFrags.length > 0 || deletedNotes.length > 0) && foldFails.length === 0;
+    if (addedFrags.length) {
+      console.log(`  ✓ carries an entry — ${addedFrags.join(', ')}`);
+    } else if (isFold) {
+      console.log(`  ✓ carries an entry: exempt — this diff is a fold (it consumes ${deletedFrags.length} fragment(s) and ${deletedNotes.length} note(s), and every entry reached the log)`);
+    } else {
+      failed = true;
+      const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
+      console.error(`\n✗ CARRIES AN ENTRY — this diff adds no progress fragment to ${PENDING}/ (#1807).`);
+      console.error(`    base ${base.slice(0, 8)} (${baseRef})`);
+      if (logHeads.length)
+        console.error(`    It writes ${logHeads.length} heading(s) straight into ${FILE} instead — the old convention, and the line every PR conflicted on.`);
+      console.error('\n  Every PR carries its progress entry as its own file, except a fold. Add');
+      console.error(`  ${PENDING}/<your-branch-with-slashes-as-dashes>.md holding ONE entry:`);
+      console.error('      ## (YYYY-MM-DD) — <title>');
+      console.error('      <what changed, what was decided and why, any trap for whoever re-verifies>');
+      console.error('  On the old convention? CONTRIBUTING.md §2, "Converting an open PR from the old convention".\n');
+    }
+  }
   }
 }
 

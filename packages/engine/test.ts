@@ -17799,6 +17799,64 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       }
 
+      // ---- #1798: THE #536 PROBE GRID, SPLIT ACROSS CHUNKS and run in sequence ------------------------
+      // #1798 stopped requiring the probe grid to fit one chunk (see `#536 item 6` below), so the split
+      // has to be proven rather than assumed. The 36-variant sequence above cuts only `appearance`/`state`
+      // siblings, all with a leading slot. This grid is the one that crosses `size` with BOTH slot axes,
+      // so a cut here separates slot cohorts, which that sequence never does. The budget is chosen to
+      // FORCE at least three chunks, so a middle chunk appends into a set it neither created nor finished.
+      // It is derived from the grid only to place the cuts. The build is judged against literals (12
+      // members, the axis counts, the property names) and against an unsplit paste and the plugin. One
+      // arm does read the packer's own report: `r.added === split[i].variants.length` checks each chunk
+      // built the slice it was packed with. It sits beside the literal 12, which does not depend on it.
+      {
+        const combos: [boolean, boolean][] = [[false, false], [true, false], [false, true], [true, true]];
+        const probe = button.variants.size!.flatMap((sz) => combos.map(([l, t]) =>
+          figmaAnatomyPlan(button, sz, { leading: l, trailing: t, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })));
+        const unit = Math.max(...planSetChunks(probe, 1).map((c) => c.js.length));
+        const split = planSetChunks(probe, unit + 2_500);
+        ok(split.length >= 3,
+          `#1798: the forced split cuts the 12-variant probe grid into at least three chunks (${split.map((c) => `${c.variants.length}v/${c.js.length} B`).join(' ')})`);
+        const probeOpts = {
+          vars: probe.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: probe.flatMap((p) => planTextStyles(p.root)),
+          comps: ['FPO-default-icon', 'focus-ring'],
+        };
+        const runSeq = async (js: string[]) => {
+          const pg: { children: Record<string, unknown>[] } = { children: [] };
+          const rs: PayloadResult[] = [];
+          for (const s of js) rs.push(await runPayload(s, { ...probeOpts, page: pg }));
+          return { pg, rs };
+        };
+        const { pg: page, rs: runs } = await runSeq(split.map((c) => c.js));
+        const last = runs[runs.length - 1];
+        const dirty = runs.flatMap((r, i) => r.misses.map((m) => `#${i + 1}: ${m}`));
+        ok(dirty.length === 0, `#1798: every chunk of the split probe grid runs CLEAN in sequence${dirty.length ? ` — ${JSON.stringify(dirty.slice(0, 4))}` : ''}`);
+        ok(page.children.length === 1 && page.children[0].type === 'COMPONENT_SET' && last.variants === 12
+          && runs.every((r, i) => r.added === split[i].variants.length),
+          `#1798: the split probe grid builds ONE set holding all 12 members, each chunk adding exactly its own slice (${page.children.length} top-level, ${last.variants} members, added ${JSON.stringify(runs.map((r) => r.added))})`);
+        ok(JSON.stringify(last.axes?.slice().sort()) === JSON.stringify(['appearance:1', 'leading icon:2', 'size:3', 'state:1', 'trailing icon:2']),
+          `#1798: the split probe grid derives size:3 x leading icon:2 x trailing icon:2 across its chunks (${JSON.stringify(last.axes)})`);
+        ok(runs.slice(0, -1).every((r) => (r.properties ?? []).length === 0)
+          && JSON.stringify([...(last.properties ?? [])].sort()) === JSON.stringify(['label:TEXT', '↳ swap leading icon:INSTANCE_SWAP', '↳ swap trailing icon:INSTANCE_SWAP'].sort())
+          && last.wiredMembers === 12,
+          `#1798: only the last chunk of the split declares properties, and it wires all 12 members (${JSON.stringify(runs.map((r) => r.properties))}, ${last.wiredMembers} wired)`);
+        // THE SPLIT IS INVISIBLE IN THE FILE: the same geometry as the grid pasted unsplit, and as the
+        // plugin executor builds it.
+        const geometry = (pg: { children: Record<string, unknown>[] }) => {
+          const set = pg.children.find((c) => c.type === 'COMPONENT_SET');
+          if (!set) return '[]';
+          return JSON.stringify([`${Math.round(set.width as number)}x${Math.round(set.height as number)}`,
+            ...(set.children as Record<string, unknown>[]).map((c) => `${c.name}@${c.x},${c.y}:${Math.round(c.width as number)}x${Math.round(c.height as number)}`).sort()]);
+        };
+        const whole = await runSeq(planSetChunks(probe, 1e9).map((c) => c.js));
+        const plugPage: { children: Record<string, unknown>[] } = { children: [] };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+        await applyComponentPlan(probe, makeFigmaStub({ ...probeOpts, page: plugPage }) as any);
+        ok(geometry(page) === geometry(whole.pg) && geometry(page) === geometry(plugPage),
+          `#1798: the split probe grid lays out exactly as the unsplit paste and the plugin do — split ${JSON.parse(geometry(page))[0]}, unsplit ${JSON.parse(geometry(whole.pg))[0]}, plugin ${JSON.parse(geometry(plugPage))[0]}`);
+      }
+
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
       // `nest-exposed` (#1330) has TWO executors that write `isExposedInstance = true` after
       // `createComponentFromNode`: the plugin's `applyComponentPlan` (gated host-truth by
@@ -21324,10 +21382,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     figmaAnatomyPlan(button, sz, { leading: l, trailing: t, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })));
   ok(grid.length === 12, `#536 item 6: the probe grid is 3 sizes x 4 slot combos (${grid.length})`);
 
-  // ONE chunk. The probe's whole premise was that this is the cheapest grid that exhibits the
-  // behavior — if it ever needed splitting, the "probe small before 756" advice would be wrong.
+  // PACKED CORRECTLY, in however many chunks that takes (#1798). This used to assert ONE chunk, which
+  // turned the grid's spare bytes into the headroom for every change to the chunk shell: 173 B of 42,000
+  // when #1798 was filed, so each payload PR had to compact code to fit. One chunk is not a limit any
+  // transport enforces, and the "probe small before 756" advice survives a split: the probe is still 12
+  // variants in two or three pastes, not 432 in 46. (The use_figma path already packs this grid into two
+  // scripts, because its engine budget is 45,000 minus the step bundle.) The limit that CAN break a paste
+  // is the indivisible unit, one variant plus the shell. The #1798 block below gates that by name, with
+  // stated headroom. That a split grid BUILDS correctly is run, not read: see the #1798 forced-split
+  // sequence in the payload harness.
   const chunks = planSetChunks(grid);
-  ok(chunks.length === 1, `#536 item 6: the probe grid is a single payload (${chunks.length} chunk(s), ${chunks[0].bytes} B)`);
+  const packed = chunks.flatMap((c) => c.variants);
+  ok(chunks.every((c) => c.js.length <= SET_CHUNK_BYTES) && JSON.stringify(packed) === JSON.stringify(grid.map(planComponentName)),
+    `#536 item 6: the probe grid packs inside the chunk budget with every member exactly once, in plan order (${chunks.length} chunk(s): ${chunks.map((c) => `${c.variants.length}v/${c.js.length} B`).join(', ')})`);
 
   // The padding matrix, per size and per side — the claim the probe existed to test. Asserted as the
   // full 12-cell table rather than a spot check: the rule is two independent per-side decisions, so
@@ -21363,6 +21430,40 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     return `${bound.height}|${bound.itemSpacing}`;
   });
   ok(new Set(geom).size === 3, `#536 item 6: every size is geometrically distinct (${geom.join(' ')}) — live heights 36/44/56, gaps 8/8/12`);
+}
+
+// ---- #1798: the paste chunk's HEADROOM is the indivisible unit, gated by name before the budget ---------
+// Every chunk ships the same shell: the resolvers, the shared helpers (`resolveNestMember` and the rest,
+// shipped as source), the builder, the find-or-create body and the read-backs. Measured when #1798 was
+// fixed, that shell was about 27.8 KB of the probe grid's 41,827 B, and the 12 variants were the other
+// 14.5 KB. When the shell grows, `planSetChunks` puts fewer variants in each chunk and makes more chunks.
+// That costs pastes, not correctness. The one growth packing cannot absorb is a single variant plus the
+// shell that no longer fits one chunk: `pack` then ships a one-variant chunk over the budget, and the
+// transport rejects it after the chunks before it have landed.
+//
+// So this measures that unit directly, for every def in the registry: `planSetChunks(plans, 1)` puts each
+// variant in its own chunk, at the widest index header, with the last chunk carrying the set's properties
+// and refs. Its largest payload is the indivisible unit. The ceiling is a LITERAL, never read from
+// `SET_CHUNK_BYTES` (docs/34): 37,800 is 90% of the 42,000 B budget, so this fails by name with 4,200 B
+// still in hand, and the budget itself sits about 3 KB under the ~45 KB `figma_execute` ceiling. The
+// use_figma path adds its step bundle (~5 KB) to the same unit and is held to its 45,000-character
+// `SCRIPT_CEILING`, 90% of the tool's 50,000 limit, by `apps/plugin/test-mcp-paste.ts`'s size gate.
+{
+  const UNIT_CEILING = 37_800; // 90% of 42,000, a literal
+  const worst = { id: '', bytes: 0 };
+  const malformed: string[] = [];
+  for (const def of componentDefs) {
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+    const singles = planSetChunks(plans, 1);
+    // One variant per chunk, every variant once. If the probe stops isolating variants, the number below
+    // is the size of a bigger chunk and means nothing, so that is its own failure.
+    if (!plans.length || singles.length !== plans.length || singles.some((c) => c.variants.length !== 1)) malformed.push(`${def.id} (${singles.length} chunks for ${plans.length} variants)`);
+    for (const c of singles) if (c.js.length > worst.bytes) { worst.id = def.id; worst.bytes = c.js.length; }
+  }
+  ok(componentDefs.length > 0 && malformed.length === 0,
+    `#1798: the unit probe isolates one variant per chunk for every def in the registry (${componentDefs.length} defs)${malformed.length ? ` — MALFORMED: ${malformed.slice(0, 3).join('; ')}` : ''}`);
+  ok(worst.bytes > 0 && worst.bytes <= UNIT_CEILING,
+    `#1798: the indivisible paste unit (one variant plus the chunk shell) stays within 90% of the 42,000 B chunk budget — worst ${worst.id} at ${worst.bytes} B against ${UNIT_CEILING} B (${(worst.bytes / 42_000 * 100).toFixed(1)}% of budget)`);
 }
 
 // -------------------------------------------------------------- #332: malformed lever values reject

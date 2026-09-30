@@ -122,6 +122,14 @@ if (!onMain.ok)
     '  branch that already merged main in cannot be refolded; land it and start a fresh fold.',
   ]);
 
+// A SHALLOW clone whose history stops after the pending directory was introduced shows every file at
+// its boundary commit as ADDED there, which would order the whole batch as one merge. Refuse that case.
+if (git('rev-parse', '--is-shallow-repository').out.trim() === 'true') {
+  const oldest = git('rev-list', '--first-parent', 'HEAD').out.trim().split('\n').pop() ?? '';
+  if (git('ls-tree', '--name-only', oldest, '--', FRAGMENTS_DIR + '/').out.trim())
+    refuse(['this shallow clone does not reach the commit that introduced ' + FRAGMENTS_DIR + '/, so merge order cannot be read.', '  `git fetch --unshallow`, then run this again.']);
+}
+
 // ---- 3. merge order ----------------------------------------------------------------------------
 //
 // One walk of HEAD's first-parent history, newest first, keeping each path's NEWEST add (a slug that
@@ -168,9 +176,11 @@ for (const path of [...notePaths].sort(byMergeNewestFirst)) {
   if (!LEVELS.includes(level)) { problems.push(`${path}: \`engine: ${m[1]}\` — the level is one of ${LEVELS.join(' | ')}. A change that owes no bump carries no note.`); continue; }
   const prose = m[2].trim();
   if (!prose) { problems.push(`${path}: no changelog prose after the front matter`); continue; }
+  if (prose.replace(PLACEHOLDER, '').includes('{{')) { problems.push(`${path}: a \`{{\` other than the version placeholder, which would reach version.ts unsubstituted`); continue; }
   if (prose.includes('*/')) { problems.push(`${path}: the prose contains \`*/\`, which would close the comment it is folded into`); continue; }
-  const semverLead = prose.split('\n').find((l) => /^\s*\d+\.\d+\.\d+\s*[—:]/.test(l));
-  if (semverLead) { problems.push(`${path}: a line opens with a version number (\`${semverLead.trim().slice(0, 40)}…\`), which reads as a changelog heading once folded`); continue; }
+  // After substitution, not before: `{{ENGINE_VERSION}} — …` becomes ` * 0.216.0 — …`, a heading.
+  const semverLead = prose.replace(PLACEHOLDER, '9.9.9').split('\n').find((l) => /^\s*\d+\.\d+\.\d+\s*[—:-]/.test(l));
+  if (semverLead) { problems.push(`${path}: a line opens with a version number or the placeholder (\`${semverLead.trim().slice(0, 40)}…\`), which reads as a changelog heading once folded`); continue; }
   notes.push({ path, slug: slugOf(path), level, prose });
 }
 
@@ -182,6 +192,7 @@ for (const path of [...fragmentPaths].sort(byMergeNewestFirst)) {
   const h = HEADING_RE.exec(lines[0] ?? '');
   if (!h) { problems.push(`${path}: the first line is not a \`## (YYYY-MM-DD) — <title>\` heading`); continue; }
   if (lines.slice(1).some((l) => l.startsWith('## '))) { problems.push(`${path}: a second \`## \` heading — a fragment is ONE entry`); continue; }
+  if (src.replace(PLACEHOLDER, '').includes('{{')) { problems.push(`${path}: a \`{{\` other than the version placeholder, which would reach the log unsubstituted`); continue; }
   if (h[2].includes('{{')) { problems.push(`${path}: the heading carries a placeholder; only the body may`); continue; }
   fragments.push({ path, slug: slugOf(path), title: h[2], body: lines.slice(1).join('\n') });
 }
@@ -203,6 +214,14 @@ const next =
   : level === 'minor' ? `${maj}.${min + 1}.0`
   : level === 'patch' ? `${maj}.${min}.${pat + 1}`
   : current;
+if (level === 'major' && maj === 0)
+  refuse([
+    `a change note declares \`engine: major\` while ENGINE_VERSION is ${current}.`,
+    ...notes.filter((n) => n.level === 'major').map((n) => `    ${n.path}`),
+    '',
+    '  Going to 1.0 is the owner\'s decision, not a side effect of a fold. The policy while ENGINE is 0.x is',
+    '  `minor` for any behavior change and `patch` only when no committed artifact moved.',
+  ]);
 const fill = (s: string): string => s.replace(PLACEHOLDER, next);
 const today = new Date().toISOString().slice(0, 10);
 
@@ -298,8 +317,12 @@ if (next !== current) {
   }
 }
 
+// While the contract baseline still records `engineVersion` (it stops with #1817), a moved version needs a
+// stamp-only accept. Read from the file rather than assumed, so this line retires itself.
+const contractStamp = next !== current && readFileSync(join(repo, 'packages/engine/schema/token-contract.json'), 'utf8').includes('"engineVersion"');
 console.log(`
-✓ folded. Next, by hand (CONTRIBUTING.md, "How to fold"):
+✓ folded. Next, by hand (CONTRIBUTING.md, "How to fold"):${contractStamp ? `
+    npx tsx packages/engine/token-contract.ts --accept   # stamp-only: the baseline still records engineVersion (until #1817)` : ''}
     git add -A && git commit -m "Fold: ENGINE_VERSION ${next}"
     npm run verify
     push, and open the fold PR. Its CI is the first run of every gate over main plus this whole batch.`);

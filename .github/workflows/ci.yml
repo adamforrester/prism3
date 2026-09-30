@@ -441,7 +441,8 @@ jobs:
       #
       # Since #1807 a PR carries its entry as `docs/progress/pending/<slug>.md` and `fold.ts` moves it
       # into the log, so this gate also checks each fragment's shape and that every folded entry sits
-      # in the log in MERGE order at its landing day — which makes it the fourth gate here that reads
+      # in the log in MERGE order at its landing day, and that every PR but a fold adds a fragment —
+      # which makes it the fourth gate here that reads
       # git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above. It
       # refuses a shallow clone rather than missing folded fragments silently.
       - name: docs/00-progress.md stays newest-entry-first

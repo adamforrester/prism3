@@ -24,11 +24,16 @@
  *
  *   NOTE SHAPE     — every change note at HEAD parses: the exact front matter, a level of patch, minor
  *                    or major, prose, no `*` + `/` (it is folded into a comment), and no line opening with
- *                    a version number (it would read as a changelog heading once folded).
+ *                    a version number AFTER `{{ENGINE_VERSION}}` is substituted (it would read as a
+ *                    changelog heading once folded). And the BUMP-CLASS POLICY: `minor` for any behavior
+ *                    change; `patch` only when no committed artifact moved, so an added patch note over a
+ *                    moved emission fails; `major` refused while ENGINE is 0.x (1.0 is the owner's call).
  *   ONE WRITER     — if `ENGINE_VERSION` or the ENGINE CHANGELOG (the text between this module's header
  *                    and the constant) changed, the diff must be a fold: it deletes at least one change
- *                    note. And a change note may be deleted only by a fold. A PR that picks a number, or
- *                    a merge resolution that drops someone's pending note, fails here by name.
+ *                    note. A change note may be deleted only by a fold, and a pending note (one the base
+ *                    already has) may not be edited at all. The changelog may never carry a literal `{{`,
+ *                    which is an unsubstituted placeholder. A PR that picks a number, or a merge
+ *                    resolution that drops or rewrites someone's pending note, fails here by name.
  *   FOLD INTEGRITY — in a fold, HEAD's version is EXACTLY the next one at the highest level the deleted
  *                    notes declare (one version per fold), the first section under the FOLD MARKER is
  *                    headed by that version, and every deleted note's prose appears in that section.
@@ -297,9 +302,14 @@ const parseNote = (src: string): ParsedNote => {
   const prose = m[2].trim();
   if (!BUMP_LEVELS.includes(m[1])) return { level: null, prose, problem: `\`engine: ${m[1]}\` is not one of ${BUMP_LEVELS.join(' | ')} (a change that owes no bump carries no note)` };
   if (!prose) return { level: m[1], prose, problem: 'there is no changelog prose after the front matter' };
+  if (prose.replace(/\{\{ENGINE_VERSION\}\}/g, '').includes('{{'))
+    return { level: m[1], prose, problem: 'a `{{` other than `{{ENGINE_VERSION}}` — the fold would copy it into version.ts, where a literal `{{` fails ONE WRITER' };
   if (prose.includes('*/')) return { level: m[1], prose, problem: 'the prose contains `*/`, which would close the version.ts comment it is folded into' };
-  if (prose.split('\n').some((l) => /^\s*\d+\.\d+\.\d+\s*[—:]/.test(l)))
-    return { level: m[1], prose, problem: 'a line opens with a version number, which reads as a changelog heading once folded' };
+  // Checked AFTER substitution (#1823 review, HIGH): a line opening `{{ENGINE_VERSION}} —` passes a raw
+  // check and becomes ` * 0.216.0 — …` once folded, which reads as a changelog heading. Any version works
+  // as the stand-in; the question is only whether the line would open with one.
+  if (prose.replace(/\{\{ENGINE_VERSION\}\}/g, '9.9.9').split('\n').some((l) => /^\s*\d+\.\d+\.\d+\s*[—:-]/.test(l)))
+    return { level: m[1], prose, problem: 'a line opens with a version number (or with `{{ENGINE_VERSION}}`), which reads as a changelog heading once folded — reword it, or give a second entry its own note' };
   return { level: m[1], prose, problem: null };
 };
 const isNotePath = (p: string): boolean => p.startsWith(`${NOTES_DIR}/`) && p.endsWith('.md') && !p.endsWith('/README.md');
@@ -310,6 +320,8 @@ if (!noteDiff.ok) die([`git diff failed on ${NOTES_DIR} — this check CANNOT RU
 const noteRows = noteDiff.out.split('\n').map((l) => l.split('\t')).filter((r) => r.length === 2 && isNotePath(r[1]));
 const addedNotes = noteRows.filter((r) => r[0] === 'A').map((r) => r[1]);
 const deletedNotes = noteRows.filter((r) => r[0] === 'D').map((r) => r[1]);
+/** A note present at the base and changed here: another merged PR's declaration, edited (#1823 review). */
+const modifiedNotes = noteRows.filter((r) => r[0] !== 'A' && r[0] !== 'D').map((r) => r[1]);
 
 // NOTE SHAPE — every note at HEAD, not only the added ones: a malformed note already pending would
 // otherwise stop the next fold, which is the worst moment to find it.
@@ -323,6 +335,10 @@ for (const p of headNotes.out.split('\n').map((s) => s.trim()).filter(isNotePath
   const n = parseNote(src.out);
   parsedAtHead.set(p, n);
   if (n.problem) noteProblems.push(`${p}: ${n.problem}`);
+  // BUMP-CLASS POLICY (#1807, orchestrator's technical call): MAJOR is refused while ENGINE is 0.x —
+  // going 1.0 is an owner decision, not something a note may trigger as a side effect of a fold.
+  else if (n.level === 'major' && /^0\./.test(baseVersion))
+    noteProblems.push(`${p}: \`engine: major\` while ENGINE_VERSION is ${baseVersion} — going to 1.0 is the owner's decision, not a note's. Declare minor.`);
 }
 if (noteProblems.length)
   die([
@@ -337,6 +353,19 @@ if (noteProblems.length)
     '  The fold refuses a malformed note, so it fails here, at the PR that wrote it.',
   ]);
 const bumpNotes = addedNotes.filter((p) => BUMP_LEVELS.includes(parsedAtHead.get(p)?.level ?? ''));
+
+// BUMP-CLASS POLICY, the patch half: `minor` is the class for any behavior change (every one of the 215
+// bumps before #1807 was one); `patch` is only for a change that moves NO committed artifact. So an added
+// patch note over a moved emission is refused here, by the same diff that says the emission moved.
+const patchOverEmission = bumpNotes.filter((p) => parsedAtHead.get(p)!.level === 'patch');
+if (changed.length > 0 && patchOverEmission.length && !bumpNotes.some((p) => parsedAtHead.get(p)!.level !== 'patch'))
+  die([
+    `NOTE SHAPE — ${patchOverEmission.join(', ')} declares \`engine: patch\`, and ${changed.length} committed artifact(s) moved (#1807).`,
+    `    ${where}`,
+    '',
+    '  `patch` is for a change that moves no committed artifact (regen --check clean before and after).',
+    '  Anything that moves the emission is a behavior change, and the class for that is `minor`.',
+  ]);
 
 // ONE WRITER + FOLD INTEGRITY. The changelog region is everything between the end of this module's
 // header docblock and the end of the `ENGINE_VERSION` line — every entry, old or folded, plus the
@@ -371,6 +400,23 @@ const exactNext = (from: string, level: string): string => {
 const squash = (s: string): string => s.replace(/\s+/g, ' ').trim();
 
 let writerLine: string;
+if (markerAtBase && modifiedNotes.length)
+  die([
+    `ONE WRITER — this diff edits ${modifiedNotes.length} pending change note(s) that a merged PR wrote (#1807).`,
+    ...modifiedNotes.map((p) => `      ${p}`),
+    `    ${where}`,
+    '',
+    '  A pending note is another PR\'s declared bump, and only the fold consumes it. To add to or correct',
+    '  what it says, add a note of your own; the fold writes both under the same version.',
+  ]);
+if (markerAtBase && headRegion!.includes('{{'))
+  die([
+    'ONE WRITER — the ENGINE changelog in version.ts carries a literal `{{` (#1807).',
+    `    ${where}`,
+    '',
+    '  `{{ENGINE_VERSION}}` belongs in a change note, where the fold fills it in. In version.ts it means a',
+    '  fold wrote a note without substituting it, or a PR pasted a note in by hand. Rerun the fold.',
+  ]);
 if (!markerAtBase) {
   writerLine = 'not yet in force — the base predates the FOLD MARKER, so this diff introduces the convention';
 } else if (!isFold && regionChanged) {
@@ -416,7 +462,10 @@ if (!markerAtBase) {
   else if (first < 0 || HEADER.exec(lines[first])![1] !== headVersion)
     fails.push(`the first section under the FOLD MARKER is headed ${first < 0 ? '(nothing)' : HEADER.exec(lines[first])![1]}, not ${headVersion}`);
   else {
-    let end = lines.findIndex((l, i) => i > first && (HEADER.test(l) || l.trim() === '*/'));
+    // The section ends at the NEXT FOLD's header, or the comment's end — never at any line that merely
+    // opens with a version, which a note's own prose could do (#1823 review; NOTE SHAPE also refuses it).
+    const FOLD_HEADER = /^ \* \d+\.\d+\.\d+ — folded \d{4}-\d{2}-\d{2} from /;
+    let end = lines.findIndex((l, i) => i > first && (FOLD_HEADER.test(l) || l.trim() === '*/'));
     if (end < 0) end = lines.length;
     const section = squash(lines.slice(first, end).map((l) => l.replace(/^ \*( |$)/, '')).join('\n'));
     for (const n of folded)

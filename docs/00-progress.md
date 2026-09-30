@@ -7,45 +7,34 @@
 
 ---
 
-## (2026-09-30) — Merge independence: a PR writes its own files, and a fold writes the shared lines (#1807)
+## (2026-09-30) — Paste chunk headroom: gate the indivisible unit, let the probe grid split (#1798)
 
-**STATUS: PR open from `lane/merge-independence`, labeled DO NOT MERGE.** No `ENGINE_VERSION` bump: the change is tooling, gates and docs, and nothing a consumer can observe moved (the #1725 precedent). This is the last PR on the old convention, so this entry is written straight into the log; every PR after it carries a fragment.
+**STATUS: PR open from `lane/paste-payload-headroom`, labeled DO NOT MERGE.** Tests, one code comment and this entry. **No version bump:** no payload byte moved and no artifact changed (`regen --check` clean), so there is no behavior change for `ENGINE_VERSION` to report.
 
-**The problem, measured in #1807.** Every PR wrote the same four places: the top of this file, `ENGINE_VERSION`, the changelog above it, and the stamp in every emitted tree. Replayed over the last 40 merges, 40 of 40 consecutive pairs conflicted, and 35 of those conflicted only on those lines. Six ready PRs took hours to land on 2026-09-30, one at a time.
+**The problem.** `test.ts` asserted that Button's #536 probe grid (3 sizes × 4 slot combos) packs into ONE chunk under `SET_CHUNK_BYTES` (42,000). The grid measured 41,827 B, so 173 B was the headroom for every change to the chunk shell. The #1781 nest fix, the #1751 fill-sizing fix and both 2026-09-27 component-set border entries each had to compact code or accept a margin of a few bytes to fit. #1657 and any new nest or swap diagnosis would have had to do the same.
 
-**What the owner decided (2026-09-30), and what it changed.**
+**What was measured first.**
+- **Where 42,000 comes from.** It is a convention, not a measured limit. It is the largest payload with a proven live paste behind it (42,040 B, #513/#528), rounded down under the ~45 KB `figma_execute` ceiling from #487 §6. Nothing in the repo record measures that ceiling as a rejection point. The other transport, `use_figma`, declares `maxLength: 50000` on its `code` parameter (read off the tool schema today). `mcp-paste.ts` packs to `SCRIPT_CEILING` (45,000, which is 90% of that) minus its ~4.9 KB step bundle, so the engine payload's budget on that path is about 39,950, and **the probe grid already pastes as two scripts there** (39,912 + 28,799).
+- **What dominates.** The probe grid's 41,827 B split into 14,550 of variant data (the `PLANS` line), ~900 of header constants, and ~26.4 KB of shell. By section, the shell is: builder and `claimDefaults` 12.4 KB, properties/wiring/read-back 6.9 KB, resolvers and shared helpers 3.5 KB (`resolveNestMember` alone is 763), find-or-create and layout 2.6 KB, and the return 1.0 KB. Every chunk ships all of it.
+- **The limit that can actually break.** A bigger shell makes `planSetChunks` pack fewer variants per chunk. That costs pastes, not correctness. The unrecoverable case is one variant plus the shell overflowing a chunk. `pack` then ships an over-budget one-variant chunk, and the transport rejects it after earlier chunks have landed. Measured over the registry with `planSetChunks(plans, 1)`, the worst unit is textarea at 32,090 B (76.4% of 42,000). Buttons come next at ~31.1 KB.
 
-1. `ENGINE_VERSION` may name a fold covering several PRs, and `main` may briefly run merged behavior under the previous number. Principle 5 in `CLAUDE.md` now says so; "names are versioned, values are not" and every `CONTRACT_VERSION` rule stand as they were.
-2. A progress entry is a per-PR file, `docs/progress/pending/<slug>.md`, and appears in this log at fold time.
-3. The semantic-conflict net is the fold PR's own CI: merge the batch, and the fold's run is the first run of every gate over `main` plus the whole batch. The fold is run by hand for now, with no bot and no token.
+**The fix (the issue's option 2).** The single-chunk assertion became `#536 item 6: the probe grid packs inside the chunk budget with every member exactly once, in plan order`. Two new gates were added:
+- `#1798: the indivisible paste unit … stays within 90% of the 42,000 B chunk budget` measures that unit for every def. The ceiling is the literal 37,800, never read from `SET_CHUNK_BYTES` (docs/34). That leaves 5,710 B of shell growth before the gate fails by name, and 4,200 B more before the budget. A sibling arm fails if the probe stops isolating one variant per chunk, because the measurement would then be meaningless.
+- `#1798: the #536 probe grid, split across chunks` forces the grid into four chunks and runs them in sequence on the payload harness. It asserts clean runs, one set of 12 members with each chunk adding its own slice, the derived axes `size:3 × leading icon:2 × trailing icon:2`, properties declared on the last chunk only with all 12 wired, and geometry identical to the unsplit paste and to the plugin executor. The 36-variant sequence above it cuts only `appearance`/`state` siblings. This one cuts across slot cohorts.
 
-**The technical calls, mine.**
+**Ruled out.** A one-time **preamble chunk** for the shared helpers cannot work: every `use_figma`/`figma_execute` call is a fresh plugin run, so a later chunk could reach stored code only by evaluating text read back out of the file. Nothing Prism3 pastes evaluates text today (`apps/plugin/test-agent-link.ts` asserts it of the agent snippets), and doing so would run whatever code anyone with edit access had left in the file. Whether the host would even allow it was not tested. **Raising the budget** is not evidenced for `figma_execute`. On `use_figma` it is already 90% of the declared limit.
 
-- **One version per fold, not one per note.** A version names a state that existed on `main` and that the fold's regen stamped into every tree. One per note would mint numbers no build ran as. The fold bumps once, by the highest class any note declares.
-- **A folded entry is dated the UTC day its fragment landed**, not the day it was drafted. That makes merge order and date order the same order, so the fold only ever prepends, and the date gate stays true without the fold having to search the log for a slot. A fragment open for a week would otherwise have landed below entries that merged after it.
-- **The "does this PR carry an entry" arm reports and never fails.** Whether to enforce it was held in the proposal (§7.3) and the owner's answer did not cover it, so it stays report-only until it is decided. Enforcing it also needs care: a fold, and CI's push run on `main`, add no fragment.
-- **No new gate file.** Each arm lives in the gate that owns its question, so the gate list in `CLAUDE.md`, `CONTRIBUTING.md` §3, the PR template, `ci.yml` and `verify.ts` does not move.
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
 
-**What landed.**
+| Mutation | Fails by name |
+|---|---|
+| M1 `resolveNestMember` +6,000 B (an oversized helper) | `#1798: the indivisible paste unit …` (textarea 38,103 B > 37,800); also the pinned `anatomy/icon-button: the set packs into 14 chunks` |
+| M2 control: `resolveNestMember` +200 B | nothing. The probe grid now packs 11 + 1, where `main`'s single-payload gate would have failed |
+| M3 packer drops the variant at each chunk boundary | `#1798: the split probe grid builds ONE set holding all 12 members` (9), `… only the last chunk … wires all 12`, `… lays out exactly as the unsplit paste and the plugin do`, `#1798: the unit probe isolates one variant per chunk` |
+| M4 `PROPS_ALL` on every chunk | `#1798: every chunk of the split probe grid runs CLEAN` (ORPHAN), `#1798: only the last chunk of the split declares properties` |
+| M5 packer ignores the caller's budget | `#1798: the forced split cuts … into at least three chunks`, `#1798: the unit probe isolates …`, `#1798: the indivisible paste unit …` |
 
-- **`fold.ts`** at the repo root, beside `verify.ts`. It validates everything before it writes anything, orders by the first-parent commit that added each file, writes the constant and a section under a new FOLD MARKER in `version.ts`, prepends the fragments here, fills in `{{ENGINE_VERSION}}`, deletes what it folded and runs `regen.ts`. With nothing pending it prints "nothing to fold" and exits 0. It does not branch, commit or push.
-- **`lint-emission-version.ts`:** an added change note declaring a bump satisfies a moved emission; the forward-version route stays for the fold (#1271 unchanged). New arms: NOTE SHAPE; ONE WRITER (a diff that is not a fold may not edit the constant, the changelog region, or delete a pending note); FOLD INTEGRITY (the version is exactly the next one, and every deleted note's prose sits under it).
-- **`lint-component-surface.ts`:** arm B and `--accept` take an added note as the bump.
-- **`lint-progress-order.ts`:** FRAGMENT SHAPE, FOLDED ENTRIES (each folded fragment is in the log with its title, at its landing day, in merge order) and the report-only CARRIES AN ENTRY. It now reads git history and refuses a shallow clone.
-- **`lint-layout-claims.ts`, `lint-advisory-expiry.ts`, `lint-decisions-index.ts`:** `docs/progress/` is exempt by the same genre argument as this file. Without it a fragment would fail while it waits and pass once folded, and an index row pointing at a fragment would dangle the moment the fold deleted it.
-- **Docs:** `CLAUDE.md` (principle 5, the progress-entry rule, where to read recent state), `CONTRIBUTING.md` §2 (the workflow, "How to fold", and "Converting an open PR from the old convention"), the PR template, `.claude/commands/review-pr.md`, `docs/30` (a `Decided` section, indexed in `docs/42`), the `prism3-build-component` skill's versioning section, and a `README.md` in each of the two directories.
-
-**The #1104 / #1170 same-day order is settled.** The date sort ties same-day entries and so could never order them. The FOLDED ENTRIES arm reads merge order from `git log --first-parent` with its own code: swapping two same-day folded entries fails by name while the date arm still reports clean.
-
-**Independence (docs/34).** The fold and the gates share one input, merge order, which is shape 17's shared ancestor. It is acceptable only because it is ground truth: the order `main` recorded, not something anything derives. Neither gate imports `fold.ts`; each parses notes and fragments with its own code, and each computes the next version or the landing day with its own arithmetic. The one-writer arm starts at the commit that introduces the FOLD MARKER and says so on this PR ("not yet in force").
-
-**Mutations.** Run in a throwaway clone with a fake `origin` (three simulated lanes squash-merged on two days, then a real fold with its regen), each committed first, each red by name; the full table is in the PR. Highlights: a PR bumping `ENGINE_VERSION` fails ONE WRITER; a fold dropping a note's prose fails FOLD INTEGRITY; a fold skipping or under-running the number fails by name; a surface accepted with a note and then the note removed fails arm B; two same-day folded entries swapped fail FOLDED ENTRIES while the date arm stays green. Converses: each of those arms neutralized alone, with the defect still live, goes green.
-
-**Traps for whoever folds first.**
-
-- **`schema/token-contract.json` still records `engineVersion`** until the other lane's removal lands (proposal step 5, `lane/contract-baseline-no-engine-version`). Until then a fold that moves the version needs a stamp-only `token-contract.ts --accept`.
-- **Rename-rule `since` stamps are authored version literals** (`MATERIALIZATION_RENAMES`, `COLLECTION_RENAMES`, and `test.ts`'s tables for them). A PR adding one cannot know its version; the fold PR sets it by hand for now. Filed as #1816.
-- **Folded headings are history.** The FOLDED ENTRIES arm finds an entry by its title and landing day, so a later edit to a folded heading fails it by name. Correct the body, not the heading.
+**Trap for whoever re-verifies.** `anatomy/icon-button: the set packs into 14 chunks` is still a deliberate pin on chunk count. A large shell change moves it, and its own comment says to re-pin it rather than delete it. The earlier entries that report a few bytes of headroom (#1781, #1751, and the two 2026-09-27 border entries) were measured against the old single-chunk gate.
 
 ---
 

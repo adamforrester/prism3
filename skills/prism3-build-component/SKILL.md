@@ -473,7 +473,7 @@ component page, titled from the page's primary def's name and described by its `
 including the projected component surface (#1252): a designer who meets a new variant axis, or
 864 members where there were 432, has met a different engine. A PR declares the bump and never
 picks the number: it adds a change note, `packages/engine/changes/<slug>.md`, with `engine: minor`
-(or `patch`, `major`) as its front matter and the changelog prose as its body. `fold.ts` assigns the
+(the class for any behavior change; `patch` only when no committed artifact moves) as its front matter and the changelog prose as its body. `fold.ts` assigns the
 version after the merge (#1807). Do not edit `ENGINE_VERSION`. Two gates force the note, and each
 sees a different part of a def:
 

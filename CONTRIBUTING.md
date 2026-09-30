@@ -42,7 +42,9 @@ one at a time. Now:
 
 - **The progress entry** is `docs/progress/pending/<slug>.md`, where the slug is your branch name
   with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
-  usual shape. Every PR carries one.
+  usual shape. **Every PR carries one, except a fold** (owner decision, 2026-09-30):
+  `lint-progress-order.ts` fails a PR that adds no fragment, and a heading written straight into
+  the log does not count. A fold is exempt because it consumes fragments rather than adding one.
 - **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
 
   ```
@@ -52,8 +54,11 @@ one at a time. Now:
   The changelog prose that used to go into version.ts. Write {{ENGINE_VERSION}} where the number goes.
   ```
 
-  It declares the class and never picks a number. **Do not edit `ENGINE_VERSION`, its changelog, or
-  the version stamps in `out/`.** `lint-emission-version.ts` fails a PR that is not a fold for editing
+  It declares the class and never picks a number. **The class:** `minor` for any behavior change;
+  `patch` only when no committed artifact moves (`regen --check` clean before and after); `major` is
+  refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
+  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog, the version
+  stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
   the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
   as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
 - **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
@@ -62,6 +67,26 @@ one at a time. Now:
 
 Both directories carry a `README.md` with the format. The fold, below, is the one writer of the
 shared lines.
+
+**A branch that has not merged `main` since #1807 landed can pass locally and fail in CI.** Locally
+its merge base predates the FOLD MARKER, so `lint-emission-version.ts` prints "not yet in force" for
+the one-writer check. CI tests the merge with the current `main`, where it is in force. Merge `main`
+before trusting a local green.
+
+### Reverting a merged PR that has not been folded yet
+
+`git revert` of such a PR deletes its change note and its fragment, and both gates fail that by name:
+a deleted note outside a fold is ONE WRITER, and a deleted fragment whose entry never reached the log
+is FOLDED ENTRIES. That is on purpose, because the history of what merged should survive the revert.
+So revert the code and **keep** the reverted PR's two files:
+
+1. `git revert --no-commit <merge-sha>`, then restore the two files it deleted, reading them rather
+   than checking them out: `git show <merge-sha>:<path> > <path>` for the note and the fragment.
+2. Add your own fragment saying what was reverted and why, and, since the revert moves the emission
+   back, your own note (`minor`).
+3. The next fold writes both: the change, then its revert, under one version.
+
+A PR that was already folded reverts like any other PR, with its own fragment and note.
 
 ### How to fold
 
@@ -101,7 +126,8 @@ What to check before you push the fold:
 
 - **`token-contract.ts --check`.** While `schema/token-contract.json` still records `engineVersion`,
   a fold that moves the version needs a stamp-only `npx tsx packages/engine/token-contract.ts --accept`.
-  Once that field is gone, it needs nothing.
+  Once that field is gone (#1817), it needs nothing. `fold.ts` reads the file and prints the step only
+  while it applies.
 - **Hand-authored version literals.** A PR that added a rename rule wrote a provisional `since` into
   `MATERIALIZATION_RENAMES` or `COLLECTION_RENAMES`, and `test.ts`'s tables for them. Set those to the
   fold's version in the fold PR (#1816 tracks doing this without a person remembering).
@@ -118,8 +144,12 @@ resolving takes `main`'s side of the lines your text is on.
 
 1. **On your branch, before merging:** copy your progress entry, unchanged, into
    `docs/progress/pending/<slug>.md`. Copy your changelog prose out of `version.ts` into
-   `packages/engine/changes/<slug>.md` under `engine: <the class of the bump you had made>`. Where the
-   entry or the prose cites the number you had claimed, write `{{ENGINE_VERSION}}` instead. Commit.
+   `packages/engine/changes/<slug>.md` under `engine: minor` (or `patch`, if your change moved no
+   committed artifact). **One file per entry:** a branch that wrote two progress entries or two
+   changelog entries adds `<slug>.md` and `<slug>-2.md` in each directory. Where the entry or the
+   prose cites the number you had claimed, write `{{ENGINE_VERSION}}` instead, but never at the start
+   of a line: `{{ENGINE_VERSION}} — …` becomes a changelog heading once folded, and NOTE SHAPE refuses
+   it. Commit.
 2. `git merge origin/main`, then resolve:
    - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
      fragment now.
@@ -365,7 +395,8 @@ npx tsx packages/engine/lint-progress-order.ts       # docs/00-progress.md stays
                                                     # over nothing (shape 9). Since #1807 also: every pending fragment is one
                                                     # well-formed entry, and every folded one is in the log at its landing day in
                                                     # MERGE order (#1104's same-day order, which the date sort ties), read from
-                                                    # `git log --first-parent` with its own code, never fold.ts's
+                                                    # `git log --first-parent` with its own code, never fold.ts's;
+                                                    # and every PR but a fold ADDS a fragment
 npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
                                                     # (#674). The manifest is AUTHORED, never regenerated:
                                                     # built from a scan it would classify each new artifact

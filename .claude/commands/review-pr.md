@@ -229,8 +229,8 @@ not a follow-up.
 `docs/progress/pending/<slug>.md` in the diff: one entry headed `## (YYYY-MM-DD) — <title>`.
 A PR that writes at the top of `docs/00-progress.md` instead is on the old convention; send it
 to `CONTRIBUTING.md` §2, "Converting an open PR from the old convention".
-`lint-progress-order.ts` prints whether the diff carries an entry but does not fail on its
-absence, so this check is yours. When reading recent state, read `pending/` before the top of
+`lint-progress-order.ts` fails a PR (other than a fold) that adds no fragment, but it checks
+only that the file exists: whether the entry says what a diff cannot is still yours to judge. When reading recent state, read `pending/` before the top of
 the log: merged entries wait there until the next fold.
 
 **The engine bump is a change note, not a number.** A PR that owes an `ENGINE_VERSION` bump
