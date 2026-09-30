@@ -2940,6 +2940,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.216.0 — #1750: every component set built onto a shared page landed at (0,0), so the second set on
+ * `↳ Buttons` (and on Icon button, Checkbox, Radio, Switch) covered the first. The plugin executor
+ * (`apps/plugin/src/write-components.ts`) now places a set it CREATES beside the page's existing content
+ * (`placeNewSet`): top-aligned with the sets already there, and `SET_GAP` (160, a placeholder matching the
+ * owner's hand layout) right of every node that shares its row. Nodes wholly above or below, like the page
+ * header, do not push it. An existing set is never moved. `main.ts` now places page headers once the run's
+ * builds are done, so a header first placed over a family built as one run spans every set in it. A PLUGIN
+ * write-path behavior change → ENGINE bump; no engine emission or projected surface moves (branched from
+ * #1808 at 0.215.0). CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
  * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
  * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
  * into the old set, because find-or-create matches the set by NAME and every planned member name was new, so
@@ -4321,7 +4331,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.215.0';
+export const ENGINE_VERSION = '0.216.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

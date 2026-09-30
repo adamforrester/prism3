@@ -380,6 +380,11 @@ export interface CompPageTarget {
   readonly id: string;
   appendChild(child: CompNode): void;
   findOne(predicate: (node: CompNode) => boolean): unknown;
+  /** The page's TOP-LEVEL nodes, read once before a new set is built so it can be placed clear of them
+   *  (#1750). `unknown[]` for the variance reason `root.findAllWithCriteria` gives: a `PageNode`'s
+   *  `SceneNode` union does not satisfy `CompNode`, and only `type`/`x`/`y`/`width`/`height` are read.
+   *  Optional so a target without it places the set where the combine left it, as before #1750. */
+  readonly children?: readonly unknown[];
 }
 
 /** What the component executor did — surfaced to the UI + asserted by the harness. Deliberately the
@@ -766,6 +771,51 @@ const memberAxisLists = (set: CompSet): string[][] => {
     lists.set(list.join(','), list);
   }
   return [...lists.values()];
+};
+
+/**
+ * THE GAP BETWEEN SIBLING SETS ON A PAGE, in px (#1750). A PLACEHOLDER: it is the spacing the owner used when
+ * laying out the master file by hand (left to right, top-aligned, 160 apart), and the issue records that the
+ * owner has not picked the final number. A page position is not a bindable field, so there is no variable to
+ * bind it to — the same reason `page-header.ts`'s `HEADER_GAP` is a literal.
+ */
+export const SET_GAP = 160;
+
+/** A top-level node's box on a page, as `placeNewSet` reads it. */
+export type PageBox = { type?: string; x: number; y: number; width: number; height: number };
+
+/** The boxes of a page's top-level nodes, VISIBLE OR NOT: a hidden node is still somewhere a set could be
+ *  dropped on top of, and showing it again would reveal the overlap. */
+const pageBoxes = (page: CompPageTarget): PageBox[] =>
+  ((page.children ?? []) as { type?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
+    type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0,
+  }));
+
+/**
+ * WHERE A NEW SET GOES ON A PAGE THAT ALREADY HAS CONTENT (#1750) — `null` on an empty page, which leaves the
+ * set where the combine put it (the origin), exactly as before.
+ *
+ * TOP-ALIGNED WITH THE SETS ALREADY THERE, then RIGHT OF EVERYTHING IN ITS ROW, `SET_GAP` clear. The row is
+ * the band the new set will occupy (`y` to `y + height`); anything overlapping that band vertically pushes it
+ * right. A node wholly above or below the band does not: the page header sits `HEADER_GAP` above the content
+ * and is often wider than one small set, and pushing a `checkbox-row` past a 1000px header would strand it
+ * far from the `checkbox-control` beside it. So the result never overlaps any node on the page, and the sets
+ * read left to right in the order they were built — which is the taxonomy's order (`file-taxonomy.ts`)
+ * whenever a family is built as one run (dependencies first) or in the order the page lists them.
+ *
+ * `y` is the top of the existing COMPONENT_SETs, or of all content when the page has no set yet.
+ *
+ * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
+ * "designer's placement wins" rule `page-header.ts` follows for the header.
+ */
+export const placeNewSet = (existing: readonly PageBox[], height: number): { x: number; y: number } | null => {
+  if (existing.length === 0) return null;
+  const sets = existing.filter((b) => b.type === 'COMPONENT_SET');
+  const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
+  const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
+  // An empty band happens only when every node there has zero height; then everything counts.
+  const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP;
+  return { x, y };
 };
 
 /**
@@ -2167,6 +2217,10 @@ const writeComponentSet = async (
       };
     }
   }
+  // #1750 — WHAT IS ALREADY ON THE PAGE, read BEFORE the build loop: every member it builds is appended to
+  // `dest` until the combine gathers it, and those must not count as content to place the set beside.
+  // Only when this run will CREATE the set; an existing set keeps its position.
+  const priorContent = !set && !opts.emitAsComponents ? pageBoxes(dest) : [];
   // THE EXISTING MEMBERS BY NAME — a Map rather than the Set this was, because the skip branch now needs
   // the NODE and not just the fact of it: name-matching is what #827 is about, and the stamp it compares
   // instead lives on the member. `c.name` can be undefined on the port, so the entries are filtered
@@ -2459,6 +2513,20 @@ const writeComponentSet = async (
   const boxMiss: string[] = [];
   if (colW.length && rowH.length && (Math.round(set.width ?? 0) < Math.round(wantW) || Math.round(set.height ?? 0) < Math.round(wantH)))
     boxMiss.push(`set -> BOX ${Math.round(set.width ?? 0)}x${Math.round(set.height ?? 0)} does not contain its ${members.length} members (${Math.round(wantW)}x${Math.round(wantH)} needed; appending does NOT grow the frame)`);
+  // #1750 — PLACE A NEW SET CLEAR OF THE PAGE'S CONTENT. The combine drops every new set at the origin, so the
+  // second set built onto `↳ Buttons` covered the first, and a designer opening the page saw only the last.
+  // AFTER the resize, because which nodes share the set's row depends on its height. A set's `x`/`y` moves
+  // the set and not its members (theirs are relative to it), so this touches nothing the layout pass wrote.
+  if (createdSet) {
+    const at = placeNewSet(priorContent, set.height ?? wantH);
+    if (at) {
+      const s = wr(set);
+      s.x = at.x;
+      s.y = at.y;
+      if (s.x !== at.x || s.y !== at.y)
+        boxMiss.push(`set -> POSITION set to ${at.x},${at.y} beside the page's other content, reads ${String(s.x)},${String(s.y)}`);
+    }
+  }
 
   /** #1574 — THE SET ITSELF, RE-RESOLVED FRESH FROM THE DESTINATION PAGE AT EACH USE.
    *

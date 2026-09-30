@@ -129,6 +129,31 @@ export const prebuildDependencies = async (
   return built;
 };
 
+/**
+ * RUN THE BUILDS, THEN LABEL EACH PAGE THEY LANDED ON — once per page, after ALL of them (#1750).
+ *
+ * The page header measures the content under it once, when it is first placed, and never widens afterwards (a
+ * header already on the page is the designer's). A dependency lands on the same page as the def that nests it
+ * (`checkbox-control` before `checkbox-row`), so labeling after each build measured the first set alone.
+ *
+ * `builds` reports each landing through `landed(key, page)`; the first landing per key is kept, in order.
+ * `label` runs for every kept page once `builds` settles — also when it throws, so the pages whose builds
+ * completed are still labeled, and the original error is what propagates. A build that throws never calls
+ * `landed`, so its page is not labeled. Here rather than in `main.ts` because `main.ts` cannot be imported by
+ * a test; `test-write-components.ts` drives this directly.
+ */
+export const labelAfterBuilds = async <P, T>(
+  builds: (landed: (key: string, page: P) => void) => Promise<T>,
+  label: (page: P) => Promise<void>,
+): Promise<T> => {
+  const pages = new Map<string, P>();
+  try {
+    return await builds((key, page) => { if (!pages.has(key)) pages.set(key, page); });
+  } finally {
+    for (const page of pages.values()) await label(page);
+  }
+};
+
 /** The summary clause naming what was built first — empty when nothing was. */
 export const alsoBuiltNote = (built: readonly BuiltDependency[]): string =>
   built.length
