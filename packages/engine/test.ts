@@ -18122,6 +18122,36 @@ arm: {
         await applyComponentPlan(probe, makeFigmaStub({ ...probeOpts, page: plugPage }) as any);
         ok(geometry(page) === geometry(whole.pg) && geometry(page) === geometry(plugPage),
           `#1798: the split probe grid lays out exactly as the unsplit paste and the plugin do — split ${JSON.parse(geometry(page))[0]}, unsplit ${JSON.parse(geometry(whole.pg))[0]}, plugin ${JSON.parse(geometry(plugPage))[0]}`);
+        // #1814 — A LATER CHUNK PASTED FIRST IS REFUSED, NOT COMBINED. Chunk 2 of the split grid onto an empty page:
+        // no set to append into, so the payload returns `set: null` with the one literal miss, and the page stays
+        // empty. Without the guard it would combine its own slice into a second, partial set.
+        const earlyPage: { children: Record<string, unknown>[] } = { children: [] };
+        const early = await runPayload(split[1].js, { ...probeOpts, page: earlyPage });
+        ok(early.set === null && early.added === 0 && earlyPage.children.length === 0
+          && JSON.stringify(early.misses) === JSON.stringify([`set -> button NOT FOUND on this page (chunk 2 of ${split.length} appends into the set chunk 1 creates — paste the chunks in order)`]),
+          `#1814 chunk 2 pasted before chunk 1 is refused with the literal miss and builds nothing on the page (set=${String(early.set)}, added=${early.added}, ${earlyPage.children.length} top-level; ${JSON.stringify(early.misses)})`);
+      }
+
+      // ---- #1814: THE PACKER RE-MEASURES WHAT IT SHIPS ----------------------------------------------------
+      // The textarea set packed at 124 budgets, 30,000 to 42,000 in 97-byte steps. At 14 of them the last chunk,
+      // which carries the properties, measures over the budget it was packed to, so a variant has to move. Judged
+      // on the SHIPPED payloads against the budget the test passed in: `js.length`, never the packer's `bytes`.
+      {
+        const taPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'textarea')!, { swapTarget: 'FPO-default-icon' });
+        const taNames = JSON.stringify(taPlans.map(planComponentName));
+        const over: string[] = [];
+        const lost: number[] = [];
+        let budgets = 0;
+        for (let b = 30_000; b <= 42_000; b += 97) {
+          budgets++;
+          const cs = planSetChunks(taPlans, b);
+          for (const c of cs) if (c.variants.length > 1 && c.js.length > b) over.push(`${b}: chunk ${c.index + 1} of ${cs.length}, ${c.variants.length} variants, ${c.js.length} B`);
+          if (JSON.stringify(cs.flatMap((c) => c.variants)) !== taNames) lost.push(b);
+        }
+        ok(budgets === 124 && taPlans.length === 24 && over.length === 0,
+          `#1814 at every one of 124 budgets, no shipped chunk of more than one variant is over the budget (${taPlans.length} variants; ${over.length} over${over.length ? `: ${over.slice(0, 3).join('; ')}` : ''})`);
+        ok(lost.length === 0,
+          `#1814 ...and every budget ships all 24 variants once, in plan order (${lost.length ? `not at ${lost.slice(0, 5).join(', ')}` : 'all 124'})`);
       }
 
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
