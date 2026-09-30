@@ -95,7 +95,7 @@
       "label": "Action palette",
       "control": "palette-ref",
       "default": "primary",
-      "description": "Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA."
+      "description": "Which palette drives interactive/action color. Defaults to primary; point at neutral for a restrained, monochrome look, or at an accent when the hero color is a poor CTA."
     },
     {
       "key": "linkPalette",

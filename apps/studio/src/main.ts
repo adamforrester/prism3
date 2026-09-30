@@ -2863,7 +2863,7 @@ const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?:
   if (o.label) mid.append(el('div', 'alabel', o.label));
   const ctl = hook(el('div', 'sf-ctlblock'), 'role-source'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
   if (o.pill) mid.append(tokenPill(o.pill));
-  if (o.desc) mid.append(el('p', 'adesc', o.desc));
+  if (o.desc) mid.append(hook(el('p', 'adesc', o.desc), 'role-desc'));
   if (o.warn) mid.append(el('p', 'fz-warn', o.warn));
   main.append(mid, o.example);
   row.append(main);
@@ -3258,22 +3258,25 @@ const iEnumSelect = (key: string): HTMLSelectElement => {
   return sel;
 };
 
-/** The Primary section's lead: the Action-palette choice (which palette drives primary actions). */
+/** The Primary section's lead: the Action-palette choice (which palette drives primary actions).
+ *  `neutral` is an offered target (#1811): the engine accepts any defined palette, and a monochrome
+ *  primary action is a supported brand shape (`packages/engine/examples/nb-redesign.design.md` sets it). The row's own
+ *  description promises it, so the select offers it. */
 const actionPaletteLead = (): HTMLElement => {
   const sel = selectEl('cap');
-  const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const palettes = ['primary', 'neutral', ...(brandState.brandColors ?? []).map((b) => b.name)];
   const cur = String(brandState.actionPalette ?? 'primary');
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
   sel.onchange = () => { setPath(brandState, 'actionPalette', sel.value); applyFull(); };
   const roles = iRoles();
-  return iRow({ lead: true, label: 'Action palette', srcLabel: 'Source', select: sel,
+  return hook(iRow({ lead: true, label: 'Action palette', srcLabel: 'Source', select: sel,
     desc: 'Which palette drives your primary actions — a brand color, or point it at your neutral for a restrained, monochrome look. The contrast floor is accessible either way.',
-    example: iExample(exBtn(roles['interactive.primary.fill.rest']?.hex ?? '#000000', roles['interactive.primary.on-fill']?.hex ?? '#ffffff')) });
+    example: iExample(exBtn(roles['interactive.primary.fill.rest']?.hex ?? '#000000', roles['interactive.primary.on-fill']?.hex ?? '#ffffff')) }), 'action-palette');
 };
 
 /** The Links section's lead: the link-palette choice (#1496). Which palette drives the link color,
- *  independently of the action palette. Unlike actionPalette, `neutral` is an offered target (a
- *  monochrome link is a common brand choice). An unset linkPalette FOLLOWS the action palette, so the
+ *  independently of the action palette. As with actionPalette (#1811), `neutral` is an offered target
+ *  (a monochrome link is a common brand choice). An unset linkPalette FOLLOWS the action palette, so the
  *  picker shows the resolved palette (`theme.linkPalette`); selecting one decouples links onto it. */
 const linkPaletteLead = (): HTMLElement => {
   const sel = selectEl('cap');

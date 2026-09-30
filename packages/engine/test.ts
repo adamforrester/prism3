@@ -7967,6 +7967,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   }).map((l) => l.key);
   ok(defDrift.length === 0, 'lever manifest: every lever default matches the schema default' + (defDrift.length ? ` — DRIFT: ${defDrift.join(', ')}` : ''));
 
+  // #1811 — the actionPalette lever's description names the neutral as a target, and the engine
+  // honors it. Both sides literal: the description text as shipped in the manifest, and the palette
+  // the ENGINE resolves the action role onto when run with `actionPalette: 'neutral'` (not read back
+  // off the manifest). The studio's Action palette select offering the same target is gated in
+  // `apps/studio/test-smoke.mjs` §8c.
+  const actionLever = leverManifest.find((l) => l.key === 'actionPalette');
+  ok(/\bpoint at neutral\b/.test(String(actionLever?.description ?? '')),
+    `#1811: the actionPalette lever description names neutral as a target ("${actionLever?.description}")`);
+  const neutralAction = brandTheme({ id: 'na-1811', primary: { l: 0.55, c: 0.18, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, actionPalette: 'neutral' });
+  ok(neutralAction.roleToPalette.action === 'neutral',
+    `#1811: the engine resolves actionPalette 'neutral' onto the neutral ramp (got '${neutralAction.roleToPalette.action}')`);
+
   // Every schema-root-required field (minus host-supplied identity, e.g. `id`) must be
   // covered by a required lever — as an exact key, or (for object fields like `neutral`)
   // by a required lever nested under it. Catches a NEW required field or a dropped one.
