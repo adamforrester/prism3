@@ -687,7 +687,7 @@ table.roles { border-collapse: collapse; width: 100%; font-size: var(--p3-fs-12)
       <label data-a="ind"><input type="radio" name="pane" value="settings" checked>Settings</label>
       <label data-a="ind"><input type="radio" name="pane" value="preview">Preview</label>
     </fieldset>
-    <button type="button" class="btn ghost wide" id="act-btn" aria-expanded="true" aria-controls="dbody">
+    <button type="button" class="btn ghost wide" id="act-btn" data-a="text" aria-expanded="true" aria-controls="dbody">
       <i data-icon="pulse"></i>Activity<span class="dot" data-a="fill"></span><span class="sr">, 1 failed, 1 running</span></button>
     <button type="button" class="btn wide" data-a="edge">Export</button>
     <span class="popwrap wide"><button type="button" class="btn trail" id="figma-btn" aria-haspopup="true" aria-expanded="false" aria-controls="figma-menu" data-a="edge">Figma<i data-icon="chev"></i></button>
@@ -773,7 +773,7 @@ table.roles { border-collapse: collapse; width: 100%; font-size: var(--p3-fs-12)
             <button type="button" class="info" aria-label="About radius scale" aria-expanded="false" aria-controls="tip-rad" data-a="glyph"><i data-icon="info"></i></button>
             <output class="readout tabnum" id="rad-out" for="f-rad">1.00 × · Default</output></div>
           <div class="slider">
-            <input type="range" id="f-rad" min="0" max="2" step="0.25" value="1" aria-valuetext="1.00 × · Default" style="--pct:50%">
+            <input type="range" id="f-rad" data-a="pseudo" min="0" max="2" step="0.25" value="1" aria-valuetext="1.00 × · Default" style="--pct:50%">
             <div class="ticks" aria-hidden="true" id="rad-ticks">
               <span style="--at:0%" data-v="0">Square</span><span style="--at:25%" data-v="0.5">Subtle</span>
               <span style="--at:50%" data-v="1" class="on">Default</span><span style="--at:75%" data-v="1.5">Soft</span>
@@ -782,9 +782,9 @@ table.roles { border-collapse: collapse; width: 100%; font-size: var(--p3-fs-12)
           </div>
           <p class="tip" id="tip-rad" hidden>Multiplies every radius step. 0 is square; 2 doubles each corner.</p>
           <details class="pm">
-            <summary><i data-icon="chevr"></i>Per mode · <b>1 override</b></summary>
+            <summary data-a="text"><i data-icon="chevr"></i>Per mode · <b>1 override</b></summary>
             <div class="pmb">
-              <div class="pmrow"><span>Dark: <b>0.75 × · Subtle</b></span><button type="button" class="lnk">Reset to base</button></div>
+              <div class="pmrow"><span>Dark: <b>0.75 × · Subtle</b></span><button type="button" class="lnk" data-a="text">Reset to base</button></div>
               <div class="pmrow muted">Light is the base: 1.00 ×.</div>
             </div>
           </details>
@@ -822,7 +822,7 @@ table.roles { border-collapse: collapse; width: 100%; font-size: var(--p3-fs-12)
 
   <!-- Activity drawer -->
   <section class="panel drawer" aria-label="Activity">
-    <button type="button" class="dbar" id="dbar" aria-expanded="true" aria-controls="dbody">
+    <button type="button" class="dbar" id="dbar" data-a="text" aria-expanded="true" aria-controls="dbody">
       <span class="vdot" data-a="fill"></span><span>All 884 pairs at or above floor</span>
       <span class="muted tabnum">12:04</span><span class="grow"></span>
       <span class="muted d-count">1 running · 1 failed</span><i class="chev" data-icon="chevup"></i>
@@ -836,7 +836,7 @@ table.roles { border-collapse: collapse; width: 100%; font-size: var(--p3-fs-12)
       <div class="err" role="group" aria-labelledby="err-h">
         <div class="err-h" data-a="glyph"><i data-icon="error"></i><b id="err-h">3 text styles skipped</b><span class="muted tabnum">Apply Theme · 12:03</span></div>
         <p>Playfair Display SemiBold is not installed in this Figma file, so title.md, title.lg and title.xl were not created.</p>
-        <div class="acts"><button type="button" class="btn" data-a="edge">Use Playfair Display Regular</button><button type="button" class="lnk">Show the 3 styles</button></div>
+        <div class="acts"><button type="button" class="btn" data-a="edge">Use Playfair Display Regular</button><button type="button" class="lnk" data-a="text">Show the 3 styles</button></div>
       </div>
     </div>
   </section>

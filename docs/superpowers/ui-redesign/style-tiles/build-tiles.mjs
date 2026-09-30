@@ -256,10 +256,27 @@ for (const m of src.matchAll(/var\(--p3-([a-z0-9-]+)/g)) if (!defined.has(m[1]))
 for (const [n] of [...VARS, ...CHROME_FONTS, ...HARNESS]) if (!src.includes(`var(--p3-${n})`)) errors.push(`mapped but unused variable --p3-${n}`);
 
 // ── contrast ───────────────────────────────────────────────────────────────────────────────────
-const hexRgba = (h) => { const x = h.replace('#', ''); const n = (i) => parseInt(x.slice(i, i + 2), 16) / 255; return [n(0), n(2), n(4), x.length === 8 ? n(6) : 1]; };
+// A pair is measured as drawn: the foreground composited over an OPAQUE background. Anything that
+// is not a 6- or 8-digit hex, or a translucent background (there is nothing defined beneath it to
+// composite over), is refused rather than scored — a NaN compares false against every floor, so an
+// unparsed value would otherwise pass silently.
+const hexRgba = (h) => {
+  const x = typeof h === 'string' && /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(h) ? h.slice(1) : null;
+  if (!x) return null;
+  const n = (i) => parseInt(x.slice(i, i + 2), 16) / 255;
+  return [n(0), n(2), n(4), x.length === 8 ? n(6) : 1];
+};
 const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-const ratio = (a, b) => { const [x, y] = [lum(hexRgba(a)), lum(hexRgba(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const ratio = (a, b) => {
+  const fg = hexRgba(a), bg = hexRgba(b);
+  if (!fg || !bg) return { refused: `not a 6- or 8-digit hex (${!fg ? a : b})` };
+  if (bg[3] < 1) return { refused: `translucent background (${b})` };
+  const drawn = fg.slice(0, 3).map((c, i) => c * fg[3] + bg[i] * (1 - fg[3]));
+  const [x, y] = [lum(drawn), lum(bg)].sort((p, q) => q - p);
+  const r = (x + 0.05) / (y + 0.05);
+  return Number.isFinite(r) ? r : { refused: `ratio is not a number (${a} on ${b})` };
+};
 const hexOf = (mode, v) => resolve(MODES[mode], P(VARS.find((x) => x[0] === v)[1])).value;
 
 // Declared chrome pairs: [fg var, bg var, floor, what]. The rendered audit covers every element;
@@ -291,6 +308,7 @@ const rows = PAIRS.map(([fg, bg, floor, what]) => {
   const r = { what, fg, bg, floor };
   for (const m of ['light', 'dark']) {
     r[m] = ratio(hexOf(m, fg), hexOf(m, bg));
+    if (typeof r[m] !== 'number') { errors.push(`pair ${fg} on ${bg} (${what}) in ${m}: refused, ${r[m].refused}`); r[m] = NaN; continue; }
     if (r[m] < floor) errors.push(`pair ${fg} on ${bg} (${what}) is ${r[m].toFixed(2)}:1 in ${m}, floor ${floor}:1`);
   }
   return r;
@@ -311,6 +329,7 @@ const roleRows = [
   ['text.secondary', 'background.secondary', 'sample-text-2', 'sample-bg-2', 4.5],
 ].map(([fg, bg, fv, bv, floor]) => {
   const r = roleRatio(`color.${fg}`, `color.${bg}`);
+  if (typeof r !== 'number') { errors.push(`role ${fg} on ${bg}: refused, ${r.refused}`); return ''; }
   return `<tr><th scope="row"><code>${fg}</code></th><td><code>${bg}</code></td>`
     + `<td><span class="aa" style="color:var(--p3-${fv});background:var(--p3-${bv})" data-content>Aa</span></td>`
     + `<td><span class="badge">${r >= floor ? '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2"/></svg>' : ''}`
@@ -327,6 +346,7 @@ const html = src
   .replace('/*@GENERATED-TOKENS@*/', generated)
   .replace('<!--@RAMP@-->', rampHtml)
   .replaceAll('<!--@ANCHOR@-->', anchorStep)
+  .replace('<!--@PRIMARY_HEX@-->', resolve(MODES.light, P(`core.palette.primary.${anchorStep}`)).value.toUpperCase())
   .replace('<!--@ROLE-ROWS@-->', roleRows);
 writeFileSync(join(HERE, 'style-tiles.html'), html);
 

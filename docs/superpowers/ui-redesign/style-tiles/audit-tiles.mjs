@@ -12,6 +12,15 @@
 //       glyph — its icon color against the background behind it: 3:1;
 //       ind   — when it holds the checked input, the selected indicator (edge or fill, the larger)
 //               against the background outside it: 3:1;
+//       text  — declared as identified by its text alone (a ghost button, a link, a summary): no
+//               boundary to measure, and its text is already in the 4.5:1 check above;
+//       pseudo — its boundary is drawn on pseudo-elements the page cannot read (the range input):
+//               covered by the build's declared pairs instead;
+//   - REPRESENTED, not counted (docs/34): every visible focusable control outside the harness must
+//     carry a marker (on itself, an ancestor within two levels, a child, or a sibling it sits beside),
+//     so deleting markers fails by name instead of shrinking the list to nothing; and each column
+//     must reach a literal minimum per width (MIN_CHECKS), so an empty column cannot report
+//     "min Infinity" as a pass;
 //   - the focus ring of every stop in the Tab order, against the background outside the ring: 3:1;
 //   - the hit target of every focusable control (a visually hidden radio or switch is measured by
 //     the label or wrapper it covers): 24 × 24;
@@ -108,10 +117,24 @@ async function measure() {
         if (cs.boxShadow !== 'none' || cs.textShadow !== 'none') out.fails.push({ what: name(el) + (pseudo || ''), kind: 'shadow (T5)', r: 0, floor: 0 });
       }
     }
+    // Every focusable control is represented by a marker, or it fails by name.
+    const KINDS = new Set(['edge', 'fill', 'glyph', 'ind', 'text', 'pseudo']);
+    const marked = (el) => {
+      for (let n = el, d = 0; n && d < 3; n = n.parentElement, d++) if (n.dataset?.a) return true;
+      if (el.querySelector('[data-a]')) return true;
+      return !!el.parentElement?.querySelector(':scope > [data-a]');
+    };
+    for (const el of document.querySelectorAll('button, input, select, summary, a[href], [tabindex]')) {
+      if (!vis(el) || el.closest('.harness, [data-content]')) continue;
+      if (el.matches('input[type=radio], input[type=checkbox]') && getComputedStyle(el).opacity === '0' && !vis(el.parentElement)) continue;
+      if (!marked(el)) out.fails.push({ what: name(el) + ` <${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}>`, kind: 'unmarked control', r: 0, floor: 0 });
+    }
     for (const el of document.querySelectorAll('[data-a]')) {
       if (!vis(el)) continue;
       const outside = bgOf(el.parentElement);
       for (const k of el.dataset.a.split(' ')) {
+        if (!KINDS.has(k)) { out.fails.push({ what: name(el), kind: `unknown marker "${k}"`, r: 0, floor: 0 }); continue; }
+        if (k === 'text' || k === 'pseudo') continue;
         let r = null;
         if (k === 'edge') { const e = edgeColor(el); if (!e) { out.fails.push({ what: name(el), kind: 'edge (none drawn)', r: 0, floor: 3 }); continue; } r = ratio(over(e.c, outside), outside); }
         if (k === 'fill') r = ratio(bgOf(el), outside);
@@ -199,6 +222,13 @@ const fontsSeen = new Set();
         }
         failed += all.length - m.fails.length - ringFails.length;
       }
+      // Literal floors, set below what the page draws today (1280: 101 text, 26 checks, 23 rings;
+      // 380: 45, 20, 19). They are not derived from the page: a column that falls under its floor
+      // has lost coverage, and fails by name rather than passing on a shorter list.
+      const MIN_CHECKS = w === 'wide' ? { text: 80, checks: 20, rings: 18, hits: 20 } : { text: 35, checks: 15, rings: 15, hits: 15 };
+      const got = { text: m.text.length, checks: m.checks.length, rings: rings.filter((r) => !r.pseudo).length, hits: m.hits.length };
+      for (const k of Object.keys(MIN_CHECKS)) if (got[k] < MIN_CHECKS[k]) all.push({ what: `${k} column`, kind: `too few checks (${got[k]} < ${MIN_CHECKS[k]})`, r: 0, floor: 0 });
+      failed += all.filter((x) => x.kind.startsWith('too few')).length;
       results.push({ theme, w, text: m.text.length, textMin: min(m.text), checks: m.checks.length, checkMin: min(m.checks),
         rings: rings.length, ringMin: min(rings.filter((r) => !r.pseudo && !r.none)), hits: m.hits.length,
         hitMin: m.hits.reduce((a, b) => Math.min(a, b.w, b.h), Infinity), fails: all });
@@ -245,7 +275,7 @@ console.log(`Reduced motion: spinner ${spinNormal} normally, ${spinReduced} redu
 console.log(`Fonts drawn (CDP): ${[...fontsSeen].filter((f, i, a) => a.indexOf(f) === i).join('; ') || 'none'}.`);
 console.log(`Network requests: ${requests.length}${requests.length ? ' — ' + requests.slice(0, 3).join(', ') : ''}.`);
 if (requests.length) { console.log('  ✗ the page made network requests'); failed++; }
-const detail = (x) => (/^(font|shadow)/.test(x.kind) ? '' : x.kind.startsWith('weight') ? ` ${x.r} > ${x.floor}` : ` ${x.r.toFixed(2)} < ${x.floor}`);
+const detail = (x) => (/^(font|shadow|unmarked|unknown|too few)/.test(x.kind) ? '' : x.kind.startsWith('weight') ? ` ${x.r} > ${x.floor}` : ` ${x.r.toFixed(2)} < ${x.floor}`);
 for (const r of results) for (const x of r.fails) console.log(`  ✗ ${r.theme} ${r.w}: ${x.kind} ${x.what}${detail(x)}`);
 if (sysDark === sysLight) { console.log('  ✗ System theme did not follow the color scheme'); failed++; }
 if (spinNormal === spinReduced) { console.log('  ✗ Reduced motion did not change the spinner'); failed++; }
