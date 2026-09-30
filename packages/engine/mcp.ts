@@ -325,7 +325,7 @@ export const toolDefs = (brandSchema: unknown) => [
       type: 'object',
       properties: {
         brief: { type: 'string', description: 'A design.md document. MUST open with a --- YAML frontmatter fence on the first line.' },
-        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Extra sections to return; same meaning as theme_brand.' },
+        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Sections to return, replacing the default ["notes"]; same meaning as theme_brand.' },
       },
       required: ['brief'],
       additionalProperties: false,
@@ -594,7 +594,9 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // exactly the case the spec says to report with isError so the client can feed it back.
     try { parsed = parseDesignMd(args.brief); }
     catch (e) { return text({ error: `could not parse the design.md brief: ${(e as Error).message}` }, true); }
-    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : []);
+    // Same default as theme_brand (#1868): the description promises the same payload, and an empty
+    // default silently dropped the decisions log from every call that named no sections.
+    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS]);
     if (result.isError) return result;
     // Report what the brief RESOLVED to. A brief is lossy by nature, and an agent cannot correct a
     // misreading it never sees — this is the field that makes the round trip debuggable.
