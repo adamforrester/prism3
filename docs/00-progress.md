@@ -7,6 +7,35 @@
 
 ---
 
+## (2026-09-30) — Plugin build: a new component set lands beside the page's content, not on top of it (#1750)
+
+**STATUS: PR open from `lane/set-placement`, labeled DO NOT MERGE.** Branched from `lane/axes-changed-new-set` (#1808, not yet merged) because both touch `write-components.ts`; merge #1808 first. Plugin only (`write-components.ts`, `main.ts`, two test files). **ENGINE 0.215.0 → 0.216.0.** CONTRACT stands at 14.0.0.
+
+**The defect.** `combineAsVariants` drops every new set at the origin, and nothing moved it, so on every page holding a family (Buttons, Icon button, Checkbox, Radio, Switch) each set covered the one before. The page header was placed after the first build and measured only that set.
+
+**The rule (`placeNewSet`).** Only a set this run CREATES is placed; a rebuild never moves a set (the designer's placement wins, as for the header). On an empty page the set stays at the origin. Otherwise: `y` is the top of the existing COMPONENT_SETs (or of all content, if there is no set yet); `x` is `SET_GAP` right of every top-level node that overlaps the new set's row (`y` to `y + height`). Nodes wholly above or below the row, like the header 80px above the content, do not push it. Measuring the whole page instead would push a narrow `checkbox-row` past a 1000px header, far from its `checkbox-control`. Hidden nodes count, because showing one again would reveal the overlap. Placed after the resize, because the row depends on the set's height. The position is read back.
+
+**`SET_GAP = 160` is a placeholder**, the spacing the owner used laying out the master file by hand. The issue says the owner has not picked the final number. Held.
+
+**Taxonomy order.** Sets read left to right in build order, which is the taxonomy's order when a family is built as one run (dependencies first, `build-deps.ts`) or page by page in the order `file-taxonomy.ts` lists. A set built out of order goes to the right of its siblings; nothing already placed is reshuffled, since that would move a designer's layout.
+
+**Header.** `main.ts` now places headers once the run's builds are done (in a `finally`, and only for pages whose build returned), so a header first placed over `checkbox-control` + `checkbox-row` spans both. This ordering lives in `main.ts`, which no test can import; `test-page-header.ts` 2b pins the geometry it produces, and the ordering itself is verified only by typecheck and a live run.
+
+**Tests (literal positions).** `test-write-components.ts`: the first set stays at 0,0 (its 780×120 box pinned as the input); `button-destructive` after `button` lands at 940,0; with a 5000px frame above and a note at 900..1300 in the row, it lands at 1460,0, and no two of the page's four nodes overlap; on a page holding only a frame at 100..600, y 40, it lands at 760,40; a rebuild leaves a hand-moved set at 5000,7000 and its sibling at 940,0. `test-page-header.ts` 2b: sets at 0 and 360 get a header at x 0, width 1000 (the floor), and `placeNewSet` puts a third set at 720,0, not past the header.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
+
+| Mutation | Fails |
+|---|---|
+| P1 always place at 0,0 | 5 by name, e.g. `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got button-destructive at 0,0)` and `#1750 no two of the page's 4 top-level nodes overlap (button × button-destructive)` |
+| P2 the row band ignored (everything on the page pushes) | `#1750 a node in the set's row pushes it right … (got 5160,0)`; `2b: a third set goes beside the row at 720,0 … (got 1160,0)` |
+| P3 the page read as empty (no snapshot) | the same 5 as P1 |
+| P4 a rebuild also places the existing set | `#1750 a rebuild leaves a set the designer moved where they put it … (button at 1916,0, …)` |
+
+**Not done here.** The `emitAsComponents` path (`icon`) still lays its components out from the origin on its own page, and the MCP paste payload still combines at the origin. The payload is filed as #1809 with #1780's twin.
+
+---
+
 ## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
 
 **STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.213.0 → 0.215.0** (a write-path behavior change; 0.214.0 is held by open PR #1804). CONTRACT stands at 14.0.0.

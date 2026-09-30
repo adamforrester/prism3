@@ -581,6 +581,16 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       try { headers.push(await ensurePageHeader(figma, page, copy)); }
       catch (e) { headers.push({ page: page.name, status: 'failed', message: (e as Error)?.message ?? String(e) }); }
     };
+    // #1750 — HEADERS ARE PLACED ONCE THE RUN'S BUILDS ARE DONE, not after each one. A dependency lands on the
+    // same page as the def that nests it (`checkbox-control` before `checkbox-row`), and a header placed after
+    // the first build measured that one set and never widened again (a header already there is the designer's).
+    // Deferred, it measures every set this run put on the page. One entry per page, keyed by page name (how
+    // `resolveComponentPage` finds a page); the first def wins, since every def on a page reads the same copy.
+    // Recorded only after a build RETURNS, so a page whose build threw gets no header, as before.
+    const headerPages = new Map<string, { page: HeaderPage; defId: string }>();
+    const placeHeaders = async (): Promise<void> => {
+      for (const { page, defId } of headerPages.values()) await placeHeader(page, defId);
+    };
     const buildOne = async (target: ComponentDef, reports: ComponentProgress[]) => {
       const page = await resolveComponentPage(figma, target.id);
       let targetPage: CompPageTarget | undefined;
@@ -624,7 +634,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         },
       });
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
-      if (page) await placeHeader(page as unknown as PageNode, target.id);
+      if (page && !headerPages.has(page.name)) headerPages.set(page.name, { page: page as unknown as PageNode, defId: target.id });
       return built;
     };
     // NESTED COMPONENTS FIRST (#1633) — every def this one nests or swaps to that the file does not hold yet
@@ -632,13 +642,20 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // rebuilding it would orphan its placed instances, so it keeps its STALE reading exactly as before. A
     // dependency that fails stops here, so the parent is never built against a missing nest.
     await figma.loadAllPagesAsync();
-    const alsoBuilt = await prebuildDependencies(def, {
-      defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, []),
-    });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
-    const r = await buildOne(def, reports);
+    let alsoBuilt: Awaited<ReturnType<typeof prebuildDependencies>>;
+    let r: Awaited<ReturnType<typeof buildOne>>;
+    try {
+      alsoBuilt = await prebuildDependencies(def, {
+        defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, []),
+      });
+      r = await buildOne(def, reports);
+    } finally {
+      // Also on a throw, so the pages whose builds completed get the header they got before #1750.
+      await placeHeaders();
+    }
     // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
     // moment the executor returns — the moment the pill says done and the file was previously frozen for
     // 1m10s — and the console telemetry below still carries its number, so #684's coupling is intact. What

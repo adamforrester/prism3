@@ -4562,4 +4562,62 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
 }
 
+// ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------
+// Live: every set built onto `↳ Buttons` landed at (0,0) and covered the one before it. Every position below
+// is a literal. The one number the shim decides — the `button` set's measured box — is pinned first as a
+// literal guard, so the arithmetic after it is stated rather than re-derived from what the run wrote.
+{
+  const destructive = figmaAnatomySet(byId('button-destructive')!, { swapTarget: SWAP });
+  const at = (n: Node): string => `${String(n.x)},${String(n.y)}`;
+  const box = (n: Node): string => `${String(n.width)}x${String(n.height)}`;
+
+  // (a) THE FIRST SET ON AN EMPTY PAGE stays where the combine puts it, as before.
+  const pg: Page = { children: [] };
+  await run(grid, { ...full(), page: pg });
+  const first = pg.children[0];
+  ok(at(first) === '0,0' && box(first) === '780x120',
+    `#1750 the first set on an empty page stays at 0,0; its box is pinned here as the input to the arms below (${at(first)}, ${box(first)})`);
+
+  // (b) TWO DEFS ON ONE PAGE, in the taxonomy's order (`↳ Buttons`: button, then button-destructive): the
+  // second lands 160 right of the first (780 + 160 = 940), top-aligned.
+  const rDestructive = await run(destructive, { ...fullFor(destructive), page: pg });
+  const second = pg.children[1];
+  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '940,0',
+    `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
+
+  // (c) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
+  // (bottom edge at -80, where `page-header.ts` puts it) and a designer's note in the row at 900..1300.
+  // Expected x: the note's right edge, 1300, + 160 = 1460 — not the header's 5000 + 160.
+  const pg2: Page = { children: [] };
+  await run(grid, { ...full(), page: pg2 });
+  pg2.children.push({ type: 'FRAME', name: 'header-like', x: 0, y: -400, width: 5000, height: 320 } as Node);
+  pg2.children.push({ type: 'FRAME', name: 'note', x: 900, y: 60, width: 400, height: 100 } as Node);
+  await run(destructive, { ...fullFor(destructive), page: pg2 });
+  const placed = pg2.children.find((n) => n.name === 'button-destructive')!;
+  ok(at(placed) === '1460,0',
+    `#1750 a node in the set's row pushes it right (1300 + 160), a node wholly above it does not (got ${at(placed)})`);
+  // NO TWO TOP-LEVEL NODES OVERLAP — the property a designer sees, checked over every pair on the page.
+  const rect = (n: Node) => ({ x: Number(n.x), y: Number(n.y), r: Number(n.x) + Number(n.width), b: Number(n.y) + Number(n.height) });
+  const overlaps: string[] = [];
+  pg2.children.forEach((a, i) => pg2.children.slice(i + 1).forEach((b) => {
+    const p = rect(a), q = rect(b);
+    if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} × ${String(b.name)}`);
+  }));
+  ok(pg2.children.length === 4 && overlaps.length === 0,
+    `#1750 no two of the page's ${pg2.children.length} top-level nodes overlap (${overlaps.join(', ') || 'none'})`);
+
+  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 760,40.
+  const pg3: Page = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 } as Node] };
+  await run(grid, { ...full(), page: pg3 });
+  const onContent = pg3.children.find((n) => n.name === 'button')!;
+  ok(at(onContent) === '760,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(onContent)})`);
+
+  // (e) A REBUILD NEVER MOVES A SET: the designer's placement wins, as it does for the page header.
+  first.x = 5000;
+  first.y = 7000;
+  const rAgain = await run(grid, { ...full(), page: pg });
+  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
+    `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
+}
+
 if (failed) process.exit(1);
