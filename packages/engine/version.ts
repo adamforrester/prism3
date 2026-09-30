@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.213.0 — #1720: `resolvePreview` no longer resolves a type binding the brand does not emit to
+ * `sans-serif / 0 / 0px`. It read `node?.$value ?? {}` and every accessor after it fell through to its own
+ * default. The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and two legal
+ * inputs drop them: declining `strong` in display/title (#1632), and `typography.displayCeiling: 'sm' | 'md'`,
+ * which drops `display.lg` (a lever the studio exposes). Such a
+ * binding is now absent from `ResolvedPreview.type` (typed `Partial`, so a reader has to guard) and named in
+ * the new `unresolvedType` list. Reported rather than thrown: the studio calls `resolvePreview` on every edit
+ * and would otherwise refuse a valid brand over a value it never paints. `visualize.ts` throws by name on a
+ * non-empty list. A read-model behavior change → ENGINE bump; no emitted value moves, so `out/**` and
+ * `schema/*` move only their version stamp. CONTRACT STANDS (no token name moves).
+ *
  * 0.212.0 — the dismissible Tag's label inset (owner-decided 2026-09-29 from live QA on a real Figma file;
  * decision record `docs/28` §5.4.4). On a dismissible tag the label-and-check row (`labelCheck`) takes a FIXED
  * 4px leading inset (`space.050`, every density), and the content row's icon→label gap drops to match (6/8/12
@@ -4273,7 +4284,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.212.0';
+export const ENGINE_VERSION = '0.213.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

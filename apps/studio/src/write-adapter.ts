@@ -59,11 +59,18 @@ export const cssVarAdapter = (scope: HTMLElement): WriteAdapter => ({
       const eff = model.dimOverrides[ref]?.[mode] ?? px;
       s.setProperty(cssVarName(ref), `${eff}px`);
     }
-    // Typography — mode-invariant; three atoms per composite.
+    // Typography — mode-invariant; three atoms per composite. A binding the brand does not emit is
+    // absent from `model.type` and named in `model.unresolvedType` (#1720). Its atoms are REMOVED, not
+    // just skipped: an earlier apply may have set them for a brand that did emit the style, and a
+    // property left on the scope would keep painting that brand's value.
     for (const [ref, t] of Object.entries(model.type)) {
+      if (!t) continue;
       s.setProperty(typeAtomName(ref, 'family'), t.fontFamilyStack);
       s.setProperty(typeAtomName(ref, 'weight'), String(t.fontWeight));
       s.setProperty(typeAtomName(ref, 'size'), `${t.fontSizePx}px`);
+    }
+    for (const ref of model.unresolvedType) {
+      for (const atom of ['family', 'weight', 'size'] as const) s.removeProperty(typeAtomName(ref, atom));
     }
     // Shadows — the per-mode CSS box-shadow (dark = reduced). Sparse like colours: a
     // mode without a resolved shadow is left unset (the UI's `var(--…, fallback)` covers it).
