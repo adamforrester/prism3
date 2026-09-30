@@ -606,8 +606,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(before.customize !== null && before.customize.open === false, '#259 the per-type options fold away under a closed "Customize"');
   ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
     '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
-  ok(['Dimension display', 'Font variable display', 'Pixels', 'REM', 'Paragraph spacing', 'Text decoration', 'Title cell'].every((w) => (before.customize?.text ?? '').includes(w)),
-    '#259 phase 2: Customize carries Dimension display, Font variable display, Pixels, REM, Paragraph spacing and Text decoration');
+  ok(['Dimension display', 'Font variable display', 'REM', 'Paragraph spacing', 'Text decoration', 'Title cell'].every((w) => (before.customize?.text ?? '').includes(w)),
+    '#259 phase 2: Customize carries Dimension display, Font variable display, REM, Paragraph spacing and Text decoration');
+  // Owner decision 20: the Pixels toggle is removed, since the base value always prints.
+  ok(!(before.customize?.text ?? '').includes('Pixels'), '#259 decision 20: Customize has no Pixels field');
 
   await page.locator('details.contracts summary', { hasText: 'Customize' }).first().click();
   await page.locator('.knob', { hasText: 'Color value' }).locator('select').selectOption('hsl');
