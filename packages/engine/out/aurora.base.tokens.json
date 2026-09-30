@@ -14841,8 +14841,21 @@
       },
       "2xl": {
         "$type": "dimension",
+        "$value": "{ads.core.dimension.24}",
+        "$description": "radius 2xl — 24px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "ads.core.dimension.24",
+            "px": 24,
+            "radiusScale": 2
+          }
+        }
+      },
+      "3xl": {
+        "$type": "dimension",
         "$value": "{ads.core.dimension.32}",
-        "$description": "radius 2xl — 32px",
+        "$description": "radius 3xl — 32px",
         "$extensions": {
           "prism3": {
             "role": "semantic",

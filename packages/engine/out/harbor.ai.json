@@ -7540,8 +7540,14 @@
       "resolves_to": "{hds.core.dimension.8}"
     },
     "radius.2xl": {
-      "$description": "radius 2xl — 16px",
+      "$description": "radius 2xl — 12px",
       "meaning": "Corner-radius role — 2xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{hds.core.dimension.12}"
+    },
+    "radius.3xl": {
+      "$description": "radius 3xl — 16px",
+      "meaning": "Corner-radius role — 3xl",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{hds.core.dimension.16}"
     },
@@ -10104,6 +10110,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.lg.dot",
+        "radius.2xl",
         "space.150"
       ]
     },
@@ -10118,7 +10125,7 @@
         "grid.sm.gutter",
         "grid.sm.margin",
         "icon.size.xs",
-        "radius.2xl",
+        "radius.3xl",
         "space.200"
       ]
     },

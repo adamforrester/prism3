@@ -73,6 +73,19 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
+      "description": "12px corner radius",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/12"
+      }
+    },
+    {
+      "name": "nbds/radius/3xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
       "description": "16px corner radius",
       "value": 16,
       "alias": {

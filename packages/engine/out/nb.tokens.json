@@ -20399,8 +20399,21 @@
       },
       "2xl": {
         "$type": "dimension",
+        "$value": "{nbds.core.dimension.12}",
+        "$description": "radius 2xl — 12px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "nbds.core.dimension.12",
+            "px": 12,
+            "radiusScale": 1
+          }
+        }
+      },
+      "3xl": {
+        "$type": "dimension",
         "$value": "{nbds.core.dimension.16}",
-        "$description": "radius 2xl — 16px",
+        "$description": "radius 3xl — 16px",
         "$extensions": {
           "prism3": {
             "role": "semantic",

@@ -7579,8 +7579,14 @@
       "resolves_to": "{ads.core.dimension.16}"
     },
     "radius.2xl": {
-      "$description": "radius 2xl — 32px",
+      "$description": "radius 2xl — 24px",
       "meaning": "Corner-radius role — 2xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{ads.core.dimension.24}"
+    },
+    "radius.3xl": {
+      "$description": "radius 3xl — 32px",
+      "meaning": "Corner-radius role — 3xl",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{ads.core.dimension.32}"
     },
@@ -10361,6 +10367,7 @@
         "grid.md.margin",
         "grid.sm.margin",
         "icon.size.md",
+        "radius.2xl",
         "space.300"
       ]
     },
@@ -10393,7 +10400,7 @@
         "grid.lg.margin",
         "grid.xl.gutter",
         "icon.size.lg",
-        "radius.2xl",
+        "radius.3xl",
         "space.400"
       ]
     },

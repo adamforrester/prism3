@@ -162,10 +162,11 @@ const RAMPS: Ramp[] = [
     ladder: (b) => b.theme.dims.radius.map((s) => s.name),
     // The container rungs (#1852). Deferred, not declined: rendering them is a studio edit, and it needs a
     // value source as well as a list entry, since `rp.dims` holds only preview-bound refs (#1177). Tracked
-    // in #1881, which also removes these two entries.
+    // in #1881, which also removes these three entries.
     omits: {
       xl: 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
       '2xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
+      '3xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
     },
   },
   {

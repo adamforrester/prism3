@@ -529,6 +529,7 @@
     "opacity.80": "number",
     "opacity.90": "number",
     "radius.2xl": "dimension",
+    "radius.3xl": "dimension",
     "radius.capsule": "dimension",
     "radius.lg": "dimension",
     "radius.md": "dimension",
