@@ -76,6 +76,14 @@
  *   M. DISMISSIBLE: the label row's left inset is the select tag's, and its right inset is 0, so the label
  *      runs straight to the × slot (`padding.inlineEnd` → `size.{size}.{type}.padding-end`). That 0 is not in
  *      `densitySpacing`: it stays 0 at every density.
+ *   N. DISMISSIBLE, FROM LIVE QA ON A REAL FIGMA FILE (owner, 2026-09-29): the label-and-check row (`labelCheck`)
+ *      takes a FIXED 4px leading inset (`space.050`, every density; `size.{size}.{type}.label-inset`, 0 on a
+ *      select tag), and the content row's icon→label gap drops to match, 6/8/12 → 2/4/4. The eye reads the two
+ *      together: icon→label is 6/8/8 at small/medium/large, and with no leading icon the label sits padding-x
+ *      + 4 from the left edge (12/16/20). A dismissible tag is 4px wider. The def states the VISIBLE distance
+ *      (`size.{size}.dismissible.visible-gap`, density-following, and the one the 4px gap floor holds) and the
+ *      layer gap is derived from it, visible − 4, never below 0 (`visibleGaps`, `visibleGapStep`): a 2px layer
+ *      gap is intended. A select tag does not change.
  *
  * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint:
  * `interactive.primary.text.rest` measures 3.02:1 (aurora/light) against 4.5:1. The neutral ink clears 10.19:1.
@@ -135,8 +143,13 @@ export const tag: ComponentDef = {
   paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}'],
 
   // The spacing this spec states at comfortable (owner decision K), which density moves one step along the
-  // space ladder. The dismissible trailing inset is 0 at every density (decision M), so it is not listed.
-  densitySpacing: ['size.{size}.padding-x', 'size.{size}.gap', 'size.{size}.check-gap', 'size.{size}.select.padding-end'],
+  // space ladder. The dismissible trailing inset is 0 at every density (decision M), and the label row's
+  // leading inset is fixed at every density (decision N), so neither is listed.
+  densitySpacing: ['size.{size}.padding-x', 'size.{size}.select.gap', 'size.{size}.dismissible.visible-gap', 'size.{size}.check-gap', 'size.{size}.select.padding-end'],
+  // The dismissible icon→label (owner, 2026-09-29): the eye reads the content row's gap PLUS the label row's
+  // fixed 4px leading inset. The visible distance follows density and takes the 4px gap floor; the layer gap
+  // is what is left once the inset is taken off, never below 0 and never floored itself.
+  visibleGaps: [{ gap: 'size.{size}.dismissible.gap', visible: 'size.{size}.dismissible.visible-gap', inset: 'size.{size}.dismissible.label-inset' }],
 
   tokens: {
     // Geometry. `radius.round` (the pill) keeps the tag off Button's `radius.md` rectangle, which an outlined
@@ -150,6 +163,9 @@ export const tag: ComponentDef = {
     'selected.border-width': 'border-width.thick',
     // NO BLOCK PADDING, on purpose: the height is FIXED (`size.{size}.height`) and the row centers its cells.
     'pad-y': 'space.0',
+    // The label row's trailing inset, 0 on both types: the check (select) and the × slot (dismissible) sit
+    // against the label row's own end.
+    'label-row.padding-end': 'space.0',
     // The group's spacing between tags (owner decision 5, 2026-09-27): at least 8px, bound to a spacing token.
     // No part of THIS def reads it — the group is code-only until the owner decides whether it is a def — so
     // it lives here as the one binding the group will read, and `test.ts` holds it at `space.100` and ≥ 8px.
@@ -167,26 +183,38 @@ export const tag: ComponentDef = {
     // `ICON_OFFSET_DEFS`) and is held for the owner here rather than taken.
     'size.small.height': 'size.sm.height',
     'size.small.padding-x': 'space.100',
-    'size.small.gap': 'space.075',
+    'size.small.select.gap': 'space.075',
+    'size.small.dismissible.visible-gap': 'space.075',
+    'size.small.dismissible.gap': 'space.025',
     'size.small.check-gap': 'space.050',
     'size.small.select.padding-end': 'space.100',
     'size.small.dismissible.padding-end': 'space.0',
+    'size.small.select.label-inset': 'space.0',
+    'size.small.dismissible.label-inset': 'space.050',
     'size.small.icon': 'icon.size.sm',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.height': 'size.md.height',
     'size.medium.padding-x': 'space.150',
-    'size.medium.gap': 'space.100',
+    'size.medium.select.gap': 'space.100',
+    'size.medium.dismissible.visible-gap': 'space.100',
+    'size.medium.dismissible.gap': 'space.050',
     'size.medium.check-gap': 'space.075',
     'size.medium.select.padding-end': 'space.150',
     'size.medium.dismissible.padding-end': 'space.0',
+    'size.medium.select.label-inset': 'space.0',
+    'size.medium.dismissible.label-inset': 'space.050',
     'size.medium.icon': 'icon.size.md',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.height': 'size.lg.height',
     'size.large.padding-x': 'space.200',
-    'size.large.gap': 'space.150',
+    'size.large.select.gap': 'space.150',
+    'size.large.dismissible.visible-gap': 'space.100',
+    'size.large.dismissible.gap': 'space.050',
     'size.large.check-gap': 'space.100',
     'size.large.select.padding-end': 'space.200',
     'size.large.dismissible.padding-end': 'space.0',
+    'size.large.select.label-inset': 'space.0',
+    'size.large.dismissible.label-inset': 'space.050',
     'size.large.icon': 'icon.size.lg',
     'size.large.type': 'type.label.lg.emphasis',
 
@@ -260,18 +288,22 @@ export const tag: ComponentDef = {
         children: ['leadingVisual', 'labelCheck'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         padding: { block: 'pad-y', inlineLabel: 'size.{size}.padding-x', inlineEnd: 'size.{size}.{type}.padding-end' },
-        gap: 'size.{size}.gap',
-        note: 'The row inside the pill: the optional leading icon, then the label and its check mark. It is inset by the tag\'s padding on both sides, except before the × slot of a dismissible tag, where the label runs straight to the slot.',
+        // Per type (decision N): the select gap is the icon→label distance; the dismissible gap is that
+        // distance less the label row's 4px leading inset (`visibleGaps`).
+        gap: 'size.{size}.{type}.gap',
+        note: 'The row inside the pill: the optional leading icon, then the label and its check mark. It is inset by the tag\'s padding on both sides, except before the × slot of a dismissible tag, where the label runs straight to the slot. On a dismissible tag its gap is 4px less than the icon-to-label distance, since the label row adds a 4px inset of its own.',
       },
       labelCheck: {
         kind: 'box',
         role: 'presentation',
         // The second gap (decision K): label→check is tighter than icon→label, so the two sit in their own row
-        // with their own gap, the owner mockup's nesting. With no check shown it holds the label alone.
+        // with their own gap, the owner mockup's nesting. With no check shown it holds the label alone. Its
+        // leading inset is 0 on a select tag and a fixed 4px on a dismissible one (decision N).
         children: ['label', 'check'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        padding: { block: 'pad-y', inlineLabel: 'size.{size}.{type}.label-inset', inlineEnd: 'label-row.padding-end' },
         gap: 'size.{size}.check-gap',
-        note: 'The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label.',
+        note: 'The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label. On a dismissible tag it is inset 4px at its leading edge, at every density, so the label sits 4px further in from the icon or the tag\'s edge.',
       },
       leadingVisual: {
         kind: 'slot',
@@ -342,7 +374,7 @@ export const tag: ComponentDef = {
       'RTL — logical properties (padding-inline, gap) mirror the row, so the leading icon moves to the right edge and the check mark and the × slot to the left. No physical directions, and no script.',
       'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
       'Minimum width — min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild.',
-      'Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Every value is a space token, and a compact or spacious brand moves each one step along the space scale.',
+      'Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag\'s icon-to-label gap and a dismissible tag\'s icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.',
       'The hit-target expansion — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
     ],
   },
@@ -455,6 +487,7 @@ export const tag: ComponentDef = {
       'Owner, 2026-09-29 (from a mockup in a real Figma file): the spacing is this spec\'s own `space.*` steps (padding 8/12/16, icon to label 6/8/12, label to check 4/6/8 at small/medium/large), and the label and check sit in their own row so their gap can differ from the icon\'s. It had bound Button\'s shared `size.*.padding-x` and `size.*.gap`, which the spacing model removed.',
       'Owner, 2026-09-29: the minimum width is 1.5 times the tag\'s height, rounded to the nearest 8px (decision L), replacing "never narrower than it is tall" (decision D). Figma receives it as a number per size, written from the brand\'s heights, since a variable cannot hold the product.',
       'Owner, 2026-09-29: a dismissible tag\'s label row has no trailing inset, so the label runs straight to the × slot. It had kept the full inset there, held as a visual call.',
+      'Owner, 2026-09-29 (live QA on a real Figma file): a dismissible tag\'s label row takes a fixed 4px leading inset, and the icon-to-label gap drops from 6/8/12 to 2/4/4 to match, so the icon-to-label distance reads 6/8/8 and a tag with no icon insets its label by the padding plus 4px. A dismissible tag is 4px wider (a 24px label at medium: 80 to 84). The 4px gap floor holds the distance the eye reads, not the 2px layer gap. A select tag is unchanged.',
       'Owner, 2026-09-29 ("respect none"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.',
       'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (30px at medium on comfortable density), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
       'Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.',
