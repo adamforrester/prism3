@@ -1,6 +1,6 @@
 # Prism3 classic UI (archive)
 
-This branch keeps the Studio and Figma plugin UI as it was before the 2026 UI redesign changed anything on screen. It holds built files only. The source is at tag `ui-classic` (commit `5479b4d50ede6d7ebc62231fb9b037a0bf94692e`, engine 0.217.0), which is the last commit before redesign slice F4, the first visible change.
+This branch keeps the Studio and Figma plugin UI as it was before the 2026 UI redesign changed anything on screen. It holds built files only. The source is on branch `archive/ui-classic-src` (commit `5479b4d50ede6d7ebc62231fb9b037a0bf94692e`, engine 0.217.0), which is the last commit before redesign slice F4, the first visible change.
 
 ## Run the classic plugin in Figma
 
@@ -18,4 +18,4 @@ Serve the `studio/` folder, for example `npx esbuild --servedir=studio`, and ope
 
 ## Rebuild from source
 
-`git worktree add ../prism3-classic-src ui-classic`, then `npm ci` and `npm run -w @prism3/plugin build`.
+`git worktree add ../prism3-classic-src archive/ui-classic-src`, then `npm ci` and `npm run -w @prism3/plugin build`.
