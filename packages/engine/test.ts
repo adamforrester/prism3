@@ -37,7 +37,7 @@ import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
-import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
+import { ENGINE_VERSION, CONTRACT_VERSION, classify, contractVersionDrift, satisfiesBump, DEPRECATIONS } from './version';
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, type RenameMap } from './rename-map';
 import {
   MATERIALIZATION_RENAMES, MATERIALIZATION_DELETIONS, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
@@ -72,7 +72,9 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -20513,6 +20515,77 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'contract: the COMMITTED baseline still matches the engine (run token-contract.ts --accept after reviewing the diff)');
   ok(committed.contractVersion === CONTRACT_VERSION,
     `contract: the baseline's stamped version tracks CONTRACT_VERSION (${committed.contractVersion} vs ${CONTRACT_VERSION})`);
+
+  // ---- #1768: the gate compares the NUMBERS, not only the paths ----
+  // Every expectation below is a literal. The pure arm first: which way the constant moved against the
+  // baseline's recorded version, at a given surface level.
+  ok(contractVersionDrift('13.2.0', '13.1.0', 'none') === 'behind',
+    '#1768 contract: a CONTRACT_VERSION below the baseline is BEHIND, even with no surface change');
+  ok(contractVersionDrift('14.0.0', '13.9.9', 'major') === 'behind',
+    '#1768 contract: a CONTRACT_VERSION below the baseline is BEHIND even when the surface moved — no diff excuses a backwards number');
+  ok(contractVersionDrift('9.10.0', '9.9.0', 'none') === 'behind',
+    '#1768 contract: versions compare per component, not as strings (9.9.0 is below 9.10.0, though it sorts above it)');
+  ok(contractVersionDrift('14.0.0', '14.0.0', 'none') === undefined,
+    '#1768 contract: an equal version over an unchanged surface is not drift');
+  // Every component decides on its own (review of #1803): the literals above all carry patch .0 or let
+  // the major decide, so a comparison that ignored the patch or the minor passed every one of them.
+  ok(contractVersionDrift('14.0.1', '14.0.0', 'none') === 'behind',
+    '#1768 contract: a PATCH-only step down (14.0.1 → 14.0.0) is BEHIND');
+  ok(contractVersionDrift('14.0.0', '14.0.1', 'none') === 'ahead',
+    '#1768 contract: a PATCH-only step up (14.0.0 → 14.0.1) over an unchanged surface is AHEAD');
+  ok(contractVersionDrift('14.1.0', '14.0.5', 'none') === 'behind',
+    '#1768 contract: a MINOR-only step down (14.1.0 → 14.0.5) is BEHIND, whatever the patch says');
+  ok(contractVersionDrift('14.0.5', '14.1.0', 'none') === 'ahead',
+    '#1768 contract: a MINOR-only step up (14.0.5 → 14.1.0) over an unchanged surface is AHEAD, whatever the patch says');
+  const malformed = ['14.0.0-rc.1', 'v14.0.0', '14.0'].map((v) => {
+    try { contractVersionDrift(v, '14.0.0', 'none'); return 'no throw'; } catch (e) { return (e as Error).message; }
+  });
+  ok(malformed.join('|') === 'not a semver: 14.0.0-rc.1|not a semver: v14.0.0|not a semver: 14.0',
+    `#1768 contract: a baseline version that is not MAJOR.MINOR.PATCH is refused, never ordered (got ${malformed.join(' | ')})`);
+  ok(contractVersionDrift('14.0.0', '14.1.0', 'none') === 'ahead',
+    '#1768 contract: a raised CONTRACT_VERSION over an unchanged surface is AHEAD — a bump with nothing to record');
+  ok(contractVersionDrift('14.0.0', '15.0.0', 'minor') === undefined && contractVersionDrift('14.0.0', '16.0.0', 'major') === undefined,
+    '#1768 contract: a bump LARGER than the diff requires is not drift (docs/30: "at least the increment")');
+
+  // And the CALL SITE, because a pure arm nobody calls passes every assertion above (docs/34, "mutate the
+  // call site"). The CLI is run over an injected baseline: the LIVE surface, so no path moves and the
+  // recorded version is the only variable, with that version set to a literal chosen here. The first run
+  // is the control — at CONTRACT_VERSION it must pass, or a failure below proves nothing about the number.
+  {
+    const dir = mkdtempSync(join(tmpdir(), 'prism3-contract-'));
+    const fixture = join(dir, 'token-contract.json');
+    const runCli = (mode: '--check' | '--accept', recorded: string) => {
+      const bytes = JSON.stringify({ ...live, contractVersion: recorded }, null, 2) + '\n';
+      writeFileSync(fixture, bytes);
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'token-contract.ts'), mode], {
+        encoding: 'utf8', env: { ...process.env, PRISM3_CONTRACT_BASELINE: fixture },
+      });
+      return { status: r.status, out: `${r.stdout}${r.stderr}`, untouched: readFileSync(fixture, 'utf8') === bytes };
+    };
+    try {
+      const control = runCli('--check', CONTRACT_VERSION);
+      // The path the run says it READ, not merely that the variable was set: `--accept` below writes to that
+      // path, so it runs only once the control proves the fixture is what the CLI reads. A broken injection
+      // must fail these assertions, never write the committed baseline.
+      const injectionHeld = control.out.includes(`reading ${fixture}`);
+      ok(control.status === 0 && /token contract unchanged/.test(control.out) && injectionHeld,
+        `#1768 contract CLI: the control (injected baseline at CONTRACT_VERSION) passes, reading the injected fixture (exit ${control.status}, fixture read ${injectionHeld})`);
+      const check = runCli('--check', '999.0.0');
+      ok(check.status === 1 && /CONTRACT_VERSION moved BACKWARDS/.test(check.out) && check.out.includes("below the baseline's 999.0.0"),
+        `#1768 contract CLI: --check fails BY NAME when CONTRACT_VERSION is below the baseline (exit ${check.status}; ${check.out.split('\n').find((l) => l.includes('✗') || l.includes('✓')) ?? 'no verdict line'})`);
+      const bad = runCli('--check', '14.0.0-rc.1');
+      ok(bad.status === 1 && bad.out.includes('✗ the versions cannot be compared: not a semver: 14.0.0-rc.1') && !/^\s+at /m.test(bad.out),
+        `#1768 contract CLI: a malformed baseline version fails BY NAME, not as a stack trace (exit ${bad.status})`);
+      const ahead = runCli('--check', '0.0.1');
+      ok(ahead.status === 1 && /CONTRACT_VERSION is AHEAD of the baseline with nothing to record/.test(ahead.out),
+        `#1768 contract CLI: --check fails BY NAME when CONTRACT_VERSION is above the baseline and no path moved (exit ${ahead.status})`);
+      const accept = injectionHeld ? runCli('--accept', '999.0.0') : undefined;
+      ok(!!accept && accept.status === 1 && /CONTRACT_VERSION moved BACKWARDS/.test(accept.out) && accept.untouched,
+        `#1768 contract CLI: --accept refuses BY NAME when CONTRACT_VERSION is below the baseline, and leaves the baseline unwritten (${accept ? `exit ${accept.status}, untouched ${accept.untouched}` : 'not run: the injection did not hold'})`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 
   // ---- #1639: every type category keeps a weight; label keeps emphasis (owner-decided 2026-09-26) ----
   // The refusals are asserted per category, from a list authored HERE (docs/34: not read off
