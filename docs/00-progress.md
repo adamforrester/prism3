@@ -37,6 +37,37 @@
 
 ---
 
+## (2026-09-30) — Paste chunk headroom: gate the indivisible unit, let the probe grid split (#1798)
+
+**STATUS: PR open from `lane/paste-payload-headroom`, labeled DO NOT MERGE.** Tests, one code comment and this entry. **No version bump:** no payload byte moved and no artifact changed (`regen --check` clean), so there is no behavior change for `ENGINE_VERSION` to report.
+
+**The problem.** `test.ts` asserted that Button's #536 probe grid (3 sizes × 4 slot combos) packs into ONE chunk under `SET_CHUNK_BYTES` (42,000). The grid measured 41,827 B, so 173 B was the headroom for every change to the chunk shell. The #1781 nest fix, the #1751 fill-sizing fix and both 2026-09-27 component-set border entries each had to compact code or accept a margin of a few bytes to fit. #1657 and any new nest or swap diagnosis would have had to do the same.
+
+**What was measured first.**
+- **Where 42,000 comes from.** It is a convention, not a measured limit. It is the largest payload with a proven live paste behind it (42,040 B, #513/#528), rounded down under the ~45 KB `figma_execute` ceiling from #487 §6. Nothing in the repo record measures that ceiling as a rejection point. The other transport, `use_figma`, declares `maxLength: 50000` on its `code` parameter (read off the tool schema today). `mcp-paste.ts` packs to `SCRIPT_CEILING` (45,000, which is 90% of that) minus its ~4.9 KB step bundle, so the engine payload's budget on that path is about 39,950, and **the probe grid already pastes as two scripts there** (39,912 + 28,799).
+- **What dominates.** The probe grid's 41,827 B split into 14,550 of variant data (the `PLANS` line), ~900 of header constants, and ~26.4 KB of shell. By section, the shell is: builder and `claimDefaults` 12.4 KB, properties/wiring/read-back 6.9 KB, resolvers and shared helpers 3.5 KB (`resolveNestMember` alone is 763), find-or-create and layout 2.6 KB, and the return 1.0 KB. Every chunk ships all of it.
+- **The limit that can actually break.** A bigger shell makes `planSetChunks` pack fewer variants per chunk. That costs pastes, not correctness. The unrecoverable case is one variant plus the shell overflowing a chunk. `pack` then ships an over-budget one-variant chunk, and the transport rejects it after earlier chunks have landed. Measured over the registry with `planSetChunks(plans, 1)`, the worst unit is textarea at 32,090 B (76.4% of 42,000). Buttons come next at ~31.1 KB.
+
+**The fix (the issue's option 2).** The single-chunk assertion became `#536 item 6: the probe grid packs inside the chunk budget with every member exactly once, in plan order`. Two new gates were added:
+- `#1798: the indivisible paste unit … stays within 90% of the 42,000 B chunk budget` measures that unit for every def. The ceiling is the literal 37,800, never read from `SET_CHUNK_BYTES` (docs/34). That leaves 5,710 B of shell growth before the gate fails by name, and 4,200 B more before the budget. A sibling arm fails if the probe stops isolating one variant per chunk, because the measurement would then be meaningless.
+- `#1798: the #536 probe grid, split across chunks` forces the grid into four chunks and runs them in sequence on the payload harness. It asserts clean runs, one set of 12 members with each chunk adding its own slice, the derived axes `size:3 × leading icon:2 × trailing icon:2`, properties declared on the last chunk only with all 12 wired, and geometry identical to the unsplit paste and to the plugin executor. The 36-variant sequence above it cuts only `appearance`/`state` siblings. This one cuts across slot cohorts.
+
+**Ruled out.** A one-time **preamble chunk** for the shared helpers cannot work: every `use_figma`/`figma_execute` call is a fresh plugin run, so a later chunk could reach stored code only by evaluating text read back out of the file. Nothing Prism3 pastes evaluates text today (`apps/plugin/test-agent-link.ts` asserts it of the agent snippets), and doing so would run whatever code anyone with edit access had left in the file. Whether the host would even allow it was not tested. **Raising the budget** is not evidenced for `figma_execute`. On `use_figma` it is already 90% of the declared limit.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
+
+| Mutation | Fails by name |
+|---|---|
+| M1 `resolveNestMember` +6,000 B (an oversized helper) | `#1798: the indivisible paste unit …` (textarea 38,103 B > 37,800); also the pinned `anatomy/icon-button: the set packs into 14 chunks` |
+| M2 control: `resolveNestMember` +200 B | nothing. The probe grid now packs 11 + 1, where `main`'s single-payload gate would have failed |
+| M3 packer drops the variant at each chunk boundary | `#1798: the split probe grid builds ONE set holding all 12 members` (9), `… only the last chunk … wires all 12`, `… lays out exactly as the unsplit paste and the plugin do`, `#1798: the unit probe isolates one variant per chunk` |
+| M4 `PROPS_ALL` on every chunk | `#1798: every chunk of the split probe grid runs CLEAN` (ORPHAN), `#1798: only the last chunk of the split declares properties` |
+| M5 packer ignores the caller's budget | `#1798: the forced split cuts … into at least three chunks`, `#1798: the unit probe isolates …`, `#1798: the indivisible paste unit …` |
+
+**Trap for whoever re-verifies.** `anatomy/icon-button: the set packs into 14 chunks` is still a deliberate pin on chunk count. A large shell change moves it, and its own comment says to re-pin it rather than delete it. The earlier entries that report a few bytes of headroom (#1781, #1751, and the two 2026-09-27 border entries) were measured against the old single-chunk gate.
+
+---
+
 ## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
 
 **STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.214.0 → 0.215.0** (a write-path behavior change). CONTRACT stands at 14.0.0.

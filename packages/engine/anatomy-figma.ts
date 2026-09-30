@@ -3320,8 +3320,10 @@ for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS varia
 /**
  * THE RESERVED-LINES WRITE (textarea's `rows`), spliced into `PAYLOAD_BUILD`'s child loop ONLY for a
  * payload whose plans carry `minLines` — so every other payload is byte-identical. That is a budget
- * decision, measured: Button's #536 probe grid packed to 41,983 of `SET_CHUNK_BYTES`' 42,000, and these
- * lines unconditional pushed it into a second chunk. Applied by the PARENT after the append, because a
+ * decision: shell bytes ship in every chunk of every set, so an unconditional line costs chunks everywhere.
+ * (When it was made, Button's #536 probe grid packed to 41,983 of `SET_CHUNK_BYTES`' 42,000 and had to stay
+ * one chunk. Since #1798 the grid may split, and the gate that fails is the indivisible unit, one variant
+ * plus the shell, held to 90% of the budget in `test.ts`.) Applied by the PARENT after the append, because a
  * minimum size belongs to an auto-layout CHILD. The count is the plan's; the line height is the host's,
  * read off the node its style was just applied to — `PIXELS` as is, `PERCENT` of the font size. `AUTO`
  * has no number to multiply, so it is reported rather than guessed. Frozen at paste, like the ring inset.
@@ -3337,8 +3339,9 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
 /**
  * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
- * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines pushed Button's #536
- * probe grid into a second chunk. TWO splices, because the width the end pin is measured off must be FINAL:
+ * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines would ship in every
+ * chunk of every set (the #536 probe grid's one-chunk rule, when this was written; see `SET_CHUNK_BYTES` for
+ * the #1798 rule that replaced it). TWO splices, because the width the end pin is measured off must be FINAL:
  * the reserved sides (`paddingPx`) are written before the children (the `layoutMode` branch); each pinned
  * child leaves the flow the moment it is appended (`PIN_LIFT_SLOT`, in the child loop), so it never counts
  * in the hug; and each pin is placed LAST (`PIN_SLOT`, after the ring's pass, whose own lift is the other
@@ -3363,8 +3366,8 @@ const hasPin = (n: FigmaNodePlan): boolean => n.pin !== undefined || n.children.
 /**
  * THE CORNER PIN (textarea's resize grip), spliced after the flow pass ONLY for a payload whose plans carry
  * `cornerInset` — the reserved-lines slot's budget reason, unchanged: an unconditional addition to
- * `PAYLOAD_BUILD` pushes Button's probe grid into a second chunk. After the flow pass because the corner is
- * measured on the parent's FINAL size. The inset is the variable's VALUE (`x`/`y` take no binding), the glyph
+ * `PAYLOAD_BUILD` ships in every chunk of every set and eats the indivisible-unit headroom (#1798). After
+ * the flow pass because the corner is measured on the parent's FINAL size. The inset is the variable's VALUE (`x`/`y` take no binding), the glyph
  * keeps its own artboard, and `MAX`/`MAX` keeps it in the corner when the instance is resized. Written through
  * a variable so the statement is not byte-identical to the ring's lift, which a test mutates by `replace`.
  * Lockstep with the plugin executor (`write-components.ts`).
@@ -3386,9 +3389,9 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
  * THE ROOT'S BUILD WIDTH (#1757, `placementWidth`), spliced into the \`layoutMode\` branch ONLY for a payload
- * whose plans carry one — the `MIN_LINES_SLOT` budget decision again, since Button's #536 probe grid sits
- * within bytes of `SET_CHUNK_BYTES`. The resize comes BEFORE the five layout writes: Figma switches a resized
- * axis to FIXED, so the modes the plan states are written after it and stand. Read back, like every write
+ * whose plans carry one — the `MIN_LINES_SLOT` budget decision again: shell bytes ship in every chunk and
+ * count against the indivisible-unit headroom (#1798). The resize comes BEFORE the five layout writes:
+ * Figma switches a resized axis to FIXED, so the modes the plan states are written after it and stand. Read back, like every write
  * here. Lockstep with the plugin executor (`write-components.ts`).
  */
 const PLACEMENT_SLOT = '__PLACEMENT__';
@@ -3406,8 +3409,9 @@ const PAYLOAD_MAX_WIDTH = `
 const hasMaxWidth = (n: FigmaNodePlan): boolean => n.maxWidth !== undefined || n.children.some(hasMaxWidth);
 /**
  * THE GRADIENT FILL (#1318, the veil's directional washes), spliced ONLY into a payload whose plans carry a
- * `gradientFill` — the `MIN_LINES_SLOT` budget decision once more, and more pressing: the #536 probe grid has
- * single-digit bytes of margin, so an unconditional line here would push Button into a second chunk. TWO
+ * `gradientFill` — the `MIN_LINES_SLOT` budget decision once more: an unconditional line here would ship in
+ * every chunk of every set. (Written when the #536 probe grid had single-digit bytes of margin under a
+ * one-chunk rule; #1798 replaced that rule with the indivisible-unit headroom and a tested split.) TWO
  * splices. The write sits beside the solid fill: each stop is bound through `createVariableAlias` onto the
  * stop itself (`setBoundVariableForPaint` takes only a solid), and a stop whose variable the file lacks is
  * reported and leaves the node CLEAR rather than half a gradient — #1387's rule for an unresolvable fill.
@@ -3757,8 +3761,9 @@ ${GRADIENT_SLOT}
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
     //
     // And a filling nest's own FIXED mode beside it (#1751): without it a stretched instance hugs — see the
-    // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because the
-    // #536 probe grid sits within bytes of its single-chunk budget, and a guard on a line of its own costs 25.
+    // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because a
+    // guard on a line of its own costs 25 bytes in every chunk's shell. (Chosen when the #536 probe grid had to
+    // stay one chunk; #1798 replaced that rule with the indivisible-unit headroom and a tested split.)
     if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;Object.assign(kid,c.instanceSizing);
 ${MIN_LINES_SLOT}${MAX_WIDTH_SLOT}
 ${PIN_LIFT_SLOT}
@@ -4656,6 +4661,19 @@ return {set:set.name,id:set.id,chunk:CHUNK+1,of:TOTAL,added:fresh.length,variant
  * 42,000 rather than 45,000 because 42,040 is the largest payload with a *proven* live paste behind it,
  * and the remaining ~3KB is the margin for what the byte count cannot see (transport framing, and the
  * one variant whose label is longer than any measured here).
+ *
+ * WHAT THE BUDGET BOUNDS, AND WHAT IT DOES NOT (#1798). It bounds one CALL, so the number that can break
+ * a paste is the INDIVISIBLE UNIT: one variant plus the shell every chunk carries. A shell that grows
+ * costs chunks, not correctness. `test.ts` gates that unit by name at 37,800 (90% of this budget) across
+ * the registry, and runs the #536 probe grid split across chunks to prove a split builds what one chunk
+ * does. Measured at #1798: the shell was ~27.8KB of the probe grid's 41,827, and the worst unit was
+ * textarea's 32,090 (76.4%). The other transport is `use_figma`, whose `code` parameter declares
+ * `maxLength: 50000` (read off the tool schema, 2026-09-30). `apps/plugin/mcp-paste.ts` packs to its own
+ * `SCRIPT_CEILING` (45,000) minus the step bundle, not to this constant. The budget stays at 42,000: the
+ * `figma_execute` ceiling it protects was never measured as a rejection point, so nothing here proves it
+ * looser. A one-time preamble chunk for the shared helpers was also ruled out: every call is a fresh
+ * plugin run, so a later chunk could only reach code an earlier one stored by evaluating text read back
+ * out of the file.
  */
 export const SET_CHUNK_BYTES = 42_000;
 
