@@ -2546,6 +2546,64 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
 }
 
 // =============================================================================================
+// 8c. The action palette picker offers what its description promises (#1811)
+// =============================================================================================
+// The Action palette row's description tells the designer they can "point it at your neutral", and the
+// engine accepts `actionPalette: 'neutral'` (it validates against every defined palette). The select
+// used to offer only primary + brandColors, so the copy promised an option the control did not have.
+// EXPECTED is literal, never read off the page: the description must name the neutral, the select must
+// offer `primary` then `neutral` first, and choosing neutral must re-render the primary action on a
+// different fill with the engine raising nothing. A description rewritten to drop the neutral, or a
+// select that drops it again, fails here by name.
+console.log(`\nThe action palette picker (#1811)\n${'='.repeat(78)}`);
+{
+  const brand = BRANDS[0];
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Interactive');
+
+  // By the row's LABEL, exactly: `hasText` is a case-insensitive substring, and the Link palette row's
+  // description ("follows your action palette") would match it too.
+  const lead = page.locator('.arow-lead').filter({ has: page.locator('.alabel', { hasText: /^Action palette$/ }) });
+  ok((await lead.count()) === 1, `${brand}: the Primary section carries exactly one Action palette lead control`);
+  const sel = lead.locator('.sf-ctlblock select');
+  const options = await sel.evaluate((s) => [...s.options].map((o) => o.value));
+  ok(options[0] === 'primary' && options[1] === 'neutral',
+    `#1811 ${brand}: the Action palette picker offers 'primary' then 'neutral' first (${options.join(', ')})`);
+  const desc = (await lead.locator('.adesc').textContent())?.trim() ?? '';
+  ok(desc.includes('point it at your neutral'),
+    `#1811 ${brand}: the Action palette description names the neutral as a target ("${desc}")`);
+  ok(options.includes('neutral') === desc.includes('neutral'),
+    `#1811 ${brand}: the Action palette picker and its description agree on 'neutral' (offered: ${options.includes('neutral')}, described: ${desc.includes('neutral')})`);
+
+  // Drive → neutral: the engine accepts it, so the example's primary action repaints and no error surfaces.
+  // Guarded, so a select that stops offering neutral fails the arms above by name instead of aborting the
+  // suite on a 30s `selectOption` timeout.
+  const fill = () => lead.locator('.ibtn').evaluate((b) => b.style.getPropertyValue('--ibtn-bg'));
+  const before = await fill();
+  let after = before;
+  if (options.includes('neutral')) {
+    await sel.selectOption('neutral');
+    await page.waitForFunction((b) => {
+      const row = [...document.querySelectorAll('.arow-lead')].find((r) => r.querySelector('.alabel')?.textContent === 'Action palette');
+      const v = row?.querySelector('.ibtn')?.style.getPropertyValue('--ibtn-bg');
+      return !!v && v !== b;
+    }, before);
+    after = await fill();
+    ok(after !== before, `#1811 ${brand}: choosing a neutral action palette repaints the primary action (${before} → ${after})`);
+    const errShown = await page.evaluate(() => {
+      const err = document.querySelector('.errbar-global');
+      return !!err && getComputedStyle(err).display !== 'none';
+    });
+    ok(!errShown, `#1811 ${brand}: the engine accepts a neutral action palette (no error bar)`);
+  }
+
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: driving the Action palette lever raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  console.log(`  ${brand}: action palette offers ${options.join(', ')}; neutral repaints ${before} → ${after}.`);
+  await ctx.close();
+}
+
+// =============================================================================================
 // N. Per-breakpoint grid readout + editable column overrides (#1532)
 // =============================================================================================
 // WHAT THIS GATES. The Layout page surfaces the RESOLVED per-breakpoint columns (a readout) and lets

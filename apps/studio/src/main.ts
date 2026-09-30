@@ -3253,10 +3253,13 @@ const iEnumSelect = (key: string): HTMLSelectElement => {
   return sel;
 };
 
-/** The Primary section's lead: the Action-palette choice (which palette drives primary actions). */
+/** The Primary section's lead: the Action-palette choice (which palette drives primary actions).
+ *  `neutral` is an offered target (#1811): the engine accepts any defined palette, and a monochrome
+ *  primary action is a supported brand shape (`examples/nb-redesign.design.md` sets it). The row's own
+ *  description promises it, so the select offers it. */
 const actionPaletteLead = (): HTMLElement => {
   const sel = selectEl('cap');
-  const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const palettes = ['primary', 'neutral', ...(brandState.brandColors ?? []).map((b) => b.name)];
   const cur = String(brandState.actionPalette ?? 'primary');
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
   sel.onchange = () => { setPath(brandState, 'actionPalette', sel.value); applyFull(); };
@@ -3267,8 +3270,8 @@ const actionPaletteLead = (): HTMLElement => {
 };
 
 /** The Links section's lead: the link-palette choice (#1496). Which palette drives the link color,
- *  independently of the action palette. Unlike actionPalette, `neutral` is an offered target (a
- *  monochrome link is a common brand choice). An unset linkPalette FOLLOWS the action palette, so the
+ *  independently of the action palette. As with actionPalette (#1811), `neutral` is an offered target
+ *  (a monochrome link is a common brand choice). An unset linkPalette FOLLOWS the action palette, so the
  *  picker shows the resolved palette (`theme.linkPalette`); selecting one decouples links onto it. */
 const linkPaletteLead = (): HTMLElement => {
   const sel = selectEl('cap');
