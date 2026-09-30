@@ -359,7 +359,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // INK IS KEYED TWICE, per ground (#784), and until #784 the second form was spelled
     // `disabled.on-fill` — a slot segment the projector never dispatches, so it was bound, gated, and
     // reached at no coordinate while every disabled appearance painted page ink. On `filled` that put
-    // `disabled.text` on `disabled.fill` at 2.14:1 (wendys) / 2.55:1 (harbor), against the 3.04-3.08:1
+    // `disabled.text` on `disabled.fill` at 2.14:1 / 2.55:1 in two corpus brands, against the 3.04-3.08:1
     // contract `disabled.on-fill` already held. The `.on-fill` suffix now QUALIFIES the slot it paints
     // rather than replacing it, so `label`/`icon` stay words `paintOf` asks for and the projector picks
     // the form by whether the appearance actually has a disabled fill beneath the ink.
@@ -429,7 +429,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         // LAYOUT prop in ComponentDef, a precedent propagating across ~40 components. Deferred
         // until a real surface needs it, not settled by preference.
         //
-        // New Balance was that surface (#1667), and the answer is a BRAND lever, not a prop: a brand's
+        // The reference brand was that surface (#1667), and the answer is a BRAND lever, not a prop: a brand's
         // buttons all pin their icons or none do. `buttonIcons: edges` ("Locked to edges") is applied by
         // `applyButtonLayout` before projection — this root keeps hugging above its floor, the icons go out
         // of flow pinned to its edges (`PartDef.pin`), and each icon's side reserves inset + icon + gap as
