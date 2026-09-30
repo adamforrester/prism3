@@ -1,0 +1,20 @@
+{
+  "name": "Prism3 (classic)",
+  "id": "prism3-theming-plugin-classic",
+  "api": "1.0.0",
+  "editorType": [
+    "figma"
+  ],
+  "main": "dist/main.js",
+  "ui": "dist/ui.html",
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ],
+    "reasoning": "The Prism3 engine is bundled into the plugin; theming runs fully offline with no runtime network calls.",
+    "devAllowedDomains": [
+      "ws://localhost:17331"
+    ]
+  }
+}
