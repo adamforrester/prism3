@@ -759,6 +759,9 @@ let styleGuideState: { ok: boolean; headline: string; summary: string } | 'pendi
 /** The Customize options (#259). Session state, not persisted with the brand: they shape a drawing of the
  *  file's variables, not the brand itself. Proposed, owner to confirm (docs/45). */
 const styleGuideOptions: StyleGuideOptionsMsg = {};
+/** How far the in-flight style-guide run has got (#1778) — `null` between runs and before the first reading.
+ *  A sibling of `styleGuideState`, not a variant of it, for the `componentProgress` reason: not a verdict. */
+let styleGuideProgress: { done: number; total: number } | null = null;
 /** How far the in-flight component build has got (#684) — `null` between builds and until the first
  *  chunk boundary reports.
  *
@@ -907,11 +910,36 @@ commit.onHostMessage((m) => {
     return;
   }
   if (m.kind === 'style-guide-result') {
+    // #1785. A refusal: the panel's click met a run the agent link started, which is still drawing. The row
+    // stays pending on that run, whose readings and result reach the panel too.
+    if (m.busy) { if (styleGuideState !== 'pending') pendStyleGuide(); return; }
     // #259. The file-setup handling, against its own slot and row.
     styleGuideState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    styleGuideProgress = null;
     openDetail = m.ok ? null : 'styleguide';
     if (barHost) { renderBar(); syncApplyDetail(); }
     syncStyleGuideRow();
+    return;
+  }
+  if (m.kind === 'style-guide-progress') {
+    // #1778. The `component-progress` handling below, for the style guide's own pill: accepted only while a run
+    // is in flight, written as text into every live pending pill rather than re-rendering the bar.
+    // #1785. The one exception: a run's FIRST reading (`done: 0`, posted before its first table) while the row
+    // is not pending is a run the agent link started. The row goes pending on it, its button disabled, so a
+    // click cannot start a second run over it. A later reading never does, so one arriving after its own
+    // result cannot bring a finished run back.
+    if (styleGuideState !== 'pending') {
+      if (m.done !== 0) return;
+      styleGuideProgress = { done: m.done, total: m.total };
+      pendStyleGuide();
+      return;
+    }
+    styleGuideProgress = { done: m.done, total: m.total };
+    const text = styleGuidePendingText();
+    for (const node of styleGuidePendingEls) {
+      if (node.isConnected) node.textContent = text;
+      else styleGuidePendingEls.delete(node);
+    }
     return;
   }
   if (m.kind === 'component-progress') {
@@ -2373,7 +2401,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
-  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply to Figma.'],
+  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables and text styles: colors, dimensions, font variables and text styles, each scale on Primitive tokens and each role on Semantic tokens. One column per mode, each specimen bound to its variable; a color role’s swatch sits on the ground its contrast is measured against. Run it after Apply to Figma.'],
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
@@ -5222,8 +5250,9 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
 const STYLE_GUIDE_LABEL = 'Draw style guide';
 
 /**
- * The Style guide page (#259, phase 1: color) — the step after Apply theme. One button draws the color tables
- * from the file's own variables; the per-type options fold away under Customize, every one with a default, so
+ * The Style guide page (#259, phases 1–2: color, dimension, font variables, text styles) — the step after Apply
+ * theme. One button draws the token tables from the file's own variables and text styles; the per-type options
+ * fold away under Customize, every one with a default, so
  * the button alone does the common case. The specimen is chosen from each token's role unless Display style
  * overrides it (owner decision 8).
  *
@@ -5236,7 +5265,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   setVolatile([], () => {});
   if (!commit.isFigma) return;
 
-  const sec = palSection('Color tables', 'Draws or updates one table per palette and one per role family.');
+  const sec = palSection('Token tables', 'Draws or updates one table per palette, role family, dimension collection and font-variable kind, and one for the text styles.');
   const note = el('p', 'cw-note');
   note.append(document.createTextNode('Needs the pages and cell components Set up file adds. A rerun updates each table in place.'));
   sec.append(note);
@@ -5244,9 +5273,9 @@ const renderStyleGuidePage = (host: PageHost): void => {
   // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
   const det = hook(el('details', 'contracts') as HTMLDetailsElement, 'style-guide-customize');
   const sum = el('summary', 'contracts-sum');
-  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns'));
+  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · units · columns · tables'));
   det.append(sum);
-  const pick = <K extends 'valueFormat' | 'header' | 'display'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
+  const pick = <K extends 'valueFormat' | 'header' | 'display' | 'dimensionDisplay' | 'fontDisplay'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
     const s = selectEl();
     for (const [v, t] of opts) s.append(optionEl(v, t, (styleGuideOptions[key] ?? fallback) === v));
     s.onchange = () => { (styleGuideOptions as Record<string, unknown>)[key] = s.value; };
@@ -5257,8 +5286,18 @@ const renderStyleGuidePage = (host: PageHost): void => {
     knob('Table header', pick('header', [['dark', 'Dark'], ['light', 'Light']], 'dark'), 'The header row’s fill.'),
     hook(knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
       'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'), 'style-guide-display'),
-    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
+    // #259 phase 2: the dimension and font-variable specimens, the REM column, and the text-style columns.
+    hook(knob('Dimension display', pick('dimensionDisplay', [['filled', 'Filled bar'], ['line', 'Bracket']], 'filled'),
+      'One style for every dimension row, drawn at its value. A radius draws a rounded corner either way.'), 'style-guide-dimension-display'),
+    hook(knob('Font variable display', pick('fontDisplay', [['auto', 'From each variable’s kind'], ['generic', 'Generic'], ['family', 'Family'], ['size', 'Size'], ['weight', 'Weight'], ['letterSpacing', 'Letter spacing'], ['lineHeight', 'Line height']], 'auto'),
+      '“Abc 123” with one property bound to the variable. By default each variable binds the property it is for.'), 'style-guide-font-display'),
+    hook(knob('REM', toggleField(styleGuideOptions.rem ?? true, (on) => { styleGuideOptions.rem = on; }), 'Add a REM column beside each length, at a 16px base.'), 'style-guide-rem'),
+    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the variable each value aliases, as a chip beside it.'),
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
+    hook(knob('Paragraph spacing', toggleField(styleGuideOptions.paragraphSpacing ?? false, (on) => { styleGuideOptions.paragraphSpacing = on; }), 'Add a paragraph-spacing column to the text-style table.'), 'style-guide-paragraph-spacing'),
+    knob('Text decoration', toggleField(styleGuideOptions.textDecoration ?? false, (on) => { styleGuideOptions.textDecoration = on; }), 'Add a text-decoration column to the text-style table.'),
+    hook(knob('Title cell', toggleField(styleGuideOptions.titleCell ?? false, (on) => { styleGuideOptions.titleCell = on; }), 'Add a leading Name column to every table, “Text Primary” for text/primary. An edited name is kept on the next run.'), 'style-guide-title-cell'),
+    hook(knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'), 'style-guide-tables'),
   );
   sec.append(det);
 
@@ -5266,9 +5305,9 @@ const renderStyleGuidePage = (host: PageHost): void => {
   styleGuideRow = row;
   const btn = hook(el('button', 'barbtn') as HTMLButtonElement, 'style-guide-draw');
   styleGuideBtn = btn;
-  btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
+  btn.title = 'Draws the token tables from this file’s variables and text styles. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
-    styleGuideState = 'pending'; openDetail = null;
+    styleGuideState = 'pending'; styleGuideProgress = null; openDetail = null;
     renderBar(); syncApplyDetail(); syncStyleGuideRow();
     commit.postStyleGuide({ ...styleGuideOptions });
   };
@@ -5277,6 +5316,45 @@ const renderStyleGuidePage = (host: PageHost): void => {
   sec.append(row);
   host.append(sec);
 };
+
+/** The Tables filter (#1778): table titles, sent as `tables` and left out when empty. One title a line, or
+ *  several on one line separated by commas: a field with a line break splits on line breaks ONLY, so a title
+ *  with a comma in it survives on a line of its own. A text field rather than a checklist of titles: the titles
+ *  are the main thread's plan of this file's variables, which the panel does not hold until a run reports them.
+ *  A name that matches nothing comes back in the verdict with the titles this run can draw. */
+const tableNames = (text: string): string[] =>
+  text.split(/\r?\n/.test(text) ? /\r?\n/ : ',').map((x) => x.trim()).filter(Boolean);
+const tablesField = (): HTMLTextAreaElement => {
+  const input = el('textarea', 'tf-in') as HTMLTextAreaElement;
+  input.rows = 2; input.spellcheck = false; input.placeholder = 'Every table';
+  input.setAttribute('aria-label', 'Tables to draw: one a line, or separated by commas');
+  const kept = styleGuideOptions.tables ?? [];
+  // Shown again the way it reads back: a line each (every line closed, so one title still reads as a line)
+  // once any title holds a comma.
+  input.value = kept.some((x) => x.includes(',')) ? kept.map((x) => `${x}\n`).join('') : kept.join(', ');
+  input.oninput = () => {
+    const names = tableNames(input.value);
+    if (names.length) styleGuideOptions.tables = names; else delete styleGuideOptions.tables;
+  };
+  return input;
+};
+
+/** Put the style-guide row in its pending state for a run the panel did not start (#1785): an agent link's. The
+ *  button's own click does the same before it posts. `styleGuideProgress` is the caller's. */
+const pendStyleGuide = (): void => {
+  styleGuideState = 'pending'; openDetail = null;
+  if (barHost) { renderBar(); syncApplyDetail(); }
+  syncStyleGuideRow();
+};
+
+/** The style guide's live pending text (#1778): the table being drawn, counted from 1. Before the first
+ *  reading, and from a host build older than this one, the pre-#1778 string. */
+const styleGuidePendingText = (): string => {
+  const p = styleGuideProgress;
+  return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : 'Drawing the style guide…';
+};
+/** The live style-guide pending pills, for `componentPendingEls`' reason: the bar and the page each render one. */
+const styleGuidePendingEls = new Set<HTMLElement>();
 
 /** The style-guide row's status, refreshed in place (#259) — `syncFileSetupRow`'s mechanism, its own slot. */
 let styleGuideRow: HTMLElement | null = null;
@@ -9534,7 +9612,12 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
     if (which === 'filesetup') return hook(el('span', 'bar-seed', 'Setting up file…'), 'status-pill');
-    if (which === 'styleguide') return hook(el('span', 'bar-seed', 'Drawing the style guide…'), 'status-pill');
+    if (which === 'styleguide') {
+      // #1778: the run reports each table, so this pill is cached for in-place updates like the component build's.
+      const node = hook(el('span', 'bar-seed', styleGuidePendingText()), 'status-pill');
+      styleGuidePendingEls.add(node);
+      return node;
+    }
     const node = hook(el('span', 'bar-seed', componentPendingText()), 'status-pill');
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.

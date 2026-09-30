@@ -37,8 +37,8 @@ import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
-import { runStyleGuide, styleGuideSummary } from './style-guide';
-import type { SgContract } from './style-guide';
+import { runStyleGuide, styleGuideSummary, createStyleGuideGate, styleGuideBusy } from './style-guide';
+import type { SgContract, StyleGuideEntry } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote } from './page-header';
@@ -846,13 +846,42 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     } catch (e) {
       contractNote = `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"`;
     }
-    const result = await runStyleGuide(figma, contract, options);
+    // One table at a time, yielding to the host between them and within a big one (#1778). Each reading goes to
+    // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
+    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
+    const result = await runStyleGuide(figma, contract, options, {
+      onProgress: (p) => {
+        if (p.done > 0) console.log(`[prism3 #1778] style guide: table ${p.done} of ${p.total}, ${p.title}, ${p.tableMs}ms`);
+        sink.post({ type: 'style-guide-progress', done: p.done, total: p.total, tableMs: p.tableMs });
+      },
+    });
     const v = styleGuideSummary(result);
     sink.data({ styleGuide: result });
     sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD) });
   } catch (e) {
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(`style guide failed: ${(e as Error).message}`, PRISM3_BUILD) });
   }
+};
+
+/**
+ * ONE STYLE-GUIDE RUN AT A TIME, from either entry point (#1785). The panel's button and the agent link's
+ * `style-guide` both reach `ACTIONS.styleGuide`, which is this: the run goes through one gate per plugin session,
+ * and a second request while one draws is refused by name (`styleGuideBusy`) instead of drawing over the first.
+ *
+ * The panel's sink is `uiSink`, so the entry point is told apart by the sink. An agent's run ALSO posts its table
+ * readings to the panel, so the panel's row goes pending, its button disabled, while an agent draws. A refusal is
+ * marked `busy`: an agent's is not forwarded to the panel (the panel's own run is still what it shows), and a
+ * panel's leaves its row pending on the agent's run, which reports to it.
+ */
+const styleGuideGate = createStyleGuideGate();
+const styleGuideOnce = async (options: StyleGuideOptions, sink: ActionSink): Promise<void> => {
+  const entry: StyleGuideEntry = sink === uiSink ? 'panel' : 'agent';
+  const shown: ActionSink = entry === 'panel' ? sink : {
+    post: (m) => { sink.post(m); if (m.type === 'style-guide-progress') postToUi(m); },
+    data: (d) => sink.data(d),
+  };
+  const r = await styleGuideGate.run(entry, () => styleGuide(options, shown));
+  if (!r.ran) sink.post({ type: 'style-guide-result', ...styleGuideBusy(r.running), busy: true });
 };
 
 /**
@@ -948,7 +977,7 @@ const sendFonts = async (): Promise<void> => {
  * drives both the UI message and the agent command — a route pointed at a copy fails there by name.
  * Exported for that test only; nothing in the plugin imports it.
  */
-export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, styleGuide, prune, seedFromFile };
+export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, styleGuide: styleGuideOnce, prune, seedFromFile };
 
 /**
  * THE AGENT LINK (off until the owner switches it on in the panel; never persisted). Commands arrive as
@@ -964,7 +993,9 @@ const dispatch = createDispatcher({
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
-  forward: (m) => postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m),
+  // A style guide an agent asked for while another run draws is refused to the agent alone (#1785): the panel
+  // keeps showing the run in flight.
+  forward: (m) => { if (m.type === 'style-guide-result' && m.busy) return; postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m); },
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
   status: async () => {
     let brand: 'present' | 'absent' | 'unreadable' = 'absent';

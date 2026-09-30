@@ -10,7 +10,7 @@
  * `--brand` fills `args.input` for `apply-theme` / `prune` from an example id (`aurora`, `harbor`,
  * `nb-redesign`, `wendys`) or a `.design.md` path, the same resolution `plan.ts` uses.
  *
- * Commands: status · apply-theme {input} · build-components {def?} · file-setup · style-guide {collections?, types?} ·
+ * Commands: status · apply-theme {input} · build-components {def?} · file-setup · style-guide {collections?, types?, tables?} ·
  * prune {input, confirm} · readback. The runbook, and the one precondition that matters (the owner has switched the agent link on in
  * the plugin, in this file), is `tools/figma-mcp/README.md` §5.
  */

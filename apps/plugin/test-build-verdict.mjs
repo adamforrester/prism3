@@ -602,6 +602,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       button: btn ? btn.textContent : null,
       disabled: btn ? btn.disabled : null,
       verdict: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-verdict"]')].map((n) => n.textContent),
+      pendingText: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
       customize: det ? { open: det.open, text: det.textContent } : null,
       sent: window.__sent,
     };
@@ -611,10 +612,23 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(before.customize !== null && before.customize.open === false, '#259 the per-type options fold away under a closed "Customize"');
   ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
     '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
+  ok(['Dimension display', 'Font variable display', 'REM', 'Paragraph spacing', 'Text decoration', 'Title cell'].every((w) => (before.customize?.text ?? '').includes(w)),
+    '#259 phase 2: Customize carries Dimension display, Font variable display, REM, Paragraph spacing and Text decoration');
+  // Owner decision 20: the Pixels toggle is removed, since the base value always prints.
+  ok(!(before.customize?.text ?? '').includes('Pixels'), '#259 decision 20: Customize has no Pixels field');
 
   await page.locator('[data-p3="style-guide-customize"] summary').click();
   await page.locator('[data-p3="style-guide-value-format"] select').selectOption('hsl');
   await page.locator('[data-p3="style-guide-display"] select').selectOption('border');
+  // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, each knob
+  // found by its own hook.
+  await page.locator('[data-p3="style-guide-dimension-display"] select').selectOption('line');
+  await page.locator('[data-p3="style-guide-font-display"] select').selectOption('weight');
+  await page.locator('[data-p3="style-guide-rem"] input').click({ force: true });
+  await page.locator('[data-p3="style-guide-paragraph-spacing"] input').click({ force: true });
+  await page.locator('[data-p3="style-guide-title-cell"] input').click({ force: true });
+  // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
+  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Primary — nbds,  Text — pds3, ');
   const clicked = await page.locator('[data-p3="style-guide-draw"]').click({ timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#259 the Draw style guide control can be clicked');
   // postMessage delivers asynchronously; a real condition rather than a sleep.
@@ -623,12 +637,52 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(pending.button === '⋯ Drawing…' && pending.disabled === true, `#259 a run in flight reads "⋯ Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
   ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
     `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
+  const p2 = pending.sent[0]?.options ?? {};
+  ok(p2.dimensionDisplay === 'line' && p2.fontDisplay === 'weight' && p2.rem === false && p2.paragraphSpacing === true && p2.titleCell === true && p2.pixels === undefined && p2.textDecoration === undefined,
+    `#259 phase 2: the dimension and font displays, REM off and paragraph spacing on cross the bridge; untouched toggles are not sent — sent ${JSON.stringify(p2)}`);
+  ok(JSON.stringify(pending.sent[0]?.options?.tables) === JSON.stringify(['Primary — nbds', 'Text — pds3']),
+    `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);
+  // #1778: a progress reading rewrites the page's pending pill in place.
+  await post(page, { type: 'style-guide-progress', done: 6, total: 22, tableMs: 900 });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const counting = await readSg();
+  ok(counting.pendingText.length === 1 && counting.pendingText[0] === 'Drawing table 7 of 22…', `#1778 a run in flight counts its tables on the page's row — read ${JSON.stringify(counting.pendingText)}`);
 
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables: 11 on ↳ Primitive tokens, 11 on ↳ Semantic tokens' });
   await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
   const done = await readSg();
   ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
   ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+
+  // #1785: a run the AGENT LINK started, which the panel did not click for. Its first reading (done 0, posted before
+  // its first table) puts the page's row pending, the button disabled, so a click cannot start a second run over it.
+  await post(page, { type: 'style-guide-progress', done: 0, total: 22, tableMs: 0 });
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '⋯ Drawing…', null, { timeout: 3000 }).catch(() => {});
+  const agentRun = await readSg();
+  ok(agentRun.button === '⋯ Drawing…' && agentRun.disabled === true && agentRun.pendingText[0] === 'Drawing table 1 of 22…',
+    `#1785 an agent-link run's first reading puts the page's row pending, the button disabled — read "${agentRun.button}", disabled ${agentRun.disabled}, ${JSON.stringify(agentRun.pendingText)}`);
+  // A click that raced that reading is refused as `busy`: the row stays on the run in flight, no verdict pill over it.
+  await post(page, { type: 'style-guide-result', ok: false, busy: true, headline: '✗ already drawing', summary: 'A style guide started from the agent link is still drawing, so this request was not run' });
+  await post(page, { type: 'style-guide-progress', done: 4, total: 22, tableMs: 900 });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 5 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const still = await readSg();
+  ok(still.button === '⋯ Drawing…' && still.verdict.length === 0 && still.pendingText[0] === 'Drawing table 5 of 22…',
+    `#1785 a busy refusal leaves the row pending on the run in flight, with no verdict pill — read "${still.button}", ${JSON.stringify(still.verdict)}, ${JSON.stringify(still.pendingText)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
+  const agentDone = await readSg();
+  ok(agentDone.disabled === false && agentDone.verdict.length === 1 && agentDone.verdict[0].includes('✓ style guide: 1 table'), `#1785 the agent's verdict ends it on the page's row — read ${JSON.stringify(agentDone.verdict)}`);
+
+  // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
+  const custom = page.locator('[data-p3="style-guide-customize"]');
+  if (!(await custom.evaluate((d) => d.open))) await custom.locator('summary').click();
+  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Brand, legacy — nbds\nText — pds3\n');
+  await page.locator('[data-p3="style-guide-draw"]').click({ timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__sent.length > 1, null, { timeout: 3000 }).catch(() => {});
+  const lines = await readSg();
+  ok(JSON.stringify(lines.sent[1]?.options?.tables) === JSON.stringify(['Brand, legacy — nbds', 'Text — pds3']),
+    `#1778 a Tables field with a line break sends a title a line, its comma kept — sent ${JSON.stringify(lines.sent[1]?.options?.tables)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
   ok(errors.length === 0, `#259 no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
