@@ -11780,6 +11780,12 @@ arm: {
   // The two entry points must not be able to describe the same brand differently.
   ok(JSON.stringify(bp.contracts) === JSON.stringify(JSON.parse(callTool('theme_brand', { brand: bp.derivedBrandInput }).content[0].text).contracts),
     'MCP: theme_from_brief and theme_brand report an identical payload for the same brand (one shared path)');
+  // #1868: with no `include`, both tools return the same SECTIONS, not just the same contracts. The
+  // arm above compares `contracts` only, which is how an empty default passed.
+  const tbKeys = Object.keys(JSON.parse(callTool('theme_brand', { brand: bp.derivedBrandInput }).content[0].text)).sort();
+  const fbKeys = Object.keys(bp).filter((k) => k !== 'derivedBrandInput').sort();
+  ok(Array.isArray(bp.notes) && bp.notes.length > 0 && JSON.stringify(fbKeys) === JSON.stringify(tbKeys),
+    `#1868 MCP: theme_from_brief with no include returns the decisions log and the same sections as theme_brand (brief: ${fbKeys.join(',')} · brand: ${tbKeys.join(',')})`);
 
   // validate_brand: bad input → errors; good input → clean; and theme_brand rejects a bad brand loudly
   ok(JSON.parse(callTool('validate_brand', { id: 'x' }).content[0].text).valid === false, 'MCP: validate_brand flags an incomplete brand (missing primary/neutral)');
