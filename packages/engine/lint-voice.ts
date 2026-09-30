@@ -111,6 +111,11 @@
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
  *
+ * **The MCP server's `tools/list` is in scope as SERVED (#1806)**: every tool, argument and inlined
+ * schema description, obtained by spawning the server (`mcp-served.ts`), represented by a literal list of
+ * the six tool names, blind on a missing tool or a silent server. `lint-us-english.ts` trap 8 has the
+ * full account. Both gates read it, so on this surface the two scopes agree.
+ *
  *
  * ── SCOPE IS PER-FILE; TEXT IS NOT (#1117) — WHY A FAILURE HERE MAY NOT BE THIS FILE'S FAULT ────
  *
@@ -215,6 +220,8 @@ import { brandTheme } from './theme';
 // imported `voiceHits`.
 import { voiceHits } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
+// The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
+import { servedToolsList, servedStrings } from './mcp-served';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -240,7 +247,7 @@ const stripLineComments = (txt: string): string =>
   txt.replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent: string) => indent + ' '.repeat(m.length - indent.length));
 
 
-type Hit = { file: string; line: number; rule: string; match: string; context: string };
+type Hit = { file: string; line: number | string; rule: string; match: string; context: string };
 
 // ---- The `normative` rule (#1623 AI/C-1) — see the header's payload-channel section. Upper case only:
 // the lower-case words are ordinary English, and an RFC 2119 level is the capitalized keyword.
@@ -609,6 +616,35 @@ const sidecarCount = gated.filter(isPayloadSidecar).length;
 if (!sidecarCount || channelFiles !== sidecarCount || channelExempted === 0) {
   blind.push(`the payload channel — ${channelFiles}/${sidecarCount} sidecars carved, ${channelExempted} contract requirements exempted (expected every sidecar and more than 0)`);
 }
+
+// ---- The MCP server's tools/list, AS SERVED (#1806) — see lint-us-english.ts's block of the same name;
+// the acquisition is shared (`mcp-served.ts`), the rules and the represented-list are this gate's own.
+// Every §2 rule and `normative` apply: an MCP description is agent-facing, but it is not the payload
+// channel (voice-standard §4), so a `MUST` in it is a hit. Each string is scanned alone, values and keys,
+// never the serialized JSON (a `\n` escape hides the next word; `mcp-served.ts` header); a hit names its
+// JSON path in place of a line number. No comment stripping: these are strings, not source.
+const MCP_TOOLS = ['list_levers', 'theme_brand', 'score_consumption', 'theme_from_brief', 'export_theme', 'validate_brand'];
+const served = servedToolsList(repo);
+let mcpToolsScanned = 0;
+if ('error' in served) blind.push(`the MCP tools/list surface — ${served.error}`);
+else {
+  const names = served.tools.map((t) => t.name);
+  const missing = MCP_TOOLS.filter((n) => !names.includes(n));
+  if (missing.length) blind.push(`the MCP tools/list surface — the served list lacks ${missing.join(', ')} (served: ${names.join(', ') || 'none'})`);
+  for (const tool of served.tools) {
+    if (typeof tool.description !== 'string' || !tool.description.trim()) blind.push(`the MCP tool '${tool.name}' — served with no description to scan`);
+    mcpToolsScanned++;
+    for (const { path, text } of servedStrings(tool)) {
+      gatedHits.push(...[...voiceHits(text), ...normativeHits(text)].map(({ rule, match, index }) => ({
+        file: 'MCP tools/list (served)',
+        line: path,
+        rule,
+        match,
+        context: text.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+      })));
+    }
+  }
+}
 const byFile = new Map<string, Hit[]>();
 for (const h of gatedHits) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h]);
 
@@ -623,6 +659,7 @@ if (blind.length) {
 
 console.log(`Voice lint gate — ${gated.length} shipped files scanned:`);
 for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
+console.log(`    ${String(mcpToolsScanned).padStart(3)}  MCP tools/list, as the server returns it (tools, #1806)`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} voice-standard §2 violation(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {
