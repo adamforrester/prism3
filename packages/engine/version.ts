@@ -2934,7 +2934,7 @@
  * header, do not push it. An existing set is never moved. `main.ts` now places page headers once the run's
  * builds are done, so a header first placed over a family built as one run spans every set in it. A PLUGIN
  * write-path behavior change → ENGINE bump; no engine emission or projected surface moves (branched from
- * #1808 at 0.215.0; 0.214.0 is held by open PR #1804). CONTRACT STANDS at 14.0.0 (no token name moves).
+ * #1808 at 0.215.0). CONTRACT STANDS at 14.0.0 (no token name moves).
  *
  * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
  * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
@@ -2944,8 +2944,20 @@
  * coordinate-shaped member names and, when any differs from the plan's, REFUSES: nothing is built, appended or
  * stamped, and one miss names both lists and the remedy (rename the old set, build again). Axis NAMES only — a
  * new value on the same axes still appends. A PLUGIN write-path behavior change → ENGINE bump; no engine
- * emission or projected surface moves (0.213.0 is #1802; 0.214.0 is held by open PR #1804). CONTRACT STANDS at
+ * emission or projected surface moves. CONTRACT STANDS at
  * 14.0.0 (no token name moves).
+ *
+ * 0.214.0 — #1760: MCP `tools/list` inlines the brand schema COMPACTED. Every `description` in
+ * `theme_brand`'s `brand` schema is cut to a one-line summary (its first sentence, plus any leading
+ * OPTIONAL/OPT-IN tag), and every other keyword is verbatim, so validation is unchanged. `list_levers`
+ * gains an optional `describe: [field]` argument that returns the named fields' full schema entries and
+ * the `$defs` they reference. `tools/list` drops from 59,969 to 42,314 characters, against a
+ * 60,000 ceiling it had been meeting by trimming lever guidance. The gate now fails with 5,000 characters
+ * of headroom left (room for ~20 more levers), and caps each inline summary at 200 characters. Four
+ * schema descriptions were split at a semicolon or comma so their first sentence fits that cap.
+ * `radiusHairline` gets back its when-to-use cue. A change to shipped MCP output → ENGINE bump. `out/**` and
+ * `token-contract.json` move only their version stamp; `theme-schema.json` moves description prose only.
+ * CONTRACT STANDS at 14.0.0 (no token name moves).
  *
  * 0.213.0 — #1720: `resolvePreview` no longer resolves a type binding the brand does not emit to
  * `sans-serif / 0 / 0px`. It read `node?.$value ?? {}` and every accessor after it fell through to its own
