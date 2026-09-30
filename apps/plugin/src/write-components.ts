@@ -508,6 +508,12 @@ export type ComponentApplyResult = {
    *  produced — `undefined` for the normal COMPONENT_SET path. Present is what tells the verdict it has
    *  no set to describe (the set-derived fields above are all 0/empty in this mode). */
   emittedComponents?: string[];
+  /** #1780 — present when the build REFUSED because the page already holds a set of this name whose members
+   *  vary by a different axis list: `existing` is each distinct list the set's members carry (two when the
+   *  set is already mixed), `planned` the list this build would write, all sorted. `set` is then `null` and
+   *  nothing was written. Kept as data rather than left to the miss prose, so the verdict does not have to
+   *  parse its own sentence to say which set was left alone. */
+  axesChanged?: { set: string; existing: string[][]; planned: string[] };
   /** Non-fatal: a name that did not resolve, a write Figma discarded, a read-back that disagreed. */
   misses: string[];
 };
@@ -736,6 +742,31 @@ const planHalf = (stamp: string): string => stamp.split('|')[1] ?? '';
 /** The engine-version half, for the report only. `'unknown'` rather than `''` so the miss line reads as
  *  a fact about the member instead of as a missing interpolation. */
 const engineHalf = (stamp: string): string => stamp.split('|')[0] || 'unknown';
+
+/**
+ * THE AXIS LISTS AN EXISTING SET'S MEMBERS CARRY (#1780), one entry per distinct list, each sorted.
+ *
+ * READ OFF THE MEMBER NAMES, not off `componentPropertyDefinitions`, and the choice is forced rather than
+ * tidy. Figma derives a set's variant axes FROM its member names, so the names are the source and the
+ * definitions a view of them. And the view THROWS ("Component set has existing errors") on exactly the
+ * set this check most needs to read: one whose members already disagree on the axis list (#1780's live
+ * state, 6 members on `value × intensity` beside 30 on `value × intensity × direction`). A definitions read
+ * would need a member-name fallback for that case anyway, which is two ways to answer one question.
+ *
+ * ONLY COORDINATE-SHAPED NAMES COUNT (every `, `-separated segment has an `=`). A child named anything else
+ * is a designer's hand-made copy, which the layout pass already reports as `NOT A GENERATED VARIANT` and
+ * leaves in place; counting it here would refuse every build over a set someone had added a copy to.
+ */
+const memberAxisLists = (set: CompSet): string[][] => {
+  const lists = new Map<string, string[]>();
+  for (const c of set.children ?? []) {
+    const segs = String(c.name ?? '').split(', ');
+    if (!segs.every((s) => s.includes('='))) continue;
+    const list = segs.map((s) => s.slice(0, s.indexOf('='))).sort();
+    lists.set(list.join(','), list);
+  }
+  return [...lists.values()];
+};
 
 /**
  * THE BUILD'S OWN REPORT, LEFT ON THE SET (#1579).
@@ -2098,6 +2129,44 @@ const writeComponentSet = async (
   // it. This is the one behaviour the single-shot paste payload does not have and a plugin needs, since
   // a designer can press the button twice.
   let set = dest.findOne((n) => n.type === 'COMPONENT_SET' && n.name === component) as CompSet | null;
+  // #1780 — A SET WHOSE VARIANT AXES DIFFER FROM THE PLAN'S IS REFUSED, NOT ADDED INTO. Find-or-create
+  // above matches by NAME, and a name match says nothing about the axes: when a def gains, loses or renames
+  // an axis (`veil` gaining `direction`, a `genre` axis renamed `type`), every planned member name is new,
+  // so nothing matches `have`, nothing reads STALE, and every member was appended into the old set beside
+  // members on a different axis list. Figma reports that set as broken — its definitions getter throws —
+  // so the old set lost its properties AND the new members never got theirs.
+  //
+  // REFUSE, and write NOTHING: no member built, no member appended, no report stamped on the old set. The
+  // same posture as #827's STALE branch (report rather than repair), for the same reason: the one repair
+  // that keeps a single set — rebuilding the old members onto the new axes — replaces the component nodes
+  // and orphans every instance placed from them. The miss names both axis lists and the remedy the owner
+  // has been applying by hand: rename the old set, whose instances keep pointing at it by id, and build
+  // again — find-or-create then misses by name and a fresh set is combined beside it.
+  //
+  // AXIS NAMES ONLY, NOT VALUES. A new VALUE on an existing axis is the incremental path this executor has
+  // always supported — measured live: appending `state=pressed` to a `state=rest|hover` set extends that
+  // axis (the COMBINE note below) — and refusing it would split a set every time a def gained a state or
+  // a size. A value the plan no longer carries leaves its members as `NOT A GENERATED VARIANT` strays,
+  // which the layout pass already reports. Only a differing axis LIST leaves members Figma cannot reconcile.
+  //
+  // NOT in `emitAsComponents` mode (#1012): there is no set, so there is nothing to find by name here.
+  if (set && !opts.emitAsComponents) {
+    const planned = axes.split(',').slice().sort();
+    const existing = memberAxisLists(set);
+    if (existing.some((l) => l.join(',') !== planned.join(','))) {
+      const show = (l: readonly string[]): string => `[${l.join(', ')}]`;
+      misses.push(
+        `set -> AXES CHANGED: '${component}' on this page varies by ${existing.map(show).join(' and ')}, and this build varies by ${show(planned)}. ` +
+        'Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. ' +
+        'Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.',
+      );
+      return {
+        set: null, id: '', variants: 0, added: 0, skipped: 0, stale: 0, size: [0, 0], grid: [rows, cols], axes: [], properties: [],
+        refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, boundRepaired: 0,
+        setReresolved: 0, boundSearched: 0, axesChanged: { set: component, existing, planned }, misses,
+      };
+    }
+  }
   // THE EXISTING MEMBERS BY NAME — a Map rather than the Set this was, because the skip branch now needs
   // the NODE and not just the fact of it: name-matching is what #827 is about, and the stamp it compares
   // instead lives on the member. `c.name` can be undefined on the port, so the entries are filtered
