@@ -61,7 +61,8 @@
  *
  * ── SCOPE ────────────────────────────────────────────────────────────────────────────────────────
  *
- * `docs/00-progress.md` only, per #931 — other append-only dated logs (`_research/_inbound/` in the
+ * `docs/00-progress.md`, per #931, plus its pending fragments since #1807 (`docs/progress/pending/`,
+ * the same log before it is folded) — other append-only dated logs (`_research/_inbound/` in the
  * knowledge-base repo has the same genre) are out of scope and were explicitly left there rather
  * than folded in.
  *
@@ -76,9 +77,41 @@
  * MUTATIONS VERIFIED (each fails by name, exit 1): two entries transposed · the heading pattern
  * changed so it matches nothing (fails the floor, not silently) · appending a new entry at the top
  * with today's date (still passes — the positive control). See the PR for the mutation transcript.
+ *
+ * ── #1807: FRAGMENTS, AND THE ORDER THE DATE SORT COULD NEVER SEE ───────────────────────────────
+ *
+ * Since #1807 a PR does not write this file. It adds ONE entry as its own file,
+ * `docs/progress/pending/<slug>.md`, and `fold.ts` later moves a batch of them to the top of the log,
+ * newest MERGE first, each dated with the UTC day its fragment landed on `main`. Three arms follow:
+ *
+ *   FRAGMENT SHAPE — every pending fragment is one entry: its first line matches `HEADING_RE`, no second
+ *                    `## ` heading, no `{{` placeholder in the heading, a plain lowercase file name. The
+ *                    fold refuses a malformed fragment, so it fails here, at the PR that wrote it.
+ *   FOLDED ENTRIES — every fragment that landed on HEAD's first-parent history and is no longer pending
+ *                    has an entry in the log: same title, dated the day it LANDED, and the folded entries
+ *                    appear in the order they landed, newest first. This is #1104 / #1170's same-day
+ *                    order with a real oracle at last: the date sort ties same-day entries and so can
+ *                    never order them, and merge order can. It also catches a fold (or a merge
+ *                    resolution) that deleted a pending fragment without its entry reaching the log.
+ *   CARRIES AN ENTRY — REPORTED, NOT ENFORCED: whether this diff adds a fragment (or a log heading).
+ *                    CLAUDE.md asks every PR to carry one; whether a gate should require it is held for
+ *                    the owner (#1807 §7), so this prints and never fails.
+ *
+ * INDEPENDENCE (docs/34). The folded-entries arm's oracle is `git log --first-parent`, read here with
+ * this file's own code. `fold.ts` reads the same history, which is shape 17's shared ancestor; it is
+ * acceptable only because the ancestor is GROUND TRUTH — the order `main` actually recorded — not an
+ * artifact anything derives. What this arm gates is everything between that history and the file: the
+ * fold's ordering, its dating, its insertion and its deletion. Never import `fold.ts` here to "share the
+ * parsing": that would gate the fold with the fold. The date arm stays exactly as it was, a second,
+ * wholly independent check on the same file.
+ *
+ * The arm reads HEAD's first-parent history. On a PR's merge ref (CI) that is `main` itself; on a
+ * branch that merged `main` in, folds that reached it through the second parent are simply not seen —
+ * less coverage, never a false failure. A SHALLOW clone would hide history silently, so it is refused.
  */
 
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const repo = join(import.meta.dirname, '../..');
@@ -118,14 +151,7 @@ for (let i = 0; i < actual.length; i++) {
   if (actual[i] !== expected[i]) disagreements.push(i);
 }
 
-if (disagreements.length === 0) {
-  console.log(
-    '  ✓ clean — every dated entry appears in descending date order. Note the limit: this proves\n' +
-      '    one structural property, not that an entry is correct, present, dated accurately, or\n' +
-      '    matches what shipped — that judgment is prose, and review is its only guard.',
-  );
-  process.exit(0);
-}
+let failed = false;
 
 // Diagnose in the units a human fixes: which entry sits below which, and by how much.
 const outOfOrder: string[] = [];
@@ -139,13 +165,152 @@ for (let i = 1; i < entries.length; i++) {
   }
 }
 
-console.error(
-  `\n✗ ${outOfOrder.length} entr${outOfOrder.length === 1 ? 'y' : 'ies'} out of order (${disagreements.length} ` +
-    `position(s) disagree with the sorted sequence):\n`,
+if (disagreements.length === 0) {
+  console.log('  ✓ date order — every dated entry appears in descending date order.');
+} else {
+  failed = true;
+  console.error(
+    `\n✗ ${outOfOrder.length} entr${outOfOrder.length === 1 ? 'y' : 'ies'} out of order (${disagreements.length} ` +
+      `position(s) disagree with the sorted sequence):\n`,
+  );
+  for (const o of outOfOrder) console.error(`  · ${o}\n`);
+  console.error(
+    '  Most rebases land the incoming entry second with no textual conflict — check `git log --oneline\n' +
+      '  -1 docs/00-progress.md` on both sides of the merge and move the newer entry back to the top.\n',
+  );
+}
+
+// ---- #1807 ---------------------------------------------------------------------------------------
+const PENDING = 'docs/progress/pending';
+const git = (...args: string[]): { ok: boolean; out: string; err: string } => {
+  const r = spawnSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+  return { ok: r.status === 0, out: r.stdout ?? '', err: (r.stderr ?? '').trim() };
+};
+const cannotRun = (why: string, detail: string): never => {
+  console.error(`\n✗ CANNOT RUN — ${why}\n    ${detail}\n  An arm that cannot read its oracle fails rather than passing over nothing (docs/34 shape 9).`);
+  process.exit(1);
+};
+const isFragment = (name: string): boolean => name.endsWith('.md') && name !== 'README.md';
+
+// FRAGMENT SHAPE
+const pendingNow = existsSync(join(repo, PENDING)) ? readdirSync(join(repo, PENDING)).filter(isFragment).sort() : [];
+const shapeFails: string[] = [];
+for (const f of pendingNow) {
+  const where = `${PENDING}/${f}`;
+  if (!/^[a-z0-9][a-z0-9._-]*\.md$/.test(f)) shapeFails.push(`${where}: the file name is not lowercase letters, digits, '.', '-' and '_' (use the branch name with '/' → '-')`);
+  const lines = readFileSync(join(repo, where), 'utf8').replace(/\r\n/g, '\n').trim().split('\n');
+  const h = HEADING_RE.exec(lines[0] ?? '');
+  if (!h) shapeFails.push(`${where}: the first line is not a \`## (YYYY-MM-DD) — <title>\` heading`);
+  else if (h[2].includes('{{')) shapeFails.push(`${where}: the heading carries a placeholder; only the body may (the title is how the gate finds the entry once folded)`);
+  const extra = lines.slice(1).findIndex((l) => l.startsWith('## '));
+  if (extra >= 0) shapeFails.push(`${where}:${extra + 2}: a second \`## \` heading — a fragment is ONE entry; use \`###\` inside it`);
+}
+if (shapeFails.length) {
+  failed = true;
+  console.error(`\n✗ FRAGMENT SHAPE — ${shapeFails.length} problem(s) in ${PENDING}/ (#1807):\n`);
+  for (const f of shapeFails) console.error(`  · ${f}`);
+  console.error('\n  A fragment is exactly one progress entry, headed `## (YYYY-MM-DD) — <title>`. The fold replaces');
+  console.error('  the date with the day it lands; the title must be final, because it is how the entry is found.\n');
+} else {
+  console.log(`  ✓ fragment shape — ${pendingNow.length} pending fragment(s), each one well-formed entry`);
+}
+
+// FOLDED ENTRIES
+const shallow = git('rev-parse', '--is-shallow-repository');
+if (!shallow.ok) cannotRun('git is not available to read merge order.', shallow.err);
+if (shallow.out.trim() === 'true')
+  cannotRun('this is a shallow clone, so HEAD\'s history is cut short and folded fragments would be missed silently.', 'CI checks out with `fetch-depth: 0`; locally, `git fetch --unshallow`.');
+// Position on HEAD's first-parent chain, 0 = HEAD. The ONE ordering both walks below are read in: each
+// walk keeps only the commits that touched the directory, so counting within a walk would compare an
+// add's rank among adds with a delete's rank among deletes, which orders nothing.
+const chain = git('rev-list', '--first-parent', 'HEAD');
+if (!chain.ok) cannotRun('git rev-list over HEAD failed.', chain.err);
+const position = new Map(chain.out.split('\n').filter(Boolean).map((sha, i) => [sha, i]));
+const walk = (filter: 'A' | 'D'): Map<string, { sha: string; day: string; seq: number }> => {
+  const r = git('log', '--first-parent', `--diff-filter=${filter}`, '--no-renames', '--format=%x00%H %cI', '--name-only', 'HEAD', '--', PENDING);
+  if (!r.ok) cannotRun(`git log over ${PENDING} failed.`, r.err);
+  const out = new Map<string, { sha: string; day: string; seq: number }>();
+  for (const rec of r.out.split('\0').filter((x) => x.trim())) {
+    const [head, ...files] = rec.split('\n').map((x) => x.trim()).filter(Boolean);
+    const [sha, iso] = head.split(' ');
+    const seq = position.get(sha);
+    if (seq === undefined) cannotRun(`${sha.slice(0, 8)} is in the log walk and not on HEAD's first-parent chain.`, 'The two git reads disagree; this arm cannot order anything.');
+    // The UTC calendar day of the committer date — computed here, not borrowed from the fold.
+    const day = new Date(Date.parse(iso)).toISOString().slice(0, 10);
+    for (const f of files) if (!out.has(f)) out.set(f, { sha, day, seq: seq! });
+  }
+  return out;
+};
+const added = walk('A');
+const removed = walk('D');
+const pendingSet = new Set(pendingNow.map((f) => `${PENDING}/${f}`));
+const folded = [...added.entries()]
+  .filter(([p]) => isFragment(p.slice(PENDING.length + 1)) && !pendingSet.has(p))
+  .map(([path, landed]) => {
+    // The fragment's LAST content: just before the first-parent commit that deleted it, or at HEAD when
+    // only the working tree has deleted it (an uncommitted fold).
+    const del = removed.get(path);
+    const at = del && del.seq < landed.seq ? `${del.sha}^1` : 'HEAD';
+    const src = git('show', `${at}:${path}`);
+    if (!src.ok) cannotRun(`cannot read ${path} at ${at}.`, src.err);
+    const h = HEADING_RE.exec(src.out.replace(/\r\n/g, '\n').trim().split('\n')[0] ?? '');
+    return { path, landed, title: h ? h[2] : null };
+  });
+const foldFails: string[] = [];
+const placed: { path: string; seq: number; line: number }[] = [];
+for (const f of folded) {
+  if (!f.title) { foldFails.push(`${f.path}: it landed at ${f.landed.sha.slice(0, 8)} with no entry heading, so there is nothing to find in the log`); continue; }
+  const byTitle = entries.filter((e) => e.title === f.title);
+  const onDay = byTitle.filter((e) => e.date === f.landed.day);
+  if (!byTitle.length)
+    foldFails.push(`${f.path}: landed ${f.landed.day} (${f.landed.sha.slice(0, 8)}) and is no longer pending, but no entry titled "${f.title}" is in ${FILE} — deleted without being folded`);
+  else if (!onDay.length)
+    foldFails.push(`${f.path}: its entry is dated ${byTitle.map((e) => e.date).join(', ')} at ${FILE}:${byTitle[0].line}, but the fragment LANDED ${f.landed.day} (${f.landed.sha.slice(0, 8)}) — a folded entry carries its landing day`);
+  else if (onDay.length > 1)
+    foldFails.push(`${f.path}: ${onDay.length} entries share its title and landing day (${onDay.map((e) => `${FILE}:${e.line}`).join(', ')}) — the log carries it twice`);
+  else placed.push({ path: f.path, seq: f.landed.seq, line: onDay[0].line });
+}
+// Newest merge first: sorted by landing (smaller seq = more recent), the lines must rise.
+placed.sort((a, b) => a.seq - b.seq);
+for (let i = 1; i < placed.length; i++)
+  if (placed[i].line < placed[i - 1].line)
+    foldFails.push(
+      `${FILE}:${placed[i].line} (${placed[i].path}) sits ABOVE ${FILE}:${placed[i - 1].line} (${placed[i - 1].path}), ` +
+        `but it landed EARLIER — folded entries are newest merge first`,
+    );
+if (foldFails.length) {
+  failed = true;
+  console.error(`\n✗ FOLDED ENTRIES — ${foldFails.length} problem(s) (#1807):\n`);
+  for (const f of foldFails) console.error(`  · ${f}`);
+  console.error('\n  Only `fold.ts` removes a pending fragment, and it writes the entry in the same diff. Restore a');
+  console.error('  fragment a merge resolution dropped; rerun the fold rather than hand-placing its entries. A folded');
+  console.error('  heading is history: correct its body if you must, but leave the title and date as the fold wrote them.\n');
+} else {
+  console.log(`  ✓ folded entries — ${placed.length} folded fragment(s) found in the log at their landing day, newest merge first`);
+}
+
+// CARRIES AN ENTRY — report only.
+{
+  const baseRef = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main';
+  const mb = git('merge-base', 'HEAD', baseRef);
+  const head = git('rev-parse', 'HEAD');
+  if (!mb.ok) console.log(`  · carries an entry: cannot tell — no merge base with ${baseRef} (report only)`);
+  else if (mb.out.trim() === head.out.trim()) console.log(`  · carries an entry: n/a — HEAD is ${baseRef}`);
+  else {
+    const base = mb.out.trim();
+    const frags = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', PENDING).out
+      .split('\n').map((l) => l.split('\t')).filter((r) => r[0] === 'A' && isFragment((r[1] ?? '').slice(PENDING.length + 1))).map((r) => r[1]);
+    const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
+    console.log(
+      frags.length ? `  · carries an entry: yes — ${frags.join(', ')}`
+      : logHeads.length ? `  · carries an entry: yes — ${logHeads.length} heading(s) added to ${FILE} directly`
+      : `  · carries an entry: NO — this diff adds no fragment to ${PENDING}/. CLAUDE.md asks every PR to carry one (report only; enforcement is held for the owner, #1807).`,
+    );
+  }
+}
+
+if (failed) process.exit(1);
+console.log(
+  '  ✓ clean. Note the limit: this proves structure and placement, not that an entry is correct,\n' +
+    '    complete, or matches what shipped — that judgment is prose, and review is its only guard.',
 );
-for (const o of outOfOrder) console.error(`  · ${o}\n`);
-console.error(
-  '  Most rebases land the incoming entry second with no textual conflict — check `git log --oneline\n' +
-    '  -1 docs/00-progress.md` on both sides of the merge and move the newer entry back to the top.',
-);
-process.exit(1);

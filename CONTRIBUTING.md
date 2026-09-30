@@ -14,7 +14,7 @@ working principles apply to humans as much as to agents.
 | Read | For |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the four working principles. Non-optional — agents load this automatically, so you should know what it told them. |
-| [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. |
+| [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. Entries merged since the last fold are still in [`docs/progress/pending/`](docs/progress/pending/), so read that directory first. |
 | The lane doc for your work | `07-e2e-journey` (the pipeline + portable-core architecture), `18`/`22` (plugin), `11` (multi-brand north star), `23`–`26` (dashboard IA + UI conventions). Index in [`docs/`](docs/). |
 
 The one architectural idea to hold: **the engine core is pure and dependency-free, and
@@ -34,6 +34,105 @@ else broken, open a finding and keep going.
 
 The PR template's Gates block is the load-bearing part — fill it in with real numbers,
 not ticks.
+
+**A PR writes its own files, never the shared lines (#1807).** Every PR used to write the same
+four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it, and the
+version stamp in every emitted tree. So every open PR conflicted with every other, and merges ran
+one at a time. Now:
+
+- **The progress entry** is `docs/progress/pending/<slug>.md`, where the slug is your branch name
+  with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
+  usual shape. Every PR carries one.
+- **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
+
+  ```
+  ---
+  engine: minor          # patch | minor | major
+  ---
+  The changelog prose that used to go into version.ts. Write {{ENGINE_VERSION}} where the number goes.
+  ```
+
+  It declares the class and never picks a number. **Do not edit `ENGINE_VERSION`, its changelog, or
+  the version stamps in `out/`.** `lint-emission-version.ts` fails a PR that is not a fold for editing
+  the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
+  as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
+- **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
+  bumps it itself and runs `token-contract.ts --accept`. Contract bumps are rare and carry real
+  baseline content, so two of them *should* meet.
+
+Both directories carry a `README.md` with the format. The fold, below, is the one writer of the
+shared lines.
+
+### How to fold
+
+Run this after landing a batch of PRs. Today it is run by hand, with no bot and no token. A fold is
+one small PR that conflicts with no ordinary PR, because no ordinary PR writes any line it writes.
+Keep one fold open at a time.
+
+```bash
+git fetch origin main
+git worktree add /tmp/p3-fold -b fold/$(date -u +%F) origin/main && cd /tmp/p3-fold && npm ci
+npx tsx fold.ts --dry-run      # the plan: the version, and the entries in merge order
+npx tsx fold.ts                # writes version.ts, the log and the stamps; deletes what it folded
+git add -A && git commit -m "Fold: ENGINE_VERSION <new>"
+npm run verify
+```
+
+Then push and open the PR. What the fold does, in order:
+
+1. With nothing pending, it prints "nothing to fold" and exits 0, so a second run is harmless.
+2. It refuses unless the tree is clean and HEAD is a commit of `origin/main`.
+3. It orders every pending file by the first-parent commit on `main` that added it, which is merge
+   order.
+4. It assigns **one version per fold**: the current `ENGINE_VERSION` bumped once, by the highest class
+   any note declares. With no notes the version does not move.
+5. It writes the constant and a changelog section under the FOLD MARKER in `version.ts`, newest merge
+   first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
+   day it landed. It fills in `{{ENGINE_VERSION}}` in both.
+6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
+
+**The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
+both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
+or two accepted baselines interact. The fold PR's run is the first run of every gate over `main` plus
+the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
+`main`'s own push CI also runs on every merge, so a red `main` shows up there first.
+
+What to check before you push the fold:
+
+- **`token-contract.ts --check`.** While `schema/token-contract.json` still records `engineVersion`,
+  a fold that moves the version needs a stamp-only `npx tsx packages/engine/token-contract.ts --accept`.
+  Once that field is gone, it needs nothing.
+- **Hand-authored version literals.** A PR that added a rename rule wrote a provisional `since` into
+  `MATERIALIZATION_RENAMES` or `COLLECTION_RENAMES`, and `test.ts`'s tables for them. Set those to the
+  fold's version in the fold PR (#1816 tracks doing this without a person remembering).
+- **A refusal is information.** The fold refuses on a malformed file, a pending file no merge added,
+  or landing dates that run backwards. It writes nothing when it refuses. Fix the cause; do not
+  hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check
+  that output against git.
+
+### Converting an open PR from the old convention
+
+A PR opened before #1807 landed converts at its next merge of `main`, and that merge is its last
+conflict on these lines. Move your text into the new files **before** you resolve anything, because
+resolving takes `main`'s side of the lines your text is on.
+
+1. **On your branch, before merging:** copy your progress entry, unchanged, into
+   `docs/progress/pending/<slug>.md`. Copy your changelog prose out of `version.ts` into
+   `packages/engine/changes/<slug>.md` under `engine: <the class of the bump you had made>`. Where the
+   entry or the prose cites the number you had claimed, write `{{ENGINE_VERSION}}` instead. Commit.
+2. `git merge origin/main`, then resolve:
+   - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
+     fragment now.
+   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog, and drop your old
+     entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
+     changelog or a `DEPRECATIONS` row. Those are still per-PR.
+   - **Version stamps in `out/` and `components.ai.json`:** take either side. The next step rewrites
+     them.
+   - **`schema/token-contract.json`:** if you re-accepted it only to restamp `engineVersion`, keep
+     `main`'s copy. A real contract change keeps its bump and gets a fresh `--accept` after step 3.
+3. `npx tsx packages/engine/regen.ts`, commit, then `npm run verify`. Your `out/` now carries
+   `main`'s stamp with your real changes, and `lint-emission-version.ts` reports your note as the
+   bump. It fails by name if an edit to `ENGINE_VERSION` or its changelog survived the resolution.
 
 ---
 
@@ -170,8 +269,13 @@ npx tsx packages/engine/lint-description-claims.ts   # every `N:1` / `~N:1` / `N
                                                     # step number was false on two ramps, and every
                                                     # dark / HC overlay carried light-mode sentences
 npx tsx packages/engine/lint-emission-version.ts
-                                                    # the emission moved only with
-                                                    # ENGINE_VERSION (#1141's miss). Reads GIT,
+                                                    # the emission moved only with a declared
+                                                    # engine bump — an added change note, or a
+                                                    # fold's forward version (#1807) — and only a
+                                                    # fold writes ENGINE_VERSION, its changelog, or
+                                                    # deletes a note; a fold's version is the exact
+                                                    # next one and keeps every note's prose
+                                                    # (#1141's miss). Reads GIT,
                                                     # because every in-tree copy of the version
                                                     # is STAMPED FROM the constant and therefore
                                                     # agrees with it at every commit — including
@@ -182,7 +286,8 @@ npx tsx packages/engine/lint-emission-version.ts
                                                     # oracle and an unresolvable one FAILS
 npx tsx packages/engine/lint-component-surface.ts
                                                     # the PROJECTED COMPONENT SURFACE moved only
-                                                    # with ENGINE_VERSION (#1252). The gate above
+                                                    # with a declared engine bump (#1252; since
+                                                    # #1807 an added change note). The gate above
                                                     # is scoped to `out/` and component payloads
                                                     # are not committed there — the plugin builds
                                                     # them from the defs — so a def change that
@@ -257,7 +362,10 @@ npx tsx packages/engine/lint-progress-order.ts       # docs/00-progress.md stays
                                                     # in 24 hours across two lanes is what filed this. EXPECTED = sorted(dates,
                                                     # descending), a real transformation of the parsed headings, never a restatement
                                                     # of the file (docs/34 shape 1). Fails on 0 matched headings rather than passing
-                                                    # over nothing (shape 9)
+                                                    # over nothing (shape 9). Since #1807 also: every pending fragment is one
+                                                    # well-formed entry, and every folded one is in the log at its landing day in
+                                                    # MERGE order (#1104's same-day order, which the date sort ties), read from
+                                                    # `git log --first-parent` with its own code, never fold.ts's
 npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
                                                     # (#674). The manifest is AUTHORED, never regenerated:
                                                     # built from a scan it would classify each new artifact
@@ -1305,7 +1413,7 @@ Keeping these separate is what stops the backlog from drifting out of sync with 
 
 | Kind of thing | Home |
 |---|---|
-| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. |
+| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. A PR adds its entry as `docs/progress/pending/<slug>.md`, and the fold moves it into the log (§2). |
 | **Actionable backlog** | **GitHub issues.** Anything someone could pick up belongs here, not in doc prose. |
 | **Ideas not yet scoped** | `docs/27-future-ideas.md` — discovery-level, deliberately not issues yet. An idea graduates to an issue when it's actionable. |
 | **Architecture, models, specs** | The numbered docs in `docs/`. Add a new numbered file only for a genuinely new topic area; append, don't renumber. |
