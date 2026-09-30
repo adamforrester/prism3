@@ -58,6 +58,13 @@ Concept C's frame holds: levers on the left grouped by domain (Brand · Color ·
 
 Other spec items: the lever controls follow audit §1.3 (chip groups are native radio groups in a `fieldset`, selected = soft fill + ink border + ✓, focus = a separate 2px blue ring); every description is behind an "i" toggletip button named "About ‹label›"; the five inline state lines stay visible; destructive edits preview their loss and name the outcome (gradients off, a mode off, a brand color removed); a refused edit shows a banner naming the engine's rule, marks the field, and keeps the preview on the last valid theme.
 
+## Where v4 departs from the spec or the audit, on purpose
+
+- **Neutral source is two chips, not three.** Audit §1.3 asks for *Follow primary / Custom tint / Pinned*. `neutral.anchor` is flagged advanced in the manifest, and Q4 makes that flag decide the tier, so *Pinned* sits in Brand's advanced disclosure as its own control. The everyday row is *Follow primary / Custom tint*.
+- **The verdict opens Health, not the Contrast view.** Decision 8 says the verdict opens Contrast; spec §6 routes it through Health, which carries contrast plus the other warnings and build identity, and links to the Contrast view. v4 follows the spec. If the owner wants one click to Contrast, Health's warnings need another home.
+- **"3 levers visible at 380×420" counts Brand name**, which is the schema-only `id`, not a manifest lever. Two manifest levers (Primary brand color, Neutral hue) are fully visible under the 36px top row.
+- **Three list lines run past 90 characters**: the "Not installed here" face list, Health's "Also checked, clear" list, and the mobile-merges line. They are lists, not sentences; v5 should wrap them as lists.
+
 ## Live vs precomputed
 
 **Live (the real engine, re-run on every edit in the page):** every palette, ramp, hex and anchor; all 268 roles per mode and their ratios; the verdict counts; per-mode lever and role overrides; type composites, `clamp()` values, ladders, weights and mobile merges; size heights (28/36/44/56/68, moving with density), spacing, radius, borders, icons; shadows per mode; motion; layout; the token table (`buildTree`, with per-mode values); the Decisions log (`theme.notes`); #1802; component defs with variant counts (`figmaVariantCount`), nesting, and per-size spacing (`densitySpacingStep`); button minimum widths (`buttonMinWidth`); the Export brief (`toDesignMd`) and Import (`parseDesignMd`); the Set up file page list (the plugin's `TAXONOMY`); versions from `version.ts`.
@@ -79,7 +86,7 @@ Measured in Chromium over 29 states (every domain with advanced open, every view
 | Lowest chrome text contrast | **6.14:1** (`--c-ink-3` #5f5f5b on the matrix family header, #fafaf9). Placeholders included. |
 | Lowest control-boundary contrast | **3.35:1** (the verdict pill's green border on white). The shared control edge `--c-ctl` #84847f is 3.76:1 on white and 3.48:1 on the app background. Concept C's was 1.75:1. |
 | Smallest hit target | **24×24** (the "i" buttons). None under 24; the divider is 24px wide; table checkboxes sit in 28px labels. |
-| Levers visible at 380×420 in Brand | **3 fully visible** (Brand name, Primary brand color, Neutral hue) under a 36px top row; the activity strip is 24px. Target met. |
+| Levers visible at 380×420 in Brand | **3 fully visible** (Brand name, Primary brand color, Neutral hue) under a 36px top row; the activity strip is 24px. Brand name is the schema-only `id`, so 2 of the 3 are manifest levers. |
 | Focus vs selected | Focus is a 2px #1d5bd6 ring (5.97:1 on white); selected is fill + ink border + ✓. |
 
 Keyboard: arrows within chip groups (native radios), arrows/Home/End on the domain tabs and the Export tabs (real `tablist`), arrows/Home/End on the divider, Esc closes toggletips, menus and the step picker. Dialogs use `showModal()` and return focus to their trigger by id after the page re-renders. No information lives only in a `title`. Under reduced motion the curves are static and Play says "Reduced motion is on: playing once on request."
@@ -101,6 +108,10 @@ Taken at 1280×900 and 380×420 in `…/scratchpad/v4-shots/` (not committed): f
 9. **Studio font warnings.** Health warns about faces not installed on the device in the studio; only the plugin's "In this Figma" decides whether a style applies. Should the studio warn at all?
 10. **Style guide values** (value format Hex / RGB, specimen choices) are placeholders until #1784/#1788 settle.
 
+## Review round
+
+An independent review found two scenario defects and five smaller items; all are fixed here. The Build-errors scenario now takes its member count from the real TextField def (24), with built + skipped + missing = 24 and the dependencies kept out of the member counts. Its missing font is a face the brand uses, marked absent for that scenario, so Health names the same face. Every chip group has a group name (the italics rows and the Per mode rows). "Custom hue" reads "Custom tint", as the audit has it. The refused-edit banner states the rule in the UI register and keeps the engine's text under "Engine message". Noted for v5: commit the rendered-DOM coverage recount so it can be rerun (today only the source-level check is committed); repeated section headings inside advanced disclosures; the Type view says "Not installed" twice to a screen reader; the namespace rename does not yet say that `prism` and `pds3` are reserved.
+
 ## Findings outside this mockup (not fixed here)
 
-- `packages/engine/vocabulary.ts` trait citations name a client brief, and `resolveVocabulary` copies each citation into `theme.notes` when a personality word is on, so it would reach any surface that shows the notes. The mockup replaces the citation text at load (`concept-v4.entry.ts`); the bundled engine source still contains it. Worth its own issue.
+- `packages/engine/vocabulary.ts` trait citations name a client brief, and `resolveVocabulary` copies each citation into `theme.notes` when a personality word is on, so it would reach any surface that shows the notes. The mockup replaces the citation text at load (`concept-v4.entry.ts`); the bundled engine source still contains it, as the studio bundle already does. Filed as #1824.

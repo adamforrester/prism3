@@ -740,9 +740,10 @@ const enc = (v) => esc(JSON.stringify(v === undefined ? '__auto' : v));
 const dat = (k, m, lever) => `data-k="${esc(k)}" data-m="${esc(m || '')}" data-lever="${esc(lever || k)}"`;
 const cid = (k, m, x = '') => slug(`c-${k}-${m || 'b'}${x !== '' ? '-' + x : ''}`);
 
-function chips(k, opts, cur, { m, lever, sm, name } = {}) {
+function chips(k, opts, cur, { m, lever, sm, name, label } = {}) {
   const nm = name || cid(k, m);
-  return `<div class="chips${sm ? ' sm' : ''}">${opts.map((o) => {
+  const gl = label || (m ? `${(LEV[lever || k] || {}).label || k}, ${m}` : '');
+  return `<div class="chips${sm ? ' sm' : ''}"${gl ? ` role="radiogroup" aria-label="${esc(gl)}"` : ''}>${opts.map((o) => {
     const on = JSON.stringify(o.v) === JSON.stringify(cur);
     return `<label class="chip"><input type="radio" name="${nm}" id="${cid(k, m, o.v)}" value="${enc(o.v)}" ${dat(k, m, lever)}${on ? ' checked' : ''}${o.dis ? ' disabled' : ''}><span class="ck" aria-hidden="true">✓</span>${esc(o.l)}</label>`;
   }).join('')}</div>`;
@@ -836,7 +837,7 @@ const CTL = {
     const hue = follow ? S.input.primary.h : n.hue;
     const pinned = !!n.anchor;
     const a = lever('neutral.hue',
-      chips('neutral.auto', [{ v: true, l: 'Follow primary' }, { v: false, l: 'Custom hue' }], follow, { lever: 'neutral.hue', name: 'c-neutral-source' })
+      chips('neutral.auto', [{ v: true, l: 'Follow primary' }, { v: false, l: 'Custom tint' }], follow, { lever: 'neutral.hue', name: 'c-neutral-source' })
       + (follow ? `<span class="sub">Hue follows primary: ${Math.round(hue * 10) / 10}°.</span>` : slider('neutral.hue', hueL, n.hue, { label: 'Neutral hue' })),
       { fieldset: true, readout: follow ? `${Math.round(hue)}° · follows primary` : sliderReadout(hueL, n.hue),
         state: pinned ? stateLine(`A pinned neutral in Advanced sets the ramp: ${esc(hexOf(n.anchor))}. Hue and chroma are its readout.`, true) : '' });
@@ -1103,7 +1104,7 @@ const CTL = {
     const groups = R.t.typography.families.map((f) => f.group);
     const rows = groups.map((g) => {
       const cur = id.includes(g) ? 'only' : it.includes(g) ? 'both' : 'upright';
-      return `<div class="row wrap" style="margin-bottom:4px"><span style="width:64px" class="small">${g}</span>${chips(`italic.${g}`, [{ v: 'upright', l: 'Upright' }, { v: 'both', l: 'Upright + italic' }, { v: 'only', l: 'Italic only' }], cur, { lever: 'typography.italics', sm: true, name: `it-${g}` })}</div>`;
+      return `<div class="row wrap" style="margin-bottom:4px"><span style="width:64px" class="small">${g}</span>${chips(`italic.${g}`, [{ v: 'upright', l: 'Upright' }, { v: 'both', l: 'Upright + italic' }, { v: 'only', l: 'Italic only' }], cur, { lever: 'typography.italics', sm: true, name: `it-${g}`, label: `Italics, ${g}` })}</div>`;
     }).join('');
     return lever('typography.italics', rows, { label: 'Italics per category', keys: ['typography.italics', 'typography.italicDefault'], tipExtra: ` ${LEV['typography.italicDefault'].description}` });
   },
@@ -1188,10 +1189,11 @@ function fontInstalled(face) {
   return (_fontCache[face] = ok);
 }
 // Figma's host font list is simulated: Figma ships Google Fonts, not locally licensed faces.
+const figHas = (f) => FIGMA_FONTS.has(f) && f !== S.missingFace; // the Build-errors scenario marks one brand face absent
 const FIGMA_FONTS = new Set(['Inter', 'Playfair Display', 'JetBrains Mono', 'Roboto', 'Source Serif 4', 'IBM Plex Sans']);
 const availTag = (face) => {
   const here = fontInstalled(face);
-  const fig = S.host === 'plugin' ? FIGMA_FONTS.has(face) : null;
+  const fig = S.host === 'plugin' ? figHas(face) : null;
   return `${fig !== null ? `<span class="tag${fig ? '' : ' fail'}">${fig ? 'In this Figma' : 'Not in this Figma'}</span>` : ''}<span class="tag">${here ? 'On this device' : 'Not installed'}</span>${here ? '' : '<span class="nf">Not installed: showing fallback</span>'}`;
 };
 
@@ -1339,12 +1341,19 @@ function renderTop() {
   if (menu === 'health' && S.narrow) { const w = $('#verdict-dot').parentElement; w.insertAdjacentHTML('beforeend', healthHtml()); }
   renderStrip();
 }
+/** The refusal in the UI register (≤90 characters, system as subject). The engine's exact text stays one
+ *  step away in the banner's "Engine message" disclosure. */
+function refusalLine(msg) {
+  const slug = /brand color name '([^']+)' must be a single lowercase slug/.exec(msg);
+  if (slug) return `Brand color names use lowercase letters, digits and hyphens: '${slug[1]}' was refused.`;
+  return 'This value breaks an engine rule; the rule is named below.';
+}
 function renderBanner() {
   const b = $('#banner');
   if (S.refusal) {
     const row = rowOf(S.refusal.key);
     b.className = 'banner fail'; b.hidden = false; b.setAttribute('role', 'alert');
-    b.innerHTML = `<b>Edit refused.</b><span>${esc(S.refusal.msg)}</span><span>The preview keeps the last valid theme.</span><span class="spacer"></span>${row ? `<button type="button" class="btn sm" data-act="goto" data-domain="${row.domain}" data-key="${esc(S.refusal.key)}" id="ref-go">Show the field</button>` : ''}<button type="button" class="btn sm" data-act="undo" id="ref-undo">Undo this edit</button>`;
+    b.innerHTML = `<b>Edit refused.</b><span>${esc(refusalLine(S.refusal.msg))}</span><span>The preview keeps the last valid theme.</span><details class="small"><summary>Engine message</summary>${esc(S.refusal.msg)}</details><span class="spacer"></span>${row ? `<button type="button" class="btn sm" data-act="goto" data-domain="${row.domain}" data-key="${esc(S.refusal.key)}" id="ref-go">Show the field</button>` : ''}<button type="button" class="btn sm" data-act="undo" id="ref-undo">Undo this edit</button>`;
   } else { b.hidden = true; b.innerHTML = ''; b.removeAttribute('role'); }
 }
 function renderStrip() {
@@ -1731,7 +1740,7 @@ function warnings() {
   const cross = weightCrossing(); add(!!cross, 'Weight roles cross', cross, 'typography.weightRoles', 'Weight roles in order');
   const mm = mobileMerges(); add(mm.length > 0, `${plural(mm.length, 'mobile merge')}`, mm.join('; ') + '.', 'typography.typeScale', 'Mobile merges');
   const faces = [...new Set(R.t.typography.families.map((f) => f.stack[0]))];
-  const miss = faces.filter((f) => (S.host === 'plugin' ? !FIGMA_FONTS.has(f) : !fontInstalled(f)));
+  const miss = faces.filter((f) => (S.host === 'plugin' ? !figHas(f) : !fontInstalled(f)));
   add(miss.length > 0, `${plural(miss.length, 'face')} unavailable ${S.host === 'plugin' ? 'in this Figma' : 'on this device'}`, `${miss.join(', ')}. ${S.host === 'plugin' ? 'Text styles using them cannot apply.' : 'Previews use the fallback; tokens keep the name.'}`, 'typography.families', 'Font availability');
   const pins = S.input.typography?.faces || {};
   add(Object.keys(pins).length > 0, 'Pinned font cut', 'A pinned cut is set; check it still exists in the face.', 'typography.families', 'Stale font-cut pin');
@@ -1852,15 +1861,17 @@ function readbackResult() {
 
 function buildErrorsResult() {
   const r = R.t.root;
-  return { status: 'fail', verdict: 'Built with errors', summary: `Built 214 of 216 members of ${DEF['text-field'].name}. 10 kinds of error; the built members are usable.`,
-    counts: [['built', 214, [`214 members of ${DEF['text-field'].name}`]], ['skipped as already present', 2, ['Focus ring', 'Field label']], ['stale', 8, ['text-field/size=large, state=error (older build)', '…and 7 more from the build of 2026-09-26']], ['missing', 3, ['text-field/size=small, state=disabled, required=true', 'text-field/size=medium, state=disabled, required=true', 'text-field/size=large, state=disabled, required=true']]],
+  const N = DEF['text-field'].members, built = N - 5; // skipped 2 + missing 3: built + skipped + missing = N
+  const face = S.missingFace;
+  return { status: 'fail', verdict: 'Built with errors', summary: `Built ${built} of ${N} members of ${DEF['text-field'].name}. 10 kinds of error; the built members are usable.`,
+    counts: [['built', built, [`${built} members of ${DEF['text-field'].name}`]], ['skipped as already present', 2, ['size=small, state=rest', 'size=small, state=hover']], ['stale', 8, ['text-field/size=large, state=error (older build)', '…and 7 more from the build of 2026-09-26']], ['missing', 3, ['text-field/size=small, state=disabled, required=true', 'text-field/size=medium, state=disabled, required=true', 'text-field/size=large, state=disabled, required=true']]],
     errors: [
       { cause: 'Variables missing', text: `3 bindings point at variables this file doesn't have: ${r}/color/field/border/rest, ${r}/space/150, ${r}/radius/sm.`, fix: [['Apply Theme first', 'fix-apply']] },
       { cause: "Property links didn't take", text: '12 members kept a raw value where the label and icon properties should link.', fix: [['Build again', 'fix-rebuild']] },
       { cause: 'Layer not found, link not kept', text: '2 members lost the link to their Focus ring layer.', report: 'Report only. A rebuild does not fix this: the def names a layer the set does not have.' },
       { cause: 'Stale members', text: '8 members from an older build match no current variant.', fix: [['Delete stale members and rebuild…', 'fix-stale'], ['Build into a fresh page', 'fix-fresh']] },
       { cause: 'Pre-flight conflict', text: `2 items already use names the plan needs: the local text style "type/label/md/emphasis" and the variable collection "${r} space".`, report: 'Rename or remove it in Figma, then apply again.' },
-      { cause: 'Fonts unavailable', text: 'Clash Display Semibold and Clash Display Bold are not in this Figma.', fix: [['Choose another face', 'fix-face']] },
+      { cause: 'Fonts unavailable', text: `${face} Bold is not in this Figma, so 2 title styles fell back.`, fix: [['Choose another face', 'fix-face']] },
       { cause: 'Orphaned or stranded after Apply', text: '9 variables and 1 collection are no longer in the plan.', fix: [['Prune stale…', 'fix-prune']] },
       { cause: 'Declared mode missing', text: 'The file declares hc-dark, but the last Apply wrote no values for it.', fix: [['Apply again', 'fix-apply']] },
       { cause: 'Plugin build older than engine', text: `This plugin was built with engine ${S.pluginEngine}; the panel runs ${ENGINE_V}.`, report: 'Rebuild the plugin.' },
@@ -2258,7 +2269,7 @@ function syncHarness() {
 }
 function resetState(keepHost = true) {
   const host = S.host, frame = S.frame, split = S.split;
-  Object.assign(S, { brandKey: 'prism3', dirty: 0, refusal: null, domain: 'brand', search: '', adv: {}, pmOpen: {}, tipOpen: null, view: 'guide', pin: false, mode: 'light', compare: false, sel: null, roleSel: null, pane: 'settings', firstRun: false, rootDraft: null, menu: null, pluginEngine: ENGINE_V, busy: null, lastBuild: {},
+  Object.assign(S, { brandKey: 'prism3', missingFace: null, dirty: 0, refusal: null, domain: 'brand', search: '', adv: {}, pmOpen: {}, tipOpen: null, view: 'guide', pin: false, mode: 'light', compare: false, sel: null, roleSel: null, pane: 'settings', firstRun: false, rootDraft: null, menu: null, pluginEngine: ENGINE_V, busy: null, lastBuild: {},
     drawer: { open: false, ops: {}, panel: null, agentOn: false, transport: 'file mailbox', lastCmd: null, queue: [], notices: [] } });
   if (keepHost) Object.assign(S, { host, frame, split });
   S.input = clone(P3.examples.prism3); _autoStatus = null; _dpx = null; recompute();
@@ -2279,6 +2290,7 @@ const HARNESS = {
     if (v === 'apply') startOp('apply');
     if (v === 'builderr') {
       S.pluginEngine = '0.212.0';
+      S.missingFace = R.t.typography.families[0].stack[0]; // a face this brand uses; Health then names the same one
       const op = opOf('build'); Object.assign(op, { status: 'fail', t: now(), open: true, cfg: { id: 'text-field' }, deps: [{ id: 'focus-ring', status: 'done', text: 'skipped as already present' }, { id: 'field-label', status: 'done', text: 'skipped as already present' }, { id: 'field-message', status: 'done', text: 'built, 4 members' }], history: [{ t: '09:12', verdict: `Built ${DEF['text-field'].name}`, summary: `Built 24 members of ${DEF['text-field'].name}.` }] });
       op.result = buildErrorsResult(); S.lastBuild['text-field'] = { cls: 'fail', text: 'Built with errors' }; S.lastBuild['focus-ring'] = { cls: 'ok', text: 'Built 09:12' }; S.lastBuild['field-label'] = { cls: 'ok', text: 'Built 09:12' };
       S.drawer.open = true; renderAll(); $('#op-build-h')?.focus();
