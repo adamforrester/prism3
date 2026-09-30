@@ -40,10 +40,11 @@
  *                    Derived here from git's list of deleted notes and a parse of the changelog, with
  *                    this file's own arithmetic — never by calling `fold.ts` (docs/34 shape 2).
  *   RENAME STAMPS  — (#1816) a rename rule's `since` is the other version number a PR used to hand-write.
- *                    A PR writes the quoted placeholder there, and in `test.ts`'s table for it; the fold
- *                    fills it in. Fails a new or moved stamp that names a version no fold assigned, a
- *                    placeholder with no pending note, a placeholder that survives a fold, and a fold
- *                    that fills one with anything but its own version. The parse and the arms live in
+ *                    A PR writes the quoted placeholder there, and in `test.ts`'s table for it, and adds a
+ *                    change note in the same diff; the fold fills it in. Fails a new stamp that names a
+ *                    number, any change to an existing concrete stamp, a placeholder introduced without an
+ *                    added note, a placeholder that survives a fold, a fold that fills one with anything
+ *                    but its own version, and a fold that adds a stamp. The parse and the arms live in
  *                    `rename-stamp-audit.ts`, which restates rather than imports `fold-stamps.ts`.
  *
  * The one-writer arm starts at the commit that introduced the FOLD MARKER: at a base without it there
@@ -526,9 +527,11 @@ if (markerAtBase) {
     head: atHead.stamps,
     headSources,
     isFold,
-    baseVersion,
     headVersion,
-    notePending: [...parsedAtHead.values()].some((n) => n.level !== null && n.problem === null),
+    // ADDED by this diff, not merely pending at HEAD (#1842 review): a placeholder leaning on another
+    // PR's pending note is stranded if the fold consumes that note first. NOTE SHAPE has already died
+    // on any malformed note, so every added bump note here is well-formed.
+    noteAdded: bumpNotes.length > 0,
   });
   if (problems.length)
     die([
@@ -536,8 +539,9 @@ if (markerAtBase) {
       ...problems.map((p) => `      ${p}`),
       `    ${where}`,
       '',
-      '  A PR that adds or changes a rename rule writes its `since` as the quoted placeholder, in the rule and in',
-      '  test.ts\'s table for it, and carries a change note. The fold writes the version. CONTRIBUTING.md §2.',
+      '  A PR that adds a rename rule writes its `since` as the quoted placeholder, in the rule and in test.ts\'s',
+      '  table for it, and adds a change note in the same diff. The fold writes the version. An existing stamp',
+      '  never changes: a changed rule is a new rule, with a new id. CONTRIBUTING.md §2.',
     ]);
   const pendingNow = atHead.stamps.filter((st) => st.since === PENDING_STAMP).length;
   stampLine = `${atHead.stamps.length} read at HEAD, ${pendingNow} pending the fold${isFold ? ` (this fold filled ${atBase.stamps.filter((st) => st.since === PENDING_STAMP).length} with ${headVersion})` : ''}`;

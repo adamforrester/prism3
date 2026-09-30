@@ -71,12 +71,13 @@ one at a time. Now:
 - **A rename rule's `since`** (#1816) is the other version number a PR used to write. A PR that adds an
   entry to `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` or `COLLECTION_RENAMES` stamps it
   `since: '{{ENGINE_VERSION}}'`, and writes the same quoted placeholder in `test.ts`'s table for it
-  (`EXPECTED_SINCE` or `EXPECTED_COLLECTION_SINCE`). It carries a change note too, since a new rule is a
-  behavior change. The fold fills both stamps with the version it assigns. `lint-emission-version.ts`'s
-  RENAME STAMPS arm fails a new or moved stamp with a number no fold assigned, a placeholder with no
-  pending note, and a placeholder a fold left behind. In those three files the quoted placeholder is
-  reserved for stamps, because the fold replaces every one: a test fixture that needs it builds it by
-  concatenation.
+  (`EXPECTED_SINCE` or `EXPECTED_COLLECTION_SINCE`). **The same diff adds a change note**; another PR's
+  pending note does not count, because the fold may consume it before your PR merges. The fold fills
+  both stamps with the version it assigns. **An existing stamp never changes**, in a fold or out of
+  one: a rule whose change needs a new stamp is a new rule, with a new id, the placeholder and a note.
+  A fold only fills placeholders; it adds no stamp of its own. `lint-emission-version.ts`'s RENAME
+  STAMPS arm fails each of these by name. In those three files the quoted placeholder is reserved for
+  stamps, because the fold replaces every one: a test fixture that needs it builds it by concatenation.
 - **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
   bumps it itself and runs `token-contract.ts --accept`. Contract bumps are rare and carry real
   baseline content, so two of them *should* meet.
@@ -152,8 +153,8 @@ What to check before you push the fold:
 - **Rename stamps need nothing by hand.** A PR that added a rename rule stamped it with the quoted
   placeholder, and the fold fills it (#1816). The dry run lists each file and count under "rename
   stamps". The fold refuses a pending stamp when no note is pending, since the version would not move.
-  RENAME STAMPS in `lint-emission-version.ts` fails the fold PR if a placeholder is left or filled with
-  another version.
+  RENAME STAMPS in `lint-emission-version.ts` fails the fold PR if a placeholder is left, is filled with
+  another version, or if the fold adds or changes a stamp itself.
 - **A refusal is information.** The fold refuses on a malformed file, a pending file no merge added,
   or landing dates that run backwards. It writes nothing when it refuses. Fix the cause; do not
   hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check

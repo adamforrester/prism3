@@ -240,8 +240,10 @@ if (stamps.length && next === current)
     `${stamps.reduce((n, s) => n + s.count, 0)} rename stamp(s) read '{{ENGINE_VERSION}}', and no change note is pending, so the version would not move.`,
     ...stamps.map((s) => `    ${s.path}: ${s.count}`),
     '',
-    '  A new rename rule is a behavior change and its PR owes a note. `lint-emission-version.ts` fails a PR',
-    '  that leaves a pending stamp with no note, so this means that gate was bypassed. Add the note first.',
+    '  A pending stamp names the version this fold assigns, and with no note this fold assigns none. The PR',
+    '  that wrote the stamp was required to add a note in the same diff (`lint-emission-version.ts`, NOTE WITH',
+    '  THE STAMP), so that note was folded without filling this stamp, deleted, or never checked. Land a',
+    '  change note in a PR of its own (`engine: minor` for the rule that PR added), then fold again.',
   ]);
 const today = new Date().toISOString().slice(0, 10);
 

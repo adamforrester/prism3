@@ -60,7 +60,7 @@ import type { ControlShape } from './scale';
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
-import { readStamps, auditStamps } from './rename-stamp-audit';
+import { readStamps, auditStamps, onlyFilledStamps } from './rename-stamp-audit';
 import { fillStamps, STAMP_FILES } from '../../fold-stamps';
 import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // The component registry (#742, `docs/38` Arc 3). `componentDefs` is the set — the per-def loop below
@@ -23739,7 +23739,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // **A NEW ENTRY'S ERA IS THE PLACEHOLDER UNTIL THE FOLD (#1816).** Since #1807 a PR cannot know its
   // version, so a new entry is stamped {{ENGINE_VERSION}}, as the whole single-quoted string, in the map
   // and here alike, and `fold.ts` fills both with the version it assigns. `lint-emission-version.ts`'s
-  // RENAME STAMPS arm fails a concrete number a fold did not assign, in either place.
+  // RENAME STAMPS arm fails a concrete number a fold did not assign, in either place, and any change to
+  // an existing stamp.
   const EXPECTED_COLLECTION_SINCE: Record<string, string> = {
     'color.appearance→color': '0.30.0',
   };
@@ -23754,7 +23755,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     + `\n    {{ENGINE_VERSION}} placeholder until the fold fills it, #1816) — that is the`
     + `\n    prompt, not an obstacle. Do NOT restamp an existing entry to today's version to get green: \`since\``
     + `\n    records the version whose code made the rename, not the version in the file today, and moving a`
-    + `\n    historical stamp forward is the false provenance record this arm exists to prevent.`);
+    + `\n    historical stamp forward is the false provenance record this arm exists to prevent. Since #1816`
+    + `\n    an existing stamp cannot move at all (RENAME STAMPS, IMMUTABLE STAMP): a rename that changes is a new`
+    + `\n    entry with the placeholder and a change note.`);
   // ---- The SHIPPED entry against the FOUR file states a real designer file can be in (#1148) ----
   //
   // Spelled out here rather than reusing `PRE` above: the fixture is a chain, the shipped map is not, and
@@ -25196,7 +25199,8 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   // per-rule argument for each retirement (dead domain, dead image, and for rule 2 a dead target tier).
   // If you are here because the arm went red after adding a rule: add the id, do not delete the era column.
   // A new rule's era is {{ENGINE_VERSION}}, as the whole single-quoted string, here and in the rule alike;
-  // the fold fills both (#1816).
+  // the fold fills both (#1816). An existing era never moves: `lint-emission-version.ts` fails it as
+  // IMMUTABLE STAMP, so a rule whose change needs a new era is a new rule with a new id.
   const EXPECTED_SINCE: Record<string, string> = {
     'namespace-and-core-tier-1097': '0.27.0',
     'brand-roots-1283': '0.50.0',
@@ -26085,15 +26089,27 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 // ---- #1816 RENAME STAMPS: the fold fills a rename rule's `since`, and the gate checks it did ----------
 //
 // Two subjects, one block. `fillStamps` (`fold-stamps.ts`) is what `fold.ts` runs over the three stamp
-// files; `readStamps` / `auditStamps` (`rename-stamp-audit.ts`) are what `lint-emission-version.ts`'s
-// RENAME STAMPS arm runs over the base and HEAD copies. Every expectation below is a literal, and the
-// placeholder is built by concatenation: this file is one the fold rewrites, and a whole quoted
-// placeholder written here would be filled by the next fold (the STRAY PLACEHOLDER arm says so).
+// files; `readStamps` / `auditStamps` / `onlyFilledStamps` (`rename-stamp-audit.ts`) are what
+// `lint-emission-version.ts`'s RENAME STAMPS arm and `lint-progress-order.ts`'s pure-fold test run over
+// the base and HEAD copies. Every expectation below is a literal, and the placeholder is built by
+// concatenation: this file is one the fold rewrites, and a whole quoted placeholder written here would
+// be filled by the next fold (the STRAY PLACEHOLDER arm says so).
 {
   const P = '{{' + 'ENGINE_VERSION}}';
-  const renamesSrc = (rows: [string, string][]): string => [
+  const QP = `'${P}'`;
+  const renamesSrc = (rows: [string, string][], deletionSince = "'0.206.0'"): string => [
     'export const MATERIALIZATION_RENAMES: MaterializationRule[] = [',
     ...rows.flatMap(([id, since]) => ['  {', `    id: '${id}',`, `    since: '${since}',`, "    why: 'fixture',", '  },']),
+    '];',
+    '',
+    'export type MaterializationDeletion = {',
+    '  since: string;',
+    '};',
+    'export const MATERIALIZATION_DELETIONS: MaterializationDeletion[] = [',
+    '  {',
+    "    id: 'old-deletion',",
+    `    since: ${deletionSince},`,
+    '  },',
     '];',
   ].join('\n');
   const collectionsSrc = "export const COLLECTION_RENAMES: CollectionRename[] = [\n  { from: 'a.b', to: 'a', since: '0.30.0' },\n];";
@@ -26108,11 +26124,11 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   ].join('\n');
   const sources = (rows: [string, string][], extra = '') => ({ renames: renamesSrc(rows), collections: collectionsSrc, tests: testsSrc(rows, extra) });
   const OLD: [string, string] = ['old-rule', '0.27.0'];
-  const audit = (base: [string, string][], head: [string, string][], opts: { isFold: boolean; headVersion: string; notePending: boolean; extra?: string }) => {
+  const audit = (base: [string, string][], head: [string, string][], opts: { isFold: boolean; headVersion: string; noteAdded: boolean; extra?: string }) => {
     const b = readStamps(sources(base));
     const hs = sources(head, opts.extra);
     const h = readStamps(hs);
-    return { read: [...b.problems, ...h.problems], out: auditStamps({ base: b.stamps, head: h.stamps, headSources: hs, isFold: opts.isFold, baseVersion: '0.217.0', headVersion: opts.headVersion, notePending: opts.notePending }) };
+    return { read: [...b.problems, ...h.problems], out: auditStamps({ base: b.stamps, head: h.stamps, headSources: hs, isFold: opts.isFold, headVersion: opts.headVersion, noteAdded: opts.noteAdded }) };
   };
 
   // The reader, over the LIVE files: every table represented, and one known stamp per table read back.
@@ -26123,8 +26139,8 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   });
   const liveAt = (table: string, key: string): string | undefined => live.stamps.find((s) => s.table === table && s.key === key)?.since;
   ok(live.problems.length === 0
-      && liveAt('MATERIALIZATION_RENAMES/DELETIONS', 'namespace-and-core-tier-1097') === '0.27.0'
-      && liveAt('MATERIALIZATION_RENAMES/DELETIONS', 'size-spacing-removed-spacing-model') === '0.206.0'
+      && liveAt('MATERIALIZATION_RENAMES', 'namespace-and-core-tier-1097') === '0.27.0'
+      && liveAt('MATERIALIZATION_DELETIONS', 'size-spacing-removed-spacing-model') === '0.206.0'
       && liveAt('COLLECTION_RENAMES', 'color.appearance→color') === '0.30.0'
       && liveAt('EXPECTED_SINCE', 'brand-roots-1283') === '0.50.0'
       && liveAt('EXPECTED_COLLECTION_SINCE', 'color.appearance→color') === '0.30.0',
@@ -26133,24 +26149,32 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
   // The reader's floor: a stamp it cannot parse, and a table it cannot find, are problems and not silence.
   const dq = readStamps({ ...sources([OLD]), renames: sources([OLD]).renames.replace("since: '0.27.0'", 'since: "0.27.0"') });
   const noTable = readStamps({ ...sources([OLD]), tests: sources([OLD]).tests.replace('const EXPECTED_SINCE:', 'const EXPECTED_ERAS:') });
-  ok(dq.problems.length === 2 && dq.problems[0].includes('1 `since:` literal(s), but only 0 read') && dq.problems[1].includes('no stamp read at all')
+  ok(dq.problems.length === 1 && dq.problems[0].includes('MATERIALIZATION_RENAMES holds 1 `since:`, but only 0 read')
       && noTable.problems.some((p) => p.includes('`const EXPECTED_SINCE: Record<string, string> = {` found 0 time(s)')),
     `#1816 rename stamps: an unparseable stamp and a missing test table are READ problems (double-quoted: ${dq.problems.join(' | ')}; renamed table: ${noTable.problems.join(' | ')})`);
 
-  // A PR adding a rule: the placeholder in both places, with a note pending, is clean.
-  const pr = audit([OLD], [OLD, ['new-rule', P]], { isFold: false, headVersion: '0.217.0', notePending: true });
+  // #1842 review: a stamp that is not a string literal at all (`since: ENGINE_VERSION`) is counted too.
+  const ident = readStamps({ ...sources([OLD]), renames: renamesSrc([OLD], 'ENGINE_VERSION') });
+  ok(ident.problems.length === 1 && ident.problems[0].includes('MATERIALIZATION_DELETIONS holds 1 `since:`, but only 0 read'),
+    `#1816 rename stamps: a MATERIALIZATION_DELETIONS stamp written as an identifier is a READ problem, not a skipped stamp (${ident.problems.join(' | ') || 'no problem reported'})`);
+
+  // A PR adding a rule: the placeholder in both places, with a note added in the same diff, is clean.
+  const pr = audit([OLD], [OLD, ['new-rule', P]], { isFold: false, headVersion: '0.217.0', noteAdded: true });
   ok(pr.read.length === 0 && pr.out.length === 0,
     `#1816 rename stamps: a PR that adds a rule stamped with the placeholder, rule and test table alike, passes (${[...pr.read, ...pr.out].join(' | ') || 'clean'})`);
 
   // The same PR guessing the number fails HAND-WRITTEN STAMP, once for the rule and once for the test table.
-  const guess = audit([OLD], [OLD, ['new-rule', '0.218.0']], { isFold: false, headVersion: '0.217.0', notePending: true });
+  const guess = audit([OLD], [OLD, ['new-rule', '0.218.0']], { isFold: false, headVersion: '0.217.0', noteAdded: true });
   ok(guess.out.length === 2 && guess.out.every((p) => p.startsWith("HAND-WRITTEN STAMP — ") && p.includes("'new-rule' is new and reads 0.218.0")),
     `#1816 rename stamps: a PR that hand-writes a new rule's version fails HAND-WRITTEN STAMP in both tables (${guess.out.join(' | ')})`);
 
-  // A placeholder with no note: the next fold would not move the version.
-  const noNote = audit([OLD], [OLD, ['new-rule', P]], { isFold: false, headVersion: '0.217.0', notePending: false });
-  ok(noNote.out.length === 1 && noNote.out[0].startsWith('PENDING, NO NOTE — ') && noNote.out[0].includes("EXPECTED_SINCE 'new-rule'"),
-    `#1816 rename stamps: a pending stamp with no pending change note fails PENDING, NO NOTE (${noNote.out.join(' | ')})`);
+  // The note travels with the stamp: introducing a placeholder without ADDING a note fails, whatever is
+  // pending elsewhere; a placeholder already at the base (another PR's, with its own note) does not.
+  const noNote = audit([OLD], [OLD, ['new-rule', P]], { isFold: false, headVersion: '0.217.0', noteAdded: false });
+  const inherited = audit([OLD, ['new-rule', P]], [OLD, ['new-rule', P]], { isFold: false, headVersion: '0.217.0', noteAdded: false });
+  ok(noNote.out.length === 1 && noNote.out[0].startsWith('NOTE WITH THE STAMP — ') && noNote.out[0].includes("EXPECTED_SINCE 'new-rule'")
+      && inherited.out.length === 0,
+    `#1816 rename stamps: a diff that introduces a placeholder without adding a change note fails NOTE WITH THE STAMP; one already at the base passes (${[...noNote.out, ...inherited.out].join(' | ')})`);
 
   // The fold: the real `fillStamps` output over a pending base is exactly what the audit accepts.
   const pendingBase = sources([OLD, ['new-rule', P]]);
@@ -26160,37 +26184,49 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     tests: fillStamps(pendingBase.tests, '0.218.0'),
   };
   const folded = { renames: filled.renames.out, collections: filled.collections.out, tests: filled.tests.out };
-  const foldAudit = auditStamps({ base: readStamps(pendingBase).stamps, head: readStamps(folded).stamps, headSources: folded, isFold: true, baseVersion: '0.217.0', headVersion: '0.218.0', notePending: false });
+  const foldAudit = auditStamps({ base: readStamps(pendingBase).stamps, head: readStamps(folded).stamps, headSources: folded, isFold: true, headVersion: '0.218.0', noteAdded: false });
   ok(filled.renames.count === 1 && filled.collections.count === 0 && filled.tests.count === 1
       && folded.renames.includes("    id: 'new-rule',\n    since: '0.218.0',") && folded.tests.includes("    'new-rule': '0.218.0',")
       && folded.renames.includes("since: '0.27.0'") && foldAudit.length === 0,
     `#1816 fold: fillStamps fills each quoted placeholder with the fold's version, leaves every concrete stamp, and the audit accepts the result (counts ${filled.renames.count}/${filled.collections.count}/${filled.tests.count}; audit: ${foldAudit.join(' | ') || 'clean'})`);
 
   // fillStamps replaces the QUOTED placeholder only, every occurrence, and never the bare one in prose.
-  const prose = `// write ${P} as the since\nconst a = { since: '${P}' };\nconst b = { since: '${P}' };`;
+  const prose = `// write ${P} as the since\nconst a = { since: ${QP} };\nconst b = { since: ${QP} };`;
   const fp = fillStamps(prose, '1.2.3');
   ok(fp.count === 2 && fp.out === `// write ${P} as the since\nconst a = { since: '1.2.3' };\nconst b = { since: '1.2.3' };`,
     `#1816 fold: fillStamps replaces every quoted placeholder and leaves the bare one in a comment (count ${fp.count}: ${JSON.stringify(fp.out)})`);
   ok(STAMP_FILES.join(' | ') === 'packages/engine/materialization-renames.ts | packages/engine/rename-map.ts | packages/engine/test.ts',
     `#1816 fold: the fold fills the three files the stamps live in (${STAMP_FILES.join(' | ')})`);
 
-  // A fold that leaves a placeholder, and one that fills it with another version, both fail by name.
-  const left = audit([OLD, ['new-rule', P]], [OLD, ['new-rule', P]], { isFold: true, headVersion: '0.218.0', notePending: false });
-  const wrong = audit([OLD, ['new-rule', P]], [OLD, ['new-rule', '0.219.0']], { isFold: true, headVersion: '0.218.0', notePending: false });
+  // lint-progress-order's pure-fold question: only a diff that is exactly the substitution counts.
+  const fileBase = `const a = { since: ${QP} };\nconst b = 1;`;
+  ok(onlyFilledStamps(fileBase, "const a = { since: '0.218.0' };\nconst b = 1;", '0.218.0')
+      && !onlyFilledStamps(fileBase, "const a = { since: '0.218.0' };\nconst b = 2;", '0.218.0')
+      && !onlyFilledStamps(fileBase, "const a = { since: '0.219.0' };\nconst b = 1;", '0.218.0')
+      && !onlyFilledStamps('const b = 1;', 'const b = 2;', '0.218.0'),
+    '#1816 pure fold: a stamp file counts as a fold write only when its whole diff is the placeholder filled with the fold\'s version (filled-only passes; another edit, another version, or no placeholder at the base fails)');
+
+  // A fold that leaves a placeholder, fills the wrong version, or adds a stamp of its own fails by name.
+  const left = audit([OLD, ['new-rule', P]], [OLD, ['new-rule', P]], { isFold: true, headVersion: '0.218.0', noteAdded: false });
+  const wrong = audit([OLD, ['new-rule', P]], [OLD, ['new-rule', '0.219.0']], { isFold: true, headVersion: '0.218.0', noteAdded: false });
   ok(left.out.length === 1 && left.out[0].startsWith('FOLD LEFT A PLACEHOLDER — ') && left.out[0].includes('after a fold to 0.218.0')
       && wrong.out.length === 2 && wrong.out.every((p) => p.startsWith('FOLD FILLED WRONG — ') && p.includes('now reads 0.219.0; this fold assigns 0.218.0')),
     `#1816 rename stamps: a fold that leaves a placeholder fails FOLD LEFT A PLACEHOLDER, one that fills the wrong version fails FOLD FILLED WRONG (${[...left.out, ...wrong.out].join(' | ')})`);
+  const foldAdds = audit([OLD], [OLD, ['fold-rule', '0.218.0']], { isFold: true, headVersion: '0.218.0', noteAdded: false });
+  ok(foldAdds.out.length === 2 && foldAdds.out.every((p) => p.startsWith('FOLD ADDED A STAMP — ') && p.includes("'fold-rule' is new in a fold")),
+    `#1816 rename stamps: a fold that adds a stamp, even at its own version, fails FOLD ADDED A STAMP (${foldAdds.out.join(' | ')})`);
 
-  // An existing stamp: moved above the base is a guess; moved to or below it is a correction to history.
-  const ahead = audit([OLD], [['old-rule', '0.218.0']], { isFold: false, headVersion: '0.217.0', notePending: true });
-  const back = audit([OLD], [['old-rule', '0.26.0']], { isFold: false, headVersion: '0.217.0', notePending: true });
-  ok(ahead.out.length === 2 && ahead.out.every((p) => p.startsWith('HAND-WRITTEN STAMP — ') && p.includes('moved 0.27.0 → 0.218.0, above the base'))
-      && back.out.length === 0,
-    `#1816 rename stamps: an existing stamp moved above the base's version fails HAND-WRITTEN STAMP, a correction to 0.26.0 passes (${[...ahead.out, ...back.out].join(' | ')})`);
+  // An existing concrete stamp never changes: not forward, not back, not to the placeholder, not in a fold.
+  const ahead = audit([OLD], [['old-rule', '0.218.0']], { isFold: false, headVersion: '0.217.0', noteAdded: true });
+  const back = audit([OLD], [['old-rule', '0.26.0']], { isFold: false, headVersion: '0.217.0', noteAdded: true });
+  const reopen = audit([OLD], [['old-rule', P]], { isFold: false, headVersion: '0.217.0', noteAdded: true });
+  const inFold = audit([OLD], [['old-rule', '0.218.0']], { isFold: true, headVersion: '0.218.0', noteAdded: false });
+  ok([ahead, back, reopen, inFold].every((r) => r.out.length === 2 && r.out.every((p) => p.startsWith("IMMUTABLE STAMP — ") && p.includes("'old-rule' moved 0.27.0 → "))),
+    `#1816 rename stamps: an existing concrete stamp moved forward, back, to the placeholder, or in a fold fails IMMUTABLE STAMP (${[ahead, back, reopen, inFold].map((r) => r.out.join(' | ')).join(' || ')})`);
 
   // A placeholder anywhere but a stamp, and a misspelled one, fail on their own names.
-  const stray = audit([OLD], [OLD], { isFold: false, headVersion: '0.217.0', notePending: true, extra: `  const fixture = { since: '${P}' };` });
-  const typo = audit([OLD], [OLD, ['new-rule', '{{ENGINE_VERSON}}']], { isFold: false, headVersion: '0.217.0', notePending: true });
+  const stray = audit([OLD], [OLD], { isFold: false, headVersion: '0.217.0', noteAdded: true, extra: `  const fixture = { since: ${QP} };` });
+  const typo = audit([OLD], [OLD, ['new-rule', '{{ENGINE_VERSON}}']], { isFold: false, headVersion: '0.217.0', noteAdded: true });
   ok(stray.out.length === 1 && stray.out[0].startsWith('STRAY PLACEHOLDER — packages/engine/test.ts holds 1 quoted')
       && typo.out.length === 2 && typo.out.every((p) => p.startsWith('STAMP SHAPE — ')),
     `#1816 rename stamps: a quoted placeholder outside a stamp fails STRAY PLACEHOLDER, a misspelled one fails STAMP SHAPE (${[...stray.out, ...typo.out].join(' | ')})`);

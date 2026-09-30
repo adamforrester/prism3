@@ -133,6 +133,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
@@ -391,16 +392,17 @@ if (foldFails.length) {
     // that substitution with HEAD's version: the base copy, substituted here, is byte-identical to HEAD's.
     // Any other edit in the file is a change of its own and carries a fragment. The paths and the
     // substitution are restated rather than imported from `fold-stamps.ts`, the subject (docs/34 shape 2).
-    const STAMP_FILES = ['packages/engine/materialization-renames.ts', 'packages/engine/rename-map.ts', 'packages/engine/test.ts'];
+    // The comparison itself is `onlyFilledStamps` in `rename-stamp-audit.ts`, a pure function so `test.ts`
+    // can drive it with fixtures (#1842 review: "any stamp-file edit counts" survived every committed check).
+    const STAMP_FILES: string[] = Object.values(STAMP_PATHS);
     const headVersionLine = /ENGINE_VERSION\s*=\s*'(\d+\.\d+\.\d+)'/.exec(git('show', 'HEAD:packages/engine/version.ts').out);
-    const onlyFilledStamps = (f: string): boolean => {
+    const isFilledStampFile = (f: string): boolean => {
       if (!STAMP_FILES.includes(f) || !headVersionLine) return false;
       const was = git('show', `${base}:${f}`);
       const now = git('show', `HEAD:${f}`);
-      if (!was.ok || !now.ok || !was.out.includes("'{{ENGINE_VERSION}}'")) return false;
-      return was.out.split("'{{ENGINE_VERSION}}'").join(`'${headVersionLine[1]}'`) === now.out;
+      return was.ok && now.ok && onlyFilledStamps(was.out, now.out, headVersionLine[1]);
     };
-    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)) && !onlyFilledStamps(f));
+    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)) && !isFilledStampFile(f));
     const foldShaped = (deletedFrags.length > 0 || deletedNotes.length > 0) && foldFails.length === 0;
     const pureFold = foldShaped && beyond.length === 0;
     const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
