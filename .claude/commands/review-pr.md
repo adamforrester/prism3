@@ -220,15 +220,29 @@ Beware the cwd trap: the Bash tool's working directory persists between calls, s
    `prism.*`/hex (product). Don't let a change conflate them.
 
 ## Docs discipline
-Durable state must survive a context clear. A behavioural change that doesn't update
-`docs/00-progress.md` (status + decisions log, most-recent-first) — and
-`07-e2e-journey.md` / test counts / headline numbers where relevant — is incomplete.
-Flag it. The entry belongs in the feature PR itself, not a follow-up.
+Durable state must survive a context clear. A behavioural change that doesn't carry a
+progress entry (status + decisions log) — and `07-e2e-journey.md` / test counts / headline
+numbers where relevant — is incomplete. Flag it. The entry belongs in the feature PR itself,
+not a follow-up.
 
-**Verify the entry LANDED, not just that it exists.** A clean 3-way merge can silently
-misplace it — diff3 has no "most-recent-first" concept. After any rebase/merge touching
-`00-progress.md`, grep for the PR's own new heading and confirm it sits near the top,
-**even when git reported zero conflicts**. Same for `32-component-build-learnings.md`.
+**Since #1807 the entry is a FILE, not an edit to the log.** Look for
+`docs/progress/pending/<slug>.md` in the diff: one entry headed `## (YYYY-MM-DD) — <title>`.
+A PR that writes at the top of `docs/00-progress.md` instead is on the old convention; send it
+to `CONTRIBUTING.md` §2, "Converting an open PR from the old convention".
+`lint-progress-order.ts` fails a PR (other than a fold) that adds no fragment, but it checks
+only that the file exists: whether the entry says what a diff cannot is still yours to judge. When reading recent state, read `pending/` before the top of
+the log: merged entries wait there until the next fold.
+
+**The engine bump is a change note, not a number.** A PR that owes an `ENGINE_VERSION` bump
+adds `packages/engine/changes/<slug>.md` declaring `engine: patch|minor|major`. Check the
+declared class against the change (a MINOR when the projected surface grows or shrinks). A
+PR that edits `ENGINE_VERSION` or its changelog in `version.ts` is blocking unless it is a
+fold; `lint-emission-version.ts` fails it by name. `CONTRACT_VERSION` is still bumped per PR.
+
+**Verify a hand-edited log entry LANDED, not just that it exists.** A clean 3-way merge can
+silently misplace it — diff3 has no "most-recent-first" concept. For a fold PR, or any PR
+that still touches `00-progress.md`, grep for the new headings and confirm they sit near the
+top, **even when git reported zero conflicts**. Same for `32-component-build-learnings.md`.
 
 Also check what the diff *invalidates*: a shipped skill or doc describing an engine
 surface can be silently staled by a change to it, and nothing gates that — unlike

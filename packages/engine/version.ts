@@ -20,6 +20,18 @@
  * nothing. So VALUES are not versioned and NAMES are. Tying them together would either cry wolf on
  * every brand tweak or stay silent through a rename; separating them lets each be strict.
  *
+ * ── WHO WRITES `ENGINE_VERSION` (#1807, decided 2026-09-30) ─────────────────────────────────────
+ *
+ * Only the FOLD (`fold.ts` at the repo root). A PR that owes an engine bump adds a change note,
+ * `packages/engine/changes/<slug>.md`, whose front matter DECLARES the class (`engine: patch|minor|major`)
+ * and whose body is the changelog prose; it never edits the constant or the changelog below. After a
+ * batch of merges the fold assigns ONE version for the batch (the highest declared class), writes the
+ * constant and the changelog under the FOLD MARKER, deletes the notes and regenerates the stamps. So a
+ * version names a fold, which may cover several PRs, and `main` runs a merged change under the previous
+ * number until the fold lands. `lint-emission-version.ts` and `lint-component-surface.ts` accept an
+ * added note as the bump; the former also fails a PR that is not a fold for editing either.
+ * `CONTRACT_VERSION` is unchanged by this: a PR still bumps it itself, with its baseline.
+ *
  * ── WHAT COUNTS AS THE ENGINE SURFACE (#1252, decided) ──────────────────────────────────────────
  *
  * `ENGINE_VERSION` bumps on any change to what a consumer can OBSERVE, and that is BOTH the emitted
@@ -2730,6 +2742,8 @@
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
 /**
+ * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
+ *
  * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
  *
  * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
@@ -2925,6 +2939,16 @@
  * comments that ship in the plugin bundle. All respelled to en-US — meaning identical, letters moved.
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
+ *
+ * 0.216.0 — #1750: every component set built onto a shared page landed at (0,0), so the second set on
+ * `↳ Buttons` (and on Icon button, Checkbox, Radio, Switch) covered the first. The plugin executor
+ * (`apps/plugin/src/write-components.ts`) now places a set it CREATES beside the page's existing content
+ * (`placeNewSet`): top-aligned with the sets already there, and `SET_GAP` (160, a placeholder matching the
+ * owner's hand layout) right of every node that shares its row. Nodes wholly above or below, like the page
+ * header, do not push it. An existing set is never moved. `main.ts` now places page headers once the run's
+ * builds are done, so a header first placed over a family built as one run spans every set in it. A PLUGIN
+ * write-path behavior change → ENGINE bump; no engine emission or projected surface moves (branched from
+ * #1808 at 0.215.0). CONTRACT STANDS at 14.0.0 (no token name moves).
  *
  * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
  * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
@@ -4307,7 +4331,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.215.0';
+export const ENGINE_VERSION = '0.216.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -5305,7 +5329,7 @@ export type Level = typeof LEVELS[number];
 /** The committed baseline's shape (`schema/token-contract.json`). */
 export type Contract = {
   contractVersion: string;
-  engineVersion: string;
+  /** No `engineVersion` (#1807): `token-contract.ts --check` refuses a baseline that carries one. */
   note: string;
   corpus: string[];
   /** path (below the root) → DTCG `$type`. Every corpus brand emits every one of these. */

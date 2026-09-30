@@ -46,8 +46,17 @@ import { appendFile, readFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { hookGuard } from './test-hooks.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
+// Every element this suite LOCATES is found by its `data-p3` hook (F1), minted by `hook()` in
+// `src/main.ts` — not by a class name, and not by a section title. A restyle or a rename therefore does
+// not move what the suite reads. Visible copy is still asserted where the copy is the thing under test.
+// Two things still read classes on purpose: the shared STATE tokens (`.on`, `.active`, `.cur`,
+// `.is-pressed`), which carry state rather than identity, and the probe's `cls` labels, which only name
+// a node in a failure message. The guard (`test-hooks.mjs`) fails any hook this file names that never
+// rendered, by name.
+const hooks = hookGuard(import.meta.url);
 
 // ---- the assertion harness -------------------------------------------------------------------
 // Same `ok(...)` shape as `test-provenance.ts` / `test-export-settings.ts`, so the three suites read
@@ -219,11 +228,13 @@ const LEGIBILITY_PROBE = (rootSel) => {
     // emission rather than trust it. The fill is the pair host's OWN background, not `ground`: the claim is
     // about the button, and a composited ground would hide a mispainted fill behind whatever sits under it.
     const pairHost = el.closest('[data-specimen-pair]');
-    const pairRow = pairHost?.closest('.sg-btns');
+    const pairRow = pairHost?.closest('[data-p3="style-guide-buttons"]');
     text.push({
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
       cls: name(el),
       text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 44),
+      // The node's hook, when it has one — how a section asserts that a SPECIFIC node was measured.
+      hook: el.getAttribute('data-p3'),
       // The opacity chain, reported so a failure can say WHY the ratio is low (#1069): a faded node
       // and a mis-inked one fail the same bar and want different fixes.
       op: round(op),
@@ -238,8 +249,8 @@ const LEGIBILITY_PROBE = (rootSel) => {
         claim: pairHost.getAttribute('data-specimen-pair'),
         ink: col,
         fill: parse(getComputedStyle(pairHost).backgroundColor, pairHost, 'background-color'),
-        state: pairHost.closest('.sg-bcol')?.querySelector('.sg-st')?.textContent.trim() ?? '',
-        row: pairRow ? [...document.querySelectorAll('.sg-btns')].indexOf(pairRow) : -1,
+        state: pairHost.closest('[data-p3="style-guide-state"]')?.querySelector('[data-p3="style-guide-state-name"]')?.textContent.trim() ?? '',
+        row: pairRow ? [...document.querySelectorAll('[data-p3="style-guide-buttons"]')].indexOf(pairRow) : -1,
       } : null,
     });
   }
@@ -270,6 +281,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
       caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
       cls: name(el),
       text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
+      hook: el.getAttribute('data-p3'),
       op: round(op),
       // The same classifiers the text walk records (#779): a field's value is text, so it takes the
       // text bar by size and weight, and a field inside a specimen stays on the specimen floor.
@@ -521,7 +533,7 @@ const BRANDMENU_FIELD_FLOOR = 3;
 const BRANDMENU_TEXT_FLOOR = 6;
 /** The three by IDENTITY — Name, Namespace, the import textarea. Named because the floor above can only
  *  say "three of something", and #1031 was a defect in a specific field, not in a quantity of fields. */
-const BRANDMENU_CONTROLS = ['input.bm-in', 'input.bm-in.mono', 'textarea.bm-ta'];
+const BRANDMENU_CONTROLS = ['[data-p3="brand-menu-name"]', '[data-p3="brand-menu-namespace"]', '[data-p3="import-text"]'].map(hooks.role);
 
 // ---- browser plumbing ------------------------------------------------------------------------
 const browser = await chromium.launch();
@@ -540,8 +552,15 @@ const watchErrors = (page) => {
  *  nav ever stops marking the destination active, this hangs and then fails loudly, which is the
  *  correct outcome; a sleep would measure the previous page and call it a pass. */
 const gotoPage = async (page, label) => {
-  await page.locator('.stage').filter({ has: page.locator('.stage-t b', { hasText: label }) }).first().click();
-  await page.waitForFunction((l) => document.querySelector('.stage.active .stage-t b')?.textContent === l, label);
+  await page.locator('[data-p3^="rail-page-"]').filter({ has: page.locator('[data-p3="rail-item-label"]', { hasText: label }) }).first().click();
+  await page.waitForFunction((l) => document.querySelector('[data-p3^="rail-page-"].active [data-p3="rail-item-label"]')?.textContent === l, label);
+  await page.evaluate(() => document.fonts.ready);
+};
+/** The same wait, for a destination named by its rail hook rather than by its label — for the sections
+ *  that drive one particular page. The sweep keeps `gotoPage`, because it reads its labels off the rail. */
+const gotoRail = async (page, selector) => {
+  await page.locator(selector).click();
+  await page.waitForFunction((sel) => document.querySelector(sel)?.classList.contains('active'), selector);
   await page.evaluate(() => document.fonts.ready);
 };
 
@@ -582,8 +601,8 @@ const settle = async (page, where) => {
 
 /** Same contract for the mode bar: the wait is "the bar says this mode is selected". */
 const selectMode = async (page, label) => {
-  await page.locator('.mctx-b').filter({ hasText: label }).first().click();
-  await page.waitForFunction((m) => document.querySelector('.mctx-b.on .mctx-name')?.textContent === m, label);
+  await page.locator('[data-p3="mode-tab"]').filter({ hasText: label }).first().click();
+  await page.waitForFunction((m) => document.querySelector('[data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === m, label);
   await page.evaluate(() => document.fonts.ready);
 };
 
@@ -595,10 +614,11 @@ const selectMode = async (page, label) => {
 const openBrand = async (brand, scheme) => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 }, acceptDownloads: true, ...(scheme ? { colorScheme: scheme } : {}) });
   const page = await ctx.newPage();
+  await hooks.watch(page);
   const drain = watchErrors(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
-  await page.locator('.start-chip').filter({ hasText: brand }).click();
-  await page.waitForSelector('.stage.active');
+  await page.locator('[data-p3="start-example"]').filter({ hasText: brand }).click();
+  await hooks.need(page, '[data-p3^="rail-page-"].active');
   await page.evaluate(() => document.fonts.ready);
   return { ctx, page, drain };
 };
@@ -608,8 +628,10 @@ const openBrand = async (brand, scheme) => {
 const BRANDS = await (async () => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
+  await hooks.watch(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
-  const names = await page.locator('.start-chip').allTextContents();
+  await hooks.need(page, '[data-p3="start-example"]');
+  const names = await page.locator('[data-p3="start-example"]').allTextContents();
   await ctx.close();
   return names.map((n) => n.trim());
 })();
@@ -653,7 +675,7 @@ for (const brand of BRANDS) {
 
   // The rail's own labels, read from the `b` that carries them — the `small` beside it is the
   // subtitle, and taking the button's whole textContent would glue the two together.
-  const pages = (await page.locator('.stage .stage-t b').allTextContents()).map((s) => s.trim());
+  const pages = (await page.locator('[data-p3^="rail-page-"] [data-p3="rail-item-label"]').allTextContents()).map((s) => s.trim());
   ok(pages.length >= 8, `${brand}: the rail offers ${pages.length} destinations`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
@@ -671,13 +693,13 @@ for (const brand of BRANDS) {
   const barPage = await (async () => {
     for (const label of pages) {
       await gotoPage(page, label);
-      if (await page.locator('.mctx-b').count() > 0) return label;
+      if (await page.locator('[data-p3="mode-tab"]').count() > 0) return label;
     }
     return null;
   })();
   ok(barPage !== null, `${brand}: at least one page carries the mode bar (found ${barPage})`);
   await gotoPage(page, barPage);
-  const modes = (await page.locator('.mctx-b .mctx-name').allTextContents()).map((m) => m.trim());
+  const modes = (await page.locator('[data-p3="mode-tab"] [data-p3="mode-tab-name"]').allTextContents()).map((m) => m.trim());
   ok(modes.length >= 2, `${brand}: the mode bar offers ${modes.length} modes (${modes.join(', ')})`);
 
   for (const mode of modes) {
@@ -685,13 +707,11 @@ for (const brand of BRANDS) {
     await selectMode(page, mode);
     for (const label of pages) {
       await gotoPage(page, label);
-      const hasBar = await page.locator('.mctx-b').count() > 0;
+      const hasBar = await page.locator('[data-p3="mode-tab"]').count() > 0;
       const where = `${brand} / ${label} / ${mode}`;
       statesVisited++;
-      const densityKnobs = await page.evaluate(() => [...document.querySelectorAll('.knob')]
-        .filter((k) => k.querySelector('.knob-label')?.textContent?.trim() === 'Density'
-          && [...k.querySelectorAll('option')].some((o) => (o.textContent ?? '').startsWith('Auto — follows global')))
-        .map((k) => k.querySelector('.knob-desc')?.textContent ?? ''));
+      const densityKnobs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="per-mode-density"]')]
+        .map((k) => k.querySelector('[data-p3="control-description"]')?.textContent ?? ''));
       perModeDensityKnobs += densityKnobs.length;
       for (const d of densityKnobs) if (!d.includes(PER_MODE_DENSITY_SENTENCE)) perModeDensityMissing.push(`${where}: ${d.slice(0, 80)}`);
 
@@ -701,7 +721,7 @@ for (const brand of BRANDS) {
 
       // --- key DOM assertions ------------------------------------------------------------------
       const dom = await page.evaluate(() => {
-        const err = document.querySelector('.errbar-global');
+        const err = document.querySelector('[data-p3="error-bar"]');
         // The page-chrome floor (#772), read from what the app DECLARES rather than from a list
         // restated here. `mountView` publishes the keys the current root view promises to carry onto
         // `<html data-chrome>`; every one of them must resolve to a mounted `[data-chrome]` node. A
@@ -709,8 +729,8 @@ for (const brand of BRANDS) {
         // reason `BRANDS` above is read from the start screen instead of being typed out.
         const roster = (document.documentElement.dataset.chromeRoster ?? '').split(' ').filter(Boolean);
         return {
-          heroTitle: document.querySelector('.hero h1')?.textContent?.trim() ?? '',
-          controls: document.querySelectorAll('.ws input, .ws select, .ws button').length,
+          heroTitle: document.querySelector('[data-p3="page-title"]')?.textContent?.trim() ?? '',
+          controls: document.querySelectorAll('[data-p3="workspace"] input, [data-p3="workspace"] select, [data-p3="workspace"] button').length,
           roster,
           chromeMissing: roster.filter((k) => !document.querySelector(`[data-chrome="${k}"]`)),
           errorBarShown: !!err && getComputedStyle(err).display !== 'none',
@@ -718,8 +738,8 @@ for (const brand of BRANDS) {
           // A derived mode (HC light / HC dark / Wireframe) is auto-generated and never hand-tuned, so
           // its editors are replaced by a read-only explanation. That is a legitimate way to have no
           // controls — and the ONLY one.
-          readOnlyNote: document.querySelectorAll('.genview').length,
-          modeOn: [...document.querySelectorAll('.mctx-b.on .mctx-name')].map((n) => n.textContent),
+          readOnlyNote: document.querySelectorAll('[data-p3="derived-note"]').length,
+          modeOn: [...document.querySelectorAll('[data-p3="mode-tab"].on [data-p3="mode-tab-name"]')].map((n) => n.textContent),
           // A page wider than the viewport is a layout regression the eye catches instantly and no
           // static check ever will. +1 for sub-pixel rounding; anything real overshoots by much more.
           overflowX: document.documentElement.scrollWidth - window.innerWidth,
@@ -957,31 +977,31 @@ const READ_OVERLAY_ROWS = () => {
     };
   };
   const readout = (host) => {
-    const n = host?.querySelector('.sf-derived');
+    const n = host?.querySelector('[data-p3="source-readout"]');
     return { text: n?.textContent?.trim() ?? null, selects: host?.querySelectorAll('select').length ?? 0 };
   };
   const out = [];
-  for (const row of document.querySelectorAll('.arow')) {
-    const pill = [...row.querySelectorAll('.tpill')]
+  for (const row of document.querySelectorAll('[data-p3="role-row"]')) {
+    const pill = [...row.querySelectorAll('[data-p3="token-pill"]')]
       .map((p) => p.textContent.trim())
       .find((t) => /^color\.interactive\.[a-z0-9-]+\.overlay\.hover$/.test(t));
     if (!pill) continue;
     out.push({
       pill,
-      source: readout(row.querySelector('.arow-main .sf-ctlblock')),
-      swatch: readSwatch(row.querySelector('.asw')),
+      source: readout(row.querySelector('[data-p3="role-source"]')),
+      swatch: readSwatch(row.querySelector('[data-p3="role-swatch"]')),
       // The example box's ground is computed by `exGround`, a different expression from the one the
       // swatch's underlay comes from — so agreeing is a real check, not one value read twice.
-      exboxBg: getComputedStyle(row.querySelector('.exbox')).backgroundColor,
+      exboxBg: getComputedStyle(row.querySelector('[data-p3="example-ground"]')).backgroundColor,
       // The specimen AS DRAWN (#812): the button's ink, the wash it sits on, and the receipt beside it.
       example: (() => {
-        const b = row.querySelector('.exbox .ibtn');
+        const b = row.querySelector('[data-p3="example-ground"] [data-p3="example-button"]');
         const cs = b ? getComputedStyle(b) : null;
-        return { ink: cs?.color ?? null, wash: cs?.backgroundColor ?? null, badge: row.querySelector('.aex .cbadge .cb-ratio')?.textContent ?? null };
+        return { ink: cs?.color ?? null, wash: cs?.backgroundColor ?? null, badge: row.querySelector('[data-p3="role-example"] [data-p3="contrast-ratio"]')?.textContent ?? null };
       })(),
-      states: [...row.querySelectorAll('.astate')].map((c) => ({
-        name: c.querySelector('.astate-n')?.textContent?.trim() ?? '',
-        swatch: readSwatch(c.querySelector('.astate-sw')),
+      states: [...row.querySelectorAll('[data-p3="role-state"]')].map((c) => ({
+        name: c.querySelector('[data-p3="role-state-name"]')?.textContent?.trim() ?? '',
+        swatch: readSwatch(c.querySelector('[data-p3="role-state-swatch"]')),
         ...readout(c),
       })),
     });
@@ -1007,18 +1027,18 @@ for (const brand of BRANDS) {
   //
   // The row is found by its TOKEN PILL, not by index: `color.interactive.primary.text.rest` is the
   // role, and an index would silently start testing a different row the day one is inserted above it.
-  await gotoPage(page, 'Interactive');
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
   const ROLE = 'color.interactive.primary.text.rest';
-  const row = page.locator('.arow').filter({ hasText: ROLE }).first();
+  const row = page.locator('[data-p3="role-row"]').filter({ hasText: ROLE }).first();
   ok(await row.count() > 0, `${brand}: the ${ROLE} row is present`);
 
   const readRow = () => row.evaluate((el) => {
-    const sel = el.querySelector('.sf-ctlblock select');
+    const sel = el.querySelector('[data-p3="role-source"] select');
     return {
       auto: sel?.options[0]?.text ?? null,
       value: sel?.value ?? null,
       steps: [...(sel?.options ?? [])].slice(1).map((o) => o.value),
-      swatch: getComputedStyle(el.querySelector('.asw')).backgroundColor,
+      swatch: getComputedStyle(el.querySelector('[data-p3="role-swatch"]')).backgroundColor,
     };
   });
 
@@ -1033,10 +1053,10 @@ for (const brand of BRANDS) {
   let pick = null;
   let during = null;
   for (const step of before.steps) {
-    await row.locator('.sf-ctlblock select').selectOption(step);
+    await row.locator('[data-p3="role-source"] select').selectOption(step);
     await page.waitForFunction(
-      ([r, p]) => [...document.querySelectorAll('.arow')].find((el) => el.textContent.includes(r))
-        ?.querySelector('.sf-ctlblock select')?.value === p, [ROLE, step]);
+      ([r, p]) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
+        ?.querySelector('[data-p3="role-source"] select')?.value === p, [ROLE, step]);
     during = await readRow();
     if (during.swatch !== before.swatch) { pick = step; break; }
   }
@@ -1049,10 +1069,10 @@ for (const brand of BRANDS) {
 
   // And the other half of #330, which is the half that made it a lie rather than a cosmetic slip:
   // selecting Auto must produce the value its own label promised.
-  await row.locator('.sf-ctlblock select').selectOption('');
+  await row.locator('[data-p3="role-source"] select').selectOption('');
   await page.waitForFunction(
-    (r) => [...document.querySelectorAll('.arow')].find((el) => el.textContent.includes(r))
-      ?.querySelector('.sf-ctlblock select')?.value === '', ROLE);
+    (r) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
+      ?.querySelector('[data-p3="role-source"] select')?.value === '', ROLE);
   const after = await readRow();
   ok(after.swatch === before.swatch,
     `${brand}: selecting Auto returns the color the Auto label named (was ${before.swatch}, now ${after.swatch}) (#330)`);
@@ -1081,8 +1101,8 @@ for (const brand of BRANDS) {
   //
   // The derived modes are skipped because they have no editor at all — their whole workspace is the
   // read-only note — so the customizable pair is the population, not a sample of it.
-  await gotoPage(page, 'Interactive');
-  const washModes = (await page.locator('.mctx-b .mctx-name').allTextContents())
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
+  const washModes = (await page.locator('[data-p3="mode-tab"] [data-p3="mode-tab-name"]').allTextContents())
     .map((m) => m.trim()).filter((m) => /^(light|dark)$/i.test(m));
   ok(washModes.length === 2, `${brand}: the Interactive page offers both customizable modes (${washModes.join(', ')})`);
   const washEmission = await loadEmission(brand);
@@ -1156,8 +1176,8 @@ for (const brand of BRANDS) {
   // `applyFull()` → `renderWorkspace()` does `workspace.innerHTML = ''`, which resets scroll as a side
   // effect; #485 fixed it once for every current AND future caller by saving/restoring around the
   // teardown. Driven on Surfaces, which is where it was reported.
-  await gotoPage(page, 'Surfaces & fills');
-  const surfSel = page.locator('.psec').filter({ hasText: 'Backgrounds' }).locator('select').first();
+  await gotoRail(page, '[data-p3="rail-page-surfaces"]');
+  const surfSel = page.locator('[data-p3="section-backgrounds"] select').first();
   const opts = await surfSel.evaluate((s) => [...s.options].map((o) => o.value));
   const cur = await surfSel.inputValue();
   const target = opts.find((o) => o !== cur);
@@ -1169,18 +1189,17 @@ for (const brand of BRANDS) {
   // Wait on the EDIT having landed IN THE REBUILT SECTION — `applyFull()` replaces the whole
   // workspace, so this condition is only true once the new DOM exists. Not a timer, and not a read of
   // the pre-rebuild element, which would already hold the new value and prove nothing.
-  await page.waitForFunction((t) => [...document.querySelectorAll('.psec')]
-    .find((s) => s.textContent.includes('Backgrounds'))?.querySelector('select')?.value === t, target);
+  await page.waitForFunction((t) => document.querySelector('[data-p3="section-backgrounds"] select')?.value === t, target);
   const scrollY = await page.evaluate(() => window.scrollY);
   ok(Math.abs(scrollY - 400) <= 2, `${brand}: changing a surface select holds the scroll position (400 → ${scrollY}) (#485)`);
 
   // --- 2c. the export actually writes a file ----------------------------------------------------
   // The dialog rendering is #723's suite; what only a browser can check is that clicking Download
   // produces a real file whose bytes parse.
-  await page.locator('button[aria-label="Export"]').click();
-  await page.waitForSelector('.exdlg');
+  await page.locator('[data-p3="export-open"]').click();
+  await hooks.need(page, '[data-p3="export-dialog"]');
   const pending = page.waitForEvent('download');
-  await page.locator('.exdlg-go').click();
+  await page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]').click();
   const dl = await pending;
   ok(dl.suggestedFilename().endsWith('.tokens.json'), `${brand}: the export downloads ${dl.suggestedFilename()}`);
   const body = await readFile(await dl.path(), 'utf8');
@@ -1206,26 +1225,24 @@ for (const brand of BRANDS) {
   // Brand-agnostic on purpose. The two corpus brands start on opposite sides of this (aurora ships the
   // floor on and pinned sizes; harbor does not), so a fixed click list would exercise one and silently
   // no-op on the other.
-  await gotoPage(page, 'Typography');
-  await page.locator('.pvseg-b', { hasText: 'Text styles' }).click();
-  await page.waitForSelector('.shape-cards');
-  const floorToggle = () => page.locator('.range-f').filter({ hasText: 'Smallest title size' }).locator('input.toggle');
-  const floorOn = () => page.evaluate(() => [...document.querySelectorAll('.range-f')]
-    .find((f) => f.textContent.includes('Smallest title size'))?.querySelector('input.toggle')?.checked ?? null);
+  await gotoRail(page, '[data-p3="rail-page-typography"]');
+  await page.locator('[data-p3="type-tab-styles"]').click();
+  await hooks.need(page, '[data-p3="heading-shapes"]');
+  const floorToggle = () => page.locator('[data-p3="heading-title-floor"] input[type=checkbox]');
+  const floorOn = () => page.evaluate(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked ?? null);
   if (await floorOn()) {
     await floorToggle().click();
-    await page.waitForFunction(() => [...document.querySelectorAll('.range-f')]
-      .find((f) => f.textContent.includes('Smallest title size'))?.querySelector('input.toggle')?.checked === false);
+    await page.waitForFunction(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked === false);
   }
-  const release = page.locator('.shape-release');
-  if (await release.count()) { await release.click(); await page.waitForSelector('.shape-cards'); }
-  const compact = page.locator('.shape-card').filter({ hasText: 'Compact' }).first();
+  const release = page.locator('[data-p3="heading-shape-release"]');
+  if (await release.count()) { await release.click(); await hooks.need(page, '[data-p3="heading-shapes"]'); }
+  const compact = page.locator('[data-p3="heading-shape-compact"]');
   ok(!(await compact.isDisabled()), `${brand}: with the title floor released, the Compact shape is selectable`);
   await compact.click();
-  await page.waitForFunction(() => document.querySelector('.shape-card.on b')?.textContent === 'Compact');
+  await page.waitForFunction(() => document.querySelector('[data-p3="heading-shape-compact"]')?.getAttribute('aria-pressed') === 'true');
 
   const errState = () => page.evaluate(() => {
-    const e = document.querySelector('.errbar-global');
+    const e = document.querySelector('[data-p3="error-bar"]');
     return { present: !!e, shown: !!e && getComputedStyle(e).display !== 'none', text: e?.textContent?.trim() ?? '' };
   });
   const clean = await errState();
@@ -1235,7 +1252,7 @@ for (const brand of BRANDS) {
   // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
   // loudly as the defect it is rather than passing on a measurement taken too early.
   const surfaced = await page.waitForFunction(() => {
-    const e = document.querySelector('.errbar-global');
+    const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display !== 'none';
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(surfaced, `${brand}: an engine throw raised on Typography SURFACES (#388's defect path)`);
@@ -1245,18 +1262,18 @@ for (const brand of BRANDS) {
   // THE GENERALIZATION, not just the instance: the surface belongs to the view, so navigating to a
   // third page must not lose it. A page-local bar would vanish here, which is the state #388 described
   // from the other end — the error existing with nothing rendering it.
-  await gotoPage(page, 'Motion');
+  await gotoRail(page, '[data-p3="rail-page-motion"]');
   const afterNav = await errState();
   ok(afterNav.shown, `${brand}: the error is still shown after navigating to Motion — it belongs to the chrome, not to a page`);
 
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
-  await gotoPage(page, 'Typography');
-  await page.locator('.pvseg-b', { hasText: 'Text styles' }).click();
-  await page.waitForSelector('.shape-cards');
+  await gotoRail(page, '[data-p3="rail-page-typography"]');
+  await page.locator('[data-p3="type-tab-styles"]').click();
+  await hooks.need(page, '[data-p3="heading-shapes"]');
   await floorToggle().click();
   const cleared = await page.waitForFunction(() => {
-    const e = document.querySelector('.errbar-global');
+    const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display === 'none';
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(cleared, `${brand}: undoing the refused edit clears the bar`);
@@ -1267,21 +1284,21 @@ for (const brand of BRANDS) {
   // required pair (label → emphasis) is authored here, not read from the engine (docs/34). A swap the
   // owner allowed is driven too: tick a second eyebrow weight, then clear the first, with no error.
   const weightRow = (cat) => page.evaluate((c) => {
-    const table = [...document.querySelectorAll('table.cs-table')].find((t) => !t.classList.contains('pincut'));
-    const heads = [...table.querySelectorAll('tr:first-child th.cs-c')].map((t) => t.textContent.trim().toLowerCase());
+    const table = document.querySelector('[data-p3="category-table"]');
+    const heads = [...table.querySelectorAll('[data-p3="category-col"]')].map((t) => t.textContent.trim().toLowerCase());
     const roles = heads.slice(0, heads.length - 5);   // then Leading, Tracking, Italic default, Italic, Link (#1296)
-    const row = [...table.querySelectorAll('tr')].find((tr) => tr.querySelector('.cs-name')?.textContent === c);
-    const boxes = row ? [...row.querySelectorAll('td.cs-c input[type=checkbox]')].slice(0, roles.length) : [];
+    const row = [...table.querySelectorAll('tr')].find((tr) => tr.querySelector('[data-p3="category-name"]')?.textContent === c);
+    const boxes = row ? [...row.querySelectorAll('[data-p3="category-cell"] input[type=checkbox]')].slice(0, roles.length) : [];
     return roles.map((role, i) => ({ role, checked: !!boxes[i]?.checked, disabled: !!boxes[i]?.disabled, title: boxes[i]?.title ?? '' }));
   }, cat);
   // The row's style count is re-derived from the rebuilt theme, so it moves only once the table has
   // re-rendered: the wait is on the ENGINE's answer painting, not on the click. Read before clicking.
-  const countOf = (cat) => page.evaluate((c) => [...document.querySelectorAll('table.cs-table:not(.pincut) tr')]
-    .find((tr) => tr.querySelector('.cs-name')?.textContent === c)?.querySelector('.cs-count')?.textContent, cat);
-  const repainted = (cat, before) => page.waitForFunction(({ c, b }) => [...document.querySelectorAll('table.cs-table:not(.pincut) tr')]
-    .find((tr) => tr.querySelector('.cs-name')?.textContent === c)?.querySelector('.cs-count')?.textContent !== b, { c: cat, b: before });
-  const boxIn = (cat, row0, role) => page.locator('table.cs-table:not(.pincut) tr').filter({ has: page.locator('.cs-name', { hasText: new RegExp(`^${cat}$`) }) })
-    .locator('td.cs-c input[type=checkbox]').nth(row0.findIndex((b) => b.role === role));
+  const countOf = (cat) => page.evaluate((c) => [...document.querySelectorAll('[data-p3="category-table"] tr')]
+    .find((tr) => tr.querySelector('[data-p3="category-name"]')?.textContent === c)?.querySelector('[data-p3="category-count"]')?.textContent, cat);
+  const repainted = (cat, before) => page.waitForFunction(({ c, b }) => [...document.querySelectorAll('[data-p3="category-table"] tr')]
+    .find((tr) => tr.querySelector('[data-p3="category-name"]')?.textContent === c)?.querySelector('[data-p3="category-count"]')?.textContent !== b, { c: cat, b: before });
+  const boxIn = (cat, row0, role) => page.locator('[data-p3="category-table"] tr').filter({ has: page.locator('[data-p3="category-name"]', { hasText: new RegExp(`^${cat}$`) }) })
+    .locator('[data-p3="category-cell"] input[type=checkbox]').nth(row0.findIndex((b) => b.role === role));
   // Give label a SECOND weight first, so the last-weight rule cannot be what holds `emphasis`: only
   // the label rule can, and the box must say why.
   const label0 = await weightRow('label');
@@ -1349,12 +1366,12 @@ for (const brand of BRANDS) {
       return leaves.length > 0 && leaves.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k));
     }).map(([cat]) => cat).sort();
     const shown = await page.evaluate(() => {
-      const table = [...document.querySelectorAll('table.cs-table')].find((t) => !t.classList.contains('pincut'));
-      const heads = [...table.querySelectorAll('tr:first-child th.cs-c')].map((t) => t.textContent.trim().toLowerCase());
+      const table = document.querySelector('[data-p3="category-table"]');
+      const heads = [...table.querySelectorAll('[data-p3="category-col"]')].map((t) => t.textContent.trim().toLowerCase());
       const idIdx = heads.indexOf('italic default'), iIdx = heads.indexOf('italic');
-      return [...table.querySelectorAll('tr')].filter((tr) => tr.querySelector('.cs-name')).map((tr) => {
-        const boxes = [...tr.querySelectorAll('td.cs-c')].map((td) => td.querySelector('input[type=checkbox]'));
-        return { cat: tr.querySelector('.cs-name').textContent, idOn: !!boxes[idIdx]?.checked, iDisabled: !!boxes[iIdx]?.disabled, found: idIdx >= 0 && iIdx >= 0 };
+      return [...table.querySelectorAll('tr')].filter((tr) => tr.querySelector('[data-p3="category-name"]')).map((tr) => {
+        const boxes = [...tr.querySelectorAll('[data-p3="category-cell"]')].map((td) => td.querySelector('input[type=checkbox]'));
+        return { cat: tr.querySelector('[data-p3="category-name"]').textContent, idOn: !!boxes[idIdx]?.checked, iDisabled: !!boxes[iIdx]?.disabled, found: idIdx >= 0 && iIdx >= 0 };
       });
     });
     const shownOn = shown.filter((r) => r.idOn).map((r) => r.cat).sort();
@@ -1453,10 +1470,9 @@ const expectedRamp = (tempo) => Object.fromEntries(
 /** ACTUAL — the Duration ramp as a reader sees it. Rows keyed by the token path already printed in
  *  them, so nothing is added to the DOM to identify them. */
 const READ_DURATION_RAMP = () => {
-  const sec = [...document.querySelectorAll('.psec')]
-    .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Duration ramp');
+  const sec = document.querySelector('[data-p3="section-duration-ramp"]');
   if (!sec) return null;
-  const label = /at tempo '([a-z]+)'/.exec(sec.querySelector('.psec-d')?.textContent ?? '')?.[1] ?? null;
+  const label = /at tempo '([a-z]+)'/.exec(sec.querySelector('[data-p3="section-description"]')?.textContent ?? '')?.[1] ?? null;
   const rows = {};
   for (const tr of sec.querySelectorAll('table tr')) {
     const cells = [...tr.children];
@@ -1472,9 +1488,8 @@ const READ_DURATION_RAMP = () => {
 let rampChecks = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoPage(page, 'Motion');
-  const tempoSel = page.locator('.psec')
-    .filter({ has: page.locator('.psec-t', { hasText: /^Tempo$/ }) }).locator('select').first();
+  await gotoRail(page, '[data-p3="rail-page-motion"]');
+  const tempoSel = page.locator('[data-p3="section-tempo"] select').first();
   const options = await tempoSel.locator('option').evaluateAll((os) => os.map((o) => o.value));
   ok(options.length >= 2, `${brand}: the Tempo control offers ${options.length} tempi`);
 
@@ -1483,9 +1498,7 @@ for (const brand of BRANDS) {
   for (const tempo of options) {
     await tempoSel.selectOption(tempo);
     await page.waitForFunction((t) => {
-      const sec = [...document.querySelectorAll('.psec')]
-        .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Tempo');
-      return sec?.querySelector('select')?.value === t;
+      return document.querySelector('[data-p3="section-tempo"] select')?.value === t;
     }, tempo);
     const shown = await page.evaluate(READ_DURATION_RAMP);
     if (!shown) { ok(false, `${brand}/${tempo}: the Duration ramp section is on the page`); continue; }
@@ -1554,13 +1567,13 @@ for (const brand of BRANDS) {
     const { ctx, page, drain } = await openBrand(brand, scheme);
     // The popover, then the import box inside it — `.bm-ta` is the third control the surface promises
     // and it only exists once the box is open.
-    await page.locator('.brandsel').click();
-    await page.waitForSelector('.brandmenu .bm-in');
-    await page.locator('.brandmenu .bm-item').filter({ hasText: 'Import design.md' }).click();
-    await page.waitForSelector('.brandmenu .bm-ta');
+    await page.locator('[data-p3="brand-switcher"]').click();
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+    await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]').click();
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
     // TYPE INTO IT. An empty field renders no glyphs, so measuring a pristine input asserts a
     // computed pairing over ink that is not on screen; a value makes the row describe something drawn.
-    await page.fill('.brandmenu .bm-in', 'smoke-brand');
+    await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'smoke-brand');
 
     const where = `${brand} / brand menu / ${scheme} scheme`;
     // #1031's FIRST HALF, asserted directly. `normal` is what the studio's shell resolves to (it
@@ -1572,16 +1585,16 @@ for (const brand of BRANDS) {
     ok(resolved === 'normal' || resolved === 'light',
       `${where}: the shell resolves a light-only color-scheme (resolved "${resolved}") — the studio paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
     await settle(page, where);
-    const probe = await page.evaluate(LEGIBILITY_PROBE, '.brandmenu');
+    const probe = await page.evaluate(LEGIBILITY_PROBE, '[data-p3="brand-menu"]');
     assertParsed(where, probe.unparsed);
     ok(probe.rootFound, `${where}: the popover is mounted and was measured`);
     // WHICH controls, not how many. A count of three passes the day Namespace stops rendering and some
     // fourth control appears in its place, while still reading as "Name, Namespace and the textarea were
     // checked" — CLAUDE.md's rule that a scope must assert each promised surface is REPRESENTED. The
     // count stays underneath as a non-empty floor, which is a different and weaker claim.
-    const seenCls = new Set(probe.fields.map((r) => r.cls));
+    const seenHooks = new Set(probe.fields.map((r) => r.hook));
     for (const want of BRANDMENU_CONTROLS) {
-      ok(seenCls.has(want), `${where}: ${want} is mounted and was measured (saw ${[...seenCls].join(', ') || 'no controls at all'})`);
+      ok(seenHooks.has(want), `${where}: the "${want}" control is mounted and was measured (saw ${probe.fields.map((r) => r.hook ?? r.cls).join(', ') || 'no controls at all'})`);
     }
     ok(probe.fields.length >= BRANDMENU_FIELD_FLOOR,
       `${where}: measured ${probe.fields.length} form control(s) inside the popover (floor ${BRANDMENU_FIELD_FLOOR})`);
@@ -1599,11 +1612,11 @@ for (const brand of BRANDS) {
     // `--faint` "always" through `opacity: .72`), so the row's own text must be among what was measured —
     // held to the bar above, not merely present — and the glyph must carry a name assistive tech can read.
     const locked = await page.evaluate(() => {
-      const row = document.querySelector('.brandmenu .mctx-opt.fixed');
-      const lock = row?.querySelector('svg.mctx-lock');
+      const row = document.querySelector('[data-p3="brand-menu"] [data-p3="mode-base-row"]');
+      const lock = row?.querySelector('[data-p3="mode-base-lock"]');
       return { row: !!row, lockName: lock?.getAttribute('role') === 'img' ? (lock.getAttribute('aria-label') ?? '') : '' };
     });
-    ok(probe.text.some((r) => r.cls === 'span.mctx-always') && locked.row,
+    ok(probe.text.some((r) => r.hook === hooks.role('[data-p3="mode-base-always"]')) && locked.row,
       `${where}: the locked Light row is mounted and its "always" label was measured at the chrome bar (#1770)`);
     ok(locked.lockName.length > 0, `${where}: the locked row's lock glyph is an image with an accessible name ("${locked.lockName}") (#1770)`);
     for (const r of [...probe.fields, ...probe.text]) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} ${r.text}`; }
@@ -1611,7 +1624,7 @@ for (const brand of BRANDS) {
       bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
     // The Name field must show what was typed — a legible field that lost the value is the same
     // report ("I cannot read what I typed") from the other direction.
-    ok(await page.inputValue('.brandmenu .bm-in') === 'smoke-brand', `${where}: the Name field holds what was typed`);
+    ok(await page.inputValue('[data-p3="brand-menu"] [data-p3="brand-menu-name"]') === 'smoke-brand', `${where}: the Name field holds what was typed`);
     const errs = drain();
     ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
     await ctx.close();
@@ -1638,10 +1651,10 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   const { ctx, page, drain } = await openBrand(brand);
   // Open the brand menu and change ONLY the identity fields. `page.fill` dispatches an `input` event, so
   // each field's real `oninput` handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
-  await page.locator('.brandsel').click();
-  await page.waitForSelector('.brandmenu .bm-in.mono');
-  await page.fill('.brandmenu .bm-in', NAME);          // Name      → lastGoodInput.id (persisted blob)
-  await page.fill('.brandmenu .bm-in.mono', NS);       // Namespace → lastGoodInput.root + theme.root (emission)
+  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-namespace"]');
+  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', NAME);       // Name      → lastGoodInput.id (persisted blob)
+  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-namespace"]', NS);    // Namespace → lastGoodInput.root + theme.root (emission)
 
   // (a) Both identity fields reach the persisted blob. Web persists the working brand to localStorage;
   // before the fix an isolated identity change never re-persisted, so a reopen read the stale values.
@@ -1661,10 +1674,10 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   // rooted the tree at `ttds` while ~976 colour refs still pointed at `{prism.core.palette.*}`, a root no
   // longer present — dangling aliases, the exact silent-resolve class this PR closes. `roots.includes(NS)`
   // alone cannot see that (it only reads the top-level key); the ref scan over the serialized tree can.
-  await page.locator('button[aria-label="Export"]').click();
-  await page.waitForSelector('.exdlg');
+  await page.locator('[data-p3="export-open"]').click();
+  await hooks.need(page, '[data-p3="export-dialog"]');
   const pending = page.waitForEvent('download');
-  await page.locator('.exdlg-go').click();
+  await page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]').click();
   const dl = await pending;
   let raw = '';
   let roots = [];
@@ -1717,22 +1730,22 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const { ctx, page, drain } = await openBrand(atRisk);
   // `openBrand` enters through a start-screen chip, which loads with `{ kind: 'example', id }` — so the
   // origin is already an example and only an EDIT is missing before the guard has something to protect.
-  await page.locator('.brandsel').click();
-  await page.waitForSelector('.brandmenu .bm-in');
-  await page.fill('.brandmenu .bm-in', 'renamed-in-smoke');
-  await page.locator('.brandmenu .bm-item').filter({ hasText: arriving }).first().click();
-  await page.waitForSelector('.brandmenu .bm-confirm');
+  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
+  await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first().click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
 
-  const said = (await page.textContent('.brandmenu .bm-confirm')).trim();
+  const said = (await page.textContent('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]')).trim();
   const want = `Replace the current brand with the ${arriving} example? Your edits to the ${atRisk} example are not saved anywhere else.`;
   ok(said === want, `the confirm names the arriving origin and the one at risk, in that order — got "${said}"`);
-  ok(await page.locator('.brandmenu .bm-load').count() === 1, 'the confirm offers one Replace button');
-  ok(await page.locator('.brandmenu .bm-cancel').count() === 1, 'the confirm offers one Cancel button');
+  ok(await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-replace"]').count() === 1, 'the confirm offers one Replace button');
+  ok(await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]').count() === 1, 'the confirm offers one Cancel button');
 
   // Cancel keeps the edit. A guard that loses what it was protecting is the failure it exists to stop.
-  await page.locator('.brandmenu .bm-cancel').click();
-  await page.waitForSelector('.brandmenu .bm-confirm', { state: 'detached' });
-  ok(await page.inputValue('.brandmenu .bm-in') === 'renamed-in-smoke', 'Cancel leaves the edit in place');
+  await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]').click();
+  await page.waitForSelector('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]', { state: 'detached' });
+  ok(await page.inputValue('[data-p3="brand-menu"] [data-p3="brand-menu-name"]') === 'renamed-in-smoke', 'Cancel leaves the edit in place');
   const errs = drain();
   ok(errs.length === 0, `overwrite confirm: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
@@ -1746,19 +1759,20 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const arriving = BRANDS[0];
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
   const page = await ctx.newPage();
+  await hooks.watch(page);
   const drain = watchErrors(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
-  // `button.start-alt`, not `.start-alt`: the file-upload <label> shares the class, and the bare selector
-  // is a strict-mode violation rather than a wrong click — but only the button carries the `new` origin.
-  await page.locator('button.start-alt').click();          // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
-  await page.waitForSelector('.stage.active');
-  await page.locator('.brandsel').click();
-  await page.waitForSelector('.brandmenu .bm-in');
-  await page.fill('.brandmenu .bm-in', 'renamed-in-smoke');
-  await page.locator('.brandmenu .bm-item').filter({ hasText: arriving }).first().click();
-  await page.waitForSelector('.brandmenu .bm-confirm');
+  // The "Start blank" button by its own hook: the file-upload label beside it shares its class, and only
+  // the button carries the `new` origin.
+  await page.locator('[data-p3="start-blank"]').click();   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
+  await hooks.need(page, '[data-p3^="rail-page-"].active');
+  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
+  await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first().click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
 
-  const said = (await page.textContent('.brandmenu .bm-confirm')).trim();
+  const said = (await page.textContent('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]')).trim();
   // "this new brand", not "a new brand": the at-risk brand IS on screen, so the phrase points at it.
   // Collapsing `originLabel`'s two positions back to one string fails HERE and nowhere else.
   const want = `Replace the current brand with the ${arriving} example? Your edits to this new brand are not saved anywhere else.`;
@@ -1780,22 +1794,22 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 {
   const [atRisk] = BRANDS;
   const { ctx, page, drain } = await openBrand(atRisk);
-  const curItems = () => page.$$eval('.brandmenu .bm-item.cur', (bs) => bs.map((b) => b.textContent.trim()));
-  await page.locator('.brandsel').click();
-  await page.waitForSelector('.brandmenu .bm-in');
+  const curItems = () => page.$$eval('[data-p3="brand-menu"] [data-p3="brand-menu-example"].cur', (bs) => bs.map((b) => b.textContent.trim()));
+  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   const before = await curItems();
   ok(before.includes(atRisk), `#1075 the loaded example is marked current on open — got [${before.join(', ')}]`);
   // Tag the live input: a re-render replaces it, and the tag goes with the old node.
-  await page.$eval('.brandmenu .bm-in', (i) => { i.dataset.smoke = '1075'; });
-  await page.focus('.brandmenu .bm-in');
-  await page.fill('.brandmenu .bm-in', 'renamed-in-smoke');
+  await page.$eval('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', (i) => { i.dataset.smoke = '1075'; });
+  await page.focus('[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
   const live = await curItems();
   ok(await page.evaluate(() => document.activeElement?.getAttribute('data-smoke') === '1075'),
     '#1075 typing a name keeps the same, focused Name input (no menu re-render)');
-  await page.locator('.brandsel').click();
-  await page.waitForSelector('.brandmenu', { state: 'detached' });
-  await page.locator('.brandsel').click();
-  await page.waitForSelector('.brandmenu .bm-in');
+  await page.locator('[data-p3="brand-switcher"]').click();
+  await page.waitForSelector('[data-p3="brand-menu"]', { state: 'detached' });
+  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   const fresh = await curItems();
   ok(live.join('|') === fresh.join('|'),
     `#1075 the open menu's example markers match a fresh render after a rename — live [${live.join(', ')}], fresh [${fresh.join(', ')}]`);
@@ -1821,19 +1835,19 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 console.log(`\nStyle guide Outline hover on the inverse ground (#1629)\n${'='.repeat(78)}`);
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoPage(page, 'Preview');
-  await page.waitForSelector('.sg-surfbar select');
+  await gotoRail(page, '[data-p3="rail-page-preview"]');
+  await hooks.need(page, '[data-p3="style-guide-ground"]');
   // The primary palette block's Outline row, hover and pressed cells, read by their visible labels.
   const readOutline = () => page.evaluate(() => {
-    const block = document.querySelector('.sg-pblock');
-    const row = [...(block?.querySelectorAll('.sg-trow') ?? [])].find((r) => r.querySelector('.sg-tlab')?.firstChild?.textContent?.trim() === 'Outline');
+    const block = document.querySelector('[data-p3="style-guide-palette"]');
+    const row = block?.querySelector('[data-p3="style-guide-outline"]');
     const out = {};
-    for (const col of row?.querySelectorAll('.sg-bcol') ?? []) out[col.querySelector('.sg-st')?.textContent?.trim()] = getComputedStyle(col.querySelector('.sg-btn')).backgroundColor;
+    for (const col of row?.querySelectorAll('[data-p3="style-guide-state"]') ?? []) out[col.querySelector('[data-p3="style-guide-state-name"]')?.textContent?.trim()] = getComputedStyle(col.querySelector('[data-p3="style-guide-button"]')).backgroundColor;
     return out;
   });
   const onPage = await readOutline();
-  await page.selectOption('.sg-surfbar select', 'inverse.background.primary');
-  await page.waitForFunction(() => document.querySelector('.sg-surfbar select')?.value === 'inverse.background.primary');
+  await page.selectOption('[data-p3="style-guide-ground"]', 'inverse.background.primary');
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-ground"]')?.value === 'inverse.background.primary');
   const onBand = await readOutline();
   const where = `#1629 / ${brand}`;
   // Polarity of an `rgba(r, g, b, a)` wash: > 0 lightens, < 0 darkens. Opaque or missing reads null.
@@ -1911,7 +1925,7 @@ console.log(`\nThe inverse band's pill label (#1147)\n${'='.repeat(78)}`);
  *  so the walk is skipped for them, which is also what stops it dropping their second line. */
 const PILL_PROBE = () => {
   const out = [];
-  for (const p of document.querySelectorAll('.tpill')) {
+  for (const p of document.querySelectorAll('[data-p3="token-pill"]')) {
     if (p.getClientRects().length === 0) continue;
     const cs = getComputedStyle(p);
     const box = p.getBoundingClientRect();
@@ -1936,8 +1950,8 @@ const PILL_PROBE = () => {
     // Looked up in the WRAPPER FIRST and then inside the pill, so a badge in the wrong place reports as
     // misplaced rather than as missing. Both readings fail the same assertion, but only one of them
     // names the actual mistake, and "no badge" would have sent a reader looking for the wrong thing.
-    const wrap = p.parentElement?.classList.contains('tpill-wrap') ? p.parentElement : null;
-    const badge = wrap?.querySelector('.tpill-inv') ?? p.querySelector('.tpill-inv');
+    const wrap = p.parentElement?.matches('[data-p3="token-pill-wrap"]') ? p.parentElement : null;
+    const badge = wrap?.querySelector('[data-p3="token-pill-inverse"]') ?? p.querySelector('[data-p3="token-pill-inverse"]');
     const br = badge?.getBoundingClientRect() ?? null;
     out.push({
       path: p.title,
@@ -1963,7 +1977,7 @@ const capPills = (page, px) => page.evaluate((w) => {
   if (w === null) return;
   const s = document.createElement('style');
   s.id = ID;
-  s.textContent = `.tpill{max-width:${w}px !important}`;
+  s.textContent = `[data-p3="token-pill"]{max-width:${w}px !important}`;
   document.head.append(s);
 }, px);
 
@@ -2021,7 +2035,7 @@ const PILL_CAPS = [200, 130];
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  const pages = (await page.locator('.stage .stage-t b').allTextContents()).map((s) => s.trim());
+  const pages = (await page.locator('[data-p3^="rail-page-"] [data-p3="rail-item-label"]').allTextContents()).map((s) => s.trim());
   const natural = [];
   const capped = new Map(PILL_CAPS.map((w) => [w, []]));
   for (const label of pages) {
@@ -2155,11 +2169,11 @@ const EDGE_WALKS = new Set(['primary', 'destructive']);
 
 /** One Border row, read as a whole: the row's own swatch, and what the specimen actually paints. */
 const readEdgeRow = (row) => row.evaluate((el) => {
-  const btn = el.querySelector('.aex .ibtn');
+  const btn = el.querySelector('[data-p3="role-example"] [data-p3="example-button"]');
   const cs = btn && getComputedStyle(btn);
-  const sel = el.querySelector('.arow-main .sf-ctlblock select');
+  const sel = el.querySelector('[data-p3="role-source"] select');
   return {
-    swatch: getComputedStyle(el.querySelector('.asw')).backgroundColor,
+    swatch: getComputedStyle(el.querySelector('[data-p3="role-swatch"]')).backgroundColor,
     edge: cs ? cs.borderTopColor : null,
     width: cs ? cs.borderTopWidth : null,
     ink: cs ? cs.color : null,
@@ -2167,9 +2181,9 @@ const readEdgeRow = (row) => row.evaluate((el) => {
     value: sel?.value ?? null,
     steps: [...(sel?.options ?? [])].slice(1).map((o) => o.value),
     // The two state cells, in order — each its own swatch and its own override select.
-    states: [...el.querySelectorAll('.astates .astate')].map((c) => ({
-      name: c.querySelector('.astate-n')?.textContent ?? '',
-      swatch: getComputedStyle(c.querySelector('.astate-sw')).backgroundColor,
+    states: [...el.querySelectorAll('[data-p3="role-states"] [data-p3="role-state"]')].map((c) => ({
+      name: c.querySelector('[data-p3="role-state-name"]')?.textContent ?? '',
+      swatch: getComputedStyle(c.querySelector('[data-p3="role-state-swatch"]')).backgroundColor,
       options: c.querySelector('select')?.options.length ?? 0,
     })),
   };
@@ -2177,7 +2191,7 @@ const readEdgeRow = (row) => row.evaluate((el) => {
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoPage(page, 'Interactive');
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
   const notes = [];
 
   for (const fam of EDGE_FAMILIES) {
@@ -2186,7 +2200,7 @@ for (const brand of BRANDS) {
       // `color.interactive.…`, so each pill matches exactly one row.
       const ROLE = `color.${inverse ? 'inverse.' : ''}interactive.${fam}.border.rest`;
       const where = `${brand} ${fam}${inverse ? ' · inverse' : ''}`;
-      const row = page.locator('.arow').filter({ hasText: ROLE }).first();
+      const row = page.locator('[data-p3="role-row"]').filter({ hasText: ROLE }).first();
       ok(await row.count() > 0, `${where}: the ${ROLE} row is present — the border is authorable (#576)`);
       if (!(await row.count())) continue;
 
@@ -2224,7 +2238,7 @@ for (const brand of BRANDS) {
   // zero coverage and a green run. Enumerate every Border row the PAGE renders, from its token pill, and
   // require the families found to be exactly EDGE_FAMILIES, each in both contexts. The page and the
   // authored list are the two sides; deriving the list from the page would compare it with itself.
-  const rendered = await page.evaluate(() => [...document.querySelectorAll('.arow .tpill')]
+  const rendered = await page.evaluate(() => [...document.querySelectorAll('[data-p3="role-row"] [data-p3="token-pill"]')]
     .map((t) => /(?:^|\.)color\.(inverse\.)?interactive\.([a-z0-9-]+)\.border\.rest$/.exec(t.getAttribute('title') ?? t.textContent ?? ''))
     .filter(Boolean).map((m) => `${m[2]}${m[1] ? ' · inverse' : ''}`));
   const expectedEdges = EDGE_FAMILIES.flatMap((f) => [f, `${f} · inverse`]);
@@ -2240,10 +2254,10 @@ for (const brand of BRANDS) {
   const ROLE = 'color.interactive.primary.border.rest';
   const INK = 'color.interactive.primary.text.rest';
   const FILL = 'color.interactive.primary.fill.rest';
-  const bRow = page.locator('.arow').filter({ hasText: ROLE }).first();
-  const tRow = page.locator('.arow').filter({ hasText: INK }).first();
-  const fRow = page.locator('.arow').filter({ hasText: FILL }).first();
-  const inkSwatch = () => tRow.evaluate((el) => getComputedStyle(el.querySelector('.asw')).backgroundColor);
+  const bRow = page.locator('[data-p3="role-row"]').filter({ hasText: ROLE }).first();
+  const tRow = page.locator('[data-p3="role-row"]').filter({ hasText: INK }).first();
+  const fRow = page.locator('[data-p3="role-row"]').filter({ hasText: FILL }).first();
+  const inkSwatch = () => tRow.evaluate((el) => getComputedStyle(el.querySelector('[data-p3="role-swatch"]')).backgroundColor);
 
   // A missing row has to report as a FAILED ASSERTION, not as an uncaught locator timeout. Measured while
   // mutation-testing this section: with the border rows removed, the six presence checks above failed by
@@ -2263,7 +2277,7 @@ for (const brand of BRANDS) {
   // by `exOutline` alone, so every other specimen falls back to 0 and stays borderless. A `border:1.5px`
   // that landed on `.ibtn` itself would satisfy this whole section and quietly add 3px to every filled
   // button specimen in the studio.
-  const fillEdge = await fRow.locator('.aex .ibtn').first().evaluate((el) => getComputedStyle(el).borderTopWidth);
+  const fillEdge = await fRow.locator('[data-p3="role-example"] [data-p3="example-button"]').first().evaluate((el) => getComputedStyle(el).borderTopWidth);
   ok(parseFloat(fillEdge) === 0,
     `${brand}: a FILLED specimen still has no border (border-top-width ${fillEdge}) — the outline example is the only one that sets \`--ibtn-bw\``);
 
@@ -2277,10 +2291,10 @@ for (const brand of BRANDS) {
   let pick = null;
   let during = null;
   for (const step of before.steps) {
-    await bRow.locator('.arow-main .sf-ctlblock select').selectOption(step);
+    await bRow.locator('[data-p3="role-source"] select').selectOption(step);
     await page.waitForFunction(
-      ([r, p]) => [...document.querySelectorAll('.arow')].find((el) => el.textContent.includes(r))
-        ?.querySelector('.arow-main .sf-ctlblock select')?.value === p, [ROLE, step]);
+      ([r, p]) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
+        ?.querySelector('[data-p3="role-source"] select')?.value === p, [ROLE, step]);
     during = await readEdgeRow(bRow);
     if (during.swatch !== before.swatch) { pick = step; break; }
   }
@@ -2298,22 +2312,22 @@ for (const brand of BRANDS) {
     + `— was "${before.auto}", now "${during?.auto}" (#330)`);
 
   // --- THE RENDERED STATES, which the inline shorthand made unreachable -------------------------
-  await bRow.locator('.arow-main .sf-ctlblock select').selectOption('');
+  await bRow.locator('[data-p3="role-source"] select').selectOption('');
   await page.waitForFunction(
-    (r) => [...document.querySelectorAll('.arow')].find((el) => el.textContent.includes(r))
-      ?.querySelector('.arow-main .sf-ctlblock select')?.value === '', ROLE);
+    (r) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
+      ?.querySelector('[data-p3="role-source"] select')?.value === '', ROLE);
   const back = await readEdgeRow(bRow);
   ok(back.edge === before.edge && back.swatch === before.swatch,
     `${brand}: selecting Auto returns the edge the Auto label named (${back.edge})`);
 
-  const btn = bRow.locator('.aex .ibtn');
+  const btn = bRow.locator('[data-p3="role-example"] [data-p3="example-button"]');
   const edgeNow = () => btn.evaluate((el) => getComputedStyle(el).borderTopColor);
   await btn.hover();
   // Waits on the CONDITION, not a timer, and reads it through `:hover` so a mouse that landed on the
   // wrong element reports as "the edge never moved" rather than passing on a stale read. A timeout is a
   // failed assertion below, not a thrown wait.
   const hoverLanded = await page.waitForFunction((rest) => {
-    const el = document.querySelector('.arow .aex .ibtn:hover');
+    const el = document.querySelector('[data-p3="role-row"] [data-p3="role-example"] [data-p3="example-button"]:hover');
     return !!el && getComputedStyle(el).borderTopColor !== rest;
   }, back.edge, { timeout: 3000 }).then(() => true, () => false);
   const hovered = await edgeNow();
@@ -2327,7 +2341,7 @@ for (const brand of BRANDS) {
   // Same reason the hover wait is guarded: a specimen that is not pinnable at all never gets the class, and
   // an unguarded wait would take the process down instead of reporting which assertion noticed.
   const pinned = await page.waitForFunction(
-    () => !!document.querySelector('.arow .aex .ibtn.is-pressed'), null, { timeout: 3000 },
+    () => !!document.querySelector('[data-p3="role-row"] [data-p3="role-example"] [data-p3="example-button"].is-pressed'), null, { timeout: 3000 },
   ).then(() => true, () => false);
   const pressed = await edgeNow();
   ok(pinned && pressed === back.states[1].swatch && pressed !== hovered,
@@ -2406,19 +2420,18 @@ ok(new Set(FAMILY_ORDER).size === new Set(ORACLE_FAMILIES).size
 /** ACTUAL — the Links section as a reader sees it. Rows keyed by the `default` token pill the renderer
  *  already prints, so nothing is added to the DOM to identify them. */
 const READ_LINKS = () => {
-  const sec = [...document.querySelectorAll('.psec')]
-    .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
+  const sec = document.querySelector('[data-p3="section-links"]');
   if (!sec) return null;
   return {
-    // Exclude the lead control row (#1496 Link-palette picker, `.arow-lead`) — it carries no swatch and
-    // is not a link family row; only the family rows (`.arow` without `arow-lead`) are read here.
-    rows: [...sec.querySelectorAll('.arow:not(.arow-lead)')].map((row) => ({
-      pill: row.querySelector('.amid .tpill')?.textContent?.trim() ?? null,
-      swatch: getComputedStyle(row.querySelector('.asw')).backgroundColor,
-      states: [...row.querySelectorAll('.astates .astate')].map((c) => ({
-        name: c.querySelector('.astate-n')?.textContent?.trim() ?? '',
-        pill: c.querySelector('.tpill')?.textContent?.trim() ?? null,
-        swatch: getComputedStyle(c.querySelector('.astate-sw')).backgroundColor,
+    // Family rows only. The lead control row (#1496 Link-palette picker) carries its own hook, not
+    // `role-row` — it has no swatch and is not a link family.
+    rows: [...sec.querySelectorAll('[data-p3="role-row"]')].map((row) => ({
+      pill: row.querySelector('[data-p3="role-body"] [data-p3="token-pill"]')?.textContent?.trim() ?? null,
+      swatch: getComputedStyle(row.querySelector('[data-p3="role-swatch"]')).backgroundColor,
+      states: [...row.querySelectorAll('[data-p3="role-states"] [data-p3="role-state"]')].map((c) => ({
+        name: c.querySelector('[data-p3="role-state-name"]')?.textContent?.trim() ?? '',
+        pill: c.querySelector('[data-p3="token-pill"]')?.textContent?.trim() ?? null,
+        swatch: getComputedStyle(c.querySelector('[data-p3="role-state-swatch"]')).backgroundColor,
       })),
     })),
   };
@@ -2426,7 +2439,7 @@ const READ_LINKS = () => {
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoPage(page, 'Interactive');
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
 
   const shown = await page.evaluate(READ_LINKS);
   ok(shown !== null, `${brand}: the Interactive page carries a Links section`);
@@ -2496,25 +2509,25 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
 {
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoPage(page, 'Interactive');
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
 
-  const lead = page.locator('.arow-lead').filter({ hasText: 'Link palette' });
+  const lead = page.locator('[data-p3="link-palette"]');
   ok((await lead.count()) > 0, `${brand}: the Links section carries a Link palette lead control`);
-  const sel = lead.locator('.sf-ctlblock select');
+  const sel = lead.locator('[data-p3="role-source"] select');
   const options = await sel.evaluate((s) => [...s.options].map((o) => o.value));
   ok(options.includes('neutral'), `${brand}: the Link palette picker offers 'neutral' as a target (${options.join(', ')})`);
   ok(options.includes('primary'), `${brand}: the Link palette picker offers 'primary'`);
 
   // ACTUAL — the Links section's warning presence + the resting text-link swatch, as a reader sees them.
   const readLinks = () => page.evaluate(() => {
-    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
-    const warn = [...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
-    const textRow = [...sec.querySelectorAll('.arow')].find((r) => r.querySelector('.amid .tpill')?.textContent?.trim() === 'color.text.link.default');
-    return { warn, swatch: textRow ? getComputedStyle(textRow.querySelector('.asw')).backgroundColor : null };
+    const sec = document.querySelector('[data-p3="section-links"]');
+    const warn = [...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+    const textRow = [...sec.querySelectorAll('[data-p3="role-row"]')].find((r) => r.querySelector('[data-p3="role-body"] [data-p3="token-pill"]')?.textContent?.trim() === 'color.text.link.default');
+    return { warn, swatch: textRow ? getComputedStyle(textRow.querySelector('[data-p3="role-swatch"]')).backgroundColor : null };
   });
   const warnFires = () => page.evaluate(() => {
-    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
-    return [...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+    const sec = document.querySelector('[data-p3="section-links"]');
+    return [...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
   });
 
   const before = await readLinks();
@@ -2523,8 +2536,8 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
   // Drive → neutral: links move to the neutral ramp AND the underline warning fires inline.
   await sel.selectOption('neutral');
   await page.waitForFunction(() => {
-    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
-    return [...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+    const sec = document.querySelector('[data-p3="section-links"]');
+    return [...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
   });
   const neu = await readLinks();
   ok(neu.warn === true, `${brand}: selecting a neutral link palette surfaces the WCAG 1.4.1 underline warning inline (warn, not force)`);
@@ -2534,8 +2547,8 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
   // Drive → primary (colour-distinct): the warning clears — the flag tracks the palette choice.
   await sel.selectOption('primary');
   await page.waitForFunction(() => {
-    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
-    return ![...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+    const sec = document.querySelector('[data-p3="section-links"]');
+    return ![...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
   });
   ok((await warnFires()) === false, `${brand}: a colour-distinct (primary) link palette shows no warning`);
 
@@ -2575,7 +2588,7 @@ if (BRANDS.includes('aurora')) {
   ok(Object.keys(EMITTED).length >= 5, `#1532: the aurora grid-styles oracle carries ${Object.keys(EMITTED).length} breakpoints (from the emitted artifact, not a re-derivation)`);
 
   const { ctx, page, drain } = await openBrand('aurora');
-  await gotoPage(page, 'Layout');
+  await gotoRail(page, '[data-p3="rail-page-layout"]');
   // ACTUAL — the resolved columns the readout shows, keyed by breakpoint (from the `data-bpcol` cells).
   const readout = () => page.evaluate(() =>
     Object.fromEntries([...document.querySelectorAll('[data-bpcol]')].map((c) => [c.dataset.bpcol, Number(c.textContent)])));
@@ -2624,15 +2637,15 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   const STYLE = 'Light Condensed';   // a WIDTH cut — precisely the case a numeric weight cannot reach, which is why facePin exists
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoPage(page, 'Typography');
-  await page.locator('.pvseg-b', { hasText: 'Text styles' }).click();
-  await page.waitForSelector('.pincut');
+  await gotoRail(page, '[data-p3="rail-page-typography"]');
+  await page.locator('[data-p3="type-tab-styles"]').click();
+  await hooks.need(page, '[data-p3="pin-cut-table"]');
 
   // FLOOR: the control is present and reachable for a slot that supports a pin. A studio that dropped
   // the section, or offered no pinnable slot, fails HERE — before any write is attempted.
-  const slotCount = await page.locator('.pincut-row').count();
+  const slotCount = await page.locator('[data-p3="pin-cut-row"]').count();
   ok(slotCount > 0, `${brand}: the Pin-a-cut section offers at least one pinnable slot (found ${slotCount})`);
-  const inputCount = await page.locator('.pincut-in').count();
+  const inputCount = await page.locator('[data-p3="pin-cut-input"]').count();
   ok(inputCount === slotCount, `${brand}: every pinnable slot carries a free-text style input (${inputCount} inputs for ${slotCount} slots)`);
   // #1296 — the engine refuses ANY pin in an italic-default category, so the control must not offer one.
   // Oracle: the committed emission (a category whose every composite is italic under its bare name).
@@ -2641,7 +2654,7 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
     const typeNode = tree[Object.keys(tree)[0]].type ?? {};
     const leavesOf = (n, out = []) => { for (const [k, v] of Object.entries(n)) { if (k.startsWith('$')) continue; if (v && v.$type === 'typography') out.push([k, v]); else if (v && typeof v === 'object') leavesOf(v, out); } return out; };
     const italicCats = Object.entries(typeNode).filter(([, n]) => { const l = leavesOf(n); return l.length > 0 && l.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k)); }).map(([c]) => c);
-    const offered = await page.locator('.pincut-row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-cat')));
+    const offered = await page.locator('[data-p3="pin-cut-row"]').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-cat')));
     const wrong = offered.filter((c) => italicCats.includes(c));
     ok(wrong.length === 0, `${brand}: Pin a cut offers no slot in an italic-default category [${italicCats.join(', ') || 'none'}] (offered ${wrong.length ? wrong.join(', ') : 'none of them'})`);
   }
@@ -2649,14 +2662,14 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   // Pick the first slot and read its identity + BOUND FACE from the DOM. The bound face the row shows is
   // the oracle for the write's family — restating it from the brand would make the family assertion a
   // tautology (docs/34 shape 3).
-  const row = page.locator('.pincut-row').first();
+  const row = page.locator('[data-p3="pin-cut-row"]').first();
   const cat = await row.getAttribute('data-cat');
   const role = await row.getAttribute('data-role');
-  const boundFace = (await row.locator('.pincut-face').textContent())?.trim();
+  const boundFace = (await row.locator('[data-p3="pin-cut-face"]').textContent())?.trim();
   ok(!!cat && !!role && !!boundFace, `${brand}: the first slot names its category/role and shows a bound face (${cat} · ${role} — ${boundFace})`);
 
   // Type the STYLE and commit (change fires on blur — the caret-preserving wiring, not per keystroke).
-  const input = row.locator('.pincut-in');
+  const input = row.locator('[data-p3="pin-cut-input"]');
   await input.fill(STYLE);
   await input.evaluate((el) => el.blur());
 
@@ -2670,7 +2683,7 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
 
   // A valid pin (family == bound face) is ACCEPTED, not refused — the engine throw path stays quiet.
   const err = await page.evaluate(() => {
-    const e = document.querySelector('.errbar-global');
+    const e = document.querySelector('[data-p3="error-bar"]');
     return { shown: !!e && getComputedStyle(e).display !== 'none', text: e?.textContent?.trim() ?? '' };
   });
   ok(!err.shown, `${brand}: a pin whose family matches the bound face is accepted, no error surfaced${err.shown ? ` — "${err.text.slice(0, 80)}"` : ''}`);
@@ -2678,10 +2691,10 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   // EMISSION: the pin reaches the emitted DTCG verbatim. Export the tokens (default shape) and find the
   // composite leaves carrying $extensions.prism3.facePin — the engine bakes the Figma Text Style's
   // fontStyle from exactly this (emit-figma-font.ts). Oracle: the same STYLE + bound face typed above.
-  await page.locator('button[aria-label="Export"]').click();
-  await page.waitForSelector('.exdlg');
+  await page.locator('[data-p3="export-open"]').click();
+  await hooks.need(page, '[data-p3="export-dialog"]');
   const pending = page.waitForEvent('download');
-  await page.locator('.exdlg-go').click();
+  await page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]').click();
   const dl = await pending;
   let emitted = null;
   try {
@@ -2713,6 +2726,9 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
 // =============================================================================================
 await browser.close();
 server.close();
+
+console.log(`\nStable test hooks (F1)\n${'='.repeat(78)}`);
+hooks.report(ok);
 
 if (failed) {
   console.error(`\n❌ ${failed} FAILED of ${executed} assertions:`);

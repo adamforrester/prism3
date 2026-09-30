@@ -75,7 +75,9 @@
  * SCOPE NOT REPRESENTED against `KNOWN_DECISION_DOCS`, so a dead detector cannot report a clean zero).
  * Negative control: appending a heading plus its baseline row via `--accept` passes.
  *
- * SCOPE — every tracked `docs/**\/*.md` file except `docs/00-progress.md` (genre exemption) and
+ * SCOPE — every tracked `docs/**\/*.md` file except `docs/00-progress.md` (genre exemption), its
+ * pending fragments under `docs/progress/` (#1807 — the same log before `fold.ts` moves them into it; an
+ * index row pointing at a fragment would dangle the moment the fold deleted it) and
  * `docs/42-current-decisions.md` (the index's own convention prose). Representation is asserted, not
  * counted: every doc the baseline currently cites must still be found carrying at least one `Decided`
  * heading by this run, so a regex that stops matching fails instead of reporting a clean zero
@@ -89,6 +91,8 @@ import { join } from 'node:path';
 const repo = join(import.meta.dirname, '../..');
 const BASELINE = 'packages/engine/schema/decisions-index.json';
 const EXEMPT = new Set(['docs/00-progress.md', 'docs/42-current-decisions.md']);
+/** The progress log's pending fragments (#1807) — the log itself, before the fold moves them into it. */
+const EXEMPT_PREFIX = 'docs/progress/';
 
 /**
  * A baseline row. `issue` (one) and `issues` (several) are BOTH accepted and normalized on read —
@@ -253,7 +257,7 @@ const baseline = JSON.parse(readFileSync(join(repo, BASELINE), 'utf8')) as {
 const tracked = execSync('git ls-files docs', { cwd: repo, encoding: 'utf8' })
   .trim()
   .split('\n')
-  .filter((f) => f.endsWith('.md') && !EXEMPT.has(f));
+  .filter((f) => f.endsWith('.md') && !EXEMPT.has(f) && !f.startsWith(EXEMPT_PREFIX));
 
 const allHeadings: Heading[] = [];
 for (const f of tracked) {
