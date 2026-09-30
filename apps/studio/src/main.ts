@@ -507,6 +507,11 @@ const el = <T extends string = string>(tag: string, cls?: (T & Scoped<T>) | Mix,
   if (text !== undefined) n.textContent = text;
   return n;
 };
+/** A stable test hook: `data-p3="<role>"`. The browser suites (`test:smoke`, and the plugin's `test:verdict`
+ *  and `test:start`) find elements by this attribute rather than by class or visible copy, so a restyle or
+ *  a rename does not move what they locate. The value names the element's ROLE in kebab-case and stays
+ *  fixed across a redesign. No style rule keys on it, and state stays on the shared STATES classes. */
+const hook = <E extends Element>(n: E, role: string): E => { n.setAttribute('data-p3', role); return n; };
 /** `classList.add` under the same law — for the two places a class is added to an already-built
  *  element rather than at its mint. Pass `mix(...)` when the addition crosses a scope. */
 const addClass = (n: HTMLElement, cls: string | Mix): void => {
@@ -619,7 +624,7 @@ const colorPath = (role: string): string => `color.${role}`;
  *  badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
  *  pill's children — `tokenPillWrapping` and `sgPill` — must hold the pill itself, not a wrapper. */
 const tokenPillSpan = (path: string): HTMLElement => {
-  const p = el('span', 'tpill mono', path);
+  const p = hook(el('span', 'tpill mono', path), 'token-pill');
   p.title = path;
   return p;
 };
@@ -644,8 +649,8 @@ const isInversePath = (path: string): boolean => path.split('.').includes('inver
  *  node is untouched here. */
 const withInverseBadge = (path: string, pill: HTMLElement): HTMLElement => {
   if (!isInversePath(path)) return pill;
-  const wrap = el('span', 'tpill-wrap');
-  const badge = el('span', 'tpill-inv', 'inverse');
+  const wrap = hook(el('span', 'tpill-wrap'), 'token-pill-wrap');
+  const badge = hook(el('span', 'tpill-inv', 'inverse'), 'token-pill-inverse');
   badge.title = 'The inverse band. Shown beside the path because a narrow pill hides its leading part.';
   wrap.append(badge, pill);
   return wrap;
@@ -692,7 +697,7 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
   const wrap = el('div', 'knob');
   wrap.append(el('label', 'knob-label', label));
   wrap.append(...(Array.isArray(body) ? body : [body]));
-  wrap.append(el('p', 'knob-desc', desc));
+  wrap.append(hook(el('p', 'knob-desc', desc), 'control-description'));
   return wrap;
 };
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
@@ -1209,7 +1214,7 @@ const palSection = (title: string, sub: string): HTMLElement => {
   const sec = el('div', 'psec');
   const head = el('div', 'psec-head');
   const txt = el('div', 'psec-txt');
-  txt.append(el('h3', 'psec-t', title), el('p', 'psec-d', sub));
+  txt.append(hook(el('h3', 'psec-t', title), 'section-title'), hook(el('p', 'psec-d', sub), 'section-description'));
   head.append(txt);
   sec.append(head);
   return sec;
@@ -1579,8 +1584,8 @@ const renderPerModeRadius = (lever: Lever): HTMLElement =>
   renderPerModeSelect(lever, 'radius', RADIUS_SCALE_OPTS, () => String(brandState.radiusScale ?? (lever.default as number) ?? 1), Number, 'corner softness');
 const renderPerModeTempo = (lever: Lever): HTMLElement =>
   renderPerModeSelect(lever, 'tempo', TEMPO_OPTS, () => String(brandState.motionPersonality?.tempo ?? (lever.default as string) ?? 'standard'), (s) => s, 'tempo');
-const renderPerModeDensity = (lever: Lever): HTMLElement =>
-  renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density');
+const renderPerModeDensity = (lever: Lever): HTMLElement => hook(
+  renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density'), 'per-mode-density');
 
 /** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
  *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
@@ -2155,7 +2160,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // changed the mode, the page, or the specimens. It changes the ground the specimens are drawn on,
   // so it says that.
   const bar = el('div', 'sg-surfbar');
-  const sel = selectEl('cap');
+  const sel = hook(selectEl('cap'), 'style-guide-ground');
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
   sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
   const stack = el('div', 'sg-surfstack');
@@ -2278,14 +2283,14 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // `pair` names the engine roles an OPAQUE fill specimen previews (#1652) — see `specimenPair`. The
   // outline row passes none: its fill is a translucent wash and its ink is contracted against the page, so
   // it has no single ink-on-fill pair to claim and stays on the smoke floor.
-  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
-  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string]): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd, pair), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
+  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = hook(el('button', 'sg-btn', 'Button'), 'style-guide-button'); b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
+  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string]): HTMLElement => { const c = hook(el('div', 'sg-bcol'), 'style-guide-state'); c.append(btn(bg, fg, bd, pair), hook(el('span', 'sg-st', st), 'style-guide-state-name'), sgPill(fullkey, subpath)); return c; };
   const footLine = (lbl: string, p: HTMLElement): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), p); return s; };
   const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
     const row = el('div', 'sg-trow');
     const lab = el('div', 'sg-tlab', label);
     if (foot.length) { const f = el('div', 'sg-tlfoot'); foot.forEach((n) => f.append(n)); lab.append(f); }
-    const bs = el('div', 'sg-btns' + (inv ? ' sg-inv' : ''));
+    const bs = hook(el('div', 'sg-btns' + (inv ? ' sg-inv' : '')), 'style-guide-buttons');
     if (inv) {
       // #555 — the strip's own ground is `inverse.background.primary` for the CURRENT mode, and that
       // is not always dark: in a Dark mode, the inverse of dark is light, so a state label ink fixed
@@ -2308,7 +2313,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // #1140 makes it a single leading segment, so the question has one answer and one place to ask it.
   const onInverseGround = isInverseRole(surf.key);
   const paletteBlock = (nm: string, c: string): HTMLElement => {
-    const block = el('div', 'sg-pblock');
+    const block = hook(el('div', 'sg-pblock'), 'style-guide-palette');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
     const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`,
       [`interactive.${c}.on-fill`, `interactive.${c}.fill.${s}`]));
@@ -2363,7 +2368,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`,
       [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`]));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
-    block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
+    block.append(hook(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false), 'style-guide-outline'));
     // The Inverse row paints its own inverse band so the inverse-column variants have the ground they
     // were measured against. When the PREVIEW ground is already that band, painting it again is a
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
@@ -2373,10 +2378,10 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   };
   secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
   {
-    const block = el('div', 'sg-pblock');
+    const block = hook(el('div', 'sg-pblock'), 'style-guide-palette');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'color.disabled')); block.append(hd);
     block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill', ['disabled.on-fill', 'disabled.fill'])], false));
-    block.append(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false));
+    block.append(hook(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false), 'style-guide-outline'));
     block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill', ['disabled.on-fill', 'disabled.fill'])], !onInverseGround));
     secInt.append(block);
   }
@@ -2511,7 +2516,7 @@ const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').
 const contrastBadge = (ratio: number, min: number, label?: string): HTMLElement => {
   const b = el('span', `cbadge ${ratio >= min ? 'ok' : 'no'}`);
   if (label) b.append(el('span', 'cb-lab', label));
-  b.append(el('span', 'cb-ratio', `${ratio.toFixed(2)}:1`), el('span', 'cb-mark', ratio >= min ? '✓' : '✗'));
+  b.append(hook(el('span', 'cb-ratio', `${ratio.toFixed(2)}:1`), 'contrast-ratio'), el('span', 'cb-mark', ratio >= min ? '✓' : '✗'));
   return b;
 };
 /** A colour swatch element with an inline background (audit §8 candidate #2). Takes any CSS background
@@ -2641,12 +2646,12 @@ const washSourceRead = (r: RoleRes): HTMLElement => {
   // A `solid-tint` subtle fill (#1614) is the control's FILL at an opacity step: name those two, not the
   // fill's primitive — the step is what the engine chose, and the fill is set on the Fill row.
   if (r.tint) {
-    const n = el('span', 'sf-derived', `fill at ${r.tint.opacity}%`);
+    const n = hook(el('span', 'sf-derived', `fill at ${r.tint.opacity}%`), 'source-readout');
     n.title = 'The button’s own fill at an opacity step, chosen to keep the hover label readable and the hover visible. Change the fill to change its color.';
     return n;
   }
   const parts = (r.path ?? '').split('.');
-  const n = el('span', 'sf-derived', parts.length >= 2 ? `${parts[parts.length - 2]} ${stepKeyOf(r.path)}` : (r.path ?? '—'));
+  const n = hook(el('span', 'sf-derived', parts.length >= 2 ? `${parts[parts.length - 2]} ${stepKeyOf(r.path)}` : (r.path ?? '—')), 'source-readout');
   n.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
   return n;
 };
@@ -2760,15 +2765,15 @@ const wirePress = (n: HTMLElement): void => {
 // for the inverse one, both read for `currentMode` so they track whichever way that mode's inverse falls.
 const exGround = (dark: boolean): string => iRoles()[dark ? 'inverse.background.primary' : 'background.primary']?.hex ?? (dark ? '#0d0d10' : '#ffffff');
 const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: string, pressed?: string): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
-  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); specimen(b).style.color = fg;
+  const box = hook(el('div', 'exbox' + (dark ? ' dark' : '')), 'example-ground'); box.style.background = exGround(dark);
+  const b = hook(el('span', 'ibtn'), 'example-button'); b.style.setProperty('--ibtn-bg', bg); specimen(b).style.color = fg;
   if (hover) b.style.setProperty('--ibtn-hbg', hover);
   if (pressed) { b.style.setProperty('--ibtn-pbg', pressed); wirePress(b); }
   b.append(document.createTextNode(label), iconEl('arrow', fg));
   box.append(b); return box;
 };
 const exLink = (color: string, dark = false, hover?: string, pressed?: string): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
+  const box = hook(el('div', 'exbox' + (dark ? ' dark' : '')), 'example-ground'); box.style.background = exGround(dark);
   const a = el('a', 'ilink', 'Text link'); a.style.setProperty('--ilink-fg', color);
   if (hover) a.style.setProperty('--ilink-hfg', hover);
   if (pressed) { a.style.setProperty('--ilink-pfg', pressed); wirePress(a); }
@@ -2790,9 +2795,9 @@ const edgeOf = (roles: RoleMap, prefix: string, state = 'rest'): string =>
  *  moves on press and its wash never does. */
 const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string,
                    o: { ink?: string; pressedInk?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
+  const box = hook(el('div', 'exbox' + (dark ? ' dark' : '')), 'example-ground'); box.style.background = exGround(dark);
   const ink = o.ink ?? edge;
-  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); specimen(b).style.color = ink;
+  const b = hook(el('span', 'ibtn'), 'example-button'); b.style.setProperty('--ibtn-bg', wash); specimen(b).style.color = ink;
   b.style.setProperty('--ibtn-bw', '1.5px'); b.style.setProperty('--ibtn-bd', edge);
   if (o.hoverEdge) b.style.setProperty('--ibtn-hbd', o.hoverEdge);
   if (o.pressedEdge) b.style.setProperty('--ibtn-pbd', o.pressedEdge);
@@ -2812,7 +2817,7 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
   box.append(b); return box;
 };
 const exIconLabel = (iconColor: string, textColor: string, dark = false): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
+  const box = hook(el('div', 'exbox' + (dark ? ' dark' : '')), 'example-ground'); box.style.background = exGround(dark);
   const row = el('span', 'inote'); specimen(row).style.color = textColor;
   const ic = el('span', 'inote-ic'); specimen(ic).style.color = iconColor; ic.append(iconEl('bell', iconColor));
   row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
@@ -2821,13 +2826,13 @@ const exIconLabel = (iconColor: string, textColor: string, dark = false): HTMLEl
  *  (`disabled.text`). Deliberately has no button chrome: drawing it as a button would imply a fill it is
  *  not measured against, which is the mistake the disabled section's own copy used to make in words. */
 const exTextOnPage = (color: string, label: string): HTMLElement => {
-  const box = el('div', 'exbox'); box.style.background = exGround(false);
+  const box = hook(el('div', 'exbox'), 'example-ground'); box.style.background = exGround(false);
   const t = el('span', 'inote', label); specimen(t).style.color = color;
   box.append(t); return box;
 };
 /** The example column: an example box + an optional contrast receipt below it. */
 const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
-  const aex = el('div', 'aex'); aex.append(inner); if (badge) aex.append(badge); return aex;
+  const aex = hook(el('div', 'aex'), 'role-example'); aex.append(inner); if (badge) aex.append(badge); return aex;
 };
 /** Two labeled specimens side by side in the example column (rest→hover, filled→outline, match→distinct).
  *  Each may carry its OWN contrast receipt as a third tuple slot — per specimen, not per row, because two
@@ -2849,7 +2854,7 @@ const twoUp = (a: TwoUpSpec, b: TwoUpSpec): HTMLElement => {
     if (badge) s.append(badge);
     row.append(s);
   }
-  const wrap = el('div', 'aex'); wrap.append(row);
+  const wrap = hook(el('div', 'aex'), 'role-example'); wrap.append(row);
   return wrap;
 };
 const iBadge = (r: RoleRes | undefined): HTMLElement | undefined =>
@@ -2866,25 +2871,25 @@ const iStates = (roles: RoleMap, palette: string, cells: Array<[string, string]>
   const g = el('div', 'astates-g'); let any = false;
   for (const [name, roleKey] of cells) {
     const r = roles[roleKey]; if (!r) continue; any = true;
-    const cell = el('div', 'astate');
+    const cell = hook(el('div', 'astate'), 'role-state');
     const head = el('div', 'astate-h');
-    head.append(swatch(isWash(r) ? washCss(roles, r) : r.hex, 'astate-sw'), el('span', 'astate-n', name));
+    head.append(hook(swatch(isWash(r) ? washCss(roles, r) : r.hex, 'astate-sw'), 'role-state-swatch'), hook(el('span', 'astate-n', name), 'role-state-name'));
     cell.append(head, roleSourceSelect(roles, roleKey, palette, baselineStepOf(roleKey)));
     g.append(cell);
   }
   if (!any) return null;
-  const wrap = el('div', 'astates'); wrap.append(el('div', 'astates-h', 'Interactive states'), g); return wrap;
+  const wrap = hook(el('div', 'astates'), 'role-states'); wrap.append(el('div', 'astates-h', 'Interactive states'), g); return wrap;
 };
 
 /** One matrix row: 56×56 swatch (omitted on `lead` control rows) · mid (label + Source select + token pill
  *  + description) · locked-right example · optional states strip. */
 const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?: string; select: HTMLElement; pill?: string; desc?: string; warn?: string; example: HTMLElement; states?: HTMLElement | null }): HTMLElement => {
-  const row = el('div', 'arow' + (o.lead ? ' arow-lead' : ''));
+  const row = hook(el('div', 'arow' + (o.lead ? ' arow-lead' : '')), o.lead ? 'role-lead' : 'role-row');
   const main = el('div', 'arow-main');
-  if (!o.lead) main.append(swatch(o.swatchBg ?? '#000000', 'asw'));
-  const mid = el('div', 'amid');
+  if (!o.lead) main.append(hook(swatch(o.swatchBg ?? '#000000', 'asw'), 'role-swatch'));
+  const mid = hook(el('div', 'amid'), 'role-body');
   if (o.label) mid.append(el('div', 'alabel', o.label));
-  const ctl = el('div', 'sf-ctlblock'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
+  const ctl = hook(el('div', 'sf-ctlblock'), 'role-source'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
   if (o.pill) mid.append(tokenPill(o.pill));
   if (o.desc) mid.append(el('p', 'adesc', o.desc));
   if (o.warn) mid.append(el('p', 'fz-warn', o.warn));
@@ -3203,8 +3208,8 @@ const linkStatesStrip = (roles: RoleMap, prefix: string, rungEditable = false): 
   for (const [name, st] of LINK_STATE_ROWS) {
     const key = `${prefix}.link.${st}`;
     const r = roles[key]; if (!r) continue; any = true;
-    const cell = el('div', 'astate');
-    const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
+    const cell = hook(el('div', 'astate'), 'role-state');
+    const head = el('div', 'astate-h'); head.append(hook(swatch(r.hex, 'astate-sw'), 'role-state-swatch'), hook(el('span', 'astate-n', name), 'role-state-name'));
     cell.append(head, tokenPill(colorPath(key)));
     const badge = iBadge(r); if (badge) cell.append(badge);
     if (st === 'default') cell.append(linkAbsPicker(prefix));                 // per-mode absolute pin — every family
@@ -3212,7 +3217,7 @@ const linkStatesStrip = (roles: RoleMap, prefix: string, rungEditable = false): 
     g.append(cell);
   }
   if (!any) return null;
-  const wrap = el('div', 'astates'); wrap.append(el('div', 'astates-h', 'Link states'), g); return wrap;
+  const wrap = hook(el('div', 'astates'), 'role-states'); wrap.append(el('div', 'astates-h', 'Link states'), g); return wrap;
 };
 
 /** One link family row: the `default` swatch + label + token pill + description on the left, a live
@@ -3224,10 +3229,10 @@ const linkRow = (o: { prefix: string; label: string; desc: string; rungEditable?
   const roles = iRoles();
   const restKey = `${o.prefix}.link.default`;
   const rest = roles[restKey]; if (!rest) return null;
-  const row = el('div', 'arow');
+  const row = hook(el('div', 'arow'), 'role-row');
   const main = el('div', 'arow-main');
-  main.append(swatch(rest.hex, 'asw'));
-  const mid = el('div', 'amid');
+  main.append(hook(swatch(rest.hex, 'asw'), 'role-swatch'));
+  const mid = hook(el('div', 'amid'), 'role-body');
   mid.append(el('div', 'alabel', o.label), tokenPill(colorPath(restKey)), el('p', 'adesc', o.desc));
   main.append(mid, iExample(o.example(roles), iBadge(rest)));
   row.append(main);
@@ -3240,7 +3245,7 @@ const linkRow = (o: { prefix: string; label: string; desc: string; rungEditable?
 const renderLinksSection = (): HTMLElement | null => {
   const roles = iRoles();
   if (!roles['text.link.default']) return null;
-  const sec = el('div', 'psec');
+  const sec = hook(el('div', 'psec'), 'section-links');
   const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', 'Links'));
   sec.append(head, el('p', 'psec-d',
     'The global link role, drawn from the link palette below — one link role, no per-accent link roles. '
@@ -3253,8 +3258,8 @@ const renderLinksSection = (): HTMLElement | null => {
   // body text, the engine flags in its notes that links must be underlined. Surface that inline here —
   // advisory, never a block — reading the engine's own decision (theme.notes) so it never diverges from it.
   if (theme.notes.some((n) => /WCAG 1\.4\.1/.test(n)))
-    sec.append(el('p', 'te-order-warn',
-      '⚠ This link palette is not color-distinct from body text, so color alone cannot mark a link. Underline links for WCAG 1.4.1 (Use of Color) — add the link role to Underlined link roles in Type. A warning, not a block.'));
+    sec.append(hook(el('p', 'te-order-warn',
+      '⚠ This link palette is not color-distinct from body text, so color alone cannot mark a link. Underline links for WCAG 1.4.1 (Use of Color) — add the link role to Underlined link roles in Type. A warning, not a block.'), 'order-warning'));
   const rows: Array<HTMLElement | null> = [
     linkRow({ prefix: 'text', label: 'Text link', desc: 'Links in running text on light surfaces.', rungEditable: true,
       example: (rs) => exLink(rs['text.link.default']?.hex ?? '#000000', false, rs['text.link.hover']?.hex, rs['text.link.pressed']?.hex) }),
@@ -3305,9 +3310,9 @@ const linkPaletteLead = (): HTMLElement => {
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
   sel.onchange = () => { setPath(brandState, 'linkPalette', sel.value); applyFull(); };
   const roles = iRoles();
-  return iRow({ lead: true, label: 'Link palette', srcLabel: 'Source', select: sel,
+  return hook(iRow({ lead: true, label: 'Link palette', srcLabel: 'Source', select: sel,
     desc: 'Which palette drives your links — follows your action palette by default, or point it at your neutral or an accent to give links their own color. The contrast floor holds either way.',
-    example: iExample(exLink(roles['text.link.default']?.hex ?? '#000000', false, roles['text.link.hover']?.hex, roles['text.link.pressed']?.hex)) });
+    example: iExample(exLink(roles['text.link.default']?.hex ?? '#000000', false, roles['text.link.hover']?.hex, roles['text.link.pressed']?.hex)) }), 'link-palette');
 };
 
 /** The Neutral section's lead: the emphasis choice (subtle grey surface vs bold near-black/white fill). */
@@ -3575,11 +3580,11 @@ const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => 
   // glyph) rather than a live checkbox that can't be unticked. #1770: the lock is SAID by the glyph, not by
   // fading the row — the fade took a legal `--faint` "always" (5.13:1) down to 2.95:1. The glyph is named
   // for assistive tech; the row's title carries the reason.
-  const lightRow = el('div', 'mctx-opt on fixed');
+  const lightRow = hook(el('div', 'mctx-opt on fixed'), 'mode-base-row');
   lightRow.title = 'Light is always generated — it’s the base mode, so it can’t be turned off.';
   const lock = iconEl('lock', 'currentColor');
-  lock.setAttribute('class', 'mctx-lock'); lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', 'Locked');
-  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), lock, el('span', 'mctx-always', 'always'));
+  hook(lock, 'mode-base-lock'); lock.setAttribute('class', 'mctx-lock'); lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', 'Locked');
+  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), lock, hook(el('span', 'mctx-always', 'always'), 'mode-base-always'));
   menu.append(lightRow);
 
   const opt = (label: string, on: boolean, title: string, toggle: () => void): void => {
@@ -3662,8 +3667,8 @@ const renderModeContext = (): HTMLElement => {
   left.append(el('span', 'mctx-cap', 'Mode'));
   for (const m of rp.modes) {
     const derived = DERIVED_MODES.has(m);
-    const b = el('button', 'mctx-b' + (m === currentMode ? ' on' : '') + (derived ? ' derived' : '')) as HTMLButtonElement;
-    b.append(el('span', 'mctx-name', MODE_LABEL[m] ?? m));
+    const b = hook(el('button', 'mctx-b' + (m === currentMode ? ' on' : '') + (derived ? ' derived' : '')) as HTMLButtonElement, 'mode-tab');
+    b.append(hook(el('span', 'mctx-name', MODE_LABEL[m] ?? m), 'mode-tab-name'));
     if (derived) b.append(el('span', 'mctx-vo', 'view only'));
     // No per-mode contrast mark here any more (#54 retired, owner decision): a pass/fail glyph on a
     // mode SELECTOR is theme health riding on a control that selects scope, and contrast is reported
@@ -3694,7 +3699,7 @@ const renderModeContext = (): HTMLElement => {
 const renderGeneratedNote = (): HTMLElement => {
   const wf = currentMode === 'wireframe';
   const label = MODE_LABEL[currentMode] ?? currentMode;
-  const box = el('div', 'genview');
+  const box = hook(el('div', 'genview'), 'derived-note');
   box.append(el('h3', 'genview-t', `${label} is auto-derived — read-only`));
   box.append(el('p', 'genview-d', wf
     ? 'Wireframe is a mechanical grayscale: every non-neutral role collapses to its neutral equivalent and corners go sharp. It’s generated from your theme, not hand-tuned — edit Light or Dark and it follows.'
@@ -3984,10 +3989,10 @@ const renderTypeSizes = (): HTMLElement => {
   // SHAPE — option cards. A select cannot carry a sentence per option, and this is a foundational
   // choice made once. Deviation from doc 26 (3+ options → select); see doc 24 for the rule.
   const cur = (getPath(brandState, 'typography.typeScale') ?? 'default') as string;
-  const cards = el('div', 'shape-cards');
+  const cards = hook(el('div', 'shape-cards'), 'heading-shapes');
   let anyBlocked = false;
   for (const [key, name, blurb] of TYPE_SHAPES) {
-    const b = el('button', 'shape-card' + (key === cur ? ' on' : '')) as HTMLButtonElement;
+    const b = hook(el('button', 'shape-card' + (key === cur ? ' on' : '')) as HTMLButtonElement, `heading-shape-${key}`);
     b.setAttribute('aria-pressed', String(key === cur));
     // The px range previews what this card WOULD produce, by shifting the live title ramp along the
     // ladder — cheaper and more honest than a hardcoded string, which would drift from the engine.
@@ -4018,7 +4023,7 @@ const renderTypeSizes = (): HTMLElement => {
   if (anyBlocked) {
     const warn = el('div', 'shape-blocked');
     warn.append(el('span', undefined, 'Some shapes are unavailable while sizes are set individually — they would clash.'));
-    const rel = el('button', 'shape-release', 'Release pinned sizes') as HTMLButtonElement;
+    const rel = hook(el('button', 'shape-release', 'Release pinned sizes') as HTMLButtonElement, 'heading-shape-release');
     rel.onclick = () => {
       if (brandState.typography) { delete brandState.typography.sizes; delete brandState.typography.sizeOverrides; }
       for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
@@ -4055,7 +4060,7 @@ const renderTypeSizes = (): HTMLElement => {
     range.append(f);
   }
   {
-    const f = el('div', 'range-f');
+    const f = hook(el('div', 'range-f'), 'heading-title-floor');
     f.append(el('span', 'pfk', 'Smallest title size'));
     const on = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
     const row = el('div', 'range-tg');
@@ -4214,8 +4219,8 @@ const renderDurationRamp = (): HTMLElement => {
   const reduced = byMode?.durationReduced ?? mo.durationReduced;
   const stagger = byMode?.stagger ?? mo.stagger;
   const tempoLabel = byMode?.tempo ?? mo.tempo;
-  const wrap = palSection('Duration ramp',
-    `The six semantic durations at tempo '${tempoLabel}', each aliasing a literal ms primitive, beside the reduce-motion ramp the engine derives from it. Read-only — Tempo above scales the whole ladder.`);
+  const wrap = hook(palSection('Duration ramp',
+    `The six semantic durations at tempo '${tempoLabel}', each aliasing a literal ms primitive, beside the reduce-motion ramp the engine derives from it. Read-only — Tempo above scales the whole ladder.`), 'section-duration-ramp');
   // the motion ramp IS a contract table; mo-ramp adds the ms column
   const table = el('table', mix('ctable', 'mo-ramp'));
   const head = el('tr');
@@ -4526,7 +4531,7 @@ const TYPE_TABS: Array<[TypeTab, string]> = [['primitives', 'Primitives'], ['sem
 const renderTypographyPage = (host: PageHost): void => renderScreen(host, 'typography', (h) => {
   const seg = el('div', 'pvseg');
   for (const [k, label] of TYPE_TABS) {
-    const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
+    const b = hook(el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement, `type-tab-${k}`);
     // The tab switch changes the strip too, not just the body: the tier a tab shows IS what the
     // switcher's visibility turns on (#268) — primitives are mode-invariant and semantics/composites
     // are not. `renderWorkspace` now ends by repainting the strip (#771), so the tab no longer asks
@@ -4839,7 +4844,7 @@ const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', 
   // resolved theme and every unchanged region is kept. It is also what the per-mode tempo select has
   // always done, which is why this was only ever visible in the base mode.
   const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode, applyFull);
-  if (tempo) h.append(tempo);
+  if (tempo) h.append(hook(tempo, 'section-tempo'));
   h.append(renderDurationRamp());
   h.append(renderEasingEditor());
   h.append(renderSpringsSection());
@@ -5105,7 +5110,7 @@ const renderComponentsPage = (host: PageHost): void => {
     sec.append(gap);
   }
 
-  const row = el('div', 'cw-row');
+  const row = hook(el('div', 'cw-row'), 'components-row');
   componentRow = row;
 
   // A PICKER, NOT A BUTTON PER DEF. Four sets today and Arc 2 adds more, so a control per def would grow
@@ -5127,7 +5132,7 @@ const renderComponentsPage = (host: PageHost): void => {
     if (b.id === 'button') opt.selected = true;
     sel.append(opt);
   }
-  componentSel = sel;
+  componentSel = hook(sel, 'components-def-picker');
   sel.title = 'Which set to build. The variant count is the cost — about 162ms each.';
   row.append(sel);
 
@@ -5135,7 +5140,7 @@ const renderComponentsPage = (host: PageHost): void => {
   // selection beside it. The label read "Build Button set" because Button was the only def that could be
   // built and a generic label would have promised four components it could not deliver (#718). With a
   // picker the specificity moved into the picker, and a label naming one def would contradict it.
-  const compBtn = el('button', 'barbtn') as HTMLButtonElement;
+  const compBtn = hook(el('button', 'barbtn') as HTMLButtonElement, 'components-build');
   componentBtn = compBtn;
   // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
   // designer cannot recover from the result: the set binds variables by name, so a build into an
@@ -5266,7 +5271,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   sec.append(note);
 
   // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
-  const det = el('details', 'contracts') as HTMLDetailsElement;
+  const det = hook(el('details', 'contracts') as HTMLDetailsElement, 'style-guide-customize');
   const sum = el('summary', 'contracts-sum');
   sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · units · columns · tables'));
   det.append(sum);
@@ -5277,28 +5282,28 @@ const renderStyleGuidePage = (host: PageHost): void => {
     return s;
   };
   det.append(
-    knob('Color value', pick('valueFormat', [['hex', 'Hex'], ['rgba', 'RGB-A'], ['hsl', 'HSL'], ['hsb', 'HSB']], 'hex'), 'How each value cell prints the color. A translucent hex adds its alpha as a percentage.'),
+    hook(knob('Color value', pick('valueFormat', [['hex', 'Hex'], ['rgba', 'RGB-A'], ['hsl', 'HSL'], ['hsb', 'HSB']], 'hex'), 'How each value cell prints the color. A translucent hex adds its alpha as a percentage.'), 'style-guide-value-format'),
     knob('Table header', pick('header', [['dark', 'Dark'], ['light', 'Light']], 'dark'), 'The header row’s fill.'),
-    knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
-      'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'),
+    hook(knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
+      'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'), 'style-guide-display'),
     // #259 phase 2: the dimension and font-variable specimens, the REM column, and the text-style columns.
-    knob('Dimension display', pick('dimensionDisplay', [['filled', 'Filled bar'], ['line', 'Bracket']], 'filled'),
-      'One style for every dimension row, drawn at its value. A radius draws a rounded corner either way.'),
-    knob('Font variable display', pick('fontDisplay', [['auto', 'From each variable’s kind'], ['generic', 'Generic'], ['family', 'Family'], ['size', 'Size'], ['weight', 'Weight'], ['letterSpacing', 'Letter spacing'], ['lineHeight', 'Line height']], 'auto'),
-      '“Abc 123” with one property bound to the variable. By default each variable binds the property it is for.'),
-    knob('REM', toggleField(styleGuideOptions.rem ?? true, (on) => { styleGuideOptions.rem = on; }), 'Add a REM column beside each length, at a 16px base.'),
+    hook(knob('Dimension display', pick('dimensionDisplay', [['filled', 'Filled bar'], ['line', 'Bracket']], 'filled'),
+      'One style for every dimension row, drawn at its value. A radius draws a rounded corner either way.'), 'style-guide-dimension-display'),
+    hook(knob('Font variable display', pick('fontDisplay', [['auto', 'From each variable’s kind'], ['generic', 'Generic'], ['family', 'Family'], ['size', 'Size'], ['weight', 'Weight'], ['letterSpacing', 'Letter spacing'], ['lineHeight', 'Line height']], 'auto'),
+      '“Abc 123” with one property bound to the variable. By default each variable binds the property it is for.'), 'style-guide-font-display'),
+    hook(knob('REM', toggleField(styleGuideOptions.rem ?? true, (on) => { styleGuideOptions.rem = on; }), 'Add a REM column beside each length, at a 16px base.'), 'style-guide-rem'),
     knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the variable each value aliases, as a chip beside it.'),
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
-    knob('Paragraph spacing', toggleField(styleGuideOptions.paragraphSpacing ?? false, (on) => { styleGuideOptions.paragraphSpacing = on; }), 'Add a paragraph-spacing column to the text-style table.'),
+    hook(knob('Paragraph spacing', toggleField(styleGuideOptions.paragraphSpacing ?? false, (on) => { styleGuideOptions.paragraphSpacing = on; }), 'Add a paragraph-spacing column to the text-style table.'), 'style-guide-paragraph-spacing'),
     knob('Text decoration', toggleField(styleGuideOptions.textDecoration ?? false, (on) => { styleGuideOptions.textDecoration = on; }), 'Add a text-decoration column to the text-style table.'),
-    knob('Title cell', toggleField(styleGuideOptions.titleCell ?? false, (on) => { styleGuideOptions.titleCell = on; }), 'Add a leading Name column to every table, “Text Primary” for text/primary. An edited name is kept on the next run.'),
-    knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'),
+    hook(knob('Title cell', toggleField(styleGuideOptions.titleCell ?? false, (on) => { styleGuideOptions.titleCell = on; }), 'Add a leading Name column to every table, “Text Primary” for text/primary. An edited name is kept on the next run.'), 'style-guide-title-cell'),
+    hook(knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'), 'style-guide-tables'),
   );
   sec.append(det);
 
-  const row = el('div', 'fs-row');
+  const row = hook(el('div', 'fs-row'), 'style-guide-row');
   styleGuideRow = row;
-  const btn = el('button', 'barbtn') as HTMLButtonElement;
+  const btn = hook(el('button', 'barbtn') as HTMLButtonElement, 'style-guide-draw');
   styleGuideBtn = btn;
   btn.title = 'Draws the token tables from this file’s variables and text styles. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
@@ -6321,7 +6326,7 @@ const renderWeightRoles = (): HTMLElement => {
   sec.append(renderWeightTable());
   const eff = ty.weightRoles.map((w) => w.value);
   if (eff.some((v, i) => i > 0 && v < eff[i - 1]))
-    sec.append(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than one below it — the names read as relative emphasis (subtle → strong), so keeping them in order stays honest. A warning, not a block.'));
+    sec.append(hook(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than one below it — the names read as relative emphasis (subtle → strong), so keeping them in order stays honest. A warning, not a block.'), 'order-warning'));
   return sec;
 };
 
@@ -6464,7 +6469,7 @@ const renderCategorySetup = (): HTMLElement => {
   const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
   const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
   const wrap = el('div', 'cs-wrap');
-  const table = el('table', 'cs-table');
+  const table = hook(el('table', 'cs-table'), 'category-table');
   const head = el('tr');
   head.append(el('th', undefined, 'Category'), el('th', undefined, 'Face'));
   // Header casing is SOURCE-ONLY tidying: every table header is `text-transform:uppercase`, so the
@@ -6472,8 +6477,9 @@ const renderCategorySetup = (): HTMLElement => {
   // an earlier pass here added a `mono` class on the strength of "these are token identifiers", which
   // rendered ui-monospace beside -apple-system in one header row. That was the only user-visible
   // change in the whole casing question, and it made things worse. Reverted.
-  for (const r of roleOrder) head.append(el('th', 'cs-c', r));
-  head.append(el('th', 'cs-c', 'Leading'), el('th', 'cs-c', 'Tracking'), el('th', 'cs-c', 'Italic default'), el('th', 'cs-c', 'Italic'), el('th', 'cs-c', 'Link'));
+  const col = (t: string): HTMLElement => hook(el('th', 'cs-c', t), 'category-col');
+  for (const r of roleOrder) head.append(col(r));
+  head.append(col('Leading'), col('Tracking'), col('Italic default'), col('Italic'), col('Link'));
   table.append(head);
   const cb = (checked: boolean, onChange: (v: boolean) => void): HTMLInputElement => {
     const c = el('input') as HTMLInputElement;
@@ -6570,7 +6576,7 @@ const renderCategorySetup = (): HTMLElement => {
     // NODE they are emitted under. It carried a trailing `*` first, which `.tpill`'s `direction:rtl`
     // (left-ellipsis for long paths) reordered to the front — it rendered `*.type.display`. The count
     // above it already says this is a set, and the tooltip says so in words.
-    nameTd.append(el('div', 'cs-name mono', g), el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`));
+    nameTd.append(hook(el('div', 'cs-name mono', g), 'category-name'), hook(el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`), 'category-count'));
     const catPill = tokenPill(`type.${g}`);
     catPill.title = `Every style in this category is emitted under type.${g} — ${comps.length} of them`;
     nameTd.append(catPill);
@@ -6598,7 +6604,7 @@ const renderCategorySetup = (): HTMLElement => {
     const has = new Set(comps.map((c) => c.weightRole));
     const required = (REQUIRED_WEIGHT_ROLES as Record<string, { role: string; why: string } | undefined>)[g];
     for (const r of roleOrder) {
-      const td = el('td', 'cs-c');
+      const td = hook(el('td', 'cs-c'), 'category-cell');
       const box = cb(has.has(r), () => {
         const next = roleOrder.filter((x) => (x === r ? !has.has(r) : has.has(x)));
         // `applyFull`, not `apply`: the disabled states below are derived from the shipped set, and a
@@ -6619,13 +6625,13 @@ const renderCategorySetup = (): HTMLElement => {
       td.append(box);
       tr.append(td);
     }
-    const ltd = el('td', 'cs-c'); ltd.append(nudge(g, 'leadingShift')); tr.append(ltd);
-    const ttd = el('td', 'cs-c'); ttd.append(nudge(g, 'trackingShift')); tr.append(ttd);
+    const ltd = hook(el('td', 'cs-c'), 'category-cell'); ltd.append(nudge(g, 'leadingShift')); tr.append(ltd);
+    const ttd = hook(el('td', 'cs-c'), 'category-cell'); ttd.append(nudge(g, 'trackingShift')); tr.append(ttd);
     // #1296 — Italic default and Italic are exclusive per category (the engine refuses both: an italic
     // default leaves no upright weight to pair an -italic twin with). The box that would reach that
     // refusal is disabled with the reason on hover, the same way the weight boxes above disable an
     // untick the engine would refuse. `applyFull`, because each box's disabled state reads the other.
-    const idtd = el('td', 'cs-c');
+    const idtd = hook(el('td', 'cs-c'), 'category-cell');
     const idBox = cb(italicDefG.has(g), (v) => {
       const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : italicDefG.has(x)));
       setPath(brandState, 'typography.italicDefault', next.length ? next : undefined); applyFull();
@@ -6634,7 +6640,7 @@ const renderCategorySetup = (): HTMLElement => {
     else if (!italicDefG.has(g) && Object.keys((getPath(brandState, `typography.faces.${g}`) as Record<string, unknown> | undefined) ?? {}).length) { idBox.disabled = true; idBox.title = 'This category pins a cut. Clear its pinned cut first: an italic default sets the cut from the weight, and a pin would override it.'; }
     idtd.append(idBox);
     tr.append(idtd);
-    const itd = el('td', 'cs-c');
+    const itd = hook(el('td', 'cs-c'), 'category-cell');
     const iBox = cb(italicG.has(g), (v) => {
       const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : italicG.has(x)));
       setPath(brandState, 'typography.italics', next); applyFull();
@@ -6642,7 +6648,7 @@ const renderCategorySetup = (): HTMLElement => {
     if (italicDefG.has(g)) { iBox.disabled = true; iBox.title = 'This category is already italic by default, so an -italic variant would repeat each style. Clear Italic default first.'; }
     itd.append(iBox);
     tr.append(itd);
-    const ktd = el('td', 'cs-c');
+    const ktd = hook(el('td', 'cs-c'), 'category-cell');
     ktd.append(cb(linkG.has(g), (v) => {
       const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : linkG.has(x)));
       setPath(brandState, 'typography.links', next); apply();
@@ -6706,7 +6712,7 @@ const renderFacePins = (): HTMLElement => {
     apply();
   };
   const wrap = el('div', 'cs-wrap');
-  const table = el('table', mix('cs-table', 'pincut'));
+  const table = hook(el('table', mix('cs-table', 'pincut')), 'pin-cut-table');
   const head = el('tr');
   head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Face'), el('th', 'cs-c', 'Style pin'));
   table.append(head);
@@ -6721,20 +6727,20 @@ const renderFacePins = (): HTMLElement => {
     const shipped = roleOrder.filter((r) => ty.composites.some((c) => c.group === g && c.weightRole === r));
     for (const role of shipped) {
       slots++;
-      const tr = el('tr', 'pincut-row');
+      const tr = hook(el('tr', 'pincut-row'), 'pin-cut-row');
       tr.setAttribute('data-cat', g);
       tr.setAttribute('data-role', role);
       const slotTd = el('td');
       slotTd.append(el('div', 'cs-name mono', `${g} · ${role}`), el('div', 'cs-count', 'Every size in this category'));
       tr.append(slotTd);
       const fTd = el('td');
-      const fName = el('div', mix('cs-face', 'pincut-face'), fam);
+      const fName = hook(el('div', mix('cs-face', 'pincut-face'), fam), 'pin-cut-face');
       fName.title = ty.families.find((f) => f.group === g)?.stack.join(', ') ?? fam;
       fTd.append(fName);
       tr.append(fTd);
       const inTd = el('td', 'cs-c');
       const cur = getPath(brandState, `typography.faces.${g}.${role}`) as FacePin | undefined;
-      const inp = el('input', mix('tf-in', 'pincut-in')) as HTMLInputElement;
+      const inp = hook(el('input', mix('tf-in', 'pincut-in')) as HTMLInputElement, 'pin-cut-input');
       inp.type = 'text';
       inp.spellcheck = false;
       inp.placeholder = 'Derived from weight';
@@ -6868,7 +6874,7 @@ const sectionContrastRoles = (intro: string, roleLabels: Array<[string, string]>
 const renderSurfacesEditor = (): HTMLElement => {
   const mode = currentMode;
   const label = MODE_LABEL[mode] ?? mode;
-  const sec = palSection('Backgrounds', `The surface ${label} paints on (Primary) and its contrasting Inverse band — both set per mode. Switch modes above to set each mode’s surface.`);
+  const sec = hook(palSection('Backgrounds', `The surface ${label} paints on (Primary) and its contrasting Inverse band — both set per mode. Switch modes above to set each mode’s surface.`), 'section-backgrounds');
   const opt = (sel: HTMLSelectElement, v: string, t: string, on: boolean): void => { sel.append(optionEl(v, t, on)); };
   const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string; path?: string } | undefined>;
   const primHex = roles['background.primary']?.hex ?? (mode === 'dark' ? '#000000' : '#ffffff');
@@ -8283,7 +8289,7 @@ const iconEl = (name: string, stroke: string): SVGElement => {
 // ---- shared bits -----------------------------------------------------------
 const hero = (title: string, lede: string): HTMLElement => {
   const h = el('div', 'hero');
-  if (title) h.append(el('h1', undefined, title));
+  if (title) h.append(hook(el('h1', undefined, title), 'page-title'));
   if (lede) h.append(el('p', 'lede', lede));
   return h;
 };
@@ -8371,7 +8377,7 @@ type ChromeSurface = {
 const CHROME_SURFACES: readonly ChromeSurface[] = [
   {
     key: 'brand-bar', home: 'root', views: ['app'],
-    mount: () => { barHost = el('div', 'bar'); renderBar(); return barHost; },
+    mount: () => { barHost = hook(el('div', 'bar'), 'bar'); renderBar(); return barHost; },
     // NO `sync`, deliberately. `renderBar()` rebuilds `barHost` wholesale, and that node holds the open
     // brand menu, the Pages menu and the export dialog — refreshing it on every knob edit would close
     // whatever the designer had open, mid-gesture. It re-renders on its own events instead (menu
@@ -8386,7 +8392,7 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // list it never read, which is this ticket's defect with a different page in it. A hidden node
     // costs a div; the precedent costs the ticket. (Its own import validation stays where it is — see
     // the survey note in `renderStartScreen`.)
-    mount: () => { globalErrHost = el('div', 'errbar errbar-global'); return globalErrHost; },
+    mount: () => { globalErrHost = hook(el('div', 'errbar errbar-global'), 'error-bar'); return globalErrHost; },
     sync: () => syncErrorBar(),
   },
   {
@@ -8398,7 +8404,7 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // `build()`, so a hardcoded "hidden" would collapse an open detail (and, one surface up, would drop
     // a live error the moment the user changed page — the hole #388 closed).
     mount: () => {
-      applyDetailHost = el('div', 'applystat-detail');
+      applyDetailHost = hook(el('div', 'applystat-detail'), 'apply-detail');
       applyDetailHost.id = APPLY_DETAIL_ID;
       return applyDetailHost;
     },
@@ -9130,11 +9136,11 @@ const renderOverwriteConfirm = (pending: { input: BrandInput; origin: Origin }):
   const box = el('div', 'bm-import');
   // Reaching here MEANS there are edits to lose (`stageLoad` loads straight through when there are
   // not), so the sentence can name what they are edits *to* instead of asserting they exist (#722).
-  box.append(el('p', 'bm-confirm', `Replace the current brand with ${originLabel(pending.origin, 'arriving')}? Your edits to ${originLabel(provenance.origin, 'atRisk')} are not saved anywhere else.`));
+  box.append(hook(el('p', 'bm-confirm', `Replace the current brand with ${originLabel(pending.origin, 'arriving')}? Your edits to ${originLabel(provenance.origin, 'atRisk')} are not saved anywhere else.`), 'overwrite-confirm'));
   const row = el('div', 'bm-confirm-row');
-  const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
+  const rep = hook(el('button', 'bm-load', 'Replace brand') as HTMLButtonElement, 'overwrite-replace');
   rep.onclick = () => { pendingLoad = null; loadBrand(pending.input, pending.origin); };
-  const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
+  const can = hook(el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement, 'overwrite-cancel');
   can.onclick = () => { pendingLoad = null; renderBar(); };
   row.append(rep, can);
   box.append(row);
@@ -9142,13 +9148,13 @@ const renderOverwriteConfirm = (pending: { input: BrandInput; origin: Origin }):
 };
 
 const renderBrandMenu = (): HTMLElement => {
-  const menu = el('div', 'brandmenu');
+  const menu = hook(el('div', 'brandmenu'), 'brand-menu');
 
   menu.append(el('div', 'bm-cap', 'Current brand'));
-  const field = (label: string, value: string, mono: boolean, oninput: (v: string, input: HTMLInputElement) => void): HTMLElement => {
+  const field = (label: string, value: string, mono: boolean, role: string, oninput: (v: string, input: HTMLInputElement) => void): HTMLElement => {
     const f = el('label', 'bm-field');
     f.append(el('span', 'bm-lab', label));
-    const inp = el('input', 'bm-in' + (mono ? ' mono' : '')) as HTMLInputElement;
+    const inp = hook(el('input', 'bm-in' + (mono ? ' mono' : '')) as HTMLInputElement, role);
     inp.value = value; inp.spellcheck = false;
     inp.oninput = () => oninput(inp.value, inp);
     f.append(inp);
@@ -9163,7 +9169,7 @@ const renderBrandMenu = (): HTMLElement => {
   const isCurrentExample = (name: string): boolean => name === brandState.id;
   const exampleItems: Array<[string, HTMLElement]> = [];
   const markCurrentExample = (): void => { for (const [name, b] of exampleItems) b.classList.toggle('cur', isCurrentExample(name)); };
-  menu.append(field('Name', brandState.id, false, (v) => {
+  menu.append(field('Name', brandState.id, false, 'brand-menu-name', (v) => {
     brandState.id = v.trim() || 'untitled';
     (barHost.querySelector('.bs-name') as HTMLElement).textContent = brandState.id;
     markCurrentExample();
@@ -9171,7 +9177,7 @@ const renderBrandMenu = (): HTMLElement => {
   }));
   const nsHint = el('p', 'bm-hint');
   const setHint = () => { nsHint.textContent = `Tokens emit under ${brandState.root ?? 'prism'}.*`; };
-  menu.append(field('Namespace', brandState.root ?? 'prism', true, (v, inp) => {
+  menu.append(field('Namespace', brandState.root ?? 'prism', true, 'brand-menu-namespace', (v, inp) => {
     const t = v.trim();
     // Only a VALID root is committed — an invalid one leaves brandState.root untouched and marks the
     // input, so it never reaches emission. syncIdentity keeps persist/Apply fresh per-keystroke; the
@@ -9196,7 +9202,7 @@ const renderBrandMenu = (): HTMLElement => {
   menu.append(el('div', 'bm-div'));
   menu.append(el('div', 'bm-cap', 'Examples'));
   for (const name of Object.keys(BRANDS)) {
-    const b = el('button', 'bm-item' + (isCurrentExample(name) ? ' cur' : '')) as HTMLButtonElement;
+    const b = hook(el('button', 'bm-item' + (isCurrentExample(name) ? ' cur' : '')) as HTMLButtonElement, 'brand-menu-example');
     exampleItems.push([name, b]);
     const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     b.append(d, el('span', undefined, name));
@@ -9216,7 +9222,7 @@ const renderBrandMenu = (): HTMLElement => {
   // returns to the start moment in both hosts, which is visible feedback whatever the values are —
   // exactly the reason #1034 excluded web from the marker in the first place. The condition it tested
   // has no subject left: there is no longer a state in which this button does nothing.
-  const nb = el('button', 'bm-item', '+ New brand') as HTMLButtonElement;
+  const nb = hook(el('button', 'bm-item', '+ New brand') as HTMLButtonElement, 'brand-menu-new');
   // BOTH HOSTS return to the start moment (#1197). This branch used to fork: web cleared the origin,
   // the plugin loaded `NEW_BRAND()` in place, and the comment here said the plugin "must not surface
   // the web start screen" because that port was a deferred cross-lane follow-up (#506/#533). #1197 is
@@ -9240,7 +9246,7 @@ const renderBrandMenu = (): HTMLElement => {
     build();
   };
   menu.append(nb);
-  const imp = el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement;
+  const imp = hook(el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement, 'brand-menu-import');
   imp.onclick = () => { importOpen = !importOpen; importErr = null; pendingLoad = null; renderBar(); };
   menu.append(imp);
 
@@ -9265,7 +9271,7 @@ const renderImportBox = (): HTMLElement => {
   // on the pending load's ORIGIN, so a staged example does not blank the paste box.
   if (pendingLoad?.origin.kind === 'import') return renderOverwriteConfirm(pendingLoad);
   const box = el('div', 'bm-import');
-  const ta = el('textarea', 'bm-ta') as HTMLTextAreaElement;
+  const ta = hook(el('textarea', 'bm-ta') as HTMLTextAreaElement, 'import-text');
   ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
   ta.spellcheck = false;
   ta.value = importText;                                   // M-17: restore across re-renders
@@ -9283,7 +9289,7 @@ const renderImportBox = (): HTMLElement => {
     stageImport(read.text);
   };
   up.append(el('span', undefined, '↑ Upload .md'), fi);
-  const load = el('button', 'bm-load', 'Load') as HTMLButtonElement;
+  const load = hook(el('button', 'bm-load', 'Load') as HTMLButtonElement, 'import-load');
   load.onclick = () => stageImport(ta.value);
   row.append(up, load);
   box.append(row);
@@ -9309,7 +9315,7 @@ const renderImportBox = (): HTMLElement => {
  *  six-token sample, not a second renderer that could drift from what the download writes. */
 const renderExportDialog = (): HTMLElement => {
   const wrap = el('div', 'exdlg-scrim');
-  const dlg = el('div', 'exdlg');
+  const dlg = hook(el('div', 'exdlg'), 'export-dialog');
   dlg.setAttribute('role', 'dialog');
   dlg.setAttribute('aria-modal', 'true');
   dlg.setAttribute('aria-label', 'Export');
@@ -9421,7 +9427,7 @@ const renderExportDialog = (): HTMLElement => {
 
   // ---- the action -------------------------------------------------------------------------
   const foot = el('div', 'exdlg-foot');
-  const go = el('button', 'exdlg-go') as HTMLButtonElement;
+  const go = hook(el('button', 'exdlg-go') as HTMLButtonElement, 'dialog-confirm');
   go.textContent = exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens';
   go.onclick = () => {
     exportMenuOpen = false; renderBar();
@@ -9473,7 +9479,7 @@ const renderExportDialog = (): HTMLElement => {
 const renderPruneDialog = (): HTMLElement => {
   const p = prunePreview!;
   const wrap = el('div', 'exdlg-scrim');
-  const dlg = el('div', 'exdlg');
+  const dlg = hook(el('div', 'exdlg'), 'prune-dialog');
   dlg.setAttribute('role', 'dialog');
   dlg.setAttribute('aria-modal', 'true');
   dlg.setAttribute('aria-label', 'Prune stale items');
@@ -9493,7 +9499,7 @@ const renderPruneDialog = (): HTMLElement => {
   const foot = el('div', 'exdlg-foot');
   const cancel = el('button', 'barbtn', 'Cancel') as HTMLButtonElement;
   cancel.onclick = () => { prunePreview = null; renderBar(); };
-  const del = el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement;
+  const del = hook(el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement, 'dialog-confirm');
   del.onclick = () => { pruneBusy = 'delete'; prunePreview = null; renderBar(); commit.postPrune(lastGoodInput, true); };
   foot.append(cancel, del);
   dlg.append(foot);
@@ -9582,16 +9588,16 @@ const componentPendingEls = new Set<HTMLElement>();
  */
 function renderSeedPill(o: SeedOutcome): HTMLElement {
   if (o.state === 'error') {
-    const pill = el('span', 'bar-seed bad', o.message);
+    const pill = hook(el('span', 'bar-seed bad', o.message), 'status-pill');
     pill.title = o.message;   // `.bar-seed` ellipsizes at 220px; the whole message is worth reading
     return pill;
   }
-  if (o.state === 'absent') return el('span', 'bar-seed', 'No existing Prism3 theme in this file — start from the knobs.');
+  if (o.state === 'absent') return hook(el('span', 'bar-seed', 'No existing Prism3 theme in this file — start from the knobs.'), 'status-pill');
   // state 2 — the file is ours, its knobs are not recoverable. A success with a limitation.
   const text = isUnrecoverable(o)
     ? `${o.detail} — knobs not stored in this file, so these are defaults`
     : o.detail;
-  const pill = el('span', 'bar-seed' + (o.contractOk ? '' : ' bad'), text);
+  const pill = hook(el('span', 'bar-seed' + (o.contractOk ? '' : ' bad'), text), 'status-pill');
   pill.title = text;
   return pill;
 }
@@ -9602,17 +9608,17 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     // The theme write's pending text is static and the component build's is not (#684), so only the
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
     // second; a 648-member build takes tens of seconds, which is precisely why it reports.
-    if (which === 'apply') return el('span', 'bar-seed', 'Writing to Figma…');
+    if (which === 'apply') return hook(el('span', 'bar-seed', 'Writing to Figma…'), 'status-pill');
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
-    if (which === 'filesetup') return el('span', 'bar-seed', 'Setting up file…');
+    if (which === 'filesetup') return hook(el('span', 'bar-seed', 'Setting up file…'), 'status-pill');
     if (which === 'styleguide') {
       // #1778: the run reports each table, so this pill is cached for in-place updates like the component build's.
-      const node = el('span', 'bar-seed', styleGuidePendingText());
+      const node = hook(el('span', 'bar-seed', styleGuidePendingText()), 'status-pill');
       styleGuidePendingEls.add(node);
       return node;
     }
-    const node = el('span', 'bar-seed', componentPendingText());
+    const node = hook(el('span', 'bar-seed', componentPendingText()), 'status-pill');
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
     componentPendingEls.add(node);
@@ -9620,7 +9626,7 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
   }
   const open = openDetail === which;
   const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');
-  const btn = el('button', cls) as HTMLButtonElement;
+  const btn = hook(el('button', cls) as HTMLButtonElement, 'status-verdict');
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
   // type and color), and an element with a class but no rule is a name reserved against nothing — the
   // shape the scope law (#770) exists to make unspellable.
@@ -9677,7 +9683,7 @@ function renderBar(): void {
 
   // Brand switcher — identity, examples, new, import.
   const bWrap = el('div', 'barmenu-wrap');
-  const sel = el('button', 'brandsel' + (brandMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  const sel = hook(el('button', 'brandsel' + (brandMenuOpen ? ' open' : '')) as HTMLButtonElement, 'brand-switcher');
   const dot = el('span', 'dot'); dot.style.background = hex(oklchToRgb(brandState.primary));
   sel.append(dot, el('span', 'bs-name', brandState.id), el('span', 'caret', '▾'));
   // Closing the menu discards a staged load with it (#1033) — an unanswered "Replace the current brand?"
@@ -9694,7 +9700,7 @@ function renderBar(): void {
   // drops from here", and this now opens a centered dialog. Keeping it would have been a small lie
   // about where to look next.
   const eWrap = el('div', 'barmenu-wrap');
-  const exp = el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  const exp = hook(el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement, 'export-open');
   // The word is its own span so the narrow bar can drop to icon-only (the arrow alone) without
   // touching the arrow. Nested inside one span with the space INSIDE the label, so wide layout renders
   // "↓ Export" exactly as before — no extra flex gap appears between them.
@@ -9743,7 +9749,7 @@ function renderBar(): void {
     if (restoreError) {
       // `title` carries the full message — the pill itself truncates (`.bar-seed` is a fixed-width,
       // single-line, ellipsized slot), and this is the one boot fact worth reading in full.
-      const pill = el('span', 'bar-seed bad', `Saved brand not restored — ${restoreError}`);
+      const pill = hook(el('span', 'bar-seed bad', `Saved brand not restored — ${restoreError}`), 'status-pill');
       pill.title = restoreError;
       actions.append(pill);
     }
@@ -9780,7 +9786,7 @@ function renderBar(): void {
     // own `.bar-seed` pill (a preview that finds nothing stale, or the outcome of a delete), never the
     // theme write's, for the same reason the component build keeps its own.
     if (pruneVerdict) {
-      const pill = el('span', 'bar-seed' + (pruneVerdict.ok ? '' : ' bad'), pruneVerdict.summary);
+      const pill = hook(el('span', 'bar-seed' + (pruneVerdict.ok ? '' : ' bad'), pruneVerdict.summary), 'status-pill');
       pill.title = pruneVerdict.summary;   // `.bar-seed` ellipsizes at 220px; the full sentence is worth reading
       actions.append(pill);
     }
@@ -9877,12 +9883,12 @@ const seedFromColor = (hexVal: string): BrandInput => {
  *  your color, start from a neutral default, or open an example. Each lands in the editor (loadBrand →
  *  rebuild persists it), so a reload restores the working brand and the start screen doesn't reappear. */
 const renderStartScreen = (): HTMLElement => {
-  const view = el('div', 'startview');
-  const col = el('div', 'start-col');
+  const view = hook(el('div', 'startview'), 'start-screen');
+  const col = hook(el('div', 'start-col'), 'start-column');
   const mark = el('div', 'start-mark');
   mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
   col.append(mark);
-  col.append(el('h1', 'start-h', 'Start a new brand.'));
+  col.append(hook(el('h1', 'start-h', 'Start a new brand.'), 'start-heading'));
   col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));
 
   // Leaving the start screen IS choosing an origin — there is no separate `firstRun = false` to
@@ -9893,7 +9899,7 @@ const renderStartScreen = (): HTMLElement => {
   const enter = (input: BrandInput, origin: Origin): void => loadBrand(input, origin);
 
   // Path 1 — from your color (the hero path: a single primary bootstraps everything).
-  const c1 = el('div', 'start-card start-hero');
+  const c1 = hook(el('div', 'start-card start-hero'), 'start-path');
   c1.append(el('h2', 'start-ct', 'Start from your color'));
   c1.append(el('p', 'start-cd', 'Your primary brand color; everything else takes smart defaults you can tune.'));
   const row = el('div', 'start-color-row');
@@ -9902,7 +9908,7 @@ const renderStartScreen = (): HTMLElement => {
   const HEX = /^#[0-9a-f]{6}$/i;
   swatch.oninput = () => { hexIn.value = swatch.value; };
   hexIn.oninput = () => { if (HEX.test(hexIn.value)) swatch.value = hexIn.value; };
-  const go = el('button', 'start-go', 'Create theme →') as HTMLButtonElement;
+  const go = hook(el('button', 'start-go', 'Create theme →') as HTMLButtonElement, 'start-go');
   // A color the user typed is a brand they authored here — `new`, not an example they picked.
   go.onclick = () => enter(seedFromColor(HEX.test(hexIn.value) ? hexIn.value : swatch.value), { kind: 'new' });
   row.append(swatch, hexIn, go);
@@ -9910,21 +9916,21 @@ const renderStartScreen = (): HTMLElement => {
   col.append(c1);
 
   // Path 2 — a neutral, unopinionated default (set color later).
-  const c2 = el('div', 'start-card start-row2');
+  const c2 = hook(el('div', 'start-card start-row2'), 'start-path');
   const t2 = el('div', 'start-c2t');
   t2.append(el('h2', 'start-ct', 'Start with a neutral default'), el('p', 'start-cd', 'An unopinionated starting theme — jump in and set your color later.'));
-  const b2 = el('button', 'start-alt', 'Start blank') as HTMLButtonElement;
+  const b2 = hook(el('button', 'start-alt', 'Start blank') as HTMLButtonElement, 'start-blank');
   b2.onclick = () => enter(NEW_BRAND(), { kind: 'new' });
   c2.append(t2, b2);
   col.append(c2);
 
   // Path 3 — open a fully-built example (prism3 / aurora / harbor), explicitly framed as examples.
-  const c3 = el('div', 'start-card');
+  const c3 = hook(el('div', 'start-card'), 'start-path');
   c3.append(el('h2', 'start-ct', 'Explore an example'));
   c3.append(el('p', 'start-cd', 'Open a fully-built example to see what the engine produces from a brand.'));
   const chips = el('div', 'start-chips');
   for (const name of Object.keys(BRANDS)) {
-    const chip = el('button', 'start-chip') as HTMLButtonElement;
+    const chip = hook(el('button', 'start-chip') as HTMLButtonElement, 'start-example');
     const d = el('span', 'dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     chip.append(d, el('span', undefined, name));
     chip.onclick = () => enter(BRANDS[name], { kind: 'example', id: name });
@@ -9935,7 +9941,7 @@ const renderStartScreen = (): HTMLElement => {
 
   // Path 4 — import an existing design.md by upload (#160). No overwrite confirm: it's the first-run
   // screen, there's no brand to replace. File type + engine-acceptance are both validated first.
-  const c4 = el('div', 'start-card start-row2');
+  const c4 = hook(el('div', 'start-card start-row2'), 'start-path');
   const t4 = el('div', 'start-c2t');
   t4.append(el('h2', 'start-ct', 'Import a design.md'), el('p', 'start-cd', 'Already have a design.md? Upload it to load the full brand.'));
   // DELIBERATELY NOT FOLDED INTO THE DECLARED CHROME (#772). This is field validation — "that file is
@@ -9946,8 +9952,8 @@ const renderStartScreen = (): HTMLElement => {
   // control, and the floor would have cost this view the ability to say something true about itself.
   const err4 = el('p', 'start-imp-err');
   t4.append(err4);
-  const up4 = el('label', 'start-alt start-upload');
-  const fi4 = el('input', 'start-file') as HTMLInputElement;
+  const up4 = hook(el('label', 'start-alt start-upload'), 'start-upload');
+  const fi4 = hook(el('input', 'start-file') as HTMLInputElement, 'start-file');
   fi4.type = 'file'; fi4.accept = IMPORT_ACCEPT;
   fi4.onchange = async () => {
     err4.textContent = '';
@@ -9980,9 +9986,10 @@ const build = (): void => {
   const nav = railNav();
   nav.forEach((s, i) => {
     if (isFirstView(nav, i)) rail.append(el('div', 'rail-div'));
-    const it = el('button', 'stage' + (s.key === page ? ' active' : '')) as HTMLButtonElement;
+    // One hook per destination, `rail-page-<key>` in kebab-case, so a suite can reach a page without its label.
+    const it = hook(el('button', 'stage' + (s.key === page ? ' active' : '')) as HTMLButtonElement, `rail-page-${s.key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`);
     const t = el('span', 'stage-t');
-    t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
+    t.append(hook(el('b', undefined, s.label), 'rail-item-label'), el('small', undefined, s.sub));
     it.append(t);
     it.onclick = () => { if (page !== s.key) { page = s.key; build(); } };
     rail.append(it);
@@ -10005,7 +10012,7 @@ const build = (): void => {
   rail.append(stamp);
   shell.append(rail);
 
-  workspace = el('section', 'ws');
+  workspace = hook(el('section', 'ws'), 'workspace');
   shell.append(workspace);
   mountView('app', () => shell);
   bindStuck();

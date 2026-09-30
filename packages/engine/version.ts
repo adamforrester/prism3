@@ -20,6 +20,18 @@
  * nothing. So VALUES are not versioned and NAMES are. Tying them together would either cry wolf on
  * every brand tweak or stay silent through a rename; separating them lets each be strict.
  *
+ * ── WHO WRITES `ENGINE_VERSION` (#1807, decided 2026-09-30) ─────────────────────────────────────
+ *
+ * Only the FOLD (`fold.ts` at the repo root). A PR that owes an engine bump adds a change note,
+ * `packages/engine/changes/<slug>.md`, whose front matter DECLARES the class (`engine: patch|minor|major`)
+ * and whose body is the changelog prose; it never edits the constant or the changelog below. After a
+ * batch of merges the fold assigns ONE version for the batch (the highest declared class), writes the
+ * constant and the changelog under the FOLD MARKER, deletes the notes and regenerates the stamps. So a
+ * version names a fold, which may cover several PRs, and `main` runs a merged change under the previous
+ * number until the fold lands. `lint-emission-version.ts` and `lint-component-surface.ts` accept an
+ * added note as the bump; the former also fails a PR that is not a fold for editing either.
+ * `CONTRACT_VERSION` is unchanged by this: a PR still bumps it itself, with its baseline.
+ *
  * ── WHAT COUNTS AS THE ENGINE SURFACE (#1252, decided) ──────────────────────────────────────────
  *
  * `ENGINE_VERSION` bumps on any change to what a consumer can OBSERVE, and that is BOTH the emitted
@@ -2730,6 +2742,8 @@
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
 /**
+ * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
+ *
  * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
  *
  * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
@@ -2926,48 +2940,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.218.0 — #259 phase 2 and #1795 (0.200.0, 0.205.0, 0.210.0, then 0.216.0, on its branch; renumbered above main's 0.215.0 and the 0.216.0 `lane/set-placement` claims): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
- * `dimension` table per collection (spacing and size as a spacing cell at the value's width, its width bound; a radius
- * as the radius swatch, its corners bound), one table per font kind per collection ("Abc 123" with the one property
- * bound), and one text-style table ("Abc 123" with the style applied, sizes per `type-sets` mode). Values in px and
- * REM at a 16px base; paragraph spacing and decoration columns on toggle; `PHASE_TYPES` widened; new panel Customize
- * fields and agent-link args (`pixels`, `rem`, `dimensionDisplay`, `fontDisplay`, `paragraphSpacing`,
- * `textDecoration`). A plugin behavior change (principle 5) → ENGINE bump; no engine emission or projected surface
- * moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 13.2.0. Design record:
- * `docs/45-style-guide-generator.md` §6, "How phase 2 decides". In the same release (owner decision 15): a title
- * cell on every table type (`titleCell`), a leading "Name" column with the path humanized ("Text Primary"), a
- * designer's edit kept on rerun, and the title column left out of the superseded-table fingerprint. Also in it (the
- * review of 4faeb98a and the owner's live run of it): the spacing specimen found by the owner's cell structure, the
- * bracket's line bound and its right bar carried to the value (a MAX constraint override, else a named static move),
- * every resize guarded and read back, a cell with no layer to size counted; a FLOAT drawn as a length only when its
- * scopes or name say so (durations, shadow parts, gradient stops and paragraph spacing go to later phases); fonts
- * loaded and the column's mode pinned before any font binding; all four radius corners bound. And the owner's live QA
- * (decisions 13 restated and 16): a palette swatch FILLs its cell (floored at 80px), and tables flow left to right in
- * one row per category (color, dimension, font variables, text styles), the rows stacked down the page; Set up file's
- * spacing and radius cells built in the owner's layer structure. After the owner's live run of 0.205.0: a spacing
- * specimen is sized by a bound `paddingLeft` (the host silently drops a width written to a layer inside an
- * instance), its frame set to HUG again after the bind and read back; cells that cannot be sized are named once.
- * Owner decisions 18 and 19: one spacing style per run (filled by default), and REM in its own column. #1795: a
- * superseded table's name and place are read before it is removed, never after. After the live QA of 0.210.0
- * (decision 21): Set up file's spacing frames rest 0.01 wide with no padding (an instance's layer never hugs
- * narrower than its main), a zero value's specimen is hidden and counted as drawn, and every padding bind is
- * followed by FIXED then HUG so a smaller value shrinks the frame. Decision 20: the Pixels option is removed (the
- * agent link accepts and ignores `pixels`, named in the run's notes), and a text style's letter spacing and
- * paragraph spacing get REM columns.
+ * 0.216.0 — #1750: every component set built onto a shared page landed at (0,0), so the second set on
+ * `↳ Buttons` (and on Icon button, Checkbox, Radio, Switch) covered the first. The plugin executor
+ * (`apps/plugin/src/write-components.ts`) now places a set it CREATES beside the page's existing content
+ * (`placeNewSet`): top-aligned with the sets already there, and `SET_GAP` (160, a placeholder matching the
+ * owner's hand layout) right of every node that shares its row. Nodes wholly above or below, like the page
+ * header, do not push it. An existing set is never moved. `main.ts` now places page headers once the run's
+ * builds are done, so a header first placed over a family built as one run spans every set in it. A PLUGIN
+ * write-path behavior change → ENGINE bump; no engine emission or projected surface moves (branched from
+ * #1808 at 0.215.0). CONTRACT STANDS at 14.0.0 (no token name moves).
  *
- * 0.217.0 — #1778 + #259 (0.199.0 on its own branch, 0.204.0, 0.209.0, then 0.215.0 here earlier; renumbered above main's 0.215.0 and the 0.216.0 `lane/set-placement` claims) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
- * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
- * unknown name is reported; a filtered run supersedes nothing and re-stacks only its own pages. The executor
- * yields to the host after every table and every ~28 cells (the component writer's `realYield`), and reports
- * "table 7 of 22" to the pill and to an agent as progress phase `table`. The header FILLs its table instead of
- * keeping the component's page width, and the grid follows the owner's examples: HUG tracks, FILL cells, text
- * on one line (the FIXED columns and wrapped descriptions of 0.197.0 are gone). A plugin behavior change
- * (principle 5) → ENGINE bump; no engine emission or projected surface moves, so `out/**` + `schema/*` are a
- * stamp-only regen. CONTRACT STANDS at 13.2.0. Design record: `docs/45-style-guide-generator.md`. In the same
- * release (review round, owner decisions 12/13): a 2px track gap, the swatch FIXED at its component's size in its
- * cell, a filtered run that moves only the tables below the ones it redrew, and one style-guide run at a time
- * across the panel and the agent link (#1785). Owner decision 13, clarified: the specimen by role, with a ground
- * only where it must sit on something — a palette row's swatch sits in its cell with no ground.
  * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
  * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
  * into the old set, because find-or-create matches the set by NAME and every planned member name was new, so
@@ -4349,7 +4331,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.218.0';
+export const ENGINE_VERSION = '0.216.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -5347,7 +5329,7 @@ export type Level = typeof LEVELS[number];
 /** The committed baseline's shape (`schema/token-contract.json`). */
 export type Contract = {
   contractVersion: string;
-  engineVersion: string;
+  /** No `engineVersion` (#1807): `token-contract.ts --check` refuses a baseline that carries one. */
   note: string;
   corpus: string[];
   /** path (below the root) → DTCG `$type`. Every corpus brand emits every one of these. */

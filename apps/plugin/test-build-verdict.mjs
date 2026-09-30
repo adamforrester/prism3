@@ -94,9 +94,14 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { hookGuard } from '../studio/test-hooks.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const UI = join(ROOT, 'dist/ui.html');
+// Every element below is LOCATED by its `data-p3` hook (F1), never by a class name or a page title, so a
+// restyle cannot move what this suite reads. The verdict LITERALS stay: they are the copy under test.
+// The guard fails any hook this file names that never rendered, by name (`../studio/test-hooks.mjs`).
+const hooks = hookGuard(import.meta.url);
 
 // ---- the assertion harness -------------------------------------------------------------------
 // Same `ok(...)` shape as the studio suites, so a failure line means the same thing in all of them.
@@ -144,18 +149,18 @@ const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMess
  *  reported the bar's correct verdict and never looked at the button. */
 const readSurfaces = (page) => page.evaluate(() => {
   const text = (sel) => [...document.querySelectorAll(sel)].map((n) => n.textContent);
-  const btn = document.querySelector('.cw-row button.barbtn');
-  const sel = document.querySelector('.cw-row select');
-  const detail = document.getElementById('apply-detail');
+  const btn = document.querySelector('[data-p3="components-build"]');
+  const sel = document.querySelector('[data-p3="components-def-picker"]');
+  const detail = document.querySelector('[data-p3="apply-detail"]');
   return {
     button: btn ? btn.textContent : null,
     buttonDisabled: btn ? btn.disabled : null,
     pickerDisabled: sel ? sel.disabled : null,
     picker: sel ? sel.value : null,
-    pageVerdict: text('.cw-row .applystat'),
-    pagePending: text('.cw-row .bar-seed'),
-    barVerdict: text('.bar .applystat'),
-    barPending: text('.bar .bar-seed'),
+    pageVerdict: text('[data-p3="components-row"] [data-p3="status-verdict"]'),
+    pagePending: text('[data-p3="components-row"] [data-p3="status-pill"]'),
+    barVerdict: text('[data-p3="bar"] [data-p3="status-verdict"]'),
+    barPending: text('[data-p3="bar"] [data-p3="status-pill"]'),
     detail: detail && detail.style.display !== 'none' ? detail.textContent : null,
   };
 });
@@ -166,14 +171,15 @@ const readSurfaces = (page) => page.evaluate(() => {
  *  into the next, so a verdict left over from scenario 1 could satisfy scenario 2's assertion. */
 const openPanel = async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await hooks.watch(page);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(`${ORIGIN}/`, { waitUntil: 'load' });
   // A real condition, not a sleep: the rail is rendered once the app has booted onto a brand.
-  await page.waitForSelector('.rail button.stage');
-  await page.locator('button.stage', { hasText: 'Internal — build the Button set' }).first().click();
-  await page.waitForSelector('.cw-row button.barbtn');
+  await hooks.need(page, '[data-p3="rail-page-components"]');
+  await page.locator('[data-p3="rail-page-components"]').click();
+  await hooks.need(page, '[data-p3="components-build"]');
   return { page, errors };
 };
 
@@ -190,15 +196,15 @@ const openPanel = async () => {
  * refusal becomes a named failure that the run survives.
  */
 const startBuild = async (page, def, label = 'build') => {
-  if (def) await page.selectOption('.cw-row select', def);
-  const clicked = await page.locator('.cw-row button.barbtn').first()
+  if (def) await page.selectOption('[data-p3="components-def-picker"]', def);
+  const clicked = await page.locator('[data-p3="components-build"]').first()
     .click({ timeout: 4000 }).then(() => true, () => false);
   if (!clicked) {
     const state = await readSurfaces(page);
     ok(false, `${label}: the Build control could not be clicked — it reads "${state.button}", disabled ${state.buttonDisabled}`);
     return false;
   }
-  await page.waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.disabled === true, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.disabled === true, null, { timeout: 4000 }).catch(() => {});
   await post(page, { type: 'component-progress', phase: 'build', done: 24, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /24 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   return true;
@@ -345,7 +351,7 @@ for (const c of CONDITIONS) {
   // Wait on the real condition — the label leaving the pending state — with a bounded timeout, so a
   // regression fails here as a timeout naming this condition rather than as a bare assertion diff.
   await page
-    .waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.textContent === '⊞ Build set', null, { timeout: 5000 })
+    .waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 })
     .catch(() => {});
   const after = await readSurfaces(page);
 
@@ -411,7 +417,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     type: 'component-result', ok: false, headline,
     summary: `component build failed: in combineAsVariants: The nodes must all have the same parent — ${n} nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (${n} nodes; undo to remove)' on this page. One undo removes the whole build.`,
   });
-  await page.waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
   const after = await readSurfaces(page);
 
   // THE COUNT, on both surfaces. Asserted as the NUMBER rather than as the whole headline, because the
@@ -443,14 +449,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // re-render does exactly that, which is what ruled out the one-line repair.
 {
   const { page } = await openPanel();
-  const options = await page.locator('.cw-row select option').evaluateAll((ns) => ns.map((n) => n.value));
+  const options = await page.locator('[data-p3="components-def-picker"] option').evaluateAll((ns) => ns.map((n) => n.value));
   const other = options.find((v) => v !== 'button');
   ok(other !== undefined, `the picker offers a def other than Button, so this check can mean something (${JSON.stringify(options)})`);
   if (other) {
     await startBuild(page, other, `the non-default def '${other}'`);
     await post(page, { type: 'component-result', ok: true, headline: '✓ built', summary: `set '${other}'` });
     await page
-      .waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.textContent === '⊞ Build set', null, { timeout: 5000 })
+      .waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 })
       .catch(() => {});
     const after = await readSurfaces(page);
     ok(after.picker === other, `the picker still holds '${other}' after its verdict — read '${after.picker}' (a full re-render would reset it to 'button')`);
@@ -468,8 +474,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
-  await page.locator('button.stage', { hasText: 'Brand hues & neutrals' }).first().click();
-  await page.waitForFunction(() => !document.querySelector('.cw-row'));
+  await page.locator('[data-p3="rail-page-palettes"]').click();
+  await page.waitForFunction(() => !document.querySelector('[data-p3="components-row"]'));
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   const away = await readSurfaces(page);
@@ -485,12 +491,12 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
 
   await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
-  await page.waitForFunction(() => [...document.querySelectorAll('.bar .applystat')].some((n) => (n.textContent ?? '').includes('✓ built 648')), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-verdict"]')].some((n) => (n.textContent ?? '').includes('✓ built 648')), null, { timeout: 5000 }).catch(() => {});
   const landed = await readSurfaces(page);
   ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the chrome, which is what survives navigation');
 
-  await page.locator('button.stage', { hasText: 'Internal — build the Button set' }).first().click();
-  await page.waitForSelector('.cw-row button.barbtn');
+  await page.locator('[data-p3="rail-page-components"]').click();
+  await hooks.need(page, '[data-p3="components-build"]');
   const back = await readSurfaces(page);
   ok(back.button === '⊞ Build set', `returning to the page shows a clickable control, not the "Building…" it was left on — read "${back.button}"`);
   ok(back.pageVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'returning to the page shows the verdict it missed');
@@ -506,13 +512,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const { page } = await openPanel();
   await startBuild(page, undefined, 'the first of two builds');
   await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: 'first run' });
-  await page.waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
   await startBuild(page, undefined, 'the second of two builds');
   const second = await readSurfaces(page);
   ok(second.button === '⋯ Building…', 'a second build can be started from the resolved state');
   ok(second.pagePending.some((t) => /24 of 648/.test(t ?? '')), "the second build's progress reports too, rather than the first verdict staying put");
   await post(page, { type: 'component-result', ok: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
-  await page.waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
   const done = await readSurfaces(page);
   ok(done.pageVerdict.some((t) => (t ?? '').includes('✓ 0 new, 648 present')), "the second build's verdict replaces the first, rather than appending beside it");
   ok(done.pageVerdict.length === 1, `exactly one verdict pill on the page, not one per build — found ${done.pageVerdict.length}`);
@@ -538,13 +544,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const PRUNE_SUMMARY = 'Would remove 4 items: 2 layout modes, 2 grid styles.';
   const preview = { type: 'prune-result', ok: true, applied: false, count: 4, summary: PRUNE_SUMMARY };
   const readPrune = (page) => page.evaluate(() => ({
-    dialog: !!document.querySelector('[role="dialog"][aria-label="Prune stale items"]'),
-    deleteCta: [...document.querySelectorAll('.exdlg-go')].map((n) => n.textContent),
-    pills: [...document.querySelectorAll('.bar .bar-seed')].map((n) => n.textContent),
+    dialog: !!document.querySelector('[data-p3="prune-dialog"]'),
+    deleteCta: [...document.querySelectorAll('[data-p3="dialog-confirm"]')].map((n) => n.textContent),
+    pills: [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-pill"]')].map((n) => n.textContent),
   }));
   const settle = (page) => page
-    .waitForFunction(() => !!document.querySelector('[role="dialog"][aria-label="Prune stale items"]')
-      || [...document.querySelectorAll('.bar .bar-seed')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
+    .waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]')
+      || [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-pill"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
     .catch(() => {});
 
   // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog.
@@ -587,16 +593,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     window.__sent = [];
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'style-guide') window.__sent.push(m); });
   });
-  await page.locator('button.stage', { hasText: 'Style guide' }).first().click();
-  await page.waitForSelector('.fs-row button.barbtn', { timeout: 5000 }).catch(() => {});
+  await page.locator('[data-p3="rail-page-style-guide"]').click();
+  await hooks.need(page, '[data-p3="style-guide-draw"]', { timeout: 5000 });
   const readSg = () => page.evaluate(() => {
-    const btn = [...document.querySelectorAll('.fs-row button.barbtn')].find((b) => /style guide|Drawing/.test(b.textContent ?? ''));
-    const det = [...document.querySelectorAll('details.contracts')].find((d) => /Customize/.test(d.textContent ?? ''));
+    const btn = document.querySelector('[data-p3="style-guide-draw"]');
+    const det = document.querySelector('[data-p3="style-guide-customize"]');
     return {
       button: btn ? btn.textContent : null,
       disabled: btn ? btn.disabled : null,
-      verdict: btn ? [...btn.parentElement.querySelectorAll('.applystat')].map((n) => n.textContent) : [],
-      pendingText: btn ? [...btn.parentElement.querySelectorAll('.bar-seed')].map((n) => n.textContent) : [],
+      verdict: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-verdict"]')].map((n) => n.textContent),
+      pendingText: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
       customize: det ? { open: det.open, text: det.textContent } : null,
       sent: window.__sent,
     };
@@ -611,20 +617,19 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // Owner decision 20: the Pixels toggle is removed, since the base value always prints.
   ok(!(before.customize?.text ?? '').includes('Pixels'), '#259 decision 20: Customize has no Pixels field');
 
-  await page.locator('details.contracts summary', { hasText: 'Customize' }).first().click();
-  await page.locator('.knob', { hasText: 'Color value' }).locator('select').selectOption('hsl');
-  await page.locator('.knob', { hasText: 'Display style' }).locator('select').selectOption('border');
-  // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, picked in the words
-  // on screen. A knob is found by its exact label, since "REM" is a substring of other knobs' prose.
-  const knobNamed = (label) => page.locator('.knob').filter({ has: page.locator('label.knob-label', { hasText: new RegExp(`^${label}$`) }) });
-  await knobNamed('Dimension display').locator('select').selectOption('line');
-  await knobNamed('Font variable display').locator('select').selectOption('weight');
-  await knobNamed('REM').locator('input.toggle').click({ force: true });
-  await knobNamed('Paragraph spacing').locator('input.toggle').click({ force: true });
-  await knobNamed('Title cell').locator('input.toggle').click({ force: true });
+  await page.locator('[data-p3="style-guide-customize"] summary').click();
+  await page.locator('[data-p3="style-guide-value-format"] select').selectOption('hsl');
+  await page.locator('[data-p3="style-guide-display"] select').selectOption('border');
+  // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, each knob
+  // found by its own hook.
+  await page.locator('[data-p3="style-guide-dimension-display"] select').selectOption('line');
+  await page.locator('[data-p3="style-guide-font-display"] select').selectOption('weight');
+  await page.locator('[data-p3="style-guide-rem"] input').click({ force: true });
+  await page.locator('[data-p3="style-guide-paragraph-spacing"] input').click({ force: true });
+  await page.locator('[data-p3="style-guide-title-cell"] input').click({ force: true });
   // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
-  await page.locator('.knob', { hasText: 'Tables' }).locator('textarea').fill('Primary — nbds,  Text — pds3, ');
-  const clicked = await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).then(() => true, () => false);
+  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Primary — nbds,  Text — pds3, ');
+  const clicked = await page.locator('[data-p3="style-guide-draw"]').click({ timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#259 the Draw style guide control can be clicked');
   // postMessage delivers asynchronously; a real condition rather than a sleep.
   await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
@@ -639,12 +644,12 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);
   // #1778: a progress reading rewrites the page's pending pill in place.
   await post(page, { type: 'style-guide-progress', done: 6, total: 22, tableMs: 900 });
-  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row .bar-seed')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
   const counting = await readSg();
   ok(counting.pendingText.length === 1 && counting.pendingText[0] === 'Drawing table 7 of 22…', `#1778 a run in flight counts its tables on the page's row — read ${JSON.stringify(counting.pendingText)}`);
 
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables: 11 on ↳ Primitive tokens, 11 on ↳ Semantic tokens' });
-  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '▦ Draw style guide'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
   const done = await readSg();
   ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
   ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
@@ -652,27 +657,27 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // #1785: a run the AGENT LINK started, which the panel did not click for. Its first reading (done 0, posted before
   // its first table) puts the page's row pending, the button disabled, so a click cannot start a second run over it.
   await post(page, { type: 'style-guide-progress', done: 0, total: 22, tableMs: 0 });
-  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '⋯ Drawing…'), null, { timeout: 3000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '⋯ Drawing…', null, { timeout: 3000 }).catch(() => {});
   const agentRun = await readSg();
   ok(agentRun.button === '⋯ Drawing…' && agentRun.disabled === true && agentRun.pendingText[0] === 'Drawing table 1 of 22…',
     `#1785 an agent-link run's first reading puts the page's row pending, the button disabled — read "${agentRun.button}", disabled ${agentRun.disabled}, ${JSON.stringify(agentRun.pendingText)}`);
   // A click that raced that reading is refused as `busy`: the row stays on the run in flight, no verdict pill over it.
   await post(page, { type: 'style-guide-result', ok: false, busy: true, headline: '✗ already drawing', summary: 'A style guide started from the agent link is still drawing, so this request was not run' });
   await post(page, { type: 'style-guide-progress', done: 4, total: 22, tableMs: 900 });
-  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row .bar-seed')].some((n) => n.textContent === 'Drawing table 5 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 5 of 22…'), null, { timeout: 3000 }).catch(() => {});
   const still = await readSg();
   ok(still.button === '⋯ Drawing…' && still.verdict.length === 0 && still.pendingText[0] === 'Drawing table 5 of 22…',
     `#1785 a busy refusal leaves the row pending on the run in flight, with no verdict pill — read "${still.button}", ${JSON.stringify(still.verdict)}, ${JSON.stringify(still.pendingText)}`);
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
-  await page.waitForFunction(() => [...document.querySelectorAll('.fs-row button.barbtn')].some((b) => b.textContent === '▦ Draw style guide'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
   const agentDone = await readSg();
   ok(agentDone.disabled === false && agentDone.verdict.length === 1 && agentDone.verdict[0].includes('✓ style guide: 1 table'), `#1785 the agent's verdict ends it on the page's row — read ${JSON.stringify(agentDone.verdict)}`);
 
   // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
-  const custom = page.locator('details.contracts', { hasText: 'Customize' }).first();
+  const custom = page.locator('[data-p3="style-guide-customize"]');
   if (!(await custom.evaluate((d) => d.open))) await custom.locator('summary').click();
-  await page.locator('.knob', { hasText: 'Tables' }).locator('textarea').fill('Brand, legacy — nbds\nText — pds3\n');
-  await page.locator('.fs-row button.barbtn', { hasText: 'Draw style guide' }).first().click({ timeout: 4000 }).catch(() => {});
+  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Brand, legacy — nbds\nText — pds3\n');
+  await page.locator('[data-p3="style-guide-draw"]').click({ timeout: 4000 }).catch(() => {});
   await page.waitForFunction(() => window.__sent.length > 1, null, { timeout: 3000 }).catch(() => {});
   const lines = await readSg();
   ok(JSON.stringify(lines.sent[1]?.options?.tables) === JSON.stringify(['Brand, legacy — nbds', 'Text — pds3']),
@@ -684,6 +689,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 
 await browser.close();
 server.close();
+
+hooks.report(ok);
 
 console.log(`\n${failed === 0 ? '✅' : '❌'} ${executed - failed} of ${executed} assertions pass`);
 if (failed) {

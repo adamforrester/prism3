@@ -55,7 +55,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand } from './brand-def';
-import { prebuildDependencies, alsoBuiltNote, DependencyBuildError, SWAP_TARGET } from './build-deps';
+import { prebuildDependencies, alsoBuiltNote, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -581,7 +581,11 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       try { headers.push(await ensurePageHeader(figma, page, copy)); }
       catch (e) { headers.push({ page: page.name, status: 'failed', message: (e as Error)?.message ?? String(e) }); }
     };
-    const buildOne = async (target: ComponentDef, reports: ComponentProgress[]) => {
+    // #1750 — HEADERS ARE PLACED ONCE THE RUN'S BUILDS ARE DONE, not after each one (`labelAfterBuilds`,
+    // `build-deps.ts`, which says why). `landed` records a page after its build RETURNS, keyed by page name (how
+    // `resolveComponentPage` finds a page); the first def wins, since every def on a page reads the same copy.
+    type Landed = (key: string, page: { page: HeaderPage; defId: string }) => void;
+    const buildOne = async (target: ComponentDef, reports: ComponentProgress[], landed: Landed) => {
       const page = await resolveComponentPage(figma, target.id);
       let targetPage: CompPageTarget | undefined;
       if (page) {
@@ -624,7 +628,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         },
       });
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
-      if (page) await placeHeader(page as unknown as PageNode, target.id);
+      if (page) landed(page.name, { page: page as unknown as PageNode, defId: target.id });
       return built;
     };
     // NESTED COMPONENTS FIRST (#1633) — every def this one nests or swaps to that the file does not hold yet
@@ -632,13 +636,15 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // rebuilding it would orphan its placed instances, so it keeps its STALE reading exactly as before. A
     // dependency that fails stops here, so the parent is never built against a missing nest.
     await figma.loadAllPagesAsync();
-    const alsoBuilt = await prebuildDependencies(def, {
-      defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, []),
-    });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
-    const r = await buildOne(def, reports);
+    const { alsoBuilt, r } = await labelAfterBuilds(async (landed: Landed) => {
+      const alsoBuilt = await prebuildDependencies(def, {
+        defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, [], landed),
+      });
+      return { alsoBuilt, r: await buildOne(def, reports, landed) };
+    }, ({ page, defId }) => placeHeader(page, defId));
     // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
     // moment the executor returns — the moment the pill says done and the file was previously frozen for
     // 1m10s — and the console telemetry below still carries its number, so #684's coupling is intact. What

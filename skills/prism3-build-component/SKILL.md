@@ -471,25 +471,29 @@ component page, titled from the page's primary def's name and described by its `
 
 `ENGINE_VERSION` answers *"what code produced this?"* and bumps on any observable change,
 including the projected component surface (#1252): a designer who meets a new variant axis, or
-864 members where there were 432, has met a different engine. Two gates force the bump, and each
+864 members where there were 432, has met a different engine. A PR declares the bump and never
+picks the number: it adds a change note, `packages/engine/changes/<slug>.md`, with `engine: minor`
+(the class for any behavior change; `patch` only when no committed artifact moves) as its front matter and the changelog prose as its body. `fold.ts` assigns the
+version after the merge (#1807). Do not edit `ENGINE_VERSION`. Two gates force the note, and each
 sees a different part of a def:
 
 - **`lint-emission-version`** watches everything under `packages/engine/out`, and the docs
   projection commits `out/components/**` there. So a new def's page, and any edit to a shipped
   documentation field (`summary`, `description`, `props`, `docs`, `accessibility`, `ai`, and the
   rest), moves `out/components/*` and forces the bump.
-- **`lint-component-surface`** reads the projected plans, and its `--accept` refuses until
-  `ENGINE_VERSION` has moved forward. A new def is a moved surface (no set → N members). `planStamp`
+- **`lint-component-surface`** reads the projected plans, and its `--accept` refuses until a
+  change note declaring the bump is in the tree. A new def is a moved surface (no set → N members). `planStamp`
   hashes the whole plan, and every plan carries the def's `codeOnly` list, so one `codeOnly` edit
   moves every member's digest at the same count; diff the plans before reading a whole-def move as a
   layout or paint change.
 - **Nothing forces a bump for `notes` or a part's `note`.** The maintainer record is in
   `MAINTAINER_ARTIFACTS`, outside the watched set, and no plan carries a part `note`.
 
-A new def therefore takes a MINOR bump in `packages/engine/version.ts` with its reason. After the
-bump, `npx tsx packages/engine/regen.ts` restamps `out/**`, and
-`npx tsx packages/engine/token-contract.ts --check` then asks for a stamp-only `--accept`. A
-skill-only change like this file bumps nothing.
+A new def therefore takes a change note declaring `engine: minor`, with its reason as the prose.
+Run `npx tsx packages/engine/regen.ts` as usual; the version stamps in `out/**` stay where they are
+until the fold restamps them. The token-contract baseline records no engine version, so
+`npx tsx packages/engine/token-contract.ts --check` stays clean and needs no `--accept`. A
+skill-only change like this file needs no note.
 
 `CONTRACT_VERSION` answers *"can my app still resolve the names it references?"* and covers the
 guaranteed **token-name** surface only. A component id, prop name or variant value is not a
@@ -513,7 +517,7 @@ one until that arc builds it.
    no entry leads with the name of an axis or state the def projects.
 5. Every naming choice matches the settled canon in §6.
 6. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines
-   are accepted after the ENGINE bump, and `npm run verify` is all-PASS with no SKIP.
+   are accepted after the change note is added, and `npm run verify` is all-PASS with no SKIP.
 7. A mutation of the def fails a surface gate by name, and each brief decision's own arm fails by name.
-8. A `docs/00-progress.md` entry carries the diagnosis, the decisions held for the owner, and any trap,
-   written as part of the work.
+8. A progress entry, `docs/progress/pending/<slug>.md`, carries the diagnosis, the decisions held for
+   the owner, and any trap, written as part of the work. The fold moves it into `docs/00-progress.md`.
