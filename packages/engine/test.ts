@@ -20485,6 +20485,21 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     '#1768 contract: versions compare per component, not as strings (9.9.0 is below 9.10.0, though it sorts above it)');
   ok(contractVersionDrift('14.0.0', '14.0.0', 'none') === undefined,
     '#1768 contract: an equal version over an unchanged surface is not drift');
+  // Every component decides on its own (review of #1803): the literals above all carry patch .0 or let
+  // the major decide, so a comparison that ignored the patch or the minor passed every one of them.
+  ok(contractVersionDrift('14.0.1', '14.0.0', 'none') === 'behind',
+    '#1768 contract: a PATCH-only step down (14.0.1 → 14.0.0) is BEHIND');
+  ok(contractVersionDrift('14.0.0', '14.0.1', 'none') === 'ahead',
+    '#1768 contract: a PATCH-only step up (14.0.0 → 14.0.1) over an unchanged surface is AHEAD');
+  ok(contractVersionDrift('14.1.0', '14.0.5', 'none') === 'behind',
+    '#1768 contract: a MINOR-only step down (14.1.0 → 14.0.5) is BEHIND, whatever the patch says');
+  ok(contractVersionDrift('14.0.5', '14.1.0', 'none') === 'ahead',
+    '#1768 contract: a MINOR-only step up (14.0.5 → 14.1.0) over an unchanged surface is AHEAD, whatever the patch says');
+  const malformed = ['14.0.0-rc.1', 'v14.0.0', '14.0'].map((v) => {
+    try { contractVersionDrift(v, '14.0.0', 'none'); return 'no throw'; } catch (e) { return (e as Error).message; }
+  });
+  ok(malformed.join('|') === 'not a semver: 14.0.0-rc.1|not a semver: v14.0.0|not a semver: 14.0',
+    `#1768 contract: a baseline version that is not MAJOR.MINOR.PATCH is refused, never ordered (got ${malformed.join(' | ')})`);
   ok(contractVersionDrift('14.0.0', '14.1.0', 'none') === 'ahead',
     '#1768 contract: a raised CONTRACT_VERSION over an unchanged surface is AHEAD — a bump with nothing to record');
   ok(contractVersionDrift('14.0.0', '15.0.0', 'minor') === undefined && contractVersionDrift('14.0.0', '16.0.0', 'major') === undefined,
@@ -20516,6 +20531,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const check = runCli('--check', '999.0.0');
       ok(check.status === 1 && /CONTRACT_VERSION moved BACKWARDS/.test(check.out) && check.out.includes("below the baseline's 999.0.0"),
         `#1768 contract CLI: --check fails BY NAME when CONTRACT_VERSION is below the baseline (exit ${check.status}; ${check.out.split('\n').find((l) => l.includes('✗') || l.includes('✓')) ?? 'no verdict line'})`);
+      const bad = runCli('--check', '14.0.0-rc.1');
+      ok(bad.status === 1 && bad.out.includes('✗ the versions cannot be compared: not a semver: 14.0.0-rc.1') && !/^\s+at /m.test(bad.out),
+        `#1768 contract CLI: a malformed baseline version fails BY NAME, not as a stack trace (exit ${bad.status})`);
       const ahead = runCli('--check', '0.0.1');
       ok(ahead.status === 1 && /CONTRACT_VERSION is AHEAD of the baseline with nothing to record/.test(ahead.out),
         `#1768 contract CLI: --check fails BY NAME when CONTRACT_VERSION is above the baseline and no path moved (exit ${ahead.status})`);

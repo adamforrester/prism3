@@ -21,6 +21,12 @@
 
 **Mutations (on `wip:` commits, restored by a trap).** Removing `if (order < 0) return 'behind'` fails five by name: the three `BEHIND` unit arms, `--check fails BY NAME when CONTRACT_VERSION is below the baseline`, and `--accept refuses BY NAME …` (exit 1 from `satisfiesBump`, but no named message). Neutralizing only the call site's `behind` branch fails exactly the two CLI arms. A string comparison fails only the `9.9.0`/`9.10.0` arm. Removing the `ahead` return fails only its unit arm. Neutralizing the call site's `ahead` branch fails only the `AHEAD` CLI arm. Ignoring the injection fails all four CLI arms, with the accept probe reported "not run". The defect itself (`CONTRACT_VERSION` lowered to 13.2.0) makes the real `--check` exit 1 with BACKWARDS. With the defect live and the `behind` comparison removed, the real `--check` goes back to "unchanged" and exits 0, so this arm is the reason it fails (shape 19 (3)).
 
+### Review round (independent review of #1803; one required fix)
+
+**A patch-blind comparison survived.** The reviewer replaced `cp - bp` with `0` and `test.ts` stayed green: every unit literal carried patch `.0`, except `13.9.9` against `14.0.0`, where the major decides. Four arms now pin each component on its own, each with a literal expectation: `14.0.1 → 14.0.0` is BEHIND, `14.0.0 → 14.0.1` is AHEAD, `14.1.0 → 14.0.5` is BEHIND and `14.0.5 → 14.1.0` is AHEAD. The minor arms carry a patch that points the other way, so a comparison that skipped the minor would get them wrong. Re-run, the patch mutation fails `#1768 contract: a PATCH-only step down (14.0.1 → 14.0.0) is BEHIND` and `… PATCH-only step up …` by name, and zeroing `ci - bi` fails both MINOR-only arms.
+
+**A malformed baseline version fails by name (the optional item).** `14.0.0-rc.1`, `v14.0.0` and `14.0` already failed closed, but as an uncaught `not a semver` stack trace from `parse`. The CLI now catches it and prints `✗ the versions cannot be compared: not a semver: …`, names both numbers, and says to restore the baseline from history. One unit arm pins the three refusals as literal messages, and a fifth CLI spawn asserts the named line and no stack frame. Dropping the `try` fails `#1768 contract CLI: a malformed baseline version fails BY NAME, not as a stack trace`.
+
 ---
 
 ## (2026-09-29) — A nest resolves inside its own def's set, never by member name across sets (#1781)

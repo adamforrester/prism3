@@ -344,7 +344,21 @@ const main = (): void => {
 
   // Before either mode decides anything (#1768): `classify` compares paths, so a constant that moved
   // BACKWARDS under an unchanged surface read as "unchanged". Both modes refuse it, by name.
-  const drift = contractVersionDrift(baseline.contractVersion, CONTRACT_VERSION, diff.level);
+  // A baseline version that is not MAJOR.MINOR.PATCH (`14.0.0-rc.1`, `v14.0.0`, `14.0`) cannot be ordered
+  // against the constant, so the run fails closed. It fails by name rather than as a stack trace from
+  // `parse`, so the reader learns which file holds the bad number.
+  let drift: ReturnType<typeof contractVersionDrift>;
+  try {
+    drift = contractVersionDrift(baseline.contractVersion, CONTRACT_VERSION, diff.level);
+  } catch (e) {
+    console.error(`\n✗ the versions cannot be compared: ${(e as Error).message}.`);
+    console.error(
+      `  The baseline records contract "${baseline.contractVersion}" and packages/engine/version.ts has "${CONTRACT_VERSION}";\n` +
+        '  both must be plain MAJOR.MINOR.PATCH (no prefix, no pre-release tag). The baseline is written only by\n' +
+        '  --accept, so a malformed number there was edited by hand: restore it from history with git.',
+    );
+    process.exit(1);
+  }
   if (drift === 'behind') {
     console.error(`\n✗ CONTRACT_VERSION moved BACKWARDS: ${CONTRACT_VERSION} in packages/engine/version.ts is below the baseline's ${baseline.contractVersion}.`);
     console.error(
