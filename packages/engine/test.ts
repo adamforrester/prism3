@@ -18224,6 +18224,24 @@ arm: {
           && valRuns.reduce((s, r) => s + (r.added ?? 0), 0) === 9 && !valRuns.some((r) => r.misses.some((m) => m.includes('AXES CHANGED'))),
           `#1809 a value added on the same axes still APPENDS: 27 + 9 = 36 members in one set (${kids(setOf(valPage)).length} members, added ${JSON.stringify(valRuns.map((r) => r.added))}, ${valPage.children.length} top-level)`);
 
+        // (d') A HAND-MADE CHILD IS NOT AN AXIS LIST. A designer's `Button copy` inside the 27-member set: its name
+        // is not a coordinate, so it counts toward neither axis list, and pasting all 36 still appends the 9 new
+        // members, in both executors. Counting it would refuse every re-paste over a set someone had copied into.
+        const handMade = () => ({ type: 'COMPONENT', name: 'Button copy', x: 0, y: 0, width: 100, height: 40, children: [], findAll: () => [], findOne: () => null });
+        const copyPage: StubPage = { children: [] };
+        await paste(plansOf(button, ['rest', 'hover', 'pressed']), copyPage);
+        kids(setOf(copyPage)).push(handMade());
+        const copyRuns = await paste(btn, copyPage);
+        const copyPlugPage: StubPage = { children: [] };
+        await plug(plansOf(button, ['rest', 'hover', 'pressed']), copyPlugPage);
+        kids(setOf(copyPlugPage)).push(handMade());
+        const copyPlug = await plug(btn, copyPlugPage);
+        ok(copyRuns.every((r) => r.set === 'button') && copyRuns.reduce((s, r) => s + (r.added ?? 0), 0) === 9 && kids(setOf(copyPage)).length === 37
+          && !copyRuns.some((r) => r.misses.some((m) => m.includes('AXES CHANGED'))),
+          `#1809 a hand-made child in the set is not an axis list: the paste still appends the 9 new members (set ${JSON.stringify(copyRuns.map((r) => r.set))}, added ${JSON.stringify(copyRuns.map((r) => r.added))}, ${kids(setOf(copyPage)).length} children; ${JSON.stringify(copyRuns[0]?.misses.slice(0, 2))})`);
+        ok(copyPlug.set === 'button' && copyPlug.added === 9 && kids(setOf(copyPlugPage)).length === 37 && !copyPlug.misses.some((m) => m.includes('AXES CHANGED')),
+          `#1809 parity: the plugin appends the same 9 beside the hand-made child (set ${String(copyPlug.set)}, added ${copyPlug.added}, ${kids(setOf(copyPlugPage)).length} children)`);
+
         // (e) PLACEMENT. The first set on an empty page stays at the origin; its box is pinned as a literal.
         const placePage: StubPage = { children: [] };
         await paste(btn, placePage);
@@ -18278,6 +18296,18 @@ arm: {
         await paste(btn, introPage);
         ok(at(setOf(introPage)) === '760,40',
           `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(setOf(introPage))})`);
+
+        // (i') A NODE WHOLLY BELOW THE ROW DOES NOT PUSH THE SET. A note at x 600..1000, y 400..500, under the
+        // `button` set's 348-high row. Expected: 504 + 160 = 664,0, not the note's 1000 + 160, in both executors.
+        const belowPage: StubPage = { children: [] };
+        const belowPlug: StubPage = { children: [] };
+        for (const pg of [belowPage, belowPlug]) {
+          if (pg === belowPage) await paste(btn, pg); else await plug(btn, pg);
+          pg.children.push({ type: 'FRAME', name: 'below', x: 600, y: 400, width: 400, height: 100 });
+          if (pg === belowPage) await paste(destructive, pg); else await plug(destructive, pg);
+        }
+        ok(at(setOf(belowPage, 'button-destructive')) === '664,0' && at(setOf(belowPlug, 'button-destructive')) === '664,0',
+          `#1809 a node wholly below the row does not push the set: 664,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
 
         // (j) THE REMEDY THE MISS STATES IS TRUE, and the new set lands beside the old: rename the refused set
         // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 664,0.
