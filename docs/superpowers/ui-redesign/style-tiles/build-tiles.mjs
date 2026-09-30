@@ -12,7 +12,8 @@
 // `style-tiles.html`. It FAILS (exit 1) when:
 //   1. the tile CSS (`<style id="tile-css">`) or any inline `style=""` in the source carries a raw
 //      color, length or duration: hex, rgb()/hsl()/oklch(), px/rem/em/pt, ms/s. Every value the tile
-//      CSS uses must come through a `--p3-*` variable from the generated block;
+//      CSS uses must come through a `--p3-*` variable from the generated block. It also fails on any
+//      box-shadow, text-shadow or drop-shadow (the owner's T5: no shadows);
 //   2. the tile CSS or markup references a `--p3-*` variable the generated block does not define;
 //   3. a chrome color variable resolves through the brand palette (`core.palette.primary`/`accent`)
 //      or a brand, link or focus role. Only `--p3-sample-*` (preview content) may;
@@ -71,12 +72,13 @@ const P = (p) => `${NS}.${p}`;
 // ── the variable map: one role mapping, resolved per mode ──────────────────────────────────────
 // [variable, token path (below `pds3.`), kind]. The same path serves both themes; only the mode's
 // merged tree differs. Nothing here is a per-theme hand pick.
-const C = 'color', D = 'dim', N = 'num', F = 'font', S = 'shadow', T = 'time', E = 'ease';
+const C = 'color', D = 'dim', N = 'num', T = 'time', E = 'ease';
 const VARS = [
-  // surfaces
+  // surfaces: the page (top bar, levers, preview, drawer) and the inset tint (segment tracks, tips,
+  // the per-mode body, the drawer's cards, badges). `fill-2` is the progress and spinner track.
+  // `bg-2` is only the harness page around the frame.
   ['bg-page', 'color.background.primary', C],
-  ['bg-ground', 'color.background.secondary', C],
-  ['bg-tertiary', 'color.background.tertiary', C],
+  ['bg-2', 'color.background.secondary', C],
   ['fill-1', 'color.foreground.primary', C],
   ['fill-2', 'color.foreground.secondary', C],
   // text and icons
@@ -84,17 +86,16 @@ const VARS = [
   ['text-2', 'color.text.secondary', C],
   ['icon', 'color.icon.primary', C],
   ['icon-2', 'color.icon.secondary', C],
-  // lines: 1 is the hairline (decorative only), 2 clears 3:1 for a boundary
+  // lines: 1 is the hairline (decorative only: region and section splits), 2 clears 3:1 (slider rail)
   ['line-1', 'color.border.primary', C],
   ['line-2', 'color.border.secondary', C],
-  // fields, focus and hover washes
+  // fields, the selected edge and focus, hover washes
   ['field-edge', 'color.field.border.rest', C],
   ['field-edge-hover', 'color.field.border.hover', C],
-  ['field-placeholder', 'color.field.placeholder', C],
   ['ctl-edge', 'color.interactive.neutral.border.rest', C],
   ['overlay-hover', 'color.interactive.neutral.overlay.hover', C],
   ['overlay-pressed', 'color.interactive.neutral.overlay.pressed', C],
-  // inverse: the one primary action and the selected state
+  // inverse: the one primary action and the switch's on track
   ['inv-bg', 'color.inverse.background.primary', C],
   ['inv-bg-2', 'color.inverse.background.secondary', C],
   ['inv-text', 'color.inverse.text.primary', C],
@@ -103,43 +104,39 @@ const VARS = [
   ['warn-icon', 'color.icon.warning', C],
   ['bad-text', 'color.text.danger', C],
   ['bad-icon', 'color.icon.danger', C],
-  ['bad-edge', 'color.border.danger', C],
   // space
   ['space-025', 'space.025', D], ['space-050', 'space.050', D], ['space-075', 'space.075', D],
   ['space-100', 'space.100', D], ['space-150', 'space.150', D], ['space-200', 'space.200', D],
   ['space-250', 'space.250', D], ['space-300', 'space.300', D], ['space-400', 'space.400', D],
-  // radius: roles top out at lg = 6px; 8 and 12 come from dimension primitives (see README gaps)
-  ['radius-md', 'radius.md', D], ['radius-lg', 'radius.lg', D],
-  ['radius-8', 'core.dimension.8', D], ['radius-12', 'core.dimension.12', D],
-  ['radius-pill', 'radius.capsule', D],
+  ['space-500', 'space.500', D],
+  // radius: `radius.lg` (6px) for every control, field, card and panel; `md` for a segment inside
+  // its track (6 minus the track's 4px inset would be 2px, which reads square); pill for the
+  // verdict, badges, dots, the switch and the slider thumb. No radius above 6px until #1852.
+  ['radius-md', 'radius.md', D], ['radius-lg', 'radius.lg', D], ['radius-pill', 'radius.capsule', D],
   // borders and focus
   ['bw-hairline', 'border-width.hairline', D], ['bw-thick', 'border-width.thick', D],
   ['focus-width', 'focus.ring.width', D], ['focus-offset', 'focus.ring.offset', D],
   ['focus-offset-field', 'focus.ring.offset-field', D],
-  // control geometry
-  ['ctl-h-xs', 'size.xs.height', D], ['ctl-h-sm', 'size.sm.height', D], ['ctl-h-md', 'size.md.height', D],
+  // control geometry: fields and chips 40, top-bar controls 36, small buttons 28, the drawer bar 44,
+  // the top bar and the tab row 56
+  ['ctl-h', 'core.dimension.40', D], ['ctl-h-sm', 'size.sm.height', D], ['ctl-h-xs', 'size.xs.height', D],
+  ['bar-h', 'size.lg.height', D], ['ctl-h-md', 'size.md.height', D],
   ['track-h', 'control.size.sm.track', D],
   ['track-w', 'control.size.sm.width', D], ['thumb', 'control.size.sm.thumb', D],
   ['thumb-inset', 'control.size.sm.inset', D], ['dot', 'control.size.sm.dot', D],
   ['icon-xs', 'icon.size.xs', D],
   ['hit-min', 'core.dimension.24', D], ['swatch-h', 'core.dimension.40', D],
-  ['label-col', 'core.dimension.128', D],
-  // type
-  ['font-body', 'core.font.family.body', F], ['font-code', 'core.font.family.code', F],
-  ['fs-11', 'core.font.size.11', D], ['fs-12', 'core.font.size.12', D], ['fs-14', 'core.font.size.14', D],
-  ['fs-16', 'core.font.size.16', D], ['fs-18', 'core.font.size.18', D],
+  // type: sizes, weights, leading and tracking. The families are chrome constants (CHROME_FONTS).
+  ['fs-12', 'core.font.size.12', D], ['fs-14', 'core.font.size.14', D],
+  ['fs-16', 'core.font.size.16', D],
   ['fw-default', 'core.font.weight-role.default', N], ['fw-emphasis', 'core.font.weight-role.emphasis', N],
   ['fw-strong', 'core.font.weight-role.strong', N],
-  ['lh-snug', 'core.font.line-height-role.snug', N], ['lh-compact', 'core.font.line-height-role.compact', N],
+  ['lh-compact', 'core.font.line-height-role.compact', N],
   ['lh-cozy', 'core.font.line-height-role.cozy', N], ['lh-normal', 'core.font.line-height-role.normal', N],
-  ['ls-normal', 'core.font.letter-spacing-role.normal', D], ['ls-wider', 'core.font.letter-spacing-role.wider', D],
-  // elevation
-  ['shadow-xs', 'shadow.xs', S], ['shadow-md', 'shadow.md', S],
+  ['ls-snug', 'core.font.letter-spacing-role.snug', D],
   // motion
-  ['dur-fast', 'motion.duration.fast', T], ['dur-normal', 'motion.duration.normal', T],
-  ['dur-spin', 'motion.duration.spin', T],
+  ['dur-fast', 'motion.duration.fast', T], ['dur-spin', 'motion.duration.spin', T],
   ['dur-fast-reduced', 'motion.duration-reduced.fast', T],
-  ['dur-normal-reduced', 'motion.duration-reduced.normal', T],
   ['dur-spin-reduced', 'motion.duration-reduced.spin', T],
   ['ease', 'motion.easing-role.default', E],
 ];
@@ -151,27 +148,36 @@ const rampSteps = Object.keys(MODES.light[NS].core.palette.primary).sort((a, b) 
 // Harness geometry: NOT from tokens. The token set has no side-panel or frame width (README gaps).
 const HARNESS = [
   ['h-frame-wide', '1280px'], ['h-frame-narrow', '380px'],
-  ['h-frame-tall', '1000px'], ['h-frame-narrow-tall', '720px'], ['h-panel', '440px'],
+  ['h-frame-tall', '1080px'], ['h-frame-narrow-tall', '720px'], ['h-panel', '440px'],
 ];
+
+// Chrome fonts: NOT from tokens, on purpose. The chrome's face is the product's own, and must not
+// move when the default theme's `core.font.family.body` lever does (that lever is brand content).
+// Both faces are embedded from `fonts/` (the fontsource latin variable subsets, SIL OFL 1.1, licenses
+// alongside) as woff2 data URIs, so the page makes no network request and renders the same on a
+// machine with neither installed. That is the usual case: without them the chrome falls back to
+// DejaVu Sans, which is what made the first pass look dated.
+const CHROME_FONTS = [
+  // [variable, family, woff2 file, fallback stack]
+  ['font-ui', 'Inter', 'inter-latin-wght-normal.woff2', 'system-ui, sans-serif'],
+  ['font-mono', 'JetBrains Mono', 'jetbrains-mono-latin-wght-normal.woff2', 'ui-monospace, monospace'],
+];
+const fontFaces = CHROME_FONTS.map(([, family, file]) => {
+  const b64 = readFileSync(join(HERE, 'fonts', file)).toString('base64');
+  return `@font-face {\n  font-family: "${family}"; font-style: normal; font-weight: 100 900; font-display: block;\n`
+    + `  src: url(data:font/woff2;base64,${b64}) format("woff2");\n}`;
+}).join('\n');
+const fontVars = CHROME_FONTS.map(([n, family, , stack]) => `  --p3-${n}: "${family}", ${stack};`).join('\n');
 
 // ── value formatting ───────────────────────────────────────────────────────────────────────────
 const cssOf = (tree, [name, path, kind]) => {
-  const { value, leaf, chain } = resolve(tree, P(path));
+  const { value, chain } = resolve(tree, P(path));
   switch (kind) {
     case C: case D: case N: case T: return { css: String(value), chain };
-    case F: {
-      const face = String(value);
-      const stack = leaf.$extensions?.prism3?.fallbackStack || ['system-ui', 'sans-serif'];
-      const q = (f) => (/^[a-z-]+$/.test(f) ? f : `"${f}"`);
-      return { css: [face, ...stack].map(q).join(', '), chain };
-    }
-    case S: return { css: value.map((l) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread} ${l.color}`).join(', '), chain };
     case E: return { css: `cubic-bezier(${value.join(', ')})`, chain };
     default: throw new Error(`unknown kind ${kind} for ${name}`);
   }
 };
-// The base shadow carries its dark variant in $extensions.prism3.modes.dark, and the overlay also
-// replaces the shadow leaf, so the merged dark tree already holds the dark value. Checked below.
 
 // ── gate 3: no brand in the chrome ─────────────────────────────────────────────────────────────
 const BRAND_RE = /(core\.palette\.(primary|accent))|\.brand\b|\.brand-|\.link\.|border\.focus/;
@@ -204,7 +210,10 @@ ${rampVars}
 ${sampleVars}
   /* Harness geometry. Not from tokens: the token set has no frame or side-panel width. */
 ${harnessVars}
+  /* Chrome fonts. Not from tokens: a chrome constant, embedded below (see CHROME_FONTS). */
+${fontVars}
 }
+${fontFaces}
 :root, [data-theme="light"] {
   color-scheme: light;
 ${light}
@@ -231,6 +240,8 @@ const RAW = [
   [/\b(rgba?|hsla?|oklch|oklab|lab|lch|color)\(/gi, 'raw color function'],
   [/(?<![\w-])-?\d*\.?\d+(px|rem|em|pt|vh|vw|ch)\b/gi, 'raw length'],
   [/(?<![\w-])\d*\.?\d+(ms|s)\b/gi, 'raw duration'],
+  // T5: no shadows anywhere. Elevation is carried by the background/foreground roles and hairlines.
+  [/\b(box-shadow|text-shadow)\s*:|drop-shadow\(/gi, 'shadow (T5: no shadows)'],
 ];
 const scan = (text, where) => {
   const stripped = text.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -238,11 +249,11 @@ const scan = (text, where) => {
 };
 scan(tileCss, 'tile CSS');
 for (const m of src.matchAll(/\sstyle="([^"]*)"/g)) scan(m[1], 'inline style');
-const defined = new Set([...VARS.map((v) => v[0]), ...HARNESS.map((h) => h[0]),
+const defined = new Set([...VARS.map((v) => v[0]), ...HARNESS.map((h) => h[0]), ...CHROME_FONTS.map((f) => f[0]),
   ...rampSteps.map((s) => `sample-primary-${s}`), ...sampleRoles.map((r) => r[0])]);
 for (const m of src.matchAll(/var\(--p3-([a-z0-9-]+)/g)) if (!defined.has(m[1])) errors.push(`undefined variable --p3-${m[1]}`);
 // The map is the README's "tokens used" table, so every entry must be used.
-for (const [n] of VARS) if (!src.includes(`var(--p3-${n})`)) errors.push(`mapped but unused variable --p3-${n}`);
+for (const [n] of [...VARS, ...CHROME_FONTS, ...HARNESS]) if (!src.includes(`var(--p3-${n})`)) errors.push(`mapped but unused variable --p3-${n}`);
 
 // ── contrast ───────────────────────────────────────────────────────────────────────────────────
 const hexRgba = (h) => { const x = h.replace('#', ''); const n = (i) => parseInt(x.slice(i, i + 2), 16) / 255; return [n(0), n(2), n(4), x.length === 8 ? n(6) : 1]; };
@@ -254,18 +265,27 @@ const hexOf = (mode, v) => resolve(MODES[mode], P(VARS.find((x) => x[0] === v)[1
 // Declared chrome pairs: [fg var, bg var, floor, what]. The rendered audit covers every element;
 // this list is the design intent, checked before anything renders.
 const PAIRS = [
-  ['text', 'bg-page', 4.5, 'body text on panel'], ['text', 'bg-ground', 4.5, 'body text on ground'],
-  ['text-2', 'bg-page', 4.5, 'secondary text on panel'], ['text-2', 'bg-ground', 4.5, 'secondary text on ground'],
-  ['text-2', 'fill-1', 4.5, 'secondary text on tinted track/field'], ['text', 'fill-1', 4.5, 'text on tinted field'],
-  ['inv-text', 'inv-bg', 4.5, 'primary action / selected chip'], ['inv-text', 'inv-bg-2', 4.5, 'primary action hover'],
-  ['bad-text', 'bg-page', 4.5, 'danger text'], ['bad-text', 'bg-ground', 4.5, 'danger text on ground'],
-  ['field-edge', 'bg-page', 3, 'field edge on panel'], ['field-edge', 'fill-1', 3, 'selected segment edge on track'],
-  ['field-edge-hover', 'bg-page', 3, 'field edge, hover'], ['line-2', 'bg-page', 3, 'track edge / slider rail'],
-  ['ctl-edge', 'bg-page', 3, 'focus ring on panel'], ['ctl-edge', 'bg-ground', 3, 'focus ring on ground'],
-  ['inv-bg', 'bg-page', 3, 'selected chip fill vs panel'], ['icon-2', 'bg-page', 3, 'info glyph'],
-  ['icon-2', 'bg-ground', 3, 'info glyph on ground'], ['ok-icon', 'bg-page', 3, 'verdict dot'],
-  ['bad-icon', 'bg-page', 3, 'failure dot'], ['warn-icon', 'bg-page', 3, 'warning glyph'],
-  ['bad-edge', 'bg-page', 3, 'error rule'], ['text', 'fill-2', 3, 'progress fill on track'],
+  // text: the page (top bar, levers, preview, drawer) and the inset tint
+  ['text', 'bg-page', 4.5, 'body text on page'],
+  ['text', 'fill-1', 4.5, 'text on inset (tips, per mode, drawer cards)'],
+  ['text-2', 'bg-page', 4.5, 'secondary text on page'],
+  ['text-2', 'fill-1', 4.5, 'secondary text on inset (unselected segment, badge)'],
+  ['inv-text', 'inv-bg', 4.5, 'primary action'], ['inv-text', 'inv-bg-2', 4.5, 'primary action hover'],
+  ['bad-text', 'bg-page', 4.5, 'danger text on page'], ['bad-text', 'fill-1', 4.5, 'danger text on inset'],
+  // control boundaries and indicators (WCAG 1.4.11)
+  ['field-edge', 'bg-page', 3, 'field, chip, button edge on page'],
+  ['field-edge', 'fill-1', 3, 'selected segment edge on track; button edge on inset'],
+  ['field-edge-hover', 'bg-page', 3, 'edge on hover; slider thumb edge'],
+  ['ctl-edge', 'bg-page', 3, 'selected chip edge; focus ring on page'],
+  ['ctl-edge', 'fill-1', 3, 'focus ring on inset'],
+  ['text', 'bg-page', 3, 'selected tab underline'],
+  ['line-2', 'bg-page', 3, 'slider rail'], ['icon', 'bg-page', 3, 'slider fill'],
+  ['inv-bg', 'bg-page', 3, 'switch on track'],
+  ['icon-2', 'bg-page', 3, 'info glyph, chevrons, switch off knob'], ['icon-2', 'fill-1', 3, 'glyph on inset'],
+  ['ok-icon', 'bg-page', 3, 'verdict dot'], ['ok-icon', 'fill-1', 3, 'badge check on inset'],
+  ['bad-icon', 'bg-page', 3, 'failure dot'], ['bad-icon', 'fill-1', 3, 'error glyph on inset'],
+  ['warn-icon', 'bg-page', 3, 'warning glyph'],
+  ['text', 'fill-2', 3, 'progress fill on track'], ['icon', 'fill-2', 3, 'spinner arc on its track'],
 ];
 const rows = PAIRS.map(([fg, bg, floor, what]) => {
   const r = { what, fg, bg, floor };

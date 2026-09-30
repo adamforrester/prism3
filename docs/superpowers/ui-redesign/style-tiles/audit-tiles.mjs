@@ -3,8 +3,8 @@
 //   PLAYWRIGHT_MODULE=<path to playwright/index.mjs> PLAYWRIGHT_BROWSERS_PATH=<browsers> \
 //     node docs/superpowers/ui-redesign/style-tiles/audit-tiles.mjs [screenshot dir]
 //
-// Renders the BUILT `style-tiles.html` in Chromium for every direction × theme × width and measures
-// what is actually on screen, independent of the build script's declared pairs:
+// Renders the BUILT `style-tiles.html` in Chromium for every theme × width and measures what is
+// actually on screen, independent of the build script's declared pairs:
 //   - every visible text node (and every field's value) against its composited background: 4.5:1;
 //   - every element marked `data-a` in the source:
 //       edge  — its visible border (or outline) against the background outside it: 3:1;
@@ -15,7 +15,12 @@
 //   - the focus ring of every stop in the Tab order, against the background outside the ring: 3:1;
 //   - the hit target of every focusable control (a visually hidden radio or switch is measured by
 //     the label or wrapper it covers): 24 × 24;
-//   - `System` follows the color scheme, and reduced motion slows the spinner to its token.
+//   - `System` follows the color scheme, and reduced motion slows the spinner to its token;
+//   - the chrome renders in Inter and values in JetBrains Mono. Chromium's own record of the face it
+//     drew each node with (CDP `CSS.getPlatformFontsForNode`), not `document.fonts.check()`, which
+//     answers true when a family is simply absent (nothing to load) and so cannot catch the fallback;
+//   - no weight above 600 on any text node, and no computed box-shadow or text-shadow anywhere (T5);
+//   - the page makes no network request (both faces are embedded).
 // Exits 1 if anything fails. With a directory argument it also writes one screenshot per state.
 
 import { mkdirSync } from 'node:fs';
@@ -28,9 +33,25 @@ const URL = pathToFileURL(join(HERE, 'style-tiles.html')).href;
 const SHOTS = process.argv[2];
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
-const DIRS = { a: 'A · Quiet panels', b: 'B · Flat and dense', c: 'C · Inset fields' };
+const PREFIX = 'a2'; // direction A, second pass: the screenshot file prefix
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1400, height: 1500 }, deviceScaleFactor: 1 });
+const requests = [];
+page.on('request', (r) => { if (!/^(file|data|about):/.test(r.url())) requests.push(r.url()); });
+const cdp = await page.context().newCDPSession(page);
+await cdp.send('DOM.enable'); await cdp.send('CSS.enable');
+// The face Chromium actually used for a node's text: [{ familyName, glyphCount }].
+async function usedFonts(selector) {
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+  const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector });
+  if (!nodeId) return null;
+  const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+  return fonts.map((f) => f.familyName);
+}
+const FONT_PROBES = [
+  ['Inter', '.lab label[for="f-name"]'], ['Inter', '#s-id'], ['Inter', '.btn.primary'], ['Inter', '.tabs label'],
+  ['JetBrains Mono', '.ramp .step'], ['JetBrains Mono', '.roles tbody th code'],
+];
 
 async function measure() {
   return page.evaluate(() => {
@@ -78,6 +99,14 @@ async function measure() {
       const cs = getComputedStyle(el); const bg = bgOf(el); const fg = over(parse(cs.color), bg);
       const r = ratio(fg, bg); const rec = { what: name(el), r, floor: 4.5, kind: 'text' };
       out.text.push(rec); if (r < 4.5) out.fails.push(rec);
+      const wt = Number(cs.fontWeight);
+      if (wt > 600) out.fails.push({ what: name(el), kind: 'weight above 600', r: wt, floor: 600 });
+    }
+    for (const el of document.querySelectorAll('*')) {
+      for (const pseudo of [null, '::before', '::after', '::-webkit-slider-thumb']) {
+        const cs = getComputedStyle(el, pseudo);
+        if (cs.boxShadow !== 'none' || cs.textShadow !== 'none') out.fails.push({ what: name(el) + (pseudo || ''), kind: 'shadow (T5)', r: 0, floor: 0 });
+      }
     }
     for (const el of document.querySelectorAll('[data-a]')) {
       if (!vis(el)) continue;
@@ -149,10 +178,11 @@ async function focusRings() {
 
 const results = [];
 let failed = 0;
-for (const dir of Object.keys(DIRS)) {
+const fontsSeen = new Set();
+{
   for (const theme of ['light', 'dark']) {
     for (const w of ['wide', 'narrow']) {
-      await page.goto(`${URL}#dir=${dir}&theme=${theme}&w=${w}`);
+      await page.goto(`${URL}#theme=${theme}&w=${w}`);
       await page.reload();
       await page.evaluate(() => document.fonts.ready);
       const m = await measure();
@@ -161,12 +191,20 @@ for (const dir of Object.keys(DIRS)) {
       const all = [...m.fails, ...ringFails.map((r) => ({ what: r.what, kind: 'focus ring', r: r.r ?? 0, floor: 3 }))];
       failed += all.length;
       const min = (arr) => arr.reduce((a, b) => (b.r < a.r ? b : a), { r: Infinity });
-      results.push({ dir, theme, w, text: m.text.length, textMin: min(m.text), checks: m.checks.length, checkMin: min(m.checks),
+      if (w === 'wide') {
+        for (const [want, sel] of FONT_PROBES) {
+          const got = await usedFonts(sel);
+          if (!got || !got.length || got.some((f) => f !== want)) all.push({ what: sel, kind: `font (want ${want}, drew ${got ? got.join(' + ') : 'nothing'})`, r: 0, floor: 0 });
+          else fontsSeen.add(`${want} on ${sel}`);
+        }
+        failed += all.length - m.fails.length - ringFails.length;
+      }
+      results.push({ theme, w, text: m.text.length, textMin: min(m.text), checks: m.checks.length, checkMin: min(m.checks),
         rings: rings.length, ringMin: min(rings.filter((r) => !r.pseudo && !r.none)), hits: m.hits.length,
         hitMin: m.hits.reduce((a, b) => Math.min(a, b.w, b.h), Infinity), fails: all });
       if (SHOTS) {
-        await page.goto(`${URL}#dir=${dir}&theme=${theme}&w=${w}`); await page.reload();
-        await page.locator('#frame').screenshot({ path: join(SHOTS, `${dir}-${theme}-${w === 'wide' ? 1280 : 380}.png`) });
+        await page.goto(`${URL}#theme=${theme}&w=${w}`); await page.reload(); await page.evaluate(() => document.fonts.ready);
+        await page.locator('#frame').screenshot({ path: join(SHOTS, `${PREFIX}-${theme}-${w === 'wide' ? 1280 : 380}.png`) });
       }
     }
   }
@@ -174,7 +212,7 @@ for (const dir of Object.keys(DIRS)) {
 
 // System follows the color scheme
 await page.emulateMedia({ colorScheme: 'dark' });
-await page.goto(`${URL}#dir=a&theme=system&w=wide`); await page.reload();
+await page.goto(`${URL}#theme=system&w=wide`); await page.reload();
 const sysDark = await page.evaluate(() => getComputedStyle(document.querySelector('.levers')).backgroundColor);
 await page.emulateMedia({ colorScheme: 'light' }); await page.reload();
 const sysLight = await page.evaluate(() => getComputedStyle(document.querySelector('.levers')).backgroundColor);
@@ -185,28 +223,30 @@ await page.emulateMedia({ reducedMotion: 'reduce' }); await page.reload();
 const spinReduced = await spin();
 if (SHOTS) {
   await page.emulateMedia({ reducedMotion: 'no-preference', colorScheme: 'light' });
-  const extra = async (hash, file) => { await page.goto(`${URL}#${hash}`); await page.reload(); await page.locator('#frame').screenshot({ path: join(SHOTS, file) }); };
-  for (const dir of Object.keys(DIRS)) {
-    for (const theme of ['light', 'dark']) {
-      // the whole levers panel at 380, unclipped, and the preview pane with the activity sheet open
-      await extra(`dir=${dir}&theme=${theme}&w=narrow&full=1`, `${dir}-${theme}-380-full.png`);
-      await extra(`dir=${dir}&theme=${theme}&w=narrow&pane=preview&drawer=open`, `${dir}-${theme}-380-preview.png`);
-    }
+  const extra = async (hash, file) => { await page.goto(`${URL}#${hash}`); await page.reload(); await page.evaluate(() => document.fonts.ready); await page.locator('#frame').screenshot({ path: join(SHOTS, file) }); };
+  for (const theme of ['light', 'dark']) {
+    // the whole levers panel at 380, unclipped, and the preview pane with the activity sheet open
+    await extra(`theme=${theme}&w=narrow&full=1`, `${PREFIX}-${theme}-380-full.png`);
+    await extra(`theme=${theme}&w=narrow&pane=preview&drawer=open`, `${PREFIX}-${theme}-380-preview.png`);
   }
 }
 await browser.close();
 
 const f = (r) => (Number.isFinite(r) ? `${(Math.floor(r * 100) / 100).toFixed(2)}:1` : '–');
-console.log('| Direction | Theme | Width | Text nodes (min, floor 4.5:1) | Edges, fills, glyphs, indicators (min, floor 3:1) | Focus stops (min ring, floor 3:1) | Targets (min px, floor 24) | Fails |');
-console.log('|---|---|---|---|---|---|---|---|');
+console.log('| Theme | Width | Text nodes (min, floor 4.5:1) | Edges, fills, glyphs, indicators (min, floor 3:1) | Focus stops (min ring, floor 3:1) | Targets (min px, floor 24) | Fails |');
+console.log('|---|---|---|---|---|---|---|');
 for (const r of results) {
-  console.log(`| ${DIRS[r.dir]} | ${r.theme} | ${r.w === 'wide' ? 1280 : 380} | ${r.text} (${f(r.textMin.r)}) | ${r.checks} (${f(r.checkMin.r)}) | ${r.rings} (${f(r.ringMin.r)}) | ${r.hits} (${Math.round(r.hitMin)}) | ${r.fails.length} |`);
+  console.log(`| ${r.theme} | ${r.w === 'wide' ? 1280 : 380} | ${r.text} (${f(r.textMin.r)}) | ${r.checks} (${f(r.checkMin.r)}) | ${r.rings} (${f(r.ringMin.r)}) | ${r.hits} (${Math.round(r.hitMin)}) | ${r.fails.length} |`);
 }
 console.log(`\nLowest text pair per state:`);
-for (const r of results) console.log(`  ${r.dir} ${r.theme} ${r.w}: ${r.textMin.what} ${f(r.textMin.r)}; lowest 3:1 check: ${r.checkMin.what} (${r.checkMin.kind}) ${f(r.checkMin.r)}`);
+for (const r of results) console.log(`  ${r.theme} ${r.w}: ${r.textMin.what} ${f(r.textMin.r)}; lowest 3:1 check: ${r.checkMin.what} (${r.checkMin.kind}) ${f(r.checkMin.r)}`);
 console.log(`\nSystem theme: levers panel ${sysLight} with a light scheme, ${sysDark} with a dark scheme.`);
 console.log(`Reduced motion: spinner ${spinNormal} normally, ${spinReduced} reduced.`);
-for (const r of results) for (const x of r.fails) console.log(`  ✗ ${r.dir} ${r.theme} ${r.w}: ${x.kind} ${x.what} ${typeof x.r === 'number' ? x.r.toFixed(2) : x.r} < ${x.floor}`);
+console.log(`Fonts drawn (CDP): ${[...fontsSeen].filter((f, i, a) => a.indexOf(f) === i).join('; ') || 'none'}.`);
+console.log(`Network requests: ${requests.length}${requests.length ? ' — ' + requests.slice(0, 3).join(', ') : ''}.`);
+if (requests.length) { console.log('  ✗ the page made network requests'); failed++; }
+const detail = (x) => (/^(font|shadow)/.test(x.kind) ? '' : x.kind.startsWith('weight') ? ` ${x.r} > ${x.floor}` : ` ${x.r.toFixed(2)} < ${x.floor}`);
+for (const r of results) for (const x of r.fails) console.log(`  ✗ ${r.theme} ${r.w}: ${x.kind} ${x.what}${detail(x)}`);
 if (sysDark === sysLight) { console.log('  ✗ System theme did not follow the color scheme'); failed++; }
 if (spinNormal === spinReduced) { console.log('  ✗ Reduced motion did not change the spinner'); failed++; }
 console.log(failed ? `\naudit: ${failed} failure(s)` : '\naudit: every state passes');
