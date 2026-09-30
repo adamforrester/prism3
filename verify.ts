@@ -559,13 +559,10 @@ export const GATES: Gate[] = [
     id: 'lint-voice',
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
-    after: ['build-web'],
-    // NOT `build-plugin`, and the difference from the line above is a defect rather than a decision:
-    // this gate's scope has the same apps/plugin/dist hole #937 fixed in its sibling, filed separately
-    // rather than widened here. Adding `build-plugin` to this `after` before the scope moves would
-    // declare a dependency on a directory the gate does not read — an ordering constraint with nothing
-    // behind it is the kind a later edit deletes as noise, which is what `why` exists to prevent.
-    why: 'same apps/studio/dist/*.js scope as the US-English gate, same reason it runs after the web build',
+    after: ['build-web', 'build-plugin'],
+    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw.
+    // The voice RULES still do not (#948 is open), so this ordering serves that one arm today.
+    why: 'the voice rules scan apps/studio/dist/*.js, and the client-name arm (#1824) scans both built bundles — run before either build it reads a stale one, or none',
   },
   {
     id: 'lint-doc-gates',
