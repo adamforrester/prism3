@@ -21291,13 +21291,23 @@ arm: {
     `vocabulary: a trait-vs-trait collision is attributed to the TRAIT that won, not to the author — ${conflict?.slice(0, 90)}`);
   const explicit = build({ personality: ['generous'], radiusScale: 0 })?.notes.find((n) => n.startsWith("personality 'generous'"));
   ok(explicit?.includes('(set explicitly)') === true, 'vocabulary: an author-set lever IS attributed to the author');
+  // A trait that applied NOTHING carries no `why` (#1824 review): its note describes settings the theme
+  // did not get. Two ways to reach it: a trait-vs-trait collision on every lever, and an author who set
+  // every lever the trait carries. Literal expectations, not a join of TRAITS.
+  const allKept = build({ personality: ['soft', 'sharp'] })?.notes.find((n) => n.startsWith("personality 'sharp'"));
+  ok(allKept === "personality 'sharp' → nothing to fill; kept radiusScale (already set by 'soft'), shadow.softness (already set by 'soft')",
+    `vocabulary: a trait that another trait fully pre-empted logs what it kept and no \`why\` — got: ${allKept}`);
+  const allExplicit = build({ personality: ['energetic'], motionPersonality: { tempo: 'standard' }, typography: { typeScale: 'default' } })
+    ?.notes.find((n) => n.startsWith("personality 'energetic'"));
+  ok(allExplicit === "personality 'energetic' → nothing to fill; kept motionPersonality.tempo (set explicitly), typography.typeScale (set explicitly)",
+    `vocabulary: a trait whose every lever the author set logs what it kept and no \`why\` — got: ${allExplicit}`);
 
   // ---- every inference is logged, and nothing leaks downstream ----
   // A literal, not a join of TRAITS.calm.why: the note is shipped copy the owner approved (#1824), so a
   // change to it must show up here as a diff someone reads.
   const calmNote = build({ personality: ['calm'] })?.notes.find((n) => n.startsWith("personality 'calm' →"));
   ok(calmNote === "personality 'calm' → motionPersonality.tempo relaxed, neutralEmphasis subtle"
-    + ' [Slower motion and a subtle neutral fill — transitions settle gently and controls stay quiet.]',
+    + ' [Slower motion and a subtle neutral fill — longer transitions, lighter neutral controls.]',
     `vocabulary: each applied trait logs what it set AND why, in the note's approved wording — got: ${calmNote}`);
   ok(build({ radiusScale: 'soft' })?.notes.some((n) => n === "radiusScale 'soft' → 1.5"), 'vocabulary: a resolved stop is logged with both the word and the number');
   ok(build({})?.notes.every((n) => !n.startsWith('personality')), 'vocabulary: a brand that declares no personality gets no personality notes');

@@ -55,9 +55,10 @@
  * would have shown another brand's name and brief text — and some example briefs are real brands' briefs.
  * So `why` now says what the trait sets and why, in the UI register, naming no source; the research
  * citation lives in `test.ts` (PROVENANCE, the vocabulary block), which ships nowhere and checks each
- * quote verbatim against the committed briefs (#1685). This comment names no brand either, because an
- * unminified bundle carries `//` comments from this file. `lint-voice.ts`'s CLIENT NAMES arm fails a
- * bundle, or a rendered note, that names one.
+ * quote verbatim against the committed briefs (#1685). This comment names no brand either: esbuild
+ * drops it from `main.js`, but a comment inside an expression (the TRAITS object below) reaches the
+ * unminified bundle, and the published source map carries every comment in this file. `lint-voice.ts`'s
+ * CLIENT NAMES arm fails a bundle, or a rendered note, that names one.
  */
 
 /** Named stops for the slider levers where a word genuinely names a design intent.
@@ -100,39 +101,39 @@ export type Trait = {
 export const TRAITS: Record<string, Trait> = {
   energetic: {
     levers: { 'motionPersonality.tempo': 'snappy', 'typography.typeScale': 'expressive' },
-    why: 'Faster motion and larger headings — interactions respond quickly and the hierarchy reads at a glance.',
+    why: 'Faster motion and larger headings — shorter transitions, more size contrast.',
   },
   calm: {
     levers: { 'motionPersonality.tempo': 'relaxed', neutralEmphasis: 'subtle' },
-    why: 'Slower motion and a subtle neutral fill — transitions settle gently and controls stay quiet.',
+    why: 'Slower motion and a subtle neutral fill — longer transitions, lighter neutral controls.',
   },
   premium: {
     levers: { 'typography.typeScale': 'expressive', 'shadow.softness': 'crisp', neutralEmphasis: 'subtle' },
-    why: 'Larger headings, crisp shadows and a subtle neutral fill — hierarchy comes from type, not surface effects.',
+    why: 'Larger headings, crisp shadows, a subtle neutral fill — hierarchy from type, not effects.',
   },
   restrained: {
     levers: { neutralEmphasis: 'subtle', 'neutral.chroma': 'subtle', 'shadow.softness': 'crisp' },
-    why: 'Lower-chroma grays, crisp shadows and a subtle neutral fill — color comes from the content, not the interface.',
+    why: 'Crisp shadows and a subtle neutral fill — less visual weight on interface elements.',
   },
   bold: {
     levers: { neutralEmphasis: 'strong', 'typography.typeScale': 'expressive', 'typography.displayCeiling': '3xl' },
-    why: 'A strong neutral fill, larger headings and all six display sizes — hierarchy set by size and weight.',
+    why: 'Strong neutral fill, larger headings, all six display sizes — more size and fill contrast.',
   },
   generous: {
     levers: { density: 'spacious', radiusScale: 'round', 'layout.containerNarrow': 'generous' },
-    why: 'Spacious density, round corners and a wider reading column — more room around and between elements.',
+    why: 'Spacious density, round corners, a wider reading column — more space around elements.',
   },
   dense: {
     levers: { density: 'compact', 'layout.containerMax': 'wide' },
-    why: 'Compact density and a wider container — more content per screen; the opposite pole of generous.',
+    why: 'Compact density and a wider container — more content per screen; the opposite of generous.',
   },
   soft: {
     levers: { radiusScale: 'soft', 'shadow.softness': 'soft' },
-    why: 'Rounder corners and more diffuse shadows — edges and elevation read as gentle rather than hard.',
+    why: 'Rounder corners and softer shadows (more blur per unit of offset) — the opposite of sharp.',
   },
   sharp: {
     levers: { radiusScale: 'sharp', 'shadow.softness': 'crisp' },
-    why: 'Square corners and crisp shadows — edges and elevation read as precise; the opposite pole of soft.',
+    why: 'Square corners and crisp shadows (less blur per unit of offset) — the opposite of soft.',
   },
 };
 
@@ -220,7 +221,9 @@ export const resolveVocabulary = (raw: unknown): Resolution => {
       applied.push(`${lever} ${resolved}`);
     }
     const head = applied.length ? `personality '${String(name)}' → ${applied.join(', ')}` : `personality '${String(name)}' → nothing to fill`;
-    notes.push(`${head}${declined.length ? `; kept ${declined.join(', ')}` : ''} [${trait.why}]`);
+    // The trait's `why` explains settings it made. When it made none, every one was kept, and the `why`
+    // would describe a theme the author did not get — so the line records what was kept and stops.
+    notes.push(`${head}${declined.length ? `; kept ${declined.join(', ')}` : ''}${applied.length ? ` [${trait.why}]` : ''}`);
   }
   // `personality` is an authoring-layer field, not a lever — it has done its job and must not reach
   // the theme builder, which would not know what to do with it.

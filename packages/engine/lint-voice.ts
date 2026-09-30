@@ -170,8 +170,12 @@
  *
  *   - IN: the three bundle files that inline the engine — `apps/studio/dist/main.js`,
  *     `apps/plugin/dist/main.js` and `apps/plugin/dist/ui.html` — scanned RAW. The voice rules exempt
- *     comments (point 4); this rule cannot, because an unminified bundle ships a `//` comment to the
- *     customer's machine exactly as it ships a string. The plugin files are in scope here although #948
+ *     comments (point 4); this rule cannot, because some comments DO reach the unminified bundle. Not all
+ *     of them, and not "exactly as a string": measured on this PR's build, esbuild drops top-level and
+ *     function-body comments (a file header, `// ---- 1. named stops` inside `resolveVocabulary`) and keeps
+ *     the ones inside an expression — an object or array literal, a call's arguments (the comments beside
+ *     the TRAITS entries, a component def's fields). A comment's position decides whether it ships, so the
+ *     scan reads the bundle raw rather than guessing. The plugin files are in scope here although #948
  *     still keeps them out of the voice rules; that is why `verify.ts` now runs this gate after BOTH builds.
  *   - IN: every personality note as the engine RENDERS it, one `brandTheme` call per trait in the
  *     schema's enum. No committed brand sets `personality`, so `out/**` never shows a trait note; reading
@@ -180,6 +184,11 @@
  *     that ARE those clients, by id, file name and measured fixture, so this rule over it would fail on
  *     the corpus itself. Whether a public repo should carry those brands is the owner's call, not this
  *     gate's: filed as #1853, and this bullet is where the scope says so rather than implies it.
+ *   - OUT: the studio site's source map (`dist/main.js.map`; `build-site.mjs` builds it with
+ *     `sourcemap: true` and publishes it). Its `sourcesContent` is the engine's source, every comment
+ *     included, so it names the corpus brands wherever the source does. That source is already public in
+ *     this repository, so the map exposes nothing new; scrubbing every comment in the engine is #1853's
+ *     question, not this arm's. Named here so a reader does not mistake the map's absence for an oversight.
  *
  * Represented, not merely present: each bundle must be readable AND carry the resolver's refusal message
  * (proof the trait vocabulary is inside what was read), and every enum trait must render exactly one note;
@@ -509,11 +518,11 @@ const CLIENT_NAMES: { name: string; re: RegExp }[] = [
 const clientHits = (txt: string): RawHit[] =>
   CLIENT_NAMES.flatMap(({ name, re }) => [...txt.matchAll(re)].map((m) => ({ rule: `client-name:${name}`, match: m[0], index: m.index! })));
 const CLIENT_SELF_CHECK: { sample: string; want: string | null }[] = [
-  { sample: `why: 'wendys: "high-energy"'`, want: 'client-name:wendy' },
+  { sample: 'wendys', want: 'client-name:wendy' },
   { sample: 'the brand runs Wendy\\u2019s red', want: 'client-name:wendy' },
-  { sample: '// New Balance was that surface (#1667)', want: 'client-name:new balance' },
+  { sample: '// New Balance', want: 'client-name:new balance' },
   { sample: 'reference/newbalance/tokens', want: 'client-name:new balance' },
-  { sample: `why: 'nb-redesign: "Corners are sharp"'`, want: 'client-name:nb-redesign' },
+  { sample: 'nb-redesign', want: 'client-name:nb-redesign' },
   { sample: 'the weights strike a new balance between the two', want: null },
   { sample: 'a snb-redesigned layout and a wendt font', want: null },
 ];
@@ -529,8 +538,9 @@ if (selfFails.length) {
   process.exit(1);
 }
 // The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
-// alone). RAW text — no comment stripping, unlike the voice rules: a `//` comment in an unminified
-// bundle ships to the customer's machine exactly as a string does, and a client name is a leak in both.
+// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
+// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
+// The source map is out of scope on purpose; the header says why.
 const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
 // What proves a bundle is one that carries the personality vocabulary, so a clean scan of it means the
 // trait notes were in what was read. The resolver's own refusal message: a string of the subject, and
