@@ -20783,6 +20783,22 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const written = healed ? Object.keys(JSON.parse(readFileSync(fixture, 'utf8'))).join(',') : '';
       ok(!!healed && healed.status === 0 && written === 'contractVersion,note,corpus,guaranteed,brandDependent,deprecations',
         `#1807 contract CLI: --accept writes the baseline WITHOUT engineVersion (${healed ? `exit ${healed.status}, keys ${written}` : 'not run: the injection did not hold'})`);
+      // The repair must not become a bypass (review of #1817): a baseline carrying the retired field AND
+      // a guaranteed path the engine no longer emits is a MAJOR change at an unraised CONTRACT_VERSION.
+      // `--accept` must refuse it exactly as it would without the field, and leave the file untouched;
+      // `--check` must report both the field and the MAJOR change in one run. `aaa.retired-1807` is a
+      // literal path no brand emits, so from the live side it reads as a removal.
+      const both = { engineVersion: '0.213.0', guaranteed: { 'aaa.retired-1807': 'color', ...live.guaranteed } };
+      const bypass = injectionHeld ? runCli('--accept', CONTRACT_VERSION, both) : undefined;
+      ok(!!bypass && bypass.status === 1 && bypass.untouched
+        && bypass.out.includes(`✗ this change is MAJOR but CONTRACT_VERSION is still ${CONTRACT_VERSION} (baseline ${CONTRACT_VERSION}).`)
+        && bypass.out.includes('REMOVED  aaa.retired-1807'),
+        `#1807 contract CLI: --accept on a baseline with engineVersion AND a removed guaranteed path refuses with the MAJOR message and leaves the file byte-identical (${bypass ? `exit ${bypass.status}, untouched ${bypass.untouched}` : 'not run: the injection did not hold'})`);
+      const bothCheck = runCli('--check', CONTRACT_VERSION, both);
+      ok(bothCheck.status === 1
+        && bothCheck.out.includes('✗ the baseline carries a retired `engineVersion` field (#1807).')
+        && bothCheck.out.includes('✗ the committed baseline no longer matches the engine — MAJOR change'),
+        `#1807 contract CLI: --check reports the retired field AND the MAJOR change in one run (exit ${bothCheck.status})`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

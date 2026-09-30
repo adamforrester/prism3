@@ -31,6 +31,14 @@
 
 **The last conflict of its kind, met on the way in.** Merging `main` in after #1804 (0.213.0 → 0.214.0) conflicted in `token-contract.json` on exactly this line: #1804 had run the forced stamp `--accept`. Resolved to this branch's side, then `--check` clean.
 
+### Review round (independent review of #1817 at 359ae513; approved, one mutation survived)
+
+**The survivor.** The reviewer added an early write-and-return at the top of the `--accept` block for a baseline carrying the retired field, before `satisfiesBump`. A fixture with the field AND a deleted guaranteed path was then accepted: exit 0, the deletion recorded, CONTRACT still 14.0.0, and `test.ts` stayed at 0 failures. The repair route was an untested bypass of principle 5's gate. It is pinned now by a CLI arm over the same injected fixture, with the literal path `aaa.retired-1807` in `guaranteed`: `--accept` must exit 1 with `✗ this change is MAJOR but CONTRACT_VERSION is still 14.0.0 (baseline 14.0.0).` and `REMOVED  aaa.retired-1807`, and leave the file byte-identical. The reviewer's mutation now fails 1 by name: `#1807 contract CLI: --accept on a baseline with engineVersion AND a removed guaranteed path refuses with the MAJOR message and leaves the file byte-identical (exit 0, untouched false)`.
+
+**Both failures in one `--check` run.** The refusal used to exit before the surface comparison, so a baseline with the field and a MAJOR change showed only the field. The exit is now deferred to the verdict: the unchanged branch exits 1 for the field, and every other failure exits 1 on its own. A second arm asserts both lines in one run. Mutations: dropping the deferred exit fails `#1807 contract CLI: --check refuses BY NAME a baseline that still carries engineVersion (exit 0)`; renaming the refusal message fails that arm and `#1807 contract CLI: --check reports the retired field AND the MAJOR change in one run`.
+
+**Tense.** `components/checkbox-group.ts`'s header said `--accept` "refreshes" the stamp, in the present tense. It now says it refreshed it then, and that the baseline no longer carries the field.
+
 **For whoever re-verifies this.** An in-flight PR that merges `main` in after this lands will conflict on the old line 3 one last time. The resolution is to take `main`'s side (no `engineVersion`), then `--check`. A stale common-lane instruction to "`--accept` only if engineVersion is the only change" no longer applies: after this, an engine bump leaves `--check` clean.
 
 ---

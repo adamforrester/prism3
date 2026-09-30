@@ -311,6 +311,8 @@ const main = (): void => {
   // #1807: the field is retired (see the header). Checked on the parsed file's own keys, not on
   // `buildContract`'s output, so a baseline that regained it fails here even while the live contract,
   // which never writes it, agrees with every other field. `--accept` repairs it by writing `live`.
+  // The exit is deferred to the verdict, so a baseline that ALSO moved the surface reports both in one
+  // run; every later failure exits 1 on its own, and the unchanged branch exits 1 for this field.
   const retiredField = 'engineVersion' in (baseline as object);
   if (retiredField && check && !accept) {
     console.error('\n✗ the baseline carries a retired `engineVersion` field (#1807).');
@@ -320,7 +322,6 @@ const main = (): void => {
         '  usually back because a merge resolution took an old branch\'s side of the line next to\n' +
         '  `contractVersion`. Delete that line, or run --accept, which writes the baseline without it.',
     );
-    process.exit(1);
   }
 
   if (clashes.length) {
@@ -418,6 +419,7 @@ const main = (): void => {
   }
 
   if (diff.level === 'none' && !informationalOnly) {
+    if (retiredField) process.exit(1); // refused by name above; nothing else to report
     console.log('\n✓ token contract unchanged');
     return;
   }
