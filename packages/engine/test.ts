@@ -11559,7 +11559,11 @@ arm: {
 
   // ---- 2024-11-05 dual support: the old handshake still answers ------------------------------
   const init = rpc('initialize')?.result as any;
-  ok(init?.protocolVersion === LATEST_PROTOCOL_VERSION && init?.serverInfo?.name === 'prism3-engine', 'MCP: initialize still answers for pinned clients');
+  ok(init?.protocolVersion === '2024-11-05' && init?.serverInfo?.name === 'prism3-engine', 'MCP: initialize with no version answers the handshake revision 2024-11-05, not 2026-07-28 (#1867)');
+  for (const asked of ['2025-03-26', '2025-06-18', '2025-11-25']) {
+    const r = handleRpc({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: asked } }, brandSchema);
+    ok((r?.result as any)?.protocolVersion === '2024-11-05', `#1867 MCP: initialize from a ${asked} client answers 2024-11-05, a revision that still has the handshake (got ${(r?.result as any)?.protocolVersion})`);
+  }
   const initOld = handleRpc({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05' } }, brandSchema);
   ok((initOld?.result as any)?.protocolVersion === '2024-11-05', 'MCP: initialize echoes an older version we still speak, rather than forcing the newest');
   ok(rpc('notifications/initialized') === null, 'MCP: a notification (initialized) gets no response');
