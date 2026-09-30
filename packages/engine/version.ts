@@ -4809,6 +4809,13 @@ export const ENGINE_VERSION = '0.218.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 14.1.0 — #1852 adds TWO guaranteed names: `radius.xl` and `radius.2xl`, the container corners (card, panel,
+ * sheet, dialog) above `radius.lg`'s 6px. Both are rungs of the scaled ladder (`baseMd × 2` and `× 4`, then
+ * `radiusScale`, snapped to the 2px sub-grid: 8px and 16px at the default), so every brand at every scale
+ * emits them and both land in the GUARANTEED intersection. They alias existing `core.dimension.*` steps, so
+ * no primitive is added. A pure ADDITION — a new name cannot break an existing reference — so a clean
+ * MINOR: 14.0.0 → 14.1.0. Nothing is removed or retyped. (#1852)
+ *
  * 14.0.0 — the spacing model (owner-decided MAJOR 2026-09-29, zero consumers confirmed): REMOVE the shared
  * size scale's spacing tokens, `size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}` — 20 guaranteed
  * paths, gone from DTCG, the Figma `size` collection and every other emission. `size.*` now holds control
@@ -4895,7 +4902,7 @@ export const ENGINE_VERSION = '0.218.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '14.0.0';
+export const CONTRACT_VERSION = '14.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

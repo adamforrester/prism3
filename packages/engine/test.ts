@@ -6294,7 +6294,7 @@ arm: {
   ok(dualContrastWindow(Math.sqrt(21))[0] <= dualContrastWindow(Math.sqrt(21))[1] + 1e-9, 'L-02: exactly √21 is the degenerate boundary (min ≈ max), still allowed');
 }
 
-// L-03: radiusScale is weakly monotone (none ≤ sm ≤ md ≤ lg) for any scale ≥ 0 — small
+// L-03: radiusScale is weakly monotone (none ≤ sm ≤ md ≤ lg ≤ xl ≤ 2xl) for any scale ≥ 0 — small
 // scales legitimately snap rungs together, but a rung is never SMALLER than its predecessor.
 // A non-monotone input (negative scale) trips the gate.
 {
@@ -6304,12 +6304,99 @@ arm: {
     ok(mono, `L-03: radiusScale(${s}) is weakly monotone (${ladder.map((r) => r.px).join('≤')})`);
   }
   ok(radiusScale(0).filter((r) => !r.pill).every((r) => r.px === 0), 'L-03: scale=0 collapses the ladder to all-sharp by design (equality allowed)');
-  ok(radiusScale(0.25).filter((r) => !r.pill).map((r) => r.px).join(',') === '0,0,2,2', 'L-03: a small scale quantises onto the 2px sub-grid (none=sm=0, md=lg=2) — a documented resolution limit, not a bug');
+  ok(radiusScale(0.25).filter((r) => !r.pill).map((r) => r.px).join(',') === '0,0,2,2,2,4', 'L-03: a small scale quantises onto the 2px sub-grid (none=sm=0, md=lg=xl=2, 2xl=4) — a documented resolution limit, not a bug');
   // The gate itself is a construction-time tripwire: RADIUS_LADDER factors are
   // monotone and Math.max(0,·)/snap2 preserve that for any scale ≥ 0, so no scalar
   // input can violate it — it guards a FUTURE non-monotone ladder edit. Assert the
   // property holds at the extremes rather than trying to force the (unreachable) throw.
   ok(radiusScale(1000).filter((r) => !r.pill).every((r, i, a) => i === 0 || r.px >= a[i - 1].px), 'L-03: monotonicity holds even at an absurd scale (gate never false-trips a valid ladder)');
+}
+
+// #1852 — the CONTAINER radius rungs `xl` + `2xl`, above `radius.lg`'s 6px, so a card, panel, sheet or
+// dialog follows the brand's `radiusScale` instead of reaching for a `core.dimension.*` primitive.
+// INDEPENDENCE (docs/34): every expected px below is a LITERAL, written out per lever stop and per brand. It
+// is never recomputed from `RADIUS_LADDER`'s factors or `snap2` — an oracle that re-ran the subject's
+// arithmetic would agree with any factor edit (shape 2). The brand arm reads the BUILT tree and the BUILT
+// Figma collections, so a rung present in `radiusScale` but lost on the way to an emission still fails.
+{
+  // (a) the ladder at every stop the `radiusScale` lever offers (levers.ts: 0…2, step 0.5), default baseMd 4.
+  const EXPECT_1852: Record<string, Record<string, number>> = {
+    '0':   { none: 0, sm: 0, md: 0, lg: 0,  xl: 0,  '2xl': 0 },
+    '0.5': { none: 0, sm: 2, md: 2, lg: 4,  xl: 4,  '2xl': 8 },
+    '1':   { none: 0, sm: 2, md: 4, lg: 6,  xl: 8,  '2xl': 16 },
+    '1.5': { none: 0, sm: 4, md: 6, lg: 10, xl: 12, '2xl': 24 },
+    '2':   { none: 0, sm: 4, md: 8, lg: 12, xl: 16, '2xl': 32 },
+  };
+  for (const [scale, want] of Object.entries(EXPECT_1852)) {
+    const got = radiusScale(Number(scale));
+    for (const rung of ['xl', '2xl'])
+      ok(got.find((r) => r.name === rung)?.px === want[rung],
+        `#1852 container rung: radius.${rung} at radiusScale ${scale} is ${want[rung]}px (got ${got.find((r) => r.name === rung)?.px})`);
+    const ladder = got.filter((r) => !r.pill).map((r) => `${r.name}=${r.px}`).join(' ');
+    const wantLadder = Object.entries(want).map(([n, px]) => `${n}=${px}`).join(' ');
+    ok(ladder === wantLadder, `#1852 container rung: the scaled ladder at radiusScale ${scale} is ${wantLadder}, in that order (got ${ladder})`);
+  }
+  // The anchor lever moves them too: baseMd 6 at scale 1 → xl 12, 2xl 24.
+  const md6 = radiusScale(1, 6);
+  ok(md6.find((r) => r.name === 'xl')?.px === 12 && md6.find((r) => r.name === '2xl')?.px === 24,
+    `#1852 container rung: baseMd 6 moves xl to 12px and 2xl to 24px (got ${md6.find((r) => r.name === 'xl')?.px} / ${md6.find((r) => r.name === '2xl')?.px})`);
+
+  // (b) EVERY emitted brand: the contract corpus plus the prism3 boot example, each with its own literal.
+  //     Only aurora dials the lever (radiusScale 2); the rest sit at the default.
+  const BRAND_1852: Record<string, { xl: number; '2xl': number }> = {
+    nb: { xl: 8, '2xl': 16 }, aurora: { xl: 16, '2xl': 32 }, harbor: { xl: 8, '2xl': 16 }, wendys: { xl: 8, '2xl': 16 },
+    minimal: { xl: 8, '2xl': 16 }, 'minimal-levers': { xl: 8, '2xl': 16 }, 'minimal-bp2': { xl: 8, '2xl': 16 },
+    'minimal-weights': { xl: 8, '2xl': 16 }, 'minimal-compact': { xl: 8, '2xl': 16 }, 'minimal-weight-swap': { xl: 8, '2xl': 16 },
+    prism3: { xl: 8, '2xl': 16 },
+  };
+  const brands1852 = [
+    ...contractCorpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
+    { id: 'prism3', theme: brandTheme(exampleBrands()['prism3'] as BrandInput) },
+  ];
+  ok(brands1852.length === Object.keys(BRAND_1852).length && brands1852.every((b) => b.id in BRAND_1852),
+    `#1852 container rung: the brand arm covers exactly the ${Object.keys(BRAND_1852).length} listed brands (got ${brands1852.map((b) => b.id).join(', ')})`);
+  for (const { id, theme } of brands1852) {
+    const want = BRAND_1852[id];
+    if (!want) continue;
+    const root = theme.root;
+    const radius = (buildTree(theme).tree as any)[root].radius;
+    for (const rung of ['xl', '2xl'] as const) {
+      const leaf = radius[rung];
+      ok(leaf?.$value === `{${root}.core.dimension.${want[rung]}}` && leaf?.$type === 'dimension',
+        `#1852 container rung: ${id} emits radius.${rung} aliasing core.dimension.${want[rung]} (got ${leaf?.$value})`);
+    }
+    // Every Figma radius mode file carries both rungs at the brand's px, in ladder order after `lg`.
+    for (const file of buildFigmaDims(theme).radius) {
+      const names = file.variables.map((v) => v.name.slice(`${root}/radius/`.length));
+      ok(names.join(',') === 'none,sm,md,lg,xl,2xl,round,capsule',
+        `#1852 container rung: ${id}'s Figma radius (${file.$mode}) lists none,sm,md,lg,xl,2xl,round,capsule (got ${names.join(',')})`);
+      for (const rung of ['xl', '2xl'] as const) {
+        const v = file.variables.find((x) => x.name === `${root}/radius/${rung}`);
+        ok(v?.value === want[rung] && v?.alias?.name === `${root}/core/dimension/${want[rung]}`,
+          `#1852 container rung: ${id}'s Figma radius/${rung} (${file.$mode}) is ${want[rung]}px aliasing core/dimension/${want[rung]} (got ${v?.value})`);
+      }
+    }
+  }
+
+  // (c) EVERY mode, through the per-mode seams no corpus brand exercises: a `modeLevers` radius on dark
+  //     re-derives both rungs there, and wireframe zeroes them — in the DTCG leaf and in each Figma mode file.
+  const modal = brandTheme({ id: 'r1852', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 },
+    modes: ['light', 'dark', 'wireframe'], modeLevers: { dark: { radius: 2 } } } as unknown as BrandInput);
+  const mRadius = (buildTree(modal).tree as any)[modal.root].radius;
+  const MODE_1852: Record<string, { xl: number; '2xl': number }> = { Default: { xl: 8, '2xl': 16 }, dark: { xl: 16, '2xl': 32 }, wireframe: { xl: 0, '2xl': 0 } };
+  for (const rung of ['xl', '2xl'] as const) {
+    const modes = mRadius[rung]?.$extensions?.prism3?.modes ?? {};
+    ok(modes.dark?.px === MODE_1852.dark[rung] && modes.wireframe?.px === 0,
+      `#1852 container rung: radius.${rung} carries dark ${MODE_1852.dark[rung]}px and wireframe 0px overrides (got dark ${modes.dark?.px}, wireframe ${modes.wireframe?.px})`);
+  }
+  const mFiles = buildFigmaDims(modal).radius;
+  ok(mFiles.map((f) => f.$mode).sort().join(',') === 'Default,dark,wireframe',
+    `#1852 container rung: the lever brand emits Default, dark and wireframe radius modes (got ${mFiles.map((f) => f.$mode).join(',')})`);
+  for (const f of mFiles) for (const rung of ['xl', '2xl'] as const) {
+    const v = f.variables.find((x) => x.name === `${modal.root}/radius/${rung}`);
+    ok(v?.value === MODE_1852[f.$mode]?.[rung],
+      `#1852 container rung: Figma radius/${rung} in mode ${f.$mode} is ${MODE_1852[f.$mode]?.[rung]}px (got ${v?.value})`);
+  }
 }
 
 // L-03b: the RADIUS SENTINELS (#1362) — round / capsule / hairline — are PRESENT, FIXED and UNSCALED,

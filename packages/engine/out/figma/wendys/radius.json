@@ -55,6 +55,32 @@
       }
     },
     {
+      "name": "wds/radius/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "8px corner radius",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/dimension/8"
+      }
+    },
+    {
+      "name": "wds/radius/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "16px corner radius",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/dimension/16"
+      }
+    },
+    {
       "name": "wds/radius/round",
       "resolvedType": "FLOAT",
       "scopes": [

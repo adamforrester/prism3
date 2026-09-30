@@ -7572,6 +7572,18 @@
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{ads.core.dimension.12}"
     },
+    "radius.xl": {
+      "$description": "radius xl — 16px",
+      "meaning": "Corner-radius role — xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{ads.core.dimension.16}"
+    },
+    "radius.2xl": {
+      "$description": "radius 2xl — 32px",
+      "meaning": "Corner-radius role — 2xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{ads.core.dimension.32}"
+    },
     "radius.round": {
       "$description": "radius round — 128px (pill)",
       "meaning": "Corner-radius role — round",
@@ -10311,6 +10323,7 @@
         "grid.xs.gutter",
         "grid.xs.margin",
         "icon.size.xs",
+        "radius.xl",
         "space.200"
       ]
     },
@@ -10380,6 +10393,7 @@
         "grid.lg.margin",
         "grid.xl.gutter",
         "icon.size.lg",
+        "radius.2xl",
         "space.400"
       ]
     },

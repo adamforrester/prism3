@@ -7931,6 +7931,18 @@
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{pds3.core.dimension.6}"
     },
+    "radius.xl": {
+      "$description": "radius xl — 8px",
+      "meaning": "Corner-radius role — xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{pds3.core.dimension.8}"
+    },
+    "radius.2xl": {
+      "$description": "radius 2xl — 16px",
+      "meaning": "Corner-radius role — 2xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{pds3.core.dimension.16}"
+    },
     "radius.round": {
       "$description": "radius round — 128px (pill)",
       "meaning": "Corner-radius role — round",
@@ -10623,6 +10635,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.sm.dot",
+        "radius.xl",
         "space.100"
       ]
     },
@@ -10656,6 +10669,7 @@
         "grid.sm.gutter",
         "grid.sm.margin",
         "icon.size.xs",
+        "radius.2xl",
         "space.200"
       ]
     },

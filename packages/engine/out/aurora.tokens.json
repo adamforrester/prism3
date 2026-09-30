@@ -21385,6 +21385,32 @@
           }
         }
       },
+      "xl": {
+        "$type": "dimension",
+        "$value": "{ads.core.dimension.16}",
+        "$description": "radius xl — 16px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "ads.core.dimension.16",
+            "px": 16,
+            "radiusScale": 2
+          }
+        }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": "{ads.core.dimension.32}",
+        "$description": "radius 2xl — 32px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "ads.core.dimension.32",
+            "px": 32,
+            "radiusScale": 2
+          }
+        }
+      },
       "round": {
         "$type": "dimension",
         "$value": "{ads.core.dimension.128}",
