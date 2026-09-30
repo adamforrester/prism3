@@ -171,9 +171,11 @@ await new Promise((r) => setTimeout(r, 3000));
     'conformance: every tool name matches the allowed character set and length');
   ok((list.tools ?? []).every((t: any) => t.title && t.annotations), 'conformance: every tool carries a title + annotations');
   // The size ceiling that keeps discovery affordable — the schema must be inlined once, not per tool.
-  // A new lever fits by COMPRESSION, not by raising this (#1368 `faces`); kept in lockstep with test.ts.
+  // 60,000 is our own ceiling, not raised (#1368). Since #1760 it fails 5,000 chars BEFORE that wall,
+  // room for ~20 more levers, and the inline schema carries one-line summaries so a lever's full prose
+  // never counts here. Kept in lockstep with test.ts, which also holds the per-summary cap.
   const listChars = JSON.stringify(list.tools ?? []).length;
-  ok(listChars < 60_000, `conformance: tools/list stays affordable to fetch (${listChars.toLocaleString()} chars)`);
+  ok(listChars <= 55_000, `conformance: tools/list keeps 5,000 chars of headroom under its 60,000 ceiling (${listChars.toLocaleString()} chars; fails above 55,000)`);
 
   // Per-request version negotiation, which is how a stateless server learns the version at all.
   const good = await server.reply(server.send('tools/list', { _meta: { [V]: '2026-07-28' } }));
@@ -214,6 +216,10 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(levers.required.includes('id'), 'journey ①: list_levers tells the agent `id` is required');
   const nonLever = levers.nonLeverFields.map((f: any) => f.key);
   ok(nonLever.includes('modeLevers'), 'journey ①: the per-mode override layer is discoverable');
+  // ①b The inline schema summarizes; `describe` returns the full text for the fields the agent names (#1760).
+  const described = (await server.callJson('list_levers', { describe: ['radiusHairline'] })).payload.described;
+  ok(/near-sharp 1px corner/.test(described?.properties?.radiusHairline?.description ?? ''),
+    'journey ①b: list_levers describe returns a field\'s full description over the wire');
 
   // ② Generate from a brief, the way an agent working from prose would.
   const brief = ['---', 'id: journey', 'primary: { l: 0.58, c: 0.17, h: 265 }', 'neutral: { hue: 265, chroma: 0.008 }',
