@@ -1587,5 +1587,93 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1781 — THE READ-BACK NAMES A NEST THAT POINTS AT THE WRONG SET ─────────────────────────────
+//
+// The corpus round-trip above nests against PLAIN components named for each target, so it proves a nest
+// is an instance of the right thing only when there is exactly one thing of that name. The live defect
+// needed the other file: sets that share member names (`checkbox-control` and `radio-control`; every row
+// and group carrying `size=*`) plus renamed-aside `__old__` copies. `nestTarget` used to check only that
+// the node was an INSTANCE, which a member of the wrong set is.
+//
+// Two halves. CLEAN: `checkbox-row` and `checkbox-group` built against that file read back with no
+// `nestTarget` divergence — the predicate walked their nests and agreed. TAMPERED: the host's own record of
+// one instance's main component is pointed at the set the live defect produced (`radio-control` for the
+// row's control, `__old__checkbox-row` for a group row), and the diff must report `nestTarget` on that
+// member and path, naming the wrong set. The tamper is on the HOST side, which is what a wrong resolution
+// leaves behind; the plan is untouched. Mutation by name: revert `nestTarget` to the type-only check and
+// `#1781 read-back` fails.
+{
+  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
+  const defOf = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const membersOf = (id: string): string[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP_TARGET }).map(planComponentName);
+  const fileNodes = [
+    ...SET_IDS.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: membersOf(id) })),
+    { name: '__old__checkbox-row', type: 'COMPONENT_SET' as const, variants: membersOf('checkbox-row') },
+    { name: '__old__radio-group', type: 'COMPONENT_SET' as const, variants: membersOf('radio-group') },
+  ];
+  const ports: ReadPorts = { varName: (id) => id.replace(/^V:/, ''), styleName: (id) => id };
+  const readBack = async (id: string) => {
+    const plans = figmaAnatomySet(defOf(id), { swapTarget: SWAP_TARGET });
+    const f = fullFor(plans);
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...f, comps: (f.comps ?? []).filter((c) => !SET_IDS.includes(c)), fileNodes, page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = ((page.children[0]?.children ?? []) as unknown as HostNode[]);
+    const counted: Record<string, number> = {};
+    const nestDiv = () => diffAnatomy(plans, members, planComponentName, ports, counted).filter((d) => d.field === 'nestTarget');
+    return { members, nestDiv, counted };
+  };
+  const findPart = (n: HostNode, name: string): HostNode | undefined => {
+    if (n.name === name) return n;
+    for (const c of (Array.isArray(n.children) ? n.children : []) as HostNode[]) { const f = findPart(c, name); if (f) return f; }
+    return undefined;
+  };
+  const repoint = (n: HostNode, setName: string): void => {
+    const main = n.mainComponent as { name: string; type: string; parent: { name: string; type: string } };
+    Object.defineProperty(n, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { ...main, parent: { name: setName, type: 'COMPONENT_SET' } } });
+  };
+
+  const row = await readBack('checkbox-row');
+  const rowClean = row.nestDiv();
+  ok((row.counted.nestTarget ?? 0) > 0 && rowClean.length === 0,
+    `#1781 read-back reachable: checkbox-row built against sets sharing member names reads back with every nest in its own set — ${row.counted.nestTarget ?? 0} nests compared, ${rowClean.length} divergent${rowClean.length ? ` (${rowClean[0].member} :: ${rowClean[0].path} → ${rowClean[0].actual})` : ''}`);
+  const small = row.members.find((m) => m.name === 'size=small');
+  const ctl = small && findPart(small, 'control');
+  if (ctl) repoint(ctl, 'radio-control');
+  const rowWrong = row.nestDiv();
+  ok(!!ctl && rowWrong.length === 1 && rowWrong[0].member === 'size=small' && rowWrong[0].path.endsWith('/control')
+    && rowWrong[0].actual.includes('radio-control/') && rowWrong[0].actual.includes('WRONG SET'),
+    `#1781 read-back: a row control pointing at radio-control's same-named member fails by name — ${rowWrong.map((d) => `${d.member} :: ${d.path} — plan: ${d.expected}; host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
+
+  const grp = await readBack('checkbox-group');
+  const grpClean = grp.nestDiv();
+  ok((grp.counted.nestTarget ?? 0) > 0 && grpClean.length === 0,
+    `#1781 read-back reachable: checkbox-group reads back with every row and label in its own set — ${grp.counted.nestTarget ?? 0} nests compared, ${grpClean.length} divergent`);
+  const large = grp.members.find((m) => m.name === 'size=large');
+  const row1 = large && findPart(large, 'row1');
+  if (row1) repoint(row1, '__old__checkbox-row');
+  const grpWrong = grp.nestDiv();
+  ok(!!row1 && grpWrong.length === 1 && grpWrong[0].member === 'size=large' && grpWrong[0].path.endsWith('/row1')
+    && grpWrong[0].actual.includes('__old__checkbox-row/'),
+    `#1781 read-back: a group row pointing at the renamed-aside __old__checkbox-row fails by name — ${grpWrong.map((d) => `${d.member} :: ${d.path} — plan: ${d.expected}; host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
+
+  // AN UNNAMEABLE SOURCE FAILS TOO. An instance whose main component the host cannot name is not evidence
+  // the nest landed, so it must not read back clean. Two host states, each on a fresh build so the tamper
+  // above cannot leak into them: the INSTANCE carries no `mainComponent` at all, and it carries one with no
+  // `name`. The expected text is a literal authored here, not read off the predicate.
+  const UNNAMED = 'an instance whose main component the host cannot name';
+  for (const [label, value] of [['no mainComponent', undefined], ['a mainComponent with no name', { type: 'COMPONENT', parent: { name: 'checkbox-control', type: 'COMPONENT_SET' } }]] as const) {
+    const fresh = await readBack('checkbox-row');
+    const medium = fresh.members.find((m) => m.name === 'size=medium');
+    const inst = medium && findPart(medium, 'control');
+    if (inst) Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value });
+    const got = fresh.nestDiv();
+    ok(!!inst && inst.type === 'INSTANCE' && got.length === 1 && got[0].member === 'size=medium' && got[0].path.endsWith('/control')
+      && got[0].actual === UNNAMED,
+      `#1781 read-back: an INSTANCE with ${label} fails with "${UNNAMED}" — ${got.map((d) => `${d.member} :: ${d.path} — host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
