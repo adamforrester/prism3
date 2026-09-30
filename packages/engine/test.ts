@@ -17805,8 +17805,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // siblings, all with a leading slot. This grid is the one that crosses `size` with BOTH slot axes,
       // so a cut here separates slot cohorts, which that sequence never does. The budget is chosen to
       // FORCE at least three chunks, so a middle chunk appends into a set it neither created nor finished.
-      // It is derived from the grid only to place the cuts; every assertion below compares against
-      // literals or against an unsplit build, never against the packer's own report.
+      // It is derived from the grid only to place the cuts. The build is judged against literals (12
+      // members, the axis counts, the property names) and against an unsplit paste and the plugin. One
+      // arm does read the packer's own report: `r.added === split[i].variants.length` checks each chunk
+      // built the slice it was packed with. It sits beside the literal 12, which does not depend on it.
       {
         const combos: [boolean, boolean][] = [[false, false], [true, false], [false, true], [true, true]];
         const probe = button.variants.size!.flatMap((sz) => combos.map(([l, t]) =>
