@@ -210,9 +210,20 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 // `every-example-compiles` below is the arm that OWNS "each brief builds"; it has always caught its own
 // throw. This helper exists so the other arms do not crash before that verdict, or any other, is read.
 // The failure site is `ok(false, …)`, so on a green run it is an exempt failure-only site.
+//
+// VARIANT BUILDS go through it too (#1847): the same brief with a lever or a mode set changed, named
+// `<brand> (<what changed>)`, e.g. `harbor (modes light, wireframe)`. A refusal specific to one lever
+// value is the #1811 shape, and it crashed the suite exactly like a refused base brief did.
 const exampleLoadFailed = new Set<string>();
 const exampleTheme = <T = Theme,>(name: string, build: () => T): T | undefined => {
   try { return build(); } catch (e) {
+    // LOAD-BEARING, and the one line here that looks tidiable. When a single row is dropped (one density
+    // of a density sweep, one mode set, one variant), this `ok(false)` is the ONLY witness: the list arm
+    // simply loops over one row fewer and passes, and the #1268 assertion-site arm does not notice,
+    // because every site in the loop still ran for the rows that loaded. Delete it and a refusal reads as
+    // a green run with a shorter list (#1847, from the review of #1843). Measured: `theme.ts` refusing
+    // nb-redesign at density compact, with this line deleted, exits 0 at `0 failed`; no other arm builds
+    // that row. Another arm catching a dropped row is that arm's accident, not cover (docs/34 shape 18).
     if (!exampleLoadFailed.has(name)) { exampleLoadFailed.add(name); ok(false, `example brand ${name} resolves — the engine threw: ${(e as Error).message}`); }
     return undefined;
   }
@@ -8118,7 +8129,11 @@ arm: {
       for (const [id, base] of bases) {
         if (getIn(base, l.key) !== undefined) continue;
         exercised++;
-        if (treeOf(setIn(base, l.key, l.default)) !== baseTree.get(id)) drift.push(`${l.key}=${JSON.stringify(l.default)} on ${id}`);
+        // A refusal of this one (lever, default) pair fails by name and skips the row (#1847); the base
+        // brief already loaded, so it is the lever the engine refused.
+        const shown = typeof l.default === 'string' ? l.default : JSON.stringify(l.default);
+        const variant = exampleTheme(`${id} (${l.key} ${shown})`, () => treeOf(setIn(base, l.key, l.default)));
+        if (variant !== undefined && variant !== baseTree.get(id)) drift.push(`${l.key}=${JSON.stringify(l.default)} on ${id}`);
       }
       if (!exercised) unexercised.push(l.key);
     }
@@ -8571,12 +8586,15 @@ arm: {
   // wireframe surfaces a radius→0 override the preview reads for the wireframe column, while
   // the canonical `dims` baseline stays positive (light) and space/size stay override-free.
   ok(Object.keys(rp.dimOverrides).length === 0, 'resolved preview: default modes carry no per-mode dim overrides');
-  const wfRp = resolvePreview(brandTheme({ ...pinput, modes: ['light', 'wireframe'] }));
-  const radiusRef = Object.keys(wfRp.dims).find((k) => k.startsWith('radius.') && wfRp.dims[k] > 0)!;
-  ok(wfRp.dimOverrides[radiusRef]?.wireframe === 0 && wfRp.dims[radiusRef] > 0,
-    `resolved preview: wireframe zeroes ${radiusRef} via an override (baseline ${wfRp.dims[radiusRef]}px stays)`);
-  const spaceRef = Object.keys(wfRp.dims).find((k) => k.startsWith('space.'));
-  ok(!spaceRef || !wfRp.dimOverrides[spaceRef], 'resolved preview: wireframe leaves space untouched (only radius zeroes)');
+  const wfTheme = exampleTheme('harbor (modes light, wireframe)', () => brandTheme({ ...pinput, modes: ['light', 'wireframe'] }));
+  if (wfTheme) {
+    const wfRp = resolvePreview(wfTheme);
+    const radiusRef = Object.keys(wfRp.dims).find((k) => k.startsWith('radius.') && wfRp.dims[k] > 0)!;
+    ok(wfRp.dimOverrides[radiusRef]?.wireframe === 0 && wfRp.dims[radiusRef] > 0,
+      `resolved preview: wireframe zeroes ${radiusRef} via an override (baseline ${wfRp.dims[radiusRef]}px stays)`);
+    const spaceRef = Object.keys(wfRp.dims).find((k) => k.startsWith('space.'));
+    ok(!spaceRef || !wfRp.dimOverrides[spaceRef], 'resolved preview: wireframe leaves space untouched (only radius zeroes)');
+  }
 
   // Shadows (#98): every shadow binding → a CSS box-shadow per mode, and dark is the
   // REDUCED lift-primary shadow (lower alpha), never identical to light.
@@ -8606,8 +8624,10 @@ arm: {
   // opaque black base, so a role view reported a 40%-black backdrop as solid black. Pinned per mode
   // because the step is mode-dependent (40 light / 60 dark), and pinned alongside an OPAQUE control
   // (`background.primary`, alpha absent) so the assertion fails if alpha is ever set system-wide.
-  {
-    const byMode = new Map(resolveAllModes(brandTheme({ ...pinput, modes: ['light', 'dark'] })).map((m) => [m.mode, m.roles]));
+  scrim: {
+    const ldTheme = exampleTheme('harbor (modes light, dark)', () => brandTheme({ ...pinput, modes: ['light', 'dark'] }));
+    if (!ldTheme) break scrim;
+    const byMode = new Map(resolveAllModes(ldTheme).map((m) => [m.mode, m.roles]));
     const scrimL = byMode.get('light')?.['scrim.default'], scrimD = byMode.get('dark')?.['scrim.default'];
     ok(scrimL?.alpha === 0.4, `resolved role: light scrim carries alpha 0.4 (got ${scrimL?.alpha})`);
     ok(scrimD?.alpha === 0.6, `resolved role: dark scrim carries alpha 0.6 (got ${scrimD?.alpha})`);
@@ -8946,8 +8966,10 @@ arm: {
   // and both-polarity, the scrim varies by mode and is dark-only. Asserting the scrim still VARIES is
   // the half that would otherwise be lost — a merge that made everything invariant would satisfy arm B
   // and break the modal backdrop, with nothing naming it.
-  {
-    const byMode = new Map(resolveAllModes(brandTheme({ ...veilInput, modes: ['light', 'dark'] })).map((m) => [m.mode, m.roles]));
+  scrim: {
+    const ldTheme = exampleTheme('harbor (modes light, dark)', () => brandTheme({ ...veilInput, modes: ['light', 'dark'] }));
+    if (!ldTheme) break scrim;
+    const byMode = new Map(resolveAllModes(ldTheme).map((m) => [m.mode, m.roles]));
     const l = byMode.get('light')!, d = byMode.get('dark')!;
     ok(l['scrim.default'].path !== d['scrim.default'].path,
       `veil/scrim: the scrim still VARIES by mode (${l['scrim.default'].path} → ${d['scrim.default'].path}) — the property the veil deliberately does not have`);
@@ -8990,24 +9012,32 @@ arm: {
 arm: {
   const hinput = parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input;
   if (!exampleTheme('harbor', () => brandTheme(hinput))) break arm;
-  const declined = { ...hinput, typography: { ...hinput.typography, weights: { ...hinput.typography?.weights, display: ['emphasis'], title: ['emphasis'] } } } as BrandInput;
-  const rp = resolvePreview(brandTheme(declined));
-  const expected = ['type.display.lg.strong', 'type.title.lg.strong', 'type.title.md.strong'];
-  ok(JSON.stringify(rp.unresolvedType) === JSON.stringify(expected),
-    `#1720 a brand declining strong in display/title names each unbound preview type style (want ${expected.join(', ')}; got ${rp.unresolvedType.join(', ') || 'none'})`);
-  const fabricated = expected.filter((k) => k in rp.type).map((k) => `${k}=${rp.type[k]?.fontFamily}/${rp.type[k]?.fontWeight}/${rp.type[k]?.fontSizePx}px`);
-  ok(fabricated.length === 0, `#1720 an unbound type style gets no entry in rp.type (no fabricated composite)` + (fabricated.length ? ` — GOT ${fabricated.join(', ')}` : ''));
-  // The styles the brand still emits resolve as before: the miss is per binding, not per brand.
-  const body = rp.type['type.body.md.default'];
-  ok(!!body && !!body.fontFamily && body.fontSizePx > 0 && body.fontWeight > 0,
-    `#1720 a brand declining strong still resolves type.body.md.default (got ${body ? `${body.fontFamily}/${body.fontWeight}/${body.fontSizePx}px` : 'nothing'})`);
+  declinedStrong: {
+    const declined = { ...hinput, typography: { ...hinput.typography, weights: { ...hinput.typography?.weights, display: ['emphasis'], title: ['emphasis'] } } } as BrandInput;
+    const declinedTheme = exampleTheme('harbor (display and title decline strong)', () => brandTheme(declined));
+    if (!declinedTheme) break declinedStrong;
+    const rp = resolvePreview(declinedTheme);
+    const expected = ['type.display.lg.strong', 'type.title.lg.strong', 'type.title.md.strong'];
+    ok(JSON.stringify(rp.unresolvedType) === JSON.stringify(expected),
+      `#1720 a brand declining strong in display/title names each unbound preview type style (want ${expected.join(', ')}; got ${rp.unresolvedType.join(', ') || 'none'})`);
+    const fabricated = expected.filter((k) => k in rp.type).map((k) => `${k}=${rp.type[k]?.fontFamily}/${rp.type[k]?.fontWeight}/${rp.type[k]?.fontSizePx}px`);
+    ok(fabricated.length === 0, `#1720 an unbound type style gets no entry in rp.type (no fabricated composite)` + (fabricated.length ? ` — GOT ${fabricated.join(', ')}` : ''));
+    // The styles the brand still emits resolve as before: the miss is per binding, not per brand.
+    const body = rp.type['type.body.md.default'];
+    ok(!!body && !!body.fontFamily && body.fontSizePx > 0 && body.fontWeight > 0,
+      `#1720 a brand declining strong still resolves type.body.md.default (got ${body ? `${body.fontFamily}/${body.fontWeight}/${body.fontSizePx}px` : 'nothing'})`);
+  }
 
   // The second legal route: `displayCeiling: 'md'` keeps display.sm and display.md only, so the one
   // display binding goes missing while both title bindings (which keep `strong`) still resolve.
-  const ceiling = { ...hinput, typography: { ...hinput.typography, displayCeiling: 'md' } } as BrandInput;
-  const ceilingRp = resolvePreview(brandTheme(ceiling));
-  ok(JSON.stringify(ceilingRp.unresolvedType) === JSON.stringify(['type.display.lg.strong']) && !('type.display.lg.strong' in ceilingRp.type),
-    `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound, with no entry in rp.type (got ${ceilingRp.unresolvedType.join(', ') || 'none'})`);
+  ceilingMd: {
+    const ceiling = { ...hinput, typography: { ...hinput.typography, displayCeiling: 'md' } } as BrandInput;
+    const ceilingTheme = exampleTheme('harbor (displayCeiling md)', () => brandTheme(ceiling));
+    if (!ceilingTheme) break ceilingMd;
+    const ceilingRp = resolvePreview(ceilingTheme);
+    ok(JSON.stringify(ceilingRp.unresolvedType) === JSON.stringify(['type.display.lg.strong']) && !('type.display.lg.strong' in ceilingRp.type),
+      `#1720 a brand with displayCeiling 'md' names type.display.lg.strong as unbound, with no entry in rp.type (got ${ceilingRp.unresolvedType.join(', ') || 'none'})`);
+  }
 
   // The same read over a hand-built spec, so the arm does not depend on which weights the real spec
   // happens to bind: one bogus binding beside one real one, on a brand that ships everything.
@@ -10375,13 +10405,16 @@ arm: {
   // placeholder" an assertion about a root that was not omitted, which is the assertion silently
   // becoming a different one. `rootless` omits it for real.
   const { root: _declaredRoot, ...rootless } = input as typeof input & { root?: string };
-  const def = brandTheme(rootless);
-  // `namespace` is the colour-PRIMITIVE root, and #1102 put the `core` tier between the brand root and it:
-  // `prism.core.palette`, not `prism.palette`. Spelled as a LITERAL rather than built from `CORE_TIER`,
-  // because importing the constant would make this a second reading of the code under test — the tier
-  // segment could then be renamed in `theme.ts` and both sides would agree (`docs/34` shape 1).
-  ok(def.root === 'prism' && def.namespace === 'prism.core.palette', 'namespace: omitted root defaults to the prism placeholder, and the primitive root sits under the `core` tier');
-  ok(Object.keys(buildTree(def).tree)[0] === 'prism', 'namespace: default tree is rooted at prism');
+  rootOmitted: {
+    const def = exampleTheme('aurora (root omitted)', () => brandTheme(rootless));
+    if (!def) break rootOmitted;
+    // `namespace` is the colour-PRIMITIVE root, and #1102 put the `core` tier between the brand root and it:
+    // `prism.core.palette`, not `prism.palette`. Spelled as a LITERAL rather than built from `CORE_TIER`,
+    // because importing the constant would make this a second reading of the code under test — the tier
+    // segment could then be renamed in `theme.ts` and both sides would agree (`docs/34` shape 1).
+    ok(def.root === 'prism' && def.namespace === 'prism.core.palette', 'namespace: omitted root defaults to the prism placeholder, and the primitive root sits under the `core` tier');
+    ok(Object.keys(buildTree(def).tree)[0] === 'prism', 'namespace: default tree is rooted at prism');
+  }
 
   // ---- #1283: THE RESERVATION IS SCOPED TO THE SHIPPED CATALOG, AND THIS IS THE SECOND DIRECTION ----
   //
@@ -10405,22 +10438,25 @@ arm: {
   }
   ok(RESERVED_ROOTS.length > 0, '#1283 the reserved-root list is non-empty — the loop above is vacuous over an empty list');
 
-  const custom = brandTheme({ ...rootless, root: 'acme' });
-  ok(custom.root === 'acme' && custom.namespace === 'acme.core.palette', 'namespace: custom root sets root + <root>.core.palette — the tier is fixed, the root is the lever');
-  const ctree = buildTree(custom).tree;
-  ok(Object.keys(ctree)[0] === 'acme' && !('prism' in ctree), 'namespace: custom tree is rooted at acme, no prism key');
+  customRoot: {
+    const custom = exampleTheme('aurora (root acme)', () => brandTheme({ ...rootless, root: 'acme' }));
+    if (!custom) break customRoot;
+    ok(custom.root === 'acme' && custom.namespace === 'acme.core.palette', 'namespace: custom root sets root + <root>.core.palette — the tier is fixed, the root is the lever');
+    const ctree = buildTree(custom).tree;
+    ok(Object.keys(ctree)[0] === 'acme' && !('prism' in ctree), 'namespace: custom tree is rooted at acme, no prism key');
 
-  // the load-bearing assertion: every alias in the tree re-homes to {acme.…} — nothing
-  // keeps a {prism.…} target (walks composite $values: typography/gradient/shadow/motion).
-  const aliases: string[] = [];
-  const walk = (n: any): void => {
-    if (typeof n === 'string') { if (/^\{[^}]+\}$/.test(n)) aliases.push(n); return; }
-    if (Array.isArray(n)) { n.forEach(walk); return; }
-    if (n && typeof n === 'object') { for (const v of Object.values(n)) walk(v); }
-  };
-  walk(ctree.acme);
-  const leaked = aliases.filter((a) => !a.startsWith('{acme.'));
-  ok(aliases.length > 0 && leaked.length === 0, `namespace: every alias re-homes to {acme.…} (${aliases.length} aliases)` + (leaked.length ? ` — LEAKED ${leaked.slice(0, 3).join(', ')}` : ''));
+    // the load-bearing assertion: every alias in the tree re-homes to {acme.…} — nothing
+    // keeps a {prism.…} target (walks composite $values: typography/gradient/shadow/motion).
+    const aliases: string[] = [];
+    const walk = (n: any): void => {
+      if (typeof n === 'string') { if (/^\{[^}]+\}$/.test(n)) aliases.push(n); return; }
+      if (Array.isArray(n)) { n.forEach(walk); return; }
+      if (n && typeof n === 'object') { for (const v of Object.values(n)) walk(v); }
+    };
+    walk(ctree.acme);
+    const leaked = aliases.filter((a) => !a.startsWith('{acme.'));
+    ok(aliases.length > 0 && leaked.length === 0, `namespace: every alias re-homes to {acme.…} (${aliases.length} aliases)` + (leaked.length ? ` — LEAKED ${leaked.slice(0, 3).join(', ')}` : ''));
+  }
 
   // one segment only — a dotted or spaced root is rejected at the engine boundary
   let threw = false;
@@ -10437,7 +10473,7 @@ arm: {
   // (aurora's gradient references its 'accent' brandColor, so drop both here to isolate the name guard)
   const bc = (name: string) => ({ ...input, actionPalette: 'primary', gradients: [], brandColors: [{ name, oklch: { l: 0.55, c: 0.15, h: 235 } }] });
   const rejects = (name: string) => { try { brandTheme(bc(name)); return false; } catch { return true; } };
-  ok(brandTheme(bc('brand-blue')).palettes.some((p) => p.palette === 'brand-blue'), 'CR-03: a valid slug brand-colour name is accepted');
+  ok(exampleTheme('aurora (brand color brand-blue)', () => brandTheme(bc('brand-blue')))?.palettes.some((p) => p.palette === 'brand-blue') === true, 'CR-03: a valid slug brand-colour name is accepted');
   ok(rejects('neutral') && rejects('primary'), 'CR-03: a brand color named after an engine ramp (neutral/primary) throws (would hijack it)');
   ok(rejects('success') && rejects('white'), 'CR-03: a brand color named after a reserved palette (status / base swatch) throws');
   ok(rejects('my.accent') && rejects('brand blue') && rejects('<img>'), 'CR-03: dotted / spaced / symbol brand-colour names throw (alias-path + XSS charset guard)');
@@ -10480,7 +10516,8 @@ arm: {
   const grey = { l: 0.55, c: 0.006, h: 70 };           // a warm grey, hue ≠ aurora's neutral cast (285)
   const placed = autoPlaceStep(grey.l);
 
-  const pinnedTheme = brandTheme({ ...input, neutral: { ...input.neutral, anchor: grey } });
+  const pinnedTheme = exampleTheme('aurora (neutral.anchor pinned)', () => brandTheme({ ...input, neutral: { ...input.neutral, anchor: grey } }));
+  if (!pinnedTheme) break arm;
   const derivedTheme = brandTheme(input);
   const pinnedStep = pinnedTheme.palettes.find((p) => p.palette === 'neutral')!.steps.find((s) => s.num === placed)!;
   const derivedStep = derivedTheme.palettes.find((p) => p.palette === 'neutral')!.steps.find((s) => s.num === placed)!;
@@ -10540,20 +10577,26 @@ arm: {
   const def = brandTheme(input);
   ok(def.modes.length === 4 && resolvePreview(def).modes.length === 4, 'mode config: omitted modes → all four');
 
-  const lo = brandTheme({ ...input, modes: ['light'] });
-  const loRp = resolvePreview(lo);
-  ok(loRp.modes.length === 1 && loRp.modes[0] === 'light', 'mode config: modes:[light] → light only');
-  // `lo.root`, not a literal (#1283): this block is built from aurora's brief, whose root moved
-  // prism -> ads. The theme carries its own root, so reading it there cannot go stale again.
-  const loTree = (buildTree(lo).tree as any)[lo.root];
-  ok(Object.keys(loTree.color.interactive.primary.fill.rest.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode colour overrides');
-  ok(Object.keys(loTree.shadow.xs.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode SHADOW overrides (dark reduction gated)');
+  lightOnly: {
+    const lo = exampleTheme('aurora (modes light)', () => brandTheme({ ...input, modes: ['light'] }));
+    if (!lo) break lightOnly;
+    const loRp = resolvePreview(lo);
+    ok(loRp.modes.length === 1 && loRp.modes[0] === 'light', 'mode config: modes:[light] → light only');
+    // `lo.root`, not a literal (#1283): this block is built from aurora's brief, whose root moved
+    // prism -> ads. The theme carries its own root, so reading it there cannot go stale again.
+    const loTree = (buildTree(lo).tree as any)[lo.root];
+    ok(Object.keys(loTree.color.interactive.primary.fill.rest.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode colour overrides');
+    ok(Object.keys(loTree.shadow.xs.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode SHADOW overrides (dark reduction gated)');
+  }
 
-  const ld = brandTheme({ ...input, modes: ['light', 'dark'] });
-  ok(resolvePreview(ld).modes.length === 2, 'mode config: modes:[light,dark] → two modes');
-  const ldTree = (buildTree(ld).tree as any)[ld.root];
-  ok('dark' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes && !('hc-light' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes), 'mode config: [light,dark] carries the dark override, not HC');
-  ok('dark' in ldTree.shadow.xs.$extensions.prism3.modes, 'mode config: [light,dark] keeps the dark shadow reduction');
+  lightDark: {
+    const ld = exampleTheme('aurora (modes light, dark)', () => brandTheme({ ...input, modes: ['light', 'dark'] }));
+    if (!ld) break lightDark;
+    ok(resolvePreview(ld).modes.length === 2, 'mode config: modes:[light,dark] → two modes');
+    const ldTree = (buildTree(ld).tree as any)[ld.root];
+    ok('dark' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes && !('hc-light' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes), 'mode config: [light,dark] carries the dark override, not HC');
+    ok('dark' in ldTree.shadow.xs.$extensions.prism3.modes, 'mode config: [light,dark] keeps the dark shadow reduction');
+  }
 
   let t1 = false, t2 = false;
   try { brandTheme({ ...input, modes: ['dark'] as any }); } catch { t1 = true; }
@@ -10567,7 +10610,8 @@ arm: {
 
   // Wireframe (1b): opt-in greyscale mode. Non-neutral roles remap to the neutral ramp at the
   // same position (still clearing each min); radius zeroes. Never a default.
-  const wf = brandTheme({ ...input, modes: ['light', 'wireframe'] });
+  const wf = exampleTheme('aurora (modes light, wireframe)', () => brandTheme({ ...input, modes: ['light', 'wireframe'] }));
+  if (!wf) break arm;
   ok(wf.modes.includes('wireframe') && resolvePreview(wf).modes.includes('wireframe'), 'wireframe: opt-in mode resolves + previews');
   ok(!brandTheme(input).modes.includes('wireframe'), 'wireframe: never a default (opt-in only)');
   const R = wf.root, neutralPal = wf.roleToPalette.neutral, actionPal = wf.roleToPalette.action;
@@ -11027,32 +11071,39 @@ arm: {
   ok(fullColor.map((f) => f.$mode).join(',') === 'light,dark,hc-light,hc-dark', `emit-figma mode opt-out: default order is light,dark,hc-light,hc-dark`);
 
   // (b) light-only — ONE file, the load-bearing fix
-  const lo = brandTheme({ ...input, modes: ['light'] });
-  const loColor = buildFigmaColor(lo).color;
-  ok(loColor.length === 1, `emit-figma mode opt-out: light-only brand emits ONE color file (got ${loColor.length})`);
-  ok(loColor[0].$mode === 'light', `emit-figma mode opt-out: light-only emits color.light.json (got color.${loColor[0].$mode}.json)`);
-  // The pre-fix bug would emit four files here — the alias fallback in the light branch
-  // would silently carry through. This gate is the fix's regression fence.
-  ok(loColor.every((f) => f.$mode === 'light'), `emit-figma mode opt-out: NO silent dark/hc-* emission for a light-only brand`);
+  lightOnly: {
+    const lo = exampleTheme('aurora (modes light)', () => brandTheme({ ...input, modes: ['light'] }));
+    if (!lo) break lightOnly;
+    const loColor = buildFigmaColor(lo).color;
+    ok(loColor.length === 1, `emit-figma mode opt-out: light-only brand emits ONE color file (got ${loColor.length})`);
+    ok(loColor[0].$mode === 'light', `emit-figma mode opt-out: light-only emits color.light.json (got color.${loColor[0].$mode}.json)`);
+    // The pre-fix bug would emit four files here — the alias fallback in the light branch
+    // would silently carry through. This gate is the fix's regression fence.
+    ok(loColor.every((f) => f.$mode === 'light'), `emit-figma mode opt-out: NO silent dark/hc-* emission for a light-only brand`);
 
-  // Shadow: a light-only brand emits NO shadow-dark/* styles (defensive — block 14 (e)
-  // already asserted the dark extension exists for NB; here we assert the negative).
-  const loShadow = buildFigmaShadow(lo);
-  const loDarkShadows = loShadow.styles.filter((s) => s.name.startsWith('shadow-dark/'));
-  ok(loDarkShadows.length === 0, `emit-figma mode opt-out: light-only brand emits NO shadow-dark/* styles (got ${loDarkShadows.length})`);
+    // Shadow: a light-only brand emits NO shadow-dark/* styles (defensive — block 14 (e)
+    // already asserted the dark extension exists for NB; here we assert the negative).
+    const loShadow = buildFigmaShadow(lo);
+    const loDarkShadows = loShadow.styles.filter((s) => s.name.startsWith('shadow-dark/'));
+    ok(loDarkShadows.length === 0, `emit-figma mode opt-out: light-only brand emits NO shadow-dark/* styles (got ${loDarkShadows.length})`);
+  }
 
   // (c) [light, dark] — two files, canonical order
-  const ld = brandTheme({ ...input, modes: ['light', 'dark'] });
+  const ld = exampleTheme('aurora (modes light, dark)', () => brandTheme({ ...input, modes: ['light', 'dark'] }));
+  if (!ld) break arm;
   const ldColor = buildFigmaColor(ld).color;
   ok(ldColor.length === 2, `emit-figma mode opt-out: [light,dark] emits two color files (got ${ldColor.length})`);
   ok(ldColor.map((f) => f.$mode).join(',') === 'light,dark', `emit-figma mode opt-out: [light,dark] modes in canonical order (got ${ldColor.map((f) => f.$mode).join(',')})`);
 
   // (d) canonical ORDER preserved regardless of user-typed order. Typing [light, hc-light, dark]
   // should still emit light,dark,hc-light (canonical), not the typed order.
-  const shuffled = brandTheme({ ...input, modes: ['light', 'hc-light', 'dark'] });
-  const shColor = buildFigmaColor(shuffled).color;
-  ok(shColor.map((f) => f.$mode).join(',') === 'light,dark,hc-light',
-    `emit-figma mode opt-out: canonical order preserved regardless of user-typed order (got ${shColor.map((f) => f.$mode).join(',')})`);
+  shuffledOrder: {
+    const shuffled = exampleTheme('aurora (modes light, hc-light, dark)', () => brandTheme({ ...input, modes: ['light', 'hc-light', 'dark'] }));
+    if (!shuffled) break shuffledOrder;
+    const shColor = buildFigmaColor(shuffled).color;
+    ok(shColor.map((f) => f.$mode).join(',') === 'light,dark,hc-light',
+      `emit-figma mode opt-out: canonical order preserved regardless of user-typed order (got ${shColor.map((f) => f.$mode).join(',')})`);
+  }
 
   // (e) every emitted color file's per-role value comes from the RIGHT mode extension
   // (not a silent light fallback). For [light, dark]: the dark file's interactive.primary.fill.rest
@@ -11245,7 +11296,8 @@ arm: {
   // (a2) Synthetic wireframe-opted-in brand — colour axis gains a 5th mode file, canonical
   // position last (matches COLOR_MODES order). Every role's per-mode value comes from
   // the wireframe extension in the DTCG tree, not a silent light fallback.
-  const wf = brandTheme({ ...input, modes: ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'] });
+  const wf = exampleTheme('aurora (modes light, dark, hc-light, hc-dark, wireframe)', () => brandTheme({ ...input, modes: ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'] }));
+  if (!wf) break arm;
   const wfColor = buildFigmaColor(wf).color;
   ok(wfColor.length === 5, `emit-figma wireframe: opted-in brand emits 5 colour files (got ${wfColor.length})`);
   ok(wfColor.map((c) => c.$mode).join(',') === 'light,dark,hc-light,hc-dark,wireframe',
@@ -12680,8 +12732,10 @@ arm: {
     // The base build is asserted emphasis-only first, so the paths are the lever's doing.
     for (const [bid, input] of LW_INPUTS) {
       const emphasisOnly = { ...input, typography: { ...input.typography, weights: { ...input.typography?.weights, label: ['emphasis'] } } } as BrandInput;
-      const base = pathsOf(brandTheme(emphasisOnly));
-      const on = brandTheme({ ...emphasisOnly, buttonLabelWeight: 'default' });
+      const baseTheme = exampleTheme(`${bid} (label weights [emphasis])`, () => brandTheme(emphasisOnly));
+      const on = exampleTheme(`${bid} (label weights [emphasis], buttonLabelWeight default)`, () => brandTheme({ ...emphasisOnly, buttonLabelWeight: 'default' }));
+      if (!baseTheme || !on) continue;
+      const base = pathsOf(baseTheme);
       const paths = pathsOf(on);
       const figma = figmaArtifacts(on).artifacts.filter((a) => a.path.endsWith('.json')).map((a) => ({ path: a.path, j: JSON.parse(a.content) }));
       const styles = new Set(figma.filter((a) => !a.path.startsWith('shadow')).flatMap((a) => (a.j.styles ?? []).map((s: { name: string }) => s.name)));
@@ -12701,7 +12755,8 @@ arm: {
     // for every brand-input corpus brand (unset is what `out/**` commits, and `regen --check` holds that),
     // and the materialized button family binds exactly what the def authors.
     for (const [bid, input] of LW_INPUTS) {
-      const a = brandTheme(input), b = brandTheme({ ...input, buttonLabelWeight: 'emphasis' });
+      const a = brandTheme(input), b = exampleTheme(`${bid} (buttonLabelWeight emphasis)`, () => brandTheme({ ...input, buttonLabelWeight: 'emphasis' }));
+      if (!b) continue;
       ok(JSON.stringify(buildTree(a)) === JSON.stringify(buildTree(b)),
         `#1752 identity: ${bid} builds a byte-identical DTCG tree with buttonLabelWeight unset and 'emphasis'`);
       ok(JSON.stringify(figmaArtifacts(a).artifacts) === JSON.stringify(figmaArtifacts(b).artifacts),
@@ -24389,7 +24444,9 @@ arm: {
   // resolves the off track, its border and its thumb to the SAME hexes — while the neutral BUTTON fill
   // (the old binding) moves, which is what proves the lever was really exercised.
   for (const [id, input] of [['NB master', NB_MASTER], ['prism3', parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input]] as const) {
-    const subtle = brandTheme({ ...input, neutralEmphasis: 'subtle' } as BrandInput), strong = brandTheme({ ...input, neutralEmphasis: 'strong' } as BrandInput);
+    const subtle = exampleTheme(`${id} (neutralEmphasis subtle)`, () => brandTheme({ ...input, neutralEmphasis: 'subtle' } as BrandInput));
+    const strong = exampleTheme(`${id} (neutralEmphasis strong)`, () => brandTheme({ ...input, neutralEmphasis: 'strong' } as BrandInput));
+    if (!subtle || !strong) continue;
     const button = (t: Theme) => resolveAllModes(t).find((m) => m.mode === 'light')!.roles['interactive.neutral.fill.rest'].hex;
     ok(button(subtle) !== button(strong), `#1354 ${id}: the neutralEmphasis lever moves the neutral button fill (${button(subtle)} → ${button(strong)}) — the probe is live`);
     for (const key of ['off.fill', 'off.border', 'off.indicator', 'off.icon'])
@@ -24678,9 +24735,10 @@ arm: {
     // the twins on the derived step read 3.28:1 on selected with no warning (prism3 dark, rest → primary.300,
     // selected stuck at primary.550, on-fill → neutral.950). Literals: all three land on primary.300 #86a7f7
     // and the ink clears 8.22:1 on them. Removing `withFillStateTwins` fails this by name.
-    {
+    carried: {
       const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
-      const pOv = brandTheme({ ...pIn, overrides: { ...((pIn as any).overrides ?? {}), dark: { ...(((pIn as any).overrides ?? {}).dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' } } } } as BrandInput);
+      const pOv = exampleTheme('prism3 (dark fill.rest override)', () => brandTheme({ ...pIn, overrides: { ...((pIn as any).overrides ?? {}), dark: { ...(((pIn as any).overrides ?? {}).dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' } } } } as BrandInput));
+      if (!pOv) break carried;
       const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
       const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
       const inkHex = dm.roles['interactive.primary.on-fill'].hex;
@@ -24691,10 +24749,11 @@ arm: {
     // AN EXPLICIT TWIN OVERRIDE BEATS THE CARRIED REST (review of #1773). Same brand and rest override, plus
     // an explicit `fill.selected` → primary.600: rest and focused carry `#86a7f7`, selected stays on its own
     // `#1e1eff`. Carrying the rest over an explicit twin fails here by name.
-    {
+    explicitTwin: {
       const pIn = parseDesignMd(readFileSync(resolve(HERE, './examples/prism3.design.md'), 'utf8')).input as BrandInput;
       const prev = ((pIn as any).overrides ?? {});
-      const pOv = brandTheme({ ...pIn, overrides: { ...prev, dark: { ...(prev.dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' }, 'interactive.primary.fill.selected': { palette: 'primary', step: '600' } } } } as BrandInput);
+      const pOv = exampleTheme('prism3 (dark fill.rest and fill.selected overrides)', () => brandTheme({ ...pIn, overrides: { ...prev, dark: { ...(prev.dark ?? {}), 'interactive.primary.fill.rest': { palette: 'primary', step: '300' }, 'interactive.primary.fill.selected': { palette: 'primary', step: '600' } } } } as BrandInput));
+      if (!pOv) break explicitTwin;
       const dm = resolveAllModes(pOv).find((m) => m.mode === 'dark')!;
       const fh = (st: string) => dm.roles[`interactive.primary.fill.${st}`].hex;
       ok(fh('rest') === '#86a7f7' && fh('focused') === '#86a7f7' && fh('selected') === '#1e1eff',
