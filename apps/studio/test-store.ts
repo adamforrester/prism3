@@ -18,7 +18,9 @@
  * Mutations that fail here BY NAME (measured): take the last-good copy in `rebuild` before the
  * resolve can throw → `refused edit leaves lastGoodInput at the previous good input`; persist before
  * the resolve → `refused edit is not persisted`; make `invalidate` notify every topic →
- * `invalidate('mode') notifies mode subscribers only`.
+ * `invalidate('mode') notifies mode subscribers only`; point `syncIdentity`'s persist at the live
+ * `brandState` instead of `lastGoodInput` → `a refused edit never reaches storage, even through
+ * syncIdentity` (#1846).
  */
 import type { BrandInput } from '@prism3/engine/theme';
 import { brandTheme } from '@prism3/engine/theme';
@@ -89,10 +91,27 @@ store.syncIdentity();
 ok(store.lastGoodInput.id === 'renamed' && store.theme === themeBefore, 'syncIdentity copies the name into lastGoodInput without re-resolving');
 ok(persisted.length === 3 && persisted[2].id === 'renamed', 'syncIdentity persists the renamed last-good input');
 
+// #1846: the docblock's promise, tested. A rename while a refused lever edit is still in the live input
+// must persist the rename and NOT the refused value — the M-15/M-16 last-good rule, on syncIdentity's path.
+// The refused value is the one the engine was shown refusing above (`engineSays`), not one the store rated.
+store.brandState.actionPalette = 'not-a-palette';
+store.rebuild();
+ok(store.lastError === engineSays && persisted.length === 3, 'premise: the refused edit is live, flagged and not yet persisted');
+store.brandState.id = 'renamed-again';
+store.syncIdentity();
+const lastBlob = persisted[persisted.length - 1];
+ok(persisted.length === 4 && lastBlob.id === 'renamed-again', 'syncIdentity persists a rename made while a refused edit is live');
+ok(lastBlob.actionPalette !== 'not-a-palette', `a refused edit never reaches storage, even through syncIdentity (persisted actionPalette ${JSON.stringify(lastBlob.actionPalette)})`);
+delete store.brandState.actionPalette;
+store.rebuild();
+
 // ---- invalidation ----------------------------------------------------------------------------------------
-const heard: Record<store.Topic, number> = { brand: 0, origin: 0, mode: 0, page: 0 };
-const offs = (Object.keys(heard) as store.Topic[]).map((t) => store.subscribe(t, () => { heard[t]++; }));
-const reset = (): void => { for (const t of Object.keys(heard) as store.Topic[]) heard[t] = 0; };
+// The brand topics only: the host topics (P2) are invalidated by `main.ts` from `topicsFor`, never by a
+// setter here, and `test-host-session.ts` asserts which a message names.
+type BrandTopic = 'brand' | 'origin' | 'mode' | 'page';
+const heard: Record<BrandTopic, number> = { brand: 0, origin: 0, mode: 0, page: 0 };
+const offs = (Object.keys(heard) as BrandTopic[]).map((t) => store.subscribe(t, () => { heard[t]++; }));
+const reset = (): void => { for (const t of Object.keys(heard) as BrandTopic[]) heard[t] = 0; };
 
 store.invalidate('mode');
 ok(same(heard, { brand: 0, origin: 0, mode: 1, page: 0 }), `invalidate('mode') notifies mode subscribers only (heard ${JSON.stringify(heard)})`);
