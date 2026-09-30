@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-09-30) — Field label: the name hugs and wraps at a max width, so the required marker follows it (#1762)
+
+**STATUS: PR open from `lane/field-label-hug`, labeled DO NOT MERGE.** Owner decision 2026-09-30, option 3 of #1762, which **changes #1757's decision 2** ("the label wraps at field width"). Decision record: `docs/28` §5.5, indexed in `docs/42`. **ENGINE 0.215.0 → 0.219.0** (the projected component surface moves; 0.216–0.218 are held by open lanes). CONTRACT stands.
+
+**The defect the owner saw.** #1757 grew field-label's name across its row (`wrap: true`: `layoutGrow: 1` + `textAutoResize: HEIGHT`), so the name's box was the row's width and the required marker, a separate text node, sat at the row's trailing edge: "Label ··· *" at 320. In code the marker flows inline after the name.
+
+**The change.** New `PartDef.wrap: 'hug'`: the text hugs (no grow, auto width) and the plan carries a `maxWidth` it wraps at. Field-label's `text` uses it; the root keeps `fill` + `placementWidth: 320`, so hosts still stretch the instance. Both executors write `maxWidth` after the append (Figma takes it only on an auto-layout frame or its direct child) and read it back; the paste twin splices its line onto the reserved-lines slot's own line, so a payload without it gains no byte (Button's #536 grid budget). `anatomy-readback` compares it; both shims clamp a text's width to it and wrap its height.
+
+**The max-width math, derived rather than a new literal.** The root's `placementWidth` less one row gap per declared sibling, the gap resolved at the plan's coordinate and turned into px by the new `scale.ts` `spacePx` (the space scale is fixed at `SPACE_BASE`, so every brand emits the same px): 320 − 4 = **316** on all 24 members. **The marker's width is NOT subtracted**: it is the advance of `*` in the brand's font, and the engine holds no font metrics. The owner asked to subtract it if it is known per brand; it is not known offline. It is known at build time in Figma (the executor could measure the built marker), which would be a new executor mechanism and a design call, so it is filed as #1828 rather than done here.
+
+**Accepted tradeoffs (owner), now in the def's notes and docs.** A field stretched wider in Figma does not move the 316 wrap point. A required name long enough to wrap overruns 320 by the marker's width. Two consequences of option 3 itself, stated in the def rather than hidden: with the marker off the 4px stays reserved (the name wraps at 316, and turning the marker on does not reflow it); and on a WRAPPED name the marker sits beside the wrapped box at 316 + 4, not after the last word of the last line (a separate node cannot follow a line break; that was option 2).
+
+**Validator (`anatomyErrors`), each refusal pinned by name in `test.ts`.** `wrap: 'hug'` needs a text whose parent is the ROOT with a `placementWidth`, laid out as a `row`, with no padding, and (with siblings) a gap bound to a step of the space ladder. `wrap: true` keeps #1424/#1757's bounded-parent rule unchanged.
+
+**Hosts.** Select, text-field, textarea, checkbox-group and radio-group nest the one field-label; their label notes now say the name wraps at FieldLabel's max width. Nothing in their own plans moves.
+
+**Tests (literal expectations).** `test.ts`: the plan gives the name no grow, no `HEIGHT`, and `maxWidth` 316 on all 24 members; nothing in the row grows, the row packs from its start and the marker is the name's next sibling; four refusal arms; the #1751 parity floor now reads `grow:0 text:WIDTH_AND_HEIGHT mw:316` on both executors. `test-roundtrip.ts` (#1762 arm, gap pinned to 4px): with the marker on, a one-line "Label" (30px) puts the marker at x 34, not the trailing 314; a 70-character name clamps at 316 on two lines and the marker sits at 320.
+
+**Mutations (each on a `wip:` commit, restored by `git checkout --`).**
+
+| Mutation | Fails, by name |
+|---|---|
+| M1 field-label `text` back to `wrap: true` (layoutGrow + fill) | `#1762 field-label's name HUGS and wraps at maxWidth 316 …`, `#1762 the required marker follows the name in the row, not a filling box …`, `#1751 parity floor (field-label)`, and in `test:roundtrip` `#1762 field-label's required marker follows the name: at x 34 …` |
+| M2 the paste twin's max-width line not spliced | `#1751 parity floor (field-label)` and `#1751 parity (field-label): the plugin and paste executors leave identical sizing on every node` |
+| M3 the plugin executor's `kid.maxWidth = …` write removed | `every def round-trips … field-label (24)`, `#1762 seed … (text.maxWidth -> DISCARDED …)`, `#1762 field-label's required marker follows the name …`, plus the #1751 parity pair |
+
+**Not verified offline, and the live check.** That Figma wraps an auto-width text at its `maxWidth`, keeps the next sibling right after the clamped box, and which line the baseline-aligned marker sits on for a wrapped name. The shims model the first two; nothing models the third. The def lists it under `notes.unverified`. Live steps (owner, in a test file): build field-label with the plugin; select a member, turn `required` on; confirm the name layer reads auto width with max width 316 and "Label *" sits together at the left; type a 70-character name and confirm it wraps at 316 with the marker beside it (note which line it aligns to); then rebuild select, text-field, textarea, checkbox-group and radio-group and check the nested label the same way, including a field stretched to 400 (the name should still wrap at 316).
+
+---
+
 ## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
 
 **STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.214.0 → 0.215.0** (a write-path behavior change). CONTRACT stands at 14.0.0.
