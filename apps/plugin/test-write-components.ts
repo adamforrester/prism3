@@ -1017,6 +1017,108 @@ ok(withDup.misses.some((m) => m.includes('UNREADABLE') && m.includes('share a na
 ok(withDup.properties.length === 0 && withDup.refs === 0,
   'and no properties are declared on a poisoned set, so the single cause is not buried under consequences');
 
+// ---- #1780: a set whose variant AXES differ from the plan's is refused, never appended into ----------
+// The live case: `veil` gained a `direction` axis, every planned member name was new, nothing matched by
+// name, nothing read STALE, and 30 members were appended beside 6 on the old axis list — a set Figma then
+// reports as broken. Each fixture below rewrites the MEMBER NAMES of a built set, because the names are
+// what a set's axes are (the shim derives its definitions from them, as the host does). Every expectation
+// is a literal typed here, not read back from the executor or the plan.
+// GUARDED: a set on two axis lists THROWS here (as the host does), and a throw out of an assertion's own
+// probe would stop the suite and hide every arm after it. So a refused read comes back as one entry saying so.
+const axisVariants = (s: Node): string[] => {
+  try {
+    const d = s.componentPropertyDefinitions as Record<string, { type: string }>;
+    return Object.keys(d).filter((k) => d[k].type === 'VARIANT').sort();
+  } catch (e) { return [`THROWS: ${(e as Error).message}`]; }
+};
+const renameMembers = (s: Node, f: (name: string) => string, only?: number): void =>
+  (s.children as Node[]).forEach((m, i) => { if (only === undefined || i < only) m.name = f(String(m.name)); });
+const AXES_NOW = '[appearance, leading icon, size, state, trailing icon]';
+
+// (a) AN AXIS GAINED — the existing set predates `size` (Tag gaining `type`, `veil` gaining `direction`).
+const gainedPage: Page = { children: [] };
+await run(grid, { ...full(), page: gainedPage });
+const gainedSet = gainedPage.children[0];
+renameMembers(gainedSet, (n) => n.replace('size=medium, ', ''));
+const gainedBefore = [...(gainedSet.children as Node[])];
+const gainedNames = gainedBefore.map((m) => String(m.name));
+// REACHABLE: the fixture really is a clean set on the OLD axis list, so the refusal below is about the
+// axis change and not about a set that was already unreadable.
+ok(JSON.stringify(axisVariants(gainedSet)) === JSON.stringify(['appearance', 'leading icon', 'state', 'trailing icon'])
+  && gainedNames[0] === 'appearance=filled, state=rest, leading icon=true, trailing icon=false',
+  `#1780 fixture: the existing set is readable and varies by 4 axes, without size (${axisVariants(gainedSet).join(', ')}; ${gainedNames[0]})`);
+const rGained = await run(grid, { ...full(), page: gainedPage });
+ok(rGained.set === null && rGained.added === 0 && rGained.variants === 0,
+  `#1780 an axis gained: the build is REFUSED and builds nothing (set=${rGained.set}, added=${rGained.added}, variants=${rGained.variants})`);
+ok(JSON.stringify(rGained.misses) === JSON.stringify([
+  "set -> AXES CHANGED: 'button' on this page varies by [appearance, leading icon, state, trailing icon], and this build varies by [appearance, leading icon, size, state, trailing icon]. " +
+  'Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. ' +
+  'Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.',
+]), `#1780 ...and says so in ONE miss naming both axis lists and the remedy (${rGained.misses.length}: ${rGained.misses[0]?.slice(0, 120)})`);
+ok(JSON.stringify(rGained.axesChanged) === JSON.stringify({ set: 'button', existing: [['appearance', 'leading icon', 'state', 'trailing icon']], planned: ['appearance', 'leading icon', 'size', 'state', 'trailing icon'] }),
+  `#1780 ...and carries the two lists as data for the verdict (${JSON.stringify(rGained.axesChanged)})`);
+// THE OLD SET UNTOUCHED, by identity: an instance tracks its main component by id, so the same 21 node
+// objects under the same 21 names is the claim that nothing placed from it was orphaned.
+ok((gainedSet.children as Node[]).length === 21
+  && (gainedSet.children as Node[]).every((c, i) => c === gainedBefore[i] && c.name === gainedNames[i]),
+  `#1780 the old set is UNTOUCHED — the same 21 members under the same names, nothing appended (${(gainedSet.children as Node[]).length} members)`);
+ok(gainedPage.children.length === 1 && JSON.stringify(axisVariants(gainedSet)) === JSON.stringify(['appearance', 'leading icon', 'state', 'trailing icon']),
+  `#1780 ...no second set and no loose component on the page, and the old set still reads cleanly (${gainedPage.children.length} node)`);
+ok(rGained.misses.length !== rGained.skipped
+  && componentHeadline(rGained.added, rGained.skipped, rGained.misses.length - rGained.skipped - rGained.stale, rGained.stale) === '✗ nothing built',
+  `#1780 the refusal reaches the pill as a failure, not as '✓ already built' (${componentHeadline(rGained.added, rGained.skipped, rGained.misses.length - rGained.skipped - rGained.stale, rGained.stale)})`);
+
+// (a') THE REMEDY THE MISS STATES IS TRUE: rename the old set and build again, and a fresh set lands beside
+// it while the old one keeps every member it had.
+gainedSet.name = 'button (earlier axes)';
+const rAfterRename = await run(grid, { ...full(), page: gainedPage });
+ok(rAfterRename.set === 'button' && rAfterRename.added === 21 && rAfterRename.axesChanged === undefined
+  && gainedPage.children.length === 2 && (gainedSet.children as Node[]).every((c, i) => c === gainedBefore[i]),
+  `#1780 after renaming the old set aside, the build makes a fresh 21-member set beside it and leaves the old one as it was (set=${rAfterRename.set}, added=${rAfterRename.added}, ${gainedPage.children.length} nodes)`);
+
+// (b) AN AXIS RENAMED — `genre` renamed `type`: the same count of axes, one name different.
+const renamedPage: Page = { children: [] };
+await run(grid, { ...full(), page: renamedPage });
+const renamedSet = renamedPage.children[0];
+renameMembers(renamedSet, (n) => n.replace('appearance=', 'genre='));
+const renamedBefore = [...(renamedSet.children as Node[])];
+const rRenamed = await run(grid, { ...full(), page: renamedPage });
+ok(rRenamed.set === null && rRenamed.added === 0
+  && rRenamed.misses.length === 1 && rRenamed.misses[0].startsWith(`set -> AXES CHANGED: 'button' on this page varies by [genre, leading icon, size, state, trailing icon], and this build varies by ${AXES_NOW}.`),
+  `#1780 an axis renamed: refused, naming the old name and the new (${rRenamed.misses[0]?.slice(0, 140)})`);
+ok((renamedSet.children as Node[]).length === 21 && (renamedSet.children as Node[]).every((c, i) => c === renamedBefore[i]) && renamedPage.children.length === 1,
+  `#1780 ...and the old set is untouched (${(renamedSet.children as Node[]).length} members, ${renamedPage.children.length} node on the page)`);
+
+// (c) ALREADY MIXED — the live file's state after the first bad build: some members on the old list, the
+// rest on the new. Refused too, rather than appended into a set that is already broken.
+const mixedPage: Page = { children: [] };
+await run(grid, { ...full(), page: mixedPage });
+const mixedSet = mixedPage.children[0];
+renameMembers(mixedSet, (n) => n.replace('size=medium, ', ''), 6);
+const mixedDefs = axisVariants(mixedSet);
+ok(mixedDefs.length === 1 && mixedDefs[0] === 'THROWS: in get_componentPropertyDefinitions: Component set has existing errors',
+  `#1780 fixture: members on two axis lists poison the definitions getter, as the live set did (${mixedDefs.join(', ')})`);
+const mixedBefore = [...(mixedSet.children as Node[])];
+const rMixed = await run(grid, { ...full(), page: mixedPage });
+ok(rMixed.set === null && rMixed.added === 0 && rMixed.misses.length === 1
+  && rMixed.misses[0].startsWith(`set -> AXES CHANGED: 'button' on this page varies by [appearance, leading icon, state, trailing icon] and ${AXES_NOW}, and this build varies by ${AXES_NOW}.`),
+  `#1780 an already-mixed set: refused, naming BOTH lists its members carry (${rMixed.misses[0]?.slice(0, 160)})`);
+ok((mixedSet.children as Node[]).length === 21 && (mixedSet.children as Node[]).every((c, i) => c === mixedBefore[i]),
+  `#1780 ...and nothing is appended to it (${(mixedSet.children as Node[]).length} members)`);
+
+// (d) A VALUE ADDED ON THE SAME AXES IS NOT AN AXIS CHANGE. The incremental path: a set built with three
+// states, then the full seven. It must still append the 12 new members, or every def that gains a state or
+// a size would split its set.
+const threeStates = new Set(['rest', 'hover', 'focus-visible']);
+const partial = grid.filter((p) => [...threeStates].some((st) => planComponentName(p).includes(`state=${st},`)));
+ok(partial.length === 9, `#1780 fixture: the partial set is 3 appearances × 3 states (${partial.length})`);
+const valuePage: Page = { children: [] };
+await run(partial, { ...full(), page: valuePage });
+const rValue = await run(grid, { ...full(), page: valuePage });
+ok(rValue.set === 'button' && rValue.added === 12 && rValue.skipped === 9 && rValue.axesChanged === undefined
+  && (valuePage.children[0].children as Node[]).length === 21 && valuePage.children.length === 1,
+  `#1780 a value added on the same axes still APPENDS into the existing set (added=${rValue.added}, skipped=${rValue.skipped}, ${(valuePage.children[0].children as Node[]).length} members, ${valuePage.children.length} node)`);
+
 // ---- #701: the wire pass REUSES what the build pass built, instead of re-finding it ----------
 // The cold wire pass cost 46,375ms of a ~151s live run doing 2,592 `findOne` calls at ~18ms each, on a
 // scenegraph Figma was still reconciling. The fix is to not search: `build` registers each child it makes

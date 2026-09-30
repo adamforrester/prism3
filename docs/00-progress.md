@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
+
+**STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.214.0 → 0.215.0** (a write-path behavior change). CONTRACT stands at 14.0.0.
+
+**The defect.** Find-or-create matches the existing set by NAME. When a def's axis list changes (`veil` gaining `direction`, Tag gaining `type`, a `genre` axis renamed `type`), every planned member name is new, so nothing matches `have`, nothing reads STALE, and every new member is appended into the old set beside members on the old axis list. Figma reports that set as broken (its definitions getter throws), so neither the old members nor the new ones get their properties or references. The owner's repair was to rename the old set aside by hand.
+
+**The behavior now: refuse.** Before anything is built, the executor reads the existing set's axis lists off its member names. If any list differs from the plan's, it writes nothing (no member built, none appended, no build report stamped on the old set), returns `set: null` with `axesChanged: { set, existing, planned }`, and reports one miss: `set -> AXES CHANGED: '<def>' on this page varies by [..], and this build varies by [..]. Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.` The pill reads `✗ nothing built`; the summary names the set that was left as it is.
+
+**Why refuse and not build beside.** Refusing is #827's posture (report, never rebuild what instances point at) and is the owner's own manual remedy made explicit. Building beside needs two decisions a fix should not make: what the new or old set is CALLED (two sets under one name make find-or-create, `liveSet()` and the nest lookups ambiguous, and #1781 already reports that state as an error), and where it goes on the page (#1750). Held for the owner, not chosen here.
+
+**Three technical calls, stated so they can be challenged.**
+1. **Member names, not `componentPropertyDefinitions`.** The getter throws on exactly the set this check must read: one already on two axis lists (the live file after the first bad build). Figma derives the definitions from the names anyway, so one reader covers both cases.
+2. **Only coordinate-shaped names count** (every segment has an `=`). A hand-made copy is already reported as `NOT A GENERATED VARIANT`; counting it would refuse every build over a set someone added a copy to (mutation M2 below).
+3. **Axis names only, not values.** A new value on the same axes is the incremental path (the COMBINE note records the live measurement: appending `state=pressed` to `state=rest|hover` extends that axis). Refusing it would split a set every time a def gained a state or a size. A value the plan drops leaves strays the layout pass already reports.
+
+**Shim.** `readDefs` now throws on a set whose coordinate-shaped members disagree on the axis list, as the live host did (6 + 30 `veil` members). Hand-named children are not modeled; the stray-member case keeps reading as before.
+
+**Tests (`test-write-components.ts`, literal expectations).** (a) axis gained: refused, the full miss string literal, `axesChanged` literal, the same 21 node objects under the same names, one node on the page, `✗ nothing built`; (a') the stated remedy holds: rename the old set, build again, a fresh 21-member set lands beside it and the old one keeps its members; (b) axis renamed; (c) already mixed (both lists named); (d) a value added on the same axes still appends 12 into the existing 9.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
+
+| Mutation | Fails |
+|---|---|
+| M1 the refusal disabled (`if (false && …)`), so the build appends into the old set again | 11 by name, among them `#1780 an axis gained: the build is REFUSED and builds nothing (set=button, added=21, variants=42)` and `#1780 the old set is UNTOUCHED … (42 members)`; the suite ran to completion |
+| M2 hand-named children counted as an axis list | `a member whose name is not a generated coordinate is reported and left in place, not dragged to a guessed cell` |
+
+**Trap for whoever re-verifies.** The first M1 run stopped the suite: the test's own probe of the old set's definitions threw on the mixed set the mutation produced, and every arm after it went unrun. `axisVariants` now returns a `THROWS: …` entry instead, so a mutation run reports every arm.
+
+**Not done here.** The refusal does not count instances placed from the old set. Renaming it aside is safe whatever that count is (an instance tracks its main component by id), so the count is not needed for the remedy; it would matter only for a "build beside and re-point instances" design, which is held.
+
+---
+
+## (2026-09-30) — MCP `tools/list` scales by summarizing the inline schema, not by trimming it (#1760)
+
+**STATUS: merging from `lane/mcp-schema-budget`.** ENGINE 0.213.0 → **0.214.0** (a change to shipped MCP output; `out/**` and `token-contract.json` move only their version stamp). 0.214.0 because 0.212.0 and 0.213.0 are held by other lanes (#1802 holds 0.213.0). CONTRACT stands at 14.0.0.
+
+**Where the budget comes from.** 60,000 is our own number, asserted in `test.ts` and `mcp-test.ts`. It is not a client or protocol limit, and the owner ruled on 2026-09-15 that it is not raised (the `faces` lane, #1368). #1759 left `tools/list` at 59,969, with 31 characters of margin.
+
+**What dominates.** Measured on that list: `theme_brand` was 53,688 of the 59,969, and the inlined `theme-schema.json` was 52,589 of that. Of the schema, **32,333 characters were description prose** (191 descriptions) and about 17,000 were structure. `typography` (15,975) and `modeLevers` (11,763) were the two big fields. So prose was the part that grew with each lever, and the part each lever had been trimming from the others to fit.
+
+**The fix.** `mcp.ts` inlines the schema through `compactSchema`: every `description` is cut to its first sentence, plus any leading `OPTIONAL`/`OPT-IN` tag, and every other keyword is verbatim. Validation is unchanged. A summary is always a prefix of the full text, so no prose is authored twice and the two cannot disagree. `list_levers` takes an optional `describe: [field]` and returns those fields exactly as the file has them, plus every `$defs` entry they reach through `$ref`, transitively. The tool names are unchanged, and a `list_levers` call with no arguments returns the same catalogue. `theme_brand`'s description says its field descriptions are summaries and names where the full text is. `tools/list` is now **42,314** characters.
+
+**Alternatives, measured against this.** (b) *Raise the limit:* ruled out by the owner on 2026-09-15, and it would only move the wall. (c) *Split `theme_brand`:* the brand schema has to sit on whichever tool takes the brand, so a split renames tools without shrinking the list. It would also change the agent-facing catalogue. *`$ref` dedupe of the repeated per-rung descriptions* (seven identical `lineHeights` leaves, six `letterSpacings`, seven `families`): it saves a few thousand characters once but does nothing for the next lever's prose. *Trimming:* the approach this replaces. *MCP resources (#539):* a new server capability and a second fetch path for clients. `describe` does the same job on a tool agents are already told to call first.
+
+**The gate.** Both copies now fail at **55,000**: 5,000 characters of stated headroom under the 60,000 wall. A compacted top-level field measured a median ~220 characters, so that is room for about 20 levers at ~250 each. The full headroom from 42,314 is about 50. `test.ts` also walks the inline schema against the file with its own walker, not `compactSchema`, and asserts five things. Every non-description keyword matches. Every description is a non-empty prefix of the file's text. Every summary is the whole text or ends in `.` where the full text goes on with whitespace: a cut-point check that does not reuse the splitter. Every summary is at most **200 characters**; this cap is what makes the headroom figure hold. `describe` over every field returns the file's properties and `$defs`, deep-equal. There are also literal expectations: `radiusHairline`'s summary, and that `e.g.` and `{ desktop?, mobile? }` do not end a sentence. `mcp-test.ts` adds a `describe` call over the real stdio transport.
+
+**Schema prose.** Four descriptions had a first sentence over 200 characters (`modeLevers.easings`, `modeLevers.letterSpacings`, `modeLevers.tempo`, `linkStateRungs`). Each was split into two sentences at a semicolon or a comma, and the facts are unchanged. `radiusHairline` got back the cue #1759 cut: it is the way to a near-sharp 1px corner, which `radiusScale`/`baseMd` cannot reach. The brand example the issue quotes stays out, because this is a public repo.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).** (M1) Adding a synthetic lever whose single first sentence is 657 characters fails `MCP: every inline schema description summary is at most 200 chars … (over: #/properties/syntheticLever (657))`, and nothing else fails. (M2) Inlining the uncompacted schema fails the headroom arm in both suites (60,613 chars), plus the cap and the three literal-summary arms. (M3) Making `describe` return compacted prose fails `MCP: list_levers describe returns every BrandInput field exactly as the schema file has it` and the `radiusHairline` full-text arm. (M4) Making compaction drop `enum` fails `MCP: the inline brand schema matches the file in every keyword but description` by path. (M6) Adding 55 synthetic median-size levers, each with ~700 characters of full prose, fails the headroom arm in both suites at 55,429: before the 60,000 wall, at ~240 inline characters a lever.
+
+**Review follow-ups (same PR).** The independent review approved with two mutations of its own, each failing by name: `referencedDefs` not following `$ref` chains, and dropping the `e.g.` guard. Then four changes. (1) "catalogue" → "catalog" in `list_levers`' description and in its `describe` argument's description, both shipped agent-facing text. The US-English and voice gates do not scan MCP tool strings; that gap is filed separately, not widened here. (2) The `compactSchema` comment claimed ~33,000; the measured list is 42,314. (3) The prefix arm accepted a summary cut mid-word, so the cut-point arm above was added. Mutation: a summarizer that cuts at 150 characters fails `MCP: every inline schema summary is the full text or ends at a "." … never cut mid-word` by path, plus two literal-summary arms. (4) `list_levers`' `outputSchema` is now `anyOf` over the two `required` sets, catalog fields or `described`, instead of having no `required` at all. The root stays `type: 'object'`, which is what MCP asks of an output schema, and the anyOf adds 85 characters to `tools/list`. Mutation: dropping the `anyOf` fails `MCP: list_levers outputSchema is anyOf [catalog fields] | [described]` and `MCP: both list_levers result shapes … satisfy its outputSchema`.
+
+**Trap for whoever re-verifies.** The sentence splitter treats only `.` followed by whitespace and a non-lowercase character as a sentence end, and it skips `e.g.`/`i.e.`. A new description whose first sentence ends some other way (a `?`, or a `.` before a lowercase word) runs into the next sentence. The 200-character cap then fails by name, and the fix is punctuation in `theme-schema.json`, not raising the cap.
+
+---
+
 ## (2026-09-30) — resolvePreview names a type binding the brand does not emit, instead of resolving it to 0px (#1720)
 
 **STATUS: merging from `lane/resolve-preview-missing-binding` (#1802).** ENGINE 0.212.0 → **0.213.0** (a read-model behavior change; `out/**` and `schema/*` move only their version stamp). 0.213.0 was claimed while `main` carried 0.211.0 and an open lane held 0.212.0 (#1799, since merged). CONTRACT stands at 14.0.0. Fixes #1720.
@@ -91,7 +147,7 @@ Gate side, each failing the self-check by name:
 
 ## (2026-09-29) — Style guide, phase 2: dimension, font-variable and text-style tables (#259)
 
-**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE **0.216.0** (0.200.0, then 0.205.0 after main's 0.203.0 was merged in, then 0.210.0 above #1792–#1794; renumbered above main's 0.213.0 and #1804's 0.214.0; #1784's release is 0.215.0 here). Also fixes #1795, a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
+**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE, stacked on #1784 (`lane/style-guide-filter-yield`). Part of #259.** ENGINE **0.218.0** (0.200.0, then 0.205.0 after main's 0.203.0 was merged in, 0.210.0 above #1792–#1794, then 0.216.0; renumbered above main's 0.215.0 and the 0.216.0 `lane/set-placement` claims; #1784's release is 0.217.0 here). Also fixes #1795, a plugin behavior change. `out/**` and `schema/*` are a stamp-only regen; CONTRACT STANDS at 13.2.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
 
 **Why.** Phase 2 of the owner's plan (#259, `docs/45` §5): the tables for dimension and typography, the owner's REM and pixel options, and the spacing cell set that phase 1 built and nothing read.
 
@@ -224,7 +280,7 @@ Each mutation's diff was checked non-empty, and every run executed the whole sui
 
 ## (2026-09-29) — Style guide: one table at a time, yielding to Figma, one run at a time, a header that spans its table and the owner's HUG grid (#1778, #1785, #259)
 
-**STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE **0.215.0** (0.199.0 on its own branch; renumbered on #1788's branch, 0.204.0, then 0.209.0, then above main's 0.213.0 and #1804's 0.214.0), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
+**STATUS: PR #1784 open from `lane/style-guide-filter-yield`, labeled DO NOT MERGE. Closes #1778; part of #1785 and #259.** ENGINE **0.217.0** (0.199.0 on its own branch; renumbered on #1788's branch, 0.204.0, 0.209.0, 0.215.0, then above main's 0.215.0 and the 0.216.0 `lane/set-placement` claims), a plugin behavior change. `out/**` and `schema/token-contract.json` are a stamp-only regen. CONTRACT stands at 13.2.0.
 
 **Why.** The owner's first full live run drew 41 tables in about 4.7 minutes and held Figma and the plugin for all of it (#1778). While the basics are debugged, the owner wants to run one table, or a few, and work up to all of them. Two scope additions came from the owner mid-lane (2026-09-29), both recorded as `docs/45` §2 decisions 10 and 11.
 

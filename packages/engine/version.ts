@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.216.0 — #259 phase 2 and #1795 (0.200.0, 0.205.0, then 0.210.0, on its branch; renumbered above main's 0.213.0 and #1804's 0.214.0): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
+ * 0.218.0 — #259 phase 2 and #1795 (0.200.0, 0.205.0, 0.210.0, then 0.216.0, on its branch; renumbered above main's 0.215.0 and the 0.216.0 `lane/set-placement` claims): the style-guide generator draws DIMENSION, FONT-VARIABLE and TEXT-STYLE tables. One
  * `dimension` table per collection (spacing and size as a spacing cell at the value's width, its width bound; a radius
  * as the radius swatch, its corners bound), one table per font kind per collection ("Abc 123" with the one property
  * bound), and one text-style table ("Abc 123" with the style applied, sizes per `type-sets` mode). Values in px and
@@ -2955,7 +2955,7 @@
  * agent link accepts and ignores `pixels`, named in the run's notes), and a text style's letter spacing and
  * paragraph spacing get REM columns.
  *
- * 0.215.0 — #1778 + #259 (0.199.0 on its own branch, 0.204.0 then 0.209.0 here earlier; renumbered above main's 0.213.0 and #1804's 0.214.0) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
+ * 0.217.0 — #1778 + #259 (0.199.0 on its own branch, 0.204.0, 0.209.0, then 0.215.0 here earlier; renumbered above main's 0.215.0 and the 0.216.0 `lane/set-placement` claims) (owner decisions, 2026-09-29): the style-guide generator runs ONE TABLE AT A TIME.
  * A `tables` option (panel Customize field, agent-link arg) draws only the tables named, by title or key; an
  * unknown name is reported; a filtered run supersedes nothing and re-stacks only its own pages. The executor
  * yields to the host after every table and every ~28 cells (the component writer's `realYield`), and reports
@@ -2968,6 +2968,29 @@
  * cell, a filtered run that moves only the tables below the ones it redrew, and one style-guide run at a time
  * across the panel and the agent link (#1785). Owner decision 13, clarified: the specimen by role, with a ground
  * only where it must sit on something — a palette row's swatch sits in its cell with no ground.
+ * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
+ * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
+ * into the old set, because find-or-create matches the set by NAME and every planned member name was new, so
+ * nothing matched and nothing read STALE. Figma reports a set whose members disagree on the axis list as broken.
+ * The plugin executor (`apps/plugin/src/write-components.ts`) now reads the existing set's axis lists off its
+ * coordinate-shaped member names and, when any differs from the plan's, REFUSES: nothing is built, appended or
+ * stamped, and one miss names both lists and the remedy (rename the old set, build again). Axis NAMES only — a
+ * new value on the same axes still appends. A PLUGIN write-path behavior change → ENGINE bump; no engine
+ * emission or projected surface moves. CONTRACT STANDS at
+ * 14.0.0 (no token name moves).
+ *
+ * 0.214.0 — #1760: MCP `tools/list` inlines the brand schema COMPACTED. Every `description` in
+ * `theme_brand`'s `brand` schema is cut to a one-line summary (its first sentence, plus any leading
+ * OPTIONAL/OPT-IN tag), and every other keyword is verbatim, so validation is unchanged. `list_levers`
+ * gains an optional `describe: [field]` argument that returns the named fields' full schema entries and
+ * the `$defs` they reference. `tools/list` drops from 59,969 to 42,314 characters, against a
+ * 60,000 ceiling it had been meeting by trimming lever guidance. The gate now fails with 5,000 characters
+ * of headroom left (room for ~20 more levers), and caps each inline summary at 200 characters. Four
+ * schema descriptions were split at a semicolon or comma so their first sentence fits that cap.
+ * `radiusHairline` gets back its when-to-use cue. A change to shipped MCP output → ENGINE bump. `out/**` and
+ * `token-contract.json` move only their version stamp; `theme-schema.json` moves description prose only.
+ * CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
  * 0.213.0 — #1720: `resolvePreview` no longer resolves a type binding the brand does not emit to
  * `sans-serif / 0 / 0px`. It read `node?.$value ?? {}` and every accessor after it fell through to its own
  * default. The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and two legal
@@ -4326,7 +4349,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.216.0';
+export const ENGINE_VERSION = '0.218.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -661,6 +661,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         // components now sit under the folder and how many this run built.
         ? `${r.emittedComponents.length} '${r.set}/…' components (+${r.added} built, ${r.skipped} already present` +
           `${r.stale ? `, ${r.stale} stale` : ''})${missNote}${stale ? `. ${stale}` : ''}`
+        // #1780: a refusal is `set: null` too, but there IS a set on the page — the one left untouched.
+        : r.axesChanged
+          ? `nothing built — set '${r.axesChanged.set}' on this page varies by different axes and was left as it is${missNote}`
         : r.set === null
           ? `nothing assembled — no set on this page and no member built${missNote}`
           : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
