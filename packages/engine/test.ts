@@ -6307,10 +6307,17 @@ arm: {
 // scales legitimately snap rungs together, but a rung is never SMALLER than its predecessor.
 // A non-monotone input (negative scale) trips the gate.
 {
+  // Every call is wrapped (#1852 review): `radiusScale` THROWS on a non-monotone ladder, and an unwrapped
+  // throw here aborted the whole suite before any later block ran, so a rung that ignored the lever surfaced
+  // as a crash instead of as a named failure.
+  const rampOrError = (s: number): ReturnType<typeof radiusScale> | string => {
+    try { return radiusScale(s); } catch (e) { return (e as Error).message; }
+  };
   for (const s of [0, 0.25, 0.5, 1, 1.5, 2]) {
-    const ladder = radiusScale(s).filter((r) => !r.pill);
-    const mono = ladder.every((r, i) => i === 0 || r.px >= ladder[i - 1].px);
-    ok(mono, `L-03: radiusScale(${s}) is weakly monotone (${ladder.map((r) => r.px).join('≤')})`);
+    const got = rampOrError(s);
+    const ladder = typeof got === 'string' ? [] : got.filter((r) => !r.pill);
+    const mono = typeof got !== 'string' && ladder.every((r, i) => i === 0 || r.px >= ladder[i - 1].px);
+    ok(mono, `L-03: radiusScale(${s}) is weakly monotone (${typeof got === 'string' ? `threw: ${got}` : ladder.map((r) => r.px).join('≤')})`);
   }
   ok(radiusScale(0).filter((r) => !r.pill).every((r) => r.px === 0), 'L-03: scale=0 collapses the ladder to all-sharp by design (equality allowed)');
   ok(radiusScale(0.25).filter((r) => !r.pill).map((r) => r.px).join(',') === '0,0,2,2,2,4,4', 'L-03: a small scale quantises onto the 2px sub-grid (none=sm=0, md=lg=xl=2, 2xl=3xl=4) — a documented resolution limit, not a bug');
@@ -6318,7 +6325,9 @@ arm: {
   // monotone and Math.max(0,·)/snap2 preserve that for any scale ≥ 0, so no scalar
   // input can violate it — it guards a FUTURE non-monotone ladder edit. Assert the
   // property holds at the extremes rather than trying to force the (unreachable) throw.
-  ok(radiusScale(1000).filter((r) => !r.pill).every((r, i, a) => i === 0 || r.px >= a[i - 1].px), 'L-03: monotonicity holds even at an absurd scale (gate never false-trips a valid ladder)');
+  const absurd = rampOrError(1000);
+  ok(typeof absurd !== 'string' && absurd.filter((r) => !r.pill).every((r, i, a) => i === 0 || r.px >= a[i - 1].px),
+    `L-03: monotonicity holds even at an absurd scale (gate never false-trips a valid ladder)${typeof absurd === 'string' ? ` — threw: ${absurd}` : ''}`);
 }
 
 // #1852 — the CONTAINER radius rungs `xl` / `2xl` / `3xl` (owner decision 2026-09-30: 8 / 12 / 16px at scale
@@ -6337,8 +6346,13 @@ arm: {
     '1.5': { none: 0, sm: 4, md: 6, lg: 10, xl: 12, '2xl': 18, '3xl': 24 },
     '2':   { none: 0, sm: 4, md: 8, lg: 12, xl: 16, '2xl': 24, '3xl': 32 },
   };
+  // Wrapped: `radiusScale` throws on a non-monotone ladder, and a rung that ignores the lever can make it
+  // non-monotone at a legal stop. That must read as a named failure here, not abort the suite.
+  const ramp1852 = (scale: number, baseMd?: number): ReturnType<typeof radiusScale> => {
+    try { return radiusScale(scale, baseMd); } catch (e) { return [{ name: `threw: ${(e as Error).message}`, px: NaN }]; }
+  };
   for (const [scale, want] of Object.entries(EXPECT_1852)) {
-    const got = radiusScale(Number(scale));
+    const got = ramp1852(Number(scale));
     for (const rung of ['xl', '2xl', '3xl'])
       ok(got.find((r) => r.name === rung)?.px === want[rung],
         `#1852 container rung: radius.${rung} at radiusScale ${scale} is ${want[rung]}px (got ${got.find((r) => r.name === rung)?.px})`);
@@ -6347,10 +6361,10 @@ arm: {
     ok(ladder === wantLadder, `#1852 container rung: the scaled ladder at radiusScale ${scale} is ${wantLadder}, in that order (got ${ladder})`);
   }
   // The anchor lever moves them too: baseMd 6 at scale 1 → xl 12, 2xl 18, 3xl 24.
-  const md6 = radiusScale(1, 6).filter((r) => ['xl', '2xl', '3xl'].includes(r.name)).map((r) => r.px).join(',');
+  const md6 = ramp1852(1, 6).filter((r) => ['xl', '2xl', '3xl'].includes(r.name)).map((r) => r.px).join(',');
   ok(md6 === '12,18,24', `#1852 container rung: baseMd 6 moves xl/2xl/3xl to 12/18/24px (got ${md6})`);
   // The largest legal input (baseMd 12, radiusScale 2) keeps 3xl a corner: 96px, under round's 128px pill.
-  const top = radiusScale(2, 12);
+  const top = ramp1852(2, 12);
   ok(top.find((r) => r.name === '3xl')?.px === 96 && top.find((r) => r.name === 'round')?.px === 128,
     `#1852 container rung: at baseMd 12 and radiusScale 2, 3xl is 96px and stays under round's 128px (got ${top.find((r) => r.name === '3xl')?.px})`);
 

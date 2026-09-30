@@ -62,6 +62,14 @@
  *                          curated subset. But it must be a DECISION, not an oversight — the posture
  *                          `lint-context-nodes` takes with `LEAF_OK`. A rung added to the engine and
  *                          forgotten in the studio fails here rather than quietly never rendering.
+ *   C  STALE OMISSION    — an `omits` entry for a rung the authored list now SHOWS. Arm B alone is
+ *                          one-directional (docs/34, the #387 shape): once the studio lists the rung,
+ *                          the declaration is a false record and the clean line's "every rung the
+ *                          studio omits is declared" is printed over it. Added with #1852, whose
+ *                          container rungs sit in `omits` until #1881 renders them.
+ *   D  UNKNOWN OMISSION  — an `omits` entry naming no rung of any exercised brand's ladder: a typo, or
+ *                          a rung the engine removed. It excuses nothing, so it is an entry nobody can
+ *                          check.
  *
  * ── WHAT THIS DOES NOT CHECK, stated rather than implied ───────────────────────────────────────
  *
@@ -383,11 +391,13 @@ for (const ramp of RAMPS) {
 
   let exercised = 0;
   const undeclared = new Set<string>();
+  const everyRung = new Set<string>();
   for (const b of corpus) {
     const ladder = ramp.ladder(b);
     if (ladder === null) continue; // this brand cannot answer for this ramp — counted below, not hidden
     exercised++;
     const rungs = new Set(ladder);
+    for (const r of ladder) everyRung.add(r);
 
     // ARM A — an authored step the ladder does not have. This is #1177.
     for (const step of steps) {
@@ -421,6 +431,21 @@ for (const ramp of RAMPS) {
         `\`omits\` with the reason. A rung added to the engine and forgotten in the studio never renders.`,
     );
   }
+  // ARMS C + D — the omissions themselves, checked in the other direction (#1852 review).
+  for (const rung of Object.keys(ramp.omits ?? {})) {
+    if (steps.includes(rung)) {
+      failures.push(
+        `STALE OMISSION — \`${ramp.name}\`'s \`omits\` declares '${rung}', but ${STUDIO_LABEL}'s list now ` +
+          `shows it. The declaration no longer describes the studio: remove it from \`omits\`.`,
+      );
+    } else if (exercised && !everyRung.has(rung)) {
+      failures.push(
+        `UNKNOWN OMISSION — \`${ramp.name}\`'s \`omits\` declares '${rung}', which is not a rung of ` +
+          `${ramp.source} for any of the ${exercised} theme(s) compared. A typo, or a rung the engine ` +
+          `removed: it excuses nothing, so remove it or fix the name.`,
+      );
+    }
+  }
   const omitted = ramp.omits ? ` · ${Object.keys(ramp.omits).length} declared omission(s)` : '';
   lines.push(`  ${ramp.name.padEnd(15)} ${String(steps.length).padStart(2)} steps ⊆ ${ramp.source} — ${exercised} theme(s)${omitted}`);
 }
@@ -441,6 +466,6 @@ if (failures.length) {
 
 console.log(
   `\n  ✓ clean — every authored ramp step resolves to a real rung of its ladder, and every rung the ` +
-    `studio omits is declared. Note the limit: this proves the NAME exists in the ladder, not that the ` +
+    `studio omits is declared, and every declared omission is a real rung the studio does not show. Note the limit: this proves the NAME exists in the ladder, not that the ` +
     `map the ramp reads carries a value for it.`,
 );
