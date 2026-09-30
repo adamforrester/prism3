@@ -2744,6 +2744,17 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.217.0 — folded 2026-09-30 from 1 change note, newest merge first.
+ *
+ * [lane-link-palette-default · minor · 25aa1446] #1812: `schema/lever-manifest.json` stops stating `linkPalette: default 'primary'`. The engine has no
+ * static default for it: an unset `linkPalette` resolves to whatever `actionPalette` resolves to
+ * (`theme.ts`, `input.linkPalette ?? actionPalette`), so on an accent- or neutral-action brand (aurora,
+ * nb-redesign) the manifest named the wrong palette, and any surface or agent rendering "Auto" from it would
+ * too. The lever's description already said "Defaults to following the action palette". New gate: every
+ * lever's manifest default must be a no-op when stated explicitly, measured by running the engine (the DTCG
+ * tree, `test.ts`) and the component materializer (`apps/plugin/test-write-components.ts`) with the lever
+ * unset and set, with a per-(lever, value) sensitivity list for the values only the materializer sees. A shipped manifest change → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
  *
  * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
@@ -4331,7 +4342,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.216.0';
+export const ENGINE_VERSION = '0.217.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
