@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-09-29) — Rung names: the scope floor names every size-axis def, checked in both directions (#1724)
+
+**STATUS: PR open from `lane/rung-names-floor`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-rung-names.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252); `regen --check` stays in sync. Fixes #1724.
+
+**The defect.** `MUST_COVER` said it named "every def carrying a size axis today" and listed 11. The run checks 20 by name. The nine outside the floor were `spinner`, the three control atoms (`checkbox-control`, `radio-control`, `switch-control`), the four button and icon-button siblings, and `tag`, which landed after #1724 was filed. Any of them could stop being reached (deleted, filtered out of the loop, or its axis dropped and admitted to `NO_SIZE_AXIS`) and the gate reported `✓` over a smaller set. That is `docs/34`'s scope-silence rule, forward half only.
+
+**The fix.** `MUST_COVER` now lists all 20, as a literal. Deriving it from `componentDefs` or from the run's `covered` set would make it agree with every run. The gate also checks the converse: a def the run checked that `MUST_COVER` does not list fails `SCOPE NOT PROMISED: '<id>'`. That half is what keeps the list whole (`docs/34`, #387: forward alone polices only what someone remembered to promise, and here it had fallen nine defs behind). A new size-axis def now fails until it is listed, which `skills/prism3-build-component/SKILL.md`'s gate table already tells an author to do.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`; the same edit run against `origin/main`'s gate for contrast).**
+
+| Mutation | This branch | `main` |
+|---|---|---|
+| skip `spinner` in the def loop | `SCOPE NOT REPRESENTED: 'spinner'`, 1 failure | `✓`, 0 |
+| skip `checkbox-control` | `SCOPE NOT REPRESENTED: 'checkbox-control'`, 1 | `✓`, 0 |
+| skip `radio-control` | `SCOPE NOT REPRESENTED: 'radio-control'`, 1 | `✓`, 0 |
+| skip `switch-control` | `SCOPE NOT REPRESENTED: 'switch-control'`, 1 | `✓`, 0 |
+| skip `icon-button-destructive` | `SCOPE NOT REPRESENTED: 'icon-button-destructive'`, 1 | `✓`, 0 |
+| skip `tag` | `SCOPE NOT REPRESENTED: 'tag'`, 1 | `✓`, 0 |
+| skip `button-neutral` | `SCOPE NOT REPRESENTED: 'button-neutral'` + the `ICON_OFFSET_DEFS` stale admission, 2 | the stale admission only, 1 |
+| `spinner` drops its `size` prop and `size.*` tokens AND is admitted to `NO_SIZE_AXIS` (#1724's case) | `SCOPE NOT REPRESENTED: 'spinner'`, 1 | `✓`, 0 |
+| drop `tag` from `MUST_COVER` (the converse) | `SCOPE NOT PROMISED: 'tag'`, 1 | n/a |
+
+**Trap for whoever re-verifies.** A mutation that drops a def's axis WITHOUT admitting it to `NO_SIZE_AXIS` fails on `main` too, by the per-def arm ("declares no size axis … not admitted"). That is not the floor firing. The floor's own case is the one where the per-def arm has been satisfied, so admit the def in the mutation, as the table does.
+
+**Review round (independent review, approved).** One nit: the header said `focus-ring` and `field-message` were the defs admitted to `NO_SIZE_AXIS`, when the list holds six. The header now points at the list instead of restating it, so it stays true as defs join. It also said "four" size-axis defs sat outside the floor, when there were nine; that is corrected too. Comment-only; merged `origin/main` (#1797's entry kept alongside this one).
+
+---
+
 ## (2026-09-29) — Dismissible Tag: a fixed 4px label inset, and the gap floor on the distance the eye reads
 
 **STATUS: PR open from `lane/tag-dismissible-inset`, labeled DO NOT MERGE.** ENGINE 0.211.0 → **0.212.0** (branched at 0.208.0; `main` carries 0.211.0 from #1797, merged in; 0.209.0 and 0.210.0 are held by #1788). CONTRACT STANDS at 14.0.0 (`token-contract --check`: no guaranteed path moved; `--accept` changed `engineVersion` only). Decision record: `docs/28` §5.4.4, indexed in `docs/42`.
