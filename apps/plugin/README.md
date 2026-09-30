@@ -303,7 +303,7 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   Gate: `test-agent-bridge.ts`.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
-The iframe entry is now `src/ui/entry.ts`: it imports `apps/studio/src/main.ts` whole and unchanged (one UI,
+The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,
 no fork) and mounts the agent-link chip beside it, so the web build carries none of it.
 
 ## Run
@@ -327,7 +327,7 @@ found on boot.
 
 ## ⚠️ The plugin does NOT auto-update when the web UI changes
 
-The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines `apps/studio/src/main.ts` into
+The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines the studio UI (entry `apps/studio/src/entry.ts`) into
 `dist/ui.html` at build time (it must: the iframe has no server and ships zero network access). So
 `dist/` is a **gitignored build artifact** that only reflects `apps/studio/src` as of the last build. **Editing
 `apps/studio/src` — or pulling web-lane changes on `main` — does nothing to the plugin until you rebuild.** This

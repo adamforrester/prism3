@@ -100,6 +100,13 @@ reset();
 store.rebuild();
 ok(same(heard, { brand: 1, origin: 0, mode: 0, page: 0 }), `rebuild() invalidates brand only (heard ${JSON.stringify(heard)})`);
 reset();
+// A refused edit still fires `brand`: the field shows the refused value and the error bar has to repaint.
+store.brandState.actionPalette = 'not-a-palette';
+store.rebuild();
+ok(store.lastError !== null && same(heard, { brand: 1, origin: 0, mode: 0, page: 0 }), `a refused rebuild() still invalidates brand (heard ${JSON.stringify(heard)})`);
+delete store.brandState.actionPalette;
+store.rebuild();
+reset();
 store.setCurrentMode('dark');
 ok(store.currentMode === 'dark' && same(heard, { brand: 0, origin: 0, mode: 1, page: 0 }), 'setCurrentMode sets the mode and invalidates mode only');
 reset();
