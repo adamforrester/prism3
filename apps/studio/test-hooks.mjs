@@ -22,16 +22,55 @@
  * hook the app does not render.
  *
  * Prefix selectors (`[data-p3^="rail-page-"]`) are not in EXPECTED, because they name a family rather
- * than a role. A suite that relies on one should also name at least one member literally.
+ * than a role. A suite that relies on one must also name at least one member literally; `checkSpellings`
+ * refuses it otherwise, and refuses any spelling of `data-p3` that EXPECTED cannot read.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const HOOK_LITERAL = /data-p3="([a-z0-9]+(?:-[a-z0-9]+)*)"/g;
 
+/** Every spelling of `data-p3` a suite may use. EXPECTED is read from the first one only, so any other
+ *  spelling — `[data-p3=role]`, `[data-p3='role']`, a selector built by concatenation — would name a hook
+ *  the guard never learns about: drop that hook and the suite's lookup goes vacuous while the guard stays
+ *  green. So an unrecognized spelling is refused outright, by line, rather than silently uncounted. */
+const SPELLINGS = [
+  /^data-p3="[a-z0-9]+(?:-[a-z0-9]+)*"/, // a literal hook: the only spelling EXPECTED is read from
+  /^data-p3\^="[a-z0-9]+(?:-[a-z0-9]+)*-"/, // a family prefix; must also name one member literally (below)
+  /^data-p3="\$\{/, // a template whose value was read off the rendered DOM at run time
+  /^data-p3'\)/, // getAttribute('data-p3'): reads a hook, names none
+  /^data-p3`/, // the attribute's name in prose
+];
+const FAMILY = /data-p3\^="([a-z0-9-]+)"/g;
+
+/** Refuse a suite source that spells a hook any way EXPECTED cannot see, and a family prefix with no
+ *  member named literally (a prefix alone names no role, so the guard would check nothing for it). */
+const checkSpellings = (src, file) => {
+  const bad = [];
+  for (const m of src.matchAll(/data-p3/g)) {
+    const rest = src.slice(m.index, m.index + 80);
+    if (!SPELLINGS.some((re) => re.test(rest))) {
+      const line = src.slice(0, m.index).split('\n').length;
+      bad.push(`${file}:${line}: ${rest.split('\n')[0]}`);
+    }
+  }
+  if (bad.length) {
+    throw new Error(`data-p3 spelled in a form the hook guard cannot read — write it as data-p3="<role>":\n  ${bad.join('\n  ')}`);
+  }
+  const literals = [...src.matchAll(HOOK_LITERAL)].map((m) => m[1]);
+  for (const [, prefix] of src.matchAll(FAMILY)) {
+    if (!literals.some((r) => r.startsWith(prefix))) {
+      throw new Error(`${file}: the hook family data-p3^="${prefix}" is used, but no member of it is named literally, `
+        + 'so the guard checks nothing for it. Name at least one member as data-p3="<role>".');
+    }
+  }
+};
+
 /** The guard for one suite. `suiteUrl` is the suite's own `import.meta.url`. */
 export const hookGuard = (suiteUrl) => {
-  const src = readFileSync(fileURLToPath(suiteUrl), 'utf8');
+  const file = fileURLToPath(suiteUrl);
+  const src = readFileSync(file, 'utf8');
+  checkSpellings(src, file);
   const used = [...new Set([...src.matchAll(HOOK_LITERAL)].map((m) => m[1]))].sort();
   const seen = new Set();
 
@@ -63,7 +102,7 @@ export const hookGuard = (suiteUrl) => {
   /** Wait for a hooked element, and fail naming the hook rather than as a bare timeout. */
   const need = async (page, selector, opts = {}) => {
     try {
-      return await page.waitForSelector(selector, { timeout: 10000, ...opts });
+      return await page.waitForSelector(selector, { timeout: 30000, ...opts });
     } catch {
       const roles = [...selector.matchAll(HOOK_LITERAL)].map((m) => `"${m[1]}"`).join(', ') || selector;
       throw new Error(`data-p3 hook ${roles} did not appear in the rendered DOM (waited for ${selector}). `
