@@ -44,7 +44,10 @@ one at a time. Now:
   with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
   usual shape. **Every PR carries one, except a fold** (owner decision, 2026-09-30):
   `lint-progress-order.ts` fails a PR that adds no fragment, and a heading written straight into
-  the log does not count. A fold is exempt because it consumes fragments rather than adding one.
+  the log does not count, and outside a fold adding one fails. A **pure** fold is exempt because it
+  consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
+  the log, and it touches nothing but the log, the pending directories, `version.ts` and `out/`. A fold
+  PR that also fixes a semantic conflict carries a fragment for the fix.
 - **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
 
   ```
@@ -55,7 +58,8 @@ one at a time. Now:
   ```
 
   It declares the class and never picks a number. **The class:** `minor` for any behavior change;
-  `patch` only when no committed artifact moves (`regen --check` clean before and after); `major` is
+  `patch` only when no committed artifact and no projected component surface moves (`regen --check`
+  clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
   refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
   takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog, the version
   stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
@@ -72,6 +76,12 @@ shared lines.
 its merge base predates the FOLD MARKER, so `lint-emission-version.ts` prints "not yet in force" for
 the one-writer check. CI tests the merge with the current `main`, where it is in force. Merge `main`
 before trusting a local green.
+
+**`npm run verify` on a plain checkout of `main` is red by design.** There, HEAD is its own base, so
+`lint-progress-order.ts` finds no diff to hold an entry in and fails CARRIES AN ENTRY rather than
+printing a pass it did not check. CI's push run on `main` skips that one arm by
+`GITHUB_EVENT_NAME=push`. To check `main`'s health locally, do the same:
+`GITHUB_EVENT_NAME=push npm run verify`. Or read `main`'s latest push run in CI.
 
 ### Reverting a merged PR that has not been folded yet
 

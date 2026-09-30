@@ -48,3 +48,13 @@
 - **Every PR but a fold carries a fragment** (owner decision). A fold is recognized by content, never by branch name: it deletes a pending fragment or note, and the FOLDED ENTRIES arm passed. The arm is skipped only on a push run; elsewhere a HEAD equal to its base fails. This PR's own entry moved from the log into this file.
 - **No literal double brace in the log or the changelog.** The reviewer's mutation, a fold that never substituted, left the placeholder in the log with every gate green. Both gates now fail it by name, and a fragment or note carrying a double brace other than the placeholder fails its shape arm, since the fold would copy it into the log.
 - **Docs:** how to revert a merged PR that is not folded yet (keep its note and fragment, add your own), one fragment and one note per entry in the migration steps, and that a branch which has not merged `main` since this landed can pass locally and fail in CI.
+
+### Re-review round (#1823 at 398d8e12: all seven fixes confirmed, five more)
+
+- **A PR carrying a fragment could still write into the log (MEDIUM).** Outside a fold-shaped diff, adding a heading to the log now fails (ONE WRITER for the log), fragment or not.
+- **A normal PR could pass as a fold (MEDIUM)** by changing a file, adding no fragment and hand-moving another PR's fragment into the log. A fold is now exempt from carrying a fragment only if it is PURE: it touches nothing but the log, the pending directories, `version.ts` and `out/`. A fold PR that fixes a semantic conflict carries a fragment for the fix.
+- **A fold that deleted the notes and left the fragments passed both gates (MEDIUM, the reviewer's surviving mutation).** It surfaced one fold late, blamed on the wrong fold. A pending fragment whose title is already an entry in the log now fails.
+- **A patch note passed over a moved component surface (LOW).** `component-surface.json` is outside regen's list, so the emission gate never saw it. Arm B and `--accept` now count only `minor` or `major`.
+- **The first fold's section ran to the end of the comment (LOW).** It now ends at the first header naming another version.
+- **Docs:** `npm run verify` on a plain checkout of `main` is red by design, because HEAD is its own base and CARRIES AN ENTRY has no diff to read; `GITHUB_EVENT_NAME=push npm run verify` checks `main` the way CI's push run does.
+- **#1817 merged first.** The shared sentences were resolved by hand (the PR template's emission row, the build-component skill). The contract baseline carries no `engineVersion`, so the stamp-only `--accept` step `fold.ts` printed while it existed never fires now; it was removed rather than left as dead code.

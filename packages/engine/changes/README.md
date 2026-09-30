@@ -15,7 +15,8 @@ where the number goes; the fold fills it in.
 - **`engine` — the bump-class policy:**
   - **`minor`** for any behavior change. Every bump before #1807 was one.
   - **`patch`** only when no committed artifact changes (`regen --check` clean before and after).
-    `lint-emission-version.ts` refuses a patch note over a moved emission.
+    `lint-emission-version.ts` refuses a patch note over a moved emission, and
+    `lint-component-surface.ts` does not count one over a moved component surface.
   - **`major`** is refused while `ENGINE_VERSION` is below 1.0, by the gate and by the fold. Going to 1.0
     is the owner's decision.
   - The fold takes the highest class in the batch. A change that owes no bump carries no note.

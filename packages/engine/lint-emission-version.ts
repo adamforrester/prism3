@@ -463,10 +463,12 @@ if (!markerAtBase) {
   else if (first < 0 || HEADER.exec(lines[first])![1] !== headVersion)
     fails.push(`the first section under the FOLD MARKER is headed ${first < 0 ? '(nothing)' : HEADER.exec(lines[first])![1]}, not ${headVersion}`);
   else {
-    // The section ends at the NEXT FOLD's header, or the comment's end — never at any line that merely
-    // opens with a version, which a note's own prose could do (#1823 review; NOTE SHAPE also refuses it).
+    // The section ends at the NEXT FOLD's header, at the first header of ANOTHER version (the first fold
+    // is followed by the pre-#1807 entries, whose headers name older versions; #1823 re-review), or at
+    // the comment's end. A line naming THIS version never ends it: a note line led by the placeholder
+    // becomes exactly that, which is the #1823 HIGH case (NOTE SHAPE refuses it too).
     const FOLD_HEADER = /^ \* \d+\.\d+\.\d+ — folded \d{4}-\d{2}-\d{2} from /;
-    let end = lines.findIndex((l, i) => i > first && (FOLD_HEADER.test(l) || l.trim() === '*/'));
+    let end = lines.findIndex((l, i) => i > first && (FOLD_HEADER.test(l) || (HEADER.test(l) && HEADER.exec(l)![1] !== headVersion) || l.trim() === '*/'));
     if (end < 0) end = lines.length;
     const section = squash(lines.slice(first, end).map((l) => l.replace(/^ \*( |$)/, '')).join('\n'));
     for (const n of folded)

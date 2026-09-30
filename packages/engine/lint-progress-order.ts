@@ -96,11 +96,18 @@
  *                    resolution) that deleted a pending fragment without its entry reaching the log.
  *   CARRIES AN ENTRY — every PR adds at least one fragment, except a FOLD (owner decision, 2026-09-30,
  *                    #1807 §7.3). SUBJECT: `git diff --name-status <merge base> HEAD -- docs/progress/pending`.
- *                    A fold is recognized by CONTENT, never by a branch name: the diff deletes a pending
- *                    fragment or change note AND the FOLDED ENTRIES arm passed, so every entry it consumed
- *                    reached the log. A heading written straight into the log counts only that way, inside
- *                    a fold. Skipped ONLY on a push run (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD
- *                    equal to its base or an unresolvable base FAILS rather than printing n/a.
+ *                    A fold is recognized by CONTENT, never by a branch name. FOLD-SHAPED: the diff deletes
+ *                    a pending fragment or change note AND the FOLDED ENTRIES arm passed. PURE: it also
+ *                    touches nothing a fold does not write (the log, the pending directories, version.ts,
+ *                    out/). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
+ *                    semantic conflict carries one for the fix, and a normal PR cannot pass as a fold by
+ *                    hand-moving another PR's fragment into the log. Skipped ONLY on a push run
+ *                    (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD equal to its base or an
+ *                    unresolvable base FAILS rather than printing n/a.
+ *   ONE WRITER (log) — outside a fold-shaped diff, adding a heading to the log fails, whether or not the
+ *                    diff also carries a fragment.
+ *   ALREADY IN THE LOG — a pending fragment whose title is already an entry heading fails: a fold wrote
+ *                    the entry and left the fragment, which the next fold would write again.
  *   NO PLACEHOLDER — the log never carries a literal `{{`: a folded entry still holding `{{ENGINE_VERSION}}`
  *                    was not folded by `fold.ts` (#1823 review).
  *
@@ -218,6 +225,15 @@ for (const f of pendingNow) {
   if (h && h[2].includes('{{')) shapeFails.push(`${where}: the heading carries a placeholder; only the body may (the title is how the gate finds the entry once folded)`);
   const extra = lines.slice(1).findIndex((l) => l.startsWith('## '));
   if (extra >= 0) shapeFails.push(`${where}:${extra + 2}: a second \`## \` heading — a fragment is ONE entry; use \`###\` inside it`);
+}
+// ALREADY IN THE LOG (#1823 re-review, the reviewer's surviving mutation): a pending fragment whose title
+// is already an entry heading means a fold wrote the entry and did not delete the fragment, so the next
+// fold would write it twice, and the failure would surface one fold late, blamed on the wrong one.
+const loggedTitles = new Set(entries.map((e) => e.title));
+for (const f of pendingNow) {
+  const h = HEADING_RE.exec(readFileSync(join(repo, `${PENDING}/${f}`), 'utf8').replace(/\r\n/g, '\n').trim().split('\n')[0] ?? '');
+  if (h && loggedTitles.has(h[2]))
+    shapeFails.push(`${PENDING}/${f}: still pending, and "${h[2]}" is already an entry in ${FILE} — a fold wrote it and left the fragment behind (delete it), or the title repeats an old entry (retitle it)`);
 }
 if (shapeFails.length) {
   failed = true;
@@ -354,22 +370,45 @@ if (foldFails.length) {
     const nd = git('diff', '--name-status', '--no-renames', base, 'HEAD', '--', NOTES);
     if (!nd.ok) cannotRun(`git diff over ${NOTES} failed.`, nd.err);
     const deletedNotes = nd.out.split('\n').map((l) => l.split('\t')).filter((r) => r[0] === 'D' && isFragment((r[1] ?? '').slice(NOTES.length + 1)));
-    // A FOLD, recognized by CONTENT and never by a branch name: it consumes pending files AND everything it
-    // consumed reached the log (the FOLDED ENTRIES arm above passed). A diff that deletes a fragment and
-    // loses its entry is not a fold; it has already failed above, and gets no exemption here either.
-    const isFold = (deletedFrags.length > 0 || deletedNotes.length > 0) && foldFails.length === 0;
+    // A FOLD, recognized by CONTENT and never by a branch name. Two questions, deliberately separate
+    // (#1823 re-review):
+    //   FOLD-SHAPED — it consumes pending files AND everything it consumed reached the log (the FOLDED
+    //                 ENTRIES arm above passed). Only a fold-shaped diff may add headings to the log.
+    //   PURE        — it touches nothing a fold does not write: the log, the two pending directories,
+    //                 version.ts and the regenerated stamps in out/. Only a pure fold is exempt from
+    //                 carrying its own fragment. A fold PR that also fixes a semantic conflict is not
+    //                 pure, so the fix carries a fragment like any other change, and a normal PR cannot
+    //                 dress as a fold by hand-moving someone else's fragment into the log.
+    const FOLD_WRITES = [FILE, `${PENDING}/`, `${NOTES}/`, 'packages/engine/version.ts', 'packages/engine/out/'];
+    const all = git('diff', '--name-only', '--no-renames', base, 'HEAD');
+    if (!all.ok) cannotRun('git diff --name-only failed.', all.err);
+    const touched = all.out.split('\n').map((x) => x.trim()).filter(Boolean);
+    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)));
+    const foldShaped = (deletedFrags.length > 0 || deletedNotes.length > 0) && foldFails.length === 0;
+    const pureFold = foldShaped && beyond.length === 0;
+    const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
+
+    // THE LOG HAS ONE WRITER — outside a fold, no diff adds a heading to it, fragment or not.
+    if (logHeads.length && !foldShaped) {
+      failed = true;
+      console.error(`\n✗ ONE WRITER (log) — this diff adds ${logHeads.length} heading(s) straight into ${FILE} and is not a fold (#1807).`);
+      for (const h of logHeads.slice(0, 5)) console.error(`      ${h.slice(1).slice(0, 110)}`);
+      console.error('  Only fold.ts writes the log. Move the entry into your fragment in ' + PENDING + '/ and drop it from the log.\n');
+    }
+
     if (addedFrags.length) {
       console.log(`  ✓ carries an entry — ${addedFrags.join(', ')}`);
-    } else if (isFold) {
-      console.log(`  ✓ carries an entry: exempt — this diff is a fold (it consumes ${deletedFrags.length} fragment(s) and ${deletedNotes.length} note(s), and every entry reached the log)`);
+    } else if (pureFold) {
+      console.log(`  ✓ carries an entry: exempt — a pure fold (it consumes ${deletedFrags.length} fragment(s) and ${deletedNotes.length} note(s), every entry reached the log, and it touches nothing a fold does not write)`);
     } else {
       failed = true;
-      const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
       console.error(`\n✗ CARRIES AN ENTRY — this diff adds no progress fragment to ${PENDING}/ (#1807).`);
       console.error(`    base ${base.slice(0, 8)} (${baseRef})`);
-      if (logHeads.length)
+      if (logHeads.length && !foldShaped)
         console.error(`    It writes ${logHeads.length} heading(s) straight into ${FILE} instead — the old convention, and the line every PR conflicted on.`);
-      console.error('\n  Every PR carries its progress entry as its own file, except a fold. Add');
+      if (foldShaped && beyond.length)
+        console.error(`    It is fold-shaped but also changes ${beyond.length} file(s) a fold does not write (${beyond.slice(0, 4).join(', ')}${beyond.length > 4 ? ', …' : ''}), so that change carries its own fragment.`);
+      console.error('\n  Every PR carries its progress entry as its own file, except a pure fold. Add');
       console.error(`  ${PENDING}/<your-branch-with-slashes-as-dashes>.md holding ONE entry:`);
       console.error('      ## (YYYY-MM-DD) — <title>');
       console.error('      <what changed, what was decided and why, any trap for whoever re-verifies>');

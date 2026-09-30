@@ -11,7 +11,9 @@
  * `engine: patch|minor|major` in its front matter, and `fold.ts` assigns the number later. So wherever
  * this file says "the bump" below, it has two routes, and either satisfies arm B and `--accept`:
  *
- *   NOTE ROUTE     — a change note in this TREE that the merge base does not have, declaring a bump.
+ *   NOTE ROUTE     — a change note in this TREE that the merge base does not have, declaring `minor` or
+ *                    `major`. A `patch` note does not count: a moved surface is a behavior change, and
+ *                    patch is only for one that moves no committed artifact (#1823 re-review).
  *                    Read off disk, the same side arm B already reads the baseline from (limit 1).
  *   VERSION ROUTE  — `ENGINE_VERSION` moved strictly forward: how a FOLD passes. Unchanged from #1271.
  *
@@ -484,7 +486,7 @@ const baseDefs = (base: string): Record<string, Surface> | null => {
  * named no bump; it is listed so a failure can say why the note did not count.
  */
 const NOTES_DIR = 'packages/engine/changes';
-const declaredBumps = (base: string): { path: string; level: string | null }[] => {
+const declaredBumps = (base: string): { path: string; level: string | null; declared: string | null }[] => {
   const dir = join(repo, NOTES_DIR);
   if (!existsSync(dir)) return [];
   const atBase = git('ls-tree', '-r', '--name-only', base, '--', NOTES_DIR);
@@ -496,11 +498,17 @@ const declaredBumps = (base: string): { path: string; level: string | null }[] =
     .filter((p) => !pending.has(p))
     .map((p) => {
       const m = /^---\nengine:[ \t]*(\S+)[ \t]*\n---\n/.exec(readFileSync(join(repo, p), 'utf8').replace(/\r\n/g, '\n'));
-      return { path: p, level: m && ['patch', 'minor', 'major'].includes(m[1]) ? m[1] : null };
+      // A moved component surface is a behavior change, and the class for that is `minor` (#1807's policy;
+      // #1823 re-review): `patch` is only for a change that moves no committed artifact, and
+      // `component-surface.json` is outside regen's list, so the emission gate cannot see this case.
+      // A patch note is listed, and does not count.
+      return { path: p, level: m && ['minor', 'major'].includes(m[1]) ? m[1] : null, declared: m ? m[1] : null };
     });
 };
-const describeNotes = (notes: { path: string; level: string | null }[]): string =>
-  notes.length ? notes.map((n) => `${n.path.slice(NOTES_DIR.length + 1)} (${n.level ?? 'declares no bump'})`).join(', ') : 'none';
+const describeNotes = (notes: { path: string; level: string | null; declared?: string | null }[]): string =>
+  notes.length
+    ? notes.map((n) => `${n.path.slice(NOTES_DIR.length + 1)} (${n.level ?? (n.declared === 'patch' ? 'patch — too low for a moved surface, declare minor' : 'declares no bump')})`).join(', ')
+    : 'none';
 
 // ---- --accept -------------------------------------------------------------------------------------
 const doAccept = (): void => {
