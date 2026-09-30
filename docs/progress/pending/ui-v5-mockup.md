@@ -1,6 +1,6 @@
 ## (2026-09-30) — UI redesign: concept v5 mockup (the owner's v4 review and style tile A applied)
 
-**STATUS: on `ui/v5-mockup`, not pushed, for the owner to review.** Design artifacts only, all under `docs/superpowers/ui-redesign/`. No engine change and no emitted artifact moves, so no ENGINE bump and `CONTRACT_VERSION` is unchanged. This entry supersedes the v4 and style-tile entries (`ui-v4-mockup.md`, `ui-style-tiles.md`), which are left as they are.
+**STATUS: PR open from `ui/v5-mockup`, labeled DO NOT MERGE, for the owner to review.** Design artifacts only, all under `docs/superpowers/ui-redesign/`. No engine change and no emitted artifact moves, so no ENGINE bump and `CONTRACT_VERSION` is unchanged. This entry supersedes the v4 and style-tile entries (`ui-v4-mockup.md`, `ui-style-tiles.md`), which are left as they are.
 
 **What landed.**
 - `concept-v5.html`, built by `build-v5.mjs` from `concept-v5.src.html`, the default theme's tokens and the real engine (the v4 entry, unchanged).
