@@ -14,9 +14,10 @@
  * backend — no UI change. This is the seam that lets `apps/studio/src` be reused verbatim
  * inside the plugin.
  *
- * PURE-adjacent: imports only the engine's TYPES + DOM. No `node:*`.
+ * PURE-adjacent: imports only TYPES (the engine's, and the plugin's wire contract) + DOM. No `node:*`.
  */
 import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
+import type { UiToMain, StyleGuideOptions } from '../../plugin/src/messages';
 
 type Mode = ResolvedPreview['modes'][number];
 
@@ -96,6 +97,36 @@ export const cssVarAdapter = (scope: HTMLElement): WriteAdapter => ({
  */
 export const makeWriteHost = (scope: HTMLElement): WriteAdapter => cssVarAdapter(scope);
 
+/** A host→UI notification after the adapter has validated it at the boundary. Not a wire type: the
+ *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI
+ *  this `kind`-tagged shape, with defaults filled in (`headline`, `styles`). See `onHostMessage`. */
+export type HostMessage =
+  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
+  // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
+  // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
+  // skeleton get laid" is separately true and separately actionable from a theme or component write,
+  // so it needs its own verdict slot and cannot overwrite theirs.
+  | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+  // #259 — the outcome of a `style-guide` run, its own slot.
+  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+  | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+  // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
+  // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
+  // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
+  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
+  // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
+  // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
+  // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
+  | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
+  | { kind: 'restore-input'; input: unknown }
+  | { kind: 'restore-input-error'; message: string }
+  // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
+  // arriving, which is what absence used to look like, and distinct from `seed-info`'s
+  // `present: false`, which is about VARIABLES in the canvas rather than a stored brand.
+  | { kind: 'restore-input-empty' }
+  | { kind: 'font-list'; families: string[]; styles: number[] };
+
 /** The commit seam: the per-host "apply this theme" action, distinct from the preview.
  *  `web` implementations are the UI's own exporters; `figma` posts to the main thread. */
 export interface HostCommit {
@@ -156,36 +187,7 @@ export interface HostCommit {
    *  `component-progress` (#684) is the one NON-TERMINAL kind: it arrives many times per build and is
    *  superseded by the next one, so it belongs in the pending state rather than a verdict slot. It has no
    *  `ok` for that reason — a fraction is not an outcome. */
-  onHostMessage(
-    cb: (
-      msg:
-        | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
-        | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
-        // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
-        // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
-        // skeleton get laid" is separately true and separately actionable from a theme or component write,
-        // so it needs its own verdict slot and cannot overwrite theirs.
-        | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
-        // #259 — the outcome of a `style-guide` run, its own slot.
-        | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
-        | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
-        // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
-        // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
-        // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
-        | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
-        // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
-        // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
-        // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
-        | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
-        | { kind: 'restore-input'; input: unknown }
-        | { kind: 'restore-input-error'; message: string }
-        // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
-        // arriving, which is what absence used to look like, and distinct from `seed-info`'s
-        // `present: false`, which is about VARIABLES in the canvas rather than a stored brand.
-        | { kind: 'restore-input-empty' }
-        | { kind: 'font-list'; families: string[]; styles: number[] },
-    ) => void,
-  ): void;
+  onHostMessage(cb: (msg: HostMessage) => void): void;
   /** Ask the host to resize its window to these outer dimensions (#144; Figma only, no-op on web,
    *  where the browser owns the window). Called continuously while the grip is dragged; `commit`
    *  is true on pointer-up, the host's cue to persist. The host clamps — this layer does not know
@@ -193,53 +195,39 @@ export interface HostCommit {
   requestResize(width: number, height: number, commit: boolean): void;
 }
 
-/** The wire shape the iframe posts to the main thread. Kept in sync with the plugin's
- *  `messages.ts` `UiToMain` (`apply-theme`) — the bridge unwraps `{ pluginMessage }`. */
-type UiApplyMsg = { type: 'apply-theme'; input: unknown };
-/** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — `def` is a `componentDefs` id and
- *  is optional (absent means Button), see `postComponents` above. */
-type UiComponentsMsg = { type: 'build-components'; def?: string };
-/** Kept in sync with `messages.ts` `UiToMain` (`file-setup`, #1554) — carries no payload; the taxonomy
- *  is a main-bundle config, not something the UI supplies (see `postFileSetup`). */
-type UiFileSetupMsg = { type: 'file-setup' };
-/** Kept in sync with `messages.ts` `StyleGuideOptions` (#259) — the panel's Customize fields. */
-export type StyleGuideOptionsMsg = {
-  collections?: string[];
-  types?: string[];
-  valueFormat?: 'hex' | 'rgba' | 'hsl' | 'hsb';
-  header?: 'dark' | 'light';
-  aliases?: boolean;
-  description?: boolean;
-  display?: 'auto' | 'default' | 'text' | 'icon' | 'border' | 'transparency';
-};
-/** Kept in sync with `messages.ts` `UiToMain` (`style-guide`, #259). */
-type UiStyleGuideMsg = { type: 'style-guide'; options?: StyleGuideOptionsMsg };
-/** Kept in sync with `messages.ts` `UiToMain` (`prune`, #1521) — `confirm` false previews, true deletes. */
-type UiPruneMsg = { type: 'prune'; input: unknown; confirm: boolean };
-/** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
-type UiResizeMsg = { type: 'resize-ui'; width: number; height: number; commit: boolean };
+/** The wire shape the iframe posts to the main thread is the plugin's own `UiToMain` (#1813), imported
+ *  as a TYPE, so it is erased from both bundles and no plugin code reaches the web one. It used to be
+ *  re-declared here message by message, with a comment asking that the two be kept in sync and nothing
+ *  checking that they were. Every post below goes through `post`, whose parameter is that union, so a
+ *  field added, dropped or renamed on either side is a compile error here. */
+type ApplyTheme = Extract<UiToMain, { type: 'apply-theme' }>;
+/** The style guide's Customize fields (#259): `messages.ts` `StyleGuideOptions`, under the name the UI uses. */
+export type StyleGuideOptionsMsg = StyleGuideOptions;
+/** Post one message to the main thread; the bridge unwraps `{ pluginMessage }`. */
+const post = (msg: UiToMain): void => parent.postMessage({ pluginMessage: msg }, '*');
 
 /** Figma commit — the DOM-only bridge half (no `figma.*`; lives in the iframe). Posts to the
  *  main thread via `parent.postMessage` and listens for the main thread's replies. */
 const figmaCommit = (): HostCommit => ({
   isFigma: true,
   postTheme(input) {
-    parent.postMessage({ pluginMessage: { type: 'apply-theme', input } as UiApplyMsg }, '*');
+    // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here.
+    post({ type: 'apply-theme', input: input as ApplyTheme['input'] });
   },
   postComponents(def) {
     // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the
     // main thread distinguishes absent (means Button) from present, and `postMessage` structured-clones,
     // so an explicit `undefined` would arrive as a present key holding nothing.
-    parent.postMessage({ pluginMessage: { type: 'build-components', ...(def ? { def } : {}) } as UiComponentsMsg }, '*');
+    post({ type: 'build-components', ...(def ? { def } : {}) });
   },
   postFileSetup() {
-    parent.postMessage({ pluginMessage: { type: 'file-setup' } as UiFileSetupMsg }, '*');
+    post({ type: 'file-setup' });
   },
   postStyleGuide(options) {
-    parent.postMessage({ pluginMessage: { type: 'style-guide', ...(options ? { options } : {}) } as UiStyleGuideMsg }, '*');
+    post({ type: 'style-guide', ...(options ? { options } : {}) });
   },
   postPrune(input, confirm) {
-    parent.postMessage({ pluginMessage: { type: 'prune', input, confirm } as UiPruneMsg }, '*');
+    post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
@@ -328,10 +316,10 @@ const figmaCommit = (): HostCommit => ({
       }
     });
     // Listener attached — signal the main thread it can post (and run the boot read-back, #109).
-    parent.postMessage({ pluginMessage: { type: 'ui-ready' } }, '*');
+    post({ type: 'ui-ready' });
   },
   requestResize(width, height, commit) {
-    parent.postMessage({ pluginMessage: { type: 'resize-ui', width, height, commit } as UiResizeMsg }, '*');
+    post({ type: 'resize-ui', width, height, commit });
   },
 });
 
