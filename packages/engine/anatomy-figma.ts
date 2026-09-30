@@ -4559,7 +4559,7 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
 // test.ts compares the two placements.
 // THE ROW IS CHUNK 1'S HEIGHT. Later chunks grow the set down and right from where this put it, and do not
 // move it; the plugin places once, at the finished height. So a node below chunk 1's rows but inside the
-// finished set's can be covered here where the plugin would have pushed the set past it (#1809's limit).
+// finished set's can be covered here where the plugin would have pushed the set past it (#1856).
 // NO POSITION READ-BACK, unlike the plugin: the stub stores x/y as plain fields, so the read-back could not
 // fail in any gate, and it would cost bytes in every chunk.
 if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;set.y=y;}

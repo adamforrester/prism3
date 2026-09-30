@@ -9,7 +9,7 @@
 - **On every chunk, not only chunk 1.** The issue said only chunk 1 needs the check, since later chunks append into the set chunk 1 made. That holds when chunk 1 created the set. When chunk 1 was refused, chunk 2 finds the old set by name and would append into it. On a set chunk 1 made, the check always passes, so running it everywhere costs nothing but bytes. Mutation a2 (`if(set&&FIRST)`) shows the difference.
 - **Placement.** `placeNewSet`'s rule: top-aligned with the sets already there (or all content when there is none), 160 right of everything overlapping the set's row. Only when the chunk creates the set, which is chunk 1. A set that exists keeps its position.
 
-**The deliberate limit.** Chunk 1 places the set using its own height. Later chunks grow the set down and right and do not move it, while the plugin places once at the finished height. So a node below chunk 1's rows but inside the finished set's rows can be covered by the paste where the plugin would have pushed past it. Filed as its own issue rather than fixed here.
+**The deliberate limit.** Chunk 1 places the set using its own height. Later chunks grow the set down and right and do not move it, while the plugin places once at the finished height. So a node below chunk 1's rows but inside the finished set's rows can be covered by the paste where the plugin would have pushed past it. Filed as #1856 rather than fixed here.
 
 **Bytes.** Every chunk carries the new code. The first, indented spelling cost 1,511 bytes of shell; the compacted one costs 1,176. Either way icon-button's set packs into 16 chunks, up from 14, and the pin in `test.ts` moves with a note. The position read-back the plugin has was left out: the stub stores `x`/`y` as plain fields, so no gate could make it fail.
 
