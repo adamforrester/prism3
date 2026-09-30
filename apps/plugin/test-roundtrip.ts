@@ -1587,6 +1587,52 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1762: THE REQUIRED MARKER FOLLOWS THE NAME, measured on the built field-label ───────────────────
+// Owner decision 2026-09-30 (option 3, changing #1757's decision 2): the name hugs and wraps at a max width, so
+// the marker sits right after the name's box instead of at the row's trailing edge. Measured here on the
+// geometry the shim's layout model computes from what the executor left on the nodes, with the marker switched
+// ON. The expected numbers are literals: the shim's 6px advance, the row gap pinned to 4px (`space/050`, the
+// px every brand emits), and the 320 build width — none is read off the def or the plan.
+//   · a one-line "Label" (5 characters, 30px): the marker's x is 30 + 4 = 34, where a name filling the row
+//     puts it at 320 − 6 = 314, the trailing edge the owner saw ("Label ··· *");
+//   · a 70-character name (420px): the name clamps at 316 and takes two lines, and the marker sits at
+//     316 + 4 = 320 — past the field by its own width, the accepted tradeoff (its width is not subtracted).
+// The shim MODELS Figma's auto-width-plus-maxWidth wrap; no live file has measured it yet (see the PR).
+{
+  const LINE = 40;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const def = componentDefs.find((d) => d.id === 'field-label')!;
+  const plans = project(def);
+  const lineBox = Object.fromEntries([...new Set(plans.flatMap((p) => planTextStyles(p.root)))].map((s) => [s, LINE]));
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page, layoutModel: true, textLineBox: lineBox, varPx: { 'space/050': 4 } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const r = await applyComponentPlan(plans, shim as any);
+  ok(r.misses.length === 0, `#1762 seed: field-label builds on the layout-model shim with 0 misses (${r.misses[0] ?? 'none'})`);
+  const members = ((page.children.find((c) => c.type === 'COMPONENT_SET')?.children as Node[] | undefined) ?? []);
+  const kid = (m: Node, name: string) => ((m.children as Node[] | undefined) ?? []).find((c) => c.name === name);
+  const measure = (m: Node, chars: string) => {
+    const text = kid(m, 'text')!, marker = kid(m, 'indicator')!;
+    const was = [text.characters, marker.visible];
+    text.characters = chars;
+    marker.visible = true;
+    const got = { row: m.width as number, name: text.width as number, lines: (text.height as number) / LINE, x: marker.x as number, nameX: text.x as number };
+    text.characters = was[0];
+    marker.visible = was[1];
+    return got;
+  };
+  const off: string[] = [];
+  for (const m of members) {
+    if (!kid(m, 'text') || !kid(m, 'indicator')) { off.push(`${String(m.name)}: incomplete`); continue; }
+    const short = measure(m, 'Label');
+    const long = measure(m, 'x'.repeat(70));
+    if (!(short.row === 320 && short.nameX === 0 && short.name === 30 && short.x === 34 && long.name === 316 && long.lines === 2 && long.x === 320))
+      off.push(`${String(m.name)}: row ${short.row}; "Label" is ${short.name} wide at x ${short.nameX} and the marker is at ${short.x}; the long name is ${long.name} wide on ${long.lines} lines and the marker is at ${long.x}`);
+  }
+  ok(members.length === 24 && off.length === 0,
+    `#1762 field-label's required marker follows the name: at x 34 after a one-line "Label" (30 + the 4px gap, not the trailing edge at 314), and at 320 beside a 70-character name clamped at 316 on two lines, on all 24 members (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+}
+
 // ── #1781 — THE READ-BACK NAMES A NEST THAT POINTS AT THE WRONG SET ─────────────────────────────
 //
 // The corpus round-trip above nests against PLAIN components named for each target, so it proves a nest

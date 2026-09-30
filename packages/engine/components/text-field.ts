@@ -341,9 +341,9 @@ export const textField: ComponentDef = {
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
-        // control holds at 320, so a long name wraps at the field's width instead of running past it.
+        // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular). Fills the field\'s width, so a long name wraps.',
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular). Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
       },
       // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
