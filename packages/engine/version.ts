@@ -2744,6 +2744,30 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.218.0 — folded 2026-09-30 from 3 change notes, newest merge first.
+ *
+ * [lane-theme-from-brief-default · minor · 8f664ecb] #1868: the MCP tool theme_from_brief returned no decisions log unless the caller named sections,
+ * because its include default was an empty list, while its description promised the same payload as
+ * theme_brand, whose default is the decisions log. Both tools now share DEFAULT_THEME_SECTIONS, and
+ * theme_from_brief's include description says it replaces the default. A behavior change to a shipped
+ * tool's default output, so an ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
+ * [lane-vocabulary-provenance · minor · 3750d9bd] Personality trait notes name no source brand (#1824). Each trait's `why`, which `resolveVocabulary`
+ * copies into `theme.notes` (served by the MCP server, emitted as the tree's `decisions`, inlined into
+ * every bundle), used to quote the example briefs by name, and some of those briefs are real brands'.
+ * Each note now says what the trait sets and why, in the UI register, and a trait that applied no setting (every one kept) logs what it kept without a `why`. The research provenance moved to
+ * `test.ts`, which ships nowhere and still checks every quote verbatim against the committed briefs
+ * (#1685). Bundled comments and one rename rule's `why` that named a client were reworded the same way.
+ * `lint-voice.ts` gains a CLIENT NAMES arm over both built bundles (raw, comments included) and every
+ * rendered trait note. No committed artifact moves: no corpus brand sets `personality`.
+ *
+ * [lane-mcp-initialize-fallback · minor · b86b1f41] #1867: the MCP server's `initialize` answered a protocol version it did not speak with its newest,
+ * `2026-07-28`. That revision removed the handshake, so no client that sends `initialize` can use it:
+ * Claude Code asks for `2025-11-25` and refused to connect. `initialize` now echoes a version it
+ * speaks, and otherwise answers `2024-11-05` (HANDSHAKE_PROTOCOL_VERSION), the newest revision this
+ * server speaks that still has the handshake. Stateless requests are unchanged. A behavior change to a
+ * shipped server, so an ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.217.0 — folded 2026-09-30 from 1 change note, newest merge first.
  *
  * [lane-link-palette-default · minor · 25aa1446] #1812: `schema/lever-manifest.json` stops stating `linkPalette: default 'primary'`. The engine has no
@@ -4342,7 +4366,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.217.0';
+export const ENGINE_VERSION = '0.218.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
