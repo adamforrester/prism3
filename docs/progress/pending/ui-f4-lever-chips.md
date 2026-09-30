@@ -6,7 +6,7 @@
 
 **The descriptor rule.** `apps/studio/src/levers/controls.ts` (new, DOM-free) has `describeControl(lever, { auto? })`:
 - an `enum` with 2 to 4 options and no Auto entry is **chips**;
-- an `enum` with 5 or more options, or with an Auto entry, is a **select**. The Auto entry is either an option the manifest labels "Auto…" or one the caller adds, as the per-mode selects do;
+- an `enum` with 5 or more options, or with an Auto entry, is a **select**. The Auto entry is either an option the manifest labels "Auto…" or one a caller adds. No caller adds one yet: the per-mode "Auto" selects are still hand-built in `PER_MODE_SELECTS` and never reach the rule;
 - a `palette-ref` is always a **select**, because its options come from the brand;
 - `slider`, `toggle` and `color` map to themselves, and `list`, `object` and `text` are read-only in the generic path.
 Option labels are the manifest's own. `renderControl`, `leverControl` (and so `leverSection` and `csLeverStack`) and the Interactive lead rows (`iEnumControl`, which replaces `iEnumSelect`) all render from it.
@@ -51,3 +51,12 @@ On the first brand, each option is then clicked, and the written value is read b
 All went green after restore.
 
 **Environment trap.** As in F1–F3, the suites ran against a scratch `PLAYWRIGHT_BROWSERS_PATH` of symlinks, because the Playwright pin wants a newer Chromium (#1822).
+
+**Review round.** The independent review found that on three Interactive lead rows (Outline hover, Disabled contrast, Neutral emphasis) keyboard focus dropped to `<body>` after one arrow key. Their commit runs `applyFull`, and the row's example or warning line changes with the value, so the region is swapped and the focused radio goes with it. The old selects dropped focus the same way. But arrow keys are how a radio group moves, so the chips made it stop after one step. `renderWorkspace` now records the focused radio's group name and value before the reconcile, and focuses the same radio in the swapped-in group. The smoke suite's focus-ring check was conditional ("if a chip has focus"), so it skipped exactly these rows. It is now unconditional, and it presses ArrowRight a second time and asserts the second value is written. Mutation: removing the refocus fails 6 checks, 2 per lever, for `disabledStrategy`, `outlineInteraction` and `neutralEmphasis` (`✗ prism3 / outlineInteraction: a second ArrowRight writes solid-tint, so focus survived the repaint`). Smoke is 3371/3371 with the fix. The `controls.ts` header and this entry no longer claim that the per-mode selects pass `{ auto: true }`. No caller does yet: they are still hand-built in `PER_MODE_SELECTS`, so the Auto arm runs only in the test's fixtures.
+
+**For the owner (design and copy, not decided here).**
+- **Selected chip style.** The selected chip is a solid ink fill with a check mark. Concept C and v4 used a soft fill with an ink border, and kept solid black for primary actions.
+- **Neutral option labels.** These now come from the manifest: "Subtle (light gray)" and "Strong (bold near-black/white)". They were "Subtle · light gray" and "Strong · bold fill".
+- **Lead-row captions.** The captions are now the lever labels. "Method" became "Outline hover", "Contrast" became "Disabled contrast", "Icon color" became "Icon contrast floor", and "Emphasis" became "Neutral emphasis". The Icon colors row keeps its row label "Icon color" next to the legend "Icon contrast floor", which gives two names for one control.
+- **Long labels.** #1675 keeps selects for long labels, but the rule counts only options. "Full contrast (4.5:1 — AA text)" is now a chip.
+- **Light only.** The studio chrome is light-only, so #1675's "light and dark" has only its light half today.

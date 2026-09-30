@@ -1673,7 +1673,15 @@ for (const brand of BRANDS) {
         const f = document.querySelector(`${sel} input:focus-visible`);
         return f ? getComputedStyle(f.nextElementSibling).outlineStyle : 'no focused chip';
       }, c.group);
-      if (focusRing !== 'no focused chip') ok(focusRing !== 'none', `${where}: the focused chip draws a focus ring (${focusRing})`);
+      ok(focusRing !== 'no focused chip' && focusRing !== 'none', `${where}: after the arrow key, focus is still on a chip in the group and it draws a focus ring (${focusRing})`);
+      // A SECOND arrow press moves again. When the commit swaps the region (an example or a warning line
+      // changed), the focused radio is replaced; renderWorkspace refocuses the same chip in the new group,
+      // or this press would land on <body> and do nothing.
+      const next2 = before.values[(before.values.indexOf(next) + 1) % before.values.length];
+      await page.keyboard.press('ArrowRight');
+      await waitChecked(page, c.group, next2);
+      ok(String(await persistedAt(page, c.key)) === next2, `${where}: a second ArrowRight writes ${next2}, so focus survived the repaint`);
+      await settle(page, where);
       ok(on.outline === 'none', `${where}: the checked chip, unfocused, draws no ring, so focus and selection look different`);
     }
   }

@@ -569,7 +569,8 @@ const knob = (label: string | null, body: Node | Node[], desc: string): HTMLElem
  *
  *  `checked` is set as a PROPERTY, never as the attribute, the same way `optionEl` sets `selected`.
  *  That keeps a freshly built group's `outerHTML` identical to the live one, so the region reconcile
- *  (#771) keeps the live group when nothing else changed, and focus stays on the chip.
+ *  (#771) keeps the live group when nothing else changed. When something else in the region changed, the
+ *  region is swapped, and `renderWorkspace` focuses the same chip in the new group.
  *
  *  The radio `name` is the lever key, not a counter, for the same reason: a counter would make every
  *  rebuilt group differ from the live one. One lever renders at most once per page. */
@@ -8486,7 +8487,19 @@ function renderWorkspace(): void {
   // second surface. Their POSITION is still stated here and only here, which is #772's own reason for
   // leaving placement out of the declaration: this is the only code that knows where the hero ended up.
   regions.splice(barAt, 0, ...workspace.querySelectorAll<HTMLElement>(':scope > [data-chrome]'));
+  // A chip group's arrow keys commit on every press, and a commit that changes anything else in the
+  // region (an example, a warning line) swaps the region, taking the focused radio with it. Focus would
+  // fall to <body> and the second arrow press would do nothing. So the focused radio is found again by
+  // its group name and value in the swapped-in region, and focused there.
+  const focusedRadio = document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'radio'
+    && workspace.contains(document.activeElement) ? document.activeElement : null;
+  const radioName = focusedRadio?.name, radioValue = focusedRadio?.value;
   reconcileRegions(workspace, regions);
+  if (focusedRadio && !focusedRadio.isConnected && radioName) {
+    const again = [...workspace.querySelectorAll<HTMLInputElement>('input[type="radio"]')]
+      .find((r) => r.name === radioName && r.value === radioValue);
+    again?.focus({ preventScroll: true });
+  }
   // Every declared surface refreshed ONCE, after the regions have landed — the placement half of the
   // mode strip's `syncLast` (see `applyFull`). The workspace is in the document by now, so every
   // surface's paint is honest: `syncErrorBar` judges itself by `isConnected` (#772), and syncing before

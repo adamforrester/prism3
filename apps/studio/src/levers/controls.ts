@@ -6,7 +6,8 @@
  *   - `enum` with 2 to 4 options, and no Auto choice → **chips** (a native radio group).
  *   - `enum` with 5 or more options, or whose choice set includes an Auto entry → **select**.
  *     An Auto entry is either an option the manifest itself labels "Auto…", or one the caller adds
- *     (the per-mode "Auto — follows global" selects pass `{ auto: true }`).
+ *     (a caller may pass `{ auto: true }`; none does yet, because the per-mode "Auto — follows global"
+ *     selects are still hand-built in main.ts's `PER_MODE_SELECTS`).
  *   - `palette-ref` → **select** always: its options come from the brand (`paletteRefOptions`), so
  *     their count is not known here and can grow past 4.
  *   - `slider`, `toggle`, `color` map to themselves; `list`, `object` and `text` are **readonly**
