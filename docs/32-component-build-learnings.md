@@ -658,8 +658,11 @@ three-value Figma axis, `trailing=true` at all, and both slots at once. The 12-v
 every size.
 
 The trap is stopping there. A green probe is a *measurement*, and the next refactor cannot see it. The
-offline expectation — 12 distinct names, one chunk, the full 12-cell padding table, three geometrically
-distinct sizes — is now in `test.ts`, which is what makes the finding survive.
+offline expectation — 12 distinct names, the full 12-cell padding table, three geometrically distinct
+sizes — is now in `test.ts`, which is what makes the finding survive. It also asserted "one chunk" until
+#1798: that turned the grid's spare bytes into the headroom for every shell change. The grid may now
+split. `test.ts` runs it split across chunks against an unsplit paste and the plugin, and gates the
+indivisible unit (one variant plus the shell) at 90% of the chunk budget.
 
 Writing it down also found the hole the probe had only walked past: `trailing: true` appeared nowhere in
 `test.ts` without `leading: true` beside it. The three asserted cells pin (0,0), (1,0) and (1,1) and
