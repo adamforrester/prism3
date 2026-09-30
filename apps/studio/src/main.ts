@@ -37,13 +37,14 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
 import { hostCommit, type HostCommit } from './write-adapter';
+import { initialHostSession, reduce, repaintsFor, type HostSession } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
 import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import {
-  needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
+  needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin, type SeedOutcome,
 } from './provenance';
 import {
@@ -563,269 +564,92 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
 export const commit = hostCommit();
-/**
- * What opening this file yielded (#722, implementing #721) — `null` until the host's boot read-back
- * answers, and always `null` on web (no file to read).
- *
- * WAS `{ok, summary}`, WHICH COULD NOT EXPRESS #721's STATE 2. A file holding Prism3 variables whose
- * stored `BrandInput` did not come back — a copied template, a hand-built file, one themed by an
- * older schema — had to arrive as either a success (silently wrong: the user believes the knobs are
- * the file's, and they are the demo) or a failure (wrong the other way: nothing failed, and the
- * user can still theme and apply). It shipped as the success, so the plugin says "contract holds ✓"
- * over knobs that have nothing to do with the file.
- *
- * `SeedOutcome` carries the third case as a success with a limitation. Not fixable by us: rebuilding
- * a `BrandInput` from emitted tokens is the undetermined inverse #677 rules out.
- */
-let seedOutcome: SeedOutcome | null = null;
-/**
- * Did the host restore the stored input (#131)? The OTHER half of the seed, and the reason it needs
- * its own slot: `restore-input` and `seed-info` are independent messages on independent reads
- * (`restoreToUi` and `seedFromFile` in the plugin's main thread do not gate each other), so neither
- * can be derived from the other and EITHER MAY ARRIVE FIRST. Recorded here and read when `seed-info`
- * lands, which is what joins the two mechanisms into one outcome without assuming an order.
- */
-let inputRecovered = false;
-/** Set when the host REFUSED to rehydrate the knobs (#480): a `BrandInput` blob is stored in this
- *  file, but it's an old/foreign shape or a schema version this build doesn't recognize (the
- *  pre-#341/#415 shape is exactly this case). A separate slot from `seedInfo` for the same reason
- *  the other boot facts are separate — this answers "could your saved knobs be restored", which
- *  `seedInfo` (the file's Figma-variable contract) does not. */
-let restoreError: string | null = null;
-/** The state of the Apply-to-Figma write. `null` = never run this session; `pending` = posted and the
- *  host has not answered yet; otherwise the host's verdict.
- *
- *  A SEPARATE slot from `seedInfo` on purpose. Both arrive as `{ok, summary}` and both wanted the one
- *  pill, so an apply used to overwrite the boot read-back and render as if it WERE the boot read-back —
- *  the only surface for "what happened when I pressed the button" was a pill labeled with what was in
- *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
- *  over a large file looked like a button that did nothing. Two facts, two slots. */
-let applyState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
-/** The state of the Build-Button-set write (#483) — same shape, its own slot, for the same reason
- *  `applyState` is not `seedInfo`: two actions, two buttons, two verdicts. A component build cannot
- *  report into the theme write's pill without claiming something about the variables it never touched,
- *  and with no slot of its own it would have nowhere to be `pending` while it writes hundreds of nodes. */
-let componentState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
-/** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
- *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
- *  file-setup verdict cannot report into the theme or component write's pill without claiming something
- *  about work it never did, and with no slot of its own it would have nowhere to be `pending` while the
- *  host lays the page skeleton and builds the two template assets. Unlike the component build there is no
- *  progress sibling: file-setup posts a single terminal result, so `pending` is a static "in flight". */
-let fileSetupState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
-/** The state of the style-guide run (#259) — its own slot, for the one-verdict-per-action reason above. */
-let styleGuideState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
 /** The Customize options (#259). Session state, not persisted with the brand: they shape a drawing of the
  *  file's variables, not the brand itself. Proposed, owner to confirm (docs/45). */
 const styleGuideOptions: StyleGuideOptionsMsg = {};
-/** How far the in-flight component build has got (#684) — `null` between builds and until the first
- *  chunk boundary reports.
- *
- *  A SIBLING OF `componentState` RATHER THAN A VARIANT OF IT, which is the same call the wire makes and
- *  for the same reason: this is not a verdict. `componentState` holds at most one value per action and
- *  the whole UI treats it as the answer; a progress reading is one of dozens, is stale the moment the
- *  next one lands, and has no `ok`. Folded in as a third variant it would also widen the type
- *  `renderApplyStatus` shares with `applyState`, forcing the theme write to handle a state it can never
- *  be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
- *  says how far. */
-let componentProgress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null = null;
-/** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
- *  `seedInfo`: the prune is its own action and its verdict must not land in another write's pill.
- *  `pruneBusy` is the in-flight state — a preview being computed or a delete running — and disables the
- *  button; `prunePreview` holds a ready preview whose confirm dialog is open; `pruneVerdict` is the pill
- *  text after a preview finds nothing stale or after a delete completes. */
-let pruneBusy: false | 'preview' | 'delete' = false;
-let prunePreview: { count: number; summary: string } | null = null;
-let pruneVerdict: { ok: boolean; count: number; summary: string } | null = null;
-/** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
- *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
- *
- *  One discriminant rather than a boolean per pill, because there is one detail ROW: the row lives in the
- *  chrome (see `syncApplyDetail`) and everything sticky below is positioned from `--chrome-h`, so two
- *  independently-openable rows would both be pushing that height around. One row also means the open
- *  detail always belongs to a named pill — two rows could leave the theme write's counts sitting under a
- *  component verdict with nothing saying which was which. */
-let openDetail: 'apply' | 'components' | 'filesetup' | 'styleguide' | null = null;
-// The font families the host can load (#113 Figma arm; empty on web and until the host answers).
-// Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
-// not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
-// machine-dependent. Read to drive type-ahead on the typeface input AND to answer "will this face
-// load?" in the library table.
-let hostFonts: string[] = [];
-/** `hostFonts` family → how many styles Figma has for it (0 = count unknown). Exact-match keyed on
- *  purpose: `loadFontAsync` is case- AND whitespace-sensitive — measured against real Figma,
- *  `Roboto` loads while `roboto`, `ROBOTO` and `" Regular"` all fail — so a case-insensitive lookup
- *  here would claim a face will load when the write is going to skip it. */
-let hostFontStyles = new Map<string, number>();
+/** Everything the host has told this UI, and where each host action stands: one value, whose fields and
+ *  their rationale live in `state/host-session.ts` (F3). A host message changes it only through `reduce`
+ *  there; the UI's own actions below (a button going pending, a pill opening its detail) reassign it
+ *  whole through `setHost`. */
+let host: HostSession = initialHostSession();
+const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...patch }; };
 // Host → UI notifications: the #109 read-back seed summary, and the #131 knob-rehydration (the
 // persisted BrandInput). restore-input loads the brand wholesale (loadBrand rebuilds + re-renders),
 // so re-opening a themed Figma file boots on that brand instead of the default. `entry.ts` subscribes
 // this after the whole module has evaluated, and it only fires async (after ui-ready), so every
 // const it reaches below is defined.
+//
+// The state change is `reduce` and what to repaint is `repaintsFor`, both pure and unit-tested
+// (`test-host-session.ts`). This function only runs the effects, in the order `repaintsFor` lists them.
 export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
-  if (m.kind === 'restore-input') {
-    // The blob is public shared-data (any plugin can write it) — validate the SHAPE the same way
-    // Import does (brandTheme must accept it) before loading. A versioned-but-malformed payload
-    // (e.g. `{}`) that clears the persist envelope but has no `primary` would otherwise crash the
-    // boot render (renderBar reads `brandState.primary`); on reject we silently keep defaults.
-    try { brandTheme(m.input as BrandInput); } catch { return; }
-    // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and
-    // what dirtiness is measured against (#722). It also answers the other half of the seed — see
-    // `inputRecovered` below, which `seed-info` reads to tell #721's state 1 from state 2.
-    inputRecovered = true;
-    // REPAIR a seed outcome that was already joined without this. The two reads are independent, so
-    // this message can land after `seed-info`; without this line `recovered` would stay false and the
-    // pill would report restored knobs as "not stored in this file". See `withRecovered`.
-    if (seedOutcome) seedOutcome = withRecovered(seedOutcome, true);
-    loadBrand(m.input as BrandInput, { kind: 'file' });
-    return;
-  }
-  if (m.kind === 'restore-input-empty') {
-    // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
-    // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
-    // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
-    // and `example/<BOOT_BRAND>` is the honest one until the host answers (#721 state 2). This message is
-    // the host answering "nothing", and it is the only moment at which `none` becomes true.
-    //
-    // GUARDED ON THE BOOT PROVENANCE BY IDENTITY, not on `firstRun()` and not on its value. Between
-    // `ui-ready` and this message a designer can already have picked an example or uploaded a
-    // design.md — the UI is live, not blocked on the host — and dropping them onto a start screen
-    // would discard a choice they just made. `loadBrand` assigns a new provenance for every one of
-    // those paths, so this identity check is exactly "nothing has been chosen yet".
-    //
-    // THE INVARIANT THIS RESTS ON (#1200): provenance is only ever REASSIGNED, never mutated in place.
-    // Mutate it and identity survives while the meaning changes — the value would still be right and
-    // this guard would discard a chosen brand again. It is enforced, not just stated: the fields are
-    // `readonly` and `provenanceOf` deep-freezes what it returns, asserted in `test-provenance.ts`.
-    //
-    // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
-    // was `example/aurora` (the boot brand then; `BOOT_BRAND` now), so "origin is example/aurora and
-    // nothing is dirty" also read true straight after a designer clicked the aurora chip. A late empty-restore then threw away the brand they had
-    // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
-    // chip click, which is the only reason it is not still in here.
-    if (provenance === bootProvenance) { clearOrigin(); build(); }
-    return;
-  }
-  if (m.kind === 'restore-input-error') {
-    // #480: the host found a stored blob but refused it (old shape / unrecognized schema version).
-    // Surface it loudly rather than silently staying on defaults — a designer opening a file they
-    // themed before needs to know the knobs didn't come back, not just see a default-looking brand.
-    restoreError = m.message;
-    if (barHost) renderBar();
-    return;
-  }
-  if (m.kind === 'font-list') {
-    hostFonts = m.families;
-    hostFontStyles = new Map(m.families.map((f, i) => [f, m.styles[i] ?? 0]));
-    // A plain re-render — the same path a tab click takes. The list can arrive before or after the
-    // typeface page first renders, so caching plus a re-render makes the order irrelevant.
-    renderWorkspace();
-    return;
-  }
-  if (m.kind === 'apply-result') {
-    applyState = { ok: m.ok, headline: m.headline, summary: m.summary };
-    // Auto-expand a bad result. A miss means something the theme asked for is not in this file, and the
-    // headline only says how many — the detail names which axis. Making the designer click for that on
-    // the one occasion it matters is the wrong default; a clean result stays collapsed.
-    // A clean result also CLOSES whatever was open, rather than leaving it: the row would otherwise
-    // still be showing the previous action's counts next to a pill that has just been replaced.
-    openDetail = m.ok ? null : 'apply';
-    if (barHost) { renderBar(); syncApplyDetail(); }
-    return;
-  }
-  if (m.kind === 'component-result') {
-    // #483. Same handling as the theme write, against its own slot — including the auto-expand, which
-    // matters more here: a component build's misses name the binding and the member, and there can be
-    // hundreds, so a bad result the designer has to click to see is a bad result they will not read.
-    componentState = { ok: m.ok, headline: m.headline, summary: m.summary };
-    openDetail = m.ok ? null : 'components';
-    // Clear the progress before re-rendering, not after: the verdict has landed, and a stale fraction
-    // left in this slot would be the thing a NEXT build's first render shows — "412 of 648" under a pill
-    // that already says built, from the run before.
-    componentProgress = null;
-    if (barHost) { renderBar(); syncApplyDetail(); }
-    // AND the page's own row (#870) — the defect this ticket names. The two calls above are chrome; the
-    // build's control is page content, and every terminating condition posts this one message, so a
-    // verdict that reached only the chrome left the button reading "⋯ Building…" and disabled for all of
-    // them. Outside the `barHost` guard on purpose: that flag is about the chrome being mounted, and the
-    // row has its own `isConnected` test for the same question about itself.
-    syncComponentRow();
-    return;
-  }
-  if (m.kind === 'file-setup-result') {
-    // #1558. Same handling as the two write verdicts above, against its own slot — including the
-    // auto-expand of a bad result, which here names the missing File Components page or a font miss on the
-    // template assets, the thing a designer needs and would not click to find.
-    fileSetupState = { ok: m.ok, headline: m.headline, summary: m.summary };
-    openDetail = m.ok ? null : 'filesetup';
-    // `renderBar()`/`syncApplyDetail()` are CHROME — the shared detail row lives there; `syncFileSetupRow`
-    // is the page content, the file-setup button's own row on the Components page. Both are refreshed for
-    // the same reason the component build refreshes both (#870): a verdict that reached only the chrome
-    // would leave the button reading "⋯ Setting up…" and disabled.
-    if (barHost) { renderBar(); syncApplyDetail(); }
-    syncFileSetupRow();
-    return;
-  }
-  if (m.kind === 'style-guide-result') {
-    // #259. The file-setup handling, against its own slot and row.
-    styleGuideState = { ok: m.ok, headline: m.headline, summary: m.summary };
-    openDetail = m.ok ? null : 'styleguide';
-    if (barHost) { renderBar(); syncApplyDetail(); }
-    syncStyleGuideRow();
-    return;
-  }
-  if (m.kind === 'component-progress') {
-    // #684. Accepted only while the build is actually in flight. Out of order this is not merely useless
-    // but wrong: a boundary message still in the queue when `component-result` is handled would resurrect
-    // the fraction the line above just cleared, and the pill would go from a verdict back to a countdown.
-    if (componentState !== 'pending') return;
-    componentProgress = { phase: m.phase, done: m.done, total: m.total };
-    // Text swap, NOT `renderBar()`. This fires at every chunk boundary — 27 per phase, so 54 times, in a
-    // 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in it, which
-    // would blur whatever the designer had focused and reset the brand switcher's open state mid-build.
-    // The pending pill is the only thing that changed, so it is the only thing rewritten.
-    //
-    // EVERY live pill, not one (#870): the bar and the Components page each render their own, and writing
-    // to a single cached node left whichever rendered first frozen at the placeholder for the whole build.
-    const text = componentPendingText();
-    for (const node of componentPendingEls) {
-      // A detached node is a pill whose host has re-rendered since. Dropped rather than written to, so
-      // the set stays bounded without any renderer having to know it exists — see the field.
-      if (node.isConnected) node.textContent = text;
-      else componentPendingEls.delete(node);
+  const prev = host;
+  host = reduce(prev, m);
+  for (const r of repaintsFor(m, prev, host)) {
+    switch (r) {
+      case 'loadBrand':
+        // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and
+        // what dirtiness is measured against (#722).
+        if (m.kind === 'restore-input') loadBrand(m.input as BrandInput, { kind: 'file' });
+        break;
+      case 'startFresh':
+        // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
+        // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
+        // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
+        // and `example/<BOOT_BRAND>` is the honest one until the host answers (#721 state 2). This message is
+        // the host answering "nothing", and it is the only moment at which `none` becomes true.
+        //
+        // GUARDED ON THE BOOT PROVENANCE BY IDENTITY, not on `firstRun()` and not on its value. Between
+        // `ui-ready` and this message a designer can already have picked an example or uploaded a
+        // design.md — the UI is live, not blocked on the host — and dropping them onto a start screen
+        // would discard a choice they just made. `loadBrand` assigns a new provenance for every one of
+        // those paths, so this identity check is exactly "nothing has been chosen yet".
+        //
+        // THE INVARIANT THIS RESTS ON (#1200): provenance is only ever REASSIGNED, never mutated in place.
+        // Mutate it and identity survives while the meaning changes — the value would still be right and
+        // this guard would discard a chosen brand again. It is enforced, not just stated: the fields are
+        // `readonly` and `provenanceOf` deep-freezes what it returns, asserted in `test-provenance.ts`.
+        //
+        // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
+        // was `example/aurora` (the boot brand then; `BOOT_BRAND` now), so "origin is example/aurora and
+        // nothing is dirty" also read true straight after a designer clicked the aurora chip. A late empty-restore then threw away the brand they had
+        // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
+        // chip click, which is the only reason it is not still in here.
+        if (provenance === bootProvenance) { clearOrigin(); build(); }
+        break;
+      // The chrome, only once it is mounted.
+      case 'bar': if (barHost) renderBar(); break;
+      case 'applyDetail': if (barHost) syncApplyDetail(); break;
+      // A plain re-render — the same path a tab click takes. The font list can arrive before or after the
+      // typeface page first renders, so caching plus a re-render makes the order irrelevant.
+      case 'workspace': renderWorkspace(); break;
+      // A page's own action row (#870). Outside the `barHost` guard on purpose: that flag is about the
+      // chrome being mounted, and each row has its own `isConnected` test for the same question about itself.
+      case 'componentRow': syncComponentRow(); break;
+      case 'fileSetupRow': syncFileSetupRow(); break;
+      case 'styleGuideRow': syncStyleGuideRow(); break;
+      case 'componentPending': {
+        // Text swap, NOT `renderBar()`. This fires at every chunk boundary — 27 per phase, so 54 times, in a
+        // 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in it, which
+        // would blur whatever the designer had focused and reset the brand switcher's open state mid-build.
+        // The pending pill is the only thing that changed, so it is the only thing rewritten.
+        //
+        // EVERY live pill, not one (#870): the bar and the Components page each render their own, and writing
+        // to a single cached node left whichever rendered first frozen at the placeholder for the whole build.
+        const text = componentPendingText();
+        for (const node of componentPendingEls) {
+          // A detached node is a pill whose host has re-rendered since. Dropped rather than written to, so
+          // the set stays bounded without any renderer having to know it exists — see the field.
+          if (node.isConnected) node.textContent = text;
+          else componentPendingEls.delete(node);
+        }
+        break;
+      }
+      default: {
+        // Exhaustive: a `Repaint` with no case here is a compile error, not a repaint that silently never runs.
+        const unhandled: never = r;
+        void unhandled;
+      }
     }
-    return;
-  }
-  if (m.kind === 'prune-result') {
-    // #1521. Three outcomes, told apart by `applied` and `count`: a finished delete (verdict pill), a
-    // preview with something to remove (open the confirm dialog), or a preview with nothing stale (a
-    // pill saying so — never a dialog with nothing in it).
-    pruneBusy = false;
-    if (m.applied) {
-      pruneVerdict = { ok: m.ok, count: m.count, summary: m.summary };
-      prunePreview = null;
-    } else if (m.count > 0 && m.pillOnly) {
-      // An agent's preview (the agent link): a pill, never the dialog — its Confirm would prune against this
-      // panel's knobs, not the input the agent previewed. The summary already says what would be removed.
-      prunePreview = null;
-      pruneVerdict = { ok: m.ok, count: m.count, summary: `Agent preview: ${m.summary}` };
-    } else if (m.count > 0) {
-      prunePreview = { count: m.count, summary: m.summary };
-      pruneVerdict = null;
-    } else {
-      prunePreview = null;
-      pruneVerdict = { ok: m.ok, count: 0, summary: m.summary };
-    }
-    if (barHost) renderBar();
-    return;
-  }
-  if (m.kind === 'seed-info') {
-    // #722: join the TWO independent boot reads into one outcome (#721) — the rule and its ordering
-    // hazard both live in `joinSeed`/`withRecovered`, where they are testable. Neither message's
-    // arrival order matters: this reads `inputRecovered` if it is already set, and the
-    // `restore-input` handler above repairs this outcome if it is not.
-    seedOutcome = joinSeed({ present: m.present, ok: m.ok, detail: m.summary }, inputRecovered);
-    if (barHost) renderBar();
   }
 };
 
@@ -4833,7 +4657,7 @@ const renderComponentsPage = (host: PageHost): void => {
   fsBtn.onclick = () => {
     // `openDetail` cleared for the same reason the build clears it: the previous run's detail is stale the
     // instant a new one starts, and the shared row is chrome, so the bar has to be told the row is gone.
-    fileSetupState = 'pending'; openDetail = null;
+    setHost({ fileSetupState: 'pending', openDetail: null });
     renderBar(); syncApplyDetail(); syncFileSetupRow();
     commit.postFileSetup();
   };
@@ -4955,7 +4779,7 @@ const renderComponentsPage = (host: PageHost): void => {
     // on its change, so a value captured during render would build whatever was selected when the page
     // was drawn — the defect being that it would look right for the default and wrong for every change.
     const def = sel.value;
-    componentState = 'pending'; componentProgress = null; openDetail = null;
+    setHost({ componentState: 'pending', componentProgress: null, openDetail: null });
     renderBar(); syncApplyDetail(); syncComponentRow();
     commit.postComponents(def);
   };
@@ -5006,7 +4830,7 @@ const syncComponentRow = (opts: { staged?: true } = {}): void => {
   const row = componentRow;
   if (!row || !componentSel || !componentBtn) return;
   if (!opts.staged && !row.isConnected) return;
-  const pending = componentState === 'pending';
+  const pending = host.componentState === 'pending';
   componentBtn.textContent = pending ? '⋯ Building…' : '⊞ Build set';
   // Disabled while in flight is both the signal and the guard, same call the Apply button makes: a second
   // click would post a concurrent build over the same page.
@@ -5016,7 +4840,7 @@ const syncComponentRow = (opts: { staged?: true } = {}): void => {
   // `.bar-seed` span versus an `.applystat` disclosure button — so this cannot be a text swap. Removing
   // the old one first is what keeps a verdict from landing beside the pending text it supersedes.
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (componentState) row.prepend(renderApplyStatus(componentState, 'components'));
+  if (host.componentState) row.prepend(renderApplyStatus(host.componentState, 'components'));
 };
 
 /** The file-setup row's status, refreshed in place (#1558). The same mechanism as `syncComponentRow`, and
@@ -5031,7 +4855,7 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   const row = fileSetupRow;
   if (!row || !fileSetupBtn) return;
   if (!opts.staged && !row.isConnected) return;
-  const pending = fileSetupState === 'pending';
+  const pending = host.fileSetupState === 'pending';
   fileSetupBtn.textContent = pending ? '⋯ Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
   // Disabled while in flight is both the signal and the guard, same call the build and Apply buttons make:
   // a second click would post a concurrent scaffold over the same file.
@@ -5039,7 +4863,7 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   // Pill REPLACED, not written to — pending (`.bar-seed`) and verdict (`.applystat`) are different
   // elements, so removing the old one first keeps a verdict from landing beside the pending text.
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (fileSetupState) row.prepend(renderApplyStatus(fileSetupState, 'filesetup'));
+  if (host.fileSetupState) row.prepend(renderApplyStatus(host.fileSetupState, 'filesetup'));
 };
 
 /** The style-guide button's label (#259). Proposed, owner to confirm — the one string a reviewer changes. */
@@ -5092,7 +4916,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   styleGuideBtn = btn;
   btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
-    styleGuideState = 'pending'; openDetail = null;
+    setHost({ styleGuideState: 'pending', openDetail: null });
     renderBar(); syncApplyDetail(); syncStyleGuideRow();
     commit.postStyleGuide({ ...styleGuideOptions });
   };
@@ -5109,11 +4933,11 @@ const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
   const row = styleGuideRow;
   if (!row || !styleGuideBtn) return;
   if (!opts.staged && !row.isConnected) return;
-  const pending = styleGuideState === 'pending';
+  const pending = host.styleGuideState === 'pending';
   styleGuideBtn.textContent = pending ? '⋯ Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
   styleGuideBtn.disabled = pending;
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (styleGuideState) row.prepend(renderApplyStatus(styleGuideState, 'styleguide'));
+  if (host.styleGuideState) row.prepend(renderApplyStatus(host.styleGuideState, 'styleguide'));
 };
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
@@ -5181,7 +5005,7 @@ const fontAvailable = (name: string | undefined): boolean => {
 type FaceStatus = { ok: boolean; label: string; title: string; fallbackPreview: boolean };
 const faceStatus = (name: string): FaceStatus => {
   const rendersHere = fontAvailable(name);
-  if (!hostFonts.length) {
+  if (!host.hostFonts.length) {
     // Web: the probe is the only source, and "installed on this device" is exactly what it measures.
     return {
       ok: rendersHere,
@@ -5190,7 +5014,7 @@ const faceStatus = (name: string): FaceStatus => {
       fallbackPreview: !rendersHere,
     };
   }
-  const styles = hostFontStyles.get(name);
+  const styles = host.hostFontStyles.get(name);
   if (styles === undefined) {
     return {
       ok: false,
@@ -5286,7 +5110,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
   // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
   // device" was actively wrong in Figma — a cloud font is loadable there and absent here.
-  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', hostFonts.length ? 'In this Figma' : 'On this device'),
+  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', host.hostFonts.length ? 'In this Figma' : 'On this device'),
     el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   libHead.append(libHtr); libTbl.append(libHead);
   const libBody = el('tbody');
@@ -5401,7 +5225,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // combobox publishes a key hook that returns true when it CONSUMED the key, and the field's single
   // keydown handler defers to it before falling through to submit-on-Enter.
   let comboKey: ((e: KeyboardEvent) => boolean) | null = null;
-  if (hostFonts.length) {
+  if (host.hostFonts.length) {
     addWrap = el('div', 'tf-combo');
     const list = el('div', 'tf-cbolist');
     list.id = 'tf-font-list';
@@ -5454,7 +5278,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
       const needle = q.trim().toLowerCase();
       // Prefix matches first — "Ro" should lead with Roboto, not with a family that merely contains "ro".
       const pre: string[] = [], mid: string[] = [];
-      for (const f of hostFonts) {
+      for (const f of host.hostFonts) {
         if (!needle) { pre.push(f); continue; }
         const at = f.toLowerCase().indexOf(needle);
         if (at === 0) pre.push(f);
@@ -5548,8 +5372,8 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
   // the four-tab split types nothing: this is the only place a face name is entered by hand.
   const spell = el('p', 'tf-note');
-  spell.innerHTML = hostFonts.length
-    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a name chosen from it is spelled the way Figma spells it. That settles the family, not every weight: a text style still skips if the family lacks the specific weight it asks for. Typing a name that is not listed also works — a brand can specify a font this machine does not have — but nothing it needs will load here.'
+  spell.innerHTML = host.hostFonts.length
+    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + host.hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a name chosen from it is spelled the way Figma spells it. That settles the family, not every weight: a text style still skips if the family lacks the specific weight it asks for. Typing a name that is not listed also works — a brand can specify a font this machine does not have — but nothing it needs will load here.'
     : '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
   sec.append(spell);
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
@@ -5709,7 +5533,7 @@ const renderTypefaceBindings = (): HTMLElement => {
   tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
 
   const local = el('p', 'tf-note warn');
-  local.innerHTML = hostFonts.length
+  local.innerHTML = host.hostFonts.length
     ? '<b>Previews in this table use fonts installed on this device; Figma loads more than that.</b> Figma’s list mixes your installed fonts with its own cloud fonts, and this panel loads no webfonts — so a face Figma will happily write can still preview as the fallback here. The <b>In this Figma</b> column on <b>Primitives</b> reports what Figma can load, which is the fact that decides whether a text style applies. Your emitted tokens are unaffected; they carry the name you typed.'
     : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(local);
@@ -9228,7 +9052,7 @@ const renderExportDialog = (): HTMLElement => {
  *  Destructive tone — not a bare "Confirm". Nothing here deletes; only the CTA's `postPrune(…, true)`
  *  does, and the main thread recomputes the plan from a fresh read before it acts. */
 const renderPruneDialog = (): HTMLElement => {
-  const p = prunePreview!;
+  const p = host.prunePreview!;
   const wrap = el('div', 'exdlg-scrim');
   const dlg = hook(el('div', 'exdlg'), 'prune-dialog');
   dlg.setAttribute('role', 'dialog');
@@ -9239,7 +9063,7 @@ const renderPruneDialog = (): HTMLElement => {
   head.append(el('h2', 'exdlg-t', 'Prune stale items'));
   const close = el('button', 'exdlg-x', '✕') as HTMLButtonElement;
   close.setAttribute('aria-label', 'Close');
-  close.onclick = () => { prunePreview = null; renderBar(); };
+  close.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
   head.append(close);
   dlg.append(head);
 
@@ -9249,14 +9073,14 @@ const renderPruneDialog = (): HTMLElement => {
 
   const foot = el('div', 'exdlg-foot');
   const cancel = el('button', 'barbtn', 'Cancel') as HTMLButtonElement;
-  cancel.onclick = () => { prunePreview = null; renderBar(); };
+  cancel.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
   const del = hook(el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement, 'dialog-confirm');
-  del.onclick = () => { pruneBusy = 'delete'; prunePreview = null; renderBar(); commit.postPrune(lastGoodInput, true); };
+  del.onclick = () => { setHost({ pruneBusy: 'delete', prunePreview: null }); renderBar(); commit.postPrune(lastGoodInput, true); };
   foot.append(cancel, del);
   dlg.append(foot);
 
   // The scrim IS the outside — a click on it cancels, a click inside the panel does not.
-  wrap.onmousedown = (e) => { if (e.target === wrap) { prunePreview = null; renderBar(); } };
+  wrap.onmousedown = (e) => { if (e.target === wrap) { setHost({ prunePreview: null }); renderBar(); } };
   wrap.append(dlg);
   return wrap;
 };
@@ -9296,7 +9120,7 @@ const renderPruneDialog = (): HTMLElement => {
  *  `.bar-seed` text, not the `.applystat` pill, and `.bar-seed` ellipsizes at 220px rather than clipping a
  *  verdict. The longest string here is "Wiring references… 648 of 648" at 29 characters. */
 const componentPendingText = (): string => {
-  const p = componentProgress;
+  const p = host.componentProgress;
   if (!p) return 'Building the Button set…';
   // #1679: the reference back-off's waits. Owner's wording, and no fraction — a pass count is not progress
   // through the set, and the waits grow, so "3 of 6" would suggest the pause is half over when it is not.
@@ -9327,7 +9151,7 @@ const componentPendingText = (): string => {
 const componentPendingEls = new Set<HTMLElement>();
 
 /**
- * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedInfo`
+ * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedOutcome`
  * rendered — this ticket lands the model, and where the three outcomes are properly surfaced is
  * #533's decision (#721 is its fifth client, and its first whose status is not the result of an
  * action the user took). No new class, no new slot, no new scope.
@@ -9353,7 +9177,7 @@ function renderSeedPill(o: SeedOutcome): HTMLElement {
   return pill;
 }
 
-function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide'): HTMLElement {
+function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide'): HTMLElement {
   const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : which === 'styleguide' ? 'style guide' : 'component build';
   if (state === 'pending') {
     // The theme write's pending text is static and the component build's is not (#684), so only the
@@ -9370,7 +9194,7 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     componentPendingEls.add(node);
     return node;
   }
-  const open = openDetail === which;
+  const open = host.openDetail === which;
   const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');
   const btn = hook(el('button', cls) as HTMLButtonElement, 'status-verdict');
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
@@ -9384,7 +9208,7 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
   btn.setAttribute('aria-controls', APPLY_DETAIL_ID);
   btn.setAttribute('aria-label', `${state.headline} — ${noun} details`);
   // Opening one closes the other: one row, so this assignment IS the mutual exclusion.
-  btn.onclick = () => { openDetail = open ? null : which; renderBar(); syncApplyDetail(); };
+  btn.onclick = () => { setHost({ openDetail: open ? null : which }); renderBar(); syncApplyDetail(); };
   return btn;
 }
 
@@ -9407,7 +9231,7 @@ const syncApplyDetail = (): void => {
   // ONE row, shared by both write pills (#483) — `openDetail` names whose summary is in it. Reading the
   // state through the discriminant rather than tracking it here means the row cannot show a summary whose
   // pill is not the open one: there is a single source for "which", and both the pill and this read it.
-  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : openDetail === 'filesetup' ? fileSetupState : openDetail === 'styleguide' ? styleGuideState : null;
+  const state = host.openDetail === 'apply' ? host.applyState : host.openDetail === 'components' ? host.componentState : host.openDetail === 'filesetup' ? host.fileSetupState : host.openDetail === 'styleguide' ? host.styleGuideState : null;
   const show = state !== null && state !== 'pending';
   applyDetailHost.style.display = show ? '' : 'none';
   if (show) applyDetailHost.textContent = state.summary;
@@ -9489,19 +9313,19 @@ function renderBar(): void {
   // pill, shown only until the first apply, after which the write's own result is the newer fact and
   // "what was in the file when I opened it" is no longer what the designer is asking about.
   if (commit.isFigma) {
-    // #480: independent of the applyState/seedInfo slot below — a restore refusal is a fact about
+    // #480: independent of the applyState/seedOutcome slot below — a restore refusal is a fact about
     // BOOT, not about the write button, and must stay visible even once an apply (or the read-back)
     // has something else to say in that slot.
-    if (restoreError) {
+    if (host.restoreError) {
       // `title` carries the full message — the pill itself truncates (`.bar-seed` is a fixed-width,
       // single-line, ellipsized slot), and this is the one boot fact worth reading in full.
-      const pill = hook(el('span', 'bar-seed bad', `Saved brand not restored — ${restoreError}`), 'status-pill');
-      pill.title = restoreError;
+      const pill = hook(el('span', 'bar-seed bad', `Saved brand not restored — ${host.restoreError}`), 'status-pill');
+      pill.title = host.restoreError;
       actions.append(pill);
     }
-    if (applyState) actions.append(renderApplyStatus(applyState, 'apply'));
-    else if (seedOutcome) actions.append(renderSeedPill(seedOutcome));
-    const pending = applyState === 'pending';
+    if (host.applyState) actions.append(renderApplyStatus(host.applyState, 'apply'));
+    else if (host.seedOutcome) actions.append(renderSeedPill(host.seedOutcome));
+    const pending = host.applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
     // second concurrent write over the same variables. Disabled while in flight is both the signal and
@@ -9509,7 +9333,7 @@ function renderBar(): void {
     const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : 'Apply to Figma') as HTMLButtonElement;
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
-    applyBtn.onclick = () => { applyState = 'pending'; openDetail = null; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
+    applyBtn.onclick = () => { setHost({ applyState: 'pending', openDetail: null }); renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
     actions.append(applyBtn);
 
     // The component write's trigger USED TO SIT HERE (#483), a second action beside Apply. #718 moved it
@@ -9522,7 +9346,7 @@ function renderBar(): void {
     // so a build's verdict stays legible after navigating away from the page that started it. A status
     // that vanished with its control would be worse than the control's old placement: a 648-member build
     // runs ~105s cold (#700), and nobody watches a rail page for that long.
-    if (componentState) actions.append(renderApplyStatus(componentState, 'components'));
+    if (host.componentState) actions.append(renderApplyStatus(host.componentState, 'components'));
 
     // PRUNE (#1521; modes + all four style kinds since #1570) — a secondary action beside Apply: remove
     // the styles, modes and variables a config change dropped, which is the whole cleanup path for a
@@ -9531,17 +9355,17 @@ function renderBar(): void {
     // dialog below — so the #479 / #1152 "never blind-delete on an apply" rule holds. Its verdict is its
     // own `.bar-seed` pill (a preview that finds nothing stale, or the outcome of a delete), never the
     // theme write's, for the same reason the component build keeps its own.
-    if (pruneVerdict) {
-      const pill = hook(el('span', 'bar-seed' + (pruneVerdict.ok ? '' : ' bad'), pruneVerdict.summary), 'status-pill');
-      pill.title = pruneVerdict.summary;   // `.bar-seed` ellipsizes at 220px; the full sentence is worth reading
+    if (host.pruneVerdict) {
+      const pill = hook(el('span', 'bar-seed' + (host.pruneVerdict.ok ? '' : ' bad'), host.pruneVerdict.summary), 'status-pill');
+      pill.title = host.pruneVerdict.summary;   // `.bar-seed` ellipsizes at 220px; the full sentence is worth reading
       actions.append(pill);
     }
-    const pruneBtn = el('button', 'barbtn', pruneBusy === 'preview' ? '⋯ Checking…' : pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale') as HTMLButtonElement;
+    const pruneBtn = el('button', 'barbtn', host.pruneBusy === 'preview' ? '⋯ Checking…' : host.pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale') as HTMLButtonElement;
     // Disabled while a prune is in flight AND while a theme apply is pending — a prune reads the same
     // variables an apply writes, so overlapping the two would race a delete against a create.
-    pruneBtn.disabled = !!pruneBusy || applyState === 'pending';
+    pruneBtn.disabled = !!host.pruneBusy || host.applyState === 'pending';
     pruneBtn.title = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
-    pruneBtn.onclick = () => { pruneBusy = 'preview'; pruneVerdict = null; prunePreview = null; renderBar(); commit.postPrune(lastGoodInput, false); };
+    pruneBtn.onclick = () => { setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); renderBar(); commit.postPrune(lastGoodInput, false); };
     actions.append(pruneBtn);
   }
 
@@ -9557,7 +9381,7 @@ function renderBar(): void {
   // The prune confirm dialog (#1521), appended for the same reasons the export dialog is — a modal scrim
   // that must sit outside the relative `.barmenu-wrap` stacking context. Present only when a preview with
   // something to remove has landed; `renderBar()` clears `barHost` each call, so its lifetime is the flag.
-  if (prunePreview) barHost.append(renderPruneDialog());
+  if (host.prunePreview) barHost.append(renderPruneDialog());
 
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
@@ -9578,7 +9402,7 @@ function renderBar(): void {
       if (e.key === 'Escape' && exportMenuOpen) { exportMenuOpen = false; importOpen = false; renderBar(); }
       // Escape cancels the prune review too (#1521) — a review is not a commitment, so closing it
       // deletes nothing. Same bound-once handler, for the same reason the click dismissal is.
-      else if (e.key === 'Escape' && prunePreview) { prunePreview = null; renderBar(); }
+      else if (e.key === 'Escape' && host.prunePreview) { setHost({ prunePreview: null }); renderBar(); }
     });
     outsideBound = true;
   }
