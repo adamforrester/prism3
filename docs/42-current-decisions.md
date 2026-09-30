@@ -92,6 +92,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | the density step rule stands as written | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.2 | — |
 | per-mode density changes heights only | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.3 | — |
 | a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.4 | — |
+| the field label's name hugs its text and wraps at a max width, so the required marker follows it *(changes #1757's decision 2, "the label wraps at field width")* | 2026-09-30 | `docs/28-component-anatomy-schema.md` §5.5 | #1762 |
 | the style guide documents every color collection — primitives on Primitive tokens, roles on Semantic tokens — with modes side by side, a bound swatch drawn on its ground, a contrast column from the engine's contract, in-place reruns that delete a superseded table only when it is unedited, and cell components built or adopted on File Components | 2026-09-28 | `docs/45-style-guide-generator.md` §2 | #259 |
 
 ## Known gaps, named rather than silent
