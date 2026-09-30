@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
+ * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
+ * into the old set, because find-or-create matches the set by NAME and every planned member name was new, so
+ * nothing matched and nothing read STALE. Figma reports a set whose members disagree on the axis list as broken.
+ * The plugin executor (`apps/plugin/src/write-components.ts`) now reads the existing set's axis lists off its
+ * coordinate-shaped member names and, when any differs from the plan's, REFUSES: nothing is built, appended or
+ * stamped, and one miss names both lists and the remedy (rename the old set, build again). Axis NAMES only — a
+ * new value on the same axes still appends. A PLUGIN write-path behavior change → ENGINE bump; no engine
+ * emission or projected surface moves (0.213.0/0.214.0 are held by open PRs #1802/#1804). CONTRACT STANDS at
+ * 14.0.0 (no token name moves).
+ *
  * 0.212.0 — the dismissible Tag's label inset (owner-decided 2026-09-29 from live QA on a real Figma file;
  * decision record `docs/28` §5.4.4). On a dismissible tag the label-and-check row (`labelCheck`) takes a FIXED
  * 4px leading inset (`space.050`, every density), and the content row's icon→label gap drops to match (6/8/12
@@ -4273,7 +4284,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.212.0';
+export const ENGINE_VERSION = '0.215.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

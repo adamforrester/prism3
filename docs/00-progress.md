@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
+
+**STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.212.0 → 0.215.0** (a write-path behavior change; 0.213.0/0.214.0 are held by open PRs #1802/#1804). CONTRACT stands at 14.0.0.
+
+**The defect.** Find-or-create matches the existing set by NAME. When a def's axis list changes (`veil` gaining `direction`, Tag gaining `type`, a `genre` axis renamed `type`), every planned member name is new, so nothing matches `have`, nothing reads STALE, and every new member is appended into the old set beside members on the old axis list. Figma reports that set as broken (its definitions getter throws), so neither the old members nor the new ones get their properties or references. The owner's repair was to rename the old set aside by hand.
+
+**The behavior now: refuse.** Before anything is built, the executor reads the existing set's axis lists off its member names. If any list differs from the plan's, it writes nothing (no member built, none appended, no build report stamped on the old set), returns `set: null` with `axesChanged: { set, existing, planned }`, and reports one miss: `set -> AXES CHANGED: '<def>' on this page varies by [..], and this build varies by [..]. Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.` The pill reads `✗ nothing built`; the summary names the set that was left as it is.
+
+**Why refuse and not build beside.** Refusing is #827's posture (report, never rebuild what instances point at) and is the owner's own manual remedy made explicit. Building beside needs two decisions a fix should not make: what the new or old set is CALLED (two sets under one name make find-or-create, `liveSet()` and the nest lookups ambiguous, and #1781 already reports that state as an error), and where it goes on the page (#1750). Held for the owner, not chosen here.
+
+**Three technical calls, stated so they can be challenged.**
+1. **Member names, not `componentPropertyDefinitions`.** The getter throws on exactly the set this check must read: one already on two axis lists (the live file after the first bad build). Figma derives the definitions from the names anyway, so one reader covers both cases.
+2. **Only coordinate-shaped names count** (every segment has an `=`). A hand-made copy is already reported as `NOT A GENERATED VARIANT`; counting it would refuse every build over a set someone added a copy to (mutation M2 below).
+3. **Axis names only, not values.** A new value on the same axes is the incremental path (the COMBINE note records the live measurement: appending `state=pressed` to `state=rest|hover` extends that axis). Refusing it would split a set every time a def gained a state or a size. A value the plan drops leaves strays the layout pass already reports.
+
+**Shim.** `readDefs` now throws on a set whose coordinate-shaped members disagree on the axis list, as the live host did (6 + 30 `veil` members). Hand-named children are not modeled; the stray-member case keeps reading as before.
+
+**Tests (`test-write-components.ts`, literal expectations).** (a) axis gained: refused, the full miss string literal, `axesChanged` literal, the same 21 node objects under the same names, one node on the page, `✗ nothing built`; (a') the stated remedy holds: rename the old set, build again, a fresh 21-member set lands beside it and the old one keeps its members; (b) axis renamed; (c) already mixed (both lists named); (d) a value added on the same axes still appends 12 into the existing 9.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
+
+| Mutation | Fails |
+|---|---|
+| M1 the refusal disabled (`if (false && …)`), so the build appends into the old set again | 11 by name, among them `#1780 an axis gained: the build is REFUSED and builds nothing (set=button, added=21, variants=42)` and `#1780 the old set is UNTOUCHED … (42 members)`; the suite ran to completion |
+| M2 hand-named children counted as an axis list | `a member whose name is not a generated coordinate is reported and left in place, not dragged to a guessed cell` |
+
+**Trap for whoever re-verifies.** The first M1 run stopped the suite: the test's own probe of the old set's definitions threw on the mixed set the mutation produced, and every arm after it went unrun. `axisVariants` now returns a `THROWS: …` entry instead, so a mutation run reports every arm.
+
+**Not done here.** The refusal does not count instances placed from the old set. Renaming it aside is safe whatever that count is (an instance tracks its main component by id), so the count is not needed for the remedy; it would matter only for a "build beside and re-point instances" design, which is held.
+
 ## (2026-09-30) — Skills gate: an all-caps name a skill quotes is declared where the skill places it (#1725)
 
 **STATUS: PR open from `lane/lint-skills-constants`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-skills.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252). `regen --check` stays in sync. Fixes #1725.
