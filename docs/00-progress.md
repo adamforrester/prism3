@@ -21,6 +21,8 @@
 
 **Filed, not fixed.** The `prism3-theme` skill's `actionPalette` row lists only "a `brandColors` name" (#1819).
 
+**Review round (independent review of #1827; code correct, held for owner sign-off on offering neutral).** Contrast was measured at 80/80 across four brands and four modes. One fix came out of it. The "pick neutral" wait had no timeout, so a select that offers neutral but writes something else would abort the whole suite with a Playwright timeout and skip every later section. The wait now uses the file's `{ timeout: 5000 }).then(() => true, () => false)` pattern and feeds a named check, and a second check reads the select's value back after the re-render. Mutation (M5): `onchange` writes `'primary'` when `'neutral'` is chosen. It fails `#1811 prism3: choosing a neutral action palette repaints the primary action (#1e1eff → #1e1eff)` and `#1811 prism3: the Action palette select reads 'neutral' after it is chosen (reads 'primary')`, 2 of 2836, and the suite completes. Merging main brought in #1825's `data-p3` hooks, so §8c now locates by hook. `actionPaletteLead` mints `action-palette`, and `iRow`'s description paragraph mints `role-desc`. The review also filed #1835 (a third palette option list, in the generic `renderControl`) and #1836 (a `test.ts` crash-not-fail).
+
 ---
 
 ## (2026-09-30) — Stable test hooks: the browser suites locate by `data-p3`, not by class or title (UI redesign F1)
