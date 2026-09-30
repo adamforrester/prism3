@@ -51,8 +51,12 @@ touch `node:` and would not bundle for the browser.
 
 ## Driving it headlessly — read this before writing a probe
 
-`src/main.ts` touches `document` at import time, so it cannot be loaded into a Node harness at
-any granularity. Anything that needs to observe this app's *behaviour* has to drive a browser.
+The session state — the working brand, the resolved theme, the last-good rule, the viewed mode and
+page — lives in `src/state/store.ts`, which touches no DOM and is imported directly by the Node suite
+`test-store.ts` (#896). Since #896 the only module with import-time effects is `src/entry.ts` (the
+bundle's entry); `src/main.ts` defines the pages and runs nothing while it loads. What it renders is
+still DOM, though, so anything that needs to observe this app's *behavior* on screen has to drive a
+browser.
 Two committed drivers do, and both are Playwright (an `apps/studio` devDependency since #767 —
 the engine core stays dependency-free):
 

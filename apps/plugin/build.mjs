@@ -207,11 +207,11 @@ const mainOpts = (id) => ({
 });
 
 // Bundle the UI to an in-memory JS string, then inline it into the HTML template.
-// #110 — the UI IS the shared `studio/src/main.ts` (no fork): the same source the standalone web app
+// #110 — the UI IS the shared `studio/src` app (no fork): the same source the standalone web app
 // bundles, built here with PRISM3_HOST='figma' so its commit path posts to the main thread instead
 // of downloading. One UI, two outputs. The `../studio/src` engine imports are pure (node-free), so the
 // iframe bundle stays self-contained + no-network like the placeholder did.
-// Since the agent link, the entry is `src/ui/entry.ts`: it imports `studio/src/main.ts` WHOLE and unchanged,
+// Since the agent link, the entry is `src/ui/entry.ts`: it imports `studio/src/entry.ts` WHOLE and unchanged,
 // then mounts the link's temporary chip beside it — still one UI, and the web build never sees the chip.
 const WEB_UI = resolve(root, 'src/ui/entry.ts');
 const htmlTemplate = await readFile(resolve(root, 'src/ui/index.html'), 'utf8');
@@ -227,7 +227,7 @@ const buildUiHtml = async (id) => {
     // field unfalsifiable: `plugin` is the same string in every checkout, so the one panel chip that could
     // have answered "which tree is Figma running?" answered "a plugin" (#836).
     define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id) },
-    // The studio chrome stylesheet is a real .css file since #769, imported by main.ts as TEXT.
+    // The studio chrome stylesheet is a real .css file since #769, imported by the studio's entry.ts as TEXT.
     // This loader is what keeps the UI a SINGLE self-contained document: esbuild's default `.css`
     // loader emits a separate stylesheet, which an iframe shipping `allowedDomains:["none"]` has no
     // way to fetch. Dropping it does not silently unstyle the panel — with `write: false` there is
