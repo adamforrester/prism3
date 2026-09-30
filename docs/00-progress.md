@@ -31,6 +31,69 @@
 
 ---
 
+## (2026-09-30) — Plugin build: a new component set lands beside the page's content, not on top of it (#1750)
+
+**STATUS: PR open from `lane/set-placement`, labeled DO NOT MERGE.** Branched from `lane/axes-changed-new-set` (#1808, not yet merged) because both touch `write-components.ts`; merge #1808 first. Plugin only (`write-components.ts`, `main.ts`, two test files). **ENGINE 0.215.0 → 0.216.0.** CONTRACT stands at 14.0.0.
+
+**The defect.** `combineAsVariants` drops every new set at the origin, and nothing moved it, so on every page holding a family (Buttons, Icon button, Checkbox, Radio, Switch) each set covered the one before. The page header was placed after the first build and measured only that set.
+
+**The rule (`placeNewSet`).** Only a set this run CREATES is placed; a rebuild never moves a set (the designer's placement wins, as for the header). On an empty page the set stays at the origin. Otherwise: `y` is the top of the existing COMPONENT_SETs (or of all content, if there is no set yet); `x` is `SET_GAP` right of every top-level node that overlaps the new set's row (`y` to `y + height`). Nodes wholly above or below the row, like the header 80px above the content, do not push it. Measuring the whole page instead would push a narrow `checkbox-row` past a 1000px header, far from its `checkbox-control`. Hidden nodes count, because showing one again would reveal the overlap. Placed after the resize, because the row depends on the set's height. The position is read back.
+
+**`SET_GAP = 160` is a placeholder**, the spacing the owner used laying out the master file by hand. The issue says the owner has not picked the final number. Held.
+
+**Taxonomy order.** Sets read left to right in build order, which is the taxonomy's order when a family is built as one run (dependencies first, `build-deps.ts`) or page by page in the order `file-taxonomy.ts` lists. A set built out of order goes to the right of its siblings; nothing already placed is reshuffled, since that would move a designer's layout.
+
+**Header.** Headers are now placed once the run's builds are done, so a header first placed over `checkbox-control` + `checkbox-row` spans both. The ordering is `labelAfterBuilds` in `build-deps.ts` (importable, unlike `main.ts`): it runs the builds, records each page after its build returns, and labels each page once afterwards, also on a throw. `main.ts` runs its dependency and root builds under it. `test-page-header.ts` 2b pins the geometry the ordering produces.
+
+**Tests (literal positions).** `test-write-components.ts`: the first set stays at 0,0 (its 780×120 box pinned as the input); `button-destructive` after `button` lands at 940,0; with a 5000px frame above and a note at 900..1300 in the row, it lands at 1460,0, and no two of the page's four nodes overlap; on a page holding only a frame at 100..600, y 40, it lands at 760,40; a frame at y -500..500 (starting above the row, reaching into it) pushes the set to 3060,0; a rebuild leaves a hand-moved set at 5000,7000 and its sibling at 940,0. `labelAfterBuilds`: builds for Checkbox, Checkbox, Focus Ring, Checkbox, then one label each for Checkbox and Focus Ring; a throw still labels the page that returned and rethrows. A read of `main.ts`'s code lines pins that `placeHeader(` is called only as that label. `test-page-header.ts` 2b: sets at 0 and 360 get a header at x 0, width 1000 (the floor), and `placeNewSet` puts a third set at 720,0, not past the header.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
+
+| Mutation | Fails |
+|---|---|
+| P1 always place at 0,0 | 5 by name, e.g. `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got button-destructive at 0,0)` and `#1750 no two of the page's 4 top-level nodes overlap (button × button-destructive)` |
+| P2 the row band ignored (everything on the page pushes) | `#1750 a node in the set's row pushes it right … (got 5160,0)`; `2b: a third set goes beside the row at 720,0 … (got 1160,0)` |
+| P3 the page read as empty (no snapshot) | the same 5 as P1 |
+| P4 a rebuild also places the existing set | `#1750 a rebuild leaves a set the designer moved where they put it … (button at 1916,0, …)` |
+| R1 (review) only nodes whose TOP edge is inside the row count | survived the first round; now `#1750 a node that starts above the row and extends into it still pushes the set right … (got 940,0)` |
+| S1 `labelAfterBuilds` labels each page as it lands | `#1750 every build runs before any page is labeled …`; `#1750 a throw still labels the pages whose builds returned …` |
+| S2 `main.ts` back to placing the header inside each build | `#1750 main.ts places headers only as the label of labelAfterBuilds, never inside a build (… if (page) await placeHeader(…))` |
+
+**Not done here.** The `emitAsComponents` path (`icon`) still lays its components out from the origin on its own page, and the MCP paste payload still combines at the origin. The payload is filed as #1809 with #1780's twin.
+
+---
+
+## (2026-09-30) — Paste chunk headroom: gate the indivisible unit, let the probe grid split (#1798)
+
+**STATUS: PR open from `lane/paste-payload-headroom`, labeled DO NOT MERGE.** Tests, one code comment and this entry. **No version bump:** no payload byte moved and no artifact changed (`regen --check` clean), so there is no behavior change for `ENGINE_VERSION` to report.
+
+**The problem.** `test.ts` asserted that Button's #536 probe grid (3 sizes × 4 slot combos) packs into ONE chunk under `SET_CHUNK_BYTES` (42,000). The grid measured 41,827 B, so 173 B was the headroom for every change to the chunk shell. The #1781 nest fix, the #1751 fill-sizing fix and both 2026-09-27 component-set border entries each had to compact code or accept a margin of a few bytes to fit. #1657 and any new nest or swap diagnosis would have had to do the same.
+
+**What was measured first.**
+- **Where 42,000 comes from.** It is a convention, not a measured limit. It is the largest payload with a proven live paste behind it (42,040 B, #513/#528), rounded down under the ~45 KB `figma_execute` ceiling from #487 §6. Nothing in the repo record measures that ceiling as a rejection point. The other transport, `use_figma`, declares `maxLength: 50000` on its `code` parameter (read off the tool schema today). `mcp-paste.ts` packs to `SCRIPT_CEILING` (45,000, which is 90% of that) minus its ~4.9 KB step bundle, so the engine payload's budget on that path is about 39,950, and **the probe grid already pastes as two scripts there** (39,912 + 28,799).
+- **What dominates.** The probe grid's 41,827 B split into 14,550 of variant data (the `PLANS` line), ~900 of header constants, and ~26.4 KB of shell. By section, the shell is: builder and `claimDefaults` 12.4 KB, properties/wiring/read-back 6.9 KB, resolvers and shared helpers 3.5 KB (`resolveNestMember` alone is 763), find-or-create and layout 2.6 KB, and the return 1.0 KB. Every chunk ships all of it.
+- **The limit that can actually break.** A bigger shell makes `planSetChunks` pack fewer variants per chunk. That costs pastes, not correctness. The unrecoverable case is one variant plus the shell overflowing a chunk. `pack` then ships an over-budget one-variant chunk, and the transport rejects it after earlier chunks have landed. Measured over the registry with `planSetChunks(plans, 1)`, the worst unit is textarea at 32,090 B (76.4% of 42,000). Buttons come next at ~31.1 KB.
+
+**The fix (the issue's option 2).** The single-chunk assertion became `#536 item 6: the probe grid packs inside the chunk budget with every member exactly once, in plan order`. Two new gates were added:
+- `#1798: the indivisible paste unit … stays within 90% of the 42,000 B chunk budget` measures that unit for every def. The ceiling is the literal 37,800, never read from `SET_CHUNK_BYTES` (docs/34). That leaves 5,710 B of shell growth before the gate fails by name, and 4,200 B more before the budget. A sibling arm fails if the probe stops isolating one variant per chunk, because the measurement would then be meaningless.
+- `#1798: the #536 probe grid, split across chunks` forces the grid into four chunks and runs them in sequence on the payload harness. It asserts clean runs, one set of 12 members with each chunk adding its own slice, the derived axes `size:3 × leading icon:2 × trailing icon:2`, properties declared on the last chunk only with all 12 wired, and geometry identical to the unsplit paste and to the plugin executor. The 36-variant sequence above it cuts only `appearance`/`state` siblings. This one cuts across slot cohorts.
+
+**Ruled out.** A one-time **preamble chunk** for the shared helpers cannot work: every `use_figma`/`figma_execute` call is a fresh plugin run, so a later chunk could reach stored code only by evaluating text read back out of the file. Nothing Prism3 pastes evaluates text today (`apps/plugin/test-agent-link.ts` asserts it of the agent snippets), and doing so would run whatever code anyone with edit access had left in the file. Whether the host would even allow it was not tested. **Raising the budget** is not evidenced for `figma_execute`. On `use_figma` it is already 90% of the declared limit.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).**
+
+| Mutation | Fails by name |
+|---|---|
+| M1 `resolveNestMember` +6,000 B (an oversized helper) | `#1798: the indivisible paste unit …` (textarea 38,103 B > 37,800); also the pinned `anatomy/icon-button: the set packs into 14 chunks` |
+| M2 control: `resolveNestMember` +200 B | nothing. The probe grid now packs 11 + 1, where `main`'s single-payload gate would have failed |
+| M3 packer drops the variant at each chunk boundary | `#1798: the split probe grid builds ONE set holding all 12 members` (9), `… only the last chunk … wires all 12`, `… lays out exactly as the unsplit paste and the plugin do`, `#1798: the unit probe isolates one variant per chunk` |
+| M4 `PROPS_ALL` on every chunk | `#1798: every chunk of the split probe grid runs CLEAN` (ORPHAN), `#1798: only the last chunk of the split declares properties` |
+| M5 packer ignores the caller's budget | `#1798: the forced split cuts … into at least three chunks`, `#1798: the unit probe isolates …`, `#1798: the indivisible paste unit …` |
+
+**Trap for whoever re-verifies.** `anatomy/icon-button: the set packs into 14 chunks` is still a deliberate pin on chunk count. A large shell change moves it, and its own comment says to re-pin it rather than delete it. The earlier entries that report a few bytes of headroom (#1781, #1751, and the two 2026-09-27 border entries) were measured against the old single-chunk gate.
+
+---
+
 ## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
 
 **STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.214.0 → 0.215.0** (a write-path behavior change). CONTRACT stands at 14.0.0.
