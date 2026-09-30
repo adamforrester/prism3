@@ -15803,7 +15803,7 @@ arm: {
     // describe a behavior tests the words. So run it. A stub Figma with an EMPTY variable set is the
     // realistic failure — token passes not run, or one variable renamed — and it is the case where
     // `misses[]` has to be trustworthy, because this whole design rests on it being the only channel.
-    type PayloadResult = { misses: string[]; properties?: string[]; refs?: number; wiredMembers?: number; axes?: string[]; variants?: number; added?: number; size?: [number, number]; set?: string | null; chunk?: number; of?: number };
+    type PayloadResult = { misses: string[]; axesChanged?: unknown; properties?: string[]; refs?: number; wiredMembers?: number; axes?: string[]; variants?: number; added?: number; size?: [number, number]; set?: string | null; chunk?: number; of?: number };
     // A PAGE that outlives one run, for the CHUNKED path only (`opts.page`). Every other caller passes
     // nothing and gets a fresh empty page, exactly as before — but a chunked paste's whole premise is
     // that call N finds what call N-1 left in the file, so a stub that forgets between runs cannot
@@ -18221,6 +18221,190 @@ arm: {
           `#1798: the split probe grid lays out exactly as the unsplit paste and the plugin do — split ${JSON.parse(geometry(page))[0]}, unsplit ${JSON.parse(geometry(whole.pg))[0]}, plugin ${JSON.parse(geometry(plugPage))[0]}`);
       }
 
+      // ---- #1809: THE CHUNKED PASTE REFUSES A SET WHOSE AXES CHANGED, AND PLACES A NEW SET BESIDE THE PAGE'S CONTENT ----
+      // The plugin got both in #1780 (#1808) and #1750; the paste script's find-or-create had neither. Every
+      // expectation below is a LITERAL typed here: the miss string, the axis lists, and every coordinate. The one
+      // number the stub decides, the `button` set's measured box, is pinned first as a literal guard, so the
+      // placement arithmetic after it is stated rather than read back off the run. The plugin is run on the same
+      // page states beside each literal, as the parity arm between the two executors.
+      {
+        const SWAP = 'FPO-default-icon';
+        const states4 = ['rest', 'hover', 'pressed', 'disabled'];
+        const plansOf = (def: ComponentDef, states: string[] = states4) => def.variants.appearance!.flatMap((ap) =>
+          def.variants.size!.flatMap((sz) => states.map((st) => figmaAnatomyPlan(def, sz, { leading: true, swapTarget: SWAP, appearance: ap, state: st }))));
+        const btn = plansOf(button);
+        const destructive = plansOf(componentDefs.find((d) => d.id === 'button-destructive')!);
+        const optsOf = (plans: AnatomyPlan[]): StubOpts => ({
+          vars: plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: plans.flatMap((p) => planTextStyles(p.root)),
+          comps: [SWAP, 'focus-ring'],
+        });
+        const paste = async (plans: AnatomyPlan[], page: StubPage) => {
+          const rs: PayloadResult[] = [];
+          for (const c of planSetChunks(plans)) rs.push(await runPayload(c.js, { ...optsOf(plans), page }));
+          return rs;
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+        const plug = async (plans: AnatomyPlan[], page: StubPage) => applyComponentPlan(plans, makeFigmaStub({ ...optsOf(plans), page }) as any);
+        const setOf = (pg: StubPage, name = 'button') => pg.children.find((n) => n.type === 'COMPONENT_SET' && n.name === name);
+        const kids = (s: Record<string, unknown> | undefined) => (s?.children ?? []) as Record<string, unknown>[];
+        const rename = (s: Record<string, unknown> | undefined, f: (n: string) => string, only?: number) =>
+          kids(s).forEach((m, i) => { if (only === undefined || i < only) m.name = f(String(m.name)); });
+        const at = (n: Record<string, unknown> | undefined) => (n ? `${String(n.x ?? 0)},${String(n.y ?? 0)}` : 'absent');
+        const REMEDY = 'Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. ' +
+          'Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.';
+        const NOW = '[appearance, leading icon, size, state, trailing icon]';
+
+        const btnChunks = planSetChunks(btn).length;
+        ok(btn.length === 36 && btnChunks >= 2,
+          `#1809 fixture: the button set is 36 members in at least 2 chunks, so a refusal has a chunk 2 to hold as well (${btn.length} members, ${btnChunks} chunks)`);
+
+        // (a) AN AXIS RENAMED (`appearance` → `genre`): every chunk is refused, the old set is untouched.
+        const renPage: StubPage = { children: [] };
+        await paste(btn, renPage);
+        rename(setOf(renPage), (n) => n.replace('appearance=', 'genre='));
+        const renBefore = kids(setOf(renPage)).slice();
+        const renNames = renBefore.map((m) => String(m.name));
+        const renRuns = await paste(btn, renPage);
+        const renMiss = `set -> AXES CHANGED: 'button' on this page varies by [genre, leading icon, size, state, trailing icon], and this build varies by ${NOW}. ${REMEDY}`;
+        ok(renRuns.length === btnChunks && renRuns.every((r) => r.set === null && r.added === 0 && JSON.stringify(r.misses) === JSON.stringify([renMiss])),
+          `#1809 an axis renamed: EVERY chunk of the paste is refused with the plugin's one miss, chunk 2 included (${JSON.stringify(renRuns.map((r) => [r.set, r.added, r.misses.length]))}; ${renRuns[0]?.misses[0]?.slice(0, 110)})`);
+        ok(JSON.stringify((renRuns[0] as { axesChanged?: unknown }).axesChanged) === JSON.stringify({ set: 'button', existing: [['genre', 'leading icon', 'size', 'state', 'trailing icon']], planned: ['appearance', 'leading icon', 'size', 'state', 'trailing icon'] }),
+          `#1809 ...and returns the two axis lists as data (${JSON.stringify((renRuns[0] as { axesChanged?: unknown }).axesChanged)})`);
+        ok(renPage.children.length === 1 && kids(setOf(renPage)).length === 36
+          && kids(setOf(renPage)).every((m, i) => m === renBefore[i] && m.name === renNames[i]),
+          `#1809 ...and the old set is UNTOUCHED: the same 36 member nodes under the same names, and nothing else on the page (${kids(setOf(renPage)).length} members, ${renPage.children.length} top-level)`);
+        // PARITY: the plugin, on the same page state, reports the identical string.
+        const renPlugPage: StubPage = { children: [] };
+        await plug(btn, renPlugPage);
+        rename(setOf(renPlugPage), (n) => n.replace('appearance=', 'genre='));
+        const renPlug = await plug(btn, renPlugPage);
+        ok(JSON.stringify(renPlug.misses) === JSON.stringify([renMiss]) && JSON.stringify(renPlug.misses) === JSON.stringify(renRuns[0].misses),
+          `#1809 parity: the plugin refuses the same set with the IDENTICAL miss\n    paste:  ${renRuns[0]?.misses[0]}\n    plugin: ${renPlug.misses[0]}`);
+
+        // (b) AN AXIS GAINED — the live case (`veil` gaining `direction`). The old set predates `size`: built at
+        // one size and stripped of the segment, so no two members share a name.
+        const gainPage: StubPage = { children: [] };
+        await paste(btn.filter((p) => planComponentName(p).includes('size=medium')), gainPage);
+        rename(setOf(gainPage), (n) => n.replace('size=medium, ', ''));
+        const gainBefore = kids(setOf(gainPage)).slice();
+        const gainRuns = await paste(btn, gainPage);
+        ok(gainBefore.length === 12 && gainRuns.every((r) => r.set === null && r.added === 0
+          && JSON.stringify(r.misses) === JSON.stringify([`set -> AXES CHANGED: 'button' on this page varies by [appearance, leading icon, state, trailing icon], and this build varies by ${NOW}. ${REMEDY}`]))
+          && kids(setOf(gainPage)).length === 12 && kids(setOf(gainPage)).every((m, i) => m === gainBefore[i]),
+          `#1809 an axis gained: refused on every chunk, and the 12-member set keeps exactly its members (${JSON.stringify(gainRuns.map((r) => r.misses[0]?.slice(0, 100)))}, ${kids(setOf(gainPage)).length} members)`);
+
+        // (c) ALREADY MIXED: six members on the old list, thirty on the new. Refused, naming both lists.
+        const mixPage: StubPage = { children: [] };
+        await paste(btn, mixPage);
+        rename(setOf(mixPage), (n) => n.replace('appearance=', 'genre='), 6);
+        const mixRuns = await paste(btn, mixPage);
+        ok(mixRuns[0].set === null && kids(setOf(mixPage)).length === 36
+          && JSON.stringify(mixRuns[0].misses) === JSON.stringify([`set -> AXES CHANGED: 'button' on this page varies by [genre, leading icon, size, state, trailing icon] and ${NOW}, and this build varies by ${NOW}. ${REMEDY}`]),
+          `#1809 an already-mixed set: refused, naming BOTH lists its members carry (${mixRuns[0].misses[0]?.slice(0, 150)})`);
+
+        // (d) A VALUE ADDED ON THE SAME AXES IS NOT AN AXIS CHANGE: 27 members with three states, then all 36.
+        const valPage: StubPage = { children: [] };
+        await paste(plansOf(button, ['rest', 'hover', 'pressed']), valPage);
+        const valRuns = await paste(btn, valPage);
+        ok(kids(setOf(valPage)).length === 36 && valPage.children.length === 1
+          && valRuns.reduce((s, r) => s + (r.added ?? 0), 0) === 9 && !valRuns.some((r) => r.misses.some((m) => m.includes('AXES CHANGED'))),
+          `#1809 a value added on the same axes still APPENDS: 27 + 9 = 36 members in one set (${kids(setOf(valPage)).length} members, added ${JSON.stringify(valRuns.map((r) => r.added))}, ${valPage.children.length} top-level)`);
+
+        // (d') A HAND-MADE CHILD IS NOT AN AXIS LIST. A designer's `Button copy` inside the 27-member set: its name
+        // is not a coordinate, so it counts toward neither axis list, and pasting all 36 still appends the 9 new
+        // members, in both executors. Counting it would refuse every re-paste over a set someone had copied into.
+        const handMade = () => ({ type: 'COMPONENT', name: 'Button copy', x: 0, y: 0, width: 100, height: 40, children: [], findAll: () => [], findOne: () => null });
+        const copyPage: StubPage = { children: [] };
+        await paste(plansOf(button, ['rest', 'hover', 'pressed']), copyPage);
+        kids(setOf(copyPage)).push(handMade());
+        const copyRuns = await paste(btn, copyPage);
+        const copyPlugPage: StubPage = { children: [] };
+        await plug(plansOf(button, ['rest', 'hover', 'pressed']), copyPlugPage);
+        kids(setOf(copyPlugPage)).push(handMade());
+        const copyPlug = await plug(btn, copyPlugPage);
+        ok(copyRuns.every((r) => r.set === 'button') && copyRuns.reduce((s, r) => s + (r.added ?? 0), 0) === 9 && kids(setOf(copyPage)).length === 37
+          && !copyRuns.some((r) => r.misses.some((m) => m.includes('AXES CHANGED'))),
+          `#1809 a hand-made child in the set is not an axis list: the paste still appends the 9 new members (set ${JSON.stringify(copyRuns.map((r) => r.set))}, added ${JSON.stringify(copyRuns.map((r) => r.added))}, ${kids(setOf(copyPage)).length} children; ${JSON.stringify(copyRuns[0]?.misses.slice(0, 2))})`);
+        ok(copyPlug.set === 'button' && copyPlug.added === 9 && kids(setOf(copyPlugPage)).length === 37 && !copyPlug.misses.some((m) => m.includes('AXES CHANGED')),
+          `#1809 parity: the plugin appends the same 9 beside the hand-made child (set ${String(copyPlug.set)}, added ${copyPlug.added}, ${kids(setOf(copyPlugPage)).length} children)`);
+
+        // (e) PLACEMENT. The first set on an empty page stays at the origin; its box is pinned as a literal.
+        const placePage: StubPage = { children: [] };
+        await paste(btn, placePage);
+        const first = setOf(placePage);
+        const box = (n: Record<string, unknown> | undefined) => `${String(n?.width)}x${String(n?.height)}`;
+        ok(at(first) === '0,0' && box(first) === '504x348',
+          `#1809 the first set on an empty page stays at 0,0; its box is pinned as the input to the arms below (${at(first)}, ${box(first)})`);
+        // (f) A SECOND DEF ON THE SAME PAGE lands 160 right of the first (504 + 160 = 664), top-aligned. Chunk 2
+        // onward append into it and do not move it.
+        const dRuns = await paste(destructive, placePage);
+        const second = setOf(placePage, 'button-destructive');
+        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '664,0' && at(first) === '0,0',
+          `#1809 a second set pasted onto the page lands beside the first, 160px clear and top-aligned, at 664,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
+        // PARITY: the plugin places the same set at the same coordinate on the same page.
+        const placePlug: StubPage = { children: [] };
+        await plug(btn, placePlug);
+        await plug(destructive, placePlug);
+        ok(at(setOf(placePlug, 'button-destructive')) === '664,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
+          `#1809 parity: the plugin places the second set at the same coordinate (plugin ${at(setOf(placePlug, 'button-destructive'))}, paste ${at(second)})`);
+        // (g) A REBUILD NEVER MOVES A SET: re-pasting `button` after the designer moved it leaves it there.
+        first!.x = 5000;
+        first!.y = 7000;
+        const again = await paste(btn, placePage);
+        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '664,0',
+          `#1809 a re-paste leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
+
+        // (h) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
+        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 160 = 1160, not the
+        // header's 5000 + 160.
+        const rowPage: StubPage = { children: [] };
+        const rowPlug: StubPage = { children: [] };
+        for (const pg of [rowPage, rowPlug]) {
+          if (pg === rowPage) await paste(btn, pg); else await plug(btn, pg);
+          pg.children.push({ type: 'FRAME', name: 'header-like', x: 0, y: -400, width: 5000, height: 320 });
+          pg.children.push({ type: 'FRAME', name: 'note', x: 600, y: 60, width: 400, height: 100 });
+          if (pg === rowPage) await paste(destructive, pg); else await plug(destructive, pg);
+        }
+        const rect = (n: Record<string, unknown>) => ({ x: Number(n.x ?? 0), y: Number(n.y ?? 0), r: Number(n.x ?? 0) + Number(n.width), b: Number(n.y ?? 0) + Number(n.height) });
+        const overlaps: string[] = [];
+        rowPage.children.forEach((a, i) => rowPage.children.slice(i + 1).forEach((b) => {
+          const p = rect(a), q = rect(b);
+          if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} x ${String(b.name)}`);
+        }));
+        ok(at(setOf(rowPage, 'button-destructive')) === '1160,0' && rowPage.children.length === 4 && overlaps.length === 0,
+          `#1809 a node in the set's row pushes it right (1000 + 160), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
+        ok(at(setOf(rowPlug, 'button-destructive')) === '1160,0',
+          `#1809 parity: the plugin places it at the same coordinate on the same page (plugin ${at(setOf(rowPlug, 'button-destructive'))})`);
+
+        // (i) CONTENT BUT NO SET YET: top-aligned with the content, right of it. A frame at x 100..600, y 40 →
+        // the set at 760,40.
+        const introPage: StubPage = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 }] };
+        await paste(btn, introPage);
+        ok(at(setOf(introPage)) === '760,40',
+          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(setOf(introPage))})`);
+
+        // (i') A NODE WHOLLY BELOW THE ROW DOES NOT PUSH THE SET. A note at x 600..1000, y 400..500, under the
+        // `button` set's 348-high row. Expected: 504 + 160 = 664,0, not the note's 1000 + 160, in both executors.
+        const belowPage: StubPage = { children: [] };
+        const belowPlug: StubPage = { children: [] };
+        for (const pg of [belowPage, belowPlug]) {
+          if (pg === belowPage) await paste(btn, pg); else await plug(btn, pg);
+          pg.children.push({ type: 'FRAME', name: 'below', x: 600, y: 400, width: 400, height: 100 });
+          if (pg === belowPage) await paste(destructive, pg); else await plug(destructive, pg);
+        }
+        ok(at(setOf(belowPage, 'button-destructive')) === '664,0' && at(setOf(belowPlug, 'button-destructive')) === '664,0',
+          `#1809 a node wholly below the row does not push the set: 664,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
+
+        // (j) THE REMEDY THE MISS STATES IS TRUE, and the new set lands beside the old: rename the refused set
+        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 664,0.
+        setOf(renPage)!.name = 'button (earlier axes)';
+        const remedy = await paste(btn, renPage);
+        ok(remedy.every((r) => !r.misses.length) && renPage.children.length === 2 && kids(setOf(renPage)).length === 36
+          && at(setOf(renPage)) === '664,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
+          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 664,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
+      }
+
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
       // `nest-exposed` (#1330) has TWO executors that write `isExposedInstance = true` after
       // `createComponentFromNode`: the plugin's `applyComponentPlan` (gated host-truth by
@@ -19459,8 +19643,12 @@ arm: {
       // necessary, ~2.4 KB in every chunk's shell. The payload code was compacted to keep the #536 probe grid in
       // ONE chunk (its premise, gated below); icon-button's 216 members spill into two more. Re-pinned per the
       // same standing instruction.
+      //
+      // NOW 16, AS OF #1809 — a shell-byte move: the paste script gained the plugin's #1780 axes-changed refusal
+      // and #1750 placement, 1,176 bytes of compacted code in every chunk's shell. Re-pinned per the same
+      // standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 14, `anatomy/icon-button: the set packs into 14 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
