@@ -106,6 +106,7 @@ const repo = resolve(here, '../..');
  *  states why it qualifies; anything added here needs the same sentence. */
 const EXEMPT_PREFIXES: { prefix: string; why: string }[] = [
   { prefix: 'docs/00-progress.md', why: 'the append-only history log — every entry describes the layout at the time it was written' },
+  { prefix: 'docs/progress/', why: 'the same log before it is folded (#1807): each pending fragment is one entry of docs/00-progress.md, written in a PR and moved into the log by fold.ts, so it is the same genre and describes the layout at the time it was written' },
   { prefix: 'docs/superpowers/', why: 'per-change working notes, explicitly not edited after the PR that added them' },
   { prefix: 'docs/35-naming-and-packaging.md', why: 'the record OF the renames — it quotes before/after path spellings and historical verdicts as its subject matter' },
 ];
@@ -362,6 +363,9 @@ if (resolveWithin('', '../../packages/engine') !== null) selfFails.push('a ref e
   // is what makes that true, so assert the exemption predicate itself, not just the scan.
   if (!EXEMPT_PREFIXES.some((e) => 'docs/00-progress.md'.startsWith(e.prefix))) {
     selfFails.push('the history log is not exempt — a dated record naming a dead path would fail');
+  }
+  if (!EXEMPT_PREFIXES.some((e) => 'docs/progress/pending/some-lane.md'.startsWith(e.prefix))) {
+    selfFails.push('a pending progress fragment is not exempt — the log entry would fail before it is folded, and pass after (#1807)');
   }
   if (EXEMPT_PREFIXES.some((e) => 'apps/plugin/README.md'.startsWith(e.prefix))) {
     selfFails.push('a live document matched an exemption prefix — the exemption is too broad');
