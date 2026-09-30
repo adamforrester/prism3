@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-09-30) — Skills gate: an all-caps name a skill quotes is declared where the skill places it (#1725)
+
+**STATUS: PR open from `lane/lint-skills-constants`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-skills.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252). `regen --check` stays in sync. Fixes #1725.
+
+**The defect.** `prism3-build-component` names about thirty hand-kept lists and version constants (`INTERACTIVE`, `NO_SIZE_AXIS`, `COMPOSED_GLYPH`, `EXPECTED_ARTIFACTS`, …). `lint-skills` resolved only dotted names, snake_case names and `*.ts` paths, so an all-caps name was never read. #1725 measured it: renaming `COMPOSED_GLYPH` in the skill exited 0.
+
+**The fix: check 5.** Every backticked word that is entirely `[A-Z0-9_]` is read as a claim that an identifier by that name is declared. The index comes from the source, not from the skills: every `const`/`let`/`var`/`function`/`class`/`enum`/`type`/`interface` declaration in the `.ts` files under `packages/`, `apps/` and `tools/` and at the repo root, skipping `node_modules`, `dist` and `out`. **Where** the name must be declared depends on what the skill says:
+- "`X` in `path.ts`" (or in a `lint-*` gate), even across a line break, means that file.
+- A table row whose first cell names a `*.ts` path or a `lint-*` gate means that file, for every name in the row. This is why a location is needed at all: `MUST_COVER` is declared in six gates, so "declared somewhere" would pass a rename of the one the `lint-rung-names` row means.
+- Otherwise, exactly one source file (an unplaced name declared in several fails as ambiguous; see the review round).
+
+A `lint-*` gate that resolves to no source file, or to more than one, is a finding. It does not fall back to "anywhere".
+
+**False positives: an explicit rule, not a narrower scan.** Requiring an underscore would have been the easy filter, and it would silently drop `TAXONOMY`, `STATES`, `INTERACTIVE` and `EXCLUDED`: four real list constants the skill quotes today. So the pattern stays wide. An all-caps word that is not an identifier is admitted by name in `NOT_DECLARED`, with a reason, the same rule as `NOT_EN_GB`. There is one admission: `COMPONENT_CONTRACT_VERSION`, which §8 of the skill names as a decided direction and, in the next sentence, says does not exist in code. The list is checked both ways: an admitted word that becomes declared fails as stale, and so does one no skill quotes. The existing counter-example exemption ("not `X`") applies as it does to every name.
+
+**Mutations (on a `wip:` commit, each restored by `git checkout --`).** Subject side, with `origin/main`'s gate run over the same edit for contrast:
+
+| Mutation | This branch | `main` |
+|---|---|---|
+| M1 skill: `COMPOSED_GLYPH` → `COMPOSED_GLYPHS` (#1725's measurement) | `[misplaced identifier] COMPOSED_GLYPHS is not declared in packages/engine/lint-glyph-geometry.ts` | exit 0 |
+| M2 a made-up `FAKE_RAMP_LIST` added to `prism3-consume` | `[undeclared identifier] FAKE_RAMP_LIST is not declared in any source file` | exit 0 |
+| M3 gate side: `MUST_COVER` renamed in `lint-rung-names.ts` only | `[misplaced identifier] MUST_COVER is not declared in packages/engine/lint-rung-names.ts` (declared in the five other gates) | exit 0 |
+| M4 `TAXONOMY` renamed in `apps/plugin/src/file-taxonomy.ts` | `[misplaced identifier] TAXONOMY …` at both places the skill names it | exit 0 |
+
+Gate side, each failing the self-check by name:
+
+| Mutation | Fails |
+|---|---|
+| M5 check 5 neutered (`if (false && …)`) | `an UNDECLARED all-caps identifier is no longer detected`, and three more |
+| M6 `placedIn` returns nothing | `a table-row identifier declared only in ANOTHER gate passes`; `a prose "X in file.ts" placement naming the WRONG file passes`; the unresolvable-gate arm |
+| M7 `UPPER` narrowed to require an underscore | `an undeclared all-caps word with NO underscore is no longer detected` |
+| M8 an unresolvable site falls back to "anywhere" | `a table row naming a gate with no source file passes` |
+| M9 `ENGINE_VERSION` admitted in `NOT_DECLARED` | `[stale admission] … it is now declared in packages/engine/version.ts` |
+| M10 `WCAG` admitted, quoted by no skill | `[stale admission] NOT_DECLARED admits WCAG, which no skill quotes any more` |
+| M11 the admission is not consulted | `an admitted NOT_DECLARED word is now flagged` |
+
+**Trap for whoever re-verifies.** The first M8 (`if (!file && !where)`) survived, and that was the mutation's fault, not the gate's. With `file` undefined, the `else if (!where?.has(file))` branch still fires and names the row as misplaced. A mutation meant to test "falls back to anywhere" has to skip the placement entirely (`if (site && siteFile(site).file)`), which is the M8 in the table.
+
+**Review round (independent review, approved with a required follow-up).** Four findings, all fixed on top of the branch:
+1. **Unplaced names fell back to "anywhere".** 9 of the 39 references have no placement. The reviewer renamed `STATES` to `STATE_NAMES` throughout `component-schema.ts`, and the gate still exited 0 because `test.ts` and two studio files also declare `STATES`. Now an unplaced name declared in more than one file fails as `ambiguous identifier`. The skill places `STATES` in `packages/engine/component-schema.ts`. It was the only ambiguous real reference.
+2. **No live placement check.** The wiring floor counted `scanText` runs, not placements. If someone reformatted the gate table, all 30 placed names would fall back to the unplaced rule and still pass. `PLACED_FLOOR = 31` is a literal, hand-counted: the table's 27, three prose placements, and `STATES`. It fails by name on a drop.
+3. **`DECL` matched in comments and strings.** "the type SET" and "a var NB" counted as declarations, which is the dangerous direction. `DECL` now requires the keyword to open a line. I tried stripping comments first and measured it: a `/*` inside a glob string opened a "comment" that ate real code, and the index lost 166 names, `CONTROL_DEFS` among them. Anchoring loses only comment, string and loop-binding matches (checked name by name). Its ceiling is stated in the header: a multi-line template or block-comment line that opens with a keyword.
+4. **The admission fixture used the live list.** The self-check now builds its own index and admission through the same `indexOf`/`declaredNames` the live run uses. Removing the live `COMPONENT_CONTRACT_VERSION` admission now fails only the real skill, with the accurate `undeclared identifier` message.
+
+| Mutation | Fails |
+|---|---|
+| R1 `STATES` → `STATE_NAMES` throughout `component-schema.ts` (the reviewer's) | `[misplaced identifier] STATES is not declared in packages/engine/component-schema.ts` |
+| R1b the same rename, pre-review skill (unplaced), floor held at 30 | `[ambiguous identifier] STATES is declared in 3 files …` (and in 4 files before the rename) |
+| R2 indent the `lint-standalone-floor` table row | `only 30 quoted identifier(s) … carry a placement, below the floor of 31` |
+| R2b un-backtick the `lint-rung-names` first cell | `only 25 … below the floor of 31` |
+| R3 `DECL` unanchored again | `a name that appears only in a // COMMENT now counts as declared`, the `/** */` twin, `a name declared only inside a STRING …` |
+| R3b a skill quotes `SET` (declared only in prose) | `[undeclared identifier] SET` |
+| R4 ambiguity rule disabled | `an unplaced name declared in TWO files passes` |
+| R5 the live `COMPONENT_CONTRACT_VERSION` admission removed | real skill only: `[undeclared identifier] COMPONENT_CONTRACT_VERSION`; the self-check stays green |
+
+---
+
 ## (2026-09-29) — Rung names: the scope floor names every size-axis def, checked in both directions (#1724)
 
 **STATUS: PR open from `lane/rung-names-floor`, labeled DO NOT MERGE.** Gate only (`packages/engine/lint-rung-names.ts`). **No version bump:** a gate is not an emitted artifact or a projected surface, so nothing a consumer can observe moved (`version.ts`, #1252); `regen --check` stays in sync. Fixes #1724.

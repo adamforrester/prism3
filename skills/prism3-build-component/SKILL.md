@@ -343,8 +343,8 @@ no duplicating prop.
 
 **Axis and state names are closed vocabularies.** `VARIANT_AXES` in
 `packages/engine/component-schema.ts` closes the axis names (the validator refuses any other, and
-`lint-axis-values` holds its register to them), and `STATES` closes the state names — it has no
-`selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
+`lint-axis-values` holds its register to them), and `STATES` in
+`packages/engine/component-schema.ts` closes the state names — it has no `selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
 `placement` axis, a `selected` state for a tag or a segmented control) is asking for a schema change,
 which is an owner decision: flag it in the PR with the case for it, and never add it to either list
 to clear a validator error.
