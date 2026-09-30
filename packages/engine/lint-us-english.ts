@@ -75,6 +75,16 @@
  *     Trap 6's lesson again: ask which SHAPE is missing, and check each arm's suffixes against its
  *     neighbors'.
  *
+ *  8. THE MCP SERVER'S TOOL LIST IS SHIPPED TEXT, AND IT IS NOT A FILE (#1806). Every agent that
+ *     connects reads the tool and argument descriptions in `tools/list`, and neither prose gate read
+ *     them, so `catalogue` shipped there twice past a green run (found in #1804's review). The list is
+ *     assembled at request time from `mcp.ts` and the inlined theme schema, so this scans the SERVED
+ *     reply: `mcp-served.ts` spawns the server over stdio as `mcp-test.ts` does. A grep of `mcp.ts` would
+ *     read comments that never ship and miss the schema summaries. Represented by name: `MCP_TOOLS`
+ *     lists the six tools literally, and a reply missing one, an empty reply, or a server that does not
+ *     answer is `blind`. Trap 5 one level further out: a scope drawn around FILES has no slot for a
+ *     surface that is never written to disk, so no amount of file hardening would have found it.
+ *
  * DECIDED: COMPONENT-DEF COMMENTS ARE IN SCOPE (#849). CLAUDE.md's US-English section carves code
  * comments out of the standard, then narrows the carve-out wherever comments demonstrably ship: an
  * unminified `esbuild` bundle keeps `//` comments intact, so once a file is reachable into a built
@@ -140,6 +150,7 @@ import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
+import { servedToolsList } from './mcp-served';
 
 // ---- the RULE, imported (#1117) --------------------------------------------------------------
 // `PATTERN`, `STEMS`, `NOT_EN_GB` and `enGb` moved to `prose-rules.ts` so that a check at a SCOPE
@@ -430,6 +441,35 @@ if (process.argv.includes('--files')) {
 }
 
 const gatedHits = gated.flatMap(scan);
+
+// ---- The MCP server's tools/list, AS SERVED (#1806) ----------------------------------------------
+// Every tool description, argument description and inlined schema summary an agent reads on connecting.
+// It is not a file, so it has no place in `gated[]`: `mcp-served.ts` spawns the real server over stdio,
+// as `mcp-test.ts` does, and this scans each tool's JSON as it came back. A source grep of `mcp.ts`
+// would read comments that never ship and miss prose that arrives from the schema. Represented, not
+// merely present: every tool named below must be in the reply. The list is this gate's, written out
+// rather than read from `toolDefs`, so a tool that disappears from the server fails here by name; a
+// tool ADDED to the server is scanned without being listed (the scan walks the reply, not this list).
+const MCP_TOOLS = ['list_levers', 'theme_brand', 'score_consumption', 'theme_from_brief', 'export_theme', 'validate_brand'];
+const served = servedToolsList(repo);
+let mcpToolsScanned = 0;
+if ('error' in served) blind.push(`the MCP tools/list surface — ${served.error}`);
+else {
+  const names = served.tools.map((t) => t.name);
+  const missing = MCP_TOOLS.filter((n) => !names.includes(n));
+  if (missing.length) blind.push(`the MCP tools/list surface — the served list lacks ${missing.join(', ')} (served: ${names.join(', ') || 'none'})`);
+  for (const tool of served.tools) {
+    const txt = JSON.stringify(tool, null, 2);
+    if (typeof tool.description !== 'string' || !tool.description.trim()) blind.push(`the MCP tool '${tool.name}' — served with no description to scan`);
+    mcpToolsScanned++;
+    gatedHits.push(...enGb(txt).map(({ word, index }) => ({
+      file: `MCP tools/list (served) → ${tool.name}`,
+      line: txt.slice(0, index).split('\n').length,
+      word,
+      context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+    })));
+  }
+}
 const byFile = new Map<string, Hit[]>();
 for (const h of gatedHits) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h]);
 
@@ -451,6 +491,7 @@ if (blind.length) {
 // and the per-group counts make an unexpectedly small group visible instead of hiding inside a total.
 console.log(`US-English gate — ${gated.length} shipped files scanned:`);
 for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
+console.log(`    ${String(mcpToolsScanned).padStart(3)}  MCP tools/list, as the server returns it (tools, #1806)`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} en-GB spelling(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {

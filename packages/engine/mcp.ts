@@ -319,7 +319,7 @@ export const toolDefs = (brandSchema: unknown) => [
     inputSchema: {
       type: 'object',
       properties: {
-        brief: { type: 'string', description: 'A design.md document. MUST open with a --- YAML frontmatter fence on the first line.' },
+        brief: { type: 'string', description: 'A design.md document. It must open with a --- YAML frontmatter fence on the first line.' },
         include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Extra sections to return; same meaning as theme_brand.' },
       },
       required: ['brief'],
