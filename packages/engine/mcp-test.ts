@@ -199,6 +199,11 @@ await new Promise((r) => setTimeout(r, 3000));
   // Dual support: the older handshake still works and echoes a version we still speak.
   const initOld = await resultOf('initialize', { protocolVersion: '2024-11-05' });
   ok(initOld?.protocolVersion === '2024-11-05', 'conformance: initialize still answers a 2024-11-05 client with its own version');
+  // #1867: Claude Code asks for 2025-11-25. Answering 2026-07-28 (a revision with no handshake) made it
+  // refuse to connect; over real stdio, an in-between revision must get 2024-11-05 back.
+  const initClaudeCode = await resultOf('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '2' } });
+  ok(initClaudeCode?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize from a 2025-11-25 client (Claude Code) answers 2024-11-05 over stdio (got ${initClaudeCode?.protocolVersion})`);
 
   // structuredContent must AGREE with the text block, or a client reading one sees different data
   // from a client reading the other.

@@ -71,6 +71,11 @@ export const PROTOCOL_VERSIONS = ['2026-07-28', '2024-11-05'] as const;
 export const LATEST_PROTOCOL_VERSION = PROTOCOL_VERSIONS[0];
 /** Retained for the older handshake's reply. */
 export const PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION;
+/** What `initialize` answers when the client asks for a version this server does not speak (#1867).
+ *  A client that sends `initialize` is on a pre-2026 revision, because `2026-07-28` removed the
+ *  handshake. So the answer is the newest HANDSHAKE revision we speak, never `2026-07-28`: Claude Code
+ *  asks for `2025-11-25`, and answering `2026-07-28` made it refuse to connect. */
+export const HANDSHAKE_PROTOCOL_VERSION = '2024-11-05';
 
 /** `_meta` keys the 2026-07-28 revision defines. Spelled out rather than string-literalled at each
  *  use so a typo cannot silently produce an unread field. */
@@ -633,10 +638,12 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown, io?: ExportIo):
       return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
 
     // 2024-11-05 — removed by the newer revision, kept answering so pinned clients still work.
-    // Echoes the client's version when we speak it, else our newest, which is what that spec asks.
+    // Echoes the client's version when we speak it. Otherwise it answers the newest version we speak
+    // that still has this handshake (HANDSHAKE_PROTOCOL_VERSION), which is what that spec asks: never
+    // `2026-07-28`, which a handshake client cannot use (#1867).
     case 'initialize': {
       const want = req.params?.protocolVersion;
-      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : LATEST_PROTOCOL_VERSION;
+      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
       return ok({ protocolVersion: version, capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
     }
     case 'notifications/initialized':
