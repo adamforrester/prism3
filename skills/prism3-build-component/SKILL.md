@@ -487,9 +487,9 @@ sees a different part of a def:
   `MAINTAINER_ARTIFACTS`, outside the watched set, and no plan carries a part `note`.
 
 A new def therefore takes a MINOR bump in `packages/engine/version.ts` with its reason. After the
-bump, `npx tsx packages/engine/regen.ts` restamps `out/**`, and
-`npx tsx packages/engine/token-contract.ts --check` then asks for a stamp-only `--accept`. A
-skill-only change like this file bumps nothing.
+bump, `npx tsx packages/engine/regen.ts` restamps `out/**`. The token-contract baseline records no
+engine version, so `npx tsx packages/engine/token-contract.ts --check` stays clean and needs no
+`--accept`. A skill-only change like this file bumps nothing.
 
 `CONTRACT_VERSION` answers *"can my app still resolve the names it references?"* and covers the
 guaranteed **token-name** surface only. A component id, prop name or variant value is not a
