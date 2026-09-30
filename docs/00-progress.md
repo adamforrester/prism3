@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-30) — Lever manifest: a default is what the engine does with the lever unset, checked by running it (#1812)
+
+**STATUS: PR from `lane/link-palette-default`, held DO NOT MERGE.** ENGINE 0.215.0 → **0.219.0** (shipped manifest change). 0.219.0 because #1827 holds 0.217.0 (#1811), #1788 holds 0.218.0 and #1818 holds 0.216.0. CONTRACT stands at 14.0.0.
+
+**The defect.** `schema/lever-manifest.json` said `linkPalette` defaults to `primary`. The engine has no static default for it: `theme.ts` resolves `input.linkPalette ?? actionPalette`, and the lever's own description says so. On a brand whose action palette is not primary (aurora's `accent`, nb-redesign's `neutral`), the manifest named the wrong palette, and so would any surface or agent that renders "Auto" from it. The fix drops the static default. The `Lever.default` doc comment now says a default must be what the engine does unset, and is omitted when that is not one static value.
+
+**Why no gate saw it.** `test.ts` already compared each manifest default with the schema's default. That compares two declarations (docs/34 shape 1), and the schema states no default for `linkPalette`, so the arm skipped it. That arm stays; it catches a different drift.
+
+**The gate, two halves.** The SUBJECT is `leverManifest[].default`. The ORACLE is the engine run twice, once with the lever unset and once set to the manifest default: if the default is right, stating it changes nothing. The expected side is never read off the manifest.
+- `test.ts`: the DTCG tree from `buildTree`, over `MINIMAL_BRAND` and every example brief (both dialects: wendys goes through `standardToBrandInput`). It excludes `$extensions.prism3.decisions`, because the decisions log records whether a choice was *explicit* ("link color: explicitly set to 'primary'"). That is the log doing its job, not a resolution difference.
+- `apps/plugin/test-write-components.ts`: `materializeForBrand` over every component def, over a literal minimal brand plus aurora and nb-redesign. This covers what the tree cannot see: the button settings and `controlShape`'s `boxed`/`pill`.
+- **Sensitivity (shape 4).** Every lever with a default must move the tree at some non-default value, except a literal `TREE_BLIND_LEVERS` list (`buttonIcons`, `buttonContentSize`, `buttonMinWidthMultiplier`). The list is checked in both directions, and the plugin half asserts each listed lever moves the materialized defs.
+- **Literal arms.** `linkPalette` states no default. An unset `linkPalette` resolves to `accent` on aurora and `primary` on harbor.
+
+**Mutations (each on a `wip:` commit, restored by `git checkout --`).** (M1) Put back `default: 'primary'`: fails `#1812: every lever's manifest default is what the engine emits with the lever unset — DIFFERS: linkPalette="primary" on aurora; … on nb-redesign` and `#1812: the linkPalette lever states no static default`. (M2) `buttonIcons` default `'edges'`: the plugin half fails `#1812 every lever's manifest default is what materializeForBrand does with the lever unset — DIFFERS: buttonIcons="edges" on minimal; …` (the schema-default arm fails too). (M3) Engine-side, the manifest untouched: `theme.ts` resolves an unset `containerNarrow` to 760. The schema-default arm stays GREEN. `#1812: … DIFFERS: layout.containerNarrow=720 on minimal; …` fails, plus aurora's byte-identity check. (M4) `theme.ts` ignores `layout.containerNarrow` input: only `#1812: exactly the listed tree-blind levers … (got: …, layout.containerNarrow)` fails. (M5) `theme.ts` resolves an unset link palette to `'primary'`: `#1812: an unset linkPalette follows the action palette (aurora → 'primary', expected 'accent'; …)` fails.
+
+**Traps for whoever re-verifies.** Two mutations crashed `test.ts` before it reached this arm: `density ?? 'compact'` throws at the #1667 layout-model precondition, and a no-op `gradients` throws at the default-gradient check. A crash is not a named failure, so pick a lever whose resolution change fails soft. The plugin half costs about 30s, because `materializeForBrand` runs one `brandTheme` per def. That is why it uses three bases, not every brief.
+
+**Held, not decided.** Whether the manifest should carry a marker for a *dynamic* default (for example "follows `actionPalette`") so a surface can name Auto's value from the manifest alone. That is a public manifest shape, so it is the owner's call. Today a surface reads the resolved `theme.linkPalette`, as the studio already does.
+
+---
+
 ## (2026-09-30) — Plugin build: a set whose variant axes changed is refused, never appended into (#1780)
 
 **STATUS: PR open from `lane/axes-changed-new-set`, labeled DO NOT MERGE.** Plugin write path only (`apps/plugin/src/write-components.ts`, one summary arm in `main.ts`, the shim, the suite). **ENGINE 0.214.0 → 0.215.0** (a write-path behavior change). CONTRACT stands at 14.0.0.

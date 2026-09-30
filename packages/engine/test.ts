@@ -7967,6 +7967,93 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   }).map((l) => l.key);
   ok(defDrift.length === 0, 'lever manifest: every lever default matches the schema default' + (defDrift.length ? ` — DRIFT: ${defDrift.join(', ')}` : ''));
 
+  // #1812 — EVERY LEVER'S MANIFEST DEFAULT IS WHAT THE ENGINE DOES WITH THE LEVER UNSET. The arm above
+  // compares the manifest's default with the SCHEMA's: two declarations, so a default both of them get
+  // wrong (or one the schema never states, like `linkPalette`'s) passes it (docs/34 shape 1). This arm
+  // runs the engine. SUBJECT = `leverManifest[].default`. ORACLE = the DTCG tree `buildTree` emits for a
+  // base brand with the lever UNSET, against the same base with the lever set to the manifest default:
+  // if the default is what the engine does unset, stating it explicitly changes nothing. The expected
+  // side is never read off the manifest; the manifest only supplies the value under test.
+  //
+  // Bases: `MINIMAL_BRAND` plus every example brief. aurora (`actionPalette: accent`) and nb-redesign
+  // (`neutral`) are why this sees a default that FOLLOWS another lever: a static `linkPalette: primary`
+  // is a no-op on a primary-action brand and wrong on theirs (#1812).
+  //
+  // One part of the tree is excluded, with a reason: `$extensions.prism3.decisions`, the decisions log.
+  // It records whether a choice was EXPLICIT ("link color: explicitly set to 'primary'") and that is the
+  // log doing its job, not a resolution difference.
+  //
+  // Sensitivity, so the no-op arm cannot pass by measuring a constant (docs/34 shape 4): every lever with
+  // a default must MOVE this tree at some non-default value, except the ones listed in
+  // `TREE_BLIND_LEVERS`. Those are resolved only when a component is materialized (they emit no token),
+  // so `apps/plugin/test-write-components.ts` runs the same no-op check through `materializeForBrand`
+  // and asserts each of them moves it. The list is literal and checked both ways: a listed lever that
+  // starts moving the tree fails, so the list cannot go stale.
+  {
+    const TREE_BLIND_LEVERS = ['buttonIcons', 'buttonContentSize', 'buttonMinWidthMultiplier'];
+    const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
+    const setIn = (o: any, key: string, v: unknown): any => {
+      const c = structuredClone(o); const ps = key.split('.'); let a = c;
+      for (const p of ps.slice(0, -1)) a = a[p] ??= {};
+      a[ps[ps.length - 1]] = v; return c;
+    };
+    const treeOf = (input: BrandInput): string => {
+      const t = buildTree(brandTheme(input)).tree as any;
+      for (const node of [t, ...Object.values(t)] as any[]) if (node?.$extensions?.prism3) delete node.$extensions.prism3.decisions;
+      return JSON.stringify(t);
+    };
+    // Both brief dialects: a standard-spec file (wendys) goes through `standardToBrandInput`, as the contract corpus reads it.
+    const brief1812 = (f: string): BrandInput => {
+      const text = readFileSync(resolve(HERE, './examples', f), 'utf8');
+      const std = parseStandardDesignMd(text);
+      return isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    };
+    const bases: [string, BrandInput][] = [
+      ['minimal', MINIMAL_BRAND],
+      ...readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort()
+        .map((f) => [f.replace('.design.md', ''), brief1812(f)] as [string, BrandInput]),
+    ];
+    const withDefault = leverManifest.filter((l) => l.default !== undefined);
+    const baseTree = new Map(bases.map(([id, b]) => [id, treeOf(b)]));
+    const drift: string[] = [];
+    const unexercised: string[] = [];
+    for (const l of withDefault) {
+      let exercised = 0;
+      for (const [id, base] of bases) {
+        if (getIn(base, l.key) !== undefined) continue;
+        exercised++;
+        if (treeOf(setIn(base, l.key, l.default)) !== baseTree.get(id)) drift.push(`${l.key}=${JSON.stringify(l.default)} on ${id}`);
+      }
+      if (!exercised) unexercised.push(l.key);
+    }
+    ok(unexercised.length === 0, '#1812: every lever with a manifest default is left unset by at least one base brand' + (unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''));
+    ok(drift.length === 0, '#1812: every lever\'s manifest default is what the engine emits with the lever unset' + (drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''));
+
+    // Sensitivity, over MINIMAL_BRAND plus one accent so a palette-ref has somewhere to move to.
+    const sBase = { ...MINIMAL_BRAND, brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.15, h: 40 } }] } as BrandInput;
+    const sTree = treeOf(sBase);
+    const altsOf = (l: typeof withDefault[number]): unknown[] =>
+      l.control === 'toggle' ? [!l.default]
+        : l.control === 'enum' ? (l.options ?? []).map((o) => o.value).filter((v) => v !== l.default)
+        : l.control === 'slider' ? [l.min, l.max].filter((v) => v !== undefined && v !== l.default)
+        : l.control === 'palette-ref' ? ['neutral', 'accent'].filter((v) => v !== l.default)
+        : [];
+    const moves = (l: typeof withDefault[number]): boolean => altsOf(l).some((v) => {
+      try { return treeOf(setIn(sBase, l.key, v)) !== sTree; } catch { return false; }
+    });
+    const blind = withDefault.filter((l) => !moves(l)).map((l) => l.key).sort();
+    ok(JSON.stringify(blind) === JSON.stringify([...TREE_BLIND_LEVERS].sort()),
+      `#1812: exactly the listed tree-blind levers (${TREE_BLIND_LEVERS.join(', ')}) leave the emitted tree unmoved at every non-default value (got: ${blind.join(', ') || 'none'})`);
+
+    // `linkPalette` carries no static default because the engine's has none: unset, it follows the
+    // action palette. Literal expectations on two briefs whose action palettes differ.
+    const lp = leverManifest.find((l) => l.key === 'linkPalette');
+    ok(lp !== undefined && lp.default === undefined, `#1812: the linkPalette lever states no static default (got ${JSON.stringify(lp?.default)})`);
+    const lpOf = (f: string): string => brandTheme(brief1812(f)).linkPalette;
+    ok(lpOf('aurora.design.md') === 'accent' && lpOf('harbor.design.md') === 'primary',
+      `#1812: an unset linkPalette follows the action palette (aurora → '${lpOf('aurora.design.md')}', expected 'accent'; harbor → '${lpOf('harbor.design.md')}', expected 'primary')`);
+  }
+
   // Every schema-root-required field (minus host-supplied identity, e.g. `id`) must be
   // covered by a required lever — as an exact key, or (for object fields like `neutral`)
   // by a required lever nested under it. Catches a NEW required field or a dropped one.

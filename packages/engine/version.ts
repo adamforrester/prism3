@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.219.0 — #1812: `schema/lever-manifest.json` stops stating `linkPalette: default 'primary'`. The engine has no
+ * static default for it: an unset `linkPalette` resolves to whatever `actionPalette` resolves to
+ * (`theme.ts`, `input.linkPalette ?? actionPalette`), so on an accent- or neutral-action brand (aurora,
+ * nb-redesign) the manifest named the wrong palette, and any surface or agent rendering "Auto" from it would
+ * too. The lever's description already said "Defaults to following the action palette". New gate: every
+ * lever's manifest default must be a no-op when stated explicitly, measured by running the engine (the DTCG
+ * tree, `test.ts`) and the component materializer (`apps/plugin/test-write-components.ts`) with the lever
+ * unset and set. A shipped manifest change → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.215.0 — #1780: a Build over an existing component set whose variant AXES differ from the plan's (an axis
  * gained, lost or renamed — `veil` gaining `direction`, a `genre` axis renamed `type`) appended every new member
  * into the old set, because find-or-create matches the set by NAME and every planned member name was new, so
@@ -4307,7 +4316,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.215.0';
+export const ENGINE_VERSION = '0.219.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
