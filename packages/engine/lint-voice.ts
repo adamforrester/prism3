@@ -182,7 +182,7 @@ import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 import { voiceHits } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
 // The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
-import { servedToolsList } from './mcp-served';
+import { servedToolsList, servedStrings } from './mcp-served';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -208,7 +208,7 @@ const stripLineComments = (txt: string): string =>
   txt.replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent: string) => indent + ' '.repeat(m.length - indent.length));
 
 
-type Hit = { file: string; line: number; rule: string; match: string; context: string };
+type Hit = { file: string; line: number | string; rule: string; match: string; context: string };
 
 // ---- The `normative` rule (#1623 AI/C-1) — see the header's payload-channel section. Upper case only:
 // the lower-case words are ordinary English, and an RFC 2119 level is the capitalized keyword.
@@ -495,7 +495,9 @@ if (!sidecarCount || channelFiles !== sidecarCount || channelExempted === 0) {
 // ---- The MCP server's tools/list, AS SERVED (#1806) — see lint-us-english.ts's block of the same name;
 // the acquisition is shared (`mcp-served.ts`), the rules and the represented-list are this gate's own.
 // Every §2 rule and `normative` apply: an MCP description is agent-facing, but it is not the payload
-// channel (voice-standard §4), so a `MUST` in it is a hit. JSON, so no comment stripping.
+// channel (voice-standard §4), so a `MUST` in it is a hit. Each string is scanned alone, values and keys,
+// never the serialized JSON (a `\n` escape hides the next word; `mcp-served.ts` header); a hit names its
+// JSON path in place of a line number. No comment stripping: these are strings, not source.
 const MCP_TOOLS = ['list_levers', 'theme_brand', 'score_consumption', 'theme_from_brief', 'export_theme', 'validate_brand'];
 const served = servedToolsList(repo);
 let mcpToolsScanned = 0;
@@ -505,16 +507,17 @@ else {
   const missing = MCP_TOOLS.filter((n) => !names.includes(n));
   if (missing.length) blind.push(`the MCP tools/list surface — the served list lacks ${missing.join(', ')} (served: ${names.join(', ') || 'none'})`);
   for (const tool of served.tools) {
-    const txt = JSON.stringify(tool, null, 2);
     if (typeof tool.description !== 'string' || !tool.description.trim()) blind.push(`the MCP tool '${tool.name}' — served with no description to scan`);
     mcpToolsScanned++;
-    gatedHits.push(...[...voiceHits(txt), ...normativeHits(txt)].map(({ rule, match, index }) => ({
-      file: `MCP tools/list (served) → ${tool.name}`,
-      line: txt.slice(0, index).split('\n').length,
-      rule,
-      match,
-      context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
-    })));
+    for (const { path, text } of servedStrings(tool)) {
+      gatedHits.push(...[...voiceHits(text), ...normativeHits(text)].map(({ rule, match, index }) => ({
+        file: 'MCP tools/list (served)',
+        line: path,
+        rule,
+        match,
+        context: text.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+      })));
+    }
   }
 }
 const byFile = new Map<string, Hit[]>();

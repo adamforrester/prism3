@@ -79,7 +79,9 @@
  *     connects reads the tool and argument descriptions in `tools/list`, and neither prose gate read
  *     them, so `catalogue` shipped there twice past a green run (found in #1804's review). The list is
  *     assembled at request time from `mcp.ts` and the inlined theme schema, so this scans the SERVED
- *     reply: `mcp-served.ts` spawns the server over stdio as `mcp-test.ts` does. A grep of `mcp.ts` would
+ *     reply: `mcp-served.ts` spawns the server over stdio as `mcp-test.ts` does, and the rules run on each
+ *     parsed string (values and keys), never on serialized JSON, where a `\n` escape glues itself to the
+ *     next word and hides it from every word-boundary rule (review of #1869). A grep of `mcp.ts` would
  *     read comments that never ship and miss the schema summaries. Represented by name: `MCP_TOOLS`
  *     lists the six tools literally, and a reply missing one, an empty reply, or a server that does not
  *     answer is `blind`. Trap 5 one level further out: a scope drawn around FILES has no slot for a
@@ -150,7 +152,7 @@ import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
-import { servedToolsList } from './mcp-served';
+import { servedToolsList, servedStrings } from './mcp-served';
 
 // ---- the RULE, imported (#1117) --------------------------------------------------------------
 // `PATTERN`, `STEMS`, `NOT_EN_GB` and `enGb` moved to `prose-rules.ts` so that a check at a SCOPE
@@ -167,7 +169,7 @@ const repo = resolve(here, '../..');
 
 
 
-type Hit = { file: string; line: number; word: string; context: string };
+type Hit = { file: string; line: number | string; word: string; context: string };
 
 // Every way this gate can fail to LOOK, as opposed to look and find nothing. Collected rather than
 // thrown so one run reports all of them; a non-empty list is fatal below.
@@ -445,7 +447,9 @@ const gatedHits = gated.flatMap(scan);
 // ---- The MCP server's tools/list, AS SERVED (#1806) ----------------------------------------------
 // Every tool description, argument description and inlined schema summary an agent reads on connecting.
 // It is not a file, so it has no place in `gated[]`: `mcp-served.ts` spawns the real server over stdio,
-// as `mcp-test.ts` does, and this scans each tool's JSON as it came back. A source grep of `mcp.ts`
+// as `mcp-test.ts` does, and this scans every string in each tool as it came back — values and keys,
+// one at a time, never the serialized JSON (a `\n` escape hides the next word; `mcp-served.ts` header), and
+// each hit names its JSON path in place of a line number. A source grep of `mcp.ts`
 // would read comments that never ship and miss prose that arrives from the schema. Represented, not
 // merely present: every tool named below must be in the reply. The list is this gate's, written out
 // rather than read from `toolDefs`, so a tool that disappears from the server fails here by name; a
@@ -459,15 +463,16 @@ else {
   const missing = MCP_TOOLS.filter((n) => !names.includes(n));
   if (missing.length) blind.push(`the MCP tools/list surface — the served list lacks ${missing.join(', ')} (served: ${names.join(', ') || 'none'})`);
   for (const tool of served.tools) {
-    const txt = JSON.stringify(tool, null, 2);
     if (typeof tool.description !== 'string' || !tool.description.trim()) blind.push(`the MCP tool '${tool.name}' — served with no description to scan`);
     mcpToolsScanned++;
-    gatedHits.push(...enGb(txt).map(({ word, index }) => ({
-      file: `MCP tools/list (served) → ${tool.name}`,
-      line: txt.slice(0, index).split('\n').length,
-      word,
-      context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
-    })));
+    for (const { path, text } of servedStrings(tool)) {
+      gatedHits.push(...enGb(text).map(({ word, index }) => ({
+        file: 'MCP tools/list (served)',
+        line: path,
+        word,
+        context: text.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+      })));
+    }
   }
 }
 const byFile = new Map<string, Hit[]>();
