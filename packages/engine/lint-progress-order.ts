@@ -104,8 +104,10 @@
  *                    hand-moving another PR's fragment into the log. Skipped ONLY on a push run
  *                    (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD equal to its base or an
  *                    unresolvable base FAILS rather than printing n/a.
- *   ONE WRITER (log) — outside a fold-shaped diff, adding a heading to the log fails, whether or not the
- *                    diff also carries a fragment.
+ *   ONE WRITER (log) — outside a fold-shaped diff, ANY change to the log fails, whether or not the diff
+ *                    also carries a fragment: a new heading, and an edit to an existing entry too. A
+ *                    correction travels as a fragment of its own. (Fold-shaped, not pure: a fold that also
+ *                    fixes a semantic conflict still writes the log.)
  *   ALREADY IN THE LOG — a pending fragment whose title is already an entry heading fails: a fold wrote
  *                    the entry and left the fragment, which the next fold would write again.
  *   NO PLACEHOLDER — the log never carries a literal `{{`: a folded entry still holding `{{ENGINE_VERSION}}`
@@ -388,12 +390,24 @@ if (foldFails.length) {
     const pureFold = foldShaped && beyond.length === 0;
     const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));
 
-    // THE LOG HAS ONE WRITER — outside a fold, no diff adds a heading to it, fragment or not.
-    if (logHeads.length && !foldShaped) {
+    // THE LOG HAS ONE WRITER — outside a fold-shaped diff, NO change to the log at all: not a new heading,
+    // and not an edit to an existing entry's body either (#1823, the orchestrator's surviving mutation: a
+    // body edit two lines under the top heading passed, and it collides with the next fold's insertion).
+    // A correction to an old entry travels as a fragment of its own ("Correction to <date> <title>").
+    // The line is drawn at FOLD-SHAPED rather than PURE on purpose: a fold that also fixes a semantic
+    // conflict is not pure, and it still has to write the log.
+    const logDiff = git('diff', '--numstat', base, 'HEAD', '--', FILE);
+    if (!logDiff.ok) cannotRun(`git diff over ${FILE} failed.`, logDiff.err);
+    if (logDiff.out.trim() && !foldShaped) {
       failed = true;
-      console.error(`\n✗ ONE WRITER (log) — this diff adds ${logHeads.length} heading(s) straight into ${FILE} and is not a fold (#1807).`);
-      for (const h of logHeads.slice(0, 5)) console.error(`      ${h.slice(1).slice(0, 110)}`);
-      console.error('  Only fold.ts writes the log. Move the entry into your fragment in ' + PENDING + '/ and drop it from the log.\n');
+      const [add, del] = logDiff.out.trim().split('\t');
+      console.error(`\n✗ ONE WRITER (log) — this diff changes ${FILE} (+${add} −${del} line(s)) and is not a fold (#1807).`);
+      if (logHeads.length) {
+        console.error(`    It adds ${logHeads.length} heading(s) straight into the log:`);
+        for (const h of logHeads.slice(0, 5)) console.error(`      ${h.slice(1).slice(0, 110)}`);
+      } else console.error('    It edits existing entries, which collides with the next fold\'s insertion at the top.');
+      console.error('  Only fold.ts writes the log. Put a new entry in your fragment in ' + PENDING + '/; put a correction to an');
+      console.error('  old entry in a fragment too, titled for what it corrects ("Correction to <date> <title>").\n');
     }
 
     if (addedFrags.length) {

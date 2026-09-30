@@ -44,7 +44,9 @@ one at a time. Now:
   with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
   usual shape. **Every PR carries one, except a fold** (owner decision, 2026-09-30):
   `lint-progress-order.ts` fails a PR that adds no fragment, and a heading written straight into
-  the log does not count, and outside a fold adding one fails. A **pure** fold is exempt because it
+  the log does not count. Outside a fold, **any** change to the log fails, including an edit to an
+  existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
+  A **pure** fold is exempt because it
   consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
   the log, and it touches nothing but the log, the pending directories, `version.ts` and `out/`. A fold
   PR that also fixes a semantic conflict carries a fragment for the fix.
