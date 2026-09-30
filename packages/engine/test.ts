@@ -20185,6 +20185,38 @@ arm: {
       refuses('the code default (each axis prop\'s default)', /removes the code default \(value=dark, intensity=medium\)/, [{ value: ['dark'], intensity: ['medium'] }]);
     }
 
+    // #1746 — AN EXCLUSION NAMING THE WEIGHT-INTENT AXIS IS REFUSED. A synthetic field-label (size 3 × emphasis 2
+    // × weight 2, state 2) carrying one exclusion. `applyWeightIntent` drops the `weight` axis for a brand that
+    // ships one body weight (`{ body: ['default'] }`), so an entry naming `weight` would be ignored by the
+    // projector and still counted by `figmaVariantCount`. Every count below is a literal worked out here.
+    {
+      const fl = componentDefs.find((d) => d.id === 'field-label')!;
+      const flWith = (excludeCoordinates: Record<string, string[]>[]): ComponentDef =>
+        ({ ...fl, figmaProperties: { ...fl.figmaProperties!, excludeCoordinates } }) as ComponentDef;
+      const ONE_WEIGHT = { body: ['default'] } as never;
+      const errsOf = (ex: Record<string, string[]>[]) => validateComponentDef(flWith(ex)).errors;
+      const named = errsOf([{ weight: ['bold'], size: ['large'] }]);
+      ok(named.some((e) => /^figmaProperties\.excludeCoordinates\[0\] names 'weight', the weightIntent axis — a brand that ships one body weight drops that axis/.test(e)),
+        `#1746 an exclusion naming the weightIntent axis is refused by name (${named.join('; ') || 'no error'})`);
+      const second = errsOf([{ size: ['large'], emphasis: ['primary'] }, { weight: ['bold'], size: ['medium'] }]);
+      ok(second.some((e) => /^figmaProperties\.excludeCoordinates\[1\] names 'weight'/.test(e)) && !second.some((e) => /excludeCoordinates\[0\] names 'weight'/.test(e)),
+        `#1746 ...in any entry, and only the entry that names it (${second.join('; ') || 'no error'})`);
+      // THE CONVERSE: an exclusion on the other axes validates, and it survives the collapse with the projector
+      // and the count agreeing. Uncollapsed: (3·2·2 − 2) · 2 states = 20. Collapsed: (3·2 − 1) · 2 = 10.
+      const other = flWith([{ size: ['large'], emphasis: ['primary'] }]);
+      const otherOne = applyWeightIntent(other, ONE_WEIGHT);
+      ok(validateComponentDef(other).errors.length === 0 && figmaAnatomySet(other).length === 20 && figmaVariantCount(other) === 20
+        && JSON.stringify(otherOne.figmaProperties!.variantAxes) === JSON.stringify(['size', 'emphasis'])
+        && figmaAnatomySet(otherOne).length === 10 && figmaVariantCount(otherOne) === 10 && variantSetErrors(otherOne).length === 0,
+        `#1746 an exclusion on the other axes validates and survives the collapse: 20 members, then 10, counted alike (${validateComponentDef(other).errors.join('; ')}; ${figmaAnatomySet(other).length}/${figmaVariantCount(other)} → ${figmaAnatomySet(otherOne).length}/${figmaVariantCount(otherOne)})`);
+      // WHY THE REFUSAL: the combination it keeps out. Collapsed, the weight entry matches nothing in the
+      // projector (all 12 members of size 3 × emphasis 2 × state 2 are built) while the count still removes
+      // size=large (8), and #1355's integrity check fires on a def whose raw form had no other error.
+      const weightOne = applyWeightIntent(flWith([{ weight: ['bold'], size: ['large'] }]), ONE_WEIGHT);
+      ok(figmaAnatomySet(weightOne).length === 12 && figmaVariantCount(weightOne) === 8 && variantSetErrors(weightOne).length > 0,
+        `#1746 fixture: collapsed, the refused combination projects 12 members and counts 8, and #1355's check fires (${figmaAnatomySet(weightOne).length}/${figmaVariantCount(weightOne)}; ${variantSetErrors(weightOne).slice(0, 1).join('')})`);
+    }
+
     // #1318 — THE VEIL'S DIRECTIONAL WASHES, AT THE PROJECTOR. Every expectation is a literal written here:
     // the member count, the four Figma matrices, the stop order and the two variables each stop binds.
     // `gradientTransformFor` is not called — this is the second opinion about what it produces.

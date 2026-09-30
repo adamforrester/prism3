@@ -7,6 +7,277 @@
 
 ---
 
+## (2026-09-30) — Engine README: how to connect an agent to the local MCP server (#1860)
+
+**STATUS: PR from `docs/mcp-connect-readme`.** Docs only, so no ENGINE bump.
+
+**Why.** The owner asked whether someone outside the repo could connect an agent to the engine today. They can: `packages/engine/mcp.ts` is a dependency-free MCP server over stdio. But the only place that said so was the file's own header comment. `packages/engine/README.md` now has a "Connect an agent (MCP)" section covering:
+- what you need: Node 20 or later and a clone, with no `npm install`;
+- the Claude Code command, and the config for other stdio clients;
+- the six tools, with `list_levers` first;
+- where `export_theme` writes;
+- what the server doesn't do: no Figma writes, and no hosted endpoint.
+
+**Checked by running it, not from the header.** The server was started over stdio with an `initialize` handshake and a `tools/list` request. It printed the ready line on stderr, reported `prism3-engine` at the current engine version, and listed the six tools the README names.
+
+**Left as its own issue.** A hosted (HTTP) endpoint for clients that can only reach a URL is #1859. The transport is small because `handleRpc` is pure and the current protocol is stateless. The open questions are the owner's: hosting, access, `export_theme` on a server, and cost.
+
+---
+
+## (2026-09-30) — MCP theme_from_brief returns the decisions log by default, like theme_brand (#1868)
+
+**STATUS: PR from `lane/theme-from-brief-default`.** ENGINE → 0.218.0 (change note `packages/engine/changes/lane-theme-from-brief-default.md`, `minor`). CONTRACT stands.
+
+**The defect.** `theme_from_brief` passed an empty `include` default to the shared payload builder. So a call that named no sections got the contrast results but no decisions log, while `theme_brand` returns the log by default. Both the tool's description ("the same verification payload as theme_brand") and the engine README's tool table say the two match. The `include` description ("Extra sections … same meaning as theme_brand") was also wrong: `theme_brand`'s `include` replaces the default rather than adding to it.
+
+**The fix.** `theme_from_brief` defaults to `DEFAULT_THEME_SECTIONS`, and its `include` description says it replaces `["notes"]`.
+
+**Why the existing test passed.** The "identical payload" arm compared only `contracts`. The new arm compares the SET of sections both tools return with no `include`, and requires the decisions log. A mutation restoring the empty default fails it by name.
+
+Found by the independent review of #1866, the engine README's "Connect an agent" section.
+
+---
+
+## (2026-09-30) — Personality trait notes name no source brand, and a gate keeps client names out of the bundles (#1824)
+
+**STATUS: PR open from `lane/vocabulary-provenance`, labeled DO NOT MERGE.** ENGINE bump by change note (`engine: minor`). The nine new note strings are copy the owner reviews: the PR body's "Owner review: note copy" table has each one before and after.
+
+**What was wrong.** Each personality trait's `why` quoted the example briefs by name, and some of those briefs are real brands' briefs. `resolveVocabulary` copies the `why` into `theme.notes`, which the MCP server serves and the emitted tree carries as `decisions`, and the redesign plans to show it as the Decisions log. It also shipped inline in the studio bundle and both plugin bundle files.
+
+**What changed.**
+- **The note and the provenance are separate.** Each `why` now says what the trait sets and why, in the UI register, with no brand and no quote. The research quotes moved to a `PROVENANCE` table in `test.ts`, which ships nowhere.
+- **#1685's check survives, one notch weaker.** Each quote is still checked verbatim against the committed briefs' prose. What is lost is WHICH brief: the table names none, so a quote passes if it occurs in any brief. Naming the brief would name the client in a public repo. A new arm asserts each note names no brief id (read from the `examples/` listing) and carries no quotation mark.
+- **The gate: a CLIENT NAMES arm in `lint-voice.ts`.** It scans a fixed, minimal name list over the three bundle files (studio `main.js`, plugin `main.js` and `ui.html`), raw with comments included, and over every trait note as `brandTheme` renders it. It takes the trait list from the schema enum, not from `TRAITS`. Each bundle must carry the resolver's refusal message, which proves the vocabulary is in what was read. Each enum trait must render exactly one note. Anything else is `blind`. `verify.ts` now runs the gate after `build-plugin` too.
+- **A trait that applied nothing logs no `why`.** When every setting a trait carries was kept (pre-empted by an earlier trait, or set by the author), the note described a theme the author did not get. The line now records what was kept and stops. Two `test.ts` arms check both routes with literal expected lines.
+- **Notes say only what the trait can set.** `restrained` carries `neutral.chroma`, but the schema requires that lever, so the trait never sets it. The note no longer claims lower-chroma grays. The dead target is filed as #1863.
+- **Fallout the gate found, fixed in this PR.** Bundled comments in `components/button.ts` (two) and `preview.ts` (one) named a corpus brand, and so did the `brand-roots-1283` rename rule's `why` (a string, in the plugin bundle). All four are reworded without the names. The rule's stamp is untouched.
+
+**The scope boundary, and why it is not the voice rules' scope.** The arm does not read `out/**`, `schema/**`, the README or the skills. The emitted corpus includes example brands that are real client brands, by id, file name and measured fixture, so the arm would fail on the corpus itself. Whether a public repo carries them is the owner's decision, filed as #1853. The gate header's CLIENT NAMES section says so, so the boundary is written down rather than implied.
+
+**Traps for whoever re-verifies.**
+- **Some comments ship, and position decides which.** esbuild drops top-level and function-body comments from the unminified bundles and keeps comments inside an expression (the comments beside the TRAITS entries, a component def's fields). The published studio source map carries every comment. So provenance "in a maintainer comment" in `vocabulary.ts` would still ship. That is why the quotes went to `test.ts`, and why the arm reads the bundles raw where the voice rules strip comments.
+- **The source map is out of this arm's scope on purpose.** `build-site.mjs` publishes `dist/main.js.map`, whose `sourcesContent` names the corpus brands wherever the engine's comments do. The same source is already public in this repository, so the map exposes nothing new. The gate header's OUT list names it and points to #1853.
+- **The bundle escapes non-ASCII**, so an apostrophe arrives as `’`. The name patterns anchor at the word start for that reason, and a self-check sample pins it.
+- **`docs/superpowers/ui-redesign/concept-v4.html`** bundles the engine as it was when it was built, so it still carries the old notes until the redesign lane rebuilds it. It is under `docs/`, outside every bundle this arm reads. Noted in #1853.
+
+---
+
+## (2026-09-30) — MCP server: Claude Code can connect; `initialize` answers a handshake revision, not 2026-07-28 (#1867)
+
+**STATUS: PR from `lane/mcp-initialize-fallback`.** ENGINE → 0.218.0 (change note `packages/engine/changes/lane-mcp-initialize-fallback.md`, `minor`). CONTRACT stands.
+
+**The defect.** Registered with the current Claude Code CLI, the engine's MCP server failed `claude mcp list` with "Server's protocol version is not supported: 2026-07-28". Claude Code sends `initialize` with `2025-11-25`. The server echoed only versions it speaks and otherwise fell back to `LATEST_PROTOCOL_VERSION`, which is `2026-07-28`. That fallback was backwards: `2026-07-28` removed `initialize`, so any client that sends it is on an earlier revision and cannot use the answer.
+
+**The fix.** `initialize` still echoes a version it speaks. For any other version it now answers `HANDSHAKE_PROTOCOL_VERSION` (`2024-11-05`), the newest revision this server speaks that still has the handshake. `server/discover`, the `_meta` version check on stateless requests, and every response shape are unchanged.
+
+**Why nothing caught it.** Both test files drove `initialize` only with exactly `2024-11-05`, or with no version while asserting the `2026-07-28` answer. So they pinned the bug rather than a real client's negotiation. The hand-run check behind #1866's README section had the same blind spot: it spoke `2024-11-05` directly. The #1866 reviewer found this by running the real `claude` CLI.
+
+**Tests.**
+- `test.ts`: `initialize` with no version, and with `2025-03-26`, `2025-06-18` and `2025-11-25`, must each answer `2024-11-05`.
+- `mcp-test.ts`: over real stdio, a `2025-11-25` `initialize` shaped like Claude Code's must answer `2024-11-05`.
+- Mutation: restoring the `LATEST_PROTOCOL_VERSION` fallback fails both files by name.
+
+**Found alongside, filed separately.** `theme_from_brief` returns no decisions log by default, though its description says it returns the same payload as `theme_brand` (#1868).
+
+---
+
+## (2026-09-30) — test-write-components: a burn inside a chunk, so a constant-zero chunkMs fails by name (#1848)
+
+**STATUS: PR open from `lane/chunkms-control`, labeled DO NOT MERGE.** The change touches only the test and its shim (`apps/plugin/component-shim.ts`), so there is no change note and no ENGINE bump.
+
+**The hole.** Every `chunkMs` arm in the #684 block asserted an EXCLUSION, `=== 0`: of setup, of the set-level work between the loops, and of the yield. A `breathe` that reported `chunkMs: 0 * (now - mark)` satisfied all three, and it passed the whole plugin `test` (`docs/34` shape 4). The CONTROL arm named "the executor prices its chunks on that clock" checked only `reads > 0`, and the `elapsedMs` read satisfies that alone (shape 20: the name claimed more than the assertion checked).
+
+**The fix.** A fourth burn, `burn.member`, charges 120ms on the virtual clock inside the first `createComponentFromNode`. That is work the first build chunk does, so the chunk must CARRY the cost. `chunkMs === BURN` asserts the first build chunk reports 120, and a second arm asserts the chunk list is `[120,0,0,0,0]` for build and `[0,0,0,0,0]` for wire, so the cost lands in its own chunk and nowhere else. Both expectations are literals. The new burn joins `burnRuns`, so the control loop checks for free that it really moves the clock. The CONTROL arm is renamed to what it checks, "the executor reads that clock". Case 4 is now what proves it prices chunks on that clock.
+
+**Mutations** (each run checked to execute all 524 assertions of `test-write-components.ts`):
+- **The issue's mutation:** `breathe` reports `chunkMs: 0 * (now - mark)`. The run fails `chunkMs === BURN` (0ms) and "billed to that one chunk" (`[0,0,0,0,0]`), and the whole plugin `test` now fails too.
+- **The converse:** the same mutation, with the two new arms neutralized. The run is `ALL PASS`, which is the issue's finding reproduced, and shows that the new arms are what catch it.
+- **The member burn deleted from the shim:** the two new arms fail, and so does "CONTROL: the member burn really moves the clock" (+0ms of 120).
+
+---
+
+## (2026-09-30) — test.ts: a refused variant build fails by name, and the suite carries on (#1847)
+
+**STATUS: PR open from `lane/test-variant-build-guard`, labeled DO NOT MERGE.** Test-only, so no change note and no ENGINE bump.
+
+**What changed.** #1843 guarded every example-brand load in `packages/engine/test.ts`. Variant builds were not guarded: the same brief with a lever or a mode set changed. A refusal specific to one lever value (the #1811 shape) still crashed the suite with a stack trace and no summary line. Each variant build now goes through `exampleTheme`, named `<brand> (<what changed>)`, for example `harbor (modes light, wireframe)`. A refusal records one named failure, and only the assertions that need that build are skipped. Each skipped section sits in a small labeled block, so the rest of its arm still runs.
+
+**The sites.** The issue listed about 15 sites, at line numbers from before #1843 merged; they had shifted by 2 on `main`. All of them are guarded, plus the `#1812` defaults sweep (`treeOf(setIn(base, …))`). **A probe found 8 more that the issue did not list:** the veil/scrim block (harbor, modes light and dark), `#1720` (harbor with strong declined, and with `displayCeiling: md`), the namespace arm (aurora with its root omitted, with root `acme`, and with brand color `brand-blue`), and the two `#1626` prism3 override blocks. The probe was a temporary `theme.ts` edit that logged every `brandTheme` call whose input had an example brief's id but was not that brief. For each call it logged the first `test.ts` frame, and whether `exampleTheme` was on the stack. After the fix, the only unguarded variant calls left are inside `try`/`threw` wrappers that expect a throw.
+
+**Deliberately left alone:** the `NB_MASTER*` literals. They carry the id `nb-redesign`, but they are pinned fixtures, not variants of a committed brief, the same way `MINIMAL_BRAND` is. Their `neutralEmphasis` variants in the `#1354` arm are guarded.
+
+**The load-bearing comment.** The helper's `ok(false)` now carries a comment saying it is the only witness when a list arm drops one row. This was measured, not just asserted: with `theme.ts` refusing nb-redesign at density compact and that line deleted, the suite exits 0 at `0 failed`, and the `#1268` assertion-site arm stays green. Harbor at spacious was the first row tried, and it is also caught by the tag-spacing arm, which builds harbor at all three densities. That catch is a borrowed backstop (`docs/34` shape 18), so the comment describes the row nobody else builds.
+
+**Mutations** (the executed-assertion count is recorded against the baseline of 134,688, so a truncated run shows up):
+- **The issue's mutation:** `theme.ts` refuses harbor only when `modes` includes wireframe. The run gives `❌ example brand harbor (modes light, wireframe) resolves` and a summary line, with 134,687 assertions executed: the 2 skipped sites, plus the 1 new failure.
+- **The converse:** the same refusal, with the helper rethrowing. The crash comes back at the wireframe build in the resolved-preview arm, with no summary line.
+- **Every variant refused at once:** 154 named helper failures and a full summary line (`134526 passed, 160 failed`).
+
+---
+
+## (2026-09-30) — UI redesign: chrome style tiles from Prism3's own tokens; direction A chosen and reworked (F3, F4, T1–T6)
+
+**STATUS: done. The owner chose direction A and accepted its second pass as the v5 bar (T6).** No engine change, no emitted artifact moves, so no engine bump and no change note. `CONTRACT_VERSION` unchanged. Everything is in `docs/superpowers/ui-redesign/style-tiles/`: `build-tiles.mjs`, `tiles.src.html`, the built `style-tiles.html`, `audit-tiles.mjs`, the embedded fonts under `fonts/` with their licenses, and a `README.md` with the rationale, the measured tables and what the token set still lacks.
+
+**First pass.** The owner's v4 review (F3, F4) asked for two or three small directions for the studio and plugin chrome, each in light and dark, before v5. The tiles held the same content in every direction: the top bar, the levers panel (domain tabs, the Namespace field in Brand › Identity with the proposed reserved-name flag, a color field, Density chips, an "Auto: follows light" select, a slider with named stops, a switch, a "Per mode" disclosure), a 20-step ramp whose swatches fill their cells, a role row with a contrast badge, and the Activity drawer collapsed and open. A was **Quiet panels**, B **Flat and dense** and C **Inset fields**. The owner picked A (T1), kept the namespace flag (T2), filed only radius as a token gap (#1852, T3), and then rejected A's craft (T5).
+
+**What the owner rejected, and why.** The tiles looked "significantly worse than current state", and the current studio is the floor. The type was not Inter, the labels had no room before their controls, fields were tight, everything was dense, the segmented control looked like 1990s system UI (an outlined box with bold text), and the selected chip was a heavy black fill. The owner also ruled out shadows, set 6px as the starting radius, and asked to try elevation with the existing `background.*` and `foreground.*` roles. The owner also asked for the selected chip to keep the unselected fill and change only the edge.
+
+**Second pass: A reworked, and B and C removed** from the source, the harness, the build and the audit.
+- Inter for all chrome text and JetBrains Mono only for values. Body 14px/400, labels 14px/500, helpers 12px/400, headings 16px/600 at -0.01em. Nothing is above 600.
+- 8px from a label to its control, 24px between rows, and 40px, a hairline, then 40px between sections. Fields and chips are 40px, and fields have 16px of inner padding.
+- Underline domain tabs, and a segmented control with a tinted track and no outline.
+- Chips that keep their fill and go from a 1px field edge to a 2px neutral edge, plus a check.
+- `radius.lg` everywhere, concentric inside tracks, and no shadows. The build now fails on any shadow.
+- **Elevation:** one page surface (`background.primary`) split by `border.primary` hairlines, with inset groups on `foreground.primary`. A gray preview stage with page-colored cards was rendered and rejected: `background.primary` is the lightest surface in light and the darkest in dark, so those cards read as raised in light and as wells in dark. The tint reads as a group in both themes, and it keeps the UI light.
+
+**Font family is a chrome constant, not a token.** `CHROME_FONTS` in the build names Inter and JetBrains Mono and embeds their Fontsource latin variable woff2 files (SIL OFL 1.1, licenses committed alongside) as data URIs, so the page stays offline. The default theme's `core.font.family.body` is a brand lever, and the product's chrome should not move with it.
+
+**The trap that made the first pass look dated.** Inter was not installed in the container, so the chrome rendered in DejaVu Sans. `document.fonts.check('14px Inter')` still returns true in that case: it reports that nothing is waiting to load, not which face drew the text. The audit now asks Chromium which face it drew each node with (`CSS.getPlatformFontsForNode` over CDP). Mutated by renaming the embedded face, it fails with `font (want Inter, drew DejaVu Sans)`.
+
+**Gates.** The audit renders the 4 states (2 themes × 2 widths). It checks text at 4.5:1; edges, fills, glyphs and indicators at 3:1; focus rings at 3:1; and targets at 24px. Its new checks are the drawn font, no weight above 600, no computed shadow, and zero network requests. All 4 states pass. The tightest numbers are `text.secondary` on `foreground.primary` at 4.54:1 in light, and `field.border.rest` on `foreground.primary` (the selected segment's edge on its track) at 3.17:1 in light. Each arm was mutated on a clean commit and failed by name:
+- a declared pair (`field-edge` mapped to `border.primary`): the build fails;
+- a CSS edge the pairs cannot see (the chip edge on the hairline role): the audit fails per chip;
+- a `box-shadow`: the build fails;
+- the font rename: the audit fails;
+- a bold label: the audit fails.
+
+**Also fixed.** The harness rewrote the URL hash to theme and width only. So `pane`, `drawer` and `full` were lost whenever a screenshot state loaded on a fresh page followed by a reload, and the "unclipped" 380 capture could come out clipped. It now keeps the other keys.
+
+**Still short, and why.** The field edges are darker than in the owner's reference images. Those use edges near 1.3:1, and a control boundary here must clear 3:1 (WCAG 1.4.11), so `field.border.rest` (3.85:1 on white) is the lightest edge available. The token set has no 13px type and no 40px control height, so labels are 14px and fields use `core.dimension.40`. There is one tint step (`background.secondary` equals `foreground.primary`), and `text.secondary` clears 4.5:1 on it by only 0.04 in light.
+
+**Review round (the orchestrator's independent review).** Four fixes landed before merge:
+- **The audit could pass over nothing** (`docs/34`, represented rather than counted). Its 3:1 check measured only elements marked `data-a`, so deleting all 34 markers still passed with an empty column, and an empty list reports a minimum of Infinity. Now every visible focusable control has to carry a marker or it fails by name as `unmarked control`. Controls with no boundary to measure are marked `text` or `pseudo`, explicitly. Each column also has a literal minimum count per width. Removing every marker now fails in all 4 states.
+- **The build's pair check dropped alpha and passed on `NaN`.** `#0000001a` on white scored 21:1, and a non-hex value scored `NaN`, which compares false against every floor. Foregrounds are now composited over an opaque background. A translucent background or a non-hex value is refused by name. Each case was mutated and fails.
+- **Stale prose:** the decisions doc cited a deleted T4 and numbered T3 against the first-pass gap list, and this fragment still said three directions. All are corrected.
+- **The typed hex value:** the color field's value now comes from the token's anchor step, like the rest of the preview.
+
+**Trap:** the representation check accepts `text` and `pseudo` as markers, so relabeling a bordered control `text` would skip its edge. The per-column minimums catch a mass relabel, but not a single one. Review marker changes in diffs.
+
+---
+
+## (2026-09-30) — Enum levers with two to four options render as chips, chosen by one descriptor rule (#1675, #1835, UI redesign F4)
+
+**STATUS: committed on `ui/f4-lever-chips`.** UI-only: `apps/studio/src`, the studio `test` script, `test:smoke` and `lint:contrast`. No ENGINE bump (`docs/30`: host executors under `apps/*` do not bump), and CONTRACT stands. Foundation slice F4 of the studio and plugin UI redesign plan. Unlike F1–F3, this slice changes the screen on purpose: owner decision Q12 and #1675 ask for it. Every other behavior is unchanged: the same lever values are written, through the same commit paths, with the same repaints.
+
+**The diagnosis.** Which control a lever got was decided in five places. `renderControl` turned every `enum` into a select. `iEnumSelect` did the same for the three global behaviors on Interactive. `neutralEmphasisLead` kept its own option list (`NEUTRAL_EMPHASES`) with labels that differed from the manifest's. `leverControl` hand-listed the three per-mode "Auto" selects. The palette pickers built three option lists: the generic one without `neutral`, Action without `neutral`, and Link with it (#1835). No rule could be tested, because none was written down.
+
+**The descriptor rule.** `apps/studio/src/levers/controls.ts` (new, DOM-free) has `describeControl(lever, { auto? })`:
+- an `enum` with 2 to 4 options and no Auto entry is **chips**;
+- an `enum` with 5 or more options, or with an Auto entry, is a **select**. The Auto entry is either an option the manifest labels "Auto…" or one a caller adds. No caller adds one yet: the per-mode "Auto" selects are still hand-built in `PER_MODE_SELECTS` and never reach the rule;
+- a `palette-ref` is always a **select**, because its options come from the brand;
+- `slider`, `toggle` and `color` map to themselves, and `list`, `object` and `text` are read-only in the generic path.
+Option labels are the manifest's own. `renderControl`, `leverControl` (and so `leverSection` and `csLeverStack`) and the Interactive lead rows (`iEnumControl`, which replaces `iEnumSelect`) all render from it.
+
+**Converted (10 levers).** `density` and `motionPersonality.tempo` in Light, `controlShape`, `buttonIcons`, `buttonContentSize`, `buttonLabelWeight`, `iconContrast`, `disabledStrategy`, `outlineInteraction`, and `neutralEmphasis`. Each is a `fieldset` whose `legend` is the lever label, with a native radio per option. Arrow keys, focus and the screen-reader announcement come from the platform. The selected chip is filled with `--ink`, set in a heavier weight and check-marked, so the state does not rest on color alone. Focus is a 2px `--ink2` ring offset by 2px, a different shape from the selected fill. The chips wrap on narrow panels. Each group carries a `data-p3="lever-<key>"` hook in kebab-case, for example `lever-motion-personality-tempo`. A chip writes the manifest value through `setPath` and commits through the same path the select used: `apply` or the caller's `commit` in knob contexts, and `applyFull` on the Interactive lead rows. The radio's `checked` is set as a property, never as the attribute, like `optionEl`'s `selected`, and the radio `name` is `lever:<key>` rather than a counter. So a rebuilt group's `outerHTML` equals the live one, and the #771 reconcile keeps the live group, and its focus, when nothing else changed.
+
+**Visible copy that moved with the control.** Owner-visible, and both follow from the spec rather than from a new choice:
+- The Neutral lead's options now read the manifest's labels, "Subtle (light gray)" and "Strong (bold near-black/white)". Before, `NEUTRAL_EMPHASES` read "Subtle · light gray" and "Strong · bold fill". `NEUTRAL_EMPHASES` is deleted.
+- On the four Interactive lead rows, the legend takes the place of the small caption a select had. It keeps the same small-caps style, but reads the lever label: "Method" becomes "Outline hover", "Contrast" becomes "Disabled contrast", "Icon color" becomes "Icon contrast floor", and "Emphasis" becomes "Neutral emphasis". Keeping both would name one control twice. Keeping only the old caption would make the visible label differ from the accessible name (WCAG 2.5.3).
+
+**Deliberately left.** These are design questions not yet decided, so they keep today's controls:
+- `typography.typeScale` keeps its option cards, with their px ranges and the disable-on-clash for pinned sizes.
+- `typography.titleFloor` keeps its toggle.
+- `disabledMin` keeps its slider. The audit proposes 4 chips; that is a slider becoming chips, not an enum.
+- The per-mode "Auto — follows global" selects (`radiusScale`, `density`, `tempo` outside Light) stay selects by the rule, since their choice set has an Auto entry.
+- The typography matrix controls are not enum levers.
+- `typography.displayCeiling` has 6 options, so it is a select by the rule.
+
+The descriptor classifies `typeScale`, `titleFloor`, `captionFloor` and `sizeFloor` as chips, but their render sites are bespoke and do not go through it. `captionFloor` and `sizeFloor` have no studio control at all today; the audit lists them as new controls.
+
+**#1835.** `paletteRefOptions(key, brandColorNames)` is the one list: `primary`, `neutral`, then the brand colors in order. The generic picker, Action and Link all read it. To keep behavior identical, it has one exception: `actionPalette` has no `neutral`, as on `main`. #1811 decides it should have one, and its PR (#1827) now lands as the deletion of that line plus the matching literal in `test-lever-controls.ts`. That PR will conflict with this one at `actionPaletteLead`. The generic picker gains `neutral`. No lever reaches it, so nothing on screen moves.
+
+**Tests.** `apps/studio/test-lever-controls.ts` (new, wired into the studio `test` script) makes 92 assertions over the real manifest in Node. The expected control is derived in the test from each lever's raw option count and from bounds written there (2 and 4), never from `CHIPS_MIN`/`CHIPS_MAX`. The counts are read twice, from the bundled manifest and from the committed `schema/lever-manifest.json`, and must agree. A floor of 10 enum levers and both classes represented mean an empty read cannot pass. The 10 converted levers are named literally. Fixture arms cover 1, 2, 4 and 5 options and an "Auto" option. The #1835 lists and the hook names are checked as literals.
+
+`test:smoke` gains a "Lever chips (#1675)" section. Each converted lever is located by its literal hook on every corpus brand, and the expected labels and options come from `schema/lever-manifest.json`. For each group it checks:
+- one `fieldset`, whose `legend` is the lever label;
+- the manifest's options, as radios forming one group of their own;
+- exactly one checked, and that one is the stored value;
+- a check mark and a heavier weight on the checked chip only;
+- every chip, and the radio that takes its clicks, at 24px or more;
+- every unchecked edge at 3:1 or more against its ground;
+- the legend and every chip through the rendered-legibility probe at the chrome text bar.
+On the first brand, each option is then clicked, and the written value is read back from the persisted `prism3:brandInput` blob, not from the radio just clicked. ArrowRight must write the next option, repaint the workspace and show a focus ring. At 380px, the Outline hover chips must wrap with no overflow. The tempo ramp section (#800) now drives the tempo chips, and a chip that does not hold is a named failure rather than a timeout. Smoke went from 2828 to 3339 assertions, all passing. The sweep's form-control walk still measures 962 controls, against a floor of 250: radios are chromeless to that walk, and their text is measured by the text walk.
+
+**Measured.** Chip text: 17.72:1, `--ink` on `--panel` unchecked and `--panel` on `--ink` checked. The Interactive legends are `--faint` on `--panel` at 5.13:1. The chip edge is a new token, `--chip-edge` `#84848c`: 3.34:1 on `--paper` and 3.71:1 on `--panel`, and the rendered minimum is 3.71:1. `lint:contrast` now holds `--panel` on `--ink` at 4.5 and `--chip-edge` on `--paper` and on `--panel` at 3, so it checks 19 pairs. The hit target is 28.0px high at minimum on every chip, and the radio covers the whole chip. Before and after screenshots, at 1280 and 380 wide, of Size & radius (Control shape, Buttons), Motion (Tempo) and Interactive (Outline button hover, Disabled, Icon colors, Neutral actions), are in the session scratchpad under `f4/shots/`, named `before-*` and `after-*`.
+
+**Mutations (each on a `wip:` commit, restored with `git checkout --`).**
+- (a) Making the mapper take `< 4` instead of `<= 4` fails `✗ controlShape (4 options) → chips (got select)`, `✗ controlShape: renders as chips (#1675)` and `✗ a 4-option fixture enum → chips` (89/92, exit 1).
+- (b) Making every chip write its group's first option fails, by lever, `✗ prism3 / density: checking "Compact" writes compact to the brand (wrote comfortable)` and the same arm for all ten levers, plus `✗ prism3/standard: the tempo chip clicked is the one checked once the page has repainted` in the #800 section (88 failures). On the first run, the unbounded `waitForFunction` in the tempo section timed out instead of failing by name. That is why the waits are now bounded.
+- (c) Rendering the group as a `div` with no legend fails `✗ prism3 / density: the chip group is a fieldset (a DIV)` and `✗ … the group's legend names the lever ("null", want "Density")` for every lever and brand (180 failures).
+- `lint:contrast`: lightening `--chip-edge` to `#9a9aa2` fails `--chip-edge on --panel 2.793 / 3`.
+All went green after restore.
+
+**Environment trap.** As in F1–F3, the suites ran against a scratch `PLAYWRIGHT_BROWSERS_PATH` of symlinks, because the Playwright pin wants a newer Chromium (#1822).
+
+**Review round.** The independent review found that on three Interactive lead rows (Outline hover, Disabled contrast, Neutral emphasis) keyboard focus dropped to `<body>` after one arrow key. Their commit runs `applyFull`, and the row's example or warning line changes with the value, so the region is swapped and the focused radio goes with it. The old selects dropped focus the same way. But arrow keys are how a radio group moves, so the chips made it stop after one step. `renderWorkspace` now records the focused radio's group name and value before the reconcile, and focuses the same radio in the swapped-in group. The smoke suite's focus-ring check was conditional ("if a chip has focus"), so it skipped exactly these rows. It is now unconditional, and it presses ArrowRight a second time and asserts the second value is written. Mutation: removing the refocus fails 6 checks, 2 per lever, for `disabledStrategy`, `outlineInteraction` and `neutralEmphasis` (`✗ prism3 / outlineInteraction: a second ArrowRight writes solid-tint, so focus survived the repaint`). Smoke is 3371/3371 with the fix. The `controls.ts` header and this entry no longer claim that the per-mode selects pass `{ auto: true }`. No caller does yet: they are still hand-built in `PER_MODE_SELECTS`, so the Auto arm runs only in the test's fixtures.
+
+**For the owner (design and copy, not decided here).**
+- **Selected chip style.** The selected chip is a solid ink fill with a check mark. Concept C and v4 used a soft fill with an ink border, and kept solid black for primary actions.
+- **Neutral option labels.** These now come from the manifest: "Subtle (light gray)" and "Strong (bold near-black/white)". They were "Subtle · light gray" and "Strong · bold fill".
+- **Lead-row captions.** The captions are now the lever labels. "Method" became "Outline hover", "Contrast" became "Disabled contrast", "Icon color" became "Icon contrast floor", and "Emphasis" became "Neutral emphasis". The Icon colors row keeps its row label "Icon color" next to the legend "Icon contrast floor", which gives two names for one control.
+- **Long labels.** #1675 keeps selects for long labels, but the rule counts only options. "Full contrast (4.5:1 — AA text)" is now a chip.
+- **Light only.** The studio chrome is light-only, so #1675's "light and dark" has only its light half today.
+
+---
+
+## (2026-09-30) — UI redesign phase 2: the owner's decisions recorded, and the concept v4 mockup
+
+**STATUS: PR open from `ui/v4-mockup`, labeled DO NOT MERGE.** Design artifacts only, all under `docs/superpowers/ui-redesign/`. No product code, and no ENGINE bump.
+
+**What landed.**
+- **Decisions:** `decisions-2026-09-30.md` records the owner's answers to the 14 Phase 1 questions (`phase1-audit.md` §4). Every recommendation was accepted. The headline is mode model B: the preview owns the viewing mode, and levers edit the base value with per-mode overrides inline.
+- **Spec:** `v4-spec.md` turns those decisions and the audit's fixes into a build spec.
+- **Mockup:** `concept-v4.html` is the mockup. `build-v4.mjs` builds it from `concept-v4.src.html` plus the real engine, bundled with `npx -y esbuild@0.24.0`. Nothing is installed into `node_modules`.
+- **Note:** `concept-v4.md` covers the direction, what is live and what is simulated, the measured accessibility numbers, and 10 open questions for the owner.
+
+**The decision that shaped the build: run the real engine, not a data snapshot.** Concept C invented its data: 23 made-up component defs, stale versions, and a size ladder with a padding column the engine no longer has. v4 bundles `@prism3/engine`, so every lever edit re-resolves the real system:
+- palettes;
+- 268 roles per mode, with their ratios;
+- type, sizes and tokens;
+- the decisions log;
+- the 26 defs, with their variant counts.
+
+Figma operations stay simulated, and the note lists each one.
+
+**The coverage check uses the manifest as its oracle, not the mockup's own list.** Concept C's note claimed "every lever placed once, checked by script". That script checked the mockup's own 61-key list, so the check agreed with itself. It passed while two manifest levers were missing (`docs/34` shape 1). `build-v4.mjs` reads `packages/engine/schema/lever-manifest.json` and fails the build on:
+- a key with no home;
+- a key with more than one home;
+- an unknown key;
+- an advanced tier that disagrees with the manifest flag.
+
+Mutation-tested: emptying a home, doubling a home, flipping a tier, and adding a web font each fail by name.
+
+**Review round.** An independent review found two defects in the simulated Build-errors scenario, and both are fixed:
+- **Member count:** it showed 214 of 216 members. The real TextField def has 24, and the counts didn't add up. The scenario now takes N from the def.
+- **Missing font:** it named a face the brand doesn't use, while Health said fonts were clear. The scenario now marks one of the brand's own faces absent, and Health names the same face.
+
+The review's smaller items were also fixed:
+- named chip groups;
+- the audit's label "Custom tint";
+- the refused-edit banner rewritten in the UI register, with the engine's text one step away.
+
+**Measured (Chromium, 29 states):**
+
+| Check | Result |
+|---|---|
+| Lowest chrome text contrast | 6.14:1 |
+| Lowest control boundary | 3.35:1 (Concept C: 1.75:1) |
+| Smallest hit target | 24px |
+| At 380×420 | 3 settings fully visible, 2 of them manifest levers |
+| External requests | 0 |
+
+**Deliberately left.**
+- **Open questions:** the 10 in `concept-v4.md` are the owner's to answer.
+- **Not committed:** the rendered-DOM coverage recount is not committed, so today only the source-level check can be rerun.
+- **Filed:**
+  - #1824: the personality trait citations quote a client brief and would surface in the Decisions log.
+  - #1811 and #1812: two manifest and studio defects found in Phase 1.
+
+**Trap for the next reader.** The mockup bundles the engine, so rebuilding it after an engine change can change what it shows. The versions in its harness bar come from `version.ts` at build time.
+
+---
+
 ## (2026-09-30) — Rename stamps: the fold fills a rename rule's `since`, and a gate checks it did (#1816)
 
 **STATUS: PR from `lane/rename-since-fold`.** No engine bump and no change note: no emitted artifact moves, every live stamp is unchanged, and the change is to the fold, a gate, `test.ts` and docs. `CONTRACT_VERSION` unchanged.
