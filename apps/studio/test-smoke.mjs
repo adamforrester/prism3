@@ -1485,21 +1485,28 @@ const READ_DURATION_RAMP = () => {
   return { label, rows };
 };
 
+/** Wait for the chip `want` to be the checked one in the group at `sel`, as a condition with a bound
+ *  rather than a hang: a chip whose write went to another option is re-rendered with THAT option
+ *  checked, and the caller reports it by name instead of timing out (#1675). */
+const waitChecked = (page, sel, want) => page.waitForFunction(([s, w]) => document.querySelector(`${s} input:checked`)?.value === w, [sel, want], { timeout: 5000 })
+  .then(() => true, () => false);
+
 let rampChecks = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   await gotoRail(page, '[data-p3="rail-page-motion"]');
-  const tempoSel = page.locator('[data-p3="section-tempo"] select').first();
-  const options = await tempoSel.locator('option').evaluateAll((os) => os.map((o) => o.value));
+  // The base-mode tempo control is a chip group (#1675): a radio per tempo, driven by checking one.
+  const tempoGroup = page.locator('[data-p3="section-tempo"] [data-p3="lever-motion-personality-tempo"]').first();
+  const options = await tempoGroup.locator('input[type=radio]').evaluateAll((os) => os.map((o) => o.value));
   ok(options.length >= 2, `${brand}: the Tempo control offers ${options.length} tempi`);
 
   // NO NAVIGATION INSIDE THIS LOOP. Leaving the page and coming back re-renders it and would cure
   // the very staleness being asserted — the defect is only visible between commits.
   for (const tempo of options) {
-    await tempoSel.selectOption(tempo);
-    await page.waitForFunction((t) => {
-      return document.querySelector('[data-p3="section-tempo"] select')?.value === t;
-    }, tempo);
+    await page.locator(`[data-p3="section-tempo"] [data-p3="lever-motion-personality-tempo"] input[value="${tempo}"]`).click();
+    const held = await waitChecked(page, '[data-p3="section-tempo"] [data-p3="lever-motion-personality-tempo"]', tempo);
+    ok(held, `${brand}/${tempo}: the tempo chip clicked is the one checked once the page has repainted`);
+    if (!held) continue;
     const shown = await page.evaluate(READ_DURATION_RAMP);
     if (!shown) { ok(false, `${brand}/${tempo}: the Duration ramp section is on the page`); continue; }
     const want = expectedRamp(tempo);
@@ -1519,6 +1526,178 @@ for (const brand of BRANDS) {
 // The "did it look?" floor, same discipline as SWEEP_NODE_FLOOR above: a comparison over an empty
 // set is true, and would print as coverage.
 ok(rampChecks >= 2 * 3 * 6, `${rampChecks} displayed durations compared against the resolved theme`);
+
+// =============================================================================================
+// 3b. Lever chips — the 2-4-option enum levers as native radio groups (#1675)
+// =============================================================================================
+// WHAT THIS HOLDS. #1675 turns every enum lever with 2-4 options and no Auto entry from a select into a
+// row of chips. The descriptor rule is unit-tested in Node (`test-lever-controls.ts`); this section holds
+// what only a render can show: each group is a `fieldset` whose `legend` names the lever, it offers the
+// manifest's options and no others, exactly one is checked, checking one WRITES that value (read back
+// from the persisted blob, not from the radio the click just checked), an arrow key moves the value and
+// the page repaints, the chips meet the chrome contrast bars, and each chip is a >= 24px hit target.
+//
+// docs/34: the expected labels and option lists come from the committed `schema/lever-manifest.json`,
+// not from the studio bundle, and the value written is read from `localStorage`, a store the chip does
+// not paint. A chip whose write went to the wrong option still shows the option the user checked until
+// something re-renders it, so the DOM alone could not catch that.
+console.log(`\nLever chips (#1675)\n${'='.repeat(78)}`);
+
+const LEVER_MANIFEST = JSON.parse(await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'schema', 'lever-manifest.json'), 'utf8'));
+const leverOf = (key) => LEVER_MANIFEST.levers.find((l) => l.key === key);
+/** The converted levers, each located by its own literal hook, on the page it lives on. */
+const CHIP_LEVERS = [
+  { key: 'density', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-density"]' },
+  { key: 'controlShape', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-control-shape"]' },
+  { key: 'buttonIcons', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-icons"]' },
+  { key: 'buttonContentSize', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-content-size"]' },
+  { key: 'buttonLabelWeight', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-label-weight"]' },
+  { key: 'motionPersonality.tempo', rail: '[data-p3="rail-page-motion"]', group: '[data-p3="lever-motion-personality-tempo"]' },
+  { key: 'iconContrast', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-icon-contrast"]' },
+  { key: 'disabledStrategy', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-disabled-strategy"]' },
+  { key: 'outlineInteraction', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-outline-interaction"]' },
+  { key: 'neutralEmphasis', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-neutral-emphasis"]' },
+];
+ok(CHIP_LEVERS.every((c) => leverOf(c.key)?.options?.length >= 2), `every converted lever is an enum in schema/lever-manifest.json (${CHIP_LEVERS.length} levers)`);
+
+/** The group as rendered: its element, legend, radios, and what each chip draws. */
+const readChipGroup = (sel) => {
+  const all = document.querySelectorAll(sel);
+  const fs = all[0];
+  if (!fs) return { found: 0 };
+  const first = fs.firstElementChild;
+  const radios = [...fs.querySelectorAll('input[type=radio]')];
+  const groundOf = (el) => {
+    for (let n = el.parentElement; n; n = n.parentElement) {
+      const bg = getComputedStyle(n).backgroundColor;
+      if (bg && !/rgba\([^)]*,\s*0\)$/.test(bg) && bg !== 'transparent') return bg;
+    }
+    return 'rgb(255, 255, 255)';
+  };
+  return {
+    found: all.length,
+    tag: fs.tagName,
+    legend: first?.tagName === 'LEGEND' ? first.textContent.trim() : null,
+    values: radios.map((r) => r.value),
+    labels: radios.map((r) => r.closest('label')?.textContent.trim() ?? ''),
+    names: [...new Set(radios.map((r) => r.name))],
+    // Radios sharing a name form one group across the whole document, whatever fieldset they sit in.
+    sameName: radios[0] ? document.querySelectorAll(`input[type=radio][name="${CSS.escape(radios[0].name)}"]`).length : 0,
+    checked: radios.filter((r) => r.checked).map((r) => r.value),
+    chips: radios.map((r) => {
+      const face = r.nextElementSibling;
+      const box = r.closest('label').getBoundingClientRect();
+      const hit = r.getBoundingClientRect();
+      const cs = getComputedStyle(face);
+      return {
+        value: r.value, checked: r.checked,
+        w: box.width, h: box.height, hitW: hit.width, hitH: hit.height,
+        weight: Number(cs.fontWeight), mark: getComputedStyle(face, '::before').content,
+        edge: cs.borderTopColor, ground: groundOf(face), outline: cs.outlineStyle,
+      };
+    }),
+  };
+};
+const persistedAt = (page, key) => page.evaluate((k) => {
+  try { const o = JSON.parse(localStorage.getItem('prism3:brandInput')); return k.split('.').reduce((n, s) => n?.[s], o?.input) ?? null; } catch { return null; }
+}, key);
+
+let chipGroupsChecked = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const drive = brand === BRANDS[0];
+  for (const rail of [...new Set(CHIP_LEVERS.map((c) => c.rail))]) {
+    await gotoRail(page, rail);
+    for (const c of CHIP_LEVERS.filter((x) => x.rail === rail)) {
+      const lever = leverOf(c.key);
+      const where = `${brand} / ${c.key}`;
+      const g = await page.evaluate(readChipGroup, c.group);
+      if (!g.found) { ok(false, `${where}: renders a chip group`); continue; }
+      chipGroupsChecked++;
+      ok(g.found === 1, `${where}: renders exactly one chip group (${g.found})`);
+      ok(g.tag === 'FIELDSET', `${where}: the chip group is a fieldset (a ${g.tag})`);
+      ok(g.legend === lever.label, `${where}: the group's legend names the lever ("${g.legend}", want "${lever.label}")`);
+      ok(JSON.stringify(g.values) === JSON.stringify(lever.options.map((o) => String(o.value))),
+        `${where}: offers the manifest's ${lever.options.length} options as radios (${g.values.join(', ')})`);
+      ok(JSON.stringify(g.labels) === JSON.stringify(lever.options.map((o) => o.label)), `${where}: each chip reads the manifest's option label`);
+      ok(g.names.length === 1 && g.sameName === g.values.length, `${where}: its radios form one group of their own (name ${g.names.join(', ')}, ${g.sameName} in the document)`);
+      const stored = (await persistedAt(page, c.key)) ?? lever.default;
+      ok(g.checked.length === 1 && g.checked[0] === String(stored), `${where}: exactly one chip is checked, the brand's value (${g.checked.join(', ') || 'none'}, stored ${stored})`);
+      // Selected is not signaled by color alone: the checked chip is heavier and check-marked.
+      const on = g.chips.find((x) => x.checked), off = g.chips.filter((x) => !x.checked);
+      ok(on && /✓/.test(on.mark) && off.every((x) => !/✓/.test(x.mark)) && off.every((x) => x.weight < on.weight),
+        `${where}: the checked chip carries a check mark and a heavier weight, the others neither (${on?.weight} vs ${off.map((x) => x.weight).join('/')})`);
+      // WCAG 2.5.8: each chip, and the radio that takes its clicks, is at least 24 x 24.
+      const small = g.chips.filter((x) => x.h < 24 || x.w < 24 || x.hitH < 24 || x.hitW < 24);
+      ok(small.length === 0, `${where}: every chip is a >= 24px hit target${small.length ? ` — ${small.map((x) => `${x.value} ${x.w.toFixed(1)}x${x.h.toFixed(1)}`).join(' | ')}` : ''}`);
+      // WCAG 1.4.11: an unchecked chip's edge against the ground it sits on.
+      const edges = off.map((x) => ({ v: x.value, r: wcag(parseRgb(x.edge), parseRgb(x.ground)) }));
+      const faint = edges.filter((e) => !(e.r >= 3));
+      ok(faint.length === 0, `${where}: every unchecked chip's edge clears 3:1 against its ground (${edges.map((e) => e.r.toFixed(2)).join(', ')})`);
+      // The chips' text through the rendered-legibility probe, at the chrome bars.
+      await settle(page, where);
+      const probe = await page.evaluate(LEGIBILITY_PROBE, c.group);
+      assertParsed(where, probe.unparsed);
+      ok(probe.rootFound && probe.text.length >= lever.options.length + 1, `${where}: the probe measured the legend and every chip (${probe.text.length} text nodes)`);
+      const under = probe.text.filter((r) => r.specimen || r.ratio < barOf(r));
+      ok(under.length === 0, `${where}: every chip and the legend meet the chrome text bar${under.length ? ` — ${under.map((u) => `"${u.text}" ${u.ratio}:1${u.specimen ? ' (marked specimen)' : ''}`).join(' | ')}` : ''}`);
+      console.log(`  ${where}: ${g.values.length} chips; text ${Math.min(...probe.text.map((r) => r.ratio))}:1 min; edge ${Math.min(...edges.map((e) => e.r)).toFixed(2)}:1 min; ${Math.min(...g.chips.map((x) => x.h)).toFixed(1)}px min height`);
+      if (!drive) continue;
+
+      // DRIVE BY POINTER: check each unchecked option, and read what was WRITTEN.
+      for (const o of lever.options) {
+        const v = String(o.value);
+        if ((await page.evaluate(readChipGroup, c.group)).checked[0] === v) continue;
+        await page.locator(`${c.group} label`).filter({ hasText: o.label }).first().click();
+        await waitChecked(page, c.group, v);   // bounded; the two assertions below say what went wrong
+        const wrote = await persistedAt(page, c.key);
+        ok(String(wrote) === v, `${where}: checking "${o.label}" writes ${v} to the brand (wrote ${wrote})`);
+        const after = await page.evaluate(readChipGroup, c.group);
+        ok(after.checked.length === 1 && after.checked[0] === v, `${where}: after "${o.label}", exactly that chip is checked (${after.checked.join(', ')})`);
+      }
+      // DRIVE BY KEYBOARD: an arrow key moves the value within the group, and the page repaints.
+      const before = await page.evaluate(readChipGroup, c.group);
+      const cur = before.checked[0];
+      const next = before.values[(before.values.indexOf(cur) + 1) % before.values.length];
+      const ws = () => page.evaluate(() => document.querySelector('[data-p3="workspace"]')?.innerHTML ?? '');
+      const wsBefore = await ws();
+      await page.locator(`${c.group} input[value="${cur}"]`).focus();
+      await page.keyboard.press('ArrowRight');
+      await waitChecked(page, c.group, next);
+      ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight from ${cur} writes ${next} to the brand`);
+      await settle(page, where);
+      ok((await ws()) !== wsBefore, `${where}: the page repaints after the arrow key (the workspace differs from before)`);
+      // Focus is an outline, and it is not the selected look: after the arrow key the focused chip has a
+      // ring, and a checked chip without focus does not.
+      const focusRing = await page.evaluate((sel) => {
+        const f = document.querySelector(`${sel} input:focus-visible`);
+        return f ? getComputedStyle(f.nextElementSibling).outlineStyle : 'no focused chip';
+      }, c.group);
+      if (focusRing !== 'no focused chip') ok(focusRing !== 'none', `${where}: the focused chip draws a focus ring (${focusRing})`);
+      ok(on.outline === 'none', `${where}: the checked chip, unfocused, draws no ring, so focus and selection look different`);
+    }
+  }
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: rendering and driving the lever chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip groups checked (floor ${CHIP_LEVERS.length * 2}: every converted lever on at least two brands)`);
+
+// Narrow panels: the chips wrap instead of overflowing (#1675). Measured at 380px, the plugin's narrow width.
+{
+  const { ctx, page } = await openBrand(BRANDS[0]);
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
+  await page.setViewportSize({ width: 380, height: 900 });
+  const wrap = await page.evaluate(() => {
+    const g = document.querySelector('[data-p3="lever-outline-interaction"]');
+    const row = g?.querySelector('input')?.closest('label')?.parentElement;
+    if (!row) return null;
+    const tops = [...row.children].map((l) => Math.round(l.getBoundingClientRect().top));
+    return { rows: new Set(tops).size, over: row.scrollWidth - row.clientWidth, doc: document.documentElement.scrollWidth - window.innerWidth };
+  });
+  ok(wrap && wrap.rows >= 2 && wrap.over <= 1, `at 380px the Outline hover chips wrap onto ${wrap?.rows} rows with no overflow (${wrap?.over}px)`);
+  await ctx.close();
+}
 
 // =============================================================================================
 // 4. Overlay surfaces — the brand-menu popover (#1031)

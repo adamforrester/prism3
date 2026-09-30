@@ -59,6 +59,10 @@
   --danger-tint:#fcf3f3;  --danger-tint:color-mix(in srgb, var(--danger) 6%, #fff);
   --danger-edge:#f0c6c5;  --danger-edge:color-mix(in srgb, var(--danger) 28%, #fff);
   --paper:#f2f3f6; --panel:#ffffff; --line:#e7e8ec; --line2:#dcdde2;
+  /* #1675 — the edge of an unselected chip. A chip is a control, and with no fill of its own its edge is
+     what shows where it is, so the edge is held to WCAG 1.4.11's 3:1 non-text floor on both grounds a
+     chip sits on (lint-contrast.mjs). --line2 is 1.3:1 and would not do. */
+  --chip-edge:#84848c;
   --r:10px; --r-sm:7px; --r-xs:6px;
   /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
      sets these because it is the widest case: its stepper cell needs ~132px where a weight select
@@ -514,6 +518,23 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .knob-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
 .knob-val.ro{margin-top:6px}
 .knob-desc{margin:7px 0 0;font-size:12px;color:var(--faint);line-height:1.5}
+/* Segmented chips (#1675): a native radio group. The radio covers its chip, unpainted, so the chip's
+   box is the hit box (>= 24px tall, WCAG 2.5.8) and a click anywhere on it checks the radio. The
+   selected chip is filled, bold and check-marked, so the state is not carried by color alone; focus
+   is an offset ring, a different shape from the selected fill. Chips wrap on a narrow panel. */
+.chips{border:0;margin:0;padding:0;min-width:0}
+.chips-legend{padding:0;font-weight:600;font-size:13.5px;color:var(--ink)}
+.chips-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips-opt{position:relative;display:inline-flex}
+.chips-in{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.chips-face{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 12px;border:1px solid var(--chip-edge);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12.5px;line-height:1.3;font-variant-numeric:tabular-nums}
+.chips-in:hover + .chips-face{border-color:var(--ink)}
+.chips-in:checked + .chips-face{background:var(--ink);border-color:var(--ink);color:var(--panel);font-weight:600}
+.chips-in:checked + .chips-face::before{content:'\2713';content:'\2713' / ''}
+.chips-in:focus-visible + .chips-face{outline:2px solid var(--ink2);outline-offset:2px}
+/* In a matrix lead row the legend takes the place of the small caption a select is given there. */
+.sf-ctlblock .chips-legend{font-size:9.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
+.sf-ctlblock .chips-row{margin-top:6px}
 .type-editor{margin-bottom:8px}
 .te-font{width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper)}
 .te-wrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
