@@ -236,11 +236,11 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     since: '0.50.0',
     why:
       'The shipped brands took per-brand root namespaces: aurora `prism/*` -> `ads/*`, harbor '
-      + '`prism/*` -> `hds/*` and wendys `prism/*` -> `wds/*`, following the `<brand>ds` convention New '
-      + 'Balance has always used (`nbds`). '
+      + '`prism/*` -> `hds/*` and the third example brand `prism/*` -> `wds/*`, following the `<brand>ds` '
+      + 'convention the reference brand has always used (`nbds`). '
       + '`prism` and `pds3` are now RESERVED for a future canonical default theme, so no named brand may '
       + 'declare either — all three had been sitting on `prism` by inheriting the engine default rather '
-      + 'than by choosing it, wendys because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
+      + 'than by choosing it, the third because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
       + 'byte-identical, which is why `token-contract.ts --check` reports the guaranteed surface unchanged '
       + '(the contract is keyed below the configurable root). For a Figma file this is still a rename of '
       + 'every variable the brand owns, which is exactly what this register exists to record.',

@@ -312,7 +312,8 @@ jobs:
       # in shipped text (#617). Sibling to the US-English gate above, not merged into it — different
       # exemption sets (an allow-set for "just", a context rule for "!"), different failure messages
       # — but wired in the SAME position for the SAME reason: its scope includes the built
-      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too.
+      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too. Its client-name arm
+      # (#1824) also reads `apps/plugin/dist` raw, so "Build plugin" is load-bearing for it as well.
       - name: Voice lint gate (shipped text)
         run: npx --yes tsx@4 packages/engine/lint-voice.ts
 

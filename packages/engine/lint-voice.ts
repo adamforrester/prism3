@@ -111,6 +111,11 @@
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
  *
+ * **The MCP server's `tools/list` is in scope as SERVED (#1806)**: every tool, argument and inlined
+ * schema description, obtained by spawning the server (`mcp-served.ts`), represented by a literal list of
+ * the six tool names, blind on a missing tool or a silent server. `lint-us-english.ts` trap 8 has the
+ * full account. Both gates read it, so on this surface the two scopes agree.
+ *
  *
  * ── SCOPE IS PER-FILE; TEXT IS NOT (#1117) — WHY A FAILURE HERE MAY NOT BE THIS FILE'S FAULT ────
  *
@@ -158,14 +163,53 @@
  * and a run in which the carve-out removed nothing fails — a carve-out that matches nothing is either a
  * dead rule or a renamed field, and both would read as a pass.
  *
+ * ── CLIENT NAMES (#1824) — A SEVENTH RULE, WITH A SCOPE OF ITS OWN ────────────────────────────────
+ *
+ * The repo is public, and some example briefs are real brands' briefs. Personality trait notes quoted
+ * those briefs by name, and `resolveVocabulary` copied each quote into `theme.notes` — so a customer's
+ * workspace would have shown another brand's name. The rule is a fixed list (`CLIENT_NAMES`), built from
+ * the brands in `reference/` and the example briefs, and kept minimal: it is the one place those names are
+ * written on purpose.
+ *
+ * ITS SCOPE IS NOT THE VOICE RULES' SCOPE, on purpose, and the difference is the part to read:
+ *
+ *   - IN: the three bundle files that inline the engine — `apps/studio/dist/main.js`,
+ *     `apps/plugin/dist/main.js` and `apps/plugin/dist/ui.html` — scanned RAW. The voice rules exempt
+ *     comments (point 4); this rule cannot, because some comments DO reach the unminified bundle. Not all
+ *     of them, and not "exactly as a string": measured on this PR's build, esbuild drops top-level and
+ *     function-body comments (a file header, `// ---- 1. named stops` inside `resolveVocabulary`) and keeps
+ *     the ones inside an expression — an object or array literal, a call's arguments (the comments beside
+ *     the TRAITS entries, a component def's fields). A comment's position decides whether it ships, so the
+ *     scan reads the bundle raw rather than guessing. The plugin files are in scope here although #948
+ *     still keeps them out of the voice rules; that is why `verify.ts` now runs this gate after BOTH builds.
+ *   - IN: every personality note as the engine RENDERS it, one `brandTheme` call per trait in the
+ *     schema's enum. No committed brand sets `personality`, so `out/**` never shows a trait note; reading
+ *     the emitted corpus for them would be a scan of a surface that cannot hold the defect.
+ *   - OUT: `out/**`, `schema/**`, the README and the skills. The emitted corpus includes example brands
+ *     that ARE those clients, by id, file name and measured fixture, so this rule over it would fail on
+ *     the corpus itself. Whether a public repo should carry those brands is the owner's call, not this
+ *     gate's: filed as #1853, and this bullet is where the scope says so rather than implies it.
+ *   - OUT: the studio site's source map (`dist/main.js.map`; `build-site.mjs` builds it with
+ *     `sourcemap: true` and publishes it). Its `sourcesContent` is the engine's source, every comment
+ *     included, so it names the corpus brands wherever the source does. That source is already public in
+ *     this repository, so the map exposes nothing new; scrubbing every comment in the engine is #1853's
+ *     question, not this arm's. Named here so a reader does not mistake the map's absence for an oversight.
+ *
+ * Represented, not merely present: each bundle must be readable AND carry the resolver's refusal message
+ * (proof the trait vocabulary is inside what was read), and every enum trait must render exactly one note;
+ * anything else is `blind`, fatal before a verdict. Self-checked like the other rules: one positive sample
+ * per name, including the bundle's escaped apostrophe, and two converse samples (the ordinary phrase "a new
+ * balance", and look-alike words) that must not trip.
+ *
  * Run: `npx tsx packages/engine/lint-voice.ts`  (exit 1 = a gated surface carries banned voice-standard
- * §2 copy, or an RFC 2119 level outside the payload channel)
+ * §2 copy, or an RFC 2119 level outside the payload channel, or a bundle or rendered note names a client)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
+import { brandTheme } from './theme';
 
 // ---- the RULES, imported (#1117) -------------------------------------------------------------
 // The five §2 rules and `voiceHits` moved to `prose-rules.ts`, so a check at a SCOPE CROSSING applies
@@ -176,6 +220,8 @@ import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 // imported `voiceHits`.
 import { voiceHits } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
+// The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
+import { servedToolsList, servedStrings } from './mcp-served';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -201,7 +247,7 @@ const stripLineComments = (txt: string): string =>
   txt.replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent: string) => indent + ' '.repeat(m.length - indent.length));
 
 
-type Hit = { file: string; line: number; rule: string; match: string; context: string };
+type Hit = { file: string; line: number | string; rule: string; match: string; context: string };
 
 // ---- The `normative` rule (#1623 AI/C-1) — see the header's payload-channel section. Upper case only:
 // the lower-case words are ordinary English, and an RFC 2119 level is the capitalized keyword.
@@ -464,6 +510,51 @@ if (selfFails.length) {
   process.exit(1);
 }
 
+// ---- CLIENT NAMES (#1824) — a rule of its own, over a scope of its own ------------------------------
+// See the header section of the same name. The list is the gate's, kept minimal, and the one place a
+// client name is written on purpose: every other line of this repo that names one is a finding for this
+// arm the moment it reaches a bundle. A pattern per name, each anchored at a word start so a longer word
+// cannot hide it; `New Balance` is matched in its brand casing (or as a slug), because the lower-case
+// phrase is ordinary English ("strike a new balance"), and a false positive is fixed by tightening the
+// NAME'S PATTERN with a self-check sample, never by dropping a surface.
+const CLIENT_NAMES: { name: string; re: RegExp }[] = [
+  { name: 'wendy', re: /\bwendy/gi }, // wendys, Wendy's, and the bundle's escaped `Wendy\u2019s`
+  { name: 'new balance', re: /\bNew[\s-]?Balance\b|\bNEW[\s-]?BALANCE\b|\bnew-?balance\b/g },
+  { name: 'nb-redesign', re: /\bnb-redesign\b/gi },
+];
+const clientHits = (txt: string): RawHit[] =>
+  CLIENT_NAMES.flatMap(({ name, re }) => [...txt.matchAll(re)].map((m) => ({ rule: `client-name:${name}`, match: m[0], index: m.index! })));
+const CLIENT_SELF_CHECK: { sample: string; want: string | null }[] = [
+  { sample: 'wendys', want: 'client-name:wendy' },
+  { sample: 'the brand runs Wendy\\u2019s red', want: 'client-name:wendy' },
+  { sample: '// New Balance', want: 'client-name:new balance' },
+  { sample: 'reference/newbalance/tokens', want: 'client-name:new balance' },
+  { sample: 'nb-redesign', want: 'client-name:nb-redesign' },
+  { sample: 'the weights strike a new balance between the two', want: null },
+  { sample: 'a snb-redesigned layout and a wendt font', want: null },
+];
+for (const { sample, want } of CLIENT_SELF_CHECK) {
+  const hits = clientHits(sample);
+  if (want === null ? hits.length > 0 : !hits.some((h) => h.rule === want)) {
+    selfFails.push(`client names: "${sample}" should${want ? ` be flagged as '${want}'` : ' NOT be flagged'}`);
+  }
+}
+if (selfFails.length) {
+  console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
+  for (const f of selfFails) console.error(`    ${f}`);
+  process.exit(1);
+}
+// The BUNDLES, named per file (#948's reasoning: a directory predicate stays satisfied by either file
+// alone). RAW text — no comment stripping, unlike the voice rules: a comment inside an expression survives
+// into an unminified bundle (header: CLIENT NAMES), and a client name there is a leak like one in a string.
+// The source map is out of scope on purpose; the header says why.
+const CLIENT_BUNDLES = ['apps/studio/dist/main.js', 'apps/plugin/dist/main.js', 'apps/plugin/dist/ui.html'];
+// What proves a bundle is one that carries the personality vocabulary, so a clean scan of it means the
+// trait notes were in what was read. The resolver's own refusal message: a string of the subject, and
+// that is the point of a representation probe — if the vocabulary leaves a bundle, this fails loudly
+// rather than scanning a bundle the issue no longer concerns and calling it clean.
+const VOCABULARY_MARKER = 'unknown personality trait';
+
 // ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
 // The scope crossing noted in the header claims "no docs/ file is in this gate's scope". A grep over
 // this source cannot check that claim — it matches the comment making it. This prints the set the
@@ -474,15 +565,85 @@ if (selfFails.length) {
 // Exits before any scanning, so it is cheap and cannot be confused with a verdict.
 if (process.argv.includes('--files')) {
   for (const f of gated) console.log(relative(repo, f));
+  // The client-name arm's bundles, where the voice rules do not already walk them.
+  for (const b of CLIENT_BUNDLES) if (!gated.includes(join(repo, b))) console.log(b);
   process.exit(0);
 }
 
 const gatedHits = gated.flatMap(scan);
+
+// ---- the CLIENT NAMES scan (#1824) ----
+const clientFound: Hit[] = [];
+const hitsIn = (label: string, txt: string): Hit[] => clientHits(txt).map(({ rule, match, index }) => ({
+  file: label, line: txt.slice(0, index).split('\n').length, rule, match,
+  context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+}));
+let clientBundlesRead = 0;
+for (const b of CLIENT_BUNDLES) {
+  let raw: string;
+  try { raw = readFileSync(join(repo, b), 'utf8'); } catch (e) {
+    blind.push(`${b} — could not be read for the client-name arm (${(e as Error).message}); build it: npm run -w ${b.startsWith('apps/plugin') ? '@prism3/plugin' : '@prism3/studio'} build`);
+    continue;
+  }
+  if (!raw.includes(VOCABULARY_MARKER)) { blind.push(`${b} — carries no personality vocabulary ('${VOCABULARY_MARKER}' absent), so a clean client-name scan of it says nothing about the trait notes`); continue; }
+  clientBundlesRead++;
+  clientFound.push(...hitsIn(b, raw));
+}
+// The RENDERED notes: what `theme.notes` holds after a personality resolves, which the MCP server serves
+// and the emitted tree carries as `decisions`. No committed brand sets `personality`, so `out/**` never
+// shows one — this renders every trait instead. The trait list is the SCHEMA's enum, the contract an
+// agent reads, not the engine's TRAITS table: a trait the schema advertises and the engine cannot render
+// is blind here, not skipped.
+const traitEnum: unknown = JSON.parse(readFileSync(join(repo, 'packages/engine/schema/theme-schema.json'), 'utf8'))?.properties?.personality?.items?.enum;
+let notesRendered = 0;
+if (!Array.isArray(traitEnum) || traitEnum.length < 9) {
+  blind.push(`theme-schema.json's personality enum — expected at least 9 traits, found ${Array.isArray(traitEnum) ? traitEnum.length : 'none'}`);
+} else {
+  for (const t of traitEnum as string[]) {
+    let notes: string[];
+    try {
+      notes = brandTheme({ id: 'lint', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 }, personality: [t] } as any)
+        .notes.filter((n) => n.startsWith(`personality '${t}' →`));
+    } catch (e) { blind.push(`personality '${t}' — did not render (${(e as Error).message})`); continue; }
+    if (notes.length !== 1) { blind.push(`personality '${t}' — rendered ${notes.length} notes, expected exactly 1`); continue; }
+    notesRendered++;
+    clientFound.push(...hitsIn(`theme.notes (personality '${t}')`, notes[0]));
+  }
+}
 // The carve-out is represented, not merely present: every sidecar went through it, and it exempted
 // something. Zero means the field moved or the pattern drifted, and the rule would be passing blind.
 const sidecarCount = gated.filter(isPayloadSidecar).length;
 if (!sidecarCount || channelFiles !== sidecarCount || channelExempted === 0) {
   blind.push(`the payload channel — ${channelFiles}/${sidecarCount} sidecars carved, ${channelExempted} contract requirements exempted (expected every sidecar and more than 0)`);
+}
+
+// ---- The MCP server's tools/list, AS SERVED (#1806) — see lint-us-english.ts's block of the same name;
+// the acquisition is shared (`mcp-served.ts`), the rules and the represented-list are this gate's own.
+// Every §2 rule and `normative` apply: an MCP description is agent-facing, but it is not the payload
+// channel (voice-standard §4), so a `MUST` in it is a hit. Each string is scanned alone, values and keys,
+// never the serialized JSON (a `\n` escape hides the next word; `mcp-served.ts` header); a hit names its
+// JSON path in place of a line number. No comment stripping: these are strings, not source.
+const MCP_TOOLS = ['list_levers', 'theme_brand', 'score_consumption', 'theme_from_brief', 'export_theme', 'validate_brand'];
+const served = servedToolsList(repo);
+let mcpToolsScanned = 0;
+if ('error' in served) blind.push(`the MCP tools/list surface — ${served.error}`);
+else {
+  const names = served.tools.map((t) => t.name);
+  const missing = MCP_TOOLS.filter((n) => !names.includes(n));
+  if (missing.length) blind.push(`the MCP tools/list surface — the served list lacks ${missing.join(', ')} (served: ${names.join(', ') || 'none'})`);
+  for (const tool of served.tools) {
+    if (typeof tool.description !== 'string' || !tool.description.trim()) blind.push(`the MCP tool '${tool.name}' — served with no description to scan`);
+    mcpToolsScanned++;
+    for (const { path, text } of servedStrings(tool)) {
+      gatedHits.push(...[...voiceHits(text), ...normativeHits(text)].map(({ rule, match, index }) => ({
+        file: 'MCP tools/list (served)',
+        line: path,
+        rule,
+        match,
+        context: text.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+      })));
+    }
+  }
 }
 const byFile = new Map<string, Hit[]>();
 for (const h of gatedHits) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h]);
@@ -498,6 +659,7 @@ if (blind.length) {
 
 console.log(`Voice lint gate — ${gated.length} shipped files scanned:`);
 for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
+console.log(`    ${String(mcpToolsScanned).padStart(3)}  MCP tools/list, as the server returns it (tools, #1806)`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} voice-standard §2 violation(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {
@@ -511,4 +673,16 @@ if (gatedHits.length) {
   console.log('  ✓ clean — no banned voice-standard §2 phrases in any shipped surface.');
 }
 
-process.exit(gatedHits.length ? 1 : 0);
+console.log(`Client-name arm — ${clientBundlesRead} bundles and ${notesRendered} rendered personality notes scanned (raw, comments included):`);
+if (clientFound.length) {
+  console.error(`\n❌ ${clientFound.length} client name(s) in a shipped bundle or a rendered note (#1824):\n`);
+  for (const h of clientFound.slice(0, 20)) console.error(`    ${h.file}:${h.line}: [${h.rule}] "${h.match}"  …${h.context}…`);
+  if (clientFound.length > 20) console.error(`    … and ${clientFound.length - 20} more`);
+  console.error(`\n    This repo is public, and these surfaces reach a customer's workspace. Say what the text`);
+  console.error(`    means without the brand: "a corpus brand", "the reference brand". Provenance that needs`);
+  console.error(`    the name belongs in a file no bundle imports (test.ts holds the trait provenance).\n`);
+} else {
+  console.log('  ✓ clean — no client name in any of the three bundle files or any rendered personality note.');
+}
+
+process.exit(gatedHits.length || clientFound.length ? 1 : 0);
