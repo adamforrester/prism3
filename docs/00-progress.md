@@ -7,24 +7,6 @@
 
 ---
 
-## (2026-09-30) — The Action palette select offers neutral, as its description already said (#1811)
-
-**STATUS: PR from `lane/action-palette-neutral`, held DO NOT MERGE.** ENGINE 0.216.0 → **0.217.0** (a studio behavior change plus shipped manifest prose). CONTRACT stands at 14.0.0.
-
-**Which side was wrong.** The issue named two fixes and called it the owner's choice. The record settles it without a new decision. The engine accepts `actionPalette: 'neutral'`: `theme.ts` validates against every defined palette and neutral is always one. `packages/engine/examples/nb-redesign.design.md` ships `actionPalette: neutral`. The 2026-09-28 Button and IconButton summaries entry says "any brand can point its action palette at a neutral". And the #1496 entry calls the missing option "a pre-existing omission left alone", not a decision. So the select was wrong and the description was right. Removing the neutral clause instead would have hidden a supported, shipped brand shape.
-
-**The change.** `actionPaletteLead` in `apps/studio/src/main.ts` offers `primary`, `neutral`, then each `brandColors` name, the same list the Link palette select has offered since #1496. The comment on `linkPaletteLead` that said "Unlike actionPalette, neutral is an offered target" now says the two agree. The `actionPalette` lever description in `levers.ts` (and so `schema/lever-manifest.json` and `list_levers`) now names neutral: "point at neutral for a restrained, monochrome look, or at an accent when the hero color is a poor CTA."
-
-**Tests.** Studio smoke §8c finds the Action palette row by its exact label (`hasText` is a case-insensitive substring, and the Link palette row's description says "follows your action palette"). It asserts, with literal expectations: the select offers `primary` then `neutral` first; the description contains "point it at your neutral"; and offering and describing neutral agree. It then selects neutral and asserts the example's primary action repaints and the error bar stays hidden. The drive is guarded on the option existing, so a select that drops neutral fails by name instead of aborting the suite on a 30s `selectOption` timeout. `test.ts` asserts the manifest description names neutral and that `brandTheme` run with `actionPalette: 'neutral'` resolves `roleToPalette.action` to `'neutral'`: the engine side is computed by running the engine.
-
-**Mutations (each on a `wip:` commit, restored by `git checkout --`).** (M1) The select drops `neutral`: smoke fails `#1811 prism3: the Action palette picker offers 'primary' then 'neutral' first` and `… agree on 'neutral' (offered: false, described: true)`, 2 of 2831, suite completes. (M2) The studio description drops the neutral clause: smoke fails `#1811 prism3: the Action palette description names the neutral as a target` and `… agree on 'neutral' (offered: true, described: false)`. (M3) The lever description drops neutral: `test.ts` fails `#1811: the actionPalette lever description names neutral as a target` (plus the manifest-freshness arm). (M4) `theme.ts` maps a neutral action palette back to primary: `test.ts` fails `#1811: the engine resolves actionPalette 'neutral' onto the neutral ramp (got 'primary')`, plus three nb-redesign wash arms.
-
-**Filed, not fixed.** The `prism3-theme` skill's `actionPalette` row lists only "a `brandColors` name" (#1819).
-
-**Review round (independent review of #1827; code correct, held for owner sign-off on offering neutral).** Contrast was measured at 80/80 across four brands and four modes. One fix came out of it. The "pick neutral" wait had no timeout, so a select that offers neutral but writes something else would abort the whole suite with a Playwright timeout and skip every later section. The wait now uses the file's `{ timeout: 5000 }).then(() => true, () => false)` pattern and feeds a named check, and a second check reads the select's value back after the re-render. Mutation (M5): `onchange` writes `'primary'` when `'neutral'` is chosen. It fails `#1811 prism3: choosing a neutral action palette repaints the primary action (#1e1eff → #1e1eff)` and `#1811 prism3: the Action palette select reads 'neutral' after it is chosen (reads 'primary')`, 2 of 2836, and the suite completes. Merging main brought in #1825's `data-p3` hooks, so §8c now locates by hook. `actionPaletteLead` mints `action-palette`, and `iRow`'s description paragraph mints `role-desc`. The review also filed #1835 (a third palette option list, in the generic `renderControl`) and #1836 (a `test.ts` crash-not-fail).
-
----
-
 ## (2026-09-30) — Stable test hooks: the browser suites locate by `data-p3`, not by class or title (UI redesign F1)
 
 **STATUS: on `ui/f1-test-hooks`.** UI-only: `apps/studio/src/main.ts` and the three browser suites. No ENGINE bump (`docs/30`: host executors under `apps/*` do not bump), and CONTRACT stands. Foundation slice F1 of the studio and plugin UI redesign plan.
