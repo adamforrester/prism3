@@ -28,7 +28,7 @@
  */
 import { normalizeRef, tokenPaths, isPrimitiveRef } from './eval';
 // The space ladder `densitySpacing` binds to (the spacing model). `scale.ts` is a leaf module: no cycle.
-import { SPACE_LADDER, GAP_FLOOR_PX, isGapKey, SPACE_BASE } from './scale';
+import { SPACE_LADDER, GAP_FLOOR_PX, isGapKey, SPACE_BASE, densitySpacingStep } from './scale';
 // #1602 — type-only (erased at runtime, so no cycle and no plugin-bundle weight) for the weightIntent
 // category. `theme.ts` imports nothing back from here.
 import type { TypeGroup } from './theme';
@@ -1424,6 +1424,16 @@ export type ComponentDef = {
    *  space ladder. */
   densitySpacing?: string[];
 
+  /** A LAYER GAP DERIVED FROM THE GAP THE EYE SEES (owner, 2026-09-29, the dismissible Tag). Each entry names
+   *  three `tokens` keys (`{size}` expands as in `densitySpacing`): `visible`, the distance the eye reads, a
+   *  density-following gap (in `densitySpacing`, so it is stepped and floored at 4px); `inset`, a fixed inset
+   *  on the cell after the gap that adds to it; and `gap`, the layer gap the anatomy binds, which is
+   *  `visible − inset`, never below 0 (`visibleGapStep`). The def states `gap` at comfortable, and the
+   *  validator refuses one that disagrees; `applySpacingDensity` rewrites it at compact and spacious. `gap`
+   *  stays OFF `densitySpacing`: stepped or floored on its own it would stop agreeing with what the eye sees.
+   *  `inset` stays off it too (it is fixed), and visible − inset must be a ladder step at every density. */
+  visibleGaps?: { gap: string; visible: string; inset: string }[];
+
   // ---- accessibility (§15) ----
   accessibility: {
     role?: string;
@@ -1705,6 +1715,7 @@ export const validateComponentDef = (
 
   // the spacing that follows density (the spacing model). Optional; when present, every key binds a ladder step.
   if (def.densitySpacing) errors.push(...densitySpacingErrors(def));
+  if (def.visibleGaps) errors.push(...visibleGapErrors(def));
 
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
@@ -3350,6 +3361,51 @@ export const densitySizeValues = (def: ComponentDef): string[] =>
 /** Every `tokens` key `densitySpacing` names, with `{size}` expanded. */
 export const densitySpacingKeys = (def: ComponentDef): string[] =>
   (def.densitySpacing ?? []).flatMap((k) => (k.includes('{size}') ? densitySizeValues(def).map((v) => k.replace('{size}', v)) : [k]));
+
+/** Every `visibleGaps` entry, with `{size}` expanded. */
+export const visibleGapKeys = (def: ComponentDef): { gap: string; visible: string; inset: string }[] =>
+  (def.visibleGaps ?? []).flatMap((g) => {
+    const sized = [g.gap, g.visible, g.inset].some((k) => k.includes('{size}'));
+    return (sized ? densitySizeValues(def) : ['']).map((v) => ({ gap: g.gap.replace('{size}', v), visible: g.visible.replace('{size}', v), inset: g.inset.replace('{size}', v) }));
+  });
+
+/** `visibleGaps`' rules: all three keys bound to ladder steps; the visible distance follows density, and
+ *  neither the layer gap (derived, so a step or a floor on it would break the sum) nor the inset (fixed, by
+ *  the field's definition) does; at comfortable the stated layer gap is exactly visible − inset; and at compact
+ *  and spacious, visible − inset is a step of the ladder, so the derivation has a variable to bind — refused
+ *  here rather than thrown at the first projection. */
+const visibleGapErrors = (def: ComponentDef): string[] => {
+  const e: string[] = [];
+  const following = new Set(densitySpacingKeys(def));
+  const stepPx = (ref: string | undefined): number | undefined => {
+    const m = ref === undefined ? null : /^space\.([0-9]+)$/.exec(ref);
+    return m && SPACE_LADDER.includes(m[1]) ? (Number(m[1]) / 100) * SPACE_BASE : undefined;
+  };
+  for (const g of visibleGapKeys(def)) {
+    const px: Record<string, number | undefined> = {};
+    for (const k of [g.gap, g.visible, g.inset]) {
+      px[k] = stepPx(def.tokens?.[k]);
+      if (px[k] === undefined) e.push(`visibleGaps names '${k}' → '${def.tokens?.[k] ?? '(unbound)'}', which is not a step of the space ladder`);
+    }
+    if (!following.has(g.visible) || !isGapKey(g.visible))
+      e.push(`visibleGaps names '${g.visible}' as the visible gap, but it is not a density-following gap (in densitySpacing, named 'gap' or '-gap') — the floor and the step rule read it`);
+    if (following.has(g.gap))
+      e.push(`visibleGaps derives '${g.gap}', which is also in densitySpacing — a derived layer gap must not be stepped or floored on its own`);
+    if (following.has(g.inset))
+      e.push(`visibleGaps names '${g.inset}' as the fixed inset, but it is in densitySpacing — the inset holds at every density, so it must not follow it`);
+    const [gp, vp, ip] = [px[g.gap], px[g.visible], px[g.inset]];
+    if (gp !== undefined && vp !== undefined && ip !== undefined && gp !== Math.max(0, vp - ip))
+      e.push(`visibleGaps: '${g.gap}' is ${gp}px at comfortable, but '${g.visible}' (${vp}px) − '${g.inset}' (${ip}px) is ${Math.max(0, vp - ip)}px`);
+    if (vp !== undefined && ip !== undefined && following.has(g.visible) && !following.has(g.inset))
+      for (const d of ['compact', 'spacious'] as const) {
+        const v = stepPx(densitySpacingStep(g.visible, def.tokens[g.visible], d))!;
+        const diff = Math.max(0, v - ip);
+        if (!SPACE_LADDER.some((k) => (Number(k) / 100) * SPACE_BASE === diff))
+          e.push(`visibleGaps: at ${d} density '${g.visible}' steps to ${v}px and '${g.inset}' is ${ip}px, so '${g.gap}' would be ${diff}px, which is not a step of the space ladder`);
+      }
+  }
+  return e;
+};
 
 /** `densitySpacing`'s rules: each expanded key is bound, to a step of the space ladder, and no key is named
  *  twice. The ladder is read from `scale.ts` so a step the scale does not hold is refused here, not at the

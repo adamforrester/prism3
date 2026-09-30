@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.212.0 — the dismissible Tag's label inset (owner-decided 2026-09-29 from live QA on a real Figma file;
+ * decision record `docs/28` §5.4.4). On a dismissible tag the label-and-check row (`labelCheck`) takes a FIXED
+ * 4px leading inset (`space.050`, every density), and the content row's icon→label gap drops to match (6/8/12
+ * → 2/4/4 at comfortable), so the visible icon→label is 6/8/8 and a dismissible tag is 4px wider. The def
+ * states the visible distance (density-following, held by the 4px gap floor) and the layer gap is derived as
+ * visible − inset, never below 0 (`ComponentDef.visibleGaps`, `visibleGapStep`, applied in
+ * `applySpacingDensity`). Select tags are pixel-identical; their `labelCheck` now binds explicit 0 paddings.
+ * The projected component surface moves (dismissible `itemSpacing`, `labelCheck` padding bindings) → ENGINE
+ * bump. CONTRACT STANDS at 14.0.0 (no token name moves; the new keys are def-internal bindings to existing
+ * `space.*` steps).
+ *
  * 0.211.0 — #1781: a nested part whose target is a component SET could resolve to a member of the WRONG set
  * with the same member name. Both executors matched the def's coordinate inside the named set, then looked
  * the matched member NAME up again in the document-wide COMPONENT map, where every set's `size=small` shares
@@ -4262,7 +4273,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.211.0';
+export const ENGINE_VERSION = '0.212.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -5332,6 +5343,35 @@ export const satisfiesBump = (prev: string, next: string, level: Level): boolean
   if (level === 'major') return na > pa;
   if (level === 'minor') return na > pa || (na === pa && ni > pi);
   return na > pa || (na === pa && ni > pi) || (na === pa && ni === pi && np > pp);
+};
+
+/**
+ * Does `CONTRACT_VERSION` disagree with the baseline's recorded `contractVersion` in a way no surface
+ * change can explain (#1768)? Read by BOTH `token-contract.ts` modes, before either decides anything.
+ *
+ *  - `'behind'` — the constant is LOWER than the version the baseline records. Always wrong, at every
+ *    level: the only thing that ever raises the baseline's number is an `--accept` that saw the constant
+ *    at that value, so a lower constant is a revert, a bad merge resolution or a hand edit. A consumer
+ *    pinned to the higher number would read a lower one for the same surface. `--check` printed
+ *    "unchanged" over this, because `classify` compares PATHS and never looked at the numbers.
+ *  - `'ahead'` — the constant is HIGHER and no guaranteed path moved, so the bump has nothing to record.
+ *    `--accept` already refused this (`satisfiesBump(…, 'none')` is equality) while `--check` printed
+ *    "unchanged" over it: the two modes of one gate gave opposite verdicts on the same tree.
+ *
+ * DELIBERATELY NOT FLAGGED: a bump LARGER than a real diff requires (a MAJOR for an added path, or two
+ * majors for one removal). `docs/30` states the rule as "raised by AT LEAST the increment the diff
+ * requires", and `satisfiesBump` pins over-bumping as safe. Over-bumping costs a consumer a needless
+ * review, never a silent miss, so it stays the owner's policy call rather than this gate's.
+ *
+ * Compares numerically per component, never as strings: `'9.10.0' < '9.9.0'` lexically.
+ */
+export const contractVersionDrift = (baseline: string, current: string, level: Level): 'behind' | 'ahead' | undefined => {
+  const [ba, bi, bp] = parse(baseline);
+  const [ca, ci, cp] = parse(current);
+  const order = ca !== ba ? ca - ba : ci !== bi ? ci - bi : cp - bp;
+  if (order < 0) return 'behind';
+  if (order > 0 && level === 'none') return 'ahead';
+  return undefined;
 };
 
 /**

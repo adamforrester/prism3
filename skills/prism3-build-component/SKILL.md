@@ -170,7 +170,10 @@ size axis and one indirection keeps the def brand-invariant.
 'space.200'`), and list those keys in `densitySpacing` (`'size.{size}.padding-x'`). Density then
 moves each listed step one position along the space scale before projection
 (`applySpacingDensity`: down at compact, up at spacious, clamped at the ends). Leave a spacing
-off the list when it must not move: a 0 inset, a stack gap the spec fixes. Never mint a
+off the list when it must not move: a 0 inset, a stack gap the spec fixes. When the cell after
+a gap carries a fixed inset of its own, the eye reads the gap plus the inset: state that visible
+distance as the density-following gap, and name the three keys in `visibleGaps` so the layer gap
+is derived as visible minus inset, never below 0 (the dismissible Tag's label row). Never mint a
 per-component spacing token. Two orderings hold at every density, and `packages/engine/test.ts` asserts them per
 def as literal rules, so add yours there: a gap is tighter than the padding beside it (#325),
 and an icon-side inset sits between them (#326: gap < icon-side padding < label-side padding).
