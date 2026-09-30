@@ -2988,6 +2988,54 @@ export const nestVariantMatch = (wanted: Record<string, string>, members: readon
 export const nestVariantMatchSrc = (): string => nestVariantMatch.toString();
 
 /**
+ * WHICH COMPONENT A `nest-fixed` / `nest-exposed` PART INSTANTIATES, when its target is a SET (#1781).
+ *
+ * THE MEMBER COMES OUT OF THE NAMED SET'S OWN CHILDREN, and nowhere else. Both executors used to take the
+ * member NAME `nestVariantMatch` returned (`size=small`, `selection=unchecked, size=small, state=rest`) and
+ * look it up again in the document-wide COMPONENT map. A set's members are named by coordinate alone, so
+ * that map holds every set's `size=small` under one key and keeps whichever the search returned last. The
+ * set was found correctly and then thrown away: `checkbox-group` nested `switch-row/size=small`, `radio-group`
+ * nested `__old__radio-group/size=large`, and `checkbox-row` nested `radio-control`, which carries exactly
+ * the member names `checkbox-control` does. Every one of those built and reported success, because a member
+ * of the wrong set is still a valid component with the right name.
+ *
+ * THE SET IS FOUND BY EXACT NAME, never by containment or prefix. A set renamed aside (`__old__checkbox-row`)
+ * is a different set, and a rename is exactly how a stale copy is kept alive during a rebuild. TWO sets under
+ * the exact name are AMBIGUOUS and are refused: there is no property that says which one the def means, and
+ * every rule for choosing (first found, last found) is document order, the #656 shape one level up.
+ *
+ * RETURNS `null` when no set carries the name (the caller's four-way `nestMissAdvice` diagnosis takes over),
+ * `{ member }` on a resolution, and `{ miss }` otherwise — the miss WITHOUT the part name, which each caller
+ * prefixes. One function decides AND words the outcome for both executors, so they cannot drift in either.
+ *
+ * SHIPPED AS SOURCE to the paste payload (`resolveNestMemberSrc`), so it closes over nothing in this module:
+ * `match` and `unmatched` are `nestVariantMatch` and `nestVariantMissAdvice`, passed in, because a free
+ * reference to a module binding reads a name the bundler is free to rename. Same constraints as
+ * `nestVariantMissAdvice`: no template literal, no `?.`, no `??`. And written for bytes, because every byte
+ * of it ships in every paste chunk's shell (see `SET_CHUNK_BYTES`).
+ */
+export const resolveNestMember = <C extends { name?: string; type?: string; createInstance?: unknown }>(
+  sets: readonly { name?: string; children?: readonly C[] }[],
+  target: string,
+  wanted: Record<string, string>,
+  match: (wanted: Record<string, string>, members: readonly string[]) => string | null,
+  unmatched: (wanted: Record<string, string>, members: readonly string[]) => string,
+): { member: C; miss?: undefined } | { miss: string } | null => {
+  const named = sets.filter((s) => s.name === target);
+  if (!named.length) return null;
+  if (named.length > 1) return { miss: '.nestTarget -> ' + target + ' (found ' + named.length + ' COMPONENT_SETs named ' + target + '; nothing built — a nest resolves only inside the one set its def names. Rename or remove the stale copy, then rebuild)' };
+  const kids = named[0].children || [];
+  const members = kids.map((c) => c.name || '');
+  const hit = match(wanted, members);
+  const member = hit ? kids.filter((c) => c.name === hit)[0] : undefined;
+  if (member && member.type === 'COMPONENT' && member.createInstance) return { member };
+  return { miss: '.nestVariant -> ' + target + ' (' + (hit ? 'matched member ' + hit + ' of ' + target + ' is not a component; nothing built' : unmatched(wanted, members)) + ')' };
+};
+
+/** `resolveNestMember` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why. */
+export const resolveNestMemberSrc = (): string => resolveNestMember.toString();
+
+/**
  * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
  * #1288).
  *
@@ -3204,13 +3252,18 @@ const compByName=new Map(comps.map(c=>[c.name,c]));
 // A SECOND criteria call, sets only (#681). Two calls rather than one widened call for the reason the
 // executor's port states: the COMPONENT map is instantiated from and a ComponentSetNode has no
 // createInstance, so one map per node type keeps each read honest about what it holds.
+// A LIST, not a name->set map (#1781): a map keeps one set per name and drops the rest, and two sets under
+// the exact name a def targets is an ambiguity to REPORT. \`resolveNestMember\` filters it by exact name.
 const compSets=figma.root.findAllWithCriteria({types:['COMPONENT_SET']});
-const setByName=new Map(compSets.map(s=>[s.name,s]));
 // The two shared miss helpers, shipped as SOURCE rather than as baked strings: both take runtime
 // arguments (the coordinate, the member list) that only exist in the live file. One definition, in
 // anatomy-figma.ts, called by both executors — which is what stops the wording drifting.
 const nestVariantMatch=${nestVariantMatchSrc()};
 const nestVariantMissAdvice=${nestVariantMissAdviceSrc()};
+// WHICH member a nest instantiates, decided ONCE for both executors (#1781): out of the named set's own
+// children, never re-looked-up by member name across the file, and never from a set whose name only
+// contains or prefixes the target. Shipped as source for the same reason as the two helpers above.
+const resolveNestMember=${resolveNestMemberSrc()};
 // THE SWAP MISS, FOUR WAYS (#1288) — the same table the plugin's two \`INSTANCE_SWAP\` consumers report
 // through, reaching this payload by the OTHER of the two mechanisms in this preamble. The helpers above
 // ship their SOURCE because they take runtime arguments; these four sentences take only the target, so
@@ -3435,24 +3488,12 @@ const build=async(n)=>{
     const nested=compByName.get(n.nestTarget);
     // A SET the def named a coordinate in (#681). Checked only when the plain-component lookup missed:
     // a component and a set can share a name, and the component needs no coordinate to be unambiguous.
-    const set=!nested&&n.nestVariant?setByName.get(n.nestTarget):undefined;
-    if(set){
-      // Resolve the def's coordinate against the MEMBERS' own names, axis by axis. \`nestVariantMatch\`
-      // returns null for no match AND for more than one — an under-specified coordinate is refused, not
-      // resolved by taking the first, because every rule for choosing is creation order (#656).
-      const members=(set.children||[]).map(c=>c.name);
-      const hit=nestVariantMatch(n.nestVariant,members);
-      // THE FIFTH MISS: the file has the set, the def named a coordinate, no member carries it. Nothing
-      // is built — nesting the first child here is the #656 error \`nesting\` exists to stop, and a valid
-      // wrong ring looks like a success.
-      if(!hit){misses.push(n.name+'.nestVariant -> '+n.nestTarget+' ('+nestVariantMissAdvice(n.nestVariant,members)+')');return null;}
-      // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set. The member is a plain
-      // component, which is why the COMPONENT search above already holds it under its variant coordinate:
-      // the members were always findable, and nothing knew which to ask for until the def said.
-      const member=compByName.get(hit);
-      if(!member){misses.push(n.name+'.nestVariant -> '+n.nestTarget+' (matched member '+hit+' is not instantiable; nothing built — the COMPONENT_SET and COMPONENT searches disagree about this file)');return null;}
-      node=member.createInstance();
-    }
+    // THE SET AND ITS MEMBER, resolved together (#1781): out of the named set's own children, never by member
+    // name across the file. null = no set of that name; else a member, or a miss to report and build nothing.
+    const res=!nested&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
+    if(res&&res.miss){misses.push(n.name+res.miss);return null;}
+    // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set.
+    if(res){node=res.member.createInstance();}
     else if(!nested){
       // DIAGNOSE before reporting (#681): a second search, by name across every node type, so the miss
       // can say what is actually in the file. Only on the failure path — the happy path pays nothing.

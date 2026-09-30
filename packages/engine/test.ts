@@ -15782,10 +15782,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // different Figma from the plugin's would turn that comparison into a comparison of stubs.
           findAllWithCriteria: (criteria?: { types?: string[] }) => {
             const types = criteria?.types ?? ['COMPONENT'];
-            const mk = (name: string, i: number) => ({
-              name, id: `73:${37 + i}`,
+            // `owner` — the set a member belongs to, or the page (#1781). Recorded by the stub at the moment
+            // `createInstance` is called on THIS object, as the instance's `mainComponent.parent`, so a nest's
+            // resolved set is read off the host rather than off the name the payload asked for.
+            const mk = (name: string, i: number, owner: { name: string; type: string } = { name: 'Page 1', type: 'PAGE' }) => ({
+              name, id: `73:${37 + i}`, type: 'COMPONENT',
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
+                Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
                 // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
                 // into them and can collide with the host's own part names (select nests field-label AND
                 // field-message, both carrying a `text` part). Each refuses a reference write — it is a
@@ -15819,8 +15823,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mk(name, seq++));
             for (const f of opts.fileNodes ?? []) {
               if (f.type === 'COMPONENT_SET') {
-                if (types.includes('COMPONENT_SET')) found.push({ ...mk(f.name, seq++), children: (f.variants ?? []).map((v) => ({ name: v })) });
-                if (types.includes('COMPONENT')) for (const v of f.variants ?? []) found.push(mk(v, seq++));
+                // Members AS COMPONENTS, the same objects a COMPONENT search returns, each knowing its set
+                // (#1781) — a ComponentSetNode's children are ComponentNodes, and the payload now
+                // instantiates the member out of the set it matched rather than re-looking it up by name.
+                const members = (f.variants ?? []).map((v) => mk(v, seq++, { name: f.name, type: 'COMPONENT_SET' }));
+                if (types.includes('COMPONENT_SET')) found.push({ name: f.name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members });
+                if (types.includes('COMPONENT')) for (const m of members) found.push(m);
               } else if (types.includes(f.type)) found.push(mk(f.name, seq++));
             }
             return found;
@@ -16464,6 +16472,92 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // can distinguish those two implementations.
       ok(nestVariantMatch({ color: 'default' }, ['color=default', 'color=default']) === null,
         'anatomy/ring #681: two members carrying the same coordinate resolve to NOTHING — the first hit is creation order wearing a different hat');
+
+      // ---- #1781: THE PASTE PATH NESTS FROM ITS OWN DEF'S SET, never by member name across sets ----
+      // The payload's half of the plugin gate in `apps/plugin/test-write-components.ts` (`#1781 nests resolve
+      // to their own set`), against the same file: `checkbox-control` and `radio-control` sharing member
+      // names, the three rows and two groups sharing `size=*`, and renamed `__old__checkbox-row` /
+      // `__old__radio-group` copies. Both executors call one `resolveNestMember`, but this one calls its
+      // SOURCE inside the payload, so a regression in how the payload wires it is only visible here.
+      //
+      // The oracle is the stub's record of which object `createInstance` was called on
+      // (`mainComponent.parent`), and the expectation is the plan's `nestTarget` plus its `nestVariant`
+      // compared axis by axis here — not through `nestVariantMatch`. Both file orders, because last-wins is
+      // only wrong for whichever set comes last.
+      {
+        const NEST_SETS = [checkboxControl, radioControl, switchControl, fieldLabel, checkboxRow, radioRow, switchRow, checkboxGroup, radioGroup];
+        const membersOf = (d: ComponentDef): string[] => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
+        const nestFile: StubFileNode[] = [
+          ...NEST_SETS.map((d) => ({ name: d.id, type: 'COMPONENT_SET' as const, variants: membersOf(d) })),
+          { name: '__old__checkbox-row', type: 'COMPONENT_SET', variants: membersOf(checkboxRow) },
+          { name: '__old__radio-group', type: 'COMPONENT_SET', variants: membersOf(radioGroup) },
+        ];
+        for (const [order, file] of [['forward', nestFile], ['reversed', [...nestFile].reverse()]] as const) {
+          const wrong: string[] = [];
+          const nestMisses: string[] = [];
+          let checked = 0, planned = 0;
+          for (const d of [checkboxRow, radioRow, switchRow, checkboxGroup, radioGroup]) {
+            for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+              const want = new Map<string, { target: string; variant: Record<string, string> }>();
+              const walkPlan = (n: { name: string; nestTarget?: string; nestVariant?: Record<string, string>; children?: unknown[] }): void => {
+                if (n.nestTarget) want.set(n.name, { target: n.nestTarget, variant: n.nestVariant ?? {} });
+                for (const c of (n.children ?? []) as (typeof n)[]) walkPlan(c);
+              };
+              walkPlan(plan.root as unknown as Parameters<typeof walkPlan>[0]);
+              planned += want.size;
+              const page: StubPage = { children: [] };
+              const r = await runPayload(planToPluginJs(plan), {
+                vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root),
+                comps: ['FPO-default-icon'], fileNodes: file, page,
+              });
+              nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant) ->|THREW/.test(m)).map((m) => `${d.id}/${planComponentName(plan)}: ${m}`));
+              const walkBuilt = (n: Record<string, unknown>): void => {
+                const main = (n as { mainComponent?: { name: string; parent?: { name: string; type: string } } }).mainComponent;
+                const w = want.get(String(n.name));
+                if (n.type === 'INSTANCE' && main && w) {
+                  checked++;
+                  const coord = new Map(main.name.split(', ').map((kv) => kv.split('=') as [string, string]));
+                  const coordOk = coord.size === Object.keys(w.variant).length && Object.entries(w.variant).every(([k, v]) => coord.get(k) === v);
+                  if (main.parent?.type !== 'COMPONENT_SET' || main.parent.name !== w.target || !coordOk)
+                    wrong.push(`${d.id}/${planComponentName(plan)} ${String(n.name)} -> ${main.parent?.name}/${main.name} (want ${w.target})`);
+                }
+                for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walkBuilt(c);
+              };
+              for (const c of page.children) walkBuilt(c);
+            }
+          }
+          ok(checked > 0 && checked === planned && wrong.length === 0 && nestMisses.length === 0,
+            `#1781 paste path: nests resolve to their own set (${order} file order) — ${checked}/${planned} nested instances checked; ${wrong.length ? `WRONG SET: ${wrong.slice(0, 4).join(' | ')}` : 'none wrong'}; ${nestMisses.length ? `misses: ${nestMisses.slice(0, 2).join(' | ')}` : 'no nest misses'}`);
+        }
+        // AMBIGUOUS on the paste path, worded exactly as the plugin words it (one shared function).
+        const grpPlan = figmaAnatomySet(checkboxGroup, { swapTarget: 'FPO-default-icon' })[0];
+        const ambPage: StubPage = { children: [] };
+        const amb = await runPayload(planToPluginJs(grpPlan), {
+          vars: [...planBoundVars(grpPlan.root), ...planPaintVars(grpPlan.root)], styles: planTextStyles(grpPlan.root),
+          comps: ['FPO-default-icon'], fileNodes: [...nestFile, { name: 'checkbox-row', type: 'COMPONENT_SET', variants: membersOf(checkboxRow) }], page: ambPage,
+        });
+        const ambMiss = amb.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+        ok(ambMiss.length > 0 && ambMiss.every((m) => m.includes('found 2 COMPONENT_SETs named checkbox-row') && m.includes('nothing built')),
+          `#1781 paste path: two sets named exactly checkbox-row are reported by name and nothing is picked (${ambMiss[0] ?? JSON.stringify(amb.misses.slice(0, 2))})`);
+        // MISSING on the paste path: `checkbox-row` is gone and only `__old__checkbox-row` remains. The renamed
+        // copy does not stand in; the four-way diagnosis names the target as absent, and no row is built from
+        // the old set. Mirrors the plugin arm `#1781 with checkbox-row missing …`.
+        const gonePage: StubPage = { children: [] };
+        const gone = await runPayload(planToPluginJs(grpPlan), {
+          vars: [...planBoundVars(grpPlan.root), ...planPaintVars(grpPlan.root)], styles: planTextStyles(grpPlan.root),
+          comps: ['FPO-default-icon'], fileNodes: nestFile.filter((f) => f.name !== 'checkbox-row'), page: gonePage,
+        });
+        const goneMiss = gone.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+        const fromOld: string[] = [];
+        const walkOld = (n: Record<string, unknown>): void => {
+          const main = (n as { mainComponent?: { parent?: { name?: string } } }).mainComponent;
+          if (n.type === 'INSTANCE' && main?.parent?.name === '__old__checkbox-row') fromOld.push(String(n.name));
+          for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walkOld(c);
+        };
+        for (const c of gonePage.children) walkOld(c);
+        ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && fromOld.length === 0,
+          `#1781 paste path: with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${fromOld.length} rows from __old__; ${goneMiss[0] ?? JSON.stringify(gone.misses.slice(0, 2))})`);
+      }
 
       // ---- #682: the payload's unlock is exercised, not just grepped ----------------------------
       // `unlockAt` above greps the emitted STRING; this asserts the RUN. The stub's nodes start
