@@ -2936,6 +2936,19 @@
  * non-empty list. A read-model behavior change → ENGINE bump; no emitted value moves, so `out/**` and
  * `schema/*` move only their version stamp. CONTRACT STANDS (no token name moves).
  *
+ * 0.211.0 — #1781: a nested part whose target is a component SET could resolve to a member of the WRONG set
+ * with the same member name. Both executors matched the def's coordinate inside the named set, then looked
+ * the matched member NAME up again in the document-wide COMPONENT map, where every set's `size=small` shares
+ * one key and the last one searched wins. On a rebuild with stale sets renamed aside, `checkbox-group` nested
+ * `switch-row`, `radio-group` and `__old__radio-group` rows, and `checkbox-row` nested `radio-control`'s
+ * identically named member, each reported as success. Both executors now call one shared
+ * `resolveNestMember` (the paste payload ships its source): the member is instantiated out of the named set's
+ * own `children`, the set is matched by EXACT name (a renamed `__old__` copy never answers), and two sets
+ * under the exact name are reported by name and nothing is nested. `anatomy-readback.ts`'s `nestTarget`
+ * predicate now reads the instance's `mainComponent.parent` and fails by name on the wrong set. A PLUGIN
+ * write-path and paste-payload behavior change (principle 5) → ENGINE bump; no token or projected surface
+ * moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 14.0.0 (no token name moves).
+ *
  * 0.208.0 — #1790: the paste path's theme cleanup (`runCleanupTheme`, the `use_figma` scratch-file wipe)
  * had the read-after-remove defect that `applyPrunePlan` was fixed for in 0.203.0. It read `.name` off
  * each style and each collection right after calling its `remove()`, and on the next collection it read `variableCollectionId`
