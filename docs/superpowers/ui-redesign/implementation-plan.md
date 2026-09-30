@@ -590,3 +590,19 @@ appear inside specimen markup, and font checks use CDP, not `document.fonts.chec
   until S13, when it moves onto the tab hooks in the same PR that deletes the menu.
 - **Plugin dark mode brings back #1031's mechanism.** The legacy frame pins light, and `test:chrome`
   measures a legacy field in dark to prove it.
+
+---
+
+## Owner decisions on §8 (2026-09-30)
+
+| # | Decision |
+|---|---|
+| D1 | **Accepted.** In the interim, the legacy frame sits under the new tab row, and a Pages menu sits in the overflow. |
+| D2 | **Ship the dark toggle in S1,** with the legacy frame pinned light until each page moves. |
+| D3 | **Accepted.** Palettes (S2) comes before Brand (S3). |
+| D4 | **Hold the Decisions log** until the engine notes follow the voice standard. Inspect ships with Contrast and Tokens. |
+| D5 | **Accepted.** The legacy navigation is labeled "Pages". |
+| D6 | **Accepted.** Remove the bottom-left agent chip. The top-bar chip replaces it (S1.4). |
+| D7 | **Accepted.** File the neutral 025 role after S1.1 lands. |
+| D8 | **Accepted.** Depth & motion gets a local switch, labeled with the two legacy page names, until S9. |
+| D9 | **Accepted.** #506 case (c) goes to the plugin lane as its own issue. S12 covers only the empty-file start. |
