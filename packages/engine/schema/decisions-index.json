@@ -218,6 +218,13 @@
     },
     {
       "date": "2026-09-30",
+      "issue": 1807,
+      "title": "a PR declares the engine bump in a change note, and a fold assigns one version per batch",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-30",
       "issue": 1762,
       "title": "the field label's name hugs its text and wraps at a max width, so the required marker follows it",
       "doc": "docs/28-component-anatomy-schema.md",

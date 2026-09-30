@@ -134,6 +134,10 @@ const EXEMPT_PREFIXES: { prefix: string; why: string }[] = [
     why: 'the append-only history log — every entry describes the repo on the day it was written, so a closed advisory window recorded there is correct prose forever',
   },
   {
+    prefix: 'docs/progress/',
+    why: 'the same log before it is folded (#1807): each pending fragment is one docs/00-progress.md entry, written in a PR and moved into the log by fold.ts, so it is the same genre — exempting the log and not its fragments would fail an entry while it waits and pass it once folded',
+  },
+  {
     prefix: 'tools/forward-claim-check/recall-classification-record.txt',
     why: "the recall measurement's committed evidence — a snapshot taken 2026-08-14 at 63efb29 that QUOTES other files' text verbatim as its data, and says so in its own header: 'the quoted text is the pin that survives'. The advisory sentences it reproduces are the SUBJECT of a measurement, not claims this repo is making, and editing them to go green would falsify a record that is explicitly not reproducible. Same genre argument as the history log above, arrived at the same way: it surfaced as 4 of the 12 sites this gate named when #775's window closed, and the fix is an exemption rather than a narrower pattern",
   },
@@ -238,6 +242,7 @@ const FORM_SAMPLES: { label: string; text: string }[] = [
   // The exemption predicate itself, not just the scan: a dated log entry must be representable
   // without failing, and the prefix must not be so broad it swallows a live document.
   if (!isExempt('docs/00-progress.md')) fails.push('the history log is not exempt — a dated entry would be forced to falsify itself');
+  if (!isExempt('docs/progress/pending/some-lane.md')) fails.push('a pending progress fragment is not exempt — the same entry would fail before it is folded and pass after (#1807)');
   if (isExempt('CONTRIBUTING.md') || isExempt('docs/34-gate-independence.md')) fails.push('a live document matched an exemption prefix — the exemption is too broad');
 
   if (fails.length) {

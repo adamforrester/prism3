@@ -20,6 +20,18 @@
  * nothing. So VALUES are not versioned and NAMES are. Tying them together would either cry wolf on
  * every brand tweak or stay silent through a rename; separating them lets each be strict.
  *
+ * ── WHO WRITES `ENGINE_VERSION` (#1807, decided 2026-09-30) ─────────────────────────────────────
+ *
+ * Only the FOLD (`fold.ts` at the repo root). A PR that owes an engine bump adds a change note,
+ * `packages/engine/changes/<slug>.md`, whose front matter DECLARES the class (`engine: patch|minor|major`)
+ * and whose body is the changelog prose; it never edits the constant or the changelog below. After a
+ * batch of merges the fold assigns ONE version for the batch (the highest declared class), writes the
+ * constant and the changelog under the FOLD MARKER, deletes the notes and regenerates the stamps. So a
+ * version names a fold, which may cover several PRs, and `main` runs a merged change under the previous
+ * number until the fold lands. `lint-emission-version.ts` and `lint-component-surface.ts` accept an
+ * added note as the bump; the former also fails a PR that is not a fold for editing either.
+ * `CONTRACT_VERSION` is unchanged by this: a PR still bumps it itself, with its baseline.
+ *
  * ── WHAT COUNTS AS THE ENGINE SURFACE (#1252, decided) ──────────────────────────────────────────
  *
  * `ENGINE_VERSION` bumps on any change to what a consumer can OBSERVE, and that is BOTH the emitted
@@ -2730,6 +2742,8 @@
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
 /**
+ * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
+ *
  * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
  *
  * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
@@ -2925,18 +2939,6 @@
  * comments that ship in the plugin bundle. All respelled to en-US — meaning identical, letters moved.
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
- *
- * 0.219.0 — #1762 (owner-decided 2026-09-30, option 3; decision record `docs/28` §5.5, which changes #1757's
- * decision 2): field-label's name HUGS its text and wraps at a MAX WIDTH instead of filling the row, so the
- * required marker sits right after the name in Figma rather than at the row's trailing edge ("Label ··· *" at
- * 320). New `PartDef.wrap: 'hug'` projects `maxWidth` on the text node (no `layoutGrow`, auto width); the max
- * width is DERIVED — the root's `placementWidth` less one row gap per sibling, in px on the fixed space scale
- * (`spacePx`) — so field-label's is 320 − 4 = 316 at every member. The marker's own width is not subtracted (a
- * brand-font advance the engine does not hold), so a long required name overruns 320 by it, and a field
- * stretched wider in Figma keeps the 316 wrap point: both accepted. Both executors write the max width after the
- * append (the paste twin splices its line in only where a plan carries one) and read it back. Every host of
- * field-label (select, text-field, textarea, checkbox-group, radio-group) nests the changed main component.
- * The projected component surface moves → ENGINE bump. CONTRACT STANDS (no token name moves).
  *
  * 0.216.0 — #1750: every component set built onto a shared page landed at (0,0), so the second set on
  * `↳ Buttons` (and on Icon button, Checkbox, Radio, Switch) covered the first. The plugin executor
@@ -4329,7 +4331,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.219.0';
+export const ENGINE_VERSION = '0.216.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
