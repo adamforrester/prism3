@@ -27,6 +27,37 @@ cry wolf on every brand tweak or stay silent through a rename. Separating them l
 `ENGINE_VERSION` starts at `0.1.0` and `CONTRACT_VERSION` at `1.0.0`. The inversion is intentional
 rather than a typo: **the code is young, the names are settled.**
 
+### Decided (2026-09-30, #1807): a PR declares the engine bump in a change note, and a fold assigns one version per batch
+
+Every PR used to write `ENGINE_VERSION`, the changelog above it, the stamp in every emitted tree and
+the top of `docs/00-progress.md`. So every open PR conflicted with every other, lanes reserved version
+numbers to avoid colliding, and `main`'s sequence landed with gaps and out of order.
+
+> **A PR never edits `ENGINE_VERSION`.** A PR that owes a bump adds a change note,
+> `packages/engine/changes/<slug>.md`, whose front matter declares the class
+> (`engine: patch|minor|major`) and whose body is the changelog prose. After a batch of merges,
+> `fold.ts` assigns **one version per fold**, at the highest class declared, writes the changelog,
+> deletes the notes and restamps the corpus.
+
+What this changes about the rule above, stated plainly, because the owner accepted it as a cost:
+
+- **A version names a fold, which may cover several PRs.** It names a state that existed on `main`
+  and was stamped into every emitted tree. One number per note would mint numbers no build ran as.
+- **`main` briefly runs new behavior under the previous number.** Between a merge and the next fold,
+  the MCP `serverInfo.version` and the studio's stamp read the older version. The plugin's staleness
+  stamp pairs the version with `planStamp`, and `planStamp` still moves, so a stale member is still
+  detected.
+- **Nothing about `CONTRACT_VERSION` moves.** A contract bump is rare and carries real baseline content,
+  so a PR still makes it, with its `--accept`, and two concurrent ones should meet.
+
+The two version gates keep their subjects and take the note as the bump: `lint-emission-version.ts`
+asks whether the diff adds a note declaring one, and `lint-component-surface.ts` asks the same of its
+arm B and its `--accept`. A fold still passes by the forward-only version rule (#1271). The first gate
+also holds the version line to one writer: a PR that is not a fold fails for editing the constant, its
+changelog or a pending note, and a fold fails unless its version is exactly the next one and every
+note it deleted appears under it. The semantic-conflict net is the fold PR's own CI, the first run of
+every gate over `main` plus the whole batch. How to fold: `CONTRIBUTING.md` §2.
+
 ### Decided (2026-09-02, #1252): the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition
 
 It had gone unstated and two merged PRs answered it opposite ways on the same shape.
