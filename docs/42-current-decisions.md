@@ -97,6 +97,8 @@ decision recorded there is correct prose forever and is not this file's subject 
 | style-guide tables flow left to right on their page, each token category (color, dimension, font variables, text styles) starting a new row | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
 | a style-guide row is one token type drawn (the font kinds together), 160px apart; the radius swatch shows one rounded corner through a clip, all four of its inner shape's corners bound; the later-phase note names "shadow and effect" and "other number or string"; a palette swatch fills its cell with an 80px floor | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
 | a style-guide run draws one spacing style for every dimension row, the filled bar by default and the bracket on request, never chosen by role; REM prints in its own column after the base value, never in the value's cell | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
+| a style guide has no Pixels option: the base value always prints, and an older agent-link caller's `pixels` is accepted and ignored, named in the run's notes; a text style's letter spacing and paragraph spacing each get a REM column beside them, a length in px converting and a letter spacing stored as a percentage reading "—" | 2026-09-30 | `docs/45-style-guide-generator.md` §2 | #259 |
+| a style-guide spacing specimen's example frame rests 0.01 wide with no padding, since an instance's layer never hugs narrower than its main; a zero value's specimen is hidden and counts as drawn; every padding bind is followed by FIXED, then HUG, so a value smaller than the frame's last width still takes it | 2026-09-30 | `docs/45-style-guide-generator.md` §2 | #259 |
 
 ## Known gaps, named rather than silent
 

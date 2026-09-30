@@ -272,6 +272,10 @@ const buildTextCells = (api: FileComponentsApi, page: CellsPage, loaded: Set<str
   return set;
 };
 
+/** A spacing example frame's rest width: the least the host draws, since a layer inside an instance never hugs
+ *  narrower than its main component's own width (live QA of 0.210.0). */
+export const SPACING_REST_W = 0.01;
+
 const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode => {
   const members = (['filled', 'line'] as const).map((display) => {
     const root = api.createComponent() as CellNode;
@@ -281,15 +285,20 @@ const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode =>
     // SIZED BY ITS LEFT PADDING (the owner's live run of 0.205.0, measured in the plugin runtime, 2026-09-29): Figma
     // silently drops a width written to a layer inside an instance (`resize`, `resizeWithoutConstraints`, a bound
     // `width`), but keeps a bound `paddingLeft`. So the member's first child, `spacing-<display>-example`, is a
-    // HORIZONTAL auto-layout frame that hugs its width (no flow children, paddingLeft 8 here, every other padding 0)
-    // at a fixed height, and the table binds its paddingLeft to the value. The bracket's three bars sit inside it
-    // ABSOLUTELY, their constraints set here in the component (left-bar MIN, horizontal-line STRETCH, right-bar MAX),
-    // so a frame the padding widens carries them with no per-instance override. The names are the owner's.
-    const bar = box(api, `spacing-${display}-example`, 8, display === 'filled' ? 20 : 16);
+    // HORIZONTAL auto-layout frame that hugs its width (no flow children, every padding 0) at a fixed height, and the
+    // table binds its paddingLeft to the value. The bracket's three bars sit inside it ABSOLUTELY, their constraints
+    // set here in the component (left-bar MIN, horizontal-line STRETCH, right-bar MAX), so a frame the padding widens
+    // carries them with no per-instance override. The names are the owner's.
+    // ITS REST WIDTH IS 0 (owner decision, live QA of 0.210.0, 2026-09-30): a layer inside an instance never hugs
+    // narrower than its main component's own width, so an 8px rest width left every value of 8 or less at 8. The frame
+    // is drawn at 8 with its bars, then resized to 0.01, the least the host draws, and only then set to HUG: a hugging
+    // frame with nothing to hug keeps its last width. The owner's cells in the NB test file were set the same way.
+    const h = display === 'filled' ? 20 : 16;
+    const bar = box(api, `spacing-${display}-example`, 8, h);
     bar.layoutMode = 'HORIZONTAL';
     bar.primaryAxisSizingMode = 'AUTO';
     bar.counterAxisSizingMode = 'FIXED';
-    bar.paddingLeft = 8; bar.paddingRight = 0; bar.paddingTop = 0; bar.paddingBottom = 0; bar.itemSpacing = 0;
+    bar.paddingLeft = 0; bar.paddingRight = 0; bar.paddingTop = 0; bar.paddingBottom = 0; bar.itemSpacing = 0;
     bar.clipsContent = display === 'filled';
     if (display === 'filled') bar.fills = solid('#F4A7A7');
     else {
@@ -306,6 +315,8 @@ const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode =>
       part('horizontal-line', 8, 1, 0, 7.5, 'STRETCH');
       part('right-bar', 1, 16, 7, 0, 'MAX');
     }
+    bar.resize?.(SPACING_REST_W, h);
+    bar.primaryAxisSizingMode = 'AUTO';
     root.appendChild?.(bar);
     page.appendChild(root);
     return root;

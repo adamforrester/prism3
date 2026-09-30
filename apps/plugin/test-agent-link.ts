@@ -261,7 +261,20 @@ section('style-guide — tables reach the handler; a table reading is progress, 
   await tick();
   await read(p2.id);
   actions.styleGuide = orig;
-  ok(JSON.stringify(got) === JSON.stringify(p2args), `style-guide: the phase-2 options reach the handler as sent (${JSON.stringify(got)})`);
+  // `pixels` IS RETIRED (owner decision 20): accepted and ignored, never passed on as an option; the handler gets
+  // `retired: ['pixels']`, which the run's notes say was ignored. Typed literally here.
+  ok(JSON.stringify(got) === '{"types":["dimension","typography"],"rem":true,"dimensionDisplay":"line","fontDisplay":"letterSpacing","paragraphSpacing":true,"textDecoration":false,"titleCell":true,"retired":["pixels"]}',
+    `style-guide: the phase-2 options reach the handler as sent, and a retired pixels arrives as retired, not as an option (${JSON.stringify(got)})`);
+  // Any value of it is accepted, so an older caller that sent a string is not refused either.
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    (a[1] as { post(m: unknown): void }).post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '' });
+  };
+  const px = await send('style-guide', { pixels: 'yes' });
+  await tick();
+  const rpx = (await read(px.id)) as AgentResult;
+  actions.styleGuide = orig;
+  ok(rpx.ok === true && JSON.stringify(got) === '{"retired":["pixels"]}', `style-guide: pixels "yes" is accepted and ignored, not refused (${rpx.ok}; ${JSON.stringify(got)})`);
 }
 
 /* ── one style-guide run at a time (#1785) ──────────────────────────────────────────────────────────── */

@@ -136,8 +136,9 @@ export interface StyleGuideOptions {
    *  case; absent means every table. A name that matches no table is reported by name. A filtered run covers
    *  only the tables it draws: no other table is stale, replaced or deleted by it. */
   tables?: string[];
-  /** Print lengths (dimensions, font sizes, text styles) in pixels. Default on. */
-  pixels?: boolean;
+  /** Args an older agent-link caller sent that no longer do anything (owner decision 20 removed `pixels`): accepted,
+   *  ignored, and each said in the result's notes. Set by the agent link, never by the panel. */
+  retired?: 'pixels'[];
   /** Print lengths in REM as well, at a 16px base. Default on. */
   rem?: boolean;
   /** The spacing specimen for every dimension row: `filled` (default) or `line`. `auto` means `filled`. */

@@ -344,6 +344,9 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   const format = options.valueFormat ?? 'hex';
   const wantTypes = (options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase());
   const known = PHASE_TYPES.map((t) => t.toLowerCase());
+  // AN ARG THAT NO LONGER DOES ANYTHING (owner decision 20): the agent link accepts it, so an older caller does not
+  // break, and the result says it was ignored.
+  if (options.retired?.includes('pixels')) notes.push('pixels is no longer an option and was ignored: every value column prints its base value in px');
   for (const t of wantTypes) if (!known.includes(t)) notes.push(`${t}: not in this phase — this phase draws ${PHASE_TYPES.join(', ')}`);
   const wantColor = wantTypes.includes('color');
 
@@ -587,8 +590,8 @@ const trimNum = (n: number, d: number): string => String(Math.round(n * 10 ** d)
 export const formatPx = (px: number): string => `${trimNum(px, 2)}px`;
 /** The same length in REM at a 16px base (`REM_BASE`), for the REM column. */
 export const formatRem = (px: number): string => `${trimNum(px / REM_BASE, 4)}rem`;
-/** Whether a table's lengths get a REM column: the `rem` option, on by default. `pixels` no longer removes the base
- *  value, which every value column prints (held for the owner: whether the Pixels toggle stays). */
+/** Whether a table's lengths get a REM column: the `rem` option, on by default. Every value column prints its base
+ *  value; there is no option to leave it out (owner decision 20: the Pixels toggle is removed). */
 const remOn = (o: StyleGuideOptions): boolean => o.rem !== false;
 /** The style name of each numeric weight, the names Figma's font menus use. */
 const WEIGHT_NAME: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black' };
@@ -606,6 +609,10 @@ const formatLineHeight = (lh: SgTextStyle['lineHeight']): string =>
   !lh || lh.unit === 'AUTO' ? 'auto' : lh.unit === 'PERCENT' ? `${trimNum(lh.value ?? 0, 2)}%` : formatPx(lh.value ?? 0);
 const formatSpacing = (ls: SgTextStyle['letterSpacing']): string =>
   !ls ? formatPx(0) : ls.unit === 'PERCENT' ? `${trimNum(ls.value, 2)}%` : formatPx(ls.value);
+/** A letter spacing's REM cell (owner decision 20): a length in px converts; a percentage is printed as it is stored,
+ *  in the value column, and has no REM, so its REM cell reads "—". */
+const spacingRem = (ls: SgTextStyle['letterSpacing']): string =>
+  !ls ? formatRem(0) : ls.unit === 'PIXELS' ? formatRem(ls.value) : '—';
 
 /** A variable's literal in a mode, following aliases the way `resolveColor` does: a number, a string, or null. */
 const resolveLiteral = (ix: Index, v: SgVariable, modeId: string): unknown => {
@@ -795,7 +802,11 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
       { value: once(per.map((p) => p.family)), alias: boundVar(s, 'fontFamily')?.name ?? null },
       { value: once(per.map((p) => (p.weight !== undefined ? `${trimNum(p.weight, 0)} · ${p.style}` : p.style))), alias: (boundVar(s, 'fontWeight') ?? boundVar(s, 'fontStyle'))?.name ?? null },
       { value: once(per.map((p) => formatSpacing(p.ls))), alias: boundVar(s, 'letterSpacing')?.name ?? null },
-      ...(options.paragraphSpacing ? [{ value: formatPx(s.paragraphSpacing ?? 0), alias: boundVar(s, 'paragraphSpacing')?.name ?? null }] : []),
+      // Letter spacing and paragraph spacing get their REM too, each in a REM column beside it (owner decision 20, the
+      // pattern of decision 19). Only a length in px converts.
+      ...(remOn(options) ? [{ value: once(per.map((p) => spacingRem(p.ls))), alias: null }] : []),
+      ...(options.paragraphSpacing ? [{ value: formatPx(s.paragraphSpacing ?? 0), alias: boundVar(s, 'paragraphSpacing')?.name ?? null },
+        ...(remOn(options) ? [{ value: formatRem(s.paragraphSpacing ?? 0), alias: null }] : [])] : []),
       ...(options.textDecoration ? [{ value: sentence((s.textDecoration ?? 'NONE').toLowerCase()), alias: null }] : []),
     ];
     return { variableId: s.id, name: s.name, token: s.name.split('/').slice(prefix.length).join('/'), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
@@ -811,7 +822,7 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     description: `${n} text style${n === 1 ? '' : 's'} in this file${modeCol ? `, sizes per ${modeCol.name} mode (${modeCol.modes.map((m) => m.name).join(', ')})` : ''}`,
     modes,
     columns: ['Token', ...modes.flatMap((m) => [m.name, 'Size / line height', ...(remOn(options) ? ['REM'] : [])]), 'Family', 'Weight', 'Letter spacing',
-      ...(options.paragraphSpacing ? ['Paragraph spacing'] : []), ...(options.textDecoration ? ['Decoration'] : []),
+      ...(remOn(options) ? ['REM'] : []), ...(options.paragraphSpacing ? ['Paragraph spacing', ...(remOn(options) ? ['REM'] : [])] : []), ...(options.textDecoration ? ['Decoration'] : []),
       ...(options.description === false ? [] : ['Description'])],
     rows,
   }];
@@ -1130,6 +1141,21 @@ const AUTO_LAYOUT = new Set(['HORIZONTAL', 'VERTICAL']);
 /** Set a node's horizontal sizing where the host allows it: HUG and FILL throw on a node outside auto layout. */
 const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
   try { n.layoutSizingHorizontal = v; return true; } catch { return false; }
+};
+/**
+ * A SPACING SPECIMEN SIZED BY ITS LEFT PADDING, the one width a plugin can set on a layer inside an instance (the owner's
+ * live run of 0.205.0): the other paddings 0, HUG, bind `paddingLeft`, then FIXED and HUG again. The toggle is the owner's
+ * recipe (c) from the live QA of 0.210.0 (2026-09-30): a hugging frame whose bound padding DECREASES keeps its width
+ * until FIXED then HUG is set (re-asserting HUG alone leaves it, and so does FIXED, resize and HUG before the bind), and
+ * the first padding bind can freeze the frame at FIXED. Returns whether the bind held; the caller reads the width back.
+ */
+export const sizeByPadding = (bar: SgNode, bind: (n: SgNode) => boolean): boolean => {
+  for (const k of ['paddingRight', 'paddingTop', 'paddingBottom'] as const) { try { bar[k] = 0; } catch { /* an override the host refuses shows in the read-back */ } }
+  sizing(bar, 'HUG');
+  const bound = bind(bar);
+  sizing(bar, 'FIXED');
+  sizing(bar, 'HUG');
+  return bound;
 };
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
@@ -1598,14 +1624,16 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
           // 0.205.0): the host silently drops every width written to a layer inside an instance, and bars in flow add
           // their own widths to the padding's. Named once for the whole run, with the fix.
           failAs(fixedLayer, String(bar.name));
+        } else if (cell.num === 0) {
+          // A ZERO DRAWS NOTHING (owner decision, live QA of 0.210.0, 2026-09-30): Figma cannot draw a 0-wide layer, and
+          // a bind to 0 leaves the frame at its last width, so the bracket's two bars would still show. The specimen is
+          // hidden and counts as drawn; the row keeps its name and its 0px value.
+          inst.visible = false;
         } else {
-          // SIZED BY ITS LEFT PADDING, the one width a plugin can set on a layer inside an instance (measured live,
-          // 2026-09-29): HUG, bind paddingLeft, then HUG AGAIN, because the first padding bind can freeze the frame at
-          // FIXED, and a frozen frame no longer follows its variable. Then read back: the width must be the value.
-          for (const k of ['paddingRight', 'paddingTop', 'paddingBottom'] as const) { try { bar[k] = 0; } catch { /* an override the host refuses shows in the read-back */ } }
-          sizing(bar, 'HUG');
-          const bound = bindTo(bar, 'paddingLeft', variable);
-          sizing(bar, 'HUG');
+          // SIZED BY ITS LEFT PADDING (`sizeByPadding`), then read back: the width must be the value. A layer inside an
+          // instance never hugs narrower than its main component's own width (live QA of 0.210.0), so a cell whose
+          // example frame rests wider than a value counts that value here, by table and token.
+          const bound = sizeByPadding(bar, (n) => bindTo(n, 'paddingLeft', variable));
           const want = Math.max(0, typeof cell.num === 'number' ? cell.num : 0);
           if (!bound) failAs(unboundSpec, `${member} spacing`);
           else if (!near(num(bar.width), want)) failAs(unsized, member);

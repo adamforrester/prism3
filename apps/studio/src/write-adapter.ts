@@ -209,7 +209,6 @@ export type StyleGuideOptionsMsg = {
   description?: boolean;
   display?: 'auto' | 'default' | 'text' | 'icon' | 'border' | 'transparency';
   tables?: string[];
-  pixels?: boolean;
   rem?: boolean;
   dimensionDisplay?: 'auto' | 'filled' | 'line';
   fontDisplay?: 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
