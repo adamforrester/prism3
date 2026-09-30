@@ -31,6 +31,8 @@
 
 **Trap for whoever re-verifies.** A mutation that drops a def's axis WITHOUT admitting it to `NO_SIZE_AXIS` fails on `main` too, by the per-def arm ("declares no size axis … not admitted"). That is not the floor firing. The floor's own case is the one where the per-def arm has been satisfied, so admit the def in the mutation, as the table does.
 
+**Review round (independent review, approved).** One nit: the header said `focus-ring` and `field-message` were the defs admitted to `NO_SIZE_AXIS`, when the list holds six. The header now points at the list instead of restating it, so it stays true as defs join. It also said "four" size-axis defs sat outside the floor, when there were nine; that is corrected too. Comment-only; merged `origin/main` (#1797's entry kept alongside this one).
+
 ---
 
 ## (2026-09-29) — A nest resolves inside its own def's set, never by member name across sets (#1781)

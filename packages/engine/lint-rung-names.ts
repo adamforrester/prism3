@@ -152,11 +152,12 @@
  * being deleted, or by having its axis quietly dropped — fails rather than shrinking the set the gate
  * reports clean over. A count would read that as a pass (`docs/34`). The list is checked in both
  * directions (#1724): a def the run checks that `MUST_COVER` does not name fails as unpromised, so the
- * floor cannot fall behind the corpus the way it did while four size-axis defs sat outside it.
+ * floor cannot fall behind the corpus the way it did while nine size-axis defs sat outside it.
  *
- * `focus-ring` and `field-message` declare no size axis and bind no `size.*` key. They are ADMITTED by
- * name in `NO_SIZE_AXIS` rather than skipped silently, and in both directions: a def listed there that
- * grows a size axis fails as a stale admission. Skipping them silently is how a gate ends up with a
+ * A def that declares no size axis and binds no `size.*` key is ADMITTED by name in `NO_SIZE_AXIS`, with
+ * its reason, rather than skipped silently. The list is the record of which defs those are; it is not
+ * restated here, because a copy in prose goes stale the day a def joins it. Both directions: a def
+ * listed there that grows a size axis fails as a stale admission. Skipping them silently is how a gate ends up with a
  * scope that shrank without anyone deciding it should.
  *
  * ── WHAT IT DOES NOT CLAIM ──────────────────────────────────────────────────────────────────────
@@ -313,7 +314,7 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
  * A literal, not derived from `componentDefs`: a floor computed from what the run reached agrees with
  * every run. And it is checked in BOTH directions (`docs/34`, #387): forward, a listed def the run did not
  * check fails; conversely, a def the run checked that is not listed fails too. The converse is what keeps
- * this list whole — the forward half alone let four size-axis defs sit unlisted, each droppable in silence.
+ * this list whole — the forward half alone let nine size-axis defs sit unlisted, each droppable in silence.
  */
 const MUST_COVER = [
   'icon', 'spinner',
