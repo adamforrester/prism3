@@ -119,7 +119,9 @@ export const varKey = (collection: string, name: string): VarKey => `${collectio
 export type MaterializationRule = {
   /** Stable, and used in every report line — a rule is identified by this in both checks. */
   id: string;
-  /** The `ENGINE_VERSION` that made the change. */
+  /** The `ENGINE_VERSION` that made the change. A PR adding a rule cannot know it, so it writes the
+   *  placeholder {{ENGINE_VERSION}} as the whole single-quoted string, here and in `test.ts`'s
+   *  `EXPECTED_SINCE`, and the fold fills in the version it assigns (#1816, `fold-stamps.ts`). */
   since: string;
   /** What moved and why, to `INVERSE_GAPS`' standard: enough that a reader can weigh the decision. */
   why: string;
@@ -308,6 +310,7 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
  */
 export type MaterializationDeletion = {
   id: string;
+  /** As `MaterializationRule.since`: a new deletion writes the quoted placeholder and the fold fills it (#1816). */
   since: string;
   why: string;
   domain: (collection: string, name: string, root: string) => boolean;

@@ -39,6 +39,12 @@
  *                    headed by that version, and every deleted note's prose appears in that section.
  *                    Derived here from git's list of deleted notes and a parse of the changelog, with
  *                    this file's own arithmetic — never by calling `fold.ts` (docs/34 shape 2).
+ *   RENAME STAMPS  — (#1816) a rename rule's `since` is the other version number a PR used to hand-write.
+ *                    A PR writes the quoted placeholder there, and in `test.ts`'s table for it; the fold
+ *                    fills it in. Fails a new or moved stamp that names a version no fold assigned, a
+ *                    placeholder with no pending note, a placeholder that survives a fold, and a fold
+ *                    that fills one with anything but its own version. The parse and the arms live in
+ *                    `rename-stamp-audit.ts`, which restates rather than imports `fold-stamps.ts`.
  *
  * The one-writer arm starts at the commit that introduced the FOLD MARKER: at a base without it there
  * is no fold convention to hold a diff to, and the arm says so instead of passing silently.
@@ -114,6 +120,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
+import { PENDING_STAMP, STAMP_PATHS, auditStamps, readStamps, type StampSources } from './rename-stamp-audit';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
 const repo = resolve(here, '../..');
@@ -488,6 +495,54 @@ if (!markerAtBase) {
   writerLine = 'no edit to ENGINE_VERSION or its changelog, and no note deleted';
 }
 
+// ---- RENAME STAMPS (#1816) -----------------------------------------------------------------------
+//
+// Read at the base and at HEAD from git, like everything else here: the question is what this diff
+// merges. In force from the FOLD MARKER on, with the rest of the one-writer convention.
+let stampLine = 'not yet in force — the base predates the FOLD MARKER';
+if (markerAtBase) {
+  const sourcesAt = (ref: string): StampSources => {
+    const read = (path: string): string => {
+      const r = git('show', `${ref}:${path}`);
+      if (!r.ok) die([`cannot read ${path} at ${ref.slice(0, 8)} — this check CANNOT RUN.`, `    ${r.err}`]);
+      return r.out;
+    };
+    return { renames: read(STAMP_PATHS.renames), collections: read(STAMP_PATHS.collections), tests: read(STAMP_PATHS.tests) };
+  };
+  const baseSources = sourcesAt(base);
+  const headSources = sourcesAt('HEAD');
+  const atBase = readStamps(baseSources);
+  const atHead = readStamps(headSources);
+  const unread = [...atBase.problems.map((p) => `base: ${p}`), ...atHead.problems.map((p) => `HEAD: ${p}`)];
+  if (unread.length)
+    die([
+      `RENAME STAMPS — the rename stamps could not be read, so this check CANNOT RUN (#1816).`,
+      ...unread.map((p) => `      ${p}`),
+      '',
+      '  The reader is `rename-stamp-audit.ts`. A stamp it cannot read is one it cannot check, which is not a pass.',
+    ]);
+  const problems = auditStamps({
+    base: atBase.stamps,
+    head: atHead.stamps,
+    headSources,
+    isFold,
+    baseVersion,
+    headVersion,
+    notePending: [...parsedAtHead.values()].some((n) => n.level !== null && n.problem === null),
+  });
+  if (problems.length)
+    die([
+      `RENAME STAMPS — ${problems.length} problem(s) with a rename rule's \`since\` (#1816).`,
+      ...problems.map((p) => `      ${p}`),
+      `    ${where}`,
+      '',
+      '  A PR that adds or changes a rename rule writes its `since` as the quoted placeholder, in the rule and in',
+      '  test.ts\'s table for it, and carries a change note. The fold writes the version. CONTRIBUTING.md §2.',
+    ]);
+  const pendingNow = atHead.stamps.filter((st) => st.since === PENDING_STAMP).length;
+  stampLine = `${atHead.stamps.length} read at HEAD, ${pendingNow} pending the fold${isFold ? ` (this fold filled ${atBase.stamps.filter((st) => st.since === PENDING_STAMP).length} with ${headVersion})` : ''}`;
+}
+
 // ---- the verdict ---------------------------------------------------------------------------------
 if (changed.length > 0 && !forward && !bumpNotes.length) {
   const show = changed.slice(0, 12);
@@ -518,6 +573,7 @@ console.log(`  scope: ${SCOPE.length} pathspec(s) imported from regen.ts — all
 console.log(`  ENGINE_VERSION: ${baseVersion} -> ${ENGINE_VERSION}${forward ? ' (moved forward)' : versionMoved ? ' (moved BACKWARD)' : ' (unchanged)'}`);
 console.log(`  change notes: ${addedNotes.length} added (${bumpNotes.length} declaring a bump), ${deletedNotes.length} deleted, ${parsedAtHead.size} at HEAD — all parse`);
 console.log(`  one writer: ${writerLine}`);
+console.log(`  rename stamps: ${stampLine}`);
 console.log(`  artifacts changed vs base: ${changed.length}`);
 if (changed.length === 0 && !versionMoved)
   console.log('  ✓ clean — nothing emitted moved, so no bump was owed.');

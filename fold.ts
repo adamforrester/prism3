@@ -34,7 +34,10 @@
  *      merge order and its dates stay non-increasing (the #1104 / #1170 same-day order, settled by a
  *      real oracle rather than by whoever resolved the conflict).
  *   7. Substitutes `{{ENGINE_VERSION}}` in both kinds of file with the version this fold assigns — the
- *      number is unknown when a PR is written.
+ *      number is unknown when a PR is written. And the same in the rename stamps (#1816): a rename rule's
+ *      `since` in `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` and `COLLECTION_RENAMES`, and
+ *      `test.ts`'s literal tables for them, where a PR writes the placeholder as a quoted string
+ *      (`fold-stamps.ts`). A pending stamp with no pending note is refused: the version would not move.
  *   8. Deletes what it folded, and runs `regen.ts` when the version moved, so the stamps follow.
  *
  * THE GATES DO NOT CALL THIS FILE, AND MUST NOT (docs/34 shape 2). `lint-emission-version.ts` checks
@@ -51,6 +54,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { STAMP_FILES, fillStamps } from './fold-stamps';
 
 const repo = dirname(fileURLToPath(import.meta.url));
 const NOTES_DIR = 'packages/engine/changes';
@@ -223,6 +227,22 @@ if (level === 'major' && maj === 0)
     '  `minor` for any behavior change and `patch` only when no committed artifact moved.',
   ]);
 const fill = (s: string): string => s.replace(PLACEHOLDER, next);
+
+// ---- 5b. the rename stamps (#1816) -------------------------------------------------------------
+// A pending stamp names the version this fold assigns, so a fold that assigns none cannot fill it: the
+// rule would read as shipped in a version that did not have it.
+const stamps = STAMP_FILES.map((path) => {
+  const src = readFileSync(join(repo, path), 'utf8');
+  return { path, src, ...fillStamps(src, next) };
+}).filter((s) => s.count > 0);
+if (stamps.length && next === current)
+  refuse([
+    `${stamps.reduce((n, s) => n + s.count, 0)} rename stamp(s) read '{{ENGINE_VERSION}}', and no change note is pending, so the version would not move.`,
+    ...stamps.map((s) => `    ${s.path}: ${s.count}`),
+    '',
+    '  A new rename rule is a behavior change and its PR owes a note. `lint-emission-version.ts` fails a PR',
+    '  that leaves a pending stamp with no note, so this means that gate was bypassed. Add the note first.',
+  ]);
 const today = new Date().toISOString().slice(0, 10);
 
 // ---- 6. the changelog section ------------------------------------------------------------------
@@ -290,6 +310,10 @@ if (notes.length) {
 } else {
   console.log(`\n  ENGINE_VERSION stays ${current} — no change notes pending`);
 }
+if (stamps.length) {
+  console.log(`\n  rename stamps: '{{ENGINE_VERSION}}' → '${next}'`);
+  for (const s of stamps) console.log(`    ${s.path}: ${s.count}`);
+}
 if (fragments.length) {
   console.log(`\n  ${LOG_FILE}: ${fragments.length} entr${fragments.length === 1 ? 'y' : 'ies'} on top, newest merge first`);
   for (const f of fragments) console.log(`    (${landing.get(f.path)!.day}) — ${f.title.length > 90 ? `${f.title.slice(0, 89)}…` : f.title}`);
@@ -303,8 +327,9 @@ if (dryRun) {
 // ---- 8. write, delete, regen -------------------------------------------------------------------
 if (newVersionSrc !== versionSrc) writeFileSync(versionPath, newVersionSrc);
 if (newLogSrc !== logSrc) writeFileSync(logPath, newLogSrc);
+for (const s of stamps) writeFileSync(join(repo, s.path), s.out);
 for (const p of [...notePaths, ...fragmentPaths]) unlinkSync(join(repo, p));
-console.log(`\n  wrote ${[newVersionSrc !== versionSrc && VERSION_FILE, newLogSrc !== logSrc && LOG_FILE].filter(Boolean).join(' and ')}; deleted ${notePaths.length + fragmentPaths.length} pending file(s)`);
+console.log(`\n  wrote ${[newVersionSrc !== versionSrc && VERSION_FILE, newLogSrc !== logSrc && LOG_FILE, ...stamps.map((s) => s.path)].filter(Boolean).join(', ')}; deleted ${notePaths.length + fragmentPaths.length} pending file(s)`);
 
 if (next !== current) {
   console.log('  running regen.ts so every emitted stamp reads the new version …');
