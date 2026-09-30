@@ -5,6 +5,23 @@
  *   npx tsx packages/engine/lint-component-surface.ts             # check (both arms)
  *   npx tsx packages/engine/lint-component-surface.ts --accept    # rewrite the baseline (needs the bump)
  *
+ * ── #1807: THE BUMP IS DECLARED BY A CHANGE NOTE ────────────────────────────────────────────────
+ *
+ * Since #1807 a PR never edits `ENGINE_VERSION`; it adds `packages/engine/changes/<slug>.md` with
+ * `engine: patch|minor|major` in its front matter, and `fold.ts` assigns the number later. So wherever
+ * this file says "the bump" below, it has two routes, and either satisfies arm B and `--accept`:
+ *
+ *   NOTE ROUTE     — a change note in this TREE that the merge base does not have, declaring `minor` or
+ *                    `major`. A `patch` note does not count: a moved surface is a behavior change, and
+ *                    patch is only for one that moves no committed artifact (#1823 re-review).
+ *                    Read off disk, the same side arm B already reads the baseline from (limit 1).
+ *   VERSION ROUTE  — `ENGINE_VERSION` moved strictly forward: how a FOLD passes. Unchanged from #1271.
+ *
+ * The note parser is restated here rather than shared with `fold.ts` (the fold is what consumes the
+ * notes, so a shared parser would agree with its subject) or with `lint-emission-version.ts` (the same
+ * reason that file gives for restating its base-ref ladder). `lint-emission-version.ts` owns the note
+ * SHAPE and the one-writer rule; this file asks only whether a bump is declared.
+ *
  * ── THE DECISION THIS ENCODES ───────────────────────────────────────────────────────────────────
  *
  * #1252 settled a question two merged PRs had answered opposite ways on the same shape. #1251
@@ -121,7 +138,8 @@
  *   ARM A  SUBJECT: `figmaAnatomySet` over `componentDefs`, live.
  *          ORACLE:  the committed baseline — authored, `--accept`-only, NEVER a regen artifact.
  *   ARM B  SUBJECT: the baseline's `defs` at the merge base vs at HEAD.
- *          ORACLE:  `ENGINE_VERSION` parsed from `version.ts` at the merge base, vs the imported constant.
+ *          ORACLE:  a change note added since the merge base declaring a bump (#1807) — or
+ *                   `ENGINE_VERSION` parsed from `version.ts` at the merge base, vs the imported constant.
  *
  * NEVER A REGEN ARTIFACT — principle 5, and the same reason `token-contract.json` is out of regen. If
  * `regen.ts` rewrote this baseline, then a def losing a member would have the baseline rewritten to
@@ -164,6 +182,9 @@
  *   M5  An anatomy change that moves no PAINT — `field-label`'s row gap. `lint-paint.ts` stays green
  *       (its rows are paint assignments only) while this gate's digest moves, which is the measurement
  *       that shows the two baselines are not duplicates of each other.
+ *   M7  (#1807) A surface moved and accepted with an added change note, then the note deleted. ARM B fails
+ *       BY NAME — the note route is what carried it, and the version never moved. `--accept` refuses the
+ *       same tree. A note declaring `engine: none` is not a declared bump and fails the same way.
  *   M6  A surface moved (committed at a forward bump), then ENGINE_VERSION rolled BACKWARD below the base
  *       in the working tree (#1271). Under the old `!==` arm B PASSED — the strings differed, so "the
  *       version moved" read true. With `isForward` it FAILS BY NAME, naming the backward roll and the
@@ -173,7 +194,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
@@ -339,8 +360,9 @@ if (Object.keys(actual).length < FLOOR_DEFS || projecting < FLOOR_PROJECTING)
 
 const NOTE =
   'AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an ' +
-  'explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ' +
-  'ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: ' +
+  'explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine ' +
+  'bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to ' +
+  'rewrite what it reads has no memory. Per def: ' +
   'the member count of the DEFAULT Figma projection and a sha256 over its sorted ' +
   '`planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects ' +
   'no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def ' +
@@ -354,7 +376,7 @@ const NOTE =
   'default-density heights. It ' +
   'records no engine version of its own on purpose — a pure value change bumps the engine and moves no ' +
   'component surface. A failure here is a CHANGED projection: read the diff, decide whether the change ' +
-  'was intended, bump ENGINE_VERSION, then accept.';
+  'was intended, add a change note declaring the bump, then accept.';
 
 const serialize = (b: Baseline): string => `${JSON.stringify(b, null, 2)}\n`;
 
@@ -457,6 +479,37 @@ const baseDefs = (base: string): Record<string, Surface> | null => {
   }
 };
 
+/**
+ * THE NOTE ROUTE (#1807): the change notes in this tree that the merge base does not carry, each with
+ * the level it declares. A note already pending at the base is some OTHER merged PR's declaration and
+ * says nothing about this diff, so it does not count. `null` level = the front matter did not parse or
+ * named no bump; it is listed so a failure can say why the note did not count.
+ */
+const NOTES_DIR = 'packages/engine/changes';
+const declaredBumps = (base: string): { path: string; level: string | null; declared: string | null }[] => {
+  const dir = join(repo, NOTES_DIR);
+  if (!existsSync(dir)) return [];
+  const atBase = git('ls-tree', '-r', '--name-only', base, '--', NOTES_DIR);
+  if (!atBase.ok) die([`git ls-tree failed on ${NOTES_DIR} at ${base.slice(0, 8)} — the version arm CANNOT RUN.`, `    ${atBase.err}`]);
+  const pending = new Set(atBase.out.split('\n').map((s) => s.trim()).filter(Boolean));
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.md') && f !== 'README.md')
+    .map((f) => `${NOTES_DIR}/${f}`)
+    .filter((p) => !pending.has(p))
+    .map((p) => {
+      const m = /^---\nengine:[ \t]*(\S+)[ \t]*\n---\n/.exec(readFileSync(join(repo, p), 'utf8').replace(/\r\n/g, '\n'));
+      // A moved component surface is a behavior change, and the class for that is `minor` (#1807's policy;
+      // #1823 re-review): `patch` is only for a change that moves no committed artifact, and
+      // `component-surface.json` is outside regen's list, so the emission gate cannot see this case.
+      // A patch note is listed, and does not count.
+      return { path: p, level: m && ['minor', 'major'].includes(m[1]) ? m[1] : null, declared: m ? m[1] : null };
+    });
+};
+const describeNotes = (notes: { path: string; level: string | null; declared?: string | null }[]): string =>
+  notes.length
+    ? notes.map((n) => `${n.path.slice(NOTES_DIR.length + 1)} (${n.level ?? (n.declared === 'patch' ? 'patch — too low for a moved surface, declare minor' : 'declares no bump')})`).join(', ')
+    : 'none';
+
 // ---- --accept -------------------------------------------------------------------------------------
 const doAccept = (): void => {
   const committed = readBaseline();
@@ -485,13 +538,16 @@ const doAccept = (): void => {
   // SECOND bump for a second accept inside one PR, which is friction with no defect behind it.
   const { base, ref, via } = resolveBase();
   const before = baseEngineVersion(base);
+  const notes = declaredBumps(base);
+  const declared = notes.filter((n) => n.level);
   // FORWARD-ONLY (#1271): the accept is refused unless ENGINE_VERSION is STRICTLY GREATER than the base's,
   // not merely different. `before === ENGINE_VERSION` alone let a BACKWARD stamp through — a surface moved
   // and re-accepted at a version LOWER than the base carried — which arm B would then have to catch at
-  // merge. Refusing it here keeps the accept and the check asking the same ordering question.
-  if (!isForward(before, ENGINE_VERSION)) {
+  // merge. Refusing it here keeps the accept and the check asking the same ordering question. Since #1807
+  // an added change note declaring a bump is the other way through, and the ordinary one.
+  if (!declared.length && !isForward(before, ENGINE_VERSION)) {
     const backward = before !== ENGINE_VERSION;
-    console.error(`\n❌ ${moved.length} def(s) moved their projected surface and ENGINE_VERSION ${backward ? `rolled BACKWARD (${before} → ${ENGINE_VERSION})` : `is still ${ENGINE_VERSION}`}.`);
+    console.error(`\n❌ ${moved.length} def(s) moved their projected surface, no added change note declares a bump (added: ${describeNotes(notes)}), and ENGINE_VERSION ${backward ? `rolled BACKWARD (${before} → ${ENGINE_VERSION})` : `is still ${ENGINE_VERSION}`}.`);
     console.error(`    base ${base.slice(0, 8)} (${ref}, via ${via})`);
     console.error('');
     for (const id of moved) {
@@ -505,13 +561,20 @@ const doAccept = (): void => {
     console.error('  and the projected component surface is part of it — a designer meeting a new axis or a');
     console.error('  larger variant set has met a different engine, whether or not `out/` moved.');
     console.error('');
-    console.error('  Raise ENGINE_VERSION in packages/engine/version.ts (a MINOR when the surface grows or');
-    console.error('  shrinks), state the reason in its docblock, then re-run --accept.');
+    console.error('  Add a change note, packages/engine/changes/<slug>.md, declaring the bump (a MINOR when the');
+    console.error('  surface grows or shrinks) with the reason as its prose, then re-run --accept (#1807):');
+    console.error('      ---');
+    console.error('      engine: minor');
+    console.error('      ---');
+    console.error('      <the changelog prose>');
+    console.error('  Do not edit ENGINE_VERSION: only the fold writes it.');
     process.exit(1);
   }
 
   writeFileSync(SURFACE_PATH, serialize(next));
-  console.log(`Component-surface baseline accepted at ENGINE_VERSION ${before} → ${ENGINE_VERSION} — ${moved.length} def(s) moved:`);
+  console.log(declared.length
+    ? `Component-surface baseline accepted under a declared bump (${describeNotes(declared)}) — ${moved.length} def(s) moved:`
+    : `Component-surface baseline accepted at ENGINE_VERSION ${before} → ${ENGINE_VERSION} — ${moved.length} def(s) moved:`);
   for (const id of moved) {
     const b = committed.defs[id] ?? null;
     const a = actual[id] ?? null;
@@ -575,19 +638,23 @@ const doCheck = (): void => {
   const wentBackward = versionMoved && !forward;
   const wasDefs = baseDefs(base);
   const movedInDiff = wasDefs ? movedDefs(wasDefs, committed!.defs) : [];
+  const notes = declaredBumps(base);
+  const declared = notes.filter((n) => n.level);
 
   console.log(`  base ${base.slice(0, 8)} (${ref}, via ${via})`);
   console.log(`  ENGINE_VERSION: ${beforeVersion} -> ${ENGINE_VERSION}${forward ? ' (moved forward)' : versionMoved ? ' (moved BACKWARD)' : ' (unchanged)'}`);
+  console.log(`  change notes added since base: ${describeNotes(notes)}`);
   if (!wasDefs) {
     console.log(`  baseline: INTRODUCED in this diff — no prior surface to compare, so no bump is owed for it`);
   } else {
     console.log(`  baseline: ${movedInDiff.length} def(s) moved vs base`);
   }
 
-  if (movedInDiff.length && !forward) {
+  if (movedInDiff.length && !forward && !declared.length) {
     fails.push(
-      `version: the baseline in this tree moved ${movedInDiff.length} def(s) vs the base and ENGINE_VERSION ` +
-        `${wentBackward ? `rolled BACKWARD (${beforeVersion} → ${ENGINE_VERSION})` : `did not — still ${ENGINE_VERSION}`} at base ${base.slice(0, 8)}. Moved: ${movedInDiff.join(', ')}`,
+      `version: the baseline in this tree moved ${movedInDiff.length} def(s) vs the base, no added change note declares a bump ` +
+        `(added: ${describeNotes(notes)}), and ENGINE_VERSION ` +
+        `${wentBackward ? `rolled BACKWARD (${beforeVersion} → ${ENGINE_VERSION})` : `did not move — still ${ENGINE_VERSION}`} at base ${base.slice(0, 8)}. Moved: ${movedInDiff.join(', ')}`,
     );
   }
 
@@ -600,17 +667,18 @@ const doCheck = (): void => {
     console.error('  component payloads are not committed under `out/` at all (the plugin builds them from the');
     console.error('  defs at run time), which is why `lint-emission-version.ts` cannot see this.');
     console.error('');
-    console.error('  A DRIFT failure is a changed projection: read the diff, bump ENGINE_VERSION, then');
+    console.error('  A DRIFT failure is a changed projection: read the diff, add a change note declaring the');
+    console.error('  bump (packages/engine/changes/<slug>.md, `engine: minor`, #1807), then');
     console.error('    npx tsx packages/engine/lint-component-surface.ts --accept');
-    console.error('  A VERSION failure means the baseline moved without a FORWARD bump — a hand-edited baseline,');
-    console.error('  a bump reverted after the accept, or a version rolled BACKWARD below the base (#1271). The');
-    console.error('  version must move strictly forward when the surface moves; `--accept` refuses otherwise, a');
-    console.error('  text editor does not, which is the hole these arms exist to close.');
+    console.error('  A VERSION failure means the baseline moved with no declared bump — a hand-edited baseline,');
+    console.error('  a change note removed after the accept, or a version rolled BACKWARD below the base (#1271).');
+    console.error('  `--accept` refuses without the declaration; a text editor does not, which is the hole these');
+    console.error('  arms exist to close.');
     process.exit(1);
   }
 
   console.log('\n✓ clean — the projected component surface matches the baseline, and any movement in it');
-  console.log('  carried an ENGINE_VERSION bump.');
+  console.log('  carried a declared engine bump (an added change note, or a fold\'s forward version).');
   console.log('    The limit: the version arm reads its BEFORE from a commit and its AFTER from this tree,');
   console.log('    so it says nothing about a commit that is not an ancestor of the base it resolved.');
 };

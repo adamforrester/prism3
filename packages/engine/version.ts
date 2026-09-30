@@ -20,6 +20,18 @@
  * nothing. So VALUES are not versioned and NAMES are. Tying them together would either cry wolf on
  * every brand tweak or stay silent through a rename; separating them lets each be strict.
  *
+ * ── WHO WRITES `ENGINE_VERSION` (#1807, decided 2026-09-30) ─────────────────────────────────────
+ *
+ * Only the FOLD (`fold.ts` at the repo root). A PR that owes an engine bump adds a change note,
+ * `packages/engine/changes/<slug>.md`, whose front matter DECLARES the class (`engine: patch|minor|major`)
+ * and whose body is the changelog prose; it never edits the constant or the changelog below. After a
+ * batch of merges the fold assigns ONE version for the batch (the highest declared class), writes the
+ * constant and the changelog under the FOLD MARKER, deletes the notes and regenerates the stamps. So a
+ * version names a fold, which may cover several PRs, and `main` runs a merged change under the previous
+ * number until the fold lands. `lint-emission-version.ts` and `lint-component-surface.ts` accept an
+ * added note as the bump; the former also fails a PR that is not a fold for editing either.
+ * `CONTRACT_VERSION` is unchanged by this: a PR still bumps it itself, with its baseline.
+ *
  * ── WHAT COUNTS AS THE ENGINE SURFACE (#1252, decided) ──────────────────────────────────────────
  *
  * `ENGINE_VERSION` bumps on any change to what a consumer can OBSERVE, and that is BOTH the emitted
@@ -2730,6 +2742,8 @@
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
 /**
+ * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
+ *
  * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
  *
  * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
