@@ -2933,7 +2933,7 @@
  * too. The lever's description already said "Defaults to following the action palette". New gate: every
  * lever's manifest default must be a no-op when stated explicitly, measured by running the engine (the DTCG
  * tree, `test.ts`) and the component materializer (`apps/plugin/test-write-components.ts`) with the lever
- * unset and set. A shipped manifest change → ENGINE bump. CONTRACT STANDS (no token name moves).
+ * unset and set, with a per-(lever, value) sensitivity list for the values only the materializer sees. A shipped manifest change → ENGINE bump. CONTRACT STANDS (no token name moves).
  *
  * 0.216.0 — #1750: every component set built onto a shared page landed at (0,0), so the second set on
  * `↳ Buttons` (and on Icon button, Checkbox, Radio, Switch) covered the first. The plugin executor

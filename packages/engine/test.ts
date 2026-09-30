@@ -7983,14 +7983,25 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // It records whether a choice was EXPLICIT ("link color: explicitly set to 'primary'") and that is the
   // log doing its job, not a resolution difference.
   //
-  // Sensitivity, so the no-op arm cannot pass by measuring a constant (docs/34 shape 4): every lever with
-  // a default must MOVE this tree at some non-default value, except the ones listed in
-  // `TREE_BLIND_LEVERS`. Those are resolved only when a component is materialized (they emit no token),
-  // so `apps/plugin/test-write-components.ts` runs the same no-op check through `materializeForBrand`
-  // and asserts each of them moves it. The list is literal and checked both ways: a listed lever that
-  // starts moving the tree fails, so the list cannot go stale.
+  // Sensitivity, so the no-op arm cannot pass by measuring a constant (docs/34 shape 4): every
+  // (lever, non-default value) PAIR must MOVE this tree, except the pairs listed in `TREE_BLIND_PAIRS`.
+  // Pairs, not levers: `controlShape` moves the tree at `hairline` but not at `boxed` or `pill`, so a
+  // lever-level "some value moves it" check would have let a wrong `pill` default through. The listed
+  // pairs are resolved only when a component is materialized (they emit no token), so
+  // `apps/plugin/test-write-components.ts` runs the same no-op check through `materializeForBrand` and
+  // asserts each listed pair moves it. The list is literal and checked both ways: a listed pair that
+  // starts moving the tree fails, so the list cannot go stale. And because the list is an EXEMPTION whose
+  // cover lives in another file, this arm also reads that file and fails unless the plugin assertion and
+  // every pair literal are there: a main merge once resolved the plugin block away and verify stayed
+  // green (2026-09-30), since a deleted arm fails nothing inside itself.
   {
-    const TREE_BLIND_LEVERS = ['buttonIcons', 'buttonContentSize', 'buttonMinWidthMultiplier'];
+    const TREE_BLIND_PAIRS: [string, unknown][] = [
+      ['buttonContentSize', 'smaller'],
+      ['buttonIcons', 'edges'],
+      ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
+      ['controlShape', 'boxed'], ['controlShape', 'pill'],
+    ];
+    const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
     const setIn = (o: any, key: string, v: unknown): any => {
       const c = structuredClone(o); const ps = key.split('.'); let a = c;
@@ -8038,12 +8049,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         : l.control === 'slider' ? [l.min, l.max].filter((v) => v !== undefined && v !== l.default)
         : l.control === 'palette-ref' ? ['neutral', 'accent'].filter((v) => v !== l.default)
         : [];
-    const moves = (l: typeof withDefault[number]): boolean => altsOf(l).some((v) => {
-      try { return treeOf(setIn(sBase, l.key, v)) !== sTree; } catch { return false; }
-    });
-    const blind = withDefault.filter((l) => !moves(l)).map((l) => l.key).sort();
-    ok(JSON.stringify(blind) === JSON.stringify([...TREE_BLIND_LEVERS].sort()),
-      `#1812: exactly the listed tree-blind levers (${TREE_BLIND_LEVERS.join(', ')}) leave the emitted tree unmoved at every non-default value (got: ${blind.join(', ') || 'none'})`);
+    // A refusal (the engine throws) is loud, so it is not counted as blind.
+    const blind = withDefault.flatMap((l) => altsOf(l).map((v) => [l.key, v] as [string, unknown]))
+      .filter(([k, v]) => { try { return treeOf(setIn(sBase, k, v)) === sTree; } catch { return false; } })
+      .map(pairName).sort();
+    const listed = TREE_BLIND_PAIRS.map(pairName).sort();
+    ok(JSON.stringify(blind) === JSON.stringify(listed),
+      `#1812: exactly the listed tree-blind (lever, value) pairs (${listed.join(', ')}) leave the emitted tree unmoved (got: ${blind.join(', ') || 'none'})`);
+    const pluginTest = readFileSync(resolve(HERE, '../../apps/plugin/test-write-components.ts'), 'utf8');
+    const uncovered = TREE_BLIND_PAIRS.filter(([k, v]) => !pluginTest.includes(`['${k}', ${typeof v === 'string' ? `'${v}'` : v}]`)).map(pairName);
+    ok(pluginTest.includes('#1812 each tree-blind (lever, value) pair moves the materialized defs') && uncovered.length === 0,
+      `#1812: the plugin half that covers the tree-blind pairs is present in apps/plugin/test-write-components.ts${uncovered.length ? ` — MISSING PAIRS: ${uncovered.join(', ')}` : ''}`);
 
     // `linkPalette` carries no static default because the engine's has none: unset, it follows the
     // action palette. Literal expectations on two briefs whose action palettes differ.
