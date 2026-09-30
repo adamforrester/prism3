@@ -2937,6 +2937,17 @@
  * non-empty list. A read-model behavior change → ENGINE bump; no emitted value moves, so `out/**` and
  * `schema/*` move only their version stamp. CONTRACT STANDS (no token name moves).
  *
+ * 0.212.0 — the dismissible Tag's label inset (owner-decided 2026-09-29 from live QA on a real Figma file;
+ * decision record `docs/28` §5.4.4). On a dismissible tag the label-and-check row (`labelCheck`) takes a FIXED
+ * 4px leading inset (`space.050`, every density), and the content row's icon→label gap drops to match (6/8/12
+ * → 2/4/4 at comfortable), so the visible icon→label is 6/8/8 and a dismissible tag is 4px wider. The def
+ * states the visible distance (density-following, held by the 4px gap floor) and the layer gap is derived as
+ * visible − inset, never below 0 (`ComponentDef.visibleGaps`, `visibleGapStep`, applied in
+ * `applySpacingDensity`). Select tags are pixel-identical; their `labelCheck` now binds explicit 0 paddings.
+ * The projected component surface moves (dismissible `itemSpacing`, `labelCheck` padding bindings) → ENGINE
+ * bump. CONTRACT STANDS at 14.0.0 (no token name moves; the new keys are def-internal bindings to existing
+ * `space.*` steps).
+ *
  * 0.211.0 — #1781: a nested part whose target is a component SET could resolve to a member of the WRONG set
  * with the same member name. Both executors matched the def's coordinate inside the named set, then looked
  * the matched member NAME up again in the document-wide COMPONENT map, where every set's `size=small` shares

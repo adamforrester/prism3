@@ -170,7 +170,10 @@ size axis and one indirection keeps the def brand-invariant.
 'space.200'`), and list those keys in `densitySpacing` (`'size.{size}.padding-x'`). Density then
 moves each listed step one position along the space scale before projection
 (`applySpacingDensity`: down at compact, up at spacious, clamped at the ends). Leave a spacing
-off the list when it must not move: a 0 inset, a stack gap the spec fixes. Never mint a
+off the list when it must not move: a 0 inset, a stack gap the spec fixes. When the cell after
+a gap carries a fixed inset of its own, the eye reads the gap plus the inset: state that visible
+distance as the density-following gap, and name the three keys in `visibleGaps` so the layer gap
+is derived as visible minus inset, never below 0 (the dismissible Tag's label row). Never mint a
 per-component spacing token. Two orderings hold at every density, and `packages/engine/test.ts` asserts them per
 def as literal rules, so add yours there: a gap is tighter than the padding beside it (#325),
 and an icon-side inset sits between them (#326: gap < icon-side padding < label-side padding).
@@ -340,8 +343,8 @@ no duplicating prop.
 
 **Axis and state names are closed vocabularies.** `VARIANT_AXES` in
 `packages/engine/component-schema.ts` closes the axis names (the validator refuses any other, and
-`lint-axis-values` holds its register to them), and `STATES` closes the state names — it has no
-`selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
+`lint-axis-values` holds its register to them), and `STATES` in
+`packages/engine/component-schema.ts` closes the state names — it has no `selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
 `placement` axis, a `selected` state for a tag or a segmented control) is asking for a schema change,
 which is an owner decision: flag it in the PR with the case for it, and never add it to either list
 to clear a validator error.

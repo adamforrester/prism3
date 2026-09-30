@@ -21,6 +21,8 @@
  *
  *   1-3. REFERENCE checks — a name the skill quotes must still exist (dead references).
  *   4.   COVERAGE check   — a surface the engine grew must appear in the skill that documents it.
+ *   5.   IDENTIFIER check — an all-caps name a skill quotes (`MUST_COVER`, `ENGINE_VERSION`) is declared
+ *        in the source file the skill places it in, or in some source file when it names none (#1725).
  *
  * Check 4 is the one that fires on the real defect, and it is deliberately opt-in per skill
  * (`documents: brandInput` in the frontmatter) rather than inferred — the same "declare it, don't
@@ -106,6 +108,117 @@ const AI_FIELDS = (() => {
   return out;
 })();
 
+/**
+ * 5. WHERE EVERY ALL-CAPS IDENTIFIER IS DECLARED (#1725). `prism3-build-component` teaches an author which
+ * hand-kept lists to join, by the lists' names (`INTERACTIVE`, `NO_SIZE_AXIS`, `COMPOSED_GLYPH`, …). A gate
+ * that renames one leaves the skill pointing at nothing, and scans 1-3 never read the name: it is not dotted,
+ * not snake_case, not a path. Measured before this check existed: renaming `COMPOSED_GLYPH` in the skill
+ * exited 0.
+ *
+ * THE INDEX is read from the SOURCE, never from the skills: name → every `.ts` file that declares it with
+ * `const`/`let`/`var`/`function`/`class`/`enum`/`type`/`interface`. Scope: every `.ts` file under
+ * `packages/`, `apps/` and `tools/`, and at the repo root (`verify.ts`), skipping `node_modules`, `dist` and
+ * `out`. A name bound only by destructuring or re-export is not in it; a skill quoting one fails, and the
+ * fix is to widen `DECL` here with a self-check sample, not to drop the quote.
+ *
+ * A DECLARATION STARTS A LINE (#1725 review). The first cut matched the keyword anywhere, so prose and
+ * payload strings declared names: "the type SET" in a comment, "a var NB really exports", `const PLAN=` inside
+ * an emitted script's template. That is the dangerous direction, since a word a skill invents passes because
+ * a comment happens to say it. So `DECL` requires the keyword to open a line, after indentation and an
+ * optional `export`/`declare`/`async`/`abstract`. A comment line opens with `*` or `//`, and a declaration
+ * inside a one-line payload string does not open its line, so neither reaches the index. Stripping comments
+ * first was tried and measured worse: a `/*` inside a glob string (`components/*.ts`) opened a "comment" that
+ * ate real code up to the next `*\/`, and the index lost 166 names, `CONTROL_DEFS` among them. What anchoring
+ * still admits, stated as its ceiling: a line inside a MULTI-line template literal or block comment that
+ * itself opens with a declaration keyword and no `*`. The corpus had none of those among the names the skills
+ * quote when this was written.
+ */
+const DECL = /^[ \t]*(?:export[ \t]+)?(?:declare[ \t]+)?(?:const|let|var|enum|type|interface|(?:async[ \t]+)?function\*?|(?:abstract[ \t]+)?class)[ \t]+([A-Z][A-Z0-9_]*)\b/gm;
+/** One file's declared all-caps names. Exported for the self-check, which drives it with a fixture. */
+export const declaredNames = (source: string): Set<string> => new Set([...source.matchAll(DECL)].map((m) => m[1]));
+const SOURCE_SKIP = new Set(['node_modules', 'dist', 'out', '.git']);
+const sourceFiles = (): string[] => {
+  const out: string[] = [];
+  const walk = (dir: string): void => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (SOURCE_SKIP.has(e.name)) continue;
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith('.ts')) out.push(relative(repo, p));
+    }
+  };
+  for (const d of ['packages', 'apps', 'tools']) if (existsSync(join(repo, d))) walk(join(repo, d));
+  for (const e of readdirSync(repo)) if (e.endsWith('.ts')) out.push(e);
+  return out;
+};
+const SOURCES = sourceFiles();
+/** name → the files declaring it, over `[file, source]` pairs. The live index and the self-check's fixture
+ *  index are both built here, so the fixture tests the code that builds the real one. */
+const indexOf = (files: [string, string][]): Map<string, Set<string>> => {
+  const out = new Map<string, Set<string>>();
+  for (const [f, src] of files)
+    for (const n of declaredNames(src)) {
+      if (!out.has(n)) out.set(n, new Set());
+      out.get(n)!.add(f);
+    }
+  return out;
+};
+const DECLARED = indexOf(SOURCES.map((f) => [f, readFileSync(join(repo, f), 'utf8')]));
+
+/**
+ * THE RULE FOR WHICH WORDS ARE CLAIMS, stated because all-caps is not only code. Every backticked word that
+ * is entirely `[A-Z0-9_]` (two characters or more, a letter first) is read as a claim that an identifier by
+ * that name is declared. That includes single words with no underscore: `TAXONOMY`, `STATES`, `INTERACTIVE`
+ * and `EXCLUDED` are four real list constants the build-component skill quotes today, so requiring an
+ * underscore would silently drop them. An all-caps word that is NOT an identifier (an acronym a skill sets in
+ * code font, or a name the skill says is not built yet) is admitted HERE, by name, with the reason. It is
+ * never handled by narrowing `UPPER`. Same rule as `NOT_EN_GB` in `lint-us-english.ts`: a false positive is
+ * fixed by an admission, never by a narrower scan. The counter-example exemption (`not `X``) applies too,
+ * as it does to every name.
+ *
+ * Both directions, so the list cannot rot: an admitted word that becomes a declared identifier fails as
+ * stale (drop the admission and let its location be checked), and so does one no skill quotes any more.
+ */
+const UPPER = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
+const NOT_DECLARED: Record<string, string> = {
+  COMPONENT_CONTRACT_VERSION: 'a decided direction with no code yet (#1325 Option 3, #1326 decision 3); `prism3-build-component` §8 names it and says in the next sentence that it does not exist in code today',
+};
+/** Admitted words a real skill quoted this run, for the stale-admission check. Cleared after the self-check. */
+const admittedSeen = new Set<string>();
+
+/**
+ * WHERE A SKILL PLACES A NAME. Two forms, both read from the skill's own text, and checked in this order:
+ *   - PROSE: the name followed by ` in ` and a backticked `*.ts` path or `lint-*` gate, across a line break
+ *     too ("`VARIANT_AXES` in\n`packages/engine/component-schema.ts`").
+ *   - TABLE ROW: a markdown row whose FIRST cell names a `*.ts` path or a `lint-*` gate. Every name in that
+ *     row belongs to that file. This is the build-component gate table, and it is the reason a location is
+ *     needed at all: `MUST_COVER` is declared in six gates, so "declared somewhere" would pass a rename of the
+ *     one the row means.
+ * Neither form → the name must be declared in EXACTLY ONE source file (#1725 review). Declared in more than
+ * one, an unplaced name is AMBIGUOUS and fails by name: "somewhere" would pass a rename of the one the skill
+ * means while another file keeps the name alive. `STATES` was the live case, declared in `component-schema.ts`,
+ * `test.ts` and two studio files; renaming the schema's passed. The fix is a placement in the skill. A `*.ts` path resolves from the repo root,
+ * as scan 3 reads it. A `lint-*` gate resolves to the one source file named `<gate>.ts`; none, or more than
+ * one, is a finding, because falling back to "anywhere" would hide exactly the rename this exists to see.
+ */
+const SITE = /^(lint-[a-z0-9-]+|[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*\.ts)$/;
+const siteFile = (site: string): { file?: string; why?: string } => {
+  if (site.endsWith('.ts')) return existsSync(resolve(repo, site)) ? { file: relative(repo, resolve(repo, site)) } : { why: `${site} does not exist` };
+  const hits = SOURCES.filter((f) => f === `${site}.ts` || f.endsWith(`/${site}.ts`));
+  return hits.length === 1 ? { file: hits[0] } : { why: `gate \`${site}\` resolves to ${hits.length ? hits.join(', ') : 'no source file'}` };
+};
+const placedIn = (text: string, at: number, len: number): string | undefined => {
+  const prose = /^\s+in\s+`([^`\n]+)`/.exec(text.slice(at + len));
+  if (prose && SITE.test(prose[1])) return prose[1];
+  const start = text.lastIndexOf('\n', at) + 1;
+  const line = text.slice(start, text.indexOf('\n', at) === -1 ? undefined : text.indexOf('\n', at));
+  if (!line.startsWith('|')) return undefined;
+  const first = line.split('|')[1] ?? '';
+  if (at - start <= line.indexOf('|', 1)) return undefined; // the name IS in the first cell
+  for (const c of first.matchAll(/`([^`\n]+)`/g)) if (SITE.test(c[1])) return c[1];
+  return undefined;
+};
+
 // ---- the scans ---------------------------------------------------------------------------------
 /** A dotted, lowercase identifier that is unambiguously a token-path claim. Excludes filenames
  *  (`design.md`), leading-dot names (`.ai.json`), paths, and anything carrying punctuation. */
@@ -119,7 +232,7 @@ type Finding = { file: string; kind: string; detail: string };
 
 /** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
  *  self-check can prove a scan works without proving anything still calls it. */
-const ran = { text: 0, coverage: 0 };
+const ran = { text: 0, coverage: 0, placed: 0 };
 
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
@@ -141,7 +254,12 @@ const ran = { text: 0, coverage: 0 };
  * as proof. **A mutation on a shared dependency cannot distinguish two code paths that depend on it.**
  * Mutate the call site, not the constant.
  */
-export const scanText = (text: string, rel: string, findings: Finding[]): void => {
+/** What check 5 resolves against. The live run uses the real index and admissions; the self-check passes
+ *  fixtures of its own, so a sample never depends on what the live lists happen to hold today. */
+type IdentCtx = { declared: Map<string, Set<string>>; notDeclared: Record<string, string> };
+const LIVE: IdentCtx = { declared: DECLARED, notDeclared: NOT_DECLARED };
+
+export const scanText = (text: string, rel: string, findings: Finding[], ctx: IdentCtx = LIVE): void => {
   ran.text++;
   for (const m of text.matchAll(/`([^`\n]+)`/g)) {
     const raw = m[1].trim();
@@ -167,6 +285,23 @@ export const scanText = (text: string, rel: string, findings: Finding[]): void =
     // 2. snake_case must be a real MCP tool or a real .ai.json field
     if (SNAKE.test(raw) && !TOOL_NAMES.has(raw) && !AI_FIELDS.has(raw)) {
       findings.push({ file: rel, kind: 'unknown identifier', detail: `\`${raw}\` is neither an MCP tool (${[...TOOL_NAMES].join(', ')}) nor an .ai.json field` });
+    }
+
+    // 5. an all-caps name is declared where the skill places it, or somewhere when it places it nowhere
+    if (raw.length >= 2 && UPPER.test(raw)) {
+      if (raw in ctx.notDeclared) { admittedSeen.add(raw); continue; }
+      const where = ctx.declared.get(raw);
+      const site = placedIn(text, m.index, m[0].length);
+      if (site) {
+        ran.placed++;
+        const { file, why } = siteFile(site);
+        if (!file) findings.push({ file: rel, kind: 'unplaceable identifier', detail: `\`${raw}\` is placed in \`${site}\`, but ${why}` });
+        else if (!where?.has(file)) findings.push({ file: rel, kind: 'misplaced identifier', detail: `\`${raw}\` is not declared in ${file}, where this skill places it (declared in: ${where ? [...where].join(', ') : 'no source file'})` });
+      } else if (!where) {
+        findings.push({ file: rel, kind: 'undeclared identifier', detail: `\`${raw}\` is not declared in any source file. If it is not a code name, admit it in NOT_DECLARED with the reason` });
+      } else if (where.size > 1) {
+        findings.push({ file: rel, kind: 'ambiguous identifier', detail: `\`${raw}\` is declared in ${where.size} files (${[...where].join(', ')}) and this skill does not say which. Place it: write it as \`${raw}\` in \`<path>.ts\`, or in a table row whose first cell names the file` });
+      }
     }
   }
 
@@ -276,6 +411,33 @@ const selfCheck = (): string[] => {
   // directions asserted through the real scan, so the exemption cannot quietly widen.
   if (sampleScan('reach for that, not `color.feedback.success.surface`').length) bad.push('a counter-example is no longer exempted');
   if (!sampleScan('reach for `color.feedback.success.surface`').length) bad.push('the counter-example exemption became a blanket amnesty (a dead name passes when stated POSITIVELY)');
+  // Check 5 (#1725), both directions on every arm, through the shipping scan. Names are literals, never read
+  // back out of NOT_DECLARED or the index: the fixture tests the function, the real run tests the lists.
+  if (sampleScan('add it to `MUST_PROJECT` first').length) bad.push('a DECLARED all-caps identifier is now falsely flagged');
+  if (!sampleScan('add it to `COMPOSED_GLYPHS` first').length) bad.push('an UNDECLARED all-caps identifier is no longer detected (#1725: a renamed list constant)');
+  if (!sampleScan('add it to `TAXONOMIES` first').length) bad.push('an undeclared all-caps word with NO underscore is no longer detected — the scan was narrowed to underscore names');
+  if (sampleScan('reach for that, not `COMPOSED_GLYPHS`').length) bad.push('an all-caps counter-example is no longer exempted');
+  // Fixture context (#1725 review): its own index and its own admission, built through the same `indexOf` /
+  // `declaredNames` the live index uses, so no sample leans on what the live lists hold today.
+  const fx: IdentCtx = {
+    declared: indexOf([
+      ['a.ts', '// const ONLY_IN_COMMENT = 1;\n/**\n * type ALSO_IN_COMMENT = 2\n */\nconst s = `const IN_A_STRING=3`;\nconst ONE_FILE = 4;\nconst TWO_FILES = 5;\n'],
+      ['b.ts', 'export const TWO_FILES = 6;\n'],
+    ]),
+    notDeclared: { PLANNED_FIXTURE: 'the fixture admission' },
+  };
+  const fxScan = (body: string): Finding[] => { const f: Finding[] = []; scanText(body, 'self-check', f, fx); return f; };
+  if (fxScan('the planned `PLANNED_FIXTURE` is not built').length) bad.push('an admitted NOT_DECLARED word is now flagged — the admission list is not consulted');
+  if (!fxScan('the `ONLY_IN_COMMENT` list').some((f) => f.kind === 'undeclared identifier')) bad.push('a name that appears only in a // COMMENT now counts as declared — the index reads comments');
+  if (!fxScan('the `ALSO_IN_COMMENT` list').some((f) => f.kind === 'undeclared identifier')) bad.push('a name that appears only in a /** */ COMMENT now counts as declared — the index reads comments');
+  if (!fxScan('the `IN_A_STRING` list').some((f) => f.kind === 'undeclared identifier')) bad.push('a name declared only inside a STRING now counts as declared — the index reads payload strings');
+  if (fxScan('the `ONE_FILE` list').length) bad.push('an unplaced name declared in exactly one file is now falsely flagged');
+  if (!fxScan('the `TWO_FILES` list').some((f) => f.kind === 'ambiguous identifier')) bad.push('an unplaced name declared in TWO files passes — it resolved to "anywhere" instead of failing as ambiguous');
+  if (sampleScan('| `lint-rung-names` | a def in `NO_SIZE_AXIS` |').length) bad.push('a table-row identifier declared in the row\'s own gate is now falsely flagged');
+  if (!sampleScan('| `lint-rung-names` | a def in `MUST_PROJECT` |').length) bad.push('a table-row identifier declared only in ANOTHER gate passes — the row\'s gate is not being read as its location');
+  if (!sampleScan('| `lint-no-such-gate` | a def in `MUST_PROJECT` |').length) bad.push('a table row naming a gate with no source file passes — an unresolvable location fell back to "anywhere"');
+  if (sampleScan('`VARIANT_AXES` in\n`packages/engine/component-schema.ts` closes them').length) bad.push('a prose "`X` in `file.ts`" placement that is correct is now falsely flagged');
+  if (!sampleScan('`VARIANT_AXES` in `packages/engine/version.ts` closes them').length) bad.push('a prose "`X` in `file.ts`" placement naming the WRONG file passes — the placement is not being read');
   // A missing engine file is check 3, and it runs over the same text — sampled so deleting that loop
   // is not silent either.
   if (!sampleScan('run packages/engine/does-not-exist.ts now').length) bad.push('a missing engine-file reference is no longer detected');
@@ -386,7 +548,14 @@ const findings: Finding[] = [];
 // Snapshot AFTER the self-check, which drives both scans with samples — the floor below asks what the
 // real skills exercised, not what the samples did.
 const before = { ...ran };
+admittedSeen.clear();
 for (const d of dirs) scanSkill(d, findings);
+// NOT_DECLARED, the other direction (#1725): an admission that no longer applies is a memory of something
+// no longer true. Checked after the real skills, never the self-check's samples.
+for (const [w, why] of Object.entries(NOT_DECLARED)) {
+  if (DECLARED.has(w)) findings.push({ file: 'packages/engine/lint-skills.ts', kind: 'stale admission', detail: `NOT_DECLARED admits \`${w}\` (${why}), but it is now declared in ${[...DECLARED.get(w)!].join(', ')}. Remove the admission so its location is checked` });
+  else if (!admittedSeen.has(w)) findings.push({ file: 'packages/engine/lint-skills.ts', kind: 'stale admission', detail: `NOT_DECLARED admits \`${w}\`, which no skill quotes any more. Remove it` });
+}
 
 console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}).`);
 // A scan that goes dark reports success forever. Zero skills means the layout moved, not that the
@@ -410,6 +579,16 @@ const optedIn = dirs.filter((d) => /^documents:\s*brandInput\s*$/m.test(readFile
 const wiring: string[] = [];
 if (ran.text - before.text !== dirs.length) {
   wiring.push(`the reference scan ran ${ran.text - before.text}× over ${dirs.length} skill(s) — it is no longer called for every skill`);
+}
+// PLACEMENT FLOOR (#1725 review). The self-check proves `placedIn` can read a placement; nothing above proves
+// the REAL skills still carry any. Reformat the build-component gate table (indent its rows, un-backtick a
+// first cell) and every placed name falls through to the unplaced rule and passes wherever the name is
+// unique. A literal, not derived: counted by hand off the skills when this was written (the gate table's 27,
+// plus three prose "`X` in `file`" placements, plus `STATES`, placed by this review). Raise it when a skill
+// places more; a drop fails here by name.
+const PLACED_FLOOR = 31;
+if (ran.placed - before.placed < PLACED_FLOOR) {
+  wiring.push(`only ${ran.placed - before.placed} quoted identifier(s) in the real skills carry a placement, below the floor of ${PLACED_FLOOR}. A table row or an "\`X\` in \`file\`" sentence stopped reading as one, so its names fell back to the unplaced rule`);
 }
 if (ran.coverage - before.coverage !== optedIn.length) {
   wiring.push(`the coverage scan engaged ${ran.coverage - before.coverage}× but ${optedIn.length} skill(s) declare \`documents: brandInput\` (${optedIn.join(', ') || 'none'})`);
