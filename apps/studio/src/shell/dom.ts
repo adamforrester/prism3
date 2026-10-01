@@ -32,7 +32,8 @@ export const h = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: P3Class, 
 export const hook = <E extends Element>(n: E, role: string): E => { n.setAttribute('data-p3', role); return n; };
 
 /** Chrome glyphs: 16 px, a 1.5 px stroke in `currentColor` (concept v6's set, plus `pages` and `export`; S1.3 adds `layers` and `chevl` for Inspect;
- *  S1.4 adds concept v6's `pulse` for Activity and `agent` for the Agent chip; S2 adds `info`, `plus` and `chevr` for the levers panel). */
+ *  S1.4 adds concept v6's `pulse` for Activity and `agent` for the Agent chip; S2 adds `info`, `plus` and `chevr` for the levers panel;
+ *  S3 adds concept v6's `warn`). */
 const GLYPHS = {
   chev: '<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
   check: '<path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -51,6 +52,8 @@ const GLYPHS = {
   plus: '<path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   chevr: '<path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
   search: '<circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.4 10.4l3.6 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  // S3: concept v6's warning triangle, for a state line that warns (the namespace placeholder, T2).
+  warn: '<path d="M8 1.8l6.6 11.7H1.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.3v3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r="0.9" fill="currentColor"/>',
 } as const;
 export type Glyph = keyof typeof GLYPHS;
 

@@ -16,7 +16,7 @@
  *
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
- * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes);
+ * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -66,8 +66,9 @@ export const DOMAINS = [
       { title: 'Personality', desc: 'Each word fills settings you have not set yet. Settings you set win.', rows: [{ ctl: 'personality', schemaOnly: ['personality'] }] },
       { title: 'Modes', rows: [{ ctl: 'modes', schemaOnly: ['modes', 'customModes'] }] },
     ],
-    status: 'legacy',
-    legacy: ['preview'],
+    // S3: moved. Its levers are `domains/brand.ts`, its preview `preview/brand.ts` (the Style guide, lent).
+    status: 'new',
+    legacy: [],
   },
   {
     id: 'color', label: 'Color', subpages: [

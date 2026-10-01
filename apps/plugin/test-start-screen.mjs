@@ -560,21 +560,32 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     ok(unmarked.length === 0, `${where}: every inline-inked text node is marked data-specimen${unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}` : ''}`);
     return m;
   };
-  // The brand menu's three controls BY IDENTITY — the surface #1031's 1.11:1 lived on, in this bundle.
-  // A pass that never opens it is a clean report over a corpus that excludes the defect (docs/34 shape 9),
-  // which is the first of the two reasons the studio suite missed #1031.
-  // Name, Namespace, and the import textarea, each by its hook.
-  const BRANDMENU_CONTROLS = ['[data-p3="brand-menu-name"]', '[data-p3="brand-menu-namespace"]', '[data-p3="import-text"]'].map(hooks.role);
+  // The brand menu's control BY IDENTITY — the surface #1031's 1.11:1 lived on, in this bundle. A pass that
+  // never opens it is a clean report over a corpus that excludes the defect (docs/34 shape 9), which is the
+  // first of the two reasons the studio suite missed #1031. UI redesign S3 moved the Name and Namespace fields
+  // to Brand › Identity, so the menu keeps the import textarea, and Brand's two fields are measured on Brand.
+  const BRANDMENU_CONTROLS = ['[data-p3="import-text"]'].map(hooks.role);
   const measureBrandMenu = async (page, where) => {
     await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-import"]');
     await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
-    // Typed into, so the Name row measures glyphs that are on screen rather than an empty field.
-    await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'plugin-brand');
+    // Typed into, so the field measures glyphs that are on screen rather than an empty field.
+    await page.fill('[data-p3="brand-menu"] [data-p3="import-text"]', 'plugin-brand');
     const m = await measure(page, where);
     const seen = new Set(m.fields.map((f) => f.hook));
     for (const want of BRANDMENU_CONTROLS) ok(seen.has(want), `${where}: the "${want}" control is mounted and was measured`);
+  };
+  // Brand (S3): Identity's two fields BY IDENTITY, typed into, with the Style guide in the preview beside them.
+  const BRAND_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]'].map(hooks.role);
+  const measureBrand = async (page, where) => {
+    await hooks.click(page.locator('[data-p3="tab-brand"]'));
+    await hooks.need(page, '[data-p3="brand-levers"] [data-p3="brand-name"]');
+    await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="specimen"]');
+    await page.fill('[data-p3="brand-name"]', 'plugin-brand');
+    const m = await measure(page, where);
+    const seen = new Set(m.fields.map((f) => f.hook));
+    for (const want of BRAND_CONTROLS) ok(seen.has(want), `${where}: the "${want}" control is mounted and was measured`);
   };
 
   if (DEFAULT && MIN) {
@@ -604,6 +615,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
           pagesSeen.add(hook);
           await measure(page, `${tag} / ${label}`);
         }
+        await measureBrand(page, `${tag} / Brand`);
         await measureBrandMenu(page, `${tag} / brand menu`);
         ok(errors.length === 0, `${tag}: no console errors across the sweep (${errors.slice(0, 1).join('') || 'none'})`);
         await context.close();
