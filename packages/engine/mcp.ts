@@ -383,8 +383,8 @@ export const toolDefs = (brandSchema: unknown) => [
 ];
 
 /** Sections included when the caller does not say. `notes` is the decisions log — every gap the
- *  engine filled on the brand's behalf, including the ones it explicitly flags for human
- *  confirmation ("action color defaults to the PRIMARY brand palette — CONFIRM this hue…").
+ *  engine filled on the brand's behalf, including the ones a person should look at ("action: follows
+ *  the primary palette (the default) — buttons and links take the brand hue; …").
  *
  *  It was opt-in until now, grouped with `tokens` and `aiMetadata` under "withheld by default".
  *  That grouping was by CATEGORY when the only thing justifying it is COST, and the measured costs

@@ -724,8 +724,9 @@ ok(autoPlaceStep(0.9) < autoPlaceStep(0.3), 'autoPlaceStep: lighter < darker');
   const rendered = rgbToOklch(generateRamp({ hue: 145, chroma: 0.2, anchor: { oklch: oog, stepNum: 500 } }).find((s) => s.num === 500)!.rgb);
   ok(Math.abs(rendered.h - oog.h) > 1 || Math.abs(rendered.l - oog.l) > 0.02, 'M-03: an out-of-gamut anchor genuinely drifts in hue/L (the old anchor ΔE gate compared two identically-clipped values — tautological)');
   const mkTheme = (o: { l: number; c: number; h: number }) => brandTheme({ id: 't', primary: { l: 0.6, c: 0.03, h: 200 }, neutral: { hue: 200, chroma: 0.01 }, brandColors: [{ name: 'x', oklch: o }] });
-  ok(mkTheme(oog).notes.some((n) => n.includes("anchor 'x'") && n.includes('OUT of sRGB gamut')), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
-  ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('OUT of sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
+  // A literal, not a fragment: the note is approved copy (#1883), so a change to it shows up here as a diff.
+  ok(mkTheme(oog).notes.includes("anchor 'x' (oklch 0.55 0.32 145) is outside the sRGB gamut — sRGB shows at most 0.173 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.173 ships exactly."), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
+  ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('outside the sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
 }
 
 // ------------------------------------------------ extreme white-label brands
@@ -6264,7 +6265,7 @@ arm: {
   ok(/\.primary\./.test(infoPath), `roleColors: text.info now resolves on the primary ramp (${infoPath.split('.').slice(-2).join('.')})`);
   // (e) hue-mismatch is flagged, not blocked.
   const mis = brandTheme({ id: 'mis', primary: { l: 0.5, c: 0.15, h: 150 }, neutral: { hue: 150, chroma: 0.01 }, brandColors: [{ name: 'lime', oklch: { l: 0.7, c: 0.15, h: 135 } }], roleColors: { danger: 'lime' } } as unknown as BrandInput);
-  ok(mis.roleToPalette.danger === 'lime' && mis.notes.some((n) => /CONFIRM the danger signal/.test(n)), 'roleColors: a hue mismatch (danger not red) is allowed but flagged in notes');
+  ok(mis.roleToPalette.danger === 'lime' && mis.notes.includes("roleColors: 'lime' (hue 135°) is 108° from the usual danger hue (27°) — contrast holds, but the color may not read as danger."), 'roleColors: a hue mismatch (danger not red) is allowed but flagged in notes');
   // (f) guards: brand/neutral cannot be rebased; unknown palette rejected.
   let tn = false, tu = false;
   try { mk({ neutral: 'primary' }); } catch { tn = true; }
@@ -6284,7 +6285,7 @@ arm: {
   const infoStep = (t: typeof def) => t.palettes.find((p) => p.palette === 'info')!.steps.find((s) => s.num === 500)!;
   ok(Math.abs(infoStep(teal).oklch.h - 175) < 12, `status.info: a measured info hue seeds the info ramp (got h${infoStep(teal).oklch.h.toFixed(0)})`);
   ok(Math.abs(infoStep(def).oklch.h - infoStep(teal).oklch.h) > 30, 'status.info: the override actually moves the info ramp off the canonical blue default');
-  ok(teal.notes.some((n) => /^info: brand-supplied hue/.test(n)), 'status.info: a supplied info hue is recorded in the decisions log');
+  ok(teal.notes.includes("info: the brand's hue 175 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear."), 'status.info: a supplied info hue is recorded in the decisions log');
   // contrast still holds: text.info clears its floor in every mode on the re-hued ramp.
   const infoFail = resolveAllModes(teal).filter((m) => { const r = m.roles['text.info']; return r.ratio < r.min; }).map((m) => m.mode);
   ok(infoFail.length === 0, 'status.info: text.info still clears its contract in every mode after the re-hue' + (infoFail.length ? ` — ${infoFail.join(',')}` : ''));
@@ -6508,7 +6509,7 @@ arm: {
   ok(!!satRedDanger, 'M-05: a saturated red primary mints a stable palette.danger namespace (not collapsed into primary)');
   ok(satRedDanger!.steps.every((s, i) => s.hex === satRedPrimary.steps[i].hex), 'M-05: the red-seeded danger ramp duplicates the primary ramp step-for-step (danger ≈ primary while shared)');
   ok(satRedDanger!.steps !== satRedPrimary.steps && satRedDanger!.steps[0] !== satRedPrimary.steps[0], 'M-05: the danger ramp is a deep copy, not the same Step objects (editing one never mutates the other)');
-  ok(greige.notes.some((n) => n.includes('below the') && n.includes('floor')), 'M-05: the greige carve reason is surfaced in the decisions log');
+  ok(greige.notes.includes('danger: the primary (hue 30) is reddish, but its chroma 0.03 is below the 0.08 floor for danger — a separate red at hue 27 carries destructive actions.'), 'M-05: the greige carve reason is surfaced in the decisions log');
 }
 
 // M-06: a non-primary actionPalette anchors the action role at the brand's PINNED accent step
@@ -6651,10 +6652,10 @@ for (const scale of ['default', 'expressive'] as const) {
   ok(nonCap({ captionFloor: 10, sizeFloor: 8 }) === nonCap({}), '[#1360/#1363] the caption opt-ins APPEND caption rungs only — every non-caption composite is byte-identical');
   // (f) ESCAPE HATCH (#1363, docs/34): 8px sits below the sizes the contrast ratios were reasoned about,
   //     so sizeFloor:8 MUST be flagged in the decisions log; off by default → no such note. Removing the
-  //     `notes.push` for the escape hatch fails this BY NAME.
-  ok(tBrand('sf8n', { sizeFloor: 8 }).notes.some((n) => /ESCAPE HATCH/.test(n) && /sizeFloor:8/.test(n) && /contrast ratios were reasoned about/.test(n)),
+  //     `notes.push` for the escape hatch fails this BY NAME. The note is approved copy (#1883): a literal.
+  ok(tBrand('sf8n', { sizeFloor: 8 }).notes.includes("typography: sizeFloor 8 extends the size ladder to 8px and adds caption.xs at 8px — below the sizes this system's contrast ratios were reasoned about, and below practical legibility. Off by default; use it only for fine print (legal, footnotes, dense product attributes) that has an accessible alternative."),
     '[#1363] sizeFloor:8 is FLAGGED as an escape hatch in notes (8px is below the contrast-reasoned range)');
-  ok(!tBrand('sf-dn', {}).notes.some((n) => /ESCAPE HATCH/.test(n)),
+  ok(!tBrand('sf-dn', {}).notes.some((n) => /^typography: sizeFloor 8 /.test(n)),
     '[#1363] a brand that does not opt into sizeFloor:8 emits NO escape-hatch note (default off → corpus byte-identical)');
   // (g) validateBrandInput enforces the enums (parity with titleFloor CR-04).
   {
@@ -7418,14 +7419,55 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(nbTheme().gradient.gradients.length === 0, 'NB ships no gradients (it had none)');
 }
 
+// #1883 review: each note the independent review of #1893 found inaccurate, rendered on the branch and
+// input that exposed it, against the approved literal. A note that drifts back into a false claim fails
+// here by the row's name. Literals, never a join of theme.ts's template (docs/34 shape 2).
+{
+  const B = { primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const acc = [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }];
+  const notesOf = (id: string, over: Record<string, unknown>) => brandTheme({ id, ...B, ...over } as unknown as BrandInput).notes;
+  // Row 9: the printed limit is rounded, so the remedy cannot be "set it to the limit" (0.081 re-warns).
+  const gamut = notesOf('rv-gamut', { primary: { l: 0.2, c: 0.37, h: 14 }, neutral: { hue: 14, chroma: 0.01 } });
+  ok(gamut.includes("anchor 'primary' (oklch 0.2 0.37 14) is outside the sRGB gamut — sRGB shows at most 0.081 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.081 ships exactly."),
+    '#1883 review row 9: the gamut note names the rounded limit and a remedy that clears it');
+  ok(notesOf('rv-gamut-ok', { primary: { l: 0.2, c: 0.0805, h: 14 }, neutral: { hue: 14, chroma: 0.01 } }).every((n) => !n.startsWith("anchor 'primary'")),
+    "#1883 review row 9: following the gamut note's remedy (0.081 − 0.0005) clears the warning");
+  // Row 15: the default-action note claims only what the branch knows — links and roleColors.action may differ.
+  const act = notesOf('rv-act', { brandColors: acc, linkPalette: 'accent', roleColors: { action: 'accent' } });
+  ok(act.includes('action: the primary palette, by default — actionPalette is not set.') && !act.some((n) => /buttons and links/.test(n)),
+    '#1883 review row 15: the default-action note claims no palette for links or a rebased action');
+  // Row 45: the anchor is gated at the non-text floor against background.secondary and tertiary, not AA on the page.
+  ok(notesOf('rv-anch', { brandColors: acc, actionPalette: 'accent' }).includes("action: anchored at 'accent' step 450, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary."),
+    '#1883 review row 45: the action-anchor note names the 3:1 / 7:1 bar and both grounds');
+  // Row 14: with roleColors.success set and status.success unset, the brand DID set a success color.
+  ok(notesOf('rv-stdef', { brandColors: acc, roleColors: { success: 'accent' } }).includes('success: default hue 145 — status.success is not set.'),
+    '#1883 review row 14: the default-status note claims only that status.<k> is unset');
+  // Row 26: the dropped ramp can be the brand's own (status.success supplied, then rebased away).
+  const prune = notesOf('rv-prune', { brandColors: acc, status: { success: { l: 0.5, c: 0.15, h: 150, chroma: 0.15 } }, roleColors: { success: 'accent' } });
+  ok(prune.includes('success: rebased by roleColors, so the success ramp is dropped — no role uses it.') && !prune.some((n) => /default success ramp/.test(n)),
+    '#1883 review row 26: a dropped brand-supplied status ramp is not called the default');
+  // Row 38: 'full' keeps the caveat that the control may not read as disabled.
+  ok(notesOf('rv-dis', { disabledStrategy: 'full' }).includes("disabled: 'full' — disabled text and icons clear 4.5:1 (AA text) against the contrast floor, so dimming does not mark them and a disabled control may not read as disabled; the fill, border, cursor and aria-disabled carry that state."),
+    "#1883 review row 38: disabled 'full' says a disabled control may not read as disabled");
+  // Row 31: the inset is one layer.
+  ok(notesOf('rv-shadow', {}).includes('shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 262 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.'),
+    '#1883 review row 31: the shadow note gives the inset one layer');
+  // Row 42: contrast is measured against the floor, which moves with the page.
+  ok(notesOf('rv-surf', { surfaces: { light: { base: 100 } } }).includes('surfaces: the light page is neutral.100, not the default — the contrast floor moves with it.'),
+    '#1883 review row 42: a non-default page moves the contrast floor');
+  // Row 32: gradient text contrast is computed, not gated.
+  ok(notesOf('rv-grad', { gradients: true }).includes('gradient: 1 brand gradient(s) — brand (linear 135°, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.'),
+    '#1883 review row 32: the gradient note says text contrast is computed, not checked');
+}
+
 // L-07: a brand-SUPPLIED status override seeds a vivid, UNANCHORED ramp from its hue+chroma
 // (not pinned at its measured lightness) — say so in the decisions log so a measured swatch
 // isn't wrongly implied to round-trip. The engine-default branch note is unchanged.
 {
   const withOverride = brandTheme({ id: 'st', primary: { l: 0.5, c: 0.12, h: 200 }, neutral: { hue: 200, chroma: 0.01 }, status: { success: { l: 0.5, c: 0.15, h: 150, chroma: 0.15 } } });
-  ok(withOverride.notes.some((n) => n.startsWith('success: brand-supplied hue 150') && n.includes('not pinned at its measured lightness')), 'L-07: a brand-supplied status note flags that the ramp is unanchored (measured swatch may not appear verbatim)');
+  ok(withOverride.notes.includes("success: the brand's hue 150 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear."), 'L-07: a brand-supplied status note flags that the ramp is unanchored (measured swatch may not appear verbatim)');
   const noOverride = brandTheme({ id: 'st2', primary: { l: 0.5, c: 0.12, h: 200 }, neutral: { hue: 200, chroma: 0.01 } });
-  ok(noOverride.notes.some((n) => n === 'success: engine default hue 145'), 'L-07: the engine-default status note is unchanged (byte-identical for brands without overrides)');
+  ok(noOverride.notes.some((n) => n === 'success: default hue 145 — status.success is not set.'), 'L-07: the engine-default status note names the default hue and why (status.success is not set)');
 }
 
 // ------------------------------------------- surface/content model invariants
@@ -7601,7 +7643,7 @@ arm: {
   ok(broken.length === 0, 'harbor: all mode contrast contracts hold' + (broken.length ? ` — FAILED: ${broken.join(', ')}` : ''));
   const built = buildTree(theme);
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `harbor: all ${built.stats.aliases} aliases resolve`);
-  ok(theme.notes.some((n) => n.toLowerCase().includes('action color defaults to the primary')), 'harbor: default action=primary flagged in notes');
+  ok(theme.notes.includes('action: the primary palette, by default — actionPalette is not set.'), 'harbor: default action=primary flagged in notes');
 
   // M-11: the alias gate must include fluid-typography responsive refs (`responsive.{min,max}.ref`)
   // — a dangling {root.font.size.NN} used to ship while the gate reported clean. Independently

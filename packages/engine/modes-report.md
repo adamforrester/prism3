@@ -2,11 +2,11 @@
 
 # Theme: nb (nbds.* / rgb)
 
-- NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).
-- dimension axis: 4px grid, 8px space rhythm (numbered scale), comfortable density, radius scale 1 (baseMd 4px).
-- typography: curated rem size ladder (22 steps, 10–160px); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.
-- shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB's heavier inverse — the field-correct choice).
-- layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale.
+- reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.
+- dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).
+- typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.
+- shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.
+- layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale.
 
 Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 
@@ -1155,24 +1155,24 @@ Component sizes — t-shirt, density `comfortable` (control heights; each compon
 
 # Theme: prism3 (pds3.* / hex)
 
-- namespace: tokens emit under 'pds3.*' (custom, not the 'prism' default)
-- primary anchor (h266.75) pinned exactly at step 600
-- brand color 'accent' (h289.32) added
-- success: brand-supplied hue 155 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- info: brand-supplied hue 230 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand
-- danger: brand-supplied hue 25
-- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)
-- motion: tempo 'standard' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
-- shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 266.75, amount 0.35). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.
-- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/600/900; families display=Playfair Display, title=Playfair Display, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'default'. 63 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 21 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
-- disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
-- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
-- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
+- namespace: tokens emit under 'pds3.*' instead of the default 'prism.*'.
+- primary: the brand color is pinned at step 600 (hue 266.75) — the ramp is built around it.
+- brand color: 'accent' added (hue 289.32).
+- success: the brand's hue 155 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- warning: the brand's hue 70 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- info: the brand's hue 230 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- action: the primary palette, by default — actionPalette is not set.
+- danger: the brand's hue 25.
+- dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).
+- motion: 'standard' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 266.75 at 0.35. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- gradient: 2 brand gradient(s) — brand (linear 135°, 2 stops), glow (radial, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.
+- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/600/900; families display Playfair Display, title Playfair Display, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'default' type scale. 63 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 21 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
+- strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
@@ -2321,26 +2321,26 @@ Component sizes — t-shirt, density `comfortable` (control heights; each compon
 
 # Theme: aurora (ads.* / hex)
 
-- namespace: tokens emit under 'ads.*' (custom, not the 'prism' default)
-- primary anchor (h285) pinned exactly at step 550
-- anchor 'accent' (L0.55 C0.15 h235) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.117; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.117 for an exact match.
-- brand color 'accent' (h235) added
-- success: engine default hue 145
-- warning: engine default hue 75
-- info: engine default hue 245
-- action color is decoupled: uses palette 'accent', NOT the primary brand palette — explicit brand decision
-- danger: primary hue 285 is NOT red → carved a dedicated danger red at hue 27
-- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 2 (baseMd 4px)
-- motion: tempo 'snappy' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
-- shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1.3; tinted base (hue 285, amount 0.5). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.
-- layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32/32 · 16/24/24/32/48/48); container max 1280px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/700/900; families display=Clash Display, title=Clash Display, body=Inter, label=Inter, caption=Inter, eyebrow=Clash Display, code=JetBrains Mono (variable: display/title/body/label/caption/eyebrow); typeScale 'expressive'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung 'xl' (112px); title tier includes title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 360–1440px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
-- disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
-- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
-- action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor
-- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
+- namespace: tokens emit under 'ads.*' instead of the default 'prism.*'.
+- primary: the brand color is pinned at step 550 (hue 285) — the ramp is built around it.
+- anchor 'accent' (oklch 0.55 0.15 235) is outside the sRGB gamut — sRGB shows at most 0.117 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.117 ships exactly.
+- brand color: 'accent' added (hue 235).
+- success: default hue 145 — status.success is not set.
+- warning: default hue 75 — status.warning is not set.
+- info: default hue 245 — status.info is not set.
+- action: uses the 'accent' palette instead of primary, as the brand sets.
+- danger: the primary (hue 285) is not red, so danger gets its own red at hue 27.
+- dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 2 (base radius 4px).
+- motion: 'snappy' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1.3; tinted to hue 285 at 0.5. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- gradient: 2 brand gradient(s) — brand (linear 135°, 2 stops), glow (radial, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.
+- layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12/12 by breakpoint); gutters 16/16/24/24/32/32px and margins 16/24/24/32/48/48px, from the spacing scale; containers max 1280px, narrow 720px.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/700/900; families display Clash Display, title Clash Display, body Inter, label Inter, caption Inter, eyebrow Clash Display, code JetBrains Mono (variable: display/title/body/label/caption/eyebrow); 'expressive' type scale. 38 text styles: title and display sizes follow the type scale, display tops out at 'xl' (112px), title.2xs is included. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 360 to 1440px and desktop and mobile Figma modes.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- action: anchored at 'accent' step 500, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.
+- neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
+- strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
@@ -3489,25 +3489,25 @@ Component sizes — t-shirt, density `comfortable` (control heights; each compon
 
 # Theme: harbor (hds.* / hex)
 
-- namespace: tokens emit under 'hds.*' (custom, not the 'prism' default)
-- primary anchor (h195) pinned exactly at step 600
-- anchor 'primary' (L0.46 C0.08 h195) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.079; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.079 for an exact match.
-- success: brand-supplied hue 150 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- info: engine default hue 245
-- action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand
-- danger: brand-supplied hue 27
-- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)
-- motion: tempo 'relaxed' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
-- shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 65, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: none (opt-in axis; brand declared no gradients — the field-common default).
-- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, title=Inter, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'compact'. 39 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (144px); title tier omits title.2xs). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
-- disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
-- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
-- light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it
-- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
+- namespace: tokens emit under 'hds.*' instead of the default 'prism.*'.
+- primary: the brand color is pinned at step 600 (hue 195) — the ramp is built around it.
+- anchor 'primary' (oklch 0.46 0.08 195) is outside the sRGB gamut — sRGB shows at most 0.079 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.079 ships exactly.
+- success: the brand's hue 150 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- warning: the brand's hue 70 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- info: default hue 245 — status.info is not set.
+- action: the primary palette, by default — actionPalette is not set.
+- danger: the brand's hue 27.
+- dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).
+- motion: 'relaxed' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 65 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- gradient: none — the brand declares no gradients, and none are added by default.
+- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display Inter, title Inter, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'compact' type scale. 39 text styles: title and display sizes follow the type scale, display tops out at '3xl' (144px), title.2xs is left out. 10 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- surfaces: the light page is neutral.50, not the default — the contrast floor moves with it.
+- neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
+- strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
 Palettes: primary, neutral, success, warning, info, danger. Danger draws from `danger`.
 
