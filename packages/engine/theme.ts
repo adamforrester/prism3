@@ -2478,7 +2478,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const gamutNote = (name: string, o: { l: number; c: number; h: number }) => {
     if (inGamut(o)) return;
     const mc = Math.round(maxChroma(o.l, o.h, o.c) * 1000) / 1000;
-    notes.push(`anchor '${name}' (oklch ${o.l} ${o.c} ${o.h}) is outside the sRGB gamut — sRGB shows at most ~${mc} chroma at this lightness and hue, so it ships clamped and its lightness and hue can shift. Set its chroma to ${mc} for an exact match.`);
+    notes.push(`anchor '${name}' (oklch ${o.l} ${o.c} ${o.h}) is outside the sRGB gamut — sRGB shows at most ${mc} chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below ${mc} ships exactly.`);
   };
   gamutNote('primary', input.primary);
   for (const bc of input.brandColors ?? []) gamutNote(bc.name, bc.oklch);
@@ -2530,7 +2530,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // won't round-trip exactly, so say so rather than imply the swatch is reproduced.
     notes.push(supplied
       ? `${k}: the brand's hue ${s.h} — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.`
-      : `${k}: default hue ${s.h} — the brand sets no ${k} color.`);
+      : `${k}: default hue ${s.h} — status.${k} is not set.`);
     return { palette: k, role: k as Role, description: `${k} status`, steps: statusRamp(s.h, s.chroma) };
   };
   palettes.push(status('success'), status('warning'), status('info'));
@@ -2541,7 +2541,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   }
   notes.push(actionPalette === 'primary'
-    ? `action: follows the primary palette (the default) — buttons and links take the brand hue; actionPalette sets another.`
+    ? `action: the primary palette, by default — actionPalette is not set.`
     : `action: uses the '${actionPalette}' palette instead of primary, as the brand sets.`);
 
   // ---- danger carve ----
@@ -2666,7 +2666,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   for (let i = palettes.length - 1; i >= 0; i--) {
     const p = palettes[i];
     if ((p.palette === 'success' || p.palette === 'warning' || p.palette === 'info') && !usedPalettes.has(p.palette)) {
-      notes.push(`${p.palette}: rebased by roleColors, so the default ${p.palette} ramp is dropped — no role uses it.`);
+      notes.push(`${p.palette}: rebased by roleColors, so the ${p.palette} ramp is dropped — no role uses it.`);
       palettes.splice(i, 1);
     }
   }
@@ -2748,7 +2748,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     notes.push(`motion: easing roles use a different curve per mode — ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k} → ${v}`).join(', ')})`).join('; ')}; the curves themselves are the same in every mode.`);
   }
   const shadow = buildShadow(input.neutral.hue, input.shadow);
-  notes.push(`shadow: 6 steps (xs–2xl) plus inset, two layers each, softness ${shadow.softness}; tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
+  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
   // buildShadow the baseline uses, at the mode's (softness/tint merged over the global). The APPEARANCE
   // decides the layer-set — a dark or dark-based custom mode gets the reduced dark layers; light/light-
@@ -2788,7 +2788,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const gradient = buildGradient(input.gradients, palettes, root);
   if (gradient.gradients.length) {
     // Kind, angle and interpolation sit in $extensions because DTCG has no field for them (#101).
-    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; Figma gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Text on a gradient is checked against its worst-contrast stop.`);
+    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; Figma gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
   } else {
     notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
@@ -2969,8 +2969,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const dStrat = normalizeDisabledStrategy(input.disabledStrategy);
   const dMin = normalizeDisabledMin(input.disabledStrategy, input.disabledMin);
   notes.push(dStrat === 'full'
-    ? `disabled: 'full' — disabled text and icons clear 4.5:1 (AA text) on the page, so dimming does not mark them; the fill, border, cursor and aria-disabled carry the disabled state.`
-    : `disabled: 'reduced' (default) — disabled text and icons clear ${dMin}:1 on the page: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.`);
+    ? `disabled: 'full' — disabled text and icons clear 4.5:1 (AA text) against the contrast floor, so dimming does not mark them and a disabled control may not read as disabled; the fill, border, cursor and aria-disabled carry that state.`
+    : `disabled: 'reduced' (default) — disabled text and icons clear ${dMin}:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.`);
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
     ? `interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.`
@@ -2999,7 +2999,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
     checkSurfacePalette(sf?.inverseBase, `${mode}.inverseBase`);
     if (sf?.base !== undefined && sf.base !== 'white' && sf.base !== 'black') {
-      notes.push(`surfaces: the ${mode} page is ${surfaceLabel(sf.base)}, not the default — contrast is measured against it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}.`);
+      notes.push(`surfaces: the ${mode} page is ${surfaceLabel(sf.base)}, not the default — the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}.`);
     } else if (sf?.floorStep !== undefined) {
       notes.push(`surfaces: the ${mode} contrast floor is set to neutral.${sf.floorStep}.`);
     }
@@ -3020,7 +3020,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const actionAnchorStep = actionPalette === 'primary' ? anchorStep
     : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
     : 500;
-  if (actionBrandColor) notes.push(`action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses AA on the page.`);
+  if (actionBrandColor) notes.push(`action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
 
   // ---- link palette (#1496) ----
   // Links DEFAULT to following the action palette: an unset `linkPalette` resolves to `actionPalette`, so
@@ -3037,8 +3037,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     : 500;
   if (input.linkPalette !== undefined)
     notes.push(linkPalette === actionPalette
-      ? `link color: '${linkPalette}', the same palette as actions, as the brand sets.`
-      : `link color: links use the '${linkPalette}' palette instead of the action palette '${actionPalette}', as the brand sets.`);
+      ? `link color: '${linkPalette}', the same palette as actionPalette, as the brand sets.`
+      : `link color: links use the '${linkPalette}' palette instead of actionPalette '${actionPalette}', as the brand sets.`);
   // WCAG 1.4.1 (Use of Color) — WARN, don't force (#1496, owner 2026-09-17). Body text (`text.primary`)
   // draws from the neutral ramp; if the link ink is not COLOUR-distinct from it, colour alone cannot tell a
   // link from surrounding text and the link must be underlined. Distinctness is measured HUE+CHROMA only,

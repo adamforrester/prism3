@@ -209,9 +209,12 @@
  * and the voice rules above could not see most of them: only the notes a committed brand happens to
  * trigger reach `out/**`, and §2's list has no rule for shouting or an issue number.
  *
- *   - SOURCES: the corpus as shipped (each `out/<brand>.tokens.json`'s decisions, read off disk) and a
+ *   - SOURCES: the corpus as shipped (each `out/<brand>.tokens.json`'s decisions, read off disk); a
  *     SWEEP of literal brand inputs (`NOTE_SWEEP`) that reaches every producer no committed brand
- *     triggers, plus one input per personality trait in the schema's enum.
+ *     triggers, plus one input per personality trait in the schema's enum; EVERY SCHEMA ENUM VALUE of
+ *     every scalar lever, one at a time (#1893 review — a new branch on one value of a printed lever
+ *     renders there); and THE SOURCE: the string literals of every `notes.push(...)` argument, read by a
+ *     small scanner, for a branch no valid input reaches (a value outside the enum, a dead condition).
  *   - RULES (`NOTE_RULES`), on top of §2, `normative` and en-GB: an issue number, an all-caps word
  *     outside a short acronym list, a date, an internal id like `B4a`, and a list of maintainer terms
  *     the notes used to carry. Self-checked with the old notes' own text as positive samples.
@@ -685,7 +688,7 @@ const PRODUCERS: Producer[] = [
   { id: 'brand color', re: /^brand color: '[^']+' added/, kind: 'site' },
   { id: 'status: supplied', re: /^(success|warning|info): the brand's hue /, kind: 'site' },
   { id: 'status: default', re: /^(success|warning|info): default hue /, kind: 'site' },
-  { id: 'action: default', re: /^action: follows the primary palette/, kind: 'site' },
+  { id: 'action: default', re: /^action: the primary palette, by default/, kind: 'site' },
   { id: 'action: decoupled', re: /^action: uses the '[^']+' palette/, kind: 'site' },
   { id: 'danger: supplied', re: /^danger: the brand's hue /, kind: 'site' },
   { id: 'danger: red primary', re: /^danger: the primary \(hue [^,]+, chroma [^)]+\) is a saturated red/, kind: 'site' },
@@ -702,7 +705,7 @@ const PRODUCERS: Producer[] = [
   { id: 'radius hairline via controlShape', re: /^radius: .* controlShape hairline turns it on/, kind: 'fragment' },
   { id: 'motion tempo', re: /^motion: '[^']+' tempo sets the durations/, kind: 'site' },
   { id: 'motion easing per mode', re: /^motion: easing roles use a different curve per mode/, kind: 'site' },
-  { id: 'shadow', re: /^shadow: 6 steps \(xs–2xl\) plus inset/, kind: 'site' },
+  { id: 'shadow', re: /^shadow: 6 steps \(xs–2xl\) of two layers each, plus a one-layer inset/, kind: 'site' },
   { id: 'gradient', re: /^gradient: \d+ brand gradient/, kind: 'site' },
   { id: 'gradient: none', re: /^gradient: none — /, kind: 'site' },
   { id: 'layout', re: /^layout: \d+ breakpoints \([^)]*\); \d+-column grid/, kind: 'site' },
@@ -721,7 +724,7 @@ const PRODUCERS: Producer[] = [
   { id: 'surfaces: floor', re: /^surfaces: the \S+ contrast floor is set to /, kind: 'site' },
   { id: 'surfaces: inverse band', re: /^surfaces: the \S+ inverse band is a brand color/, kind: 'site' },
   { id: 'action: anchored', re: /^action: anchored at '[^']+' step \d+/, kind: 'site' },
-  { id: 'link color: same as action', re: /^link color: '[^']+', the same palette as actions/, kind: 'site' },
+  { id: 'link color: same as action', re: /^link color: '[^']+', the same palette as actionPalette/, kind: 'site' },
   { id: 'link color: decoupled', re: /^link color: links use the '[^']+' palette instead of/, kind: 'site' },
   { id: 'links: Use of Color', re: /^links: .*WCAG 1\.4\.1 \(Use of Color\)/, kind: 'site' },
   { id: 'neutral emphasis: strong', re: /^neutral interactive emphasis: 'strong'/, kind: 'site' },
@@ -809,6 +812,52 @@ for (const [label, over] of NOTE_SWEEP) {
     for (const n of brandTheme({ ...NOTE_BASE, ...over } as any).notes) decisionNotes.push({ where: `sweep: ${label}`, text: n });
   } catch (e) { blind.push(`decisions-log sweep '${label}' — did not render (${(e as Error).message})`); }
 }
+// (3) EVERY SCHEMA ENUM VALUE, one at a time (#1893 review). A note that prints a lever's value can grow
+// a branch on one value (`neutralEmphasis === 'loud' ? …`) that no hand-picked input above reaches. The
+// value set is the CONTRACT's — `theme-schema.json`, the enum an agent or the studio can send — walked
+// here, never theme.ts's own switch. Every scalar lever path with an `enum` is rendered at each value over
+// NOTE_BASE; `modes` is rendered as `['light', <mode>]`, and `modeLevers.*` under the `dark` mode. A path
+// that takes the value only inside an array or a free-keyed map (`typography.weights.*.[]`,
+// `motionPersonality.easingRoles.*`) is not a lever value a note prints, and is skipped by that shape.
+const schemaDoc: any = JSON.parse(readFileSync(join(repo, 'packages/engine/schema/theme-schema.json'), 'utf8'));
+const enumLevers: { path: string[]; values: unknown[] }[] = [];
+const walkEnums = (o: any, path: string[]): void => {
+  if (!o || typeof o !== 'object') return;
+  if (Array.isArray(o.enum) && path.length) enumLevers.push({ path, values: o.enum });
+  for (const [k, v] of Object.entries<any>(o.properties ?? {})) walkEnums(v, [...path, k]);
+  if (o.additionalProperties && typeof o.additionalProperties === 'object' && path[0] === 'modeLevers' && path.length === 1) walkEnums(o.additionalProperties, [...path, 'dark']);
+  for (const k of ['oneOf', 'anyOf', 'allOf']) for (const v of o[k] ?? []) walkEnums(v, path);
+};
+walkEnums(schemaDoc, []);
+if (schemaDoc?.properties?.modes?.items?.enum) enumLevers.push({ path: ['modes'], values: schemaDoc.properties.modes.items.enum.map((m: string) => (m === 'light' ? ['light'] : ['light', m])) });
+// Represented: the levers whose VALUE a note prints must each be in what the walk found, or the walk
+// went blind (a schema restructure, a renamed key) and the sweep below proves nothing about them.
+const ENUM_LEVERS_PRINTED = ['neutralEmphasis', 'outlineInteraction', 'disabledStrategy', 'motionPersonality.tempo', 'density', 'typography.typeScale', 'typography.displayCeiling', 'buttonLabelWeight', 'controlShape', 'radiusScale', 'modeLevers.dark.tempo', 'modeLevers.dark.density', 'modes'];
+const walked = new Set(enumLevers.map((e) => e.path.join('.')));
+const missingEnum = ENUM_LEVERS_PRINTED.filter((p) => !walked.has(p));
+if (missingEnum.length) blind.push(`the decisions log — the schema enum walk found no ${missingEnum.join(', ')} (found ${walked.size} enum paths)`);
+const setPath = (base: Record<string, unknown>, path: string[], value: unknown): Record<string, unknown> => {
+  const out: any = JSON.parse(JSON.stringify(base));
+  let at = out;
+  for (const k of path.slice(0, -1)) at = (at[k] = at[k] && typeof at[k] === 'object' ? at[k] : {});
+  at[path[path.length - 1]] = value;
+  return out;
+};
+// Skipped by name, with the reason: the line-height and letter-spacing rung maps are ORDERED ramps
+// (`tighter` < `tight` < …), so most single values are invalid alone — brandTheme refuses them — and no
+// note prints a rung value. Every other enum path is rendered.
+const ENUM_SKIP = ['typography.lineHeights.', 'typography.letterSpacings.', 'modeLevers.dark.lineHeights.', 'modeLevers.dark.letterSpacings.'];
+let enumRenders = 0;
+for (const { path, values } of enumLevers) {
+  if (ENUM_SKIP.some((p) => path.join('.').startsWith(p))) continue;
+  for (const v of values) {
+    const label = `enum ${path.join('.')}=${JSON.stringify(v)}`;
+    try {
+      for (const n of brandTheme(setPath(NOTE_BASE, path, v) as any).notes) decisionNotes.push({ where: `sweep: ${label}`, text: n });
+      enumRenders++;
+    } catch (e) { blind.push(`decisions-log sweep '${label}' — did not render (${(e as Error).message})`); }
+  }
+}
 // Represented, not counted: every producer is reached, and every note is claimed by a site.
 const notesFound: Hit[] = [];
 const reached = new Set<string>();
@@ -822,14 +871,85 @@ for (const { where, text } of decisionNotes) {
 }
 const unreached = PRODUCERS.filter((p) => !reached.has(p.id));
 if (unreached.length) blind.push(`the decisions log — ${unreached.length} producer(s) never reached by the corpus or the sweep: ${unreached.map((p) => p.id).join('; ')}`);
-// Measured at 530 when written (81 shipped + 449 swept); the floor sits below it so a sweep that quietly
-// stops rendering — an empty trait enum, a throwing input — fails here rather than scanning less.
-const NOTES_FLOOR = 500;
+// Measured at 1,784 when written (81 shipped + 449 from NOTE_SWEEP + 1,254 from the enum sweep); the floor
+// sits below it so a sweep that quietly stops rendering — an empty enum walk, a throwing input — fails
+// here rather than scanning less.
+const NOTES_FLOOR = 1700;
 if (decisionNotes.length < NOTES_FLOOR) blind.push(`the decisions log — ${decisionNotes.length} notes scanned, below the floor of ${NOTES_FLOOR}`);
+// (4) THE SOURCE, for the branches no render reaches (#1893 review). A note's text lives in the string
+// literals of its `notes.push(...)` argument. A branch keyed on a value outside the schema enum (or behind
+// a condition no input meets) never renders, so the sweeps above cannot see it; its literal text is still
+// right here. This reads each push argument with a small scanner — string, template and quote escapes,
+// `${…}` expressions descended into for their own literals, code outside literals ignored (so `ALL_MODES`
+// and `RED_CHROMA_FLOOR` are not text) — and applies NOTE_RULES to every literal segment.
+const NOTE_LITERAL_RULES = NOTE_RULES; // the same rules; a source literal is a fragment of a note
+let pushArgs = 0, literalSegments = 0;
+const sourceLiterals: { file: string; line: number; text: string }[] = [];
+/** The literal segments of the expression starting at `i` (just after `notes.push(`), and where it ends. */
+const scanArgs = (src: string, i: number): { segs: { at: number; text: string }[]; end: number } => {
+  const segs: { at: number; text: string }[] = [];
+  let depth = 1;
+  const readQuoted = (q: string): void => {           // src[i] is the opening quote
+    let j = i + 1, text = '', start = j;
+    while (j < src.length && src[j] !== q) {
+      if (src[j] === '\\') { text += src[j + 1]; j += 2; continue; }
+      if (q === '`' && src[j] === '$' && src[j + 1] === '{') {
+        if (text) segs.push({ at: start, text });
+        text = '';
+        // descend into the expression: its own literals count, its code does not
+        let k = j + 2, d = 1;
+        const saveI = i; i = k;
+        while (i < src.length && d > 0) {
+          const c = src[i];
+          if (c === '\'' || c === '"' || c === '`') { readQuoted(c); continue; }
+          if (c === '{') d++;
+          else if (c === '}') d--;
+          i++;
+        }
+        j = i; start = j; i = saveI;
+        continue;
+      }
+      text += src[j]; j++;
+    }
+    if (text) segs.push({ at: start, text });
+    i = j + 1;
+  };
+  while (i < src.length && depth > 0) {
+    const c = src[i];
+    if (c === '\'' || c === '"' || c === '`') { readQuoted(c); continue; }
+    if (c === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    i++;
+  }
+  return { segs, end: i };
+};
 for (const [file, want] of Object.entries(NOTE_PUSH_SITES)) {
-  const code = readFileSync(join(repo, file), 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
-  const got = (code.match(/\bnotes\.push\(/g) ?? []).length;
+  const src = readFileSync(join(repo, file), 'utf8');
+  let got = 0;
+  for (const m of src.matchAll(/\bnotes\.push\(/g)) {
+    const lineStart = src.lastIndexOf('\n', m.index!) + 1;
+    if (/^\s*(\/\/|\*|\/\*)/.test(src.slice(lineStart, m.index!))) continue;     // a comment naming it
+    got++;
+    const { segs } = scanArgs(src, m.index! + m[0].length);
+    pushArgs++;
+    for (const sgm of segs) { literalSegments++; sourceLiterals.push({ file, line: src.slice(0, sgm.at).split('\n').length, text: sgm.text }); }
+  }
   if (got !== want) blind.push(`the decisions log — ${file} has ${got} notes.push( site(s), this gate knows ${want}: add the new producer to PRODUCERS and a NOTE_SWEEP input that reaches it, then update NOTE_PUSH_SITES`);
+}
+// Represented: the scanner must have read known note text, or it is reading nothing (or only code). Two
+// probes from different producers, and a converse one — a code identifier in a push must NOT be read.
+for (const probe of ['modes: wireframe added', ' — the brand turns off ']) {
+  if (!sourceLiterals.some((l) => l.text.includes(probe))) blind.push(`the decisions log — the source scan read no literal containing '${probe}'; the scanner is broken or the note moved`);
+}
+if (sourceLiterals.some((l) => /ALL_MODES|RED_CHROMA_FLOOR|STATUS_DEFAULTS/.test(l.text))) blind.push('the decisions log — the source scan read a code identifier as note text; the scanner is not separating code from literals');
+for (const l of sourceLiterals) {
+  for (const { rule, re } of NOTE_LITERAL_RULES) {
+    for (const m of l.text.matchAll(re)) {
+      if (rule === 'all-caps' && ALLCAPS_OK.has(m[0])) continue;
+      notesFound.push({ file: `${l.file} (source)`, line: l.line, rule, match: m[0], context: l.text.slice(0, 100) });
+    }
+  }
 }
 // The carve-out is represented, not merely present: every sidecar went through it, and it exempted
 // something. Zero means the field moved or the pattern drifted, and the rule would be passing blind.
@@ -907,7 +1027,7 @@ if (clientFound.length) {
 }
 
 const sweepNotes = decisionNotes.filter((n) => n.where.startsWith('sweep:')).length;
-console.log(`Decisions-log arm — ${decisionNotes.length} notes scanned (${decisionNotes.length - sweepNotes} from ${treeFiles.length} emitted trees, ${sweepNotes} from ${NOTE_SWEEP.length} sweep inputs); ${reached.size}/${PRODUCERS.length} producers reached; not reachable, named: ${NOTES_UNREACHABLE.join('; ')}`);
+console.log(`Decisions-log arm — ${decisionNotes.length} notes scanned (${decisionNotes.length - sweepNotes} from ${treeFiles.length} emitted trees, ${sweepNotes} from ${NOTE_SWEEP.length} sweep inputs and ${enumRenders} schema enum values); ${reached.size}/${PRODUCERS.length} producers reached; ${literalSegments} literal segments read from ${pushArgs} notes.push( arguments; not reachable, named: ${NOTES_UNREACHABLE.join('; ')}`);
 if (notesFound.length) {
   console.error(`\n❌ ${notesFound.length} decisions-log note problem(s) (#1883):\n`);
   for (const h of notesFound.slice(0, 20)) console.error(`    ${h.file}: [${h.rule}] "${h.match}"  …${h.context}…`);

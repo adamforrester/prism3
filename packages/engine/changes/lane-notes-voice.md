@@ -8,6 +8,6 @@ maintainer terms ("hairline sentinel", "LIFT-primary", "DTCG composite spine"). 
 what the engine decided, then why, in plain words. Text only: no decision changes, and no token,
 contrast result or contract path moves. The `WCAG 1.4.1` citation the studio's link advisory reads is
 kept verbatim. The provenance the notes carried (issue numbers, the date) moved to comments beside
-each push. `lint-voice.ts` gains a DECISIONS LOG arm that renders every producer across the corpus and
-a sweep of brand inputs and fails an issue number, an all-caps word, a date, an internal id or a
+each push. `lint-voice.ts` gains a DECISIONS LOG arm that renders every producer across the corpus, a
+sweep of brand inputs and every schema enum value, reads the literals of every push, and fails an issue number, an all-caps word, a date, an internal id or a
 maintainer term in any note, and any note no known producer claims.

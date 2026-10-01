@@ -192,16 +192,16 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - brand color: 'tertiary' added (hue 18.01).
 - success: the brand's hue 142.51 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
 - warning: the brand's hue 48.48 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
-- info: default hue 245 — the brand sets no info color.
-- action: follows the primary palette (the default) — buttons and links take the brand hue; actionPalette sets another.
+- info: default hue 245 — status.info is not set.
+- action: the primary palette, by default — actionPalette is not set.
 - danger: the brand's hue 21.95.
 - dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).
 - motion: 'standard' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
-- shadow: 6 steps (xs–2xl) plus inset, two layers each, softness 1; tinted to hue 249.14 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 249.14 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
 - gradient: none — the brand declares no gradients, and none are added by default.
 - layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
 - typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 39 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
-- disabled: 'reduced' (default) — disabled text and icons clear 3:1 on the page: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
 - interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
 - neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
 - strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
