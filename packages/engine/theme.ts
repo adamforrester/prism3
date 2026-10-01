@@ -3040,10 +3040,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const linkAnchorStep = linkPalette === 'primary' ? anchorStep
     : linkBrandColor ? autoPlaceStep(linkBrandColor.oklch.l)
     : 500;
+  // Compared against the RESOLVED action palette, not the `actionPalette` lever (#1895, owner 2026-10-01):
+  // with `roleColors.action` set the two differ, and the note must say whether links match the color the
+  // action fill actually uses.
   if (input.linkPalette !== undefined)
-    notes.push(linkPalette === actionPalette
-      ? `link color: '${linkPalette}', the same palette as actionPalette, as the brand sets.`
-      : `link color: links use the '${linkPalette}' palette instead of actionPalette '${actionPalette}', as the brand sets.`);
+    notes.push(linkPalette === roleToPalette.action
+      ? `link color: '${linkPalette}', the same palette as the action color, as the brand sets.`
+      : `link color: links use the '${linkPalette}' palette instead of the action color '${roleToPalette.action}', as the brand sets.`);
   // WCAG 1.4.1 (Use of Color) — WARN, don't force (#1496, owner 2026-09-17). Body text (`text.primary`)
   // draws from the neutral ramp; if the link ink is not COLOUR-distinct from it, colour alone cannot tell a
   // link from surrounding text and the link must be underlined. Distinctness is measured HUE+CHROMA only,

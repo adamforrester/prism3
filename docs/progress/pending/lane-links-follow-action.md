@@ -8,8 +8,13 @@
 
 **What moves.** No corpus brand sets `roleColors.action`, so `regen` moves no `out/` artifact. `schema/lever-manifest.json` moves for the `linkPalette` description. The #1812 arm (every manifest default is what the engine does unset) still holds: `linkPalette` states no static default. Token contract unchanged.
 
-**Tests.** A `#1895` block in `test.ts`, literals only: `roleColors.action: 'accent'` with no `linkPalette` puts `text.link.default` on the accent ramp in all four modes and at its floor (4.5:1, 7:1 in high contrast); `linkPalette: 'primary'` beside it wins; `roleColors.action: 'neutral'` fires the 1.4.1 warning, and pointing links at the accent clears it; brands with no `roleColors.action` are unchanged.
+**Tests.** A `#1895` block in `test.ts`, literals only (the note arms are above): `roleColors.action: 'accent'` with no `linkPalette` puts `text.link.default` on the accent ramp in all four modes and at its floor (4.5:1, 7:1 in high contrast); `linkPalette: 'primary'` beside it wins; `roleColors.action: 'neutral'` fires the 1.4.1 warning, and pointing links at the accent clears it; brands with no `roleColors.action` are unchanged.
 
-**Held, not changed.** The two notes that fire when `linkPalette` is set compare against the `actionPalette` lever ("the same palette as actionPalette" / "instead of actionPalette '…'"). They stay literally true, so this PR leaves the approved copy alone. With `roleColors.action: 'accent'` and `linkPalette: 'primary'` the first one reads "same palette as actionPalette" while links and action fills differ. Whether those notes should compare against the resolved action palette is a copy call for the owner.
+**The link notes now compare against the resolved action palette (owner decision 2026-10-01).** The two notes that fire when `linkPalette` is set compared against the `actionPalette` lever. With `roleColors.action: 'accent'` and `linkPalette: 'primary'` that printed "the same palette as actionPalette" while links and action fills differed. Literally true, but misleading. The owner chose to compare against `roleToPalette.action` and say "the action color":
+
+- before: `link color: '<p>', the same palette as actionPalette, as the brand sets.` / after: `link color: '<p>', the same palette as the action color, as the brand sets.`
+- before: `link color: links use the '<p>' palette instead of actionPalette '<a>', as the brand sets.` / after: `link color: links use the '<p>' palette instead of the action color '<a>', as the brand sets.` (`<a>` is now the resolved action palette.)
+
+`lint-voice.ts`'s two producer patterns follow the new wording, and its sweep gains the exact case (`roleColors.action: 'accent'`, `linkPalette: 'primary'`). `test.ts` asserts both notes as literals on that case and its same-palette twin.
 
 **Filed, not fixed.** #1896: `actionAnchorStep` has the same lever-versus-resolved split. `roleColors.action: 'accent'` anchors the action fill at primary's step, while `actionPalette: 'accent'` anchors at the accent's own shade.

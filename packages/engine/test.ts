@@ -1135,6 +1135,16 @@ for (const b of brands) {
   ok(rcLp.linkPalette === 'primary' && rcLpLinks.every((r) => segOf(r.link?.path) === 'primary'),
     `#1895: an explicit linkPalette 'primary' still wins over roleColors.action 'accent' (got '${rcLp.linkPalette}'; ${rcLpLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
 
+  // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
+  // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
+  // MUTATION: compare against the `actionPalette` lever again → the 'differs' arm fails (the note says
+  // "the same palette").
+  ok(rcLp.notes.includes("link color: links use the 'primary' palette instead of the action color 'accent', as the brand sets."),
+    `#1895: with roleColors.action 'accent' and linkPalette 'primary', the decisions log says links differ from the action color (got ${JSON.stringify(rcLp.notes.filter((n) => n.startsWith('link color')))})`);
+  const rcSame = build({ roleColors: { action: 'accent' }, linkPalette: 'accent' });
+  ok(rcSame.notes.includes("link color: 'accent', the same palette as the action color, as the brand sets."),
+    `#1895: with roleColors.action 'accent' and linkPalette 'accent', the decisions log says links match the action color (got ${JSON.stringify(rcSame.notes.filter((n) => n.startsWith('link color')))})`);
+
   // WCAG 1.4.1: a link that follows a NEUTRAL action now carries the underline warning; pointing links
   // back at a chromatic palette clears it.
   const has141 = (t: ReturnType<typeof brandTheme>): boolean => t.notes.some((n) => /WCAG 1\.4\.1/.test(n));
