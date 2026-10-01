@@ -173,7 +173,7 @@ export type MainToUi =
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`
    *  used to post exactly one message, at the end. On the first live 648-member build that meant the pill
-   *  read a frozen `⋯ Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
+   *  read a frozen `Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
    *  after it said done. Nothing could be posted mid-run because nothing yielded; the executor now chunks
    *  (see `write-components.ts`), and this is what a chunk boundary says.
    *

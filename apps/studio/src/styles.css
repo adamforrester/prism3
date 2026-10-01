@@ -868,43 +868,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
    described how the mode was produced. Sits inside the chip rather than as a caption beneath it:
    after the wrap-to-scroll change (#432) the bar spends width freely and height not at all. */
 .mctx-vo{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5;white-space:nowrap}
-/* Inline variant (#432): the same editor embedded in the brand menu, which is itself a popover —
-   so it drops the positioning, shadow, border and fixed width and simply flows in the parent. */
-.mctx-menu.inline{position:static;width:auto;padding:0;background:none;border:0;box-shadow:none;z-index:auto}
-.mctx-menu{position:absolute;right:0;top:calc(100% + 7px);width:264px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);box-shadow:0 10px 30px rgba(20,22,30,.14);padding:10px;z-index:20}
-.mctx-mcap{font-size:11px;font-weight:640;text-transform:uppercase;letter-spacing:.045em;color:var(--faint);padding:4px 6px 8px}
-.mctx-opt{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:13.5px;color:var(--ink2);padding:7px 6px;border-radius:var(--r-xs);cursor:pointer;text-align:left}
-.mctx-opt:hover{background:var(--paper)}
-.mctx-box{width:16px;height:16px;flex:none;border:1px solid var(--line2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
-.mctx-opt.on .mctx-box{background:var(--ink);border-color:var(--ink)}
-/* #57 — Light row is locked (base mode): muted, grayed check, no hover — reads as non-interactive. */
-/* #1770 — locked, not faded: the lock glyph says so, and the row's text keeps its full ink (a .72 fade took
-   `--faint` "always" from 5.13:1 to 2.95:1). */
-.mctx-opt.fixed{cursor:default}
-.mctx-lock{width:13px;height:13px;flex:none}
-.mctx-opt.fixed:hover{background:none}
-.mctx-opt.fixed .mctx-box{background:var(--muted);border-color:var(--muted)}
-.mctx-always{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--faint)}
-.mctx-opt.disabled{color:var(--faint);cursor:not-allowed}
-.mctx-opt.disabled:hover{background:none}
-.mctx-div{height:1px;background:var(--line);margin:8px 4px}
-.mctx-note{font-size:11.5px;line-height:1.5;color:var(--faint);margin:6px 6px 2px}
-/* C2 — custom-mode rows + add form in the Edit-modes popover. */
-.mctx-custom{display:flex;align-items:center;gap:8px;padding:6px 6px;font-size:13px;color:var(--ink2)}
-.mctx-cname{font-weight:560}
-.mctx-cbase{font-size:11px;color:var(--faint)}
-.mctx-crm{margin-left:auto;width:22px;height:22px;flex:none;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);color:var(--faint);cursor:pointer;font-size:14px;line-height:1}
-.mctx-crm:hover{background:#fdecec;color:#a12;border-color:#f2c6c6}
-.mctx-addform{display:flex;flex-direction:column;gap:10px;padding:8px 6px}
-/* #56 — labeled add-mode fields (name + base). */
-.mctx-addfield{display:flex;flex-direction:column;gap:4px}
-.mctx-addlab{font-size:11px;font-weight:560;color:var(--muted);letter-spacing:.01em}
-.mctx-addname{padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink)}
-.mctx-adderr{margin:0;font-size:11.5px;color:#a12;line-height:1.4}
-.mctx-adderr:empty{display:none}
-.mctx-addbtns{display:flex;gap:8px}
-.mctx-addbtn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:6px 14px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
-.mctx-addcancel{border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);padding:6px 12px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
 /* A2a — generated-mode (HC/wireframe) read-only view: an explanation + a per-mode contract verdict. */
 .genview{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;margin:8px 0 0}
 .genview-t{margin:0;font-size:16px;font-weight:640;letter-spacing:-0.01em}

@@ -21,12 +21,12 @@ import { brandState, lastError, rebuild, searchQuery, setPage, setSearchHits, su
 import {
   STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,
   setNeutralAnchor, setNeutralChroma, setNeutralFollow, setNeutralHue, setNeutralPinned, setPrimary, setStatusColor,
-  setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
+  removalEffects, setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
-import { choice, colorField, leverBlock, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { choice, colorField, inlineConfirm, leverBlock, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
@@ -49,6 +49,26 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
   let shapeKey = '';
   /** Whether the advanced sections are drawn: when Show advanced is open, and while a search runs. */
   let advDrawn = false;
+  /** The brand color whose removal is being confirmed, by name, or null. Part of the shape, so the confirm
+   *  survives a repaint and closes with one. */
+  let confirmRemove: string | null = null;
+  const removeBtn = (name: string): HTMLElement | null =>
+    [...root.querySelectorAll<HTMLElement>('[data-p3="brand-color-remove"]')].find((n) => n.getAttribute('aria-label') === `Remove ${name}`) ?? null;
+  /** The remove confirm: what else the removal changes, then Remove and Cancel. Focus goes back to the
+   *  color's remove button on Cancel, and to Add brand color once the color is gone. */
+  const removeConfirm = (i: number, name: string): HTMLElement => {
+    const effects = removalEffects(name);
+    const ul = h('ul', 'p3-confirm-list');
+    for (const e of effects.length ? effects : ['Nothing else uses it.']) ul.append(h('li', undefined, e));
+    return inlineConfirm('brand-color-confirm', {
+      title: `Remove ${name}?`,
+      body: [ul],
+      action: `Remove ${name}`,
+      onConfirm: () => { confirmRemove = null; edit('brandColors', () => removeBrandColor(i)); },
+      onCancel: () => { confirmRemove = null; render(); },
+      back: () => removeBtn(name) ?? root.querySelector<HTMLElement>('[data-p3="brand-color-add"]'),
+    });
+  };
 
   /** The palette an edit to `key` changes, for the Q4 trial (`preview/follow-edit.ts`). */
   const paletteOf = (key: string, name?: string): string | null =>
@@ -62,7 +82,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
   };
 
   const shape = (): string => JSON.stringify([
-    advOpen, (brandState.brandColors ?? []).map((b) => b.name), !!brandState.neutral.auto, !!brandState.neutral.anchor,
+    advOpen, confirmRemove, (brandState.brandColors ?? []).map((b) => b.name), !!brandState.neutral.auto, !!brandState.neutral.anchor,
     STATUS_ROLES.map(statusSource), (brandState.brandColors ?? []).length,
   ]);
 
@@ -111,9 +131,13 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         rm.type = 'button';
         rm.setAttribute('aria-label', `Remove ${c.name}`);
         rm.append(glyph('x'));
-        rm.onclick = () => edit('brandColors', () => removeBrandColor(i));
+        // Removing asks first, in place (owner, 2026-10-01), with S3's confirm (`inlineConfirm`). It names what
+        // else the removal changes (`removalEffects`, the cascade `removeBrandColor` runs). Cancel writes
+        // nothing; the action is the same removal and cascade as before.
+        rm.onclick = () => { confirmRemove = c.name; render(); };
         row.append(field, rm);
         list.append(row);
+        if (confirmRemove === c.name) list.append(removeConfirm(i, c.name));
         syncs.push(() => {
           const cur = brandState.brandColors?.[i];
           if (!cur) return;

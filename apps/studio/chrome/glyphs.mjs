@@ -24,6 +24,12 @@
  * WHAT IT DOES NOT READ, BY LITERAL, EACH WITH ITS REASON (`NOT_CHROME`). A listed file that no longer
  * exists fails the check, so an exclusion cannot outlive its file.
  *
+ * WHAT NO CHROME STRING MAY CARRY, BY LITERAL (`NEVER_DRAWN`), whether or not the face has it: code points
+ * the owner has ruled out of the UI copy, each with its decision. Unlike the face check, this one reads
+ * every file under the source roots, `NOT_CHROME` included, because the legacy studio still paints the
+ * Apply label and the pending labels the decisions name. A literal that carries one fails the build at
+ * its line.
+ *
  * WHAT THE FACE MAY LACK, BY LITERAL (`FACE_LACKS`). Only code points that Inter itself does not carry
  * at all (so a re-subset cannot add them), each scoped to the files it occurs in, with its reason. An
  * entry fails as stale once the face carries its code point, or once a listed file stops using it, so
@@ -40,7 +46,7 @@
  * THE EXTRACTOR IS CHECKED ON A FIXTURE (`LITERALS_SELF_TEST`), independently of what the sources hold
  * today: a plain string, a template's head, middle and tail, a whole template, and two comments that
  * must not be read. Without it, the only thing pinning `literalsOf`'s reach would be `FACE_LACKS`,
- * which shrinks as its entries are decided (#1936).
+ * which shrinks as its entries are decided (#1936 removed its first).
  *
  * THE STUDIO BUILD NOW READS `apps/plugin/src`, for this check only. Nothing read here reaches the
  * output, so a plugin change still cannot change the deployed site, and `vercel-ignore.sh` is right to
@@ -150,16 +156,18 @@ export const MUST_READ = [
 export const NOT_CHROME = {
   'apps/studio/src/main.ts': 'the legacy studio, drawn in its own face (styles.css) and taken apart page by page '
     + '(LEGACY_PAGES in test-chrome.mjs). Of the chrome copy it still paints, test:chrome measures the Apply '
-    + 'label and the write-status pills as drawn, under FACE_GAPS. The Prune item\'s running labels are not '
-    + 'measured by anything yet.',
+    + 'label and the write-status pills as drawn, and NEVER_DRAWN below reads it like every other file.',
 };
+/** Code points no string under a source root may carry, NOT_CHROME included, each with the owner's decision. */
+export const NEVER_DRAWN = {
+  0x22ef: 'the midline ellipsis. The owner decided on 2026-10-01 that pending labels read "…" (U+2026), which the '
+    + 'embedded Inter carries: "… Applying…", "… Checking…", "… Removing…"',
+  0xfe0f: 'VS16, which asks for the emoji presentation of the character before it, so a browser draws that from an '
+    + 'emoji face whatever the text face carries. The owner decided on #1936 that warnings read a plain ⚠ (U+26A0)',
+};
+
 /** Code points Inter itself does not carry, so no subset can add them: where each may occur, and why. */
 export const FACE_LACKS = {
-  0xfe0f: {
-    files: ['apps/plugin/src/main.ts', 'apps/plugin/src/agent-link-ui.ts'],
-    why: 'VS16 after ⚠ asks for the emoji presentation, which a browser draws from an emoji face whatever '
-      + 'the text face carries. Text or emoji presentation for these summaries is the owner\'s call (#1936).',
-  },
   0x241f: { files: ['apps/plugin/src/style-guide.ts'], why: 'a key separator joined into a cache key, never drawn' },
   0x2500: { files: ['apps/plugin/src/build-telemetry.ts'], why: 'the console readout\'s rule (#684), never posted to the UI' },
 };
@@ -212,19 +220,20 @@ export function chromeTexts() {
     }
   }
   const read = new Map();
+  const unread = [];
   for (const root of SOURCE_ROOTS) {
     if (!existsSync(root)) { missing.push(`source root ${rel(root)} is missing`); continue; }
     for (const p of walk(root)) {
       const r = rel(p);
-      if (r in NOT_CHROME) continue;
       const lits = literalsOf(p);
+      if (r in NOT_CHROME) { for (const l of lits) unread.push({ text: l.text, where: `${r}:${l.line}`, file: r }); continue; }
       read.set(r, lits.length);
       for (const l of lits) texts.push({ text: l.text, where: `${r}:${l.line}`, file: r });
     }
   }
   for (const f of MUST_READ) if (!read.get(f)) missing.push(`${f} was not read, or holds no string literal`);
   for (const f of Object.keys(NOT_CHROME)) if (!existsSync(join(ROOT, f))) missing.push(`NOT_CHROME lists ${f}, which no longer exists; remove the entry`);
-  return { texts, missing, files: [...read.keys()] };
+  return { texts, unread, missing, files: [...read.keys()] };
 }
 
 /** The `[glyphs]` messages: each code point the UI face lacks, with every place it occurs. Empty = pass. */
@@ -239,11 +248,18 @@ export function glyphGaps({ fontFile = join(FONTS_DIR, CHROME_FONTS.find(([n]) =
     errors.push(`literalsOf self-test: read ${JSON.stringify(got)} from the fixture, want ${JSON.stringify(LITERALS_SELF_TEST.want)} (LITERALS_SELF_TEST)`);
   }
   errors.push(...source.missing);
+  // NEVER_DRAWN first, over every literal read, the NOT_CHROME files' included.
+  for (const t of [...source.texts, ...(source.unread ?? [])]) {
+    for (const ch of new Set(t.text)) {
+      const cp = ch.codePointAt(0);
+      if (cp in NEVER_DRAWN) errors.push(`${U(cp)} ${show(cp)} is at ${t.where}, and no chrome string may carry it: ${NEVER_DRAWN[cp]}`);
+    }
+  }
   const where = new Map();
   for (const t of source.texts) {
     for (const ch of t.text) {
       const cp = ch.codePointAt(0);
-      if (cp < 0x20 || cp === 0x7f || face.has(cp)) continue;
+      if (cp < 0x20 || cp === 0x7f || face.has(cp) || cp in NEVER_DRAWN) continue;   // NEVER_DRAWN reports its own
       if (!where.has(cp)) where.set(cp, new Map());
       if (!where.get(cp).has(t.file)) where.get(cp).set(t.file, t.where);
     }
