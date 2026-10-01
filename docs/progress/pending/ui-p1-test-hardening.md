@@ -1,6 +1,6 @@
 ## (2026-10-01) — UI redesign P1: test hardening — absence checks prove their state, hook clicks go through the guard, the mode audit moves onto hooks (#1829, #1830, #1831)
 
-**STATUS: PR to be opened from `ui/p1-test-hardening`, labeled DO NOT MERGE.** UI test tooling only, so no ENGINE bump. No new CI step.
+**STATUS: PR open from `ui/p1-test-hardening`.** UI test tooling only, so no ENGINE bump. No new CI step.
 
 **The diagnosis that made it small.** F1's hook guard (`apps/studio/test-hooks.mjs`) proves a hook NAME once per run. It keeps one "seen" set, so a hook minted at several sites (`status-pill` has nine) passes while any one site still renders. That one fact sits under all three issues:
 - **#1830.** Two semantic locators carried accessibility checks that were never written down. Once the suites found those elements by hook, nothing asserted the role or the name.
