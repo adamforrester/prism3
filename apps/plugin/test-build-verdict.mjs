@@ -743,6 +743,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // All four verdict kinds are driven, because `topicsFor` lists each one separately, and reversing one of
 // them should fail here as well as reversing all four. Each verdict is a bad one, so that the detail row
 // opens and `--chrome-h` really changes. An unchanged value would leave no write to observe.
+//
+// UNDER THE S1.2 FRAME (`apps/studio/src/shell/frame.ts`) the chrome is the frame's sticky head, which
+// holds the bar and the notices row the detail row is lent to, and the frame's ResizeObserver on that head
+// re-publishes `--chrome-h` whenever it resizes. So moving the measurement in `syncApplyDetail` ahead of
+// the row's opening does not, on its own, leave a stale value: the observer writes the right one after.
+// Only with that re-sync gone as well does the end-state check below fail. The topic order is still
+// caught by the two ordering checks.
 {
   const VERDICTS = [
     { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' },
@@ -791,13 +798,19 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     const seen = await page.evaluate(() => {
       const bar = document.querySelector('[data-p3="bar"]');
       const detail = document.querySelector('[data-p3="apply-detail"]');
-      const chrome = bar?.parentElement ?? null;
+      // The chrome is the frame's sticky head, located by its own hook rather than as the bar's
+      // `parentElement`: under the S1.2 frame the bar is lent a `display: contents` slot, which measures
+      // 0px. Whether this IS the region the browser pins is read off its computed style below, so a stale
+      // locator fails as "not the sticky region" instead of as a height mismatch.
+      const chrome = document.querySelector('[data-p3="frame-head"]');
+      const cs = chrome ? getComputedStyle(chrome) : null;
       const style = document.documentElement.getAttribute('style');
       return {
         writes: window.__writes,
         finalChromeH: /--chrome-h:\s*([^;]+)/.exec(style ?? '')?.[1]?.trim() ?? null,
         chromeHeight: chrome ? chrome.offsetHeight : null,
-        chromeHoldsDetail: !!(chrome && detail && chrome.contains(detail)),
+        chromeSticky: !!cs && cs.position === 'sticky' && cs.display !== 'contents',
+        chromeHoldsDetail: !!(chrome && bar && detail && chrome.contains(bar) && chrome.contains(detail)),
         detailOpen: !!detail && detail.style.display !== 'none',
       };
     });
@@ -823,8 +836,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     ok(last('bar') >= 0 && last('chrome-h') > last('bar'),
       `#1890 ${v.type}: --chrome-h is measured after the bar's last repaint, so it reads the new bar — write order ${shown || 'nothing'}`);
     // The consequence, in the units a designer sees: the sticky offset equals the chrome's rendered height.
-    ok(seen.chromeHoldsDetail && seen.finalChromeH === `${seen.chromeHeight}px`,
-      `#1890 ${v.type}: --chrome-h equals the chrome's rendered height with the detail open — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px`);
+    // The chrome is measured only where it is the region the browser pins (at this 1280px panel, the whole
+    // head; narrow pins only the top bar, and the detail row scrolls with the page there by design, Q7),
+    // and only where it holds both the bar and the detail row, so the height compared includes the row the
+    // verdict opened.
+    ok(seen.chromeSticky,
+      `#1890 ${v.type}: the chrome the arm measures is the region the browser pins (position: sticky, not display: contents)`);
+    ok(seen.chromeSticky && seen.chromeHoldsDetail && seen.finalChromeH === `${seen.chromeHeight}px`,
+      `#1890 ${v.type}: --chrome-h equals the chrome's rendered height with the detail open — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px, holds bar and detail ${seen.chromeHoldsDetail}`);
     ok(errors.length === 0, `#1890 ${v.type}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
