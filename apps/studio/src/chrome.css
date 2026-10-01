@@ -506,11 +506,6 @@
 .p3-list-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-list-row > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
 /* The dashed add row (V7): a dashed edge that still clears 3:1 (B1). */
-/* The in-place confirm (ui/confirm.ts): under the control that asked, on the page color with the control edge. */
-.p3-confirm { display: grid; gap: var(--p3-space-100); padding: var(--p3-space-150); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-lg); background-color: var(--p3-bg-page); }
-.p3-confirm-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-cozy); }
-.p3-confirm-list { margin: 0; padding-left: var(--p3-space-200); color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
-.p3-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); }
 .p3-btn.p3-addrow { width: 100%; min-height: var(--p3-ctl-h); border: var(--p3-bw-hairline) dashed var(--p3-edge); background-color: transparent; }
 .p3-btn.p3-addrow:hover { border-color: var(--p3-field-edge-hover); }
 .p3-advrow { display: grid; gap: var(--p3-space-200); justify-items: start; }
