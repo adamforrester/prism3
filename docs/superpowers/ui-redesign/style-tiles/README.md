@@ -112,6 +112,10 @@ npm pack @fontsource-variable/inter @fontsource-variable/jetbrains-mono
 # and each package's LICENSE
 ```
 
+Inter has since been re-subset from the full Google Fonts build, so the chrome also carries →, ✓, ✗
+and ⚠ (#1924). The recipe is beside `CHROME_FONTS` in `apps/studio/chrome/tokens.mjs`. JetBrains Mono is
+still the fontsource file. The committed mockups embed the faces they were built with.
+
 **The trap.** `document.fonts.check('14px Inter')` returns true when Inter is not available at all.
 It reports that nothing is waiting to load, not that Inter drew the text. The first pass's
 screenshots rendered in DejaVu Sans, and nothing in the code showed it. The audit now asks Chromium

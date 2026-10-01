@@ -171,9 +171,31 @@ export function brandLeaks(modes, vars) {
 // ── chrome fonts ───────────────────────────────────────────────────────────────────────────────
 // Chrome fonts: NOT from tokens, on purpose. The chrome's face is the product's own, and must not
 // move when the default theme's `core.font.family.body` lever does (that lever is brand content).
-// Both faces are embedded from `fonts/` beside this file (the fontsource latin variable subsets, SIL OFL
-// 1.1, licenses alongside) as woff2 data URIs, so the page makes no network request and renders the
-// same on a machine with neither installed.
+// Both faces are embedded from `fonts/` beside this file (SIL OFL 1.1, licenses alongside) as woff2
+// data URIs, so the page makes no network request and renders the same on a machine with neither
+// installed. JetBrains Mono is the fontsource latin variable subset as fetched (`@fontsource-variable/
+// jetbrains-mono` 5.3.0). Inter was re-subset for #1924, because the fontsource latin subset has no →,
+// ✓, ✗ or ⚠, and the chrome draws all four. The `[glyphs]` build check (`glyphs.mjs`) names any code
+// point the chrome can be handed that the Inter file lacks.
+//
+// RE-SUBSETTING INTER. Use a scratch virtualenv: fonttools is a one-off tool, not a repo dependency.
+//   source   google/fonts `ofl/inter/Inter[opsz,wght].ttf`, "Version 4.001;git-66647c0bb", the build
+//            that `@fontsource-variable/inter` 5.3.0 subsets, sha256
+//            29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031
+//   tools    Python 3.11, fonttools 4.66.1 and brotli 1.2.0, and nothing else. With uharfbuzz
+//            installed, fonttools packs GPOS differently: the output is valid but not byte-identical.
+//   codes    the previous file's cmap, plus each code point the check names. #1924 added U+2192, U+2197,
+//            U+21B3, U+2248, U+2264, U+26A0, U+2713 and U+2717. The subsetter also keeps U+2265, which
+//            its layout closure retains.
+//   run      export SOURCE_DATE_EPOCH=1790812800
+//            fonttools varLib.instancer 'Inter[opsz,wght].ttf' opsz=14 -o inter-wght.ttf
+//            pyftsubset inter-wght.ttf --unicodes-file=codes.txt --name-IDs=0,1,2,3,4,5,6,14 \
+//              --layout-features=calt,ccmp,dnom,frac,locl,numr,pnum,tnum,kern,mark,mkmk \
+//              --flavor=woff2 --output-file=inter-latin-wght-normal.woff2
+//   result   47,924 B, sha256 1e27343f046840d6b2eaaced05d8e70afd6fc4c265a9e6ebd51ff9390fbb8322, 239 code points.
+// Pinning opsz at 14, its default, and keeping those features and name IDs matches the fontsource file it
+// replaced. Shaped with HarfBuzz, every code point of the old file draws the same outlines at the same
+// positions, at seven weights and four feature sets.
 export const CHROME_FONTS = [
   // [variable, family, woff2 file, fallback stack]
   ['font-ui', 'Inter', 'inter-latin-wght-normal.woff2', 'system-ui, sans-serif'],
