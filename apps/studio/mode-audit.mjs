@@ -63,7 +63,7 @@
  * below and the audit fails naming it, rather than under-counting in silence.
  *
  * NOT IN CI, deliberately. It is a tool, not a gate: without `--check-badges` it reports and exits 0. With
- * it, it is red on `main` at the time of #1829 (five mismatches, unchanged by the move to hooks), and making
+ * it, it is red on `main` at the time of #1829 (mismatches that vary by brand, #1887, unchanged by the move to hooks), and making
  * it green is badge-map and audit-probe work of its own (#1887). It is deleted with the mode strip it audits (S13).
  *
  * VERDICTS

@@ -8315,7 +8315,7 @@ const attachModeBadges = (root: HTMLElement): void => {
     // "cannot forget" buys nothing if what it falls back to is misplaced.
     let head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
     if (!head) {
-      const built = el('div', 'psec-head'), txt = el('div', 'psec-txt');
+      const built = hook(el('div', 'psec-head'), 'section-head'), txt = el('div', 'psec-txt');
       for (const n of [...sec.children] as HTMLElement[])
         if (n.classList.contains('psec-t') || n.classList.contains('psec-d')) txt.append(n);
       built.append(txt); sec.prepend(built); head = built;

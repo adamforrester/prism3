@@ -24,7 +24,7 @@
  *   · EVERY `.click(` GOES THROUGH `click()`, which waits through `need()` first. A plain Playwright click
  *     on a missing hook dies as a TimeoutError that takes the run down before `report()`; through `need()`
  *     it fails naming the hook. This one IS enforced: `checkClicks` refuses, by line, any `.click(` in a
- *     suite's code that is not `hooks.click(`. Other actions (`fill`, `selectOption`, `setInputFiles`) and
+ *     suite's code that is not `hooks.click(`. Other actions (`fill`, `selectOption`, `setInputFiles`, `focus`, `hover`) and
  *     unbounded hooked waits are not routed yet and still fail as a TimeoutError naming their selector (#1888).
  *
  * ── independence (docs/34) ───────────────────────────────────────────────────────────────────

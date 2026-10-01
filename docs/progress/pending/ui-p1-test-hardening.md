@@ -63,3 +63,16 @@
 - **Links warning has no subject-side mutation.** Dropping `order-warning` hangs an unbounded `waitForFunction` for 30 s before either absence check runs (#1888). The proof was checked by reading the code, not by mutation.
 - **Counts.** The suites grew by these totals, measured: smoke 3371 → 3374 (Export, one per brand) and verdict 147 → 148 (the dialog). The absence checks were converted in place, so start grows by no assertion. A mutation that adds a guard failure prints one more than baseline (3375, 149), because the report adds one line per missing hook.
 - **`audit:modes` exit code.** It exits 1 on `main` with `--check-badges` before and after this PR. Check the mismatch list against #1887 before reading red as a regression.
+
+**Review round.** An independent review approved the PR. It re-ran the claimed mutations and added its own: an absence check whose hook appears only while the thing is shown now fails as `NOT MEASURED`, where on `main` it passed silently. It also confirmed that the #1830 checks read the accessibility tree: an `aria-labelledby` pointing at the right text passes, and one pointing at the wrong target fails.
+
+Fixed in the follow-up commit:
+- **The test-hooks header.** It now also lists `focus` and `hover` among the actions that don't yet go through the guard. Both are used in smoke and crash the same way a raw click does (#1888).
+- **The `attachModeBadges` fallback head.** It now carries `section-head`, so if it's ever reached it can't fall out of the audit.
+- **The mode-audit header.** It no longer gives a mismatch count, because the count varies by brand: harbor has 5, aurora 6 (#1887).
+
+Left as is:
+- **The prune agent arm** proves the dialog from the control block's panel. `renderPruneDialog` is the only site that can render it.
+- **`checkClicks`** refuses `page.mouse.click` and an in-page `el.click()`. Neither is used.
+
+**Merge-order trap.** Whichever of this PR and #1886 lands second needs the two-line conversion in `test-build-verdict.mjs`: the file-setup button click and the Typography rail click become `hooks.click`. Without it, `test:verdict` refuses at load and runs 0 assertions.
