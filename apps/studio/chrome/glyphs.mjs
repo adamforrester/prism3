@@ -8,8 +8,8 @@
  *     nothing that could agree with the subject while disagreeing with the font. The tool that made the
  *     subset (fonttools) is not used to read it back.
  *   - THE SUBJECT is the text the chrome is given to draw, from three surfaces:
- *       notes     the engine's decision notes, `$extensions.prism3.decisions` in every emitted
- *                 `packages/engine/out/*.tokens.json` that is not an overlay. Inspect › Decisions log
+ *       notes     the engine's decision notes, `$extensions.prism3.decisions` in each emitted brand's
+ *                 full and base trees (`out/<brand>.tokens.json`, `.base.tokens.json`). Inspect › Decisions log
  *                 shows them word for word (D4).
  *       verdicts  every string literal in `apps/plugin/src/**`. The host's verdict headlines and
  *                 summaries are composed across the main thread (`apply-summary.ts`, `main.ts`,
@@ -30,9 +30,17 @@
  * the list can only shrink toward what is true. A code point Inter does carry is never listed: the fix
  * for that is a re-subset (the recipe is beside `CHROME_FONTS` in `tokens.mjs`).
  *
- * REPRESENTED, NOT COUNTED (docs/34 question 3). Each surface must yield text: at least `NOTES_FLOOR`
- * emitted trees each with at least one note, and each file in `MUST_READ` parsed with at least one
- * string literal. An emptied or moved surface fails by name rather than passing on nothing.
+ * REPRESENTED, NOT COUNTED (docs/34 question 3). Each surface must yield text. Every brand that emits
+ * anything into `out/` (its `.ai.json`, overlays or trees) must have both its full and its base tree,
+ * each with at least one note, and exactly `BRAND_COUNT` brands must emit, so a brand whose trees go
+ * missing is named and one that vanishes whole changes the count. Each file in `MUST_READ` must parse
+ * with at least one string literal. An emptied or moved surface fails by name rather than passing on
+ * nothing.
+ *
+ * THE EXTRACTOR IS CHECKED ON A FIXTURE (`LITERALS_SELF_TEST`), independently of what the sources hold
+ * today: a plain string, a template's head, middle and tail, a whole template, and two comments that
+ * must not be read. Without it, the only thing pinning `literalsOf`'s reach would be `FACE_LACKS`,
+ * which shrinks as its entries are decided (#1936).
  *
  * THE STUDIO BUILD NOW READS `apps/plugin/src`, for this check only. Nothing read here reaches the
  * output, so a plugin change still cannot change the deployed site, and `vercel-ignore.sh` is right to
@@ -125,8 +133,10 @@ export function woff2Cmap(buf) {
 
 // ── the subject: the text the chrome is handed ──────────────────────────────────────────────────
 const OUT_DIR = join(ROOT, 'packages', 'engine', 'out');
-/** At least this many emitted trees must carry notes (five brands emit today, each base and full). */
-export const NOTES_FLOOR = 5;
+/** How many brands emit into `out/` today. A new brand moves this number in the same change. */
+export const BRAND_COUNT = 5;
+/** The per-brand trees that carry decision notes, by suffix after the brand's name. */
+export const NOTE_TREES = ['.tokens.json', '.base.tokens.json'];
 /** The source roots whose string literals the chrome can draw. */
 export const SOURCE_ROOTS = [join(ROOT, 'apps', 'plugin', 'src'), join(ROOT, 'apps', 'studio', 'src')];
 /** Files that must be read, each yielding a string literal: the ones this check was written for. */
@@ -139,8 +149,9 @@ export const MUST_READ = [
 /** Files under a source root that the chrome does not draw, by literal, each with its reason. */
 export const NOT_CHROME = {
   'apps/studio/src/main.ts': 'the legacy studio, drawn in its own face (styles.css) and taken apart page by page '
-    + '(LEGACY_PAGES in test-chrome.mjs). The chrome copy it still paints (the Apply label, the pending pills) '
-    + 'is measured as drawn by test:chrome, under FACE_GAPS.',
+    + '(LEGACY_PAGES in test-chrome.mjs). Of the chrome copy it still paints, test:chrome measures the Apply '
+    + 'label and the write-status pills as drawn, under FACE_GAPS. The Prune item\'s running labels are not '
+    + 'measured by anything yet.',
 };
 /** Code points Inter itself does not carry, so no subset can add them: where each may occur, and why. */
 export const FACE_LACKS = {
@@ -157,6 +168,17 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => {
   const p = join(dir, n);
   return statSync(p).isDirectory() ? walk(p) : /\.tsx?$/.test(n) && !n.endsWith('.d.ts') ? [p] : [];
 });
+
+/** The extractor's fixture: what `literalsOf` must read from `text`, in order, and nothing else. */
+export const LITERALS_SELF_TEST = {
+  text: [
+    '// a line comment \u2190 is not a literal',
+    "const a = 'plain';",
+    'const b = `head ${a} middle ${a} tail`;',
+    '/* a block comment \u2191 is not a literal */ const c = `whole`;',
+  ].join('\n'),
+  want: ['plain', 'head ', ' middle ', ' tail', 'whole'],
+};
 
 /** Every string literal's text in one TypeScript file, with its line. Comments are not literals. */
 export function literalsOf(file, text = readFileSync(file, 'utf8')) {
@@ -176,15 +198,19 @@ export function literalsOf(file, text = readFileSync(file, 'utf8')) {
 export function chromeTexts() {
   const texts = [];
   const missing = [];
-  let trees = 0;
-  for (const f of readdirSync(OUT_DIR).filter((n) => n.endsWith('.tokens.json') && !n.includes('.overlay.')).sort()) {
-    const p = join(OUT_DIR, f);
-    const notes = JSON.parse(readFileSync(p, 'utf8'))?.$extensions?.prism3?.decisions;
-    if (!Array.isArray(notes) || !notes.some((n) => typeof n === 'string')) { missing.push(`${rel(p)} carries no decision notes ($extensions.prism3.decisions)`); continue; }
-    trees++;
-    notes.forEach((n, i) => { if (typeof n === 'string') texts.push({ text: n, where: `${rel(p)} decision ${i + 1}`, file: rel(p) }); });
+  // The brands, from every per-brand JSON in out/ (the name before the first dot), not from the trees
+  // alone, so a brand whose trees are gone is still known by its other files.
+  const brands = [...new Set(readdirSync(OUT_DIR).filter((n) => n.endsWith('.json')).map((n) => n.split('.')[0]))].sort();
+  if (brands.length !== BRAND_COUNT) missing.push(`${brands.length} brands emit into ${rel(OUT_DIR)} (${brands.join(', ')}), BRAND_COUNT says ${BRAND_COUNT}`);
+  for (const b of brands) {
+    for (const suffix of NOTE_TREES) {
+      const p = join(OUT_DIR, b + suffix);
+      if (!existsSync(p)) { missing.push(`brand ${b}: ${rel(p)} is missing, so its decision notes were not read`); continue; }
+      const notes = JSON.parse(readFileSync(p, 'utf8'))?.$extensions?.prism3?.decisions;
+      if (!Array.isArray(notes) || !notes.some((n) => typeof n === 'string')) { missing.push(`brand ${b}: ${rel(p)} carries no decision notes ($extensions.prism3.decisions)`); continue; }
+      notes.forEach((n, i) => { if (typeof n === 'string') texts.push({ text: n, where: `${rel(p)} decision ${i + 1}`, file: rel(p) }); });
+    }
   }
-  if (trees < NOTES_FLOOR) missing.push(`decision notes read from ${trees} emitted trees (floor ${NOTES_FLOOR})`);
   const read = new Map();
   for (const root of SOURCE_ROOTS) {
     if (!existsSync(root)) { missing.push(`source root ${rel(root)} is missing`); continue; }
@@ -207,6 +233,11 @@ export function glyphGaps({ fontFile = join(FONTS_DIR, CHROME_FONTS.find(([n]) =
   let face;
   try { face = woff2Cmap(readFileSync(fontFile)); } catch (e) { return [`cannot read the cmap of ${rel(fontFile)}: ${e.message}`]; }
   const faceName = rel(fontFile);
+  if (face.size === 0) return [`the cmap of ${faceName} maps no code points, so nothing can be checked against it`];
+  const got = literalsOf('literals-self-test.ts', LITERALS_SELF_TEST.text).map((l) => l.text);
+  if (JSON.stringify(got) !== JSON.stringify(LITERALS_SELF_TEST.want)) {
+    errors.push(`literalsOf self-test: read ${JSON.stringify(got)} from the fixture, want ${JSON.stringify(LITERALS_SELF_TEST.want)} (LITERALS_SELF_TEST)`);
+  }
   errors.push(...source.missing);
   const where = new Map();
   for (const t of source.texts) {
@@ -236,6 +267,6 @@ export function glyphGaps({ fontFile = join(FONTS_DIR, CHROME_FONTS.find(([n]) =
 
 /** The files the check reads, so `dev` re-runs it when one changes. */
 export const glyphWatchFiles = () => [
-  ...readdirSync(OUT_DIR).filter((n) => n.endsWith('.tokens.json') && !n.includes('.overlay.')).map((n) => join(OUT_DIR, n)),
+  ...readdirSync(OUT_DIR).filter((n) => n.endsWith('.json')).map((n) => join(OUT_DIR, n)),
   ...SOURCE_ROOTS.filter(existsSync).flatMap(walk),
 ];
