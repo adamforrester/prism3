@@ -162,12 +162,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .applystat.ok{background:var(--ok-tint);border-color:var(--ok-edge);color:var(--ok)}
 .applystat.bad{background:var(--danger-tint);border-color:var(--danger-edge);color:var(--danger)}
 .applystat .caret{color:currentColor;opacity:.65;margin-left:0}
-/* Wrapped, not clipped — the whole point of the row. IN FLOW inside the chrome, deliberately not an
-   absolutely-positioned popover: at the narrow tier the bar wraps to two rows, and a panel hanging off
-   the pill covered the Apply button it was reporting on (measured at 480). In flow it pushes content
-   instead, so it cannot overlap anything at any width and needs no z-index. Same reasoning and same
-   home as .errbar-global (#388), and unlike that one it does carry its own rules. */
-.applystat-detail{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--ink2)}
+/* The detail row moved to the Activity drawer in UI redesign S1.4 and takes the chrome's .p3-detail
+   there (chrome.css), so its legacy rule went with it. */
 /* #718 — the Components page's internal notice and its control row.
    --muted on --paper, NOT --faint: at 13px this is a paragraph to read rather than a caption to
    glance at, and lint:contrast holds --muted on --paper (the worse of the two grounds) to 4.5:1.

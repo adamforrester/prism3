@@ -74,6 +74,8 @@ export const PAIRS = [
   ['inv-bg', 'bg-page', 3, 'switch on track'],
   ['icon-2', 'bg-page', 3, 'info glyph, chevrons, switch off knob'], ['icon-2', 'fill-1', 3, 'glyph on an inset'],
   ['icon-2', 'levers-bg', 3, 'glyph on the levers panel'], ['icon-2', 'bar-bg', 3, 'glyph on the top bar'],
+  // Added by the product (S1.4): the Activity button's status dot, running (a ring) or a new result.
+  ['icon', 'bar-bg', 3, 'Activity status dot on the top bar'],
   ['ok-icon', 'bar-bg', 3, 'verdict dot on the top bar'], ['ok-icon', 'bg-page', 3, 'check in a badge'], ['ok-icon', 'fill-1', 3, 'check in a status pill'],
   ['bad-icon', 'bar-bg', 3, 'failure dot on the top bar'], ['bad-icon', 'bg-page', 3, 'refused-field outline'], ['bad-icon', 'fill-1', 3, 'error glyph in a pill or card'],
   ['warn-icon', 'bg-page', 3, 'warning glyph'], ['warn-icon', 'fill-1', 3, 'warning glyph in a pill'],
