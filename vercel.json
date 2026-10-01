@@ -2,10 +2,29 @@
   "buildCommand": "npm run build:site --workspace @prism3/studio",
   "outputDirectory": "apps/studio/public",
   "ignoreCommand": "bash apps/studio/vercel-ignore.sh",
+  "git": {
+    "deploymentEnabled": {
+      "lane/*": false,
+      "fold/*": false,
+      "docs/*": false,
+      "archive/*": false,
+      "claude/*": false,
+      "design/*": false,
+      "fix/*": false,
+      "feat/*": false,
+      "net/*": false,
+      "conv-*": false
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
     }
   ]
 }
