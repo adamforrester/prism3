@@ -708,6 +708,118 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #1890: a verdict repaints the bar BEFORE the detail row, and measures the chrome AFTER both ─────
+//
+// A verdict invalidates `host` and then `host:detail` (`topicsFor`, `state/host-session.ts`). `host`
+// rebuilds the bar, and `host:detail` opens or closes the detail row and then re-measures `--chrome-h`,
+// which positions everything sticky below the chrome. So the order is what makes that measurement read the
+// NEW bar. Reversed, the chrome is measured before the bar is rebuilt, and nothing measures it again.
+// Before this arm, reversing every verdict's topic order left this suite green. Only
+// `test-host-session.ts` caught it, through a literal topic array, and a refactor that updated that
+// literal would have passed every gate.
+//
+// WHY THE ORDER ITSELF IS ASSERTED, AND NOT ONLY ITS CONSEQUENCE. Measured on the built panel at widths
+// from 1280 down to 480, a verdict does not change the bar's height (to within 1px of rounding) at any of
+// them. So a stale `--chrome-h` is not visible on screen today, and an end-state check alone could not
+// fail under the reversal. What CAN be observed honestly is the order the DOM was written in. A
+// MutationObserver, installed before the verdict is posted, records which region each write landed in:
+// the bar, the detail row, or the `--chrome-h` value on the root element. The arm asserts the two orderings
+// the comment at the subscriptions claims: the bar is written before the detail row, and the last
+// `--chrome-h` write follows the last bar write. Then it checks the end state as well, which is the
+// part a designer would see if a verdict ever does change the bar's height.
+//
+// EXPECTED is the order stated here as a literal ('bar' before 'detail', 'chrome-h' last); ACTUAL is the
+// sequence of DOM writes in the built bundle. Nothing reads `topicsFor` or the subscription order.
+// All four verdict kinds are driven, because `topicsFor` lists each one separately, and reversing one of
+// them should fail here as well as reversing all four. Each verdict is a bad one, so that the detail row
+// opens and `--chrome-h` really changes. An unchanged value would leave no write to observe.
+{
+  const VERDICTS = [
+    { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' },
+    { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠️ 4 misses (focus/ring/offset; icon/size; …)" },
+    { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' },
+    { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: no variables in this file' },
+  ];
+  ok(VERDICTS.length === 4, `#1890 the repaint-order arm drives all 4 verdict kinds (found ${VERDICTS.length})`);
+  for (const v of VERDICTS) {
+    const { page, errors } = await openPanel();
+    const watched = await page.evaluate(() => {
+      const bar = document.querySelector('[data-p3="bar"]');
+      const detail = document.querySelector('[data-p3="apply-detail"]');
+      const root = document.documentElement;
+      window.__writes = [];
+      const regionOf = (n) => {
+        const e = n.nodeType === 1 ? n : n.parentElement;
+        if (!e) return null;
+        if (bar && bar.contains(e)) return 'bar';
+        if (detail && detail.contains(e)) return 'detail';
+        return null;
+      };
+      // `--chrome-h` lives in the root element's style attribute. A root style write is counted as a
+      // chrome-height write only when the variable's value actually moved, read from the old and new
+      // attribute text, so another root style write cannot stand in for it.
+      const chromeH = (style) => /--chrome-h:\s*([^;]+)/.exec(style ?? '')?.[1]?.trim() ?? null;
+      new MutationObserver((records) => {
+        for (const r of records) {
+          // Only the value BEFORE the write is on the record. The value after it is resolved in Node, below.
+          if (r.target === root && r.type === 'attributes' && r.attributeName === 'style') {
+            window.__writes.push({ region: 'root-style', before: chromeH(r.oldValue) });
+            continue;
+          }
+          const region = regionOf(r.target);
+          if (region) window.__writes.push({ region });
+        }
+      }).observe(root, { subtree: true, childList: true, attributes: true, characterData: true, attributeOldValue: true });
+      return { bar: !!bar, detail: !!detail };
+    });
+    ok(watched.bar && watched.detail, `#1890 ${v.type}: the bar and the detail row are both mounted before the verdict, so the observer can see each`);
+    await post(page, v);
+    await page.waitForFunction(() => {
+      const d = document.querySelector('[data-p3="apply-detail"]');
+      return !!d && d.style.display !== 'none' && (d.textContent ?? '').length > 0;
+    }, null, { timeout: 5000 }).catch(() => {});
+    const seen = await page.evaluate(() => {
+      const bar = document.querySelector('[data-p3="bar"]');
+      const detail = document.querySelector('[data-p3="apply-detail"]');
+      const chrome = bar?.parentElement ?? null;
+      const style = document.documentElement.getAttribute('style');
+      return {
+        writes: window.__writes,
+        finalChromeH: /--chrome-h:\s*([^;]+)/.exec(style ?? '')?.[1]?.trim() ?? null,
+        chromeHeight: chrome ? chrome.offsetHeight : null,
+        chromeHoldsDetail: !!(chrome && detail && chrome.contains(detail)),
+        detailOpen: !!detail && detail.style.display !== 'none',
+      };
+    });
+    // Resolve each root-style write into a `--chrome-h` write or not: the value after write i is the old
+    // value of the next root-style write, or the final value for the last one.
+    const rootWrites = seen.writes.map((w, i) => ({ ...w, i })).filter((w) => w.region === 'root-style');
+    const sequence = seen.writes.map((w) => w.region);
+    rootWrites.forEach((w, k) => {
+      const after = k + 1 < rootWrites.length ? rootWrites[k + 1].before : seen.finalChromeH;
+      sequence[w.i] = after !== w.before ? 'chrome-h' : 'root-other';
+    });
+    const first = (r) => sequence.indexOf(r);
+    const last = (r) => sequence.lastIndexOf(r);
+    const shown = sequence.filter((r, i) => r !== sequence[i - 1]).join(' → ');
+
+    // The probe proves it saw each region written, so the orderings below compare three real writes rather
+    // than an index of -1 (docs/34, "did it look?").
+    ok(seen.detailOpen, `#1890 ${v.type}: a bad verdict opens the detail row`);
+    ok(first('bar') >= 0 && first('detail') >= 0 && first('chrome-h') >= 0,
+      `#1890 ${v.type}: the observer saw the bar, the detail row and --chrome-h each written — saw ${shown || 'nothing'}`);
+    ok(first('bar') >= 0 && first('detail') >= 0 && first('bar') < first('detail'),
+      `#1890 ${v.type}: the bar repaints before the detail row it opens — write order ${shown || 'nothing'}`);
+    ok(last('bar') >= 0 && last('chrome-h') > last('bar'),
+      `#1890 ${v.type}: --chrome-h is measured after the bar's last repaint, so it reads the new bar — write order ${shown || 'nothing'}`);
+    // The consequence, in the units a designer sees: the sticky offset equals the chrome's rendered height.
+    ok(seen.chromeHoldsDetail && seen.finalChromeH === `${seen.chromeHeight}px`,
+      `#1890 ${v.type}: --chrome-h equals the chrome's rendered height with the detail open — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px`);
+    ok(errors.length === 0, `#1890 ${v.type}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
 // ── P2: a font list reaches the Typography page ───────────────────────────────────────────────────
 //
 // `font-list` invalidates the `fonts` topic, and the one subscriber re-renders the workspace. No other
