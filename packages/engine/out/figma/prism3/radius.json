@@ -55,6 +55,45 @@
       }
     },
     {
+      "name": "pds3/radius/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "8px corner radius",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/8"
+      }
+    },
+    {
+      "name": "pds3/radius/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "12px corner radius",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/12"
+      }
+    },
+    {
+      "name": "pds3/radius/3xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "16px corner radius",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/16"
+      }
+    },
+    {
       "name": "pds3/radius/round",
       "resolvedType": "FLOAT",
       "scopes": [

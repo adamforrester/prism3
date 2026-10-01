@@ -1,9 +1,0 @@
-## (2026-09-30) — An exclusion may not name the weight-intent axis (#1746)
-
-**STATUS: PR open from `lane/weight-intent-exclusions`, labeled DO NOT MERGE.** Engine bump owed (`engine: minor`, change note `lane-weight-intent-exclusions.md`).
-
-**What was wrong.** When a brand ships one weight for a group, `applyWeightIntent` drops the weight axis from `variantAxes` but leaves `excludeCoordinates` alone. An entry naming the dropped axis then never matches in the projector, because no coordinate carries the axis, while `figmaVariantCount` ignores the missing axis and applies the rest of the entry. Measured on a synthetic field-label with `[{ weight: ['bold'], size: ['large'] }]` at `{ body: ['default'] }`: 12 members projected, 8 counted, and #1355's integrity check fires. No def triggers it today.
-
-**The choice: refuse at validation, not rewrite (my technical call; the issue offered both).** `validateComponentDef`'s weightIntent block now refuses any entry that names the weightIntent axis, by index. A rewrite would have to decide what "exclude bold here" means once bold and regular are one member: drop the entry when it excludes only some weights, and drop just the axis key when it excludes all of them. That rule would then have to hold alike in `applyWeightIntent` and in anything that re-derives the count. The refusal is three lines, and no def in the registry needs the combination. If one ever does, the rewrite is the way to lift the refusal.
-
-**Tests** (`test.ts`, beside the sparse-grid arms). Literal counts on a synthetic field-label: the refusal by name, and in the second entry only; an exclusion on the other axes validates and survives the collapse with projector and count agreeing (20, then 10); and the fixture that shows why, where the refused combination collapses to 12 projected against 8 counted.

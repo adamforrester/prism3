@@ -21604,6 +21604,45 @@
           }
         }
       },
+      "xl": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.8}",
+        "$description": "radius xl — 8px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.8",
+            "px": 8,
+            "radiusScale": 1
+          }
+        }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.12}",
+        "$description": "radius 2xl — 12px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.12",
+            "px": 12,
+            "radiusScale": 1
+          }
+        }
+      },
+      "3xl": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.16}",
+        "$description": "radius 3xl — 16px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.16",
+            "px": 16,
+            "radiusScale": 1
+          }
+        }
+      },
       "round": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.128}",
@@ -22141,7 +22180,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.218.0",
+      "version": "0.219.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -37,7 +37,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
 import { hostCommit, type HostCommit } from './write-adapter';
-import { initialHostSession, reduce, repaintsFor, type HostSession } from './state/host-session';
+import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
@@ -58,7 +58,7 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, rebuild, syncIdentity, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
-  getPath, setPath, getModeLever, setModeLever,
+  getPath, setPath, getModeLever, setModeLever, subscribe, invalidate,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -119,6 +119,15 @@ const NAV = [
   // from the web rail, rather than rendered inert there. Both NAV consumers read `railNav()`.
   { key: 'components', label: 'Components', sub: 'Internal — build the Button set', view: true, figmaOnly: true },
 ] as const satisfies readonly { key: PageKey; label: string; sub: string; view?: boolean; figmaOnly?: boolean }[];
+/** THE OTHER DIRECTION (#1846). `satisfies` above makes every rail row name a `PageKey`; this makes every
+ *  `PageKey` have a rail row. `PageKey` used to be DERIVED from `NAV`, so the second half held by
+ *  construction; since F2 hand-listed it in `state/store.ts`, a new key with no row compiled, and the page
+ *  was reachable only by a `setPage` nobody could click to. Two hand-written lists, checked against each
+ *  other both ways, is the independence docs/34 asks for. A missing row fails `typecheck` here, naming the
+ *  key in `missingNavRow`. */
+type PageWithoutNavRow = Exclude<PageKey, (typeof NAV)[number]['key']>;
+const everyPageHasANavRow: [PageWithoutNavRow] extends [never] ? true : { missingNavRow: PageWithoutNavRow } = true;
+void everyPageHasANavRow;
 
 /** The destinations this HOST offers. `figmaOnly` entries are absent from the web rail, not disabled
  *  in it — a grayed row still claims the destination exists and just will not open (the same call
@@ -609,79 +618,45 @@ const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...pa
 // this after the whole module has evaluated, and it only fires async (after ui-ready), so every
 // const it reaches below is defined.
 //
-// The state change is `reduce` and what to repaint is `repaintsFor`, both pure and unit-tested
-// (`test-host-session.ts`). This function only runs the effects, in the order `repaintsFor` lists them.
+// The state change is `reduce`, what changed is `topicsFor` and what it does to the brand session is
+// `brandEffectFor` — all pure and unit-tested (`test-host-session.ts`). This function runs the brand
+// effect, then invalidates the topics in order. IT NAMES NO PAINTER (UI redesign P2): each surface that
+// reads host state subscribes to its topic beside its own painter — search `subscribe('host` and
+// `subscribe('fonts'`. The `Repaint` tag switch that stood here is gone; #1845 was the proof it could
+// lose a case silently, and `apps/plugin/test-build-verdict.mjs` now reads every topic's surface back.
 export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
   const prev = host;
   host = reduce(prev, m);
-  for (const r of repaintsFor(m, prev, host)) {
-    switch (r) {
-      case 'loadBrand':
-        // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and
-        // what dirtiness is measured against (#722).
-        if (m.kind === 'restore-input') loadBrand(m.input as BrandInput, { kind: 'file' });
-        break;
-      case 'startFresh':
-        // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
-        // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
-        // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
-        // and `example/<BOOT_BRAND>` is the honest one until the host answers (#721 state 2). This message is
-        // the host answering "nothing", and it is the only moment at which `none` becomes true.
-        //
-        // GUARDED ON THE BOOT PROVENANCE BY IDENTITY, not on `firstRun()` and not on its value. Between
-        // `ui-ready` and this message a designer can already have picked an example or uploaded a
-        // design.md — the UI is live, not blocked on the host — and dropping them onto a start screen
-        // would discard a choice they just made. `loadBrand` assigns a new provenance for every one of
-        // those paths, so this identity check is exactly "nothing has been chosen yet".
-        //
-        // THE INVARIANT THIS RESTS ON (#1200): provenance is only ever REASSIGNED, never mutated in place.
-        // Mutate it and identity survives while the meaning changes — the value would still be right and
-        // this guard would discard a chosen brand again. It is enforced, not just stated: the fields are
-        // `readonly` and `provenanceOf` deep-freezes what it returns, asserted in `test-provenance.ts`.
-        //
-        // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
-        // was `example/aurora` (the boot brand then; `BOOT_BRAND` now), so "origin is example/aurora and
-        // nothing is dirty" also read true straight after a designer clicked the aurora chip. A late empty-restore then threw away the brand they had
-        // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
-        // chip click, which is the only reason it is not still in here.
-        if (provenance === bootProvenance) { clearOrigin(); build(); }
-        break;
-      // The chrome, only once it is mounted.
-      case 'bar': if (barHost) renderBar(); break;
-      case 'applyDetail': if (barHost) syncApplyDetail(); break;
-      // A plain re-render — the same path a tab click takes. The font list can arrive before or after the
-      // typeface page first renders, so caching plus a re-render makes the order irrelevant.
-      case 'workspace': renderWorkspace(); break;
-      // A page's own action row (#870). Outside the `barHost` guard on purpose: that flag is about the
-      // chrome being mounted, and each row has its own `isConnected` test for the same question about itself.
-      case 'componentRow': syncComponentRow(); break;
-      case 'fileSetupRow': syncFileSetupRow(); break;
-      case 'styleGuideRow': syncStyleGuideRow(); break;
-      case 'componentPending': {
-        // Text swap, NOT `renderBar()`. This fires at every chunk boundary — 27 per phase, so 54 times, in a
-        // 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in it, which
-        // would blur whatever the designer had focused and reset the brand switcher's open state mid-build.
-        // The pending pill is the only thing that changed, so it is the only thing rewritten.
-        //
-        // EVERY live pill, not one (#870): the bar and the Components page each render their own, and writing
-        // to a single cached node left whichever rendered first frozen at the placeholder for the whole build.
-        const text = componentPendingText();
-        for (const node of componentPendingEls) {
-          // A detached node is a pill whose host has re-rendered since. Dropped rather than written to, so
-          // the set stays bounded without any renderer having to know it exists — see the field.
-          if (node.isConnected) node.textContent = text;
-          else componentPendingEls.delete(node);
-        }
-        break;
-      }
-      default: {
-        // Exhaustive: a `Repaint` with no case here is a compile error, not a repaint that silently never runs.
-        const unhandled: never = r;
-        void unhandled;
-      }
-    }
-  }
+  const effect = brandEffectFor(m, prev, host);
+  // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
+  // dirtiness is measured against (#722).
+  if (effect === 'loadBrand' && m.kind === 'restore-input') loadBrand(m.input as BrandInput, { kind: 'file' });
+  // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
+  // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
+  // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
+  // and `example/<BOOT_BRAND>` is the honest one until the host answers (#721 state 2). This message is
+  // the host answering "nothing", and it is the only moment at which `none` becomes true.
+  //
+  // GUARDED ON THE BOOT PROVENANCE BY IDENTITY, not on `firstRun()` and not on its value. Between
+  // `ui-ready` and this message a designer can already have picked an example or uploaded a
+  // design.md — the UI is live, not blocked on the host — and dropping them onto a start screen
+  // would discard a choice they just made. `loadBrand` assigns a new provenance for every one of
+  // those paths, so this identity check is exactly "nothing has been chosen yet".
+  //
+  // THE INVARIANT THIS RESTS ON (#1200): provenance is only ever REASSIGNED, never mutated in place.
+  // Mutate it and identity survives while the meaning changes — the value would still be right and
+  // this guard would discard a chosen brand again. It is enforced, not just stated: the fields are
+  // `readonly` and `provenanceOf` deep-freezes what it returns, asserted in `test-provenance.ts`.
+  //
+  // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
+  // was `example/aurora` (the boot brand then; `BOOT_BRAND` now), so "origin is example/aurora and
+  // nothing is dirty" also read true straight after a designer clicked the aurora chip. A late empty-restore then threw away the brand they had
+  // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
+  // chip click, which is the only reason it is not still in here.
+  else if (effect === 'startFresh' && provenance === bootProvenance) { clearOrigin(); build(); }
+  for (const t of topicsFor(m, prev, host)) invalidate(t);
 };
+
 
 // ===========================================================================
 // STAGE 1 — BRAND PRIMITIVES (bespoke)
@@ -4696,9 +4671,9 @@ const renderComponentsPage = (host: PageHost): void => {
   );
   fsSec.append(fsNote);
 
-  const fsRow = el('div', 'fs-row');
+  const fsRow = hook(el('div', 'fs-row'), 'file-setup-row');
   fileSetupRow = fsRow;
-  const fsBtn = el('button', 'barbtn') as HTMLButtonElement;
+  const fsBtn = hook(el('button', 'barbtn') as HTMLButtonElement, 'file-setup-button');
   fileSetupBtn = fsBtn;
   // One line, under the ~90 the plugin register allows. It states the one fact a re-run needs — that this
   // never duplicates — because the build's `title` beside it already carries the order the two run in.
@@ -4892,6 +4867,10 @@ const syncComponentRow = (opts: { staged?: true } = {}): void => {
   if (host.componentState) row.prepend(renderApplyStatus(host.componentState, 'components'));
 };
 
+// A verdict's page row (#870). Outside any chrome guard on purpose: each row's own `isConnected` test
+// answers "is it on screen" for itself (see `staged` above).
+subscribe('host:components', () => syncComponentRow());
+
 /** The file-setup row's status, refreshed in place (#1558). The same mechanism as `syncComponentRow`, and
  *  for the same reasons: the `file-setup-result` handler is on the message path and this row is page
  *  content, so a verdict that reached only the chrome would leave the button frozen at "⋯ Setting up…".
@@ -4914,6 +4893,8 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (host.fileSetupState) row.prepend(renderApplyStatus(host.fileSetupState, 'filesetup'));
 };
+
+subscribe('host:filesetup', () => syncFileSetupRow());
 
 /** The style-guide button's label (#259). Proposed, owner to confirm — the one string a reviewer changes. */
 const STYLE_GUIDE_LABEL = 'Draw style guide';
@@ -4988,6 +4969,7 @@ const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (host.styleGuideState) row.prepend(renderApplyStatus(host.styleGuideState, 'styleguide'));
 };
+subscribe('host:styleguide', () => syncStyleGuideRow());
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
 // best-effort map of common families → the numeric weights they actually ship. Used only to WARN when a
@@ -5159,7 +5141,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
   // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
   // device" was actively wrong in Figma — a cloud font is loadable there and absent here.
-  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', host.hostFonts.length ? 'In this Figma' : 'On this device'),
+  libHtr.append(el('th', 'mtbl-stick', 'Face'), hook(el('th', 'mtbl-mode', host.hostFonts.length ? 'In this Figma' : 'On this device'), 'typeface-source'),
     el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   libHead.append(libHtr); libTbl.append(libHead);
   const libBody = el('tbody');
@@ -8436,6 +8418,16 @@ const reconcileRegions = (host: HTMLElement, want: readonly HTMLElement[]): { ke
   return { kept, swapped };
 };
 
+// HOST SUBSCRIPTIONS (P2) are taken ONCE, at module load, beside each painter — never per mount. The
+// legacy surfaces are re-minted on every render (`CHROME_SURFACES` on every `mountView`, each page row on
+// every `renderWorkspace`) and none has an unmount hook, so a subscription taken at mount would stack one
+// painter per render. Permanent subscriptions whose painters ask whether their surface is live are what
+// the switch did, with the same guards. The new shell (S1) subscribes on mount and unsubscribes on unmount.
+//
+// `fonts`: the Typography page's typeface library and type-ahead read `host.hostFonts`. A plain re-render,
+// the same path a tab click takes: the list can arrive before or after that page first renders, so
+// caching plus a re-render makes the order irrelevant.
+subscribe('fonts', () => renderWorkspace());
 function renderWorkspace(): void {
   // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
   // than global chrome (#432). Mounted from the DECLARATION rather than by name, so a second piece of
@@ -9208,6 +9200,23 @@ const componentPendingText = (): string => {
  *  test `syncErrorBar` judges itself by. Live membership is at most one per host that renders the pill. */
 const componentPendingEls = new Set<HTMLElement>();
 
+// `host:progress` — a TEXT SWAP, NOT `renderBar()`. This fires at every chunk boundary — 27 per phase, so 54
+// times, in a 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in
+// it, which would blur whatever the designer had focused and reset the brand switcher's open state
+// mid-build. The pending pill is the only thing that changed, so it is the only thing rewritten.
+//
+// EVERY live pill, not one (#870): the bar and the Components page each render their own, and writing to a
+// single cached node left whichever rendered first frozen at the placeholder for the whole build.
+subscribe('host:progress', () => {
+  const text = componentPendingText();
+  for (const node of componentPendingEls) {
+    // A detached node is a pill whose host has re-rendered since. Dropped rather than written to, so the
+    // set stays bounded without any renderer having to know it exists — see the field.
+    if (node.isConnected) node.textContent = text;
+    else componentPendingEls.delete(node);
+  }
+});
+
 /**
  * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedOutcome`
  * rendered — this ticket lands the model, and where the three outcomes are properly surfaced is
@@ -9295,6 +9304,11 @@ const syncApplyDetail = (): void => {
   if (show) applyDetailHost.textContent = state.summary;
   syncChromeHeight();
 };
+
+// The chrome's host subscriptions, guarded on the chrome being mounted — the guard the switch carried.
+// `host` before `host:detail` in `topicsFor`, so the bar repaints before the row it opens, as it did.
+subscribe('host', () => { if (barHost) renderBar(); });
+subscribe('host:detail', () => { if (barHost) syncApplyDetail(); });
 
 /** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
  *  overloaded dropdown. Left: brandmark. Right: brand switcher (identity + examples + new +

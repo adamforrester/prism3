@@ -6,12 +6,14 @@
  * wrote them also repainted. So the question "does a component verdict reach the state the Components
  * page reads, and does that page get repainted?" could only be answered in a browser. #870 was exactly
  * that bug: the verdict repainted the bar and left the page's build button reading "Building…". Here the
- * state change is `reduce` and the repaint list is `repaintsFor`. Both are pure, and `test-host-session.ts`
- * asserts on them in Node.
+ * state change is `reduce`, what changed is `topicsFor`, and what the message does to the brand session is
+ * `brandEffectFor`. All three are pure, and `test-host-session.ts` asserts on them in Node.
  *
- * WHAT STAYS IN `main.ts`. Every effect: the repaints themselves, `loadBrand` for a restored brand, and
- * the fresh-file start (`clearOrigin` + `build`), which is guarded on the brand session's provenance and
- * so is not host state. `handleHostMessage` there calls `reduce`, then runs `repaintsFor` in order.
+ * WHAT STAYS IN `main.ts`. Every effect: `loadBrand` for a restored brand, the fresh-file start
+ * (`clearOrigin` + `build`), which is guarded on the brand session's provenance and so is not host state,
+ * and the painters. `handleHostMessage` there calls `reduce`, runs `brandEffectFor`'s effect, then
+ * `invalidate`s each of `topicsFor`'s topics in order. It names no painter: each painter subscribes to the
+ * topics it reads (P2).
  *
  * The UI's own writes (a button setting a slot to `pending`, a pill toggling `openDetail`) also stay in
  * `main.ts`, as whole-object reassignments of the one `HostSession` value.
@@ -20,6 +22,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import type { HostMessage } from '../write-adapter';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
+import type { HostTopic } from './store';
 
 /** A terminal verdict on a host action: the pill's headline and the detail behind it. */
 export type Verdict = { ok: boolean; headline: string; summary: string };
@@ -149,7 +152,7 @@ export const initialHostSession = (): HostSession => ({
  * Returns the SAME object when the message is refused or carries no host state: a `restore-input`
  * whose blob `brandTheme` rejects, a `component-progress` outside a pending build, and
  * `restore-input-empty` (its effect is on the brand session, in `main.ts`). Every accepted message
- * returns a new object, so `repaintsFor` can tell a refusal from an acceptance by identity.
+ * returns a new object, so `topicsFor` and `brandEffectFor` can tell a refusal from an acceptance by identity.
  */
 export const reduce = (s: HostSession, m: HostMessage): HostSession => {
   switch (m.kind) {
@@ -198,37 +201,47 @@ export const reduce = (s: HostSession, m: HostMessage): HostSession => {
 };
 
 /**
- * What `main.ts` does after `reduce`, in this order:
- *   - `loadBrand`: load the restored input as the file's brand.
- *   - `startFresh`: the fresh-file start moment (#1197), which `main.ts` runs only while nothing has
- *     been chosen yet.
- *   - `bar`, `applyDetail`: the chrome (only once it is mounted).
- *   - `workspace`: re-render the current page.
- *   - `componentRow`, `fileSetupRow`, `styleGuideRow`: a page's own action row.
- *   - `componentPending`: rewrite the text of every live component-progress pill, no re-render.
+ * The one thing a host message can do to the BRAND session rather than to this one, after `reduce`:
+ *   - `loadBrand`: load the restored input as the file's brand (origin `file`).
+ *   - `startFresh`: the fresh-file start moment (#1197), which `main.ts` runs only while nothing has been
+ *     chosen yet — a guard on the brand session's provenance, so it stays there.
+ * An EFFECT, not a repaint: it writes the brand session, whose own setters then invalidate `origin`,
+ * `brand`, `page` and `mode`. No message both loads a brand and invalidates a host topic. Pure.
  */
-export type Repaint =
-  | 'loadBrand' | 'startFresh' | 'bar' | 'applyDetail' | 'workspace'
-  | 'componentRow' | 'fileSetupRow' | 'styleGuideRow' | 'componentPending';
+export type BrandEffect = 'loadBrand' | 'startFresh';
+export const brandEffectFor = (m: HostMessage, prev: HostSession, next: HostSession): BrandEffect | null => {
+  if (m.kind === 'restore-input') return next === prev ? null : 'loadBrand';
+  if (m.kind === 'restore-input-empty') return 'startFresh';
+  return null;
+};
 
 /**
- * The effects a message needs, given the session before (`prev`) and after (`next`) it. Pure.
+ * The host topics a message invalidates, given the session before (`prev`) and after (`next`) it, in the
+ * order `main.ts` invalidates them. Pure (UI redesign P2; was `repaintsFor`, a list of repaint tags that a
+ * switch in `main.ts` turned into calls).
  *
- * A verdict repaints the chrome AND the page row that holds that action's button (#870): the build's
- * control is page content, so a verdict that reached only the chrome left the button disabled.
+ * The switch is gone. Each surface that reads a topic subscribes to it beside its own painter
+ * (`subscribe` in `state/store.ts`), so this function says WHAT CHANGED and never who paints it. That is
+ * the split #1845 asked for: the tag list was tested here, the tag-to-repaint mapping was not, and
+ * dropping the File setup case passed every gate. The mapping is now a subscription, and
+ * `apps/plugin/test-build-verdict.mjs` tests it the only way it can be — by posting each message to the
+ * built panel and reading the surface back.
+ *
+ * A verdict invalidates its page row's topic as well as the chrome's (#870): the action's button is page
+ * content, so a verdict that reached only the chrome left the button disabled.
  */
-export const repaintsFor = (m: HostMessage, prev: HostSession, next: HostSession): readonly Repaint[] => {
+export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession): readonly HostTopic[] => {
   switch (m.kind) {
-    case 'restore-input': return next === prev ? [] : ['loadBrand'];
-    case 'restore-input-empty': return ['startFresh'];
-    case 'restore-input-error': return ['bar'];
-    case 'font-list': return ['workspace'];
-    case 'apply-result': return ['bar', 'applyDetail'];
-    case 'component-result': return ['bar', 'applyDetail', 'componentRow'];
-    case 'file-setup-result': return ['bar', 'applyDetail', 'fileSetupRow'];
-    case 'style-guide-result': return ['bar', 'applyDetail', 'styleGuideRow'];
-    case 'component-progress': return next === prev ? [] : ['componentPending'];
-    case 'prune-result': return ['bar'];
-    case 'seed-info': return ['bar'];
+    case 'restore-input': return [];
+    case 'restore-input-empty': return [];
+    case 'restore-input-error': return ['host'];
+    case 'font-list': return ['fonts'];
+    case 'apply-result': return ['host', 'host:detail'];
+    case 'component-result': return ['host', 'host:detail', 'host:components'];
+    case 'file-setup-result': return ['host', 'host:detail', 'host:filesetup'];
+    case 'style-guide-result': return ['host', 'host:detail', 'host:styleguide'];
+    case 'component-progress': return next === prev ? [] : ['host:progress'];
+    case 'prune-result': return ['host'];
+    case 'seed-info': return ['host'];
   }
 };

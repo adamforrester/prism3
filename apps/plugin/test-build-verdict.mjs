@@ -671,6 +671,64 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #1845: File setup reaches its verdict on the page's row ──────────────────────────────────────
+//
+// The same #870 shape on the third page-row control. Before UI redesign P2 a host verdict became a
+// `Repaint` tag and a switch in `apps/studio/src/main.ts` turned the tag into a call; `test-host-session.ts`
+// asserted the tag list and nothing checked the switch. Changing `case 'fileSetupRow': syncFileSetupRow()`
+// to a bare `break` put #870 back for this button and passed every gate, because no browser suite sent
+// `file-setup-result` (#1845). Since P2 the mapping is a store subscription (`subscribe('host:filesetup', …)`),
+// and this arm is what fails when it goes: the verdict is posted through the real bridge and the row is
+// read back. EXPECTED is authored in the words on screen; nothing reads `fileSetupState` (docs/34 shape 16).
+{
+  const { page, errors } = await openPanel();
+  const readFs = () => page.evaluate(() => {
+    const btn = document.querySelector('[data-p3="file-setup-button"]');
+    return {
+      button: btn ? btn.textContent : null,
+      disabled: btn ? btn.disabled : null,
+      verdict: [...document.querySelectorAll('[data-p3="file-setup-row"] [data-p3="status-verdict"]')].map((n) => n.textContent),
+      pending: [...document.querySelectorAll('[data-p3="file-setup-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
+    };
+  });
+  const before = await readFs();
+  ok(before.button === '⊞ Set up file' && before.disabled === false, `#1845 the Components page offers "⊞ Set up file", enabled — read "${before.button}", disabled ${before.disabled}`);
+  const clicked = await page.locator('[data-p3="file-setup-button"]').click({ timeout: 4000 }).then(() => true, () => false);
+  ok(clicked, '#1845 the Set up file control can be clicked');
+  const pending = await readFs();
+  ok(pending.button === '⋯ Setting up…' && pending.disabled === true, `#1845 a file setup in flight reads "⋯ Setting up…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
+
+  await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="file-setup-button"]')?.textContent === '⊞ Set up file', null, { timeout: 5000 }).catch(() => {});
+  const done = await readFs();
+  ok(done.button === '⊞ Set up file' && done.disabled === false, `a file-setup verdict re-enables the Set up file button — read "${done.button}", disabled ${done.disabled}`);
+  ok(done.verdict.length === 1 && done.verdict[0].includes('✓ file set up'), `#1845 exactly one verdict pill on the file-setup row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+  ok(done.pending.length === 0, `#1845 no pending pill is left on the file-setup row beside the verdict — found ${JSON.stringify(done.pending)}`);
+  ok(errors.length === 0, `#1845 file setup: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── P2: a font list reaches the Typography page ───────────────────────────────────────────────────
+//
+// `font-list` invalidates the `fonts` topic, and the one subscriber re-renders the workspace. No other
+// suite sends it, so without this arm that subscription could go the way #1845's case did. What a
+// designer reads is the typeface library's source column: "On this device" until the host answers,
+// "In this Figma" once it has, since the verdicts under it are then Figma's own (docs/34 shape 16).
+{
+  const { page, errors } = await openPanel();
+  await page.locator('[data-p3="rail-page-typography"]').click();
+  await hooks.need(page, '[data-p3="typeface-source"]', { timeout: 5000 });
+  const source = () => page.evaluate(() => document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null);
+  const before = await source();
+  ok(before === 'On this device', `the typeface library reads "On this device" before the host sends its fonts — read ${JSON.stringify(before)}`);
+  await post(page, { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] });
+  await page.waitForFunction(() => document.querySelector('[data-p3="typeface-source"]')?.textContent === 'In this Figma', null, { timeout: 5000 }).catch(() => {});
+  const after = await source();
+  ok(after === 'In this Figma', `a font list from the host repaints the Typography page — the library reads "In this Figma", read ${JSON.stringify(after)}`);
+  ok(errors.length === 0, `font list: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 await browser.close();
 server.close();
 

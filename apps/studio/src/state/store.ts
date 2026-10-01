@@ -14,10 +14,13 @@
  * every writer. Mutating the object a binding holds (`brandState.gradients = …`) is unchanged and needs
  * no setter.
  *
- * WHAT IS DELIBERATELY NOT HERE YET. `subscribe`/`invalidate` exist and every setter below fires its
- * topic, but in this slice nothing in `main.ts` subscribes: the existing `apply()` / `applyFull()` /
- * `renderBar()` / `build()` call sites still pick their own repaint. Moving those call sites onto topics
- * is a later slice with its own evidence, not a side effect of this one.
+ * WHO SUBSCRIBES (UI redesign P2). The repaint end state is store subscribers: a writer invalidates a
+ * topic and every surface that reads it repaints. P2 lands it for HOST messages — `handleHostMessage` in
+ * `main.ts` invalidates the `HostTopic`s that `topicsFor` (`state/host-session.ts`) names, and each
+ * legacy surface that reads host state subscribes once, beside its own painter. The brand topics
+ * (`brand`, `origin`, `mode`, `page`) still have no subscribers: the `apply()` / `applyFull()` /
+ * `renderBar()` / `build()` call sites pick their own repaint until the new shell (S1) subscribes to them
+ * and S13 deletes the tiers. Subscribing the legacy tiers to them now would repaint twice per edit.
  *
  * Persistence is INJECTED (`setPersist`), not imported: the web host writes the last-good brand to
  * `localStorage` and the plugin writes nothing, and the entry — the one module allowed to know which
@@ -33,8 +36,9 @@ import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provena
 export type Mode = ResolvedPreview['modes'][number];
 
 /** The keys `page` can hold. The labels, the order and which host shows which destination belong to
- *  the rail (`NAV` in `main.ts`), which is checked against this with `satisfies`, so a destination the
- *  store does not know is a compile error there. */
+ *  the rail (`NAV` in `main.ts`), which is checked against this BOTH WAYS there: `satisfies` makes a
+ *  destination the store does not know a compile error, and `everyPageHasANavRow` does the same for a
+ *  key here with no rail row (#1846). */
 export type PageKey =
   | 'palettes' | 'surfaces' | 'interactive' | 'typography' | 'elevation' | 'sizeRadius' | 'layout'
   | 'motion' | 'preview' | 'styleGuide' | 'components';
@@ -89,10 +93,21 @@ export const firstRun = (): boolean => provenance.origin.kind === 'none';
 
 // ---- invalidation --------------------------------------------------------------------------------
 
+/** What the HOST changed (P2). Named for the fact that moved, not for a painter, so a second reader of the
+ *  same fact subscribes rather than edits a switch. `topicsFor` in `state/host-session.ts` maps each host
+ *  message to these, purely.
+ *   - `host`: a fact the chrome bar shows — the boot read-back, a restore refusal, a prune, any verdict.
+ *   - `host:detail`: a verdict landed, so which detail is open (and what it says) may have moved.
+ *   - `host:components`, `host:filesetup`, `host:styleguide`: that action's verdict, which its page row shows.
+ *   - `host:progress`: the in-flight component build's fraction — a text swap, never a re-render.
+ *   - `fonts`: the families the host can load, which the Typography page reads. */
+export type HostTopic =
+  | 'host' | 'host:detail' | 'host:components' | 'host:filesetup' | 'host:styleguide' | 'host:progress' | 'fonts';
+
 /** What changed. `brand`: the working input, the resolved theme or the error (every `rebuild`, and a
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the
- *  rail destination. */
-export type Topic = 'brand' | 'origin' | 'mode' | 'page';
+ *  rail destination. Plus the host topics above. */
+export type Topic = 'brand' | 'origin' | 'mode' | 'page' | HostTopic;
 const subscribers = new Map<Topic, Set<() => void>>();
 
 /** Call `fn` whenever `topic` is invalidated. Returns the unsubscribe. */
