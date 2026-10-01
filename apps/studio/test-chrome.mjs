@@ -464,7 +464,7 @@ const focusRings = async (page) => {
       let color = width ? cs.outlineColor : null;
       if (!width) {   // a tab draws its ring on ::before, inside the row's scroll box
         const b = getComputedStyle(el, '::before');
-        if (b.content !== 'none' && b.borderTopStyle !== 'none') { width = parseFloat(b.borderTopWidth); color = b.borderTopColor; }
+        if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') { width = parseFloat(b.borderTopWidth); color = b.borderTopColor; }
       }
       const c = color ? parse(color) : null;
       const g = groundOf(el.parentElement);
