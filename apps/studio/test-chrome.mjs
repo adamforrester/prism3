@@ -1987,20 +1987,63 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
-  // An edit does: the neutral chroma, by keyboard on its slider, reveals the neutral ramp.
+  // An edit does, and smoothly (owner, 2026-10-01). A recorder on the preview body's `scrollTo` notes the
+  // behavior each reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
+  // it has held still for ten frames: a smooth reveal passes through positions between start and end.
+  await page.evaluate(() => {
+    window.__reveals = [];
+    const o = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (...a) {
+      if (this.matches('[data-p3="preview-body"]')) window.__reveals.push(a[0] && typeof a[0] === 'object' ? a[0].behavior ?? 'auto' : 'auto');
+      return o.apply(this, a);
+    };
+  });
+  const reveals = () => page.evaluate(() => window.__reveals.splice(0));
+  const frames = () => page.evaluate(() => new Promise((res) => {
+    const b = document.querySelector('[data-p3="preview-body"]');
+    const tops = [Math.round(b.scrollTop)];
+    let still = 0;
+    const tick = () => {
+      const t = Math.round(b.scrollTop);
+      still = t === tops[tops.length - 1] ? still + 1 : 0;
+      tops.push(t);
+      if (still >= 10 || tops.length > 300) res(tops); else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+  const between = (tops, from) => new Set(tops.filter((t) => t !== from && t !== tops[tops.length - 1])).size;
+  // The neutral chroma, by keyboard on its slider, reveals the neutral ramp.
   await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await reveals();
   await page.keyboard.press('ArrowRight');
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const t1 = await frames();
   const e1 = await state('neutral');
   ok(e1.inView && e1.top < bottom, `Q4: editing the neutral chroma scrolls the preview to the neutral ramp (in view ${e1.inView}, scrollTop ${e1.top}, was ${bottom})`);
+  const r1 = await reveals();
+  ok(r1.length >= 1 && r1.every((x) => x === 'smooth'), `Q4: without reduced motion the reveal asks for a smooth scroll — asked ${JSON.stringify(r1)}`);
+  ok(between(t1, bottom) >= 2, `Q4: without reduced motion the preview passes through positions on its way (${between(t1, bottom)} in-between positions over ${t1.length} frames, ${t1[0]} → ${t1[t1.length - 1]})`);
   // And the primary hex, from the bottom again, reveals the primary ramp.
   await toBottom();
   await page.locator('[data-p3="primary-hex"]').fill('#2244aa');
   await page.locator('[data-p3="primary-hex"]').press('Enter');
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await frames();
   const e2 = await state('primary');
   ok(e2.inView, `Q4: editing the primary color scrolls the preview to the primary ramp (in view ${e2.inView}, scrollTop ${e2.top})`);
   ok(e2.view === 'palettes', `Q4: an edit never changes the preview's home (V1) — ${e2.view}`);
+  // Under reduced motion the reveal jumps: the ramp is in view as soon as the edit returns, with no frames
+  // in between.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const bottom2 = await toBottom();
+  await reveals();
+  await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await page.keyboard.press('ArrowRight');
+  const e3 = await state('neutral');
+  const t3 = await frames();
+  const r3 = await reveals();
+  ok(e3.inView && e3.top < bottom2, `Q4: under reduced motion the neutral ramp is in view right after the edit (in view ${e3.inView}, scrollTop ${e3.top}, was ${bottom2})`);
+  ok(r3.length >= 1 && r3.every((x) => x === 'instant'), `Q4: under reduced motion the reveal asks for an instant scroll — asked ${JSON.stringify(r3)}`);
+  ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   // The mode does not move it.
   const before = await toBottom();
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
