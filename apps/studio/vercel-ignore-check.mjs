@@ -16,8 +16,10 @@
  */
 import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve, basename } from 'node:path';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { dirname, resolve, basename, join, matchesGlob } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -104,3 +106,76 @@ if (leaked.length) {
   process.exit(1);
 }
 console.log('  ✓ no bundled engine file is on the skip list.');
+
+// ---- WHAT THE SCRIPT DECIDES, run for real ---------------------------------------------------------
+// The list above can be right while the decision is wrong: a production path that skips an engine change
+// ships a stale site (#474). So the script itself runs against throwaway commits in a temp repo, with each
+// expected exit code written here as a literal (0 = SKIP, 1 = BUILD). Nothing is derived from the script.
+// The scratch repo's git runs with a scrubbed environment: an inherited GIT_DIR or GIT_INDEX_FILE (set by
+// git hooks) would otherwise point these commits at the real repository, and a global signing or hooks
+// config would make the gate depend on the developer's machine.
+const scratch = mkdtempSync(join(tmpdir(), 'p3-ignore-'));
+const cleanEnv = (extra = {}) => ({
+  PATH: process.env.PATH, HOME: scratch, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', ...extra,
+});
+const git = (...args) => {
+  const r = spawnSync('git', ['-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd: scratch, encoding: 'utf8', env: cleanEnv() });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed in the scratch repo: ${r.stderr}`);
+  return r.stdout.trim();
+};
+const touch = (path, text) => { mkdirSync(dirname(join(scratch, path)), { recursive: true }); writeFileSync(join(scratch, path), text); };
+const decide = (env) => spawnSync('bash', [join(scratch, 'ignore.sh')], { cwd: scratch, env: cleanEnv(env) }).status;
+const fails = [];
+const expect = (name, got, want) => {
+  if (got === want) console.log(`  ✓ ${name}`);
+  else fails.push(`${name} (exit ${got}, want ${want} — ${want === 0 ? 'SKIP' : 'BUILD'})`);
+};
+try {
+  copyFileSync(SCRIPT, join(scratch, 'ignore.sh'));
+  git('init', '-q', '-b', 'main');
+  git('config', 'user.email', 'gate@example.invalid'); git('config', 'user.name', 'gate');
+  touch('README.md', 'seed\n'); git('add', '-A'); git('commit', '-qm', 'seed');
+  expect('a commit with no parent BUILDS (uncertainty builds)', decide({}), 1);
+  touch('packages/engine/theme.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'engine');
+  expect('a bundled engine change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
+  touch('packages/engine/regen.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'excluded');
+  expect('a change to an excluded engine file only is SKIPPED', decide({ VERCEL_ENV: 'production' }), 0);
+  touch('apps/studio/src/main.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'studio');
+  expect('a studio change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
+  touch('apps/plugin/src/x.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'plugin');
+  expect('a plugin-only change is SKIPPED', decide({ VERCEL_ENV: 'production' }), 0);
+  touch('vercel.json', '{}\n'); git('add', '-A'); git('commit', '-qm', 'vercel');
+  expect('a vercel.json change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
+} finally {
+  rmSync(scratch, { recursive: true, force: true });
+}
+
+// ---- WHICH BRANCHES DEPLOY AT ALL (owner decision, 2026-10-01) ------------------------------------------
+// The Hobby plan allows 100 deployments a day, and on 2026-09-30 the lanes hit it. A build the Ignored Build
+// Step skips STILL counts as a deployment (Vercel's docs), so the ignore step cannot save quota; only
+// `git.deploymentEnabled` stops a deployment being created. Previews are kept for the branches that edit the
+// studio (the UI redesign lane's `ui/*`, during the studio freeze) and for `main`. Checked as literals here:
+// a typo that disabled `main` would stop production deploys silently.
+const vcfg = JSON.parse(readFileSync(resolve(root, '../../vercel.json'), 'utf8'));
+const rules = Object.entries(vcfg.git?.deploymentEnabled ?? {});
+// Vercel's rule, from its Git Configuration docs: keys are minimatch globs; an unmatched branch deploys; a
+// branch matching several rules deploys if ANY matching rule is true. Evaluated here per sample branch,
+// never by reading one literal key, so a glob such as "*" or "m*" that would also switch off main fails.
+const deploys = (branch) => {
+  const hits = rules.filter(([glob]) => matchesGlob(branch, glob));
+  return hits.length === 0 || hits.some(([, on]) => on === true);
+};
+for (const [branch, want] of [
+  ['main', true], ['ui/p1-test-hardening', true],
+  ['lane/radius-large-rungs', false], ['fold/2026-10-01', false], ['docs/mcp-connect-readme', false],
+  ['claude/prism3-tokens-rename-etcjdz', false],
+]) {
+  expect(`branch ${branch} ${want ? 'deploys' : 'does not deploy'}`, deploys(branch) ? 1 : 0, want ? 1 : 0);
+}
+if (!rules.length) fails.push('vercel.json has no git.deploymentEnabled rules — every branch would deploy (the 2026-09-30 quota failure)');
+
+if (fails.length) {
+  console.error(`\n✗ ${fails.length} deploy decision(s) wrong:`);
+  for (const f of fails) console.error(`    ${f}`);
+  process.exit(1);
+}

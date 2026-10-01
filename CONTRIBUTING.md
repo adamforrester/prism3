@@ -1150,6 +1150,17 @@ npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contr
                                             #   legal token faded through opacity is invisible to this
                                             #   one, and a token used in a state no sweep visits is
                                             #   invisible to that one)
+npm run audit:modes -w @prism3/studio       # the mode audit's INSTRUMENT (#1897). Run it AFTER build,
+                                            #   same browser as test:smoke. Its table is a report; it
+                                            #   exits 1 only when a hook it names never rendered, a
+                                            #   page's section heads and titles disagree in count, or
+                                            #   no control label was read. Three hooks (section-head,
+                                            #   section-title, mode-scope-badge) are read by it alone,
+                                            #   so nothing else notices one dropped. Run WITHOUT
+                                            #   --check-badges: that flag is red on main (#1887).
+                                            #   REMOVED AT S13, with mode-audit.mjs and the mode strip
+                                            #   it audits: drop this line, its ci.yml step and its
+                                            #   verify.ts row in that PR
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins — asserted by

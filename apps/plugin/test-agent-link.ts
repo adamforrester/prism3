@@ -23,6 +23,8 @@
  *   · routes/<cmd>: the UI message and the agent command reach the same `ACTIONS` entry
  *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted
  *   · envelope: every field of the result envelope, for every command
+ *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
+ *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
  *   · claim-before-run: the id is in `claimed` while its handler runs
  *   · order: two commands sent together run in send order, one per poll
  *   · no-rerun: a claimed command is never run again, even with its result gone
@@ -234,6 +236,69 @@ for (const r of results) {
     && ('result' in r) !== ('error' in r) && Array.isArray(r.result?.logs),
   `envelope/${r.cmd}: v, id, cmd, ok, startedAt ≤ finishedAt, engineVersion, transport, exactly one of result|error, logs`);
   ok(r.ok === (r.result?.verdict as { ok?: boolean } | null)?.ok, `envelope/${r.cmd}: ok is the verdict's own ok (${r.ok})`);
+}
+
+/* ── foreign file ───────────────────────────────────────────────────────────────────────────────────── */
+section('foreign — apply-theme refuses the whole write on content Prism3 did not make, from either caller (#1884)');
+{
+  // A file someone else built: a `color` collection with no Prism3 stamp, a same-named variable of another
+  // type inside it, and an effect style under one of Prism3's names with the designer's own description.
+  // Every object records any property write, and every writing method records its call, so a write the
+  // pre-flight lets through is counted here whichever executor makes it.
+  const writes: string[] = [];
+  const rec = <T extends object>(label: string, o: T): T =>
+    new Proxy(o, { set: (t, p, v) => { writes.push(`${label}.${String(p)}`); (t as Record<string | symbol, unknown>)[p] = v; return true; } });
+  const write = (what: string) => () => { writes.push(what); throw new Error(`test host: ${what} is a write`); };
+  const col = rec('collection color', {
+    id: 'VariableCollectionId:9:1', name: 'color', modes: [{ modeId: '9:0', name: 'Mode 1' }],
+    renameMode: write('renameMode'), addMode: write('addMode'),
+    getSharedPluginData: () => '', setSharedPluginData: write('collection setSharedPluginData'),
+  });
+  const v = rec('variable', {
+    id: 'VariableID:9:2', name: 'ads/color/background/primary', variableCollectionId: col.id, resolvedType: 'STRING',
+    scopes: [], description: '', hiddenFromPublishing: false, valuesByMode: { '9:0': 'hand-typed' },
+    setValueForMode: write('setValueForMode'),
+  });
+  const style = rec('effect style', {
+    name: 'shadow/xs', description: 'Card shadow, our own', effects: [],
+    getSharedPluginData: () => '', setSharedPluginData: write('style setSharedPluginData'),
+  });
+  const saved = { ...host };
+  Object.assign(host, {
+    variables: {
+      getLocalVariableCollectionsAsync: async () => [col], getLocalVariablesAsync: async () => [v],
+      createVariableCollection: write('createVariableCollection'), createVariable: write('createVariable'),
+      createVariableAlias: write('createVariableAlias'),
+    },
+    getLocalEffectStylesAsync: async () => [style],
+    createEffectStyle: write('createEffectStyle'), createPaintStyle: write('createPaintStyle'),
+    createGridStyle: write('createGridStyle'), createTextStyle: write('createTextStyle'),
+    loadFontAsync: async () => undefined,
+  });
+  try {
+    const SUMMARY = 'Nothing was written. 3 conflicts with existing content: collection "color" already in this file, not created by Prism3; ' +
+      'variable "ads/color/background/primary" is STRING in "color"; Prism3 writes COLOR; ' +
+      'effect style "shadow/xs" already in this file, not created by Prism3';
+    posted.length = 0;
+    await toUi({ type: 'apply-theme', input: brand });
+    const uiVerdict = posted.filter((m) => m.type === 'apply-result').pop();
+    ok(uiVerdict?.ok === false && uiVerdict.headline === '✗ 3 conflicts' && String(uiVerdict.summary).startsWith(SUMMARY),
+      `foreign/panel: the Apply button's verdict is "✗ 3 conflicts" and names each one (${String(uiVerdict?.headline)}: ${String(uiVerdict?.summary).slice(0, 60)}…)`);
+    const { id } = await send('apply-theme', { input: brand });
+    await tick();
+    const r = (await read(id)) as AgentResult;
+    ok(r.ok === false && !!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(uiVerdict),
+      'foreign/agent: the agent\'s apply-theme gets the same refusal, byte for byte');
+    const data = r.result?.data as { conflicts?: { kind: string; name: string }[] } | undefined;
+    ok(JSON.stringify(data?.conflicts?.map((c) => `${c.kind} ${c.name}`)) ===
+      JSON.stringify(['collection color', 'variable ads/color/background/primary', 'effect style shadow/xs']),
+    'foreign/agent: the structured data lists every conflict, not only the capped summary');
+    ok(writes.length === 0 && !store.has(k('prism3', 'brandInput')),
+      `foreign: neither caller wrote anything — no variable, style or stamp, and no persisted brand (${writes.slice(0, 3).join(', ') || 'none'})`);
+  } finally {
+    for (const key of Object.keys(host)) if (!(key in saved)) delete host[key];
+    Object.assign(host, saved);
+  }
 }
 
 /* ── claim-before-run ───────────────────────────────────────────────────────────────────────────────── */

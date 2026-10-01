@@ -32,8 +32,8 @@
  * `waitForTimeout` throughout; it is an ad-hoc audit a human reads, and the tradeoff is different for
  * something CI runs on every push.
  *
- * PORT. This serves on an EPHEMERAL port (`listen(0)`) rather than a second fixed one. `mode-audit.mjs`
- * holds 8899; two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test
+ * PORT. This serves on an EPHEMERAL port (`listen(0)`) rather than a fixed one, as `mode-audit.mjs` now
+ * does too (#1898): two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test
  * failure and would be debugged as one. Picking another fixed number only moves the collision.
  *
  * FRESH CONTEXT PER BRAND. The studio persists its working brand to `localStorage`, so a shared

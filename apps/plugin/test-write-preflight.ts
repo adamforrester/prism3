@@ -18,6 +18,17 @@
  *   · LEGACY — a Prism3 file from before #1581 (no stamps, persisted brand on the root) is presumed ours;
  *     the same file without the persisted brand is not.
  *
+ * And through `runApplyTheme`, the sequence `main.ts` and the agent link's `apply-theme` both run (#1884):
+ *
+ *   · FOREIGN FILE — a hand-made `color` collection holding a same-named variable of another type, and a
+ *     hand-made style under one of Prism3's names: refused whole, the file byte-identical before and
+ *     after, and the verdict naming each of the three, word for word.
+ *   · FRESH — an empty file writes as before, and leaves every collection stamped and every style marked.
+ *   · PREVIOUS VERSION — a file shaped like one the version before #1884 wrote (stamped collections,
+ *     styles with no ownership mark) re-applies unchanged, and leaves every style marked.
+ *   · PRE-#1581 — no stamps and no marks, the persisted brand on the root: re-applies, and leaves both.
+ *   · EDITED DESCRIPTION — a designer rewrote a marked style's description: still Prism3's, still applies.
+ *
  * The shim's `setValueForMode` enforces the variable's type the way Figma does (it throws), which is the
  * failure the floor exists for. Writes are recorded through a Proxy `set` trap on every file object plus
  * each mutating method, so a write the list below does not anticipate is still counted.
@@ -34,6 +45,7 @@ import { applyStylesPlan } from './src/write-styles';
 import { applyGridStylePlan } from './src/write-grid-styles';
 import { applyTextStylePlan } from './src/write-text-styles';
 import { guardApply, preflightPlanOf, conflictSummary, type PreflightPlan } from './src/preflight';
+import { runApplyTheme } from './src/apply-theme';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -83,6 +95,7 @@ class FileShim {
   createGridStyle(): any { this.writes.push('createGridStyle'); return this.addStyle('grid', ''); }
   createTextStyle(): any { this.writes.push('createTextStyle'); return this.addStyle('text', ''); }
   async loadFontAsync(): Promise<void> { /* every face "installed" — fonts are not what this test is about */ }
+  async listAvailableFontsAsync(): Promise<never[]> { return []; }   // no library: the plan's style names stand
   get variables(): this { return this; }
 
   // seeding (not a write) — used to build a file BEFORE the counter is read
@@ -121,9 +134,14 @@ class FileShim {
     return t;
   }
   addStyle(kind: 'effect' | 'paint' | 'grid' | 'text', name: string, description = ''): any {
+    const shim = this;
     const s = {
       name, description, effects: [], paints: [], layoutGrids: [], bound: {} as Record<string, string>,
+      data: new Map<string, string>(),
       setBoundVariable(field: string, v: { name: string } | null): void { if (v) this.bound[field] = v.name; },
+      // Shared plugin data, as Figma's BaseStyle has it (#1884's ownership mark lives here).
+      getSharedPluginData(ns: string, k: string): string { return this.data.get(`${ns}/${k}`) ?? ''; },
+      setSharedPluginData(ns: string, k: string, v: string): void { shim.writes.push(`mark ${kind} style ${this.name}`); this.data.set(`${ns}/${k}`, v); },
     };
     // `setBoundVariable` is a write too — record it through the proxy's own property path.
     const t = this.track(`${kind} style ${name}`, s);
@@ -251,6 +269,100 @@ for (const [id, theme] of themes) {
   const bare = await guardApply(plans.preflight, f as any, async () => 'wrote');
   ok(!bare.ok && bare.conflicts.some((c) => c.kind === 'collection'),
     'legacy: the same file with NO persisted brand has no provenance at all → its collections are conflicts');
+}
+
+// ══ THROUGH runApplyTheme (#1884) ════════════════════════════════════════════════════════════════════
+// The arms above drive `guardApply` with this file's own copy of the write sequence. These drive the
+// sequence itself: `runApplyTheme` is what `main.ts`'s `applyTheme` calls, and the agent link's
+// `apply-theme` reaches that same handler (`test-agent-link.ts` routes/apply-theme). The expectations are
+// literals for the `prism3` example brand — names, counts and the verdict text are written out here, not
+// read off the plan, so a plan or summary that moves fails by name instead of agreeing with itself.
+const PRISM3 = (exampleBrands as Record<string, BrandInput>).prism3;
+const STYLE_COUNT = 84;          // prism3: 14 effect + 2 paint + 5 grid + 63 text
+const COLLECTION_COUNT = 12;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, layout, type-sets
+const apply = async (f: FileShim) => {
+  try { return (await runApplyTheme(PRISM3, f as any)).guarded; }
+  catch (e) { return { ok: false as const, conflicts: [], threw: (e as Error).message }; }
+};
+const createdOf = (g: Awaited<ReturnType<typeof apply>>): number => {
+  if (!g.ok) return -1;
+  const { r, f, s, gs, tv, ts } = g.result;
+  return r.paletteCreated + r.colorCreated + f.collections.reduce((n, c) => n + c.created, 0) +
+    tv.collections.reduce((n, c) => n + c.created, 0) + s.effects.created + s.paints.created + gs.created + ts.created;
+};
+const allStyles = (f: FileShim): any[] => [...f.styles.effect, ...f.styles.paint, ...f.styles.grid, ...f.styles.text];
+const marked = (f: FileShim): number => allStyles(f).filter((x) => x.data.get('prism3/owned') === '1').length;
+const stamped = (f: FileShim): number => f.collections.filter((c) => (c.data.get('prism3/modes:owned') ?? '') !== '').length;
+const stripMarks = (f: FileShim): void => { for (const x of allStyles(f)) x.data.clear(); };
+/** Everything a write could change, as one string: collections, variables, styles, root data. */
+const snapshot = (f: FileShim): string => JSON.stringify({
+  collections: f.collections.map((c) => ({ id: c.id, name: c.name, modes: c.modes, data: [...c.data] })),
+  vars: f.vars.map((v) => ({ id: v.id, name: v.name, c: v.variableCollectionId, t: v.resolvedType, scopes: v.scopes, d: v.description, h: v.hiddenFromPublishing, vals: v.valuesByMode })),
+  styles: allStyles(f).map((x) => ({ ...x, data: [...x.data] })),
+  root: f.root.getSharedPluginData('prism3', 'brandInput'),
+});
+
+// ── FOREIGN FILE: refused whole, nothing changed, every collision named ───────────────────────────────
+{
+  const f = new FileShim();
+  const col = f.addCollection('color');                                  // hand-made: no stamp, no brand
+  f.addVar('pds3/color/background/primary', col, 'STRING');              // Prism3 writes COLOR here
+  f.addVar('brand/hero', col, 'COLOR');
+  f.addStyle('effect', 'shadow/xs', 'Card shadow, our own');              // a designer's style under our name
+  f.writes = [];
+  const before = snapshot(f);
+  const g = await apply(f);
+  ok(!g.ok && snapshot(f) === before && f.writes.length === 0,
+    `foreign file: refused, and the file is identical before and after (${f.writes.length} writes${'threw' in g ? `, threw: ${g.threw}` : ''})`);
+  const kinds = g.ok ? [] : g.conflicts.map((c) => `${c.kind} ${c.name}`);
+  ok(JSON.stringify(kinds) === JSON.stringify(['collection color', 'variable pds3/color/background/primary', 'effect style shadow/xs']),
+    `foreign file: the verdict names the collection, the variable and the style (${kinds.join(' | ') || 'none'})`);
+  ok(!g.ok && conflictSummary(g.conflicts) ===
+    'Nothing was written. 3 conflicts with existing content: collection "color" already in this file, not created by Prism3; ' +
+    'variable "pds3/color/background/primary" is STRING in "color"; Prism3 writes COLOR; ' +
+    'effect style "shadow/xs" already in this file, not created by Prism3',
+  'foreign file: the summary the panel shows says why, for each one');
+}
+
+// ── FRESH: writes as before, and leaves the provenance behind ─────────────────────────────────────────
+{
+  const f = new FileShim();
+  const g = await apply(f);
+  ok(g.ok && createdOf(g) > 0 && stamped(f) === COLLECTION_COUNT && marked(f) === STYLE_COUNT,
+    `fresh: applies (+${createdOf(g)}), ${stamped(f)}/${COLLECTION_COUNT} collections stamped, ${marked(f)}/${STYLE_COUNT} styles marked`);
+}
+
+// ── PREVIOUS VERSION: stamped collections, unmarked styles → applies unchanged and gets marked ─────────
+{
+  const f = new FileShim();
+  await apply(f);
+  stripMarks(f);                                                         // what the version before #1884 left
+  const g = await apply(f);
+  ok(g.ok && createdOf(g) === 0,
+    `previous version: a file with no style marks re-applies with 0 conflicts and creates 0${g.ok ? '' : ` — ${conflictSummary(g.conflicts, 3)}`}`);
+  ok(marked(f) === STYLE_COUNT, `previous version: the re-apply backfills the mark on all ${STYLE_COUNT} styles (${marked(f)})`);
+}
+
+// ── PRE-#1581: no stamps, no marks, the persisted brand on the root → applies and gets both ───────────
+{
+  const f = new FileShim();
+  await apply(f);
+  stripMarks(f);
+  for (const c of f.collections) c.data.clear();
+  const g = await apply(f);
+  ok(g.ok && createdOf(g) === 0 && stamped(f) === COLLECTION_COUNT && marked(f) === STYLE_COUNT,
+    `pre-#1581: re-applies (created ${createdOf(g)}), then ${stamped(f)}/${COLLECTION_COUNT} stamped and ${marked(f)}/${STYLE_COUNT} marked`);
+}
+
+// ── EDITED DESCRIPTION: the mark, not the description, says whose style it is ─────────────────────────
+{
+  const f = new FileShim();
+  await apply(f);
+  const edited = f.styles.effect.find((x) => x.name === 'shadow/xs');
+  edited.description = 'Card shadow. Use sparingly on dense tables.';   // a designer's own words
+  const g = await apply(f);
+  ok(g.ok && createdOf(g) === 0,
+    `edited description: a marked style whose description a designer rewrote is still Prism3's${g.ok ? '' : ` — ${conflictSummary(g.conflicts, 3)}`}`);
 }
 
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
