@@ -55,7 +55,11 @@ const board = (title: string, desc: string, role: string): { el: HTMLElement; bo
   return { el, body };
 };
 
-/** A specimen root: brand content on the brand's page color. */
+/** A specimen root: brand content on the brand's page color. On a ramp strip the paint is usually covered:
+ *  prism3's ramps have 20 steps, which fill every 10- or 5-square strip. It stays anyway (#1954). It is the
+ *  specimen-root contract `test:chrome` measures (`EXPECT_SPECIMENS` / `groundsOf` read each strip's ground
+ *  against `background.primary`), and it shows wherever the squares do not cover it: a ramp whose step count
+ *  does not fill its last strip, and the opacity scale's translucent squares and short second strip. */
 const specimenRoot = (cls: 'p3-sqs', ground: string): HTMLElement => {
   const n = hook(h('div', cls), 'specimen');
   n.dataset.content = '';

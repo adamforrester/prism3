@@ -1340,6 +1340,8 @@ const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3
 /** What each item must do, observed: the write message it posts to the main thread (the message the old
  *  control posted), or the legacy page it opens. Typed here from `apps/plugin/src/messages.ts`'s names. */
 const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: 'components', 'style-guide': 'style-guide' };
+/** The Figma menu's Prune item while each half of a prune runs (`figmaActions` in main.ts). Literal. */
+const PRUNE_LABEL = { preview: '… Checking…', delete: '… Removing…' };
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
 const DRAWER_NOTE = { figma: 'Results of Apply, Build and Prune appear here after they run.', web: 'Nothing has run in this session.' };
 const AGENT_LINE = 'Lets an agent on this computer run Prism3 commands in this file. Off at every launch; only you can turn it on.';
@@ -1603,7 +1605,19 @@ for (const host of ['web', 'figma']) {
         const pp = wp.map(keyOf);
         ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `Figma menu ${where}: Prune stale posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
         ok(isWire(wp, FIGMA_WIRE.prune), `Figma menu ${where}: Prune stale posts the brand the page loaded with confirm false, whole — ${wireDiff(wp[0], FIGMA_WIRE.prune)}`);
-        await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 0, summary: 'Nothing stale to remove.' });
+        // While the dry run is out, the menu's Prune item says so (#1954). The expected text is the literal label.
+        const pruneLabel = async () => { await openFigma(page); const t = await page.evaluate(() => document.querySelector('[data-p3="figma-option-prune"]')?.textContent ?? null); await page.keyboard.press('Escape'); return t; };
+        const checking = await pruneLabel();
+        ok(checking === PRUNE_LABEL.preview, `Figma menu ${where}: while the dry run is out, Prune stale reads "${PRUNE_LABEL.preview}" (read "${checking}")`);
+        // The dry run finds something, the confirm dialog opens, and its Delete posts the real prune; while that
+        // runs, the item reads the delete's label. The delete's result then lands as the dry run's empty one did.
+        await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale items: 3 variables.' });
+        await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-confirm"]'), WAIT);
+        const wd = await takePosts(page);
+        ok(JSON.stringify(wd) === JSON.stringify(['prune:true']), `Figma menu ${where}: the prune dialog's Delete posts the confirmed prune — posted ${JSON.stringify(wd)}`);
+        const removing = await pruneLabel();
+        ok(removing === PRUNE_LABEL.delete, `Figma menu ${where}: while the delete runs, Prune stale reads "${PRUNE_LABEL.delete}" (read "${removing}")`);
+        await postMsg(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale items.' });
         // Set up file, from the menu: the write the page's own button posts. Its result fails (light) or warns
         // (dark), and either keeps the drawer open (F2); at 380 it opens the full-pane sheet.
         await openFigma(page);
@@ -1872,6 +1886,25 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   ok(pinned.hue?.disabled === true && pinned.chroma?.disabled === true && !!pinned.anchor
     && Math.abs(pinned.hue.value - pinned.anchor.h) <= 1 && Math.abs(pinned.chroma.value - pinned.anchor.c) <= 0.0015,
   `neutral: a pinned neutral makes hue and chroma read-only and shows the anchor's own (${JSON.stringify(pinned)})`);
+  // Pinning seeds the anchor from the neutral's own hue and chroma, so the read above would pass with the
+  // sliders still pointed at the neutral (#1954). Move the anchor to a literal color and read them again.
+  // THE ORACLE: the engine's own OKLCH conversion, bundled for Node from its source, applied to that literal
+  // hex. Neither the slider code nor the page's meta readout feeds it.
+  const NEW_ANCHOR = '#6b5f52';
+  const esbuildP = await import('esbuild');
+  const engColor = await esbuildP.build({ entryPoints: [join(REPO, 'packages/engine/color.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  const { rgbToOklch: toOk, hexToRgb: toRgb } = await import(`data:text/javascript;base64,${Buffer.from(engColor.outputFiles[0].text).toString('base64')}`);
+  const want = toOk(toRgb(NEW_ANCHOR));
+  ok(Math.abs(want.h - pinned.hue.value) > 5 && Math.abs(want.c - pinned.chroma.value) > 0.002,
+    `neutral: the new anchor ${NEW_ANCHOR} (h ${want.h.toFixed(1)}°, c ${want.c.toFixed(4)}) is far from the pinned seed (h ${pinned.hue?.value}, c ${pinned.chroma?.value}), so a slider left on the seed fails`);
+  const ancField = page.locator('[data-p3="neutral-anchor-hex"]');
+  await ancField.fill(NEW_ANCHOR);
+  await ancField.press('Enter');
+  await page.waitForFunction((h) => Math.abs(Number(document.querySelector('[data-p3="neutral-hue-slider"]')?.value) - h) <= 1, want.h, { timeout: 5000 }).catch(() => {});
+  const moved = await sliders();
+  ok(moved.hue?.disabled === true && moved.chroma?.disabled === true
+    && Math.abs(moved.hue.value - want.h) <= 1 && Math.abs(moved.chroma.value - want.c) <= 0.0015,
+  `neutral: after the pinned anchor changes to ${NEW_ANCHOR}, the read-only sliders show its hue ${want.h.toFixed(1)}° and chroma ${want.c.toFixed(4)} (read hue ${moved.hue?.value}, chroma ${moved.chroma?.value})`);
   ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
