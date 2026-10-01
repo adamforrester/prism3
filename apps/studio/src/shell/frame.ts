@@ -13,18 +13,26 @@
  * its selection because it subscribes too. Nothing here calls a legacy repaint tier, and
  * `test-shell-imports.ts` fails the build of any file under `shell/` that names one.
  *
- * WHAT EACH PAGE SHOWS IN S1.2. Every tab and sub-page is still legacy (`pages.ts`), so each shows its
- * legacy page in the full-width legacy frame under the tab row, pinned light (D1, D2). The two panes are
- * built and laid out, and hidden until a domain slice moves a page (S2 first). Depth & motion carries a
- * local switch between its two legacy pages (D8).
+ * WHAT EACH PAGE SHOWS. Every tab and sub-page is still legacy (`pages.ts`), so each shows its legacy page
+ * in the full-width legacy frame under the tab row, pinned light (D1, D2). The two panes are built and laid
+ * out, and hidden until a domain slice moves a page (S2 first). Depth & motion carries a local switch
+ * between its two legacy pages (D8).
+ *
+ * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
+ * (V1), the mode control (Q1) and the Inspect menu, on one row (Q2). The preview body names its home in
+ * `data-view`, which changes on a place change and nothing else. Inspect opens over the preview, or over
+ * the legacy frame while the page is legacy (it is the page's preview until its slice moves it), and closes
+ * back to it, scroll and focus included. A place change closes it. The verdict on the bar opens it on
+ * Contrast.
  *
  * NARROW MODE (Q7) is a width class, `data-w="narrow"`, set from the frame's own width, because the chrome
  * stylesheet may not hold a raw length and a media or container query needs one. Under it the tab row
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
  */
-import { page, searchHits, searchQuery, setPage, setSearch, subscribe, type PageKey } from '../state/store';
-import { LEGACY_LABEL, TABS, legacyOf, placeId, placeOfPage, placeOfTab, type Host, type Place, type TabId } from './pages';
+import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { INSPECT, LEGACY_LABEL, TABS, homeOf, legacyOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type PageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
+import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
@@ -39,6 +47,9 @@ export type Frame = {
   readonly notices: HTMLElement;
   /** Slot: the legacy page, inside the legacy frame. */
   readonly legacyPage: HTMLElement;
+  /** The verdict (S1.3). The shell owns it and keeps it current; `renderBar` places it after the brand
+   *  switcher on every render, the same node each time. */
+  readonly verdict: HTMLElement;
   /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
   readonly syncSticky: () => void;
   /** Remove the frame and drop its subscriptions and listeners. */
@@ -79,7 +90,7 @@ const select = (tabs: readonly HTMLElement[], on: HTMLElement | null): void => {
   }
 };
 
-export const mountFrame = (app: HTMLElement, opts: { readonly host: Host }): Frame => {
+export const mountFrame = (app: HTMLElement, opts: { readonly host: Host; readonly inspect: InspectLegacy }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
   let place: Place | null = placeOfPage(page, host, null);
@@ -172,14 +183,105 @@ export const mountFrame = (app: HTMLElement, opts: { readonly host: Host }): Fra
   const preview = hook(h('section', 'p3-preview'), 'preview-pane');
   preview.setAttribute('aria-label', 'Preview');
   // Q2: the preview's title row shares one header height with the tab row, so the two dividers meet at
-  // one y across the split. S1.3 fills it with the title, the mode control and Inspect.
+  // one y across the split. So the title, the mode control and Inspect sit on ONE row (S1.3): concept v6
+  // put the modes on a second row, which is what offset the two dividers.
   const previewHead = hook(h('div', 'p3-preview-head'), 'preview-head');
+  const previewTitle = hook(h('h2', 'p3-preview-title'), 'preview-title');
+  previewTitle.id = 'p3-preview-title';
+  previewHead.append(previewTitle, modeControl(cleanups), inspectMenu((v, opener) => openInspect(v, opener), cleanups));
+  // V1: the body shows the page's one home view, named by `data-view`. It changes on a tab or sub-page
+  // change and on nothing else. Each domain slice draws its view here (S2 first).
   const previewBody = hook(h('div', 'p3-preview-body'), 'preview-body');
+  previewBody.setAttribute('role', 'region');
+  previewBody.setAttribute('aria-labelledby', 'p3-preview-title');
   preview.append(previewHead, previewBody);
   panes.append(levers, preview);
 
-  root.append(head, legacy, panes);
+  // ── Inspect (F1): over the preview, or over the legacy frame while the page is legacy ──────────────
+  // The legacy frame is the page's preview until its slice moves it, so Inspect covers it the same way
+  // and closes back to it, with its scroll position.
+  const inspect = hook(h('section', 'p3-inspect'), 'inspect');
+  inspect.setAttribute('aria-label', 'Inspect');
+  const inspectHead = hook(h('div', 'p3-inspect-head'), 'inspect-head');
+  const inspectTabs = h('div', 'p3-tabs p3-inspect-tabs');
+  inspectTabs.setAttribute('role', 'tablist');
+  inspectTabs.setAttribute('aria-label', 'Inspect');
+  const inspectTabEls = INSPECT.map(([v, label]) => {
+    const b = tabButton('p3-tab', `p3-inspect-tab-${v}`, `inspect-tab-${v}`, label, 'p3-inspect-body');
+    b.onclick = () => openInspect(v, null);
+    return b;
+  });
+  inspectTabs.append(...inspectTabEls);
+  inspectTabs.addEventListener('keydown', (e) => {
+    const to = stepKey(inspectTabEls, e.target as HTMLElement, e.key);
+    if (!to) return;
+    e.preventDefault();
+    to.focus();
+    openInspect(INSPECT[inspectTabEls.indexOf(to as HTMLButtonElement)][0], null);
+  });
+  const backBtn = hook(h('button', 'p3-btn p3-btn-page p3-inspect-close'), 'inspect-close');
+  backBtn.type = 'button';
+  const backLabel = h('span', 'p3-btn-label');
+  backBtn.append(glyph('chevl'), backLabel);
+  backBtn.onclick = () => closeInspect();
+  inspectHead.append(inspectTabs, h('span', 'p3-spacer'), backBtn);
+  const inspectBody = hook(h('div', 'p3-inspect-body'), 'inspect-body');
+  inspectBody.id = 'p3-inspect-body';
+  inspectBody.setAttribute('role', 'tabpanel');
+  inspect.append(inspectHead, inspectBody);
+  inspect.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeInspect(); }
+  });
+
+  root.append(head, legacy, panes, inspect);
   app.append(root);
+
+  // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).
+  const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
+
+  // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
+  let inspecting: InspectId | null = null;
+  let opener: HTMLElement | null = null;
+  let scrollBack = 0;
+  let painting = false;
+  const paintInspect = (): void => {
+    if (!inspecting || painting) return;
+    painting = true;   // a legacy view can rebuild the theme as it draws, which notifies `brand` again
+    try {
+      const keep = inspectBody.scrollTop;
+      paintInspectView(inspecting, inspectBody, opts.inspect, paintInspect);
+      inspectBody.scrollTop = keep;
+    } finally { painting = false; }
+  };
+  cleanups.push(subscribe('brand', paintInspect));
+
+  /** Open Inspect on view `v`. `from` is the control that opened it, which gets focus back on close; a
+   *  switch between Inspect's own tabs keeps the first opener. */
+  function openInspect(v: InspectId, from: HTMLElement | null): void {
+    if (!inspecting) {
+      opener = from;
+      scrollBack = window.scrollY;
+    }
+    const first = inspecting !== v;
+    inspecting = v;
+    pane = 'preview';   // at narrow widths the preview pane is the one Inspect covers
+    render();
+    if (first) paintInspect();
+    inspectTabEls[INSPECT.findIndex(([id]) => id === v)].focus();
+  }
+  /** Close Inspect, back to the page's preview (or its legacy page), where it was. */
+  function closeInspect(refocus = true): void {
+    if (!inspecting) return;
+    inspecting = null;
+    inspectBody.replaceChildren();
+    render();
+    window.scrollTo(0, scrollBack);
+    const back = opener && opener.isConnected && opener.getClientRects().length ? opener : null;
+    opener = null;
+    if (refocus) (back ?? (root.dataset.layout === 'panes' ? previewTitle : legacy)).focus?.();
+  }
+  previewTitle.tabIndex = -1;
+  legacy.tabIndex = -1;
 
   // ── selection ───────────────────────────────────────────────────────────────────────────────────
   let subFor: TabId | null = null;
@@ -189,6 +291,8 @@ export const mountFrame = (app: HTMLElement, opts: { readonly host: Host }): Fra
 
   /** Select a place. Shows its first legacy page unless it already shows the current one. */
   const go = (p: Place): void => {
+    // V1: a page change shows the new page's home, so Inspect closes with it (as in concept v6).
+    if (inspecting && (p.tab !== place?.tab || p.sub !== place?.sub)) closeInspect(false);
     place = p;
     const pages = legacyOf(p, host);
     if (pages.length && !pages.includes(page)) setPage(pages[0]);   // `page` repaints the legacy frame
@@ -250,10 +354,15 @@ export const mountFrame = (app: HTMLElement, opts: { readonly host: Host }): Fra
     switchRow.append(seg);
   };
 
+  let lastLayout: string | null = null;
   const render = (): void => {
     const pages = place ? legacyOf(place, host) : [page];
     const isLegacy = pages.length > 0;
-    root.dataset.layout = isLegacy ? 'legacy' : 'panes';
+    // Written only when the layout a place calls for changes, never on every render. In S1.3 no page
+    // renders the two panes yet, so `test:chrome` forces `data-layout="panes"` to measure the preview
+    // header (Q2, the mode control, Inspect over the preview); a re-render inside that state keeps it.
+    const layout = isLegacy ? 'legacy' : 'panes';
+    if (layout !== lastLayout) { root.dataset.layout = layout; lastLayout = layout; }
     root.dataset.pane = pane;
     for (const b of paneButtons) b.setAttribute('aria-pressed', String(b === paneButtons[pane === 'settings' ? 0 : 1]));
 
@@ -271,10 +380,28 @@ export const mountFrame = (app: HTMLElement, opts: { readonly host: Host }): Fra
     else { legacy.removeAttribute('role'); legacy.removeAttribute('aria-labelledby'); }
     legacy.dataset.legacyPage = kebab(page);
     root.dataset.place = place ? placeId(place) : '';
+
+    // V1: the preview names the page's one home view. Nothing but a place change moves it.
+    const home = place ? homeOf(place) : null;
+    previewTitle.textContent = home ? viewLabel(home) : '';
+    if (home) previewBody.dataset.view = home; else delete previewBody.dataset.view;
+
+    root.dataset.inspect = inspecting ?? '';
+    if (inspecting) {
+      select(inspectTabEls, inspectTabEls[INSPECT.findIndex(([id]) => id === inspecting)]);
+      inspectBody.setAttribute('aria-labelledby', `p3-inspect-tab-${inspecting}`);
+      backLabel.textContent = `Back to ${home ? viewLabel(home) : 'the page'}`;
+      backBtn.setAttribute('aria-label', backLabel.textContent);   // the name holds when narrow hides the words
+    }
   };
 
   // A page change from anywhere: a tab, the switch, the Pages menu, a brand load.
-  cleanups.push(subscribe('page', () => { place = placeOfPage(page, host, place); render(); }));
+  cleanups.push(subscribe('page', () => {
+    const was = place;
+    place = placeOfPage(page, host, place);
+    if (inspecting && (place?.tab !== was?.tab || place?.sub !== was?.sub)) closeInspect(false);
+    render();
+  }));
 
   // ── width class and the sticky height ───────────────────────────────────────────────────────────
   const syncSticky = (): void => {
@@ -296,7 +423,7 @@ export const mountFrame = (app: HTMLElement, opts: { readonly host: Host }): Fra
   render();
 
   return {
-    head, bar: barSlot, notices, legacyPage, syncSticky,
+    head, bar: barSlot, notices, legacyPage, verdict, syncSticky,
     unmount: () => {
       for (const c of cleanups) c();
       root.remove();

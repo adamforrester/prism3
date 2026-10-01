@@ -19,8 +19,8 @@
  * a door the plan closes, and it fails here the same way.
  *
  * NON-VACUOUS. A scan that found no files, or that cannot see a planted reference, would pass on nothing.
- * So the scan must read the shell's files by name (the frame, the tab data, the theme and the DOM
- * helpers), and the detector is run first on a fixture that holds each of the five names and must report
+ * So the scan must read the shell's files by name (the frame, the page data, the theme, the DOM
+ * helpers and, from S1.3, the preview header and Inspect), and the detector is run first on a fixture that holds each of the five names and must report
  * all five.
  *
  * Mutation this fails by name: add `import { build } from '../main';` to `src/shell/frame.ts` →
@@ -44,7 +44,7 @@ const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'setVolatile']
 /** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices. */
 const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview'];
 /** Files the scan must read, so an empty or misdirected scan cannot pass. */
-const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts'];
+const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts', 'src/shell/preview.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {

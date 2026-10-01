@@ -32,16 +32,18 @@ import { resolvePreview } from '@prism3/engine/resolve-preview';
 import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
+import type { PageKey } from '../shell/pages';
 
 export type Mode = ResolvedPreview['modes'][number];
 
-/** The keys `page` can hold. The labels, the order and which host shows which destination belong to
- *  the rail (`NAV` in `main.ts`), which is checked against this BOTH WAYS there: `satisfies` makes a
- *  destination the store does not know a compile error, and `everyPageHasANavRow` does the same for a
- *  key here with no rail row (#1846). */
-export type PageKey =
-  | 'palettes' | 'surfaces' | 'interactive' | 'typography' | 'elevation' | 'sizeRadius' | 'layout'
-  | 'motion' | 'preview' | 'styleGuide' | 'components';
+/** The keys `page` can hold: the legacy pages. DERIVED from the page data in `shell/pages.ts` (UI redesign
+ *  S1.3, plan §3.7): each page's `legacy` list, plus the Figma menu's Style guide. A domain slice that
+ *  moves a page empties its list, which takes the key out of this type. The labels, the order and which
+ *  host shows which destination belong to the rail (`NAV` in `main.ts`), which is checked against this
+ *  BOTH WAYS there: `satisfies` makes a destination the data does not know a compile error, and
+ *  `everyPageHasANavRow` does the same for a key here with no rail row (#1846). Two lists, written in two
+ *  places, checked against each other. `shell/pages.ts` is DOM-free, so this module stays Node-loadable. */
+export type { PageKey };
 
 // Boot from a VALIDATED example brand — the emitted schema/example-brands.json (a test.ts gate asserts
 // every brand there resolves all-green on the preview contracts). prism3 is the canonical default theme

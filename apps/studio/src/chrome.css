@@ -12,8 +12,9 @@
  * and from the frame's `data-w` (width tier) and `data-layout` (legacy or panes), never from a shared
  * state class.
  *
- * WHAT THIS STYLES IN S1.2: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with
- * Color's sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes. The
+ * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
+ * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); and the
+ * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3). The
  * legacy surfaces inside it (the legacy page, the brand menu, the Pages menu, the dialogs) keep
  * `styles.css` and are pinned light with `data-theme="light"`. So no rule here sets a font or a color
  * on a container that holds legacy content: each chrome control sets its own, and legacy text keeps
@@ -37,11 +38,11 @@
 /* ── the top bar ─────────────────────────────────────────────────────────────────────────── */
 .p3-bar {
   display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h);
-  padding: 0 var(--p3-space-300); background: var(--p3-bar-bg);
+  padding: var(--p3-space-050) var(--p3-space-300); background: var(--p3-bar-bg);
   border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
 .p3-bar-slot { display: contents; }
-.p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--p3-space-100); position: relative; }
+.p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
 
 /* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
@@ -64,7 +65,7 @@
 .p3-btn-icon { padding: 0; min-width: var(--p3-ctl-h-sm); }
 /* Export and Pages: the word at full width, the glyph alone when narrow (the accessible name stays). */
 .p3-btn-collapse > .p3-ico:first-child { display: none; }
-:is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item):focus-visible {
+:is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item, .p3-verdict):focus-visible {
   outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset);
 }
 
@@ -78,6 +79,26 @@
 .p3-swatch > span { display: block; width: 100%; height: 100%; }
 /* The brand menu hangs from the switcher's left edge: the switcher starts the bar. */
 .p3-bar-main .barmenu-wrap:first-child .brandmenu { left: 0; right: auto; }
+
+/* The verdict (S1.3): every role with a floor, in every mode. It opens Inspect › Contrast. A control, so
+   radius-lg (the 2026-10-01 radius split), with the bar's edge (B1). It takes the room the bar has left,
+   up to its full line (it outgrows the bar's spacer a hundred to one), and gives way first (its line
+   truncates) before the bar wraps a row; narrow keeps
+   the dot alone. The bar may wrap: the plugin's write actions crowd it until S1.4 moves them. */
+.p3-verdict {
+  display: inline-flex; align-items: center; gap: var(--p3-space-100); flex: 100 1 0; min-width: 0; max-width: max-content;
+  min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-200) 0 var(--p3-space-150); border-radius: var(--p3-radius-lg);
+  border: var(--p3-bw-hairline) solid var(--p3-edge-bar); background-color: var(--p3-bg-page); color: var(--p3-text);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default);
+  line-height: var(--p3-lh-compact); white-space: nowrap; cursor: pointer;
+}
+.p3-verdict:hover { border-color: var(--p3-field-edge-hover); }
+.p3-verdict[data-state="fail"] { color: var(--p3-bad-text); }
+.p3-verdict-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* A status dot. Never the only cue: the verdict's line, a mode's name and count, Health's sentence say it. */
+.p3-dot { display: inline-block; flex: none; width: var(--p3-dot); height: var(--p3-dot); border-radius: var(--p3-radius-pill); }
+.p3-dot-ok { background: var(--p3-ok-icon); }
+.p3-dot-bad { background: var(--p3-bad-icon); }
 
 /* Status pills (the plugin's write verdicts, until S1.4 moves them into the Activity drawer). */
 .p3-pill {
@@ -187,7 +208,7 @@
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default);
 }
 .p3-seg-tab:hover { border-color: var(--p3-edge-bar); }
-.p3-seg-tab[aria-selected="true"], .p3-seg-tab[aria-pressed="true"] {
+.p3-seg-tab[aria-selected="true"], .p3-seg-tab[aria-pressed="true"], .p3-seg-tab[aria-checked="true"] {
   background: var(--p3-bg-page); border-color: var(--p3-edge-bar); font-weight: var(--p3-fw-emphasis);
 }
 .p3-pane-toggle { display: none; }
@@ -228,6 +249,73 @@
 }
 .p3-preview-body { grid-area: pbody; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-bg-page); }
 
+/* ── the preview header (S1.3): title, the mode control and Inspect, on one row (Q2) ─────── */
+.p3-preview-title {
+  margin: 0; flex: none; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-20);
+  font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); white-space: nowrap;
+}
+.p3-preview-head > .p3-popwrap { margin-left: auto; }
+/* A button on the page ground takes the page's edge (B1), not the bar's. */
+.p3-btn-page { border-color: var(--p3-edge); }
+/* The mode control (Q1, model B): a radio group on the bar's step, the selected mode filled like a selected
+   segment. A derived mode is hatched while it is not the one selected. It scrolls sideways when a brand
+   ships more modes than fit, so the header never wraps. */
+.p3-modes { flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.p3-mode { flex: none; gap: var(--p3-space-075); padding: 0 var(--p3-space-150); }
+.p3-mode[data-derived="true"]:not([aria-checked="true"]) {
+  background-image: repeating-linear-gradient(135deg, transparent 0 var(--p3-space-050), var(--p3-fill-1) var(--p3-space-050) var(--p3-space-100));
+}
+.p3-mode-count { font-size: var(--p3-fs-12); }
+
+/* ── Inspect (S1.3): over the preview, or over the legacy frame while the page is legacy ───── */
+/* No chrome rule sets a font or a color on Inspect's body: it holds legacy views, pinned light, whose text
+   inherits the legacy body's. The shell's own parts (cards, notes) set theirs. */
+.p3-inspect { display: none; }
+.p3-frame[data-layout="legacy"]:not([data-inspect=""]) { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.p3-frame[data-layout="legacy"]:not([data-inspect=""]) .p3-legacy { display: none; }
+.p3-frame[data-layout="legacy"]:not([data-inspect=""]) .p3-inspect { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.p3-inspect-head {
+  display: flex; align-items: center; gap: var(--p3-space-200); flex: none; min-height: var(--p3-bar-h);
+  padding: 0 var(--p3-space-300); background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-inspect-tabs { flex: 0 1 auto; }
+.p3-inspect-body { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: var(--p3-space-400); background: var(--p3-bg-page); }
+.p3-frame[data-layout="panes"]:not([data-inspect=""]) :is(.p3-preview-head, .p3-preview-body) { display: none; }
+.p3-frame[data-layout="panes"]:not([data-inspect=""]) .p3-inspect { display: contents; }
+.p3-frame[data-layout="panes"] .p3-inspect-head { grid-area: phead; padding: 0 var(--p3-space-400); }
+.p3-frame[data-layout="panes"] .p3-inspect-body { grid-area: pbody; }
+
+.p3-stack { display: grid; gap: var(--p3-space-300); align-content: start; }
+/* A container (the 2026-10-01 radius split): radius-xl, a hairline, the page ground. */
+.p3-card {
+  display: grid; gap: var(--p3-space-200); padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+.p3-card-body { display: grid; gap: var(--p3-space-200); }
+.p3-card-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--p3-space-150); }
+.p3-card-title {
+  margin: 0; font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); letter-spacing: var(--p3-ls-wide);
+  text-transform: uppercase; line-height: var(--p3-lh-compact);
+}
+.p3-card-sub, .p3-note { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
+.p3-stack > .p3-note { margin: 0; }
+.p3-health-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--p3-space-150); margin: 0; }
+.p3-vpill {
+  display: inline-flex; align-items: center; gap: var(--p3-space-075); padding: var(--p3-space-050) var(--p3-space-150);
+  border-radius: var(--p3-radius-pill); background: var(--p3-fill-1); color: var(--p3-text);
+  font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis);
+}
+.p3-vpill .p3-ico { color: var(--p3-ok-icon); }
+.p3-vpill-bad { color: var(--p3-bad-text); }
+.p3-vpill-bad .p3-ico { color: var(--p3-bad-icon); }
+.p3-health-modes, .p3-log { display: grid; gap: var(--p3-space-100); margin: 0; padding: 0; list-style: none; }
+.p3-health-mode { display: flex; align-items: center; gap: var(--p3-space-100); }
+.p3-log-item { padding-bottom: var(--p3-space-100); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-log-item:last-child { padding-bottom: 0; border-bottom: 0; }
+/* A legacy view inside Inspect: pinned light (D2), on its own page-colored container. */
+.p3-legacy-card { min-width: 0; border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+
 /* ── narrow (Q7): one column, one sticky top row, the tabs as a select ───────────────────── */
 .p3-frame[data-w="narrow"] .p3-head { display: contents; }
 .p3-frame[data-w="narrow"] .p3-bar {
@@ -242,7 +330,7 @@
 .p3-frame[data-w="narrow"] .p3-btn-collapse > .p3-ico:first-child { display: block; }
 .p3-frame[data-w="narrow"] .p3-btn-collapse > :is(.p3-btn-label, .p3-ico:last-child:not(:first-child)) { display: none; }
 .p3-frame[data-w="narrow"] .p3-nav { gap: var(--p3-space-100); padding: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-tabs { display: none; }
+.p3-frame[data-w="narrow"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-w="narrow"] .p3-domrow { display: flex; flex: 1 1 auto; min-width: 0; }
 .p3-frame[data-w="narrow"] .p3-search[data-open="true"] { flex: 1 1 auto; }
 .p3-frame[data-w="narrow"] .p3-nav:has(.p3-search[data-open="true"]) .p3-domrow { display: none; }
@@ -257,7 +345,15 @@
 }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-head { grid-area: nav; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-body { grid-area: levers; }
-.p3-frame[data-layout="panes"][data-w="narrow"][data-pane="settings"] :is(.p3-preview-head, .p3-preview-body) { display: none; }
+.p3-frame[data-layout="panes"][data-w="narrow"][data-pane="settings"] :is(.p3-preview-head, .p3-preview-body, .p3-inspect-head, .p3-inspect-body) { display: none; }
+.p3-frame[data-layout="panes"][data-w="narrow"] .p3-inspect-head { grid-area: nav; }
+.p3-frame[data-layout="panes"][data-w="narrow"] .p3-inspect-body { grid-area: levers; }
+.p3-frame[data-w="narrow"] .p3-preview-head { flex-wrap: wrap; padding: var(--p3-space-100) var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-inspect-head { padding: 0 var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-inspect-body { padding: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-verdict { justify-content: center; padding: 0; min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
+.p3-frame[data-w="narrow"] .p3-verdict-text { display: none; }
+.p3-frame[data-w="narrow"] .p3-inspect-close .p3-btn-label { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"][data-pane="preview"] :is(.p3-levers, .p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-pane-toggle { display: inline-flex; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-bar { position: static; }

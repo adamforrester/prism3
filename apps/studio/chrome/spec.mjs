@@ -120,6 +120,8 @@ export const SHELL_VARS = [
   'bg-page', 'levers-bg', 'bar-bg', 'fill-1', 'line-1', 'line-2',
   // text, glyphs, status
   'text', 'text-2', 'icon', 'icon-2', 'bad-text',
+  // S1.3: the verdict's and the mode control's status dots, Health's glyphs
+  'ok-icon', 'bad-icon', 'dot',
   // edges (B1), hover and focus
   'edge', 'edge-bar', 'field-edge-hover', 'ctl-edge', 'focus-width', 'focus-offset',
   // the inverse fill: Apply, and nothing else
@@ -130,6 +132,8 @@ export const SHELL_VARS = [
   'space-025', 'space-050', 'space-075', 'space-100', 'space-150', 'space-200', 'space-300', 'space-400', 'space-500',
   // type
   'fs-12', 'fs-14', 'fw-default', 'fw-emphasis', 'lh-compact', 'lh-normal',
+  // S1.3: the preview title (V8's 20px view title) and the cards' tracked small-capital titles
+  'fs-20', 'ls-wide',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
