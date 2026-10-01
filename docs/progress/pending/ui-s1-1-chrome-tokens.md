@@ -1,6 +1,6 @@
 ## (2026-10-01) — UI redesign S1.1: chrome token pipeline and embedded fonts
 
-**STATUS: local branch `ui/s1-1-chrome-tokens`, not pushed.** UI and build only. No engine change and no emitted artifact moves, so no ENGINE bump, and `CONTRACT_VERSION` is unchanged. Nothing on screen changes: the opening page renders pixel-identical before and after, and only the two chrome fonts become available. The spec is `docs/superpowers/ui-redesign/implementation-plan.md` §3.1 and §3.2.
+**STATUS: PR open from `ui/s1-1-chrome-tokens`.** UI and build only. No engine change and no emitted artifact moves, so no ENGINE bump, and `CONTRACT_VERSION` is unchanged. Nothing on screen changes: the opening page renders pixel-identical before and after, and only the two chrome fonts become available. The spec is `docs/superpowers/ui-redesign/implementation-plan.md` §3.1 and §3.2.
 
 **What moved.**
 - `docs/superpowers/ui-redesign/chrome-tokens.mjs` → `apps/studio/chrome/tokens.mjs` (`git mv`, the name §3.1 gives). Only the header and `FONTS_DIR` changed. The new directory sits at the same depth below the repo root, so `ROOT` did not move. Every export is kept.
