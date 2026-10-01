@@ -2,7 +2,7 @@
  * Mode-sensitivity audit — which sections actually respond to the mode bar.
  *
  * Run:  npm run -w @prism3/studio build && npm run -w @prism3/studio audit:modes
- *       (serves `web/` on :8899 itself; needs Playwright + a Chromium at PLAYWRIGHT_BROWSERS_PATH)
+ *       (serves the studio itself on a free port; needs Playwright + a Chromium at PLAYWRIGHT_BROWSERS_PATH)
  *
  * WHY THIS IS A SCRIPT AND NOT A TABLE IN A DOC. The answer moves every time a page changes, and it
  * has been re-derived by hand three times (#268 twice, #432 once) at meaningful cost. A committed
@@ -123,7 +123,11 @@ const server = createServer(async (req, res) => {
     res.end(body);
   } catch { res.writeHead(404); res.end('not found'); }
 });
-await new Promise((r) => server.listen(8899, '127.0.0.1', r));
+// An EPHEMERAL port (`listen(0)`), the pattern `test-smoke.mjs` and both plugin suites use (#1898). This
+// held 8899 until it gated in `verify.ts` (#1897); lanes run `npm run verify` concurrently, and a second
+// audit on a fixed port fails as `EADDRINUSE`, which reads like a failure of the change under test.
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 
 // Positional arg is the brand; flags are filtered out so `audit:modes -- --check-badges` does not
 // read the flag as a brand name and hang waiting for a button that will never exist.
@@ -131,7 +135,7 @@ const BRAND = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'harbor'
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
 await hooks.watch(page);
-await page.goto('http://127.0.0.1:8899/index.html', { waitUntil: 'networkidle' });
+await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
 await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: BRAND }).first());
 await hooks.need(page, '[data-p3="rail-page-palettes"]');
 await page.waitForTimeout(1000);
