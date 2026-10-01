@@ -20,14 +20,17 @@ When the freeze lifts, a lane that edits the studio needs a `ui/*` branch, or an
 
 **The gate.** `vercel-ignore-check.mjs` already checked the ignore step's exclusion list against esbuild's metafile. It now also:
 - **runs the ignore script** against throwaway commits in a temp repo, asserting six production decisions as literal exit codes: no parent builds, a bundled engine change builds, an excluded engine file is skipped, a studio change builds, a plugin-only change is skipped, a `vercel.json` change builds;
-- **asserts the deploy list** as literals: `lane/*`, `fold/*`, `docs/*` and `claude/*` are disabled; `main` and `ui/*` still deploy. A typo that disabled `main` would stop production deploys silently.
+- **asserts the deploy list**, evaluating the globs for sample branches (`main` and a `ui/*` branch deploy; `lane/*`, `fold/*`, `docs/*` and `claude/*` branches do not). A typo that disabled `main` would stop production deploys silently.
 
 The scratch repo's git runs with a scrubbed environment, with no inherited `GIT_DIR`/`GIT_INDEX_FILE`, no global config, no hooks and no signing. The review showed an inherited `GIT_DIR`, as git hooks set, wrote the gate's commits into another repository. Tested: with `GIT_DIR` pointing at a scratch repo, the gate now writes nothing there.
 
 **Mutations, each failing by name:**
-- `main: false` fails "vercel.json leaves main deploying";
+- `main: false`, `"*": false` or `"m*": false` each fail "branch main deploys". The check evaluates the rules as globs, by Vercel's documented rule (any matching `true` wins, and an unmatched branch deploys), for sample branch names. A re-review showed that the first version read only the literal `main` key, which these globs passed;
+- `"ui/**": false` fails "branch ui/p1-test-hardening deploys";
 - dropping `vercel.json` from the script's paths fails "a vercel.json change BUILDS".
 
 **Filed separately.** Production compares only `HEAD^..HEAD`. If Vercel auto-cancels an earlier build in a burst of pushes to `main`, an engine change can go undeployed. Diffing against `VERCEL_GIT_PREVIOUS_SHA` would close that. Pre-existing; filed as #1902.
+
+**Owner-visible.** `claude/*` is the default branch name for Claude Code web sessions, so studio work started in such a session gets no preview until it moves to a `ui/*` branch.
 
 **Not verifiable here.** The Vercel connector isn't authorized in this environment. The first push to a `lane/*` branch after merge should create no Vercel deployment at all.
