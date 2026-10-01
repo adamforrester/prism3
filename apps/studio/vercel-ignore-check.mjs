@@ -134,18 +134,23 @@ try {
   copyFileSync(SCRIPT, join(scratch, 'ignore.sh'));
   git('init', '-q', '-b', 'main');
   git('config', 'user.email', 'gate@example.invalid'); git('config', 'user.name', 'gate');
+  // Each step commits, then decides against the commit before it as the previously deployed one, the
+  // steady state of a branch deployed on every push.
+  const step = (path, msg) => { const prev = git('rev-parse', 'HEAD'); touch(path, 'a\n'); git('add', '-A'); git('commit', '-qm', msg); return { VERCEL_ENV: 'production', VERCEL_GIT_PREVIOUS_SHA: prev }; };
   touch('README.md', 'seed\n'); git('add', '-A'); git('commit', '-qm', 'seed');
-  expect('a commit with no parent BUILDS (uncertainty builds)', decide({}), 1);
-  touch('packages/engine/theme.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'engine');
-  expect('a bundled engine change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
-  touch('packages/engine/regen.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'excluded');
-  expect('a change to an excluded engine file only is SKIPPED', decide({ VERCEL_ENV: 'production' }), 0);
-  touch('apps/studio/src/main.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'studio');
-  expect('a studio change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
-  touch('apps/plugin/src/x.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'plugin');
-  expect('a plugin-only change is SKIPPED', decide({ VERCEL_ENV: 'production' }), 0);
-  touch('vercel.json', '{}\n'); git('add', '-A'); git('commit', '-qm', 'vercel');
-  expect('a vercel.json change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
+  expect('no previous deployment on the branch BUILDS (uncertainty builds)', decide({}), 1);
+  expect('a previous SHA this clone does not have BUILDS', decide({ VERCEL_GIT_PREVIOUS_SHA: '0123456789abcdef0123456789abcdef01234567' }), 1);
+  expect('a bundled engine change BUILDS', decide(step('packages/engine/theme.ts', 'engine')), 1);
+  expect('a change to an excluded engine file only is SKIPPED', decide(step('packages/engine/regen.ts', 'excluded')), 0);
+  expect('a studio change BUILDS', decide(step('apps/studio/src/main.ts', 'studio')), 1);
+  expect('a plugin-only change is SKIPPED', decide(step('apps/plugin/src/x.ts', 'plugin')), 0);
+  expect('a vercel.json change BUILDS', decide(step('vercel.json', 'vercel')), 1);
+  // #1953: the branch's newest commit is docs-only, but a commit since the last deployment changed the app.
+  const deployed = git('rev-parse', 'HEAD');
+  touch('apps/studio/src/main.ts', 'b\n'); git('add', '-A'); git('commit', '-qm', 'studio again');
+  touch('docs/progress/pending/x.md', 'a\n'); git('add', '-A'); git('commit', '-qm', 'fragment');
+  expect('a docs-only newest commit BUILDS when an earlier commit since the last deployment changed the app (#1953)', decide({ VERCEL_ENV: 'preview', VERCEL_GIT_PREVIOUS_SHA: deployed }), 1);
+  expect('a docs-only push on top of the deployed commit is SKIPPED', decide(step('docs/progress/pending/y.md', 'fragment 2')), 0);
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }
