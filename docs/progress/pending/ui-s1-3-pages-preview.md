@@ -95,7 +95,7 @@ Each is the option closest to v6, picked and flagged under the owner's overnight
 | R2 Inspect lends a no-op repaint | `web light 1280: a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: text.primary → core.palette.neutral.950; row null, Inspect open)` (12) |
 | R3 `tokens: (h) => renderPreviewTokens(h)`, the `paintVolatile` fallback | the same line as R2 (12) |
 | R4 the contract table given no rows | `web light 1280: Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0` and `… shows "button · rest — label on fill" at the emitted ratios {…} — shows null` (24) |
-| R5 the verdict's threshold loosened by 0.5 (or by 1) | `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "174 of 884 below floor, 4 modes"` (by 1: `"271 of 884 …"`) |
+| R5 the verdict's threshold tightened by 0.5 (or by 1; a loosened threshold is #1930's near-floor fixture) | `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "174 of 884 below floor, 4 modes"` (by 1: `"271 of 884 …"`) |
 | R6 `modesFailing` capped at 1 | `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "2 of 884 below floor, 1 mode"` |
 | R7 failures counted in Light only | `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "1 of 884 below floor, 1 mode"` |
 | R8 `(globalThis as any)['apply']()` in `preview.ts` | `src/shell/preview.ts:236: references the legacy repaint tier "apply"` |
