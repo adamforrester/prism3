@@ -1,6 +1,6 @@
 ## (2026-10-01) — UI redesign P2: host messages repaint through store subscribers (#1845, #1846)
 
-**STATUS: branch `ui/p2-repaint-subscribers`, not pushed.** UI and tests only, so no ENGINE bump.
+**STATUS: PR open from `ui/p2-repaint-subscribers` (#1886).** UI and tests only, so no ENGINE bump.
 
 **The end state.** Store subscribers. The tag switch is gone for host messages. The remaining legacy repaint calls are listed below and retire in S1/S13.
 
@@ -31,7 +31,7 @@
 - M10: add `'tokens'` to `PageKey`. `typecheck` fails at `everyPageHasANavRow` with `{ missingNavRow: "tokens" }`.
 
 **The legacy repaint calls that remain, and why.**
-- The four tiers are untouched: `apply()` 40, `applyFull()` 53, `build()` 23 and `renderBar()` 39 call sites in `main.ts`. The brand topics (`brand`, `origin`, `mode`, `page`) still have no subscribers. Subscribing the tiers to them now would paint twice per edit, and choosing among the tiers is the caller-picks-repaint model that S1's shell replaces. Each domain slice deletes its own call sites, and S13 deletes the tiers.
+- The four tiers are untouched: `apply()` 17, `applyFull()` 44, `build()` 6 and `renderBar()` 31 call expressions in `main.ts` (counted from the TypeScript AST; a text grep reads 40 / 53 / 23 / 39 because it counts comments, and `build()` also matches `rebuild()`). The brand topics (`brand`, `origin`, `mode`, `page`) still have no subscribers. Subscribing the tiers to them now would paint twice per edit, and choosing among the tiers is the caller-picks-repaint model that S1's shell replaces. Each domain slice deletes its own call sites, and S13 deletes the tiers.
 - The UI's own host writes still repaint by hand: 11 `setHost(…)` sites followed by `renderBar()`, `syncApplyDetail()` or a `sync*Row()`. These are the action buttons (Apply, Build, Set up file, Draw style guide, Prune), the pill's detail toggle, and the prune dialog's close, cancel, confirm and Escape. They are UI writes, not host messages, so they are out of P2's scope. They retire when S1's Figma menu and drawer own these actions, and S13 deletes whatever is left.
 - The brand effects call `loadBrand` (whose repaint is the tiers) and `clearOrigin(); build()`. They go when S1 subscribes the shell to `origin`.
 
@@ -46,3 +46,10 @@
 - `test-host-session.ts` still cannot see a missing subscription (M1 leaves it 78/78). It proves the topic. `test:verdict` proves the paint. Neither is enough alone.
 - M10 also trips `PAGE_COPY` and the renderer table (both `Record<PageKey, …>`), so a new page key already failed `typecheck` before this check existed. The issue's "would compile" held only for someone who also added copy and a renderer, which anyone adding a page does. The new check is the one that names the rail: it points at `NAV`, not at the two tables.
 - `test-store.ts`'s `heard` record is keyed by the four brand topics, not by `store.Topic`, which now includes the host topics.
+
+**Review round.** An independent review approved the PR and confirmed:
+- behavior is identical, message by message;
+- the AST call counts of every painter are unchanged between `main` and this branch;
+- every claimed mutation fails by name, plus two the author hadn't tried (swapping painters between topics).
+
+It corrected the legacy call counts above, which had been text counts. It also found that the bar-before-detail order is pinned only by `test-host-session`'s literal array. Reversing the order leaves `test:verdict` green. The ordering was already unpinned under the old switch, so this isn't a regression, and it is filed as #1890.
