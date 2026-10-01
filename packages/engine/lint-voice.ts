@@ -201,8 +201,33 @@
  * per name, including the bundle's escaped apostrophe, and two converse samples (the ordinary phrase "a new
  * balance", and look-alike words) that must not trip.
  *
+ * ── THE DECISIONS LOG (#1883) — AN EIGHTH ARM: EVERY ENGINE NOTE, RENDERED ─────────────────────────
+ *
+ * `theme.notes` is the record of what the engine decided for a brand. It ships four ways: the MCP
+ * `theme_brand` result (by default), each emitted tree's `$extensions.prism3.decisions`, the reports, and
+ * the studio's Decisions log. The notes were engine-voiced ("CONFIRM", "(#898)", "hairline sentinel ON"),
+ * and the voice rules above could not see most of them: only the notes a committed brand happens to
+ * trigger reach `out/**`, and §2's list has no rule for shouting or an issue number.
+ *
+ *   - SOURCES: the corpus as shipped (each `out/<brand>.tokens.json`'s decisions, read off disk) and a
+ *     SWEEP of literal brand inputs (`NOTE_SWEEP`) that reaches every producer no committed brand
+ *     triggers, plus one input per personality trait in the schema's enum.
+ *   - RULES (`NOTE_RULES`), on top of §2, `normative` and en-GB: an issue number, an all-caps word
+ *     outside a short acronym list, a date, an internal id like `B4a`, and a list of maintainer terms
+ *     the notes used to carry. Self-checked with the old notes' own text as positive samples.
+ *   - REPRESENTED, NOT COUNTED: `PRODUCERS` names every way a note is written, by the words it opens
+ *     with. Every producer must be reached (else `blind`), and every note must be claimed by one (else
+ *     an `unclaimed-note` failure: a new or reworded producer the table does not know). A tripwire
+ *     counts `notes.push(` in theme.ts and vocabulary.ts against a literal per file, for a new producer
+ *     the sweep never reaches; `NOTES_FLOOR` catches a sweep that quietly renders less.
+ *   - NAMED AS UNREACHABLE: the typography note's empty-display-tier clause (`NOTES_UNREACHABLE`).
+ *
+ * Every pattern here is written in this file, never built from theme.ts's templates: a pattern derived
+ * from the subject matches whatever the subject says (docs/34 shape 2).
+ *
  * Run: `npx tsx packages/engine/lint-voice.ts`  (exit 1 = a gated surface carries banned voice-standard
- * §2 copy, or an RFC 2119 level outside the payload channel, or a bundle or rendered note names a client)
+ * §2 copy, or an RFC 2119 level outside the payload channel, or a bundle or rendered note names a client,
+ * or an engine note breaks the decisions-log rules or is claimed by no known producer)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
@@ -218,7 +243,7 @@ import { brandTheme } from './theme';
 // move: they are not rules, they are this gate's decision about which text in a BUILT BUNDLE counts as
 // shipped prose. The #387/#511 property is unchanged — `scan()` and `SELF_CHECK` both drive the
 // imported `voiceHits`.
-import { voiceHits } from './prose-rules.ts';
+import { voiceHits, enGb } from './prose-rules.ts';
 import type { RawHit } from './prose-rules.ts';
 // The MCP tools/list as served (#1806): acquisition only, see the block below `gatedHits`.
 import { servedToolsList, servedStrings } from './mcp-served';
@@ -610,6 +635,202 @@ if (!Array.isArray(traitEnum) || traitEnum.length < 9) {
     clientFound.push(...hitsIn(`theme.notes (personality '${t}')`, notes[0]));
   }
 }
+
+// ---- the DECISIONS LOG (#1883) — every note the engine writes, rendered, against rules of its own ----
+// See the header section of the same name. Two sources: the notes the corpus SHIPS (each emitted tree's
+// `decisions`, read off disk) and a SWEEP of literal brand inputs, because most producers fire only on a
+// lever no committed brand sets. Everything below is this gate's own: the sweep inputs, the producer
+// patterns and the banned patterns are written here, never derived from theme.ts or vocabulary.ts — a
+// pattern built from the subject's template would match whatever the subject says (docs/34 shape 2).
+const NOTE_BASE = { id: 'lint-notes', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+const NOTE_SWEEP: [string, Record<string, unknown>][] = [
+  ['defaults', {}],
+  ['modes', { modes: ['light', 'dark', 'wireframe'], customModes: [{ name: 'promo', base: 'dark' }], overrides: { light: { 'text.link.default': { palette: 'primary', step: 600 } } }, modeAnchors: { dark: { primary: 400 } }, modeLevers: { dark: { density: 'compact', easings: { emphasized: 'calm' } } } }],
+  ['root, gamut, supplied status, decoupled action and link', { root: 'acme', brandColors: [{ name: 'accent', oklch: { l: 0.55, c: 0.3, h: 235 } }], actionPalette: 'accent', linkPalette: 'primary', status: { success: { h: 150, chroma: 0.15 }, danger: { h: 27, chroma: 0.2 } } }],
+  ['neutral anchor', { neutral: { hue: 262, chroma: 0.008, anchor: { l: 0.6, c: 0.01, h: 262 } } }],
+  ['neutral auto, link same as action', { neutral: { hue: 262, chroma: 0.008, auto: true }, linkPalette: 'primary' }],
+  ['red primary', { primary: { l: 0.5, c: 0.2, h: 25 }, neutral: { hue: 25, chroma: 0.01 } }],
+  ['greige primary', { primary: { l: 0.5, c: 0.03, h: 30 }, neutral: { hue: 30, chroma: 0.01 } }],
+  ['primary at the edge of red', { primary: { l: 0.5, c: 0.2, h: 47 }, neutral: { hue: 47, chroma: 0.01 } }],
+  ['roleColors off-hue', { primary: { l: 0.5, c: 0.15, h: 150 }, neutral: { hue: 150, chroma: 0.01 }, brandColors: [{ name: 'lime', oklch: { l: 0.7, c: 0.15, h: 135 } }], roleColors: { danger: 'lime', info: 'lime' } }],
+  ['interactivePalettes over accentPalette', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], accentPalette: 'accent', interactivePalettes: [{ name: 'accent', palette: 'accent' }] }],
+  ['every opt-in at once', { controlShape: 'hairline', gradients: true, buttonLabelWeight: 'default', typography: { sizeFloor: 8, titleFloor: 16, captionFloor: 10, responsive: { fluid: false } }, disabledStrategy: 'full', outlineInteraction: 'solid-tint', neutralEmphasis: 'strong', strictInteractiveContrast: true }],
+  ['radiusHairline, no hover, surfaces', { radiusHairline: true, outlineInteraction: 'none', surfaces: { light: { base: 100, floorStep: 300 }, dark: { floorStep: 800 } } }],
+  ['brand inverse band', { brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.06, h: 250 } }], surfaces: { light: { inverseBase: { palette: 'navy', step: 900 } } } }],
+  ['links on neutral', { linkPalette: 'neutral' }],
+  ['a named stop', { radiusScale: 'soft' }],
+  ['a trait pre-empted by another', { personality: ['soft', 'sharp'] }],
+  // Every trait the schema advertises, so each trait's approved `why` is scanned too.
+  ...((Array.isArray(traitEnum) ? traitEnum : []) as string[]).map((t): [string, Record<string, unknown>] => [`personality '${t}'`, { personality: [t] }]),
+];
+// The PRODUCERS: one entry per way the engine writes a note, keyed by what the note opens with. `site`
+// entries are the push sites and each arm of a conditional inside one; a note no `site` pattern claims is a
+// producer this table does not know, which fails rather than passing unread. `fragment` entries are
+// optional clauses inside one note, each of which the sweep must also reach. `corpus` entries are notes
+// that exist only in an emitted tree (the regression fixture's literal list), so the sweep cannot reach
+// them and the corpus read must.
+type Producer = { id: string; re: RegExp; kind: 'site' | 'fragment' | 'corpus' };
+const PRODUCERS: Producer[] = [
+  { id: 'modes: opt-out', re: /^modes: .+ only — the brand turns off /, kind: 'site' },
+  { id: 'modes: wireframe', re: /^modes: wireframe added — /, kind: 'site' },
+  { id: 'custom modes', re: /^custom modes: /, kind: 'site' },
+  { id: 'overrides', re: /^overrides: color overrides in /, kind: 'site' },
+  { id: 'modeAnchors', re: /^modeAnchors: /, kind: 'site' },
+  { id: 'modeLevers', re: /^modeLevers: /, kind: 'site' },
+  { id: 'namespace', re: /^namespace: tokens emit under /, kind: 'site' },
+  { id: 'primary anchor', re: /^primary: the brand color is pinned at step \d+/, kind: 'site' },
+  { id: 'out of gamut', re: /^anchor '[^']+' \(oklch [^)]+\) is outside the sRGB gamut/, kind: 'site' },
+  { id: 'neutral anchor', re: /^neutral: pinned to the brand's gray/, kind: 'site' },
+  { id: 'neutral auto', re: /^neutral: the grays follow the primary hue/, kind: 'site' },
+  { id: 'brand color', re: /^brand color: '[^']+' added/, kind: 'site' },
+  { id: 'status: supplied', re: /^(success|warning|info): the brand's hue /, kind: 'site' },
+  { id: 'status: default', re: /^(success|warning|info): default hue /, kind: 'site' },
+  { id: 'action: default', re: /^action: follows the primary palette/, kind: 'site' },
+  { id: 'action: decoupled', re: /^action: uses the '[^']+' palette/, kind: 'site' },
+  { id: 'danger: supplied', re: /^danger: the brand's hue /, kind: 'site' },
+  { id: 'danger: red primary', re: /^danger: the primary \(hue [^,]+, chroma [^)]+\) is a saturated red/, kind: 'site' },
+  { id: 'danger: greige primary', re: /^danger: the primary \(hue [^)]+\) is reddish/, kind: 'site' },
+  { id: 'danger: not red', re: /^danger: the primary \(hue [^)]+\) is not red/, kind: 'site' },
+  { id: 'danger: edge of red', re: /^danger: the primary hue \S+ sits near the edge of red/, kind: 'site' },
+  { id: 'roleColors: rebase', re: /^roleColors: \w+ uses the '[^']+' palette/, kind: 'site' },
+  { id: 'roleColors: off-hue', re: /^roleColors: '[^']+' \(hue [^)]+\) is \d+° from the usual/, kind: 'site' },
+  { id: 'accentPalette replaced', re: /^interactivePalettes: set, so accentPalette /, kind: 'site' },
+  { id: 'interactive column', re: /^interactive column: '[^']+' on the /, kind: 'site' },
+  { id: 'status ramp dropped', re: /^(success|warning|info): rebased by roleColors/, kind: 'site' },
+  { id: 'dimensions', re: /^dimensions: \d+px grid/, kind: 'site' },
+  { id: 'radius hairline', re: /^radius: adds radius\.hairline/, kind: 'site' },
+  { id: 'radius hairline via controlShape', re: /^radius: .* controlShape hairline turns it on/, kind: 'fragment' },
+  { id: 'motion tempo', re: /^motion: '[^']+' tempo sets the durations/, kind: 'site' },
+  { id: 'motion easing per mode', re: /^motion: easing roles use a different curve per mode/, kind: 'site' },
+  { id: 'shadow', re: /^shadow: 6 steps \(xs–2xl\) plus inset/, kind: 'site' },
+  { id: 'gradient', re: /^gradient: \d+ brand gradient/, kind: 'site' },
+  { id: 'gradient: none', re: /^gradient: none — /, kind: 'site' },
+  { id: 'layout', re: /^layout: \d+ breakpoints \([^)]*\); \d+-column grid/, kind: 'site' },
+  { id: 'button label weight', re: /^button label weight: /, kind: 'site' },
+  { id: 'typography', re: /^typography: \d+-step size ladder \([^)]+\), a fixed set rather than a ratio/, kind: 'site' },
+  { id: 'typography: title.2xs included', re: /^typography: .*title\.2xs is included/, kind: 'fragment' },
+  { id: 'typography: caption tier', re: /^typography: .*caption adds caption\.xs \(8px\) and caption\.sm \(10px\)/, kind: 'fragment' },
+  { id: 'typography: static sizes', re: /^typography: .*Sizes are fixed at every viewport\.$/, kind: 'fragment' },
+  { id: 'typography: sizeFloor 8', re: /^typography: sizeFloor 8 /, kind: 'site' },
+  { id: 'disabled: full', re: /^disabled: 'full' — /, kind: 'site' },
+  { id: 'disabled: reduced', re: /^disabled: 'reduced' \(default\) — /, kind: 'site' },
+  { id: 'overlays: default', re: /^interactive overlays: 'overlay-neutral' \(default\)/, kind: 'site' },
+  { id: 'overlays: solid-tint', re: /^interactive overlays: 'solid-tint' — /, kind: 'site' },
+  { id: 'overlays: none', re: /^interactive overlays: 'none' — /, kind: 'site' },
+  { id: 'surfaces: page', re: /^surfaces: the \S+ page is /, kind: 'site' },
+  { id: 'surfaces: floor', re: /^surfaces: the \S+ contrast floor is set to /, kind: 'site' },
+  { id: 'surfaces: inverse band', re: /^surfaces: the \S+ inverse band is a brand color/, kind: 'site' },
+  { id: 'action: anchored', re: /^action: anchored at '[^']+' step \d+/, kind: 'site' },
+  { id: 'link color: same as action', re: /^link color: '[^']+', the same palette as actions/, kind: 'site' },
+  { id: 'link color: decoupled', re: /^link color: links use the '[^']+' palette instead of/, kind: 'site' },
+  { id: 'links: Use of Color', re: /^links: .*WCAG 1\.4\.1 \(Use of Color\)/, kind: 'site' },
+  { id: 'neutral emphasis: strong', re: /^neutral interactive emphasis: 'strong'/, kind: 'site' },
+  { id: 'neutral emphasis: subtle', re: /^neutral interactive emphasis: 'subtle'/, kind: 'site' },
+  { id: 'strict contrast: on', re: /^strict interactive contrast: on — /, kind: 'site' },
+  { id: 'strict contrast: off', re: /^strict interactive contrast: off \(default\) — /, kind: 'site' },
+  // vocabulary.ts — the two writers whose notes theme.ts copies in (`notes.push(...resolved.notes)`).
+  { id: 'vocabulary: named stop', re: /^[\w.]+ '[^']+' → [\d.]+$/, kind: 'site' },
+  { id: 'vocabulary: trait', re: /^personality '[^']+' → /, kind: 'site' },
+  { id: 'vocabulary: trait pre-empted', re: /^personality '[^']+' → nothing to fill; kept /, kind: 'fragment' },
+  // theme.ts's regression fixture (`nbThemeFrom`): a literal list, emitted only in its own tree.
+  { id: 'fixture: reference brand', re: /^reference brand: /, kind: 'corpus' },
+  { id: 'fixture: dimensions', re: /^dimensions: 4px grid, 8px spacing rhythm \(numbered scale\)/, kind: 'corpus' },
+  { id: 'fixture: typography', re: /^typography: 22-step size ladder \(10–160px\); weights /, kind: 'corpus' },
+  { id: 'fixture: shadow', re: /^shadow: 6 steps plus inset, two layers, pure black/, kind: 'corpus' },
+  { id: 'fixture: layout', re: /^layout: 5 breakpoints \(the default\)/, kind: 'corpus' },
+];
+// What the sweep cannot reach, named rather than skipped. The empty-display-tier clause of the
+// typography note needs a display tier with no rung under the ceiling, and the schema's smallest
+// ceiling ('sm') keeps at least one display size at every type scale.
+const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual 15–25" clause)'];
+// The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
+// never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
+// theme.ts: 44 note pushes + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 45, 'packages/engine/vocabulary.ts': 2 };
+// The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
+const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
+const NOTE_RULES: { rule: string; re: RegExp }[] = [
+  { rule: 'issue-number', re: /#\d+/g },                                  // "(#898)", "issue #101"
+  { rule: 'all-caps', re: /\b[A-Z]{2,}\b/g },                             // "CONFIRM", "NOT", "ON", "ESCAPE HATCH"
+  { rule: 'date', re: /\b\d{4}-\d{2}-\d{2}\b/g },                         // "destructive 2026-09-24"
+  { rule: 'internal-id', re: /\b[A-Z]{1,2}-?\d+[a-z]?\b/g },              // "B4a", "M-05"
+  { rule: 'maintainer-jargon', re: /\b(sentinel|escape hatch|field-common|field-correct|research-validated|re-gated|dialect|composite spine|live-inherits|baseMd|covers all bases|regression)\b/gi },
+];
+const noteHits = (txt: string): RawHit[] => [
+  ...NOTE_RULES.flatMap(({ rule, re }) => [...txt.matchAll(re)]
+    .filter((m) => !(rule === 'all-caps' && ALLCAPS_OK.has(m[0])))
+    .map((m) => ({ rule, match: m[0], index: m.index! }))),
+  ...voiceHits(txt), ...normativeHits(txt),
+  ...enGb(txt).map(({ word, index }) => ({ rule: 'en-GB', match: word, index })),
+];
+const NOTE_SELF_CHECK: { sample: string; want: string | null }[] = [
+  { sample: 'action color defaults to the PRIMARY brand palette — CONFIRM this hue', want: 'all-caps' },
+  { sample: 'any that miss its floor are flagged (#898)', want: 'issue-number' },
+  { sample: 'AA-clean in every state (#1389/B4a, destructive 2026-09-24)', want: 'date' },
+  { sample: 'AA-clean in every state (B4a)', want: 'internal-id' },
+  { sample: 'radius: hairline sentinel on', want: 'maintainer-jargon' },
+  { sample: 'disabled text should simply dim', want: 'banned-word' },
+  { sample: 'a grayscale mode, a greyscale mode', want: 'en-GB' },
+  { sample: "links: too close in color to body text for WCAG 1.4.1 — clears AA (4.5:1) in OKLCH and sRGB; hc-light and HC modes; 2xl, 3xl", want: null },
+];
+for (const { sample, want } of NOTE_SELF_CHECK) {
+  const hits = noteHits(sample);
+  if (want === null ? hits.length > 0 : !hits.some((h) => h.rule === want)) {
+    selfFails.push(`decisions log: "${sample}" should${want ? ` be flagged as '${want}'` : ` NOT be flagged (got ${hits.map((h) => `${h.rule} "${h.match}"`).join(', ')})`}`);
+  }
+}
+if (selfFails.length) {
+  console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
+  for (const f of selfFails) console.error(`    ${f}`);
+  process.exit(1);
+}
+const decisionNotes: { where: string; text: string }[] = [];
+// (1) The corpus, as shipped: every brand's emitted tree, `$extensions.prism3.decisions`.
+const outDir = join(repo, 'packages/engine/out');
+const treeFiles = readdirSync(outDir).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+if (treeFiles.length < 5) blind.push(`the decisions log — ${treeFiles.length} emitted brand trees in packages/engine/out, expected at least 5`);
+for (const f of treeFiles) {
+  let decisions: unknown;
+  try {
+    const find = (o: any): unknown => {
+      if (!o || typeof o !== 'object') return undefined;
+      if (Array.isArray(o?.prism3?.decisions)) return o.prism3.decisions;
+      for (const v of Object.values(o)) { const r = find(v); if (r) return r; }
+      return undefined;
+    };
+    decisions = find(JSON.parse(readFileSync(join(outDir, f), 'utf8')));
+  } catch (e) { blind.push(`out/${f} — could not be read for the decisions log (${(e as Error).message})`); continue; }
+  if (!Array.isArray(decisions) || decisions.length === 0) { blind.push(`out/${f} — carries no decisions log`); continue; }
+  for (const d of decisions) decisionNotes.push({ where: `out/${f}`, text: String(d) });
+}
+// (2) The sweep, rendered the way the MCP server and every emitter get them: `brandTheme(...).notes`.
+for (const [label, over] of NOTE_SWEEP) {
+  try {
+    for (const n of brandTheme({ ...NOTE_BASE, ...over } as any).notes) decisionNotes.push({ where: `sweep: ${label}`, text: n });
+  } catch (e) { blind.push(`decisions-log sweep '${label}' — did not render (${(e as Error).message})`); }
+}
+// Represented, not counted: every producer is reached, and every note is claimed by a site.
+const notesFound: Hit[] = [];
+const reached = new Set<string>();
+for (const { where, text } of decisionNotes) {
+  const matched = PRODUCERS.filter((p) => p.re.test(text));
+  for (const p of matched) reached.add(p.id);
+  if (!matched.some((p) => p.kind !== 'fragment')) notesFound.push({ file: where, line: '-', rule: 'unclaimed-note', match: text.slice(0, 60), context: 'no producer in lint-voice.ts PRODUCERS opens this way — a new or reworded note' });
+  for (const { rule, match, index } of noteHits(text)) {
+    notesFound.push({ file: where, line: '-', rule, match, context: text.slice(Math.max(0, index - 55), index + 45) });
+  }
+}
+const unreached = PRODUCERS.filter((p) => !reached.has(p.id));
+if (unreached.length) blind.push(`the decisions log — ${unreached.length} producer(s) never reached by the corpus or the sweep: ${unreached.map((p) => p.id).join('; ')}`);
+// Measured at 530 when written (81 shipped + 449 swept); the floor sits below it so a sweep that quietly
+// stops rendering — an empty trait enum, a throwing input — fails here rather than scanning less.
+const NOTES_FLOOR = 500;
+if (decisionNotes.length < NOTES_FLOOR) blind.push(`the decisions log — ${decisionNotes.length} notes scanned, below the floor of ${NOTES_FLOOR}`);
+for (const [file, want] of Object.entries(NOTE_PUSH_SITES)) {
+  const code = readFileSync(join(repo, file), 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  const got = (code.match(/\bnotes\.push\(/g) ?? []).length;
+  if (got !== want) blind.push(`the decisions log — ${file} has ${got} notes.push( site(s), this gate knows ${want}: add the new producer to PRODUCERS and a NOTE_SWEEP input that reaches it, then update NOTE_PUSH_SITES`);
+}
 // The carve-out is represented, not merely present: every sidecar went through it, and it exempted
 // something. Zero means the field moved or the pattern drifted, and the rule would be passing blind.
 const sidecarCount = gated.filter(isPayloadSidecar).length;
@@ -685,4 +906,18 @@ if (clientFound.length) {
   console.log('  ✓ clean — no client name in any of the three bundle files or any rendered personality note.');
 }
 
-process.exit(gatedHits.length || clientFound.length ? 1 : 0);
+const sweepNotes = decisionNotes.filter((n) => n.where.startsWith('sweep:')).length;
+console.log(`Decisions-log arm — ${decisionNotes.length} notes scanned (${decisionNotes.length - sweepNotes} from ${treeFiles.length} emitted trees, ${sweepNotes} from ${NOTE_SWEEP.length} sweep inputs); ${reached.size}/${PRODUCERS.length} producers reached; not reachable, named: ${NOTES_UNREACHABLE.join('; ')}`);
+if (notesFound.length) {
+  console.error(`\n❌ ${notesFound.length} decisions-log note problem(s) (#1883):\n`);
+  for (const h of notesFound.slice(0, 20)) console.error(`    ${h.file}: [${h.rule}] "${h.match}"  …${h.context}…`);
+  if (notesFound.length > 20) console.error(`    … and ${notesFound.length - 20} more`);
+  console.error(`\n    Every note ships: theme.notes, the MCP theme_brand result, each emitted tree's decisions and`);
+  console.error(`    the studio's Decisions log. Write it in voice-standard §4's UI register — what the engine decided,`);
+  console.error(`    then why; no issue numbers, all-caps or maintainer terms (provenance goes in a comment beside the`);
+  console.error(`    push). An unclaimed note is a new or reworded producer: add it to PRODUCERS with a sweep input.\n`);
+} else {
+  console.log('  ✓ clean — every note reads in the UI register, and every one is claimed by a known producer.');
+}
+
+process.exit(gatedHits.length || clientFound.length || notesFound.length ? 1 : 0);
