@@ -2,7 +2,7 @@
  * Mode-sensitivity audit — which sections actually respond to the mode bar.
  *
  * Run:  npm run -w @prism3/studio build && npm run -w @prism3/studio audit:modes
- *       (serves `web/` on :8899 itself; needs Playwright + a Chromium at PLAYWRIGHT_BROWSERS_PATH)
+ *       (serves the studio itself on a free port; needs Playwright + a Chromium at PLAYWRIGHT_BROWSERS_PATH)
  *
  * WHY THIS IS A SCRIPT AND NOT A TABLE IN A DOC. The answer moves every time a page changes, and it
  * has been re-derived by hand three times (#268 twice, #432 once) at meaningful cost. A committed
@@ -62,9 +62,11 @@
  * floor instead: if no control on any bar page reads a label, the signature has gone blind to case 2
  * below and the audit fails naming it, rather than under-counting in silence.
  *
- * NOT IN CI, deliberately. It is a tool, not a gate: without `--check-badges` it reports and exits 0. With
- * it, it is red on `main` at the time of #1829 (mismatches that vary by brand, #1887, unchanged by the move to hooks), and making
- * it green is badge-map and audit-probe work of its own (#1887). It is deleted with the mode strip it audits (S13).
+ * IN CI WITHOUT `--check-badges` (#1897), so CI gates the INSTRUMENT, not the table: without the flag the
+ * table is a report, and the run exits 1 only through `ok()` above (a hook never rendered, heads and titles
+ * disagreeing, the label floor). With the flag it is red on `main` at the time of #1829 (mismatches that vary
+ * by brand, #1887, unchanged by the move to hooks), and making it green is badge-map and audit-probe work of
+ * its own (#1887). It is deleted with the mode strip it audits (S13), and its CI step goes with it.
  *
  * VERDICTS
  *   EDITS    — the control set/labels differ between modes. The bar is an EDITING SCOPE here.
@@ -121,7 +123,11 @@ const server = createServer(async (req, res) => {
     res.end(body);
   } catch { res.writeHead(404); res.end('not found'); }
 });
-await new Promise((r) => server.listen(8899, '127.0.0.1', r));
+// An EPHEMERAL port (`listen(0)`), the pattern `test-smoke.mjs` and both plugin suites use (#1898). This
+// held 8899 until it gated in `verify.ts` (#1897); lanes run `npm run verify` concurrently, and a second
+// audit on a fixed port fails as `EADDRINUSE`, which reads like a failure of the change under test.
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 
 // Positional arg is the brand; flags are filtered out so `audit:modes -- --check-badges` does not
 // read the flag as a brand name and hang waiting for a button that will never exist.
@@ -129,7 +135,7 @@ const BRAND = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'harbor'
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
 await hooks.watch(page);
-await page.goto('http://127.0.0.1:8899/index.html', { waitUntil: 'networkidle' });
+await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
 await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: BRAND }).first());
 await hooks.need(page, '[data-p3="rail-page-palettes"]');
 await page.waitForTimeout(1000);
