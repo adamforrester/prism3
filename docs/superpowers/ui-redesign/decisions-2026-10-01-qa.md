@@ -31,3 +31,6 @@ The owner's decisions taken during S3 and S4 of the implementation plan. They ex
 | Q16 | Removing a brand color | **Asks to confirm first, in place.** Done in a separate PR. |
 | Q17 | The Activity strip at 380 | **Fine for now** at the bottom. |
 | Q18 | Font licenses | **The notice plus its URL is confirmed.** |
+| Q19 | Which mode the fill and text rows on Surfaces & fills edit | **The mode the preview shows** (the legacy behavior), not light only as v6 R5 had it. |
+| Q20 | Where text colors are edited | **The Text rows on Surfaces & fills are the permanent, primary text editor**, not an interim one. The preview uses the legacy Text color display. The Roles matrix (S4b) is a **secondary** view, a role × mode overview with quick per-mode edits. It is never the only way to edit a token: every role it covers also has a normal row on its page. |
+| Q21 | Surfaces & fills option sets | **Aligned for now:** the legacy option sets stay (all neutral steps, no Auto for Page, the band as palette + step), and Light and Dark surfaces are both always shown. The owner confirms on seeing the page. |

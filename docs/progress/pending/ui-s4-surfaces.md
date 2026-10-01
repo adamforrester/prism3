@@ -22,7 +22,7 @@ The legacy Surfaces page: `renderSurfacesPage`, `renderSurfacesEditor` (Backgrou
 
 **Held for the owner** (behavior alternatives kept out to stay neutral, each the option closest to v6):
 - **Fill and text rows edit the mode the preview shows**, as the legacy page edited the mode its strip showed. v6 (R5) edits light only and sets the other modes in Roles, which is S4b; light-only rows now would leave dark with no editor. When S4b lands: switch to light-only (R5), or keep.
-- **The Text section is not v6's.** It carries the legacy page's 14 text rows so a text override keeps an editor until Roles (R3 puts text there). Remove it in S4b, or keep.
+- **The Text section is not v6's, and stays (owner decision Q20).** It carries the legacy page's 14 text rows and is the permanent, primary text editor; the Roles matrix (S4b) is a secondary view and never the only editor of a token. The mode it edits is the one the preview shows (Q19).
 - **The surface tiers (card, panel, nested) and the field fill stay as fill rows.** v6 lists five fills. Same question for S4b.
 - **Option sets are the legacy page's:** every neutral step for Page and the floor (Page has no Auto), the band as a palette select plus a step select, one palette per row in the step picker. v6 offered "Auto" for Page, band steps 700 and up (and brand 600 and up) in one select, and every palette in the picker.
 - **The legacy page's derived Text rows (on-fill inks, link states) and its per-section contrast tables are not drawn:** read-only, and Inspect › Contrast holds every pair. The angle slider still writes on release (step 5), as before.
