@@ -21,11 +21,12 @@ import { brandState, lastError, rebuild, searchQuery, setPage, setSearchHits, su
 import {
   STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,
   setNeutralAnchor, setNeutralChroma, setNeutralFollow, setNeutralHue, setNeutralPinned, setPrimary, setStatusColor,
-  setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
+  removalEffects, setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
+import { inlineConfirm } from '../ui/confirm';
 import { choice, colorField, leverBlock, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
@@ -112,7 +113,27 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         rm.type = 'button';
         rm.setAttribute('aria-label', `Remove ${c.name}`);
         rm.append(glyph('x'));
-        rm.onclick = () => edit('brandColors', () => removeBrandColor(i));
+        // Removing asks first, in place (owner, 2026-10-01): the confirm names what else the removal changes
+        // (`removalEffects`, the cascade `removeBrandColor` runs). Cancel writes nothing; Remove is the same
+        // removal and cascade as before.
+        let ask: HTMLElement | null = null;
+        const close = (): void => { ask?.remove(); ask = null; rm.setAttribute('aria-expanded', 'false'); rm.focus(); };
+        rm.setAttribute('aria-expanded', 'false');
+        rm.onclick = () => {
+          if (ask) { close(); return; }
+          const effects = removalEffects(c.name);
+          const cf = inlineConfirm({
+            title: `Remove ${c.name}?`,
+            effects: effects.length ? effects : ['Nothing else uses it.'],
+            confirmLabel: 'Remove',
+            onConfirm: () => edit('brandColors', () => removeBrandColor(i)),
+            onCancel: close,
+          });
+          ask = cf.el;
+          row.after(cf.el);
+          rm.setAttribute('aria-expanded', 'true');
+          cf.focus();
+        };
         row.append(field, rm);
         list.append(row);
         syncs.push(() => {

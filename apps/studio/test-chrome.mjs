@@ -1706,6 +1706,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   ok(added.n === n0 + 1 && added.focus === 'brand-color-name', `edit: Add brand color adds a ramp to the preview and focuses the new color's name (${JSON.stringify(added)}, was ${n0})`);
   const rm = page.locator('[data-p3="brand-color-remove"]').last();
   await hooks.click(rm);
+  await hooks.click(page.locator('[data-p3="confirm-accept"]'));
   await page.waitForFunction((n) => document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]').length === n, n0, { timeout: 5000 }).catch(() => {});
   ok(await ramps() === n0, `edit: removing that color takes its ramp out of the preview (${await ramps()}, want ${n0})`);
   // A rename onto another palette's name is refused, and the field puts the old name back.
@@ -1804,6 +1805,70 @@ console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'
     ok(errors.length === 0, `status seed (${role}): 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
   }
+}
+
+// =============================================================================================
+// 13c. Removing a brand color asks first, in place (owner, 2026-10-01)
+// =============================================================================================
+// THE ORACLE for "nothing saved" and "exactly today's removal" is the brand the web host persists after
+// every edit (`prism3:brandInput` in localStorage), read before and after. The expected removal is written
+// out here for this brand, by hand, from what the removal has always done (S2's cascade, docs/24 #53): the
+// color leaves `brandColors`, a status role that borrowed it goes back to Auto, and a gradient stop on it
+// moves to primary. It never calls `removalEffects` or `cascadeRemove`.
+console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const accentRamp = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'));
+  // Make the removal cascade: success borrows accent (prism3's two gradients already have accent stops).
+  await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
+  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  ok(b0?.roleColors?.success === 'accent' && b0.brandColors?.some((x) => x.name === 'accent'), `confirm: the setup persisted, with success borrowing accent (${JSON.stringify(b0?.roleColors)})`);
+  const rmAccent = page.locator('[data-p3="brand-color-remove"][aria-label="Remove accent"]');
+  const panel = () => page.evaluate(() => {
+    const c = document.querySelectorAll('[data-p3="confirm"]');
+    const el = c[0];
+    return { n: c.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, items: [...(el?.querySelectorAll('li') ?? [])].map((x) => x.textContent),
+      named: el ? document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent ?? null : null, focus: document.activeElement?.getAttribute('data-p3') ?? null };
+  });
+  // Asks first: the click opens the confirm and removes nothing.
+  await hooks.click(rmAccent);
+  const p1 = await panel();
+  const WANT_ITEMS = ['The success color goes back to Auto.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
+  ok(p1.n === 1 && p1.title === 'Remove accent?' && p1.named === 'Remove accent?' && p1.focus === 'confirm-cancel',
+    `confirm: Remove accent asks first, "Remove accent?" names the group and focus is on Cancel (${JSON.stringify(p1)})`);
+  ok(JSON.stringify(p1.items) === JSON.stringify(WANT_ITEMS), `confirm: it names what else the removal changes — ${JSON.stringify(p1.items)}, want ${JSON.stringify(WANT_ITEMS)}`);
+  ok(await accentRamp() && await stored() === before, 'confirm: while it asks, accent is still in the preview and nothing is saved');
+  // Cancel writes nothing, closes, and returns focus to the button.
+  await hooks.click(page.locator('[data-p3="confirm-cancel"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const p2 = await panel();
+  ok(p2.n === 0 && p2.focus === 'brand-color-remove', `confirm: Cancel closes it and returns focus to the remove button (${JSON.stringify(p2)})`);
+  const afterCancel = await stored();
+  ok(afterCancel === before && await accentRamp(), `confirm: Cancel saves nothing — the stored brand is byte-identical and accent keeps its ramp${afterCancel === before ? '' : ` (now ${afterCancel?.slice(0, 120)}…)`}`);
+  // Escape is Cancel.
+  await hooks.click(rmAccent);
+  await hooks.need(page, '[data-p3="confirm"]');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const p3 = await panel();
+  ok(p3.n === 0 && p3.focus === 'brand-color-remove' && await stored() === before, `confirm: Escape closes it and saves nothing (${JSON.stringify(p3)})`);
+  // Confirm is today's removal and cascade, exactly.
+  const want = structuredClone(b0);
+  want.brandColors = want.brandColors.filter((x) => x.name !== 'accent');
+  delete want.roleColors.success;
+  if (!Object.keys(want.roleColors).length) delete want.roleColors;
+  for (const g of want.gradients ?? []) for (const st of g.stops) if (st.palette === 'accent') st.palette = 'primary';
+  await hooks.click(rmAccent);
+  await hooks.click(page.locator('[data-p3="confirm-accept"]'));
+  await page.waitForFunction(() => ![...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'), null, { timeout: 5000 }).catch(() => {});
+  const got = JSON.parse(await stored() ?? 'null')?.input;
+  ok(!await accentRamp() && canon(got) === canon(want), `confirm: Remove removes accent with the same cascade as before — ${canon(got) === canon(want) ? 'the stored brand is the expected one' : wireDiff({ input: got }, { input: want })}`);
+  ok(errors.length === 0, `confirm: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
 }
 
 // =============================================================================================

@@ -79,6 +79,28 @@ export const cascadeRemove = (removed: string): void => {
   if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === removed) s.palette = 'primary'; }));
 };
 
+/** What removing palette `name` also changes, one line each, in the order `cascadeRemove` applies it: the
+ *  confirm lists these before the removal (owner, 2026-10-01). Read from the working brand, so the list is
+ *  what Confirm will do. An empty list means nothing else names the palette. */
+export const removalEffects = (name: string): string[] => {
+  const out: string[] = [];
+  if (brandState.actionPalette === name) out.push('Actions go back to primary.');
+  if (brandState.linkPalette === name) out.push('Links go back to their default color.');
+  const rc = brandState.roleColors as Record<string, string> | undefined;
+  for (const r of Object.keys(rc ?? {})) {
+    if (rc![r] !== name) continue;
+    out.push((STATUS_ROLES as readonly string[]).includes(r) ? `The ${r} color goes back to Auto.` : `The ${r} role goes back to its default palette.`);
+  }
+  if (brandState.interactivePalettes?.some((e) => e.palette === name)) out.push(`Its interactive color column is removed.`);
+  if (Array.isArray(brandState.gradients)) {
+    for (const g of brandState.gradients) {
+      const n = g.stops.filter((st) => st.palette === name).length;
+      if (n) out.push(`In the ${g.name} gradient, ${n === 1 ? '1 stop switches' : `${n} stops switch`} to primary.`);
+    }
+  }
+  return out;
+};
+
 /** Add a brand color, `accent<n>` at the first free number. Materialized on the EDIT, never on a render
  *  (#1033): a render that created `brandColors: []` made an untouched brand read as edited. */
 export const addBrandColor = (): string => {
