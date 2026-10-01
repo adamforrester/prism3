@@ -1110,8 +1110,8 @@ for (const b of brands) {
 // action with `roleColors.action` got accent buttons and primary links. EXPECTED is authored here as
 // palette-name literals ('accent', 'primary', 'neutral') and the per-mode link floors (4.5:1, 7:1 in high
 // contrast), never read off `theme.roleToPalette` or modes.ts (docs/34 shape 2). An explicit `linkPalette`
-// still wins. BY-NAME MUTATION: put `input.linkPalette ?? actionPalette` back in theme.ts → the first two
-// asserts below fail by name ('primary' instead of 'accent').
+// still wins. BY-NAME MUTATION: put `input.linkPalette ?? actionPalette` back in theme.ts → three asserts
+// below fail by name: the 'accent' resolution, the accent ramp in every mode, and the neutral-action arm.
 {
   const B = { id: 'l1895', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
     brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
@@ -1134,6 +1134,22 @@ for (const b of brands) {
   const rcLpLinks = linkByMode(rcLp);
   ok(rcLp.linkPalette === 'primary' && rcLpLinks.every((r) => segOf(r.link?.path) === 'primary'),
     `#1895: an explicit linkPalette 'primary' still wins over roleColors.action 'accent' (got '${rcLp.linkPalette}'; ${rcLpLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
+
+  // The link ANCHORS where the action fill anchors (modes.ts `linkFollowsAction`), not at the rebased
+  // palette's own baseline step (`theme.linkAnchorStep`). The accent above sits mid-ramp, so both anchors
+  // pick the same link steps and could not tell them apart; a far-lightness brand color can. Literals were
+  // measured on this tree. They also carry #1896 (the action anchor follows the `actionPalette` lever, so a
+  // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
+  // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
+  // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
+    Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
+  const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
+  ok(deep.light === 'deep.550' && deep['hc-light'] === 'deep.700',
+    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.550, hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
+  ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
+    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
 
   // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
   // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME

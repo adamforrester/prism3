@@ -64,7 +64,7 @@ minimal — read both, they are the reference):
 | `root` | string (default `prism`) | the brand needs its own token namespace (`nbds`, …) |
 | `brandColors` | `[{ name, oklch: {l,c,h} }]` | the brand has accents beyond the hero |
 | `actionPalette` | a `brandColors` name | interactive UI runs on an **accent**, not the hero (decouple) |
-| `linkPalette` | `primary` \| `neutral` \| a `brandColors` name | links need their **own** color, independent of actions. Defaults to following the action color (`actionPalette`, or `roleColors.action` when set); the ink is still rated to its contrast floor. A palette that is not color-distinct from body text (e.g. `neutral`) is flagged in the notes to underline links for WCAG 1.4.1 — pair it with `typography.links` |
+| `linkPalette` | `primary` \| `neutral` \| a `brandColors` name | links need their **own** color, independent of actions. Defaults to following the action color; the ink is still rated to its contrast floor. A palette that is not color-distinct from body text (e.g. `neutral`) is flagged in the notes to underline links for WCAG 1.4.1 — pair it with `typography.links` |
 | `status` | `{ success/warning/danger/info: {l,c,h,chroma} }` | the brand *specifies* status hues; omit any (or all) to let the engine synthesize + carve a danger red |
 | `surfaces` | `{ light: { base: 50 } }` | the page is a **tinted off-white**, not pure white (the contrast floor moves with it) |
 | `density` | `comfortable` \| `compact` \| `spacious` | a dense tool vs a roomy reading product |

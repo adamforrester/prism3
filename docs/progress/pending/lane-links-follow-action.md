@@ -17,4 +17,8 @@
 
 `lint-voice.ts`'s two producer patterns follow the new wording, and its sweep gains the exact case (`roleColors.action: 'accent'`, `linkPalette: 'primary'`). `test.ts` asserts both notes as literals on that case and its same-palette twin.
 
+**The anchor arm (independent review).** The accent in the first test sits mid-ramp, so a mutation that dropped modes.ts's follow-action anchor (`const linkAnchor = theme.linkAnchorStep;`) survived: both anchors picked the same link steps. Two far-lightness brand colors close it. `roleColors.action: 'deep'` (l 0.25) puts the link on deep.550 in light and deep.700 in hc-light, and `'pale'` (l 0.92) on pale.450 in dark and pale.300 in hc-dark. Under the mutation they land on 850 and 050. Those literals also carry #1896, so fixing #1896 moves them along with the fill.
+
+**Wording fixed in passing (review nits).** The `linkStateRungs` description said "the resting link and its focus follow the action palette", which is wrong once `linkPalette` is set; it now says "the link palette". The skill row says "Defaults to following the action color" without naming `roleColors`, which the skill's front matter lists as out of scope.
+
 **Filed, not fixed.** #1896: `actionAnchorStep` has the same lever-versus-resolved split. `roleColors.action: 'accent'` anchors the action fill at primary's step, while `actionPalette: 'accent'` anchors at the accent's own shade.
