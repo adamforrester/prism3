@@ -43,7 +43,7 @@ import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '..
 import { INSPECT, LEGACY_LABEL, TABS, homeOf, legacyOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type PageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
-import { mountActivity, type ActivitySource } from './activity';
+import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaSource } from './figma';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
 
@@ -116,8 +116,8 @@ const select = (tabs: readonly HTMLElement[], on: HTMLElement | null): void => {
 export const mountFrame = (app: HTMLElement, opts: {
   readonly host: Host;
   readonly inspect: InspectLegacy;
-  /** The host session's writes, as the Activity drawer reads them (S1.4). */
-  readonly activity: ActivitySource;
+  /** The host session's writes, as the Activity drawer reads them, and how it closes the open detail (S1.4). */
+  readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
 }): Frame => {
@@ -265,7 +265,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // ── Activity (F2), the Figma menu and the Agent chip's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
-  const activity = mountActivity({ host, read: opts.activity, narrow: () => root.dataset.w === 'narrow' }, cleanups);
+  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow' }, cleanups);
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 

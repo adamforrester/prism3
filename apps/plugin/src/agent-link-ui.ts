@@ -119,8 +119,16 @@ export const mountAgentLink = (): void => {
     if (refocus) chip.focus();
   }
   chip.onclick = () => (isOpen() ? close(true) : open());
-  pop.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
+  // Escape closes an open popover from anywhere in it, the chip included, and gives focus to the chip.
+  wrap.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); e.stopPropagation(); close(true); }
+  });
+  // Focus leaving the chip and its popover (Tab past the switch) closes it. A focus move with no
+  // destination (a click on the popover's text, or the window losing focus) leaves it open; a click
+  // outside closes it through `onDown`.
+  wrap.addEventListener('focusout', (e) => {
+    const to = e.relatedTarget as Node | null;
+    if (to && !wrap.contains(to)) close(false);
   });
 
   // Transport B: while the link is on, hold a socket to the local desktop bridge and relay its commands
@@ -145,12 +153,15 @@ export const mountAgentLink = (): void => {
 
   // The slot comes and goes with the app view (the start screen has no frame), and the frame keeps one
   // slot for its whole life. So the chip is moved into whichever slot is in the document, whenever one
-  // appears; the slot itself is never cleared by anything else.
+  // appears; the slot itself is never cleared by anything else. A new slot arrives only with a new frame,
+  // which is mounted as a direct child of the app root (`#app`), so only that root's own children are
+  // watched, not every repaint below it.
   const place = (): void => {
     const slot = document.querySelector(SLOT);
     if (slot && wrap.parentElement !== slot) slot.append(wrap);
   };
-  new MutationObserver(place).observe(document.body, { childList: true, subtree: true });
+  const root = document.getElementById('app');
+  new MutationObserver(place).observe(root ?? document.body, root ? { childList: true } : { childList: true, subtree: true });
   render();
   place();
 };

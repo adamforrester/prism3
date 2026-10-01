@@ -45,6 +45,9 @@ export type OpReading = { readonly state: OpState; readonly ref: unknown };
 /** What `main.ts` lends: every write by name, and whether a result's detail is open. Pure; no DOM. */
 export type ActivityReading = { readonly ops: Readonly<Record<string, OpReading>>; readonly detail: boolean };
 export type ActivitySource = () => ActivityReading;
+/** What `main.ts` lends the drawer: the reading, and how to close the open result detail. A collapse
+ *  closes the detail with the body that shows it, so a pill never says "expanded" over a hidden detail. */
+export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void };
 
 export type Activity = {
   /** The Activity button, for the top bar. */
@@ -64,8 +67,9 @@ const statusWords = (running: number, failed: number, unread: boolean): string =
 
 /** Mount the drawer and its button. `narrow` reads the frame's width tier; `cleanups` takes the
  *  subscriptions and the pending collapse. */
-export const mountActivity = (opts: { readonly host: Host; readonly read: ActivitySource; readonly narrow: () => boolean }, cleanups: (() => void)[]): Activity => {
-  const { read, narrow } = opts;
+export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean }, cleanups: (() => void)[]): Activity => {
+  const { narrow } = opts;
+  const { read, closeDetail } = opts.lend;
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
   // The word at full width, the glyph alone when narrow; the name stays "Activity" plus the status words.
@@ -110,6 +114,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly read: Activi
     return { running: ops.filter((o) => o.state === 'running').length, failed: ops.filter((o) => o.state === 'bad').length };
   };
   const clear = (): void => { if (timer !== null) clearTimeout(timer); timer = null; };
+  /** Close the body. The open result detail closes with it (its pill's `aria-expanded` and chevron follow
+   *  the host session's `openDetail`), so clicking that pill afterward opens the detail again rather than
+   *  closing a detail nobody can see. `closeDetail` tells `host` and `host:detail`, so `onHost` runs inside
+   *  it and finds nothing to act on. */
+  const collapse = (): void => { open = false; auto = false; if (last.detail) closeDetail(); };
 
   const paint = (): void => {
     const { running, failed } = counts(last);
@@ -130,16 +139,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly read: Activi
     if (!open || !auto) return;
     if (drawer.matches(':hover') || drawer.contains(document.activeElement)) { timer = setTimeout(tick, COLLAPSE_RECHECK_MS); return; }
     if (counts(last).running) return;   // another write started; its own result decides
-    open = false;
-    auto = false;
+    collapse();
     paint();
   };
 
   const show = (yes: boolean, byHand: boolean): void => {
-    open = yes;
-    if (byHand) auto = false;
-    if (yes) unread = false;
     clear();
+    if (yes) { open = true; unread = false; if (byHand) auto = false; }
+    else collapse();
     paint();
   };
 
