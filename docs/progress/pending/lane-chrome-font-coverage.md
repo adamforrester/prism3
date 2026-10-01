@@ -68,7 +68,7 @@ The face shrinks while gaining nine code points. Google's API build keeps bytes 
 | `NOT_CHROME` key renamed to a missing file | `[glyphs] NOT_CHROME lists apps/studio/src/main-old.ts, which no longer exists`, and the legacy file's glyphs are named one by one |
 | review F3: prism3's two trees deleted | `[glyphs] brand prism3: packages/engine/out/prism3.tokens.json is missing, so its decision notes were not read`, and the same for `prism3.base.tokens.json` |
 | review F3: five trees deleted (aurora's and harbor's two, prism3's base), which passed under the old floor of 5 | five named failures, one per tree, each `brand <b>: … is missing` |
-| review F3: every `harbor.*.json` deleted | `[glyphs] 4 brands emit into packages/engine/out (aurora, nb, prism3, wendys), BRAND_COUNT says 5` |
+| review F3: every `harbor.*.json` deleted | `[glyphs] 4 brands emit into packages/engine/out (…), BRAND_COUNT says 5` |
 | review F5: `literalsOf` drops template heads, middles and tails | `[glyphs] literalsOf self-test: read ["plain","whole"] from the fixture, want ["plain","head "," middle "," tail","whole"]` (also a stale `FACE_LACKS` entry, but the self-test does not rely on it) |
 | review F5: `literalsOf` reads only the first literal | `[glyphs] literalsOf self-test: read ["plain"] from the fixture, want […]` (also four stale `FACE_LACKS` entries) |
 | review F7: the cmap reader recognizes no subtable format | one message: `[glyphs] the cmap of apps/studio/chrome/fonts/inter-latin-wght-normal.woff2 maps no code points, so nothing can be checked against it` |
