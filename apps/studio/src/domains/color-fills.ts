@@ -5,18 +5,18 @@
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`, in v6's order: the intro; **Surfaces** (the
  * page, the contrast floor and the inverse band, for light and for dark); **Foreground fills** (a row per
  * fill: a small swatch, its name and role, and a button that opens the step picker under the row, with the
- * ratio on it); **Text** (the same rows for the text inks, kept from the legacy page until the Roles matrix);
+ * ratio on it); **Text** (the same rows for the text inks: the permanent, primary text editor, owner decision
+ * Q20; the Roles matrix, S4b, is a secondary view and never the only editor of a token);
  * **Gradients** (the switch, then an editor per gradient with a 44px bar and editable stops). Every lever is
  * shown (R2: this page shows every lever). Last, the way on to Interactive.
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/fills-input.ts`, which writes what the
- * legacy page's closures wrote, byte for byte on the persisted brand. Two places differ from concept v6 on
- * purpose and are held for the owner (`docs/progress/pending/ui-s4-surfaces.md`):
+ * legacy page's closures wrote, byte for byte on the persisted brand. Two places differ from concept v6, each
+ * by the owner's decision (`docs/superpowers/ui-redesign/decisions-2026-10-01-qa.md`):
  *   · the fill and text rows edit the mode the preview shows, as the legacy page edited the mode its strip
- *     showed. v6 (R5) has them edit light only and sets other modes in the Roles matrix, which is S4b; until
- *     it lands, light-only rows would leave dark with no editor at all;
+ *     showed (Q19), not light only as v6's R5 had it;
  *   · the options are the legacy page's: every neutral step for the page and the floor, the inverse band as
- *     a palette and a step, one palette per fill row in the step picker.
+ *     a palette and a step, one palette per fill row in the step picker (Q21).
  *
  * HOW IT REPAINTS: by store subscription only (plan §5). A control writes through `fills-input.ts` and calls
  * `rebuild()`; the `brand` topic repaints this panel, the preview and the chrome, and `mode` repaints both.

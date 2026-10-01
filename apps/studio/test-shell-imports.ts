@@ -345,6 +345,20 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   }
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
   for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
+  // The title match above is TEXT, and an alias (`const mk = palSection; mk("Border", …)`) evades it. What
+  // catches a section `main.ts` draws for itself is STRUCTURAL and lives in `test-smoke.mjs`: each section
+  // module stamps its root `data-sg-section="<file>"`, and the smoke suite holds every one of the five on the
+  // Style guide and on Surfaces & fills to its marker. Its premise is held here: the marker is written by the
+  // five modules and by nothing else under src/, so a section drawn elsewhere cannot carry it by copying it.
+  const SECTIONS_DIR = join(SRC, 'preview', 'sections') + sep;
+  const MARKER = /\bsgSection\b|data-sg-section/;
+  const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
+  const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
+  ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
+  for (const f of SECTION_FILES) {
+    const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
+    ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
+  }
 }
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);

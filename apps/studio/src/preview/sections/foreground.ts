@@ -6,6 +6,7 @@ import { surfaceCard } from './cards';
 
 export const foregroundSection = (c: SgCtx): HTMLElement => {
   const secFg = palSection('Foreground', 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
+  secFg.dataset.sgSection = 'foreground';   // the shared-section marker (`kit.ts`'s header)
   secFg.append(subHead('Neutral'), c.grid(3, ([['Primary', 'foreground.primary'], ['Secondary', 'foreground.secondary'], ['Tertiary', 'foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(c, k, n, 'text.primary'))));
   // Inverse: bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page band.
   secFg.append(subHead('Inverse'), c.grid(3, ([['Primary', 'inverse.foreground.primary'], ['Secondary', 'inverse.foreground.secondary'], ['Tertiary', 'inverse.foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(c, k, n, 'inverse.text.primary'))));

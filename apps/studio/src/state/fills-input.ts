@@ -134,7 +134,8 @@ export const overrideOf = (mode: string, role: string): string | undefined => {
 /** One overridable row: the role, its label, and the palette key its steps come from (`roleToPalette`). */
 export type FillRow = { readonly role: string; readonly label: string; readonly paletteKey: string };
 /** The bold fills (concept v6's five, in the legacy editor's order), then the neutral surface tiers the
- *  legacy Foreground fills editor carried (kept until the Roles matrix, S4b, gives them a home). */
+ *  legacy Foreground fills editor carried. They stay rows here: the Roles matrix (S4b) is a secondary view,
+ *  never the only editor of a role (owner decision Q20, `decisions-2026-10-01-qa.md`). */
 export const FILL_ROWS: readonly FillRow[] = [
   { role: 'foreground.brand', label: 'Brand', paletteKey: 'brand' },
   { role: 'foreground.success', label: 'Success', paletteKey: 'success' },

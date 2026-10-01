@@ -1165,7 +1165,10 @@ ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesSt
 // SAME modules the Style guide draws them with, plus the brand's gradients. Per corpus brand and per mode,
 // against the brand's COMMITTED EMISSION, never the page:
 //   · every section ground is a specimen root on the emission's `background.primary` (listed by name);
-//   · every painted swatch (a card's fill, a border, an ink, an icon) is the emission's hex for its role;
+//   · every painted swatch (a card's fill, a border, an ink, an icon) is the emission's hex for its role, in
+//     the page's mode, except the Text color section's second column, held by its POSITION to the opposite
+//     mode — on Surfaces & fills and on the Style guide, in every mode;
+//   · each of the five sections' roots carries the marker only its shared module stamps (`data-sg-section`);
 //   · every ratio badge prints the ratio THIS FILE computes, with its own WCAG function, from the two
 //     emitted hexes (the role and what the emission says it is measured against), and marks below-floor
 //     exactly when that ratio is under the emission's `min`; a graded role's chip with no badge fails;
@@ -1205,13 +1208,20 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
   const hex = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s ?? ''); return m ? `#${m[1].split(/[,\s/]+/).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : s; };
   const sections = [...(host?.querySelectorAll('.psec') ?? [])].map((s) => ({
     name: s.querySelector('.psec-t')?.textContent ?? '?',
+    shared: s.getAttribute('data-sg-section'),
     root: s.querySelector('.sg-ground')?.getAttribute('data-p3') === 'specimen',
     ground: hex(getComputedStyle(s.querySelector('.sg-ground') ?? s).backgroundColor),
     chips: [...s.querySelectorAll('.sg-ground [data-p3="token-pill"]')].map((p) => p.textContent.replace(/^color\./, '').replace(/!$/, '')),
   }));
   const paint = [...(host?.querySelectorAll('[data-sg-role]') ?? [])].map((n) => {
     const cs = getComputedStyle(n);
-    return { role: n.dataset.sgRole, prop: n.dataset.sgPaint, mode: n.dataset.sgMode ?? null,
+    // A cell of the Text color section's three-column grid reports its COLUMN, counted from its position
+    // among the grid's children (the three heads, then a row of three per ink). The mode a swatch must show
+    // is derived from that, never from the `data-sg-mode` the section writes about itself (read below for
+    // the failure message only).
+    const grid = n.parentElement?.classList.contains('sg-tcg') ? n.parentElement : null;
+    return { role: n.dataset.sgRole, prop: n.dataset.sgPaint, claims: n.dataset.sgMode ?? null,
+      col: grid ? [...grid.children].indexOf(n) % 3 : null,
       css: n.dataset.sgPaint === 'background' ? cs.backgroundColor : n.dataset.sgPaint === 'border' ? cs.borderTopColor : cs.color };
   });
   const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '' }));
@@ -1223,8 +1233,44 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
   return { sections, paint, badges, chipsWithBadge };
 }, hostSel);
 const SG_FILLS = '[data-p3="preview-body"] [data-p3="surfaces-style-guide"]';
+/** The marker each shared section module stamps on its own root (`data-sg-section`, `kit.ts`'s header),
+ *  by title. Literal. A section drawn by anything but its module (`main.ts` drawing its own Border through an
+ *  aliased `palSection`, say) carries none, and fails here by name on whichever page drew it. */
+const EXPECT_SHARED_MARKER = { Background: 'background', Foreground: 'foreground', 'Text color': 'text-color', Border: 'border', Icon: 'icon' };
+const checkSharedMarkers = (where, got) => {
+  for (const [name, key] of Object.entries(EXPECT_SHARED_MARKER)) {
+    const s = got.sections.find((x) => x.name === name);
+    ok(!!s && s.shared === key, `${where}: the ${name} section is the shared module's (data-sg-section="${key}")${!s ? ' — not drawn' : s.shared !== key ? ` — its root carries ${s.shared === null ? 'no marker' : `data-sg-section="${s.shared}"`}: drawn by something other than preview/sections/` : ''}`);
+  }
+};
+/** The mode the Text color section's SECOND column shows, by THIS FILE's statement of the rule (the page
+ *  mode's counterpart where the brand has it, else the first other mode), from the mode control's own list.
+ *  The first column is the page's mode. Neither is read from the section (follow-up to #1951: reading the
+ *  section's own `data-sg-mode` let a column paint the wrong mode and label itself to match). */
+const OPPOSITE = { light: 'dark', dark: 'light', 'hc-light': 'hc-dark', 'hc-dark': 'hc-light' };
+const oppositeMode = (cur, modes) => (OPPOSITE[cur] && modes.includes(OPPOSITE[cur]) ? OPPOSITE[cur] : (modes.find((m) => m !== cur) ?? cur));
+/** Every painted swatch against the emission's hex for its role, in the mode its POSITION says it shows. */
+const checkSwatches = (where, got, emission, mode, modes) => {
+  const opp = oppositeMode(mode, modes);
+  const offPaint = [], checked = new Set();
+  let oppCells = 0;
+  for (const n of got.paint) {
+    const m = n.col === 1 ? opp : mode;
+    const want = emission?.role(n.role, m)?.hex;
+    if (!want) continue;   // a translucent role (an alpha) has no opaque hex to hold it to
+    const drawn = rgbHex(n.css);
+    checked.add(n.role);
+    fillsPaint++;
+    if (n.col === 1) oppCells++;
+    if (drawn !== want) offPaint.push(`${n.role} ${n.prop}${n.col !== null ? ` (Text color column ${n.col + 1}, ${m})` : ''} is painted ${drawn ?? n.css} (emitted ${want} in ${m}${n.claims ? `; the node says data-sg-mode="${n.claims}"` : ''})`);
+  }
+  ok(offPaint.length === 0, `${where}: every swatch is painted its emitted hex, the Text color columns in ${mode} and ${opp}${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
+  const unpainted = MUST_PAINT.filter((r) => !checked.has(r));
+  ok(unpainted.length === 0, `${where}: the swatch check read the listed roles${unpainted.length ? ` — not read: ${unpainted.join(', ')}` : ''}`);
+  ok(oppCells > 0, `${where}: the swatch check read the Text color section's second column (${oppCells} cell(s) held to ${opp})`);
+};
 const floor2 = (r) => Math.floor(r * 100) / 100;
-let fillsStates = 0, fillsBadges = 0, fillsPaint = 0;
+let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const emission = await loadEmission(brand);
@@ -1255,19 +1301,10 @@ for (const brand of BRANDS) {
       const s = got.sections.find((x) => x.name === name);
       ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
     }
-    // Swatches: each painted node's computed color against the emission's hex for its role, in its mode.
-    const offPaint = [], checked = new Set();
-    for (const n of got.paint) {
-      const want = emission?.role(n.role, n.mode ?? mode)?.hex;
-      if (!want) continue;   // a translucent role (an alpha) has no opaque hex to hold it to
-      const drawn = rgbHex(n.css);
-      checked.add(n.role);
-      fillsPaint++;
-      if (drawn !== want) offPaint.push(`${n.role} ${n.prop}${n.mode ? ` (${n.mode})` : ''} is painted ${drawn ?? n.css} (emitted ${want})`);
-    }
-    ok(offPaint.length === 0, `${where}: every swatch is painted its emitted hex${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
-    const unpainted = MUST_PAINT.filter((r) => !checked.has(r));
-    ok(unpainted.length === 0, `${where}: the swatch check read the listed roles${unpainted.length ? ` — not read: ${unpainted.join(', ')}` : ''}`);
+    // Swatches: each painted node's computed color against the emission's hex for its role, in the mode its
+    // position says it shows.
+    checkSwatches(where, got, emission, mode, modes);
+    checkSharedMarkers(where, got);
     // Ratio badges: computed HERE from the emitted pair.
     const offBadge = [];
     for (const b of got.badges) {
@@ -1289,16 +1326,26 @@ for (const brand of BRANDS) {
   // The Style guide itself (Brand's preview, lent by `main.ts`, S3) draws the same five sections.
   await hooks.click(page.locator('[data-p3="tab-brand"]'));
   await hooks.need(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"] .psec');
-  const sg = await readSections(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"]');
-  for (const [name, chips] of Object.entries(EXPECT_SECTION_CHIPS)) {
-    const s = sg.sections.find((x) => x.name === name);
-    ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${brand} / Style guide: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
+  // Per mode, as on Surfaces & fills: its swatches (the Text color columns by position) and the shared marker.
+  for (const mode of modes) {
+    await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+    await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+    const where = `${brand} / Style guide / ${mode}`;
+    sgStates++;
+    const sg = await readSections(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"]');
+    for (const [name, chips] of Object.entries(EXPECT_SECTION_CHIPS)) {
+      const s = sg.sections.find((x) => x.name === name);
+      ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
+    }
+    checkSwatches(where, sg, emission, mode, modes);
+    checkSharedMarkers(where, sg);
+    hooks.absent(ok, { seen: sg.sections.length >= 5, state: 'the Style guide\'s sections' }, sg.badges.length === 0, `${where}: draws no ratio badge (owner decision Q5: badges on Surfaces & fills only)`);
   }
-  hooks.absent(ok, { seen: sg.sections.length >= 5, state: 'the Style guide\'s sections' }, sg.badges.length === 0, `${brand} / Style guide: draws no ratio badge (owner decision Q5: badges on Surfaces & fills only)`);
   await ctx.close();
 }
 ok(fillsStates >= BRANDS.length * 2, `the Surfaces & fills sweep visited ${fillsStates} brand × mode states (floor ${BRANDS.length * 2})`);
-console.log(`  ${fillsStates} states, ${fillsPaint} swatches and ${fillsBadges} ratio badges checked against the emissions.`);
+ok(sgStates >= BRANDS.length * 2, `the Style guide sweep visited ${sgStates} brand × mode states (floor ${BRANDS.length * 2})`);
+console.log(`  ${fillsStates} + ${sgStates} states, ${fillsPaint} swatches and ${fillsBadges} ratio badges checked against the emissions.`);
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered

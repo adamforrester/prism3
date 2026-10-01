@@ -97,8 +97,9 @@ export const DOMAINS = [
         sections: [
           { title: 'Surfaces', desc: 'Set for light; dark and the derived modes follow unless set per mode.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
-          // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills, so a text override
-          // keeps an editor until the Roles matrix (S4b) gives text its home there (R3). Held for the owner.
+          // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
+          // permanent, primary text editor; the Roles matrix (S4b) is a secondary view and never the only
+          // editor of a token (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's R3).
           { title: 'Text', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
         ],
