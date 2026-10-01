@@ -1105,6 +1105,76 @@ for (const b of brands) {
     `L-07: a low-contrast custom link palette is still rated up to the 4.5:1 link floor (emitted ${(floLink?.ratio ?? 0).toFixed(2)}:1 at ${paletteOf(floLink?.path)}.${floLink?.path.split('.').pop()}) — the floor always holds regardless of palette`);
 }
 
+// #1895 — an UNSET `linkPalette` follows the palette the action role RESOLVES to, `roleColors.action`
+// included (owner decision 2026-10-01). It used to follow the `actionPalette` LEVER, so a brand that moved
+// action with `roleColors.action` got accent buttons and primary links. EXPECTED is authored here as
+// palette-name literals ('accent', 'primary', 'neutral') and the per-mode link floors (4.5:1, 7:1 in high
+// contrast), never read off `theme.roleToPalette` or modes.ts (docs/34 shape 2). An explicit `linkPalette`
+// still wins. BY-NAME MUTATION: put `input.linkPalette ?? actionPalette` back in theme.ts → three asserts
+// below fail by name: the 'accent' resolution, the accent ramp in every mode, and the neutral-action arm.
+{
+  const B = { id: 'l1895', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const build = (over: Record<string, unknown>) => brandTheme({ ...B, ...over } as unknown as BrandInput);
+  const segOf = (path: string | undefined): string | undefined => path?.split('.').slice(-2)[0];
+  const linkByMode = (t: ReturnType<typeof brandTheme>) =>
+    resolveAllModes(t).map((m) => ({ mode: m.mode, link: (m.roles as any)['text.link.default'] as { path: string; ratio: number } | undefined }));
+  const FLOOR: Record<string, number> = { light: 4.5, dark: 4.5, 'hc-light': 7, 'hc-dark': 7 };
+
+  const rc = build({ roleColors: { action: 'accent' } });
+  ok(rc.linkPalette === 'accent',
+    `#1895: roleColors.action 'accent' with linkPalette unset resolves links to 'accent' (got '${rc.linkPalette}')`);
+  const rcLinks = linkByMode(rc);
+  ok(rcLinks.length === 4 && rcLinks.every((r) => segOf(r.link?.path) === 'accent'),
+    `#1895: with roleColors.action 'accent', text.link.default sits on the accent ramp in every mode (got ${rcLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
+  ok(rcLinks.every((r) => FLOOR[r.mode] !== undefined && (r.link?.ratio ?? 0) >= FLOOR[r.mode]),
+    `#1895: the accent link clears its floor in every mode (4.5:1, 7:1 in high contrast) (got ${rcLinks.map((r) => `${r.mode}=${r.link?.ratio?.toFixed(2)}`).join(', ')})`);
+
+  const rcLp = build({ roleColors: { action: 'accent' }, linkPalette: 'primary' });
+  const rcLpLinks = linkByMode(rcLp);
+  ok(rcLp.linkPalette === 'primary' && rcLpLinks.every((r) => segOf(r.link?.path) === 'primary'),
+    `#1895: an explicit linkPalette 'primary' still wins over roleColors.action 'accent' (got '${rcLp.linkPalette}'; ${rcLpLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
+
+  // The link ANCHORS where the action fill anchors (modes.ts `linkFollowsAction`), not at the rebased
+  // palette's own baseline step (`theme.linkAnchorStep`). The accent above sits mid-ramp, so both anchors
+  // pick the same link steps and could not tell them apart; a far-lightness brand color can. Literals were
+  // measured on this tree. They also carry #1896 (the action anchor follows the `actionPalette` lever, so a
+  // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
+  // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
+  // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
+    Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
+  const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
+  ok(deep.light === 'deep.550' && deep['hc-light'] === 'deep.700',
+    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.550, hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
+  ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
+    `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
+
+  // The two link notes compare against the RESOLVED action palette and say "the action color" (owner
+  // decision 2026-10-01). Literal note text, never a join of theme.ts's template (docs/34 shape 2). BY-NAME
+  // MUTATION: compare against the `actionPalette` lever again → the 'differs' arm fails (the note says
+  // "the same palette").
+  ok(rcLp.notes.includes("link color: links use the 'primary' palette instead of the action color 'accent', as the brand sets."),
+    `#1895: with roleColors.action 'accent' and linkPalette 'primary', the decisions log says links differ from the action color (got ${JSON.stringify(rcLp.notes.filter((n) => n.startsWith('link color')))})`);
+  const rcSame = build({ roleColors: { action: 'accent' }, linkPalette: 'accent' });
+  ok(rcSame.notes.includes("link color: 'accent', the same palette as the action color, as the brand sets."),
+    `#1895: with roleColors.action 'accent' and linkPalette 'accent', the decisions log says links match the action color (got ${JSON.stringify(rcSame.notes.filter((n) => n.startsWith('link color')))})`);
+
+  // WCAG 1.4.1: a link that follows a NEUTRAL action now carries the underline warning; pointing links
+  // back at a chromatic palette clears it.
+  const has141 = (t: ReturnType<typeof brandTheme>): boolean => t.notes.some((n) => /WCAG 1\.4\.1/.test(n));
+  const rcNeu = build({ roleColors: { action: 'neutral' } });
+  ok(rcNeu.linkPalette === 'neutral' && has141(rcNeu),
+    `#1895: roleColors.action 'neutral' carries links to neutral and fires the WCAG 1.4.1 underline warning (got '${rcNeu.linkPalette}', warning ${has141(rcNeu)})`);
+  ok(!has141(build({ roleColors: { action: 'neutral' }, linkPalette: 'accent' })),
+    '#1895: roleColors.action neutral with linkPalette accent emits no WCAG 1.4.1 warning');
+
+  // A brand that sets no roleColors.action is unchanged: links stay on the action lever's palette.
+  ok(build({}).linkPalette === 'primary' && build({ actionPalette: 'accent' }).linkPalette === 'accent',
+    '#1895: without roleColors.action, an unset linkPalette still lands on primary (default) or the actionPalette accent');
+}
+
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
 //
 // Why this needs its own block on top of the corpus sweep above: that sweep would catch the

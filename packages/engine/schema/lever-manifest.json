@@ -102,7 +102,7 @@
       "group": "color",
       "label": "Link palette",
       "control": "palette-ref",
-      "description": "Which palette drives link color. Defaults to following the action palette; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role."
+      "description": "Which palette drives link color. Defaults to following the action color, including a roleColors.action override; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role."
     },
     {
       "key": "status.success",
@@ -159,7 +159,7 @@
       "label": "Link states",
       "control": "object",
       "advanced": true,
-      "description": "Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the action palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1."
+      "description": "Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the link palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1."
     },
     {
       "key": "radiusScale",
