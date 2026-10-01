@@ -101,7 +101,12 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S3: Brand (its levers and its preview, which calls the Style guide `main.ts` lends it).
   'src/domains/brand.ts', 'src/preview/brand.ts',
   // S3: Brand's state module (palette-input is listed with #1928's above).
-  'src/state/brand-input.ts'];
+  'src/state/brand-input.ts',
+  // S4a: Color › Surfaces & fills (its levers, its preview, its writes) and the Style guide's shared sections.
+  'src/domains/color-fills.ts', 'src/preview/surfaces.ts', 'src/state/fills-input.ts',
+  'src/preview/sections/kit.ts', 'src/preview/sections/cards.ts', 'src/preview/sections/index.ts',
+  'src/preview/sections/background.ts', 'src/preview/sections/foreground.ts', 'src/preview/sections/text-color.ts',
+  'src/preview/sections/border.ts', 'src/preview/sections/icon.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -315,6 +320,32 @@ const arm = importArm(DISK, ROOT, allSrc, files);
 const outside = [...arm.read].filter((f) => !f.startsWith(SRC + sep)).length;
 for (const o of arm.offenders) ok(false, o);
 ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src/main.ts or a module that does (${arm.tainted.size} module(s) reach it; ${arm.read.size} module(s) read, ${outside} outside src/)`);
+
+// ── one Style guide, two pages (UI redesign S4a, owner decision Q5) ──────────────────────────────────
+// The legacy Style guide in `main.ts` and Color › Surfaces & fills' preview must draw the five color sections
+// from the SAME modules, so the two cannot drift. Subject: `main.ts` and `preview/surfaces.ts`, read from disk.
+// Oracle: the literal list of the five sections' exported renderers and the module they live in. `main.ts`
+// must import the five through `preview/sections/index` (as `COLOR_SECTIONS`) and must DEFINE none of the
+// section titles itself; `preview/surfaces.ts` must import `COLOR_SECTIONS` too. A copy pasted back into
+// `main.ts` fails by the title it draws.
+{
+  const SECTION_TITLES = ['Background', 'Foreground', 'Text color', 'Border', 'Icon'];
+  const SECTION_FILES = ['background', 'foreground', 'text-color', 'border', 'icon'];
+  const mainSrc = readFileSync(MAIN, 'utf8');
+  const surfSrc = readFileSync(join(SRC, 'preview/surfaces.ts'), 'utf8');
+  const importsSections = (src: string, file: string): boolean =>
+    imports(src, file).some((i) => i.spec.endsWith('preview/sections/index') || i.spec === './sections/index');
+  ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
+  ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
+  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')) && /\bCOLOR_SECTIONS\b/.test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')),
+    'both the Style guide and Surfaces & fills draw COLOR_SECTIONS');
+  for (const t of SECTION_TITLES) {
+    const own = new RegExp(`palSection\\(\\s*'${t}'`).test(mainSrc);
+    ok(!own, `src/main.ts draws no "${t}" section of its own${own ? ` — main.ts defines its own "${t}" section (palSection('${t}', …)): the Style guide would drift from Surfaces & fills` : ''}`);
+  }
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
+}
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
 if (failed) process.exit(1);

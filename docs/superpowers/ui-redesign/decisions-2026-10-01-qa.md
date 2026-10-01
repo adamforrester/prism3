@@ -10,3 +10,27 @@ The owner's QA notes on the v6 mockup, sent during S1.2 of the implementation pl
 | Q4 | Preview follows the lever | **Deferred.** The owner is open to a later trial: the preview scrolls to show the part that matches the lever being edited. It is tried on one section first, in one slice (likely S2, Palettes), and the owner then decides whether it applies everywhere. Not built in S1.2. |
 
 Other notes from the owner, for the overnight lanes: a design call that neither v6 nor these notes cover takes the option closest to v6 and is flagged in the PR. Nothing brand-facing is decided in a lane.
+
+## Later decisions (2026-10-01)
+
+The owner's decisions taken during S3 and S4 of the implementation plan. They extend the table above and win wherever an earlier file differs. S4a (Color › Surfaces & fills, the page) applies Q5 and Q6.
+
+| # | Topic | Decision |
+|---|---|---|
+| Q5 | The Color previews | **The Color previews reuse the legacy Style guide's sections, with ratio badges.** Color › Surfaces & fills departs from concept v6's preview: it shows the Style guide's **Background, Foreground, Text color, Border and Icon** sections, drawn from the same shared code as the Style guide (`apps/studio/src/preview/sections/`), so the two cannot drift. Each token chip there carries a **contrast ratio badge**, below-floor marked by the role's own floor. The badge is on Surfaces & fills only; the Style guide stays as it was. |
+| Q6 | Brand's MVP preview | **The MVP Brand preview is the legacy Style guide.** The condensed preview is backlogged as #1941, and the typography sample as #1942 (with S6). S5's Interactive preview adds the text buttons v6 left out. |
+| Q7 | Modes in the brand menu | **Everything about modes leaves the brand menu.** Brand › Modes is the only Modes editor. Done in a separate PR stacked on #1939, closing #1943. No other page adds a mode control outside Brand › Modes. |
+| Q8 | A status color switched to Custom | **It starts from the color it currently auto-derives**, not `#808080`, and the user edits from there. Done in a separate PR. |
+| Q9 | Neutral chroma under Follow primary | **Stays read-only**, S2's current (legacy) behavior. Nothing changes. |
+| Q10 | Neutral copy from S1.2 to S3 | **Approved:** the new neutral copy listed in #1922, #1923, #1929, #1935 and #1939. |
+| Q11 | Two glyphs | **"⋯" becomes "…" everywhere, and a plain "⚠" is used, never "⚠" with the emoji selector.** Done in a separate PR. |
+| Q12 | The apply action's name | **"Apply Theme" replaces "Apply to Figma".** Done in a separate PR. |
+| Q13 | Search (Q3) | **Stays for now.** |
+| Q14 | The Q4 trial | **Kept.** The preview scrolls smoothly and respects reduced motion. Done in a separate PR. |
+| Q15 | Dark off while a custom mode is based on Dark | **The engine's refusal stays.** The confirm names the blocking mode and no data is lost (done in S3). The longer-term snapshot model is filed as #1946. |
+| Q16 | Removing a brand color | **Asks to confirm first, in place.** Done in a separate PR. |
+| Q17 | The Activity strip at 380 | **Fine for now** at the bottom. |
+| Q18 | Font licenses | **The notice plus its URL is confirmed.** |
+| Q19 | Which mode the fill and text rows on Surfaces & fills edit | **The mode the preview shows** (the legacy behavior), not light only as v6 R5 had it. |
+| Q20 | Where text colors are edited | **The Text rows on Surfaces & fills are the permanent, primary text editor**, not an interim one. The preview uses the legacy Text color display. The Roles matrix (S4b) is a **secondary** view, a role × mode overview with quick per-mode edits. It is never the only way to edit a token: every role it covers also has a normal row on its page. |
+| Q21 | Surfaces & fills option sets | **Aligned for now:** the legacy option sets stay (all neutral steps, no Auto for Page, the band as palette + step), and Light and Dark surfaces are both always shown. The owner confirms on seeing the page. |

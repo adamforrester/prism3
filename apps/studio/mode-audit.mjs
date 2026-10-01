@@ -227,8 +227,10 @@ ok(stages.length > 0, `the rail offers ${stages.length} destination(s) to audit`
 // Color › Palettes left the Pages menu in UI redesign S2 (it draws the two panes now, reached by its tab, and
 // has no mode strip to audit: the mode control is in its preview header). The first Color page still legacy
 // is the one the menu must offer, and Palettes must be gone from it, with the menu's own rows as the proof.
-ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-surfaces"]')), 'the Pages menu offers the first legacy Color page, Surfaces & fills');
+// Surfaces & fills followed in S4a, so the first legacy Color page is Interactive.
+ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-interactive"]')), 'the Pages menu offers the first legacy Color page, Interactive');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-palettes'), 'the Pages menu no longer offers Palettes, which moved to the two panes (S2)');
+hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-surfaces'), 'the Pages menu no longer offers Surfaces & fills, which moved to the two panes (S4a)');
 const tally = { EDITS: 0, displays: 0, inert: 0 };
 const claims = [];
 const noBar = [];

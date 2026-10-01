@@ -118,6 +118,8 @@ export const PRODUCT_VARS = [
   // `l-step`), from the dimension grid rather than as raw lengths.
   ['hero-sw', 'core.dimension.56', 'core.dimension.56', D, 'the Palettes hero swatch (V7)'],
   ['step-w', 'core.dimension.72', 'core.dimension.72', D, 'the step picker\'s smallest step (V9)'],
+  // S4a: concept v6's 44px gradient bar in the levers (its `gbar2`), which says which gradient a card edits.
+  ['gbar-h', 'core.dimension.44', 'core.dimension.44', D, 'the gradient editor\'s bar (V8)'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -144,6 +146,8 @@ export const SHELL_VARS = [
   // at 16, the strong weight and snug tracking v6 sets them in, cozy leading for notes, the warning glyph, the
   // checkerboard's second ground, the picker step's edge, and the two sizes above.
   'fs-16', 'fw-strong', 'ls-snug', 'lh-cozy', 'warn-icon', 'fill-2', 'field-edge', 'hero-sw', 'step-w',
+  // S4a: the gradient editor's bar on Color › Surfaces & fills.
+  'gbar-h',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.

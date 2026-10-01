@@ -1525,3 +1525,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}
 .resize-grip::after{content:"";position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;border-bottom-right-radius:2px;opacity:.45}
 .resize-grip:hover::after{opacity:.9}
+
+/* Color › Surfaces & fills (UI redesign S4a): the ratio badge beside a token chip, and each gradient across
+   the card. Drawn on the section's ground, so they read the ground's own ink and lines. */
+.sg-ratio{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--ink);font-size:10.5px;line-height:1.5;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sg-ratio-no{border-style:dashed}
+.sg-ratio-mk{font-weight:700}
+.sg-grads{display:grid;gap:16px}
+.sg-gcard{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sg-gbar{height:160px;border-radius:var(--r);border:1px solid var(--line)}
