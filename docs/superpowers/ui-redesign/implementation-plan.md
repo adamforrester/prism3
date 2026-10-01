@@ -235,7 +235,9 @@ a file with foreign content, is a plugin write-path safety question, not UI (sec
 
 **S13. Cleanup.** Deletes the legacy frame, the Pages menu, `NAV`, `setVolatile`, `paintVolatile`,
 `apply`, `applyFull`, the mode strip, `SECTION_MODE_SCOPE`, `mode-audit.mjs`, and `styles.css`'s
-legacy rules. `lint:contrast` drops its 19 legacy pairs. *Mutation:* leave one `applyFull()` call
+legacy rules. `lint:contrast` drops its 19 legacy pairs. Deleting `mode-audit.mjs` also removes its
+CI step (#1897): the `ci.yml` step, its `verify.ts` row, and its lines in `CLAUDE.md` §4,
+`CONTRIBUTING.md` §3 and the PR template, or `lint-doc-gates.ts` fails. *Mutation:* leave one `applyFull()` call
 → the S1 guard (section 3.10) fails naming the file.
 
 ---

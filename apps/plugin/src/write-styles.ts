@@ -23,6 +23,7 @@
  */
 import type { StylesPlan, GradientTransform } from '@prism3/engine/write-plan';
 import type { FigmaEffect } from '@prism3/engine/emit-figma-styles';
+import { markOwned, type Markable } from './provenance';
 
 /** A colour as Figma stores it on an effect/stop — RGBA floats 0–1 (matches the engine's `FigmaColor`). */
 export type Rgba = { r: number; g: number; b: number; a: number };
@@ -60,13 +61,13 @@ type GradientPaint = {
 // port. We type them as `readonly unknown[]` (assignable-from our shapes, satisfied-by Figma's) — the
 // value we WRITE is validated by `StylesPlan`, and the shim asserts what landed.
 /** Minimal Effect Style surface — mutable name/description + a write-only effects array. */
-export interface EffectStyleNode {
+export interface EffectStyleNode extends Markable {
   name: string;
   description: string;
   effects: readonly unknown[];
 }
 /** Minimal Paint Style surface — mutable name/description + a write-only paints array. */
-export interface PaintStyleNode {
+export interface PaintStyleNode extends Markable {
   name: string;
   description: string;
   paints: readonly unknown[];
@@ -141,6 +142,9 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
   for (const row of plan.effects) {
     let s = effectByName.get(row.name);
     if (!s) { s = styles.createEffectStyle(); s.name = row.name; effectByName.set(row.name, s); effectsCreated++; }
+    // The ownership mark (#1884): stamped on every style this writes, created or reused, so a style an
+    // earlier version wrote leaves this apply marked. See `provenance.ts`.
+    markOwned(s);
     s.description = row.description;
     s.effects = row.effects;
   }
@@ -158,6 +162,7 @@ export const applyStylesPlan = async (plan: StylesPlan, styles: StylesApi): Prom
   for (const row of plan.paints) {
     let s = paintByName.get(row.name);
     if (!s) { s = styles.createPaintStyle(); s.name = row.name; paintByName.set(row.name, s); paintsCreated++; }
+    markOwned(s);   // the ownership mark (#1884), as for effect styles above
     s.description = row.description;
     // Position + baked colour always; the binding only when the plan traced this stop to a palette
     // leaf AND this file actually has that variable. `alias: null` is the ordinary case for an

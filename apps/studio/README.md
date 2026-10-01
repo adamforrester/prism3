@@ -89,8 +89,8 @@ makes obvious, and that a third probe will hit on its first run.
 
 Two smaller traps worth inheriting rather than rediscovering:
 
-- **Serve on an ephemeral port** (`listen(0)`). `mode-audit.mjs` holds **8899**; two harnesses on one
-  port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
+- **Serve on an ephemeral port** (`listen(0)`), as both drivers above do. `mode-audit.mjs` held
+  **8899** until it gated (#1898); two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
 - **Use a fresh browser context per brand.** The working brand persists to `localStorage`, so a shared
   context carries one brand's state — and any override a probe writes — into the next. A new context
   also returns the app to its first-run start screen, which is how a brand gets chosen without going

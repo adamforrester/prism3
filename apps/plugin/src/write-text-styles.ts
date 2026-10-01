@@ -23,6 +23,7 @@
  */
 import type { TextStylePlan } from '@prism3/engine/write-plan';
 import type { VariablesApi, Variable } from './write-figma';
+import { markOwned, type Markable } from './provenance';
 
 /** A Figma font descriptor. */
 export type FontName = { family: string; style: string };
@@ -34,7 +35,7 @@ type Unit = { unit: 'PERCENT' | 'PIXELS'; value: number };
 // mutable fields loosely enough that the real `figma` TextStyle satisfies the port. `setBoundVariable`
 // takes the field name + the Variable (or null).
 /** Minimal Text Style surface — mutable name/props + bound-variable wiring. */
-export interface TextStyleNode {
+export interface TextStyleNode extends Markable {
   name: string;
   description: string;
   fontName: FontName;
@@ -201,6 +202,7 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
 
     let s = byName.get(row.name);
     if (!s) { s = api.createTextStyle(); s.name = row.name; byName.set(row.name, s); created++; }
+    markOwned(s);   // the ownership mark (#1884), created or reused — see `provenance.ts`
 
     // Baked literals (the correct fallback value even before/without a variable binding).
     // `description` is what a designer reads in the Figma style panel to know what a rung is FOR —
