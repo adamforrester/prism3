@@ -19,14 +19,20 @@
  * "2 of 884 below floor, 2 modes", with both numbers derived by hand in the comment beside it, so a loosened
  * threshold, a capped `modesFailing` or a count that only looks at Light each move the line.
  *
+ * A FAILURE JUST UNDER ITS FLOOR (#1930). The two-mode fixture's failures sit far below 4.5:1, so a verdict
+ * that compares leniently (`r.ratio < r.min - 0.5`) still counts them. A third fixture puts one role a
+ * fraction under its floor, and must be counted.
+ *
  * Mutations this fails by name: count roles with no floor (drop the `r.min > 0` clause) →
- * `prism3 gates 884 roles across its modes (the v4 review's number) — counted 936`; the threshold loosened
- * by 0.5, `modesFailing` capped at 1, or failures counted in Light only →
- * `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "…"`. (Dropping only the
+ * `prism3 gates 884 roles across its modes (the v4 review's number) — counted 936`; the threshold
+ * TIGHTENED by 0.5, `modesFailing` capped at 1, or failures counted in Light only →
+ * `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "…"`; the threshold LOOSENED by
+ * 0.5 (`r.ratio + 1e-9 < r.min - 0.5`) → `near-floor fixture: the bar reads "1 of 884 below floor, 1 mode" — read "All 884 pairs at or above floor"`. (Dropping only the
  * `against === 'self'` clause changes nothing for prism3, whose self-measured roles carry no minimum; the
  * clause stays as concept v6 wrote it.)
  */
 import { brandTheme } from '@prism3/engine/theme';
+import { resolveAllModes } from '@prism3/engine/modes';
 import { resolvePreview } from '@prism3/engine/resolve-preview';
 import examples from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -97,6 +103,24 @@ if (twoTheme) {
   ok(healthLine(tv) === TWO_MODES_HEALTH, `two-mode fixture: Health reads "${TWO_MODES_HEALTH}" — read "${healthLine(tv)}"`);
   const per = tv.per.map((m) => modeLine(m, LABELS[m.mode] ?? m.mode));
   ok(JSON.stringify(per) === JSON.stringify(TWO_MODES_PER), `two-mode fixture: each mode's line — read ${JSON.stringify(per)}`);
+}
+
+// A failure just under its floor (#1930). `text.tertiary` re-pointed at neutral.350 in Light: its floor is
+// 3:1 against neutral.050, and it lands a fraction under (about 2.82:1, measured once by hand and checked
+// below from the engine's own resolved record, never from the verdict module). Nothing else is measured
+// against `text.tertiary`, and no other mode carries an override. So: 1 failure, in Light, 1 mode.
+const NEAR_LINE = '1 of 884 below floor, 1 mode';
+const near = structuredClone(input) as BrandInput;
+near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '350' } } } as BrandInput['overrides'];
+let nearTheme;
+try { nearTheme = brandTheme(near); } catch (e) { nearTheme = null; ok(false, `a near-floor fixture resolves — threw ${(e as Error).message}`); }
+if (nearTheme) {
+  // The premise, from the engine: the role sits under its floor by less than the 0.5 a lenient compare drops.
+  const role = resolveAllModes(nearTheme).find((m) => m.mode === 'light')?.roles['text.tertiary'];
+  ok(!!role && role.min > 0 && role.ratio < role.min && role.ratio > role.min - 0.5,
+    `near-floor fixture: text.tertiary sits under its floor by less than 0.5 (ratio ${role?.ratio.toFixed(3)}, floor ${role?.min})`);
+  const nv = verdictOf(nearTheme, resolvePreview(nearTheme).modes);
+  ok(verdictLine(nv) === NEAR_LINE, `near-floor fixture: the bar reads "${NEAR_LINE}" — read "${verdictLine(nv)}"`);
 }
 
 // Derived modes: the owner's mode model (Q1, model B) hatches the generated ones.
