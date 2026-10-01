@@ -18,14 +18,18 @@
  *
  * ── PROVENANCE: WHAT "PRISM3 MADE THIS" MEANS HERE ─────────────────────────────────────────────────────
  *
- * No new marker. Each item is judged by the record Prism3 already writes on it:
+ * Each item is judged by the record Prism3 writes on it:
  *
  *   · COLLECTION — the `modes:owned` shared-plugin-data stamp every apply writes since #1581
  *     (`ownedModeIds`). Present → Prism3's, reused exactly as before. Absent → someone else's.
- *   · STYLE — the engine's own description signature (#1577, `isEngineDescription`), the provenance the
- *     prune already reads. Engine-shaped → Prism3's. Anything else, including empty → someone else's.
+ *   · STYLE — the ownership mark every style writer stamps since #1884 (`isMarkedOwned`,
+ *     `provenance.ts`). Present → Prism3's, whatever its description now says. Absent → the engine's
+ *     own description signature (#1577, `isEngineDescription`) is the evidence for a style written
+ *     before the mark existed. Engine-shaped → Prism3's, and the write stamps it. Anything else,
+ *     including empty → someone else's. The mark comes first because the description is the
+ *     designer's to edit: judged by it alone, one rewritten description refused every later apply.
  *   · VARIABLE — no marker of its own: it is judged by its collection, plus a `resolvedType` check against
- *     the type the plan writes, which is the conflict that throws.
+ *     the type the plan writes, which is the conflict that throws. `provenance.ts` says why.
  *
  * **THE LEGACY PRESUMPTION, and it is a deliberate deviation worth reviewing** — the same one
  * `stampOwnedModes` makes, for the same reason. A file Prism3 themed BEFORE #1581 carries no stamp on any
@@ -34,8 +38,8 @@
  * (a) to fix case (c). So when the file carries Prism3's persisted brand (`prism3/brandInput` on the root,
  * written only by a Prism3 apply since #131) AND no collection in it carries a #1581 stamp yet, same-named
  * items are presumed Prism3's: exactly today's behavior, frozen for files that predate the record. The
- * first apply that passes stamps every collection it writes, and from then on the presumption is off and
- * the strict rule holds. A file with neither record — the foreign case this exists for — is never presumed.
+ * first apply that passes stamps every collection it writes and marks every style (#1884), and from then
+ * on the presumption is off and the strict rule holds. A file with neither record — the foreign case this exists for — is never presumed.
  * `resolvedType` is checked in every era; a type mismatch is a conflict whoever made the variable.
  * Reversing the presumption is one line — see `legacy` in `preflightApply`.
  *
@@ -52,6 +56,7 @@ import { renameMap, validateRenameMap, planCollectionRenames, isRefusal, type Re
 import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
 import { ownedModeIds, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
+import { isMarkedOwned, type Markable } from './provenance';
 
 export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
 
@@ -61,14 +66,17 @@ export type PreflightPlan = {
   styles: Record<StyleKind, string[]>;
 };
 
+/** A style as the pre-flight reads it: its name, its description, and its ownership mark (#1884). */
+export type PreflightStyle = { name: string; description: string } & Pick<Markable, 'getSharedPluginData'>;
+
 /** The read-only slice of `figma` the pre-flight needs. The real `figma` satisfies each piece. */
 export interface PreflightApi {
   getLocalVariableCollectionsAsync(): Promise<VarCollection[]>;
   getLocalVariablesAsync(): Promise<{ name: string; variableCollectionId: string; resolvedType: VarType }[]>;
-  getLocalEffectStylesAsync(): Promise<{ name: string; description: string }[]>;
-  getLocalPaintStylesAsync(): Promise<{ name: string; description: string }[]>;
-  getLocalGridStylesAsync(): Promise<{ name: string; description: string }[]>;
-  getLocalTextStylesAsync(): Promise<{ name: string; description: string }[]>;
+  getLocalEffectStylesAsync(): Promise<PreflightStyle[]>;
+  getLocalPaintStylesAsync(): Promise<PreflightStyle[]>;
+  getLocalGridStylesAsync(): Promise<PreflightStyle[]>;
+  getLocalTextStylesAsync(): Promise<PreflightStyle[]>;
   /** `figma.root` — read for the persisted brand only (the legacy presumption above). */
   root: { getSharedPluginData(namespace: string, key: string): string };
 }
@@ -119,7 +127,7 @@ const collectionMoves = (names: string[], map: RenameMap): Map<string, string> =
   return new Map(planned.filter((o) => o.status === 'migrated').map((o) => [o.to, o.from] as const));
 };
 
-const STYLE_GETTERS: Record<StyleKind, (api: PreflightApi) => Promise<{ name: string; description: string }[]>> = {
+const STYLE_GETTERS: Record<StyleKind, (api: PreflightApi) => Promise<PreflightStyle[]>> = {
   effect: (api) => api.getLocalEffectStylesAsync(),
   paint: (api) => api.getLocalPaintStylesAsync(),
   grid: (api) => api.getLocalGridStylesAsync(),
@@ -175,7 +183,8 @@ export const preflightApply = async (
     const existing = new Map((await STYLE_GETTERS[kind](api)).map((s) => [s.name, s] as const));
     for (const name of planned) {
       const s = existing.get(name);
-      if (!s || legacy || isEngineDescription(kind, s.description ?? '', planned)) continue;
+      // The mark first (#1884), then the two kinds of evidence a style written before the mark carries.
+      if (!s || isMarkedOwned(s) || legacy || isEngineDescription(kind, s.description ?? '', planned)) continue;
       conflicts.push({ kind: `${kind} style`, name, detail: 'already in this file, not created by Prism3' });
     }
   }
