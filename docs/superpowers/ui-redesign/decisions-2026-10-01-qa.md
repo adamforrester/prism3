@@ -19,10 +19,10 @@ The owner's decisions taken during S3 and S4 of the implementation plan. They ex
 |---|---|---|
 | Q5 | The Color previews | **The Color previews reuse the legacy Style guide's sections, with ratio badges.** Color › Surfaces & fills departs from concept v6's preview: it shows the Style guide's **Background, Foreground, Text color, Border and Icon** sections, drawn from the same shared code as the Style guide (`apps/studio/src/preview/sections/`), so the two cannot drift. Each token chip there carries a **contrast ratio badge**, below-floor marked by the role's own floor. The badge is on Surfaces & fills only; the Style guide stays as it was. |
 | Q6 | Brand's MVP preview | **The MVP Brand preview is the legacy Style guide.** The condensed preview is backlogged as #1941, and the typography sample as #1942 (with S6). S5's Interactive preview adds the text buttons v6 left out. |
-| Q7 | Modes in the brand menu | **Everything about modes leaves the brand menu.** Brand › Modes is the only Modes editor. Done in a separate PR stacked on #1939, closing #1943. No other page adds a mode control outside Brand › Modes. |
+| Q7 | Modes in the brand menu | **Everything about modes leaves the brand menu.** Brand › Modes is the only Modes editor. Done in a separate PR (#1949) stacked on #1939, closing #1943. No other page adds a mode control outside Brand › Modes. |
 | Q8 | A status color switched to Custom | **It starts from the color it currently auto-derives**, not `#808080`, and the user edits from there. Done in a separate PR. |
 | Q9 | Neutral chroma under Follow primary | **Stays read-only**, S2's current (legacy) behavior. Nothing changes. |
-| Q10 | Neutral copy from S1.2 to S3 | **Approved:** the new neutral copy listed in #1922, #1923, #1929, #1935 and #1939. |
+| Q10 | Neutral copy from S1.2 to S3 | **Approved:** the new neutral copy listed in #1922, #1923, #1929, #1935 and #1939, with one exception: "Back to the page" became "Back" (#1950). |
 | Q11 | Two glyphs | **"⋯" becomes "…" everywhere, and a plain "⚠" is used, never "⚠" with the emoji selector.** Done in a separate PR. |
 | Q12 | The apply action's name | **"Apply Theme" replaces "Apply to Figma".** Done in a separate PR. |
 | Q13 | Search (Q3) | **Stays for now.** |

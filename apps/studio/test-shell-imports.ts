@@ -426,5 +426,45 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
 }
 
+// ── one Style guide, two pages (UI redesign S4a, owner decision Q5) ──────────────────────────────────
+// The legacy Style guide in `main.ts` and Color › Surfaces & fills' preview must draw the five color sections
+// from the SAME modules, so the two cannot drift. Subject: `main.ts` and `preview/surfaces.ts`, read from disk.
+// Oracle: the literal list of the five sections' exported renderers and the module they live in. `main.ts`
+// must import the five through `preview/sections/index` (as `COLOR_SECTIONS`) and must DEFINE none of the
+// section titles itself; `preview/surfaces.ts` must import `COLOR_SECTIONS` too. A copy pasted back into
+// `main.ts` fails by the title it draws.
+{
+  const SECTION_TITLES = ['Background', 'Foreground', 'Text color', 'Border', 'Icon'];
+  const SECTION_FILES = ['background', 'foreground', 'text-color', 'border', 'icon'];
+  const mainSrc = readFileSync(MAIN, 'utf8');
+  const surfSrc = readFileSync(join(SRC, 'preview/surfaces.ts'), 'utf8');
+  const importsSections = (src: string, file: string): boolean =>
+    imports(src, file).some((i) => i.spec.endsWith('preview/sections/index') || i.spec === './sections/index');
+  ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
+  ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
+  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')) && /\bCOLOR_SECTIONS\b/.test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')),
+    'both the Style guide and Surfaces & fills draw COLOR_SECTIONS');
+  for (const t of SECTION_TITLES) {
+    const own = new RegExp(`palSection\\(\\s*'${t}'`).test(mainSrc);
+    ok(!own, `src/main.ts draws no "${t}" section of its own${own ? ` — main.ts defines its own "${t}" section (palSection('${t}', …)): the Style guide would drift from Surfaces & fills` : ''}`);
+  }
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
+  // The title match above is TEXT, and an alias (`const mk = palSection; mk("Border", …)`) evades it. What
+  // catches a section `main.ts` draws for itself is STRUCTURAL and lives in `test-smoke.mjs`: each section
+  // module stamps its root `data-sg-section="<file>"`, and the smoke suite holds every one of the five on the
+  // Style guide and on Surfaces & fills to its marker. Its premise is held here: the marker is written by the
+  // five modules and by nothing else under src/, so a section drawn elsewhere cannot carry it by copying it.
+  const SECTIONS_DIR = join(SRC, 'preview', 'sections') + sep;
+  const MARKER = /\bsgSection\b|data-sg-section/;
+  const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
+  const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
+  ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
+  for (const f of SECTION_FILES) {
+    const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
+    ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
+  }
+}
+
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
 if (failed) process.exit(1);

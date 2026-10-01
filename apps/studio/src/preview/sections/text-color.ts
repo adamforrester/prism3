@@ -6,6 +6,7 @@ import { SEM, el, palSection, specimen, subHead, type SgCtx } from './kit';
 export const textColorSection = (c: SgCtx): HTMLElement => {
   const { cur, opp, paint, fails } = c;
   const secText = palSection('Text color', 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.');
+  secText.dataset.sgSection = 'text-color';   // the shared-section marker (`kit.ts`'s header)
   const curLabel = c.modeLabel(cur), oppLabel = c.modeLabel(opp);
   const lbg = paint(cur, 'background.primary'), dbg = paint(opp, 'background.primary');
   const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); specimen(d).style.color = color; return d; };

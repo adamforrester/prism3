@@ -20,6 +20,14 @@
  * `isInversePath`, `withInverseBadge`, `colorPath`, `specimen` and `SPECIMEN`. One copy, so a section and
  * the rest of the legacy pages cannot disagree on a pill or a section head.
  *
+ * THE SHARED-SECTION MARKER (`data-sg-section`, follow-up to #1951). Each of the five section modules stamps
+ * its own root with `data-sg-section="<its file name>"`, as a literal IN THAT MODULE, never through `palSection`
+ * or anything else here: `main.ts` imports `palSection`, so a marker set there would also mark a section
+ * `main.ts` drew for itself, which is exactly what the marker exists to tell apart. `test-smoke.mjs` holds that
+ * every one of the five on the Style guide and on Surfaces & fills carries its marker, so a section `main.ts`
+ * draws on its own (by any spelling, an aliased `palSection` included) fails there by name;
+ * `test-shell-imports.ts` holds that no file outside `sections/` writes the marker. Invisible: an attribute.
+ *
  * NO DOM AT IMPORT, NO STORE. The context is handed the resolved roles; nothing here reads the session.
  */
 import { fmtRatio } from '../../ui/step-picker';

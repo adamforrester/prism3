@@ -8,6 +8,7 @@ import { borderCard } from './cards';
 
 export const borderSection = (c: SgCtx): HTMLElement => {
   const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
+  secBorder.dataset.sgSection = 'border';   // the shared-section marker (`kit.ts`'s header)
   secBorder.append(subHead('Neutral'), c.grid(3, ['border.primary', 'border.secondary', 'border.tertiary', 'inverse.border.primary'].map((k) => borderCard(c, k))));
   secBorder.append(subHead('Focus & semantic'), c.grid(3, ['border.focus', 'inverse.border.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(c, k))));
   return secBorder;
