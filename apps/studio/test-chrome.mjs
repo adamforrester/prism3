@@ -72,10 +72,9 @@
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
  *   · THE MODE CONTROL (Q1, model B): a radiogroup of the literal modes, derived ones hatched; choosing a
  *     mode makes the legacy page draw it, and the legacy strip's choice checks it here; arrow keys move.
- *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS` (U+2192, which the engine's notes
- *     carry and the embedded Inter subset does not), one glyph each, and only in text inside the Decisions
- *     log view (its entry's scope in `FACE_GAPS`). A `→` anywhere else in the chrome fails. S1.4 adds the
- *     four verdict glyphs, each scoped to the write-status pills and the apply detail.
+ *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS`, one glyph each, and only in text
+ *     inside its entry's scope. S1.3 listed U+2192 (→) for the Decisions log and S1.4 the four verdict
+ *     glyphs; #1924 re-subset the face, so only U+22EF (⋯), which Inter lacks, is left.
  *
  * S1.4 ADDS (section 10), on both hosts, both themes, at 1280, 640 and 380:
  *   · THE ACTIVITY DRAWER (F2): nothing drawn before anything runs; a write started from the Figma menu opens
@@ -171,24 +170,23 @@ const NONTEXT_MIN = 3;        // edges, indicators, glyphs, focus rings (WCAG 1.
 const FOCUS_WIDTH_MIN = 2;
 const TARGET_MIN = 24;
 const UI_FONT = 'Inter';      // the embedded face's own family name, as the platform reports it
-/** Characters the embedded Inter subset does not carry, so a device face draws them. Literal, and each is
- *  a finding: U+2192 (→) reaches the chrome in the engine's own notes (the Decisions log, S1.3), which the
- *  UI shows verbatim and must not rewrite. S1.4 measures the plugin's write verdicts for the first time
- *  (they sat in the bar since S1.2, but no state with one was measured): the host's headlines lead with
- *  U+2713 (✓), U+2717 (✗) and U+26A0 (⚠), and a pending write reads U+22EF (⋯) ("⋯ Applying…"). Those strings
- *  are the verdict suite's copy contract, so the fix is a wider subset, outside this slice (#1924).
+/** Characters the embedded Inter face does not carry, so a device face draws them. Literal, and each is
+ *  a finding. #1924 re-subset the face to carry U+2192 (→), which the engine's notes use (the Decisions
+ *  log, S1.3), and U+2713 (✓), U+2717 (✗) and U+26A0 (⚠), which lead the host's write verdicts (S1.4). The
+ *  `[glyphs]` build check (`chrome/glyphs.mjs`) now fails the build on such a gap in the notes, the
+ *  verdicts or the shell's own copy, before this test runs.
  *
- *  Each is tolerated only WHERE that copy reaches the chrome (orchestrator review of #1923): `→` inside the
- *  Decisions log, where the engine's notes are shown; the four verdict glyphs inside the write-status pills
- *  and the apply detail, where the host's verdict strings are shown. A gap glyph the chrome writes itself (a
- *  Back label, a menu item) is the chrome's own copy and must draw in Inter, and a device face drawing any
- *  OTHER glyph fails anywhere. */
+ *  What is left is U+22EF (⋯), which a pending write reads ("⋯ Applying…"). Inter has no U+22EF at all, so
+ *  no subset can add it. Whether to keep it in a device face, use another character, or embed a fallback
+ *  face is a design question held on #1924. It is tolerated only WHERE that copy reaches the chrome
+ *  (orchestrator review of #1923): inside the write-status pills and the apply detail, where the host's
+ *  verdict strings are shown, and on Apply to Figma's running label. A device face drawing any OTHER glyph,
+ *  or `⋯` anywhere else, fails. */
 const VERDICT_COPY = ':is([data-p3="status-pill"], [data-p3="status-verdict"], [data-p3="apply-detail"])';
-/** `⋯` also leads Apply to Figma's own label while a write runs ("⋯ Applying…"), today's bar copy, which
- *  the same wider subset fixes. Named here rather than tolerated chrome-wide. */
+/** `⋯` also leads Apply to Figma's own label while a write runs ("⋯ Applying…"), today's bar copy. Named
+ *  here rather than tolerated chrome-wide. */
 const RUNNING_LABEL = '[data-p3="apply-to-figma"]';
-const FACE_GAPS = { '\u2192': '[data-p3="decisions-log"]', '\u2713': VERDICT_COPY, '\u2717': VERDICT_COPY, '\u26A0': VERDICT_COPY,
-  '\u22EF': `:is(${VERDICT_COPY}, ${RUNNING_LABEL})` };
+const FACE_GAPS = { '\u22EF': `:is(${VERDICT_COPY}, ${RUNNING_LABEL})` };
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];

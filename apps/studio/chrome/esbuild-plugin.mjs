@@ -26,6 +26,8 @@
  *   [fonts]     a chrome face's woff2 file is missing.
  *   [license]   a chrome face's OFL file is missing or has no copyright line, or the output lacks a
  *               comment line carrying that copyright line and the OFL URL.
+ *   [glyphs]    the chrome can be handed a code point the embedded UI face does not carry: in an engine
+ *               decision note, a host verdict or the shell's own copy (`glyphs.mjs`, #1924).
  *   [map]       SHELL_VARS names a variable no mockup row maps.
  *
  * WHY THE CHECKS ARE INDEPENDENT OF WHAT THEY CHECK (docs/34). The subject is the hand-written
@@ -45,6 +47,7 @@ import {
   ROOT, FONTS_DIR, CHROME_FONTS, C, P, loadModes, resolve, fontFaceCss, fontVarsCss, themeBlock, brandLeaks,
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
+import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
 import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE } from './spec.mjs';
 
 // Each chrome face's license file, beside the woff2 in `fonts/`. The copyright line the bundle's
@@ -74,6 +77,7 @@ const watchFiles = () => [
   join(ROOT, 'packages', 'engine', 'out', 'prism3.dark.overlay.tokens.json'),
   ...CHROME_FONTS.map(([, , file]) => join(FONTS_DIR, file)),
   ...Object.values(FONT_LICENSES).map((file) => join(FONTS_DIR, file)),
+  ...glyphWatchFiles(),
 ];
 
 /**
@@ -93,6 +97,9 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     const p = join(FONTS_DIR, file);
     if (!existsSync(p)) fail('fonts', `chrome font missing: ${rel(p)} (${family})`);
   }
+
+  // [glyphs] every code point the chrome can be handed is in the embedded UI face (oracle: its cmap).
+  if (!errors.length) for (const msg of glyphGaps()) fail('glyphs', msg);
 
   // [license] each face's OFL file must exist and carry a copyright line; the notice is built from it.
   const notices = [];
