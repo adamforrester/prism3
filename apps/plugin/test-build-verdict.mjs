@@ -693,7 +693,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   });
   const before = await readFs();
   ok(before.button === '⊞ Set up file' && before.disabled === false, `#1845 the Components page offers "⊞ Set up file", enabled — read "${before.button}", disabled ${before.disabled}`);
-  const clicked = await page.locator('[data-p3="file-setup-button"]').click({ timeout: 4000 }).then(() => true, () => false);
+  const clicked = await hooks.click(page.locator('[data-p3="file-setup-button"]'), { timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#1845 the Set up file control can be clicked');
   const pending = await readFs();
   ok(pending.button === '⋯ Setting up…' && pending.disabled === true, `#1845 a file setup in flight reads "⋯ Setting up…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
@@ -716,7 +716,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // "In this Figma" once it has, since the verdicts under it are then Figma's own (docs/34 shape 16).
 {
   const { page, errors } = await openPanel();
-  await page.locator('[data-p3="rail-page-typography"]').click();
+  await hooks.click(page.locator('[data-p3="rail-page-typography"]'));
   await hooks.need(page, '[data-p3="typeface-source"]', { timeout: 5000 });
   const source = () => page.evaluate(() => document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null);
   const before = await source();
