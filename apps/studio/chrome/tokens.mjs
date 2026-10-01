@@ -1,7 +1,10 @@
-// Prism3 chrome tokens: the shared resolver for the chrome builds (style tiles, concept v5).
+// Prism3 chrome tokens: the shared resolver for every chrome build (the studio and plugin bundles,
+// through `esbuild-plugin.mjs`; and the mockups: style tiles, concept v5 and v6).
 //
 // Extracted from `style-tiles/build-tiles.mjs` so the tile and v5 read the same tokens the same way
-// and neither forks the other. Both builds import from here; nothing here writes a file.
+// and neither forks the other. Moved here from `docs/superpowers/ui-redesign/` in S1.1 of the UI
+// redesign, unchanged apart from this header and `FONTS_DIR`, so the product and the mockups read
+// one module. Every build imports from here; nothing here writes a file.
 //
 // It reads the canonical default theme (`packages/engine/out/prism3.tokens.json`, root `pds3`) and its
 // dark overlay, merges them per mode the way the engine emits them (the overlay is a sparse tree of
@@ -9,7 +12,7 @@
 // overlay alias still lands on the base's core palette), and turns a variable map into `--p3-*`
 // custom properties for each theme.
 //
-// Also here, because both builds enforce them: the raw-value scan (no hex, color function, length,
+// Also here, because every build enforces them: the raw-value scan (no hex, color function, length,
 // duration or shadow in chrome CSS), the brand-leak check (no chrome color through the brand palette
 // or a brand, link or focus role), WCAG contrast, and the embedded chrome fonts.
 //
@@ -21,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = join(HERE, '..', '..', '..');
-export const FONTS_DIR = join(HERE, 'style-tiles', 'fonts');
+export const FONTS_DIR = join(HERE, 'fonts');
 export const NS = 'pds3';
 
 // ── merge + resolve ────────────────────────────────────────────────────────────────────────────
@@ -167,7 +170,7 @@ export function brandLeaks(modes, vars) {
 // ── chrome fonts ───────────────────────────────────────────────────────────────────────────────
 // Chrome fonts: NOT from tokens, on purpose. The chrome's face is the product's own, and must not
 // move when the default theme's `core.font.family.body` lever does (that lever is brand content).
-// Both faces are embedded from `style-tiles/fonts/` (the fontsource latin variable subsets, SIL OFL
+// Both faces are embedded from `fonts/` beside this file (the fontsource latin variable subsets, SIL OFL
 // 1.1, licenses alongside) as woff2 data URIs, so the page makes no network request and renders the
 // same on a machine with neither installed.
 export const CHROME_FONTS = [

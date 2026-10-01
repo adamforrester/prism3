@@ -16,6 +16,7 @@ import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
+import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const out = resolve(root, 'dist');
@@ -234,7 +235,10 @@ const buildUiHtml = async (id) => {
     // no output path, so esbuild refuses the CSS import and this build fails.
     loader: { '.css': 'text' },
     // #1623 sign-off — same maintainer-prose strip as `mainOpts`: the UI imports the defs too.
-    plugins: [maintainerProsePlugin],
+    // `chromeCss` resolves the virtual `p3:chrome-css` the studio's entry imports (UI redesign S1.1):
+    // the shell's variables, fonts and rules as TEXT, so the UI stays one self-contained file. Without
+    // it this build stops at `Could not resolve "p3:chrome-css"`.
+    plugins: [maintainerProsePlugin, chromeCss()],
     write: false,
     logLevel: 'silent',
   });

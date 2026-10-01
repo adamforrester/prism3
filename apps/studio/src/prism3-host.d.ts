@@ -54,3 +54,16 @@ declare module '*.css' {
   const css: string;
   export default css;
 }
+
+/**
+ * The new shell's stylesheet as TEXT (UI redesign S1.1): the `--p3-*` variables generated from the
+ * default theme, the embedded chrome fonts, and `chrome.css`. A VIRTUAL module: no file has this name.
+ * `apps/studio/chrome/esbuild-plugin.mjs` produces it at bundle time, and every esbuild entry that
+ * bundles `apps/studio/src` must load that plugin (`build.mjs`, `build-site.mjs`,
+ * `vercel-ignore-check.mjs`, `apps/plugin/build.mjs`). One that does not fails with
+ * `Could not resolve "p3:chrome-css"`. This declaration only lets `typecheck` see the import.
+ */
+declare module 'p3:chrome-css' {
+  const css: string;
+  export default css;
+}

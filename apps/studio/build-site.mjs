@@ -14,6 +14,7 @@
  * (or `npm run build:site`).
  */
 import { build } from 'esbuild';
+import { chromeCss } from './chrome/esbuild-plugin.mjs';
 import { cp, mkdir, readdir, rm } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,7 +31,7 @@ await mkdir(pub, { recursive: true });
 // to claim and says so rather than inventing one.
 const buildId = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7) || 'local';
 
-// Same flags as the `build` script — the deployed bundle must be the one we develop against.
+// Same options as `build.mjs` — the deployed bundle must be the one we develop against.
 // `loader` included: `src/entry.ts` imports `src/styles.css` as TEXT (#769), and esbuild's DEFAULT
 // `.css` loader would instead emit a `dist/main.css` nothing references — which is precisely the
 // unreferenced-asset case the manifest below exists to catch, so the two are wired to agree.
@@ -41,6 +42,8 @@ await build({
   bundle: true,
   format: 'esm',
   loader: { '.css': 'text' },
+  // `src/entry.ts` imports the virtual `p3:chrome-css` (UI redesign S1.1); only this plugin resolves it.
+  plugins: [chromeCss()],
   define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId) },
   sourcemap: true,
   logLevel: 'info',

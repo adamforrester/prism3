@@ -39,8 +39,8 @@ render preserved.
 
 ```bash
 npm install          # from the repo root (workspaces) or from web/
-npm run dev          # esbuild dev server on http://127.0.0.1:5173
-npm run build        # bundle to apps/studio/dist/
+npm run dev          # esbuild dev server on http://127.0.0.1:5173 (build.mjs --dev)
+npm run build        # bundle to apps/studio/dist/ (build.mjs)
 npm run typecheck    # tsc --noEmit
 ```
 
@@ -187,7 +187,7 @@ of going stale in production.
 npm run build:site --workspace @prism3/studio   # what Vercel runs → apps/studio/public/
 ```
 
-`build:site` (`build-site.mjs`) bundles with the same flags as `build`, then assembles
+`build:site` (`build-site.mjs`) bundles with the same options as `build` (`build.mjs`), then assembles
 `apps/studio/public/` containing exactly `index.html` + `dist/main.js` + `.map` — and **fails
 non-zero if the output is anything else**, so an emitted-but-unreferenced asset can't ship a
 broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
@@ -197,8 +197,11 @@ broken site on a green build. `dev` and `build` are unchanged and remain the loc
 `../../packages/engine/*` and `../../packages/engine/schema/example-brands.json`, which a `apps/studio/`-scoped
 build cannot resolve.
 
-Only `apps/studio/src` and `packages/engine/{*,schema}` are **read by the build**; `apps/plugin/`, `reference/`,
-and `packages/engine/out/` are neither read nor served. Install is a different matter — it runs
+Only `apps/studio/src`, `apps/studio/chrome` and `packages/engine/{*,schema}` are **read by the build**,
+plus two emitted files: the chrome plugin (`chrome/esbuild-plugin.mjs`, UI redesign S1.1) reads
+`packages/engine/out/prism3.tokens.json` and `prism3.dark.overlay.tokens.json` to generate the shell's
+`--p3-*` variables. `apps/plugin/`, `reference/` and the rest of `packages/engine/out/` are neither read
+nor served. Install is a different matter — it runs
 at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
 `@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
 `NODE_ENV=production` must not be set at install time; and a dependency bump in

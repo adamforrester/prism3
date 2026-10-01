@@ -32,7 +32,8 @@ PLAYWRIGHT_MODULE=<repo>/node_modules/playwright/index.mjs \
   levers panel and the top bar must be three distinct steps in one direction (IA-2).
 
 `chrome-tokens.mjs` is unchanged. v6's per-theme rows (`levers-bg`, `bar-bg`, `edge`, `edge-bar`) live
-in the build.
+in the build. (Since S1.1 of the implementation plan, the module is `apps/studio/chrome/tokens.mjs`, and
+v6's rows, pairs and layers are in `apps/studio/chrome/spec.mjs`, which the product build reads too.)
 
 `audit-v6.mjs` renders 12 states × 2 themes × 2 widths. The states are Palettes, Surfaces & fills and
 Interactive with Roles off and on, Brand, Depth & motion, Layout, the build failure, Inspect, the plugin, and the plugin with

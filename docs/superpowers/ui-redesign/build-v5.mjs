@@ -24,7 +24,7 @@
 //   7. PAIRS. A declared chrome pair (PAIRS below) measures under its floor in either theme.
 //   8. OFFLINE. The output would make a network request. The only @font-face allowed is a data: URI.
 //
-// The resolver, the tile's variable map, the fonts and the scans come from ./chrome-tokens.mjs, shared
+// The resolver, the tile's variable map, the fonts and the scans come from apps/studio/chrome/tokens.mjs, shared
 // with style-tiles/build-tiles.mjs. The rendered audit (text, edges, focus, targets, fonts, shadows,
 // F1 and F2 behavior, measured in Chromium) is audit-v5.mjs.
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
@@ -35,7 +35,7 @@ import { tmpdir } from 'node:os';
 import {
   loadModes, resolve, P, C, D, TILE_VARS, CHROME_FONTS, fontFaceCss, fontVarsCss, cssOf, themeBlock,
   brandLeaks, scanRaw, ratio, fmtRatio,
-} from './chrome-tokens.mjs';
+} from '../../../apps/studio/chrome/tokens.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..', '..');

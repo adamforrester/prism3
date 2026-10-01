@@ -10,7 +10,7 @@
  *   2. subscribe to the host — on Figma this attaches the listener and posts `ui-ready`, so it must
  *      follow step 1 (a `restore-input` reply replaces the session step 1 started);
  *   3. hand over `#app`;
- *   4. check the stylesheet arrived as text, and install it (the class-scope law runs here);
+ *   4. check the stylesheet arrived as text, and install it with the shell's (the class-scope law runs here);
  *   5. mount the plugin's resize grip (Figma only);
  *   6. `build()` — the first render. Everything above must precede it.
  * The font probe's canvas used to be made at import too; it is now made on first use, in `main.ts`.
@@ -24,6 +24,10 @@ import { commit, handleHostMessage, mountApp, installStyles, mountResizeGrip, bu
 // The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769) — see step 4 below for
 // what that buys and what it costs.
 import STYLE from './styles.css';
+// The new shell's stylesheet: the generated `--p3-*` variables, the embedded chrome fonts and
+// `chrome.css`, as TEXT. A virtual module that only `apps/studio/chrome/esbuild-plugin.mjs` resolves, so
+// a bundler without the plugin fails at build time rather than shipping without it (UI redesign S1.1).
+import CHROME from 'p3:chrome-css';
 
 // ---- 1. boot -----------------------------------------------------------------------------------------
 // Web persists the working brand to localStorage; the plugin uses Figma shared-data instead (restored
@@ -85,7 +89,8 @@ if (typeof STYLE !== 'string' || STYLE.length < 1000) {
       'missing `--loader:.css=text` (or `loader: { ".css": "text" }`), so the stylesheet is absent.',
   );
 }
-installStyles(STYLE);
+// Both sheets in one call, the shell's last, so the class-scope law reads them as one stylesheet.
+installStyles(`${STYLE}\n${CHROME}`);
 
 // ---- 5. the resize grip ------------------------------------------------------------------------------
 if (PRISM3_HOST === 'figma') mountResizeGrip();

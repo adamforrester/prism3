@@ -96,7 +96,8 @@ The chrome's families are **a chrome constant in the build (`CHROME_FONTS`), not
 default theme's `core.font.family.body` is a brand lever that happens to be Inter today. If a theme
 moved it, the product's own chrome should not move with it.
 
-Both faces are committed under `fonts/`. They are the latin subsets of the variable fonts from
+Both faces are committed under `apps/studio/chrome/fonts/` (moved there from `fonts/` beside this
+file in S1.1 of the UI redesign, when the product started embedding them). They are the latin subsets of the variable fonts from
 Fontsource, with a weight axis from 100 to 900: `@fontsource-variable/inter` 5.3.0 (Google Fonts
 revision v20) and `@fontsource-variable/jetbrains-mono` 5.3.0 (revision v24). Both are under the SIL
 Open Font License 1.1, and the license texts are next to them (`OFL-Inter.txt`,

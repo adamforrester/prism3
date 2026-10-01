@@ -10,7 +10,7 @@
  * `TS1005` thousands of lines from the edit, four times over. A .css file has no such trap.
  *
  * Every esbuild entry that bundles `apps/studio/src` therefore needs `--loader:.css=text`
- * (`dev`, `build`, `build-site.mjs`, `vercel-ignore-check.mjs`, `apps/plugin/build.mjs`). Two of
+ * (`build.mjs` for `dev` and `build`, `build-site.mjs`, `vercel-ignore-check.mjs`, `apps/plugin/build.mjs`). Two of
  * those build with no output path configured, so a missing loader is a hard esbuild error there;
  * `main.ts` carries a boot-time guard for the rest.
  *
