@@ -750,6 +750,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // the row's opening does not, on its own, leave a stale value: the observer writes the right one after.
 // Only with that re-sync gone as well does the end-state check below fail. The topic order is still
 // caught by the two ordering checks.
+//
+// UNDER S1.4 THE PILLS AND THE DETAIL ROW LIVE IN THE ACTIVITY DRAWER (plan §3.9). The `bar` hook moved
+// with the pills to the drawer's bar row, and the detail row is the drawer's body, at the bottom of the
+// frame, pinned to the bottom edge. So a verdict no longer changes the sticky head's height, and there is
+// no `--chrome-h` write left for the old "measured after the bar" ordering to observe: an unchanged value
+// leaves none (see above). What the move intends is checked in its place: the bar is still written before
+// the detail row it opens; the detail opens in the drawer, beside the bar, in a drawer pinned to the
+// bottom edge; it stays inside the viewport with the page scrolled to its top and to its bottom; and
+// `--chrome-h` still equals the sticky head's rendered height after the verdict. The arm keeps its seven
+// checks per verdict kind.
 {
   const VERDICTS = [
     { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' },
@@ -805,12 +815,24 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       const chrome = document.querySelector('[data-p3="frame-head"]');
       const cs = chrome ? getComputedStyle(chrome) : null;
       const style = document.documentElement.getAttribute('style');
+      // S1.4: the drawer that holds the bar and the detail row, located by its own hook, and where the
+      // detail row sits in the viewport with the page scrolled to its top and to its bottom.
+      const drawer = document.querySelector('[data-p3="activity-drawer"]');
+      const ds = drawer ? getComputedStyle(drawer) : null;
+      const inView = () => { const r = detail?.getBoundingClientRect(); return !!r && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight; };
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      window.scrollTo(0, maxScroll);
+      const atBottom = inView();
+      window.scrollTo(0, 0);
+      const atTop = inView();
       return {
         writes: window.__writes,
         finalChromeH: /--chrome-h:\s*([^;]+)/.exec(style ?? '')?.[1]?.trim() ?? null,
         chromeHeight: chrome ? chrome.offsetHeight : null,
         chromeSticky: !!cs && cs.position === 'sticky' && cs.display !== 'contents',
-        chromeHoldsDetail: !!(chrome && bar && detail && chrome.contains(bar) && chrome.contains(detail)),
+        drawerHolds: !!(drawer && bar && detail && drawer.contains(bar) && drawer.contains(detail) && !bar.contains(detail)),
+        drawerPinned: !!ds && ds.position === 'sticky' && ds.bottom === '0px' && drawer.dataset.open === 'true',
+        scrolls: maxScroll > 0, atTop, atBottom,
         // Shown, read the way the browser decides it: S1.2 hides the row with `hidden`, not an inline
         // `display`, so an inline-style read would call a hidden row open (orchestrator review of #1922).
         detailOpen: !!detail && !detail.hidden && getComputedStyle(detail).display !== 'none',
@@ -825,27 +847,25 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       sequence[w.i] = after !== w.before ? 'chrome-h' : 'root-other';
     });
     const first = (r) => sequence.indexOf(r);
-    const last = (r) => sequence.lastIndexOf(r);
     const shown = sequence.filter((r, i) => r !== sequence[i - 1]).join(' → ');
 
     // The probe proves it saw each region written, so the orderings below compare three real writes rather
     // than an index of -1 (docs/34, "did it look?").
     ok(seen.detailOpen, `#1890 ${v.type}: a bad verdict opens the detail row`);
-    ok(first('bar') >= 0 && first('detail') >= 0 && first('chrome-h') >= 0,
-      `#1890 ${v.type}: the observer saw the bar, the detail row and --chrome-h each written — saw ${shown || 'nothing'}`);
+    ok(first('bar') >= 0 && first('detail') >= 0,
+      `#1890 ${v.type}: the observer saw the bar and the detail row each written — saw ${shown || 'nothing'}`);
     ok(first('bar') >= 0 && first('detail') >= 0 && first('bar') < first('detail'),
       `#1890 ${v.type}: the bar repaints before the detail row it opens — write order ${shown || 'nothing'}`);
-    ok(last('bar') >= 0 && last('chrome-h') > last('bar'),
-      `#1890 ${v.type}: --chrome-h is measured after the bar's last repaint, so it reads the new bar — write order ${shown || 'nothing'}`);
+    // S1.4: where the detail row is, and that it stays visible (see the header above).
+    ok(seen.drawerHolds && seen.drawerPinned,
+      `#1890 ${v.type}: the detail row opens in the Activity drawer beside the bar, and the drawer is open and pinned to the bottom edge — holds bar and detail ${seen.drawerHolds}, pinned and open ${seen.drawerPinned}`);
+    ok(seen.scrolls && seen.atTop && seen.atBottom,
+      `#1890 ${v.type}: the open detail stays in view with the page scrolled to its top and to its bottom — page scrolls ${seen.scrolls}, in view at top ${seen.atTop}, at bottom ${seen.atBottom}`);
     // The consequence, in the units a designer sees: the sticky offset equals the chrome's rendered height.
     // The chrome is measured only where it is the region the browser pins (at this 1280px panel, the whole
-    // head; narrow pins only the top bar, and the detail row scrolls with the page there by design, Q7),
-    // and only where it holds both the bar and the detail row, so the height compared includes the row the
-    // verdict opened.
-    ok(seen.chromeSticky,
-      `#1890 ${v.type}: the chrome the arm measures is the region the browser pins (position: sticky, not display: contents)`);
-    ok(seen.chromeSticky && seen.chromeHoldsDetail && seen.finalChromeH === `${seen.chromeHeight}px`,
-      `#1890 ${v.type}: --chrome-h equals the chrome's rendered height with the detail open — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px, holds bar and detail ${seen.chromeHoldsDetail}`);
+    // head; narrow pins only the top bar, Q7).
+    ok(seen.chromeSticky && seen.finalChromeH === `${seen.chromeHeight}px`,
+      `#1890 ${v.type}: --chrome-h equals the sticky chrome's rendered height after the verdict — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px, sticky ${seen.chromeSticky}`);
     ok(errors.length === 0, `#1890 ${v.type}: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }

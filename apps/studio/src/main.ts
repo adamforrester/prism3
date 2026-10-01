@@ -45,6 +45,8 @@ import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import { describeControl, paletteRefOptions, leverHook, type ControlOption } from './levers/controls';
 import { mountFrame, type Frame } from './shell/frame';
+import type { ActivityReading, OpReading } from './shell/activity';
+import type { FigmaAction } from './shell/figma';
 import { glyph } from './shell/dom';
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
@@ -4687,9 +4689,7 @@ const renderComponentsPage = (host: PageHost): void => {
   fsBtn.onclick = () => {
     // `openDetail` cleared for the same reason the build clears it: the previous run's detail is stale the
     // instant a new one starts, and the shared row is chrome, so the bar has to be told the row is gone.
-    setHost({ fileSetupState: 'pending', openDetail: null });
-    renderBar(); syncApplyDetail(); syncFileSetupRow();
-    commit.postFileSetup();
+    runFileSetup();
   };
   fsRow.append(fsBtn);
   // Staged, like the build's row: this page is built DETACHED and reconciled in (#771), so the initial sync
@@ -4810,7 +4810,7 @@ const renderComponentsPage = (host: PageHost): void => {
     // was drawn — the defect being that it would look right for the default and wrong for every change.
     const def = sel.value;
     setHost({ componentState: 'pending', componentProgress: null, openDetail: null });
-    renderBar(); syncApplyDetail(); syncComponentRow();
+    hostChanged(); syncComponentRow();
     commit.postComponents(def);
   };
   row.append(compBtn);
@@ -4953,7 +4953,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
     setHost({ styleGuideState: 'pending', openDetail: null });
-    renderBar(); syncApplyDetail(); syncStyleGuideRow();
+    hostChanged(); syncStyleGuideRow();
     commit.postStyleGuide({ ...styleGuideOptions });
   };
   row.append(btn);
@@ -7962,8 +7962,9 @@ type ChromeSurface = {
   readonly key: string;
   /** `root` surfaces are mounted by `mountView` into the chrome header on the start view, and into the
    *  frame's notices row on the app view; `bar` surfaces into the frame's top bar (UI redesign S1.2);
-   *  `workspace` surfaces are minted by `renderWorkspace` alongside the page they scope. */
-  readonly home: 'bar' | 'root' | 'workspace';
+   *  `drawer` surfaces into the Activity drawer's body (S1.4, app view only); `workspace` surfaces are
+   *  minted by `renderWorkspace` alongside the page they scope. */
+  readonly home: 'bar' | 'root' | 'drawer' | 'workspace';
   /** Which root views carry it. */
   readonly views: readonly RootView[];
   /** Mint the node. The mounter stamps and appends it, so a surface cannot land unstamped or in the
@@ -7994,7 +7995,9 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
   {
     key: 'brand-bar', home: 'bar', views: ['app'],
     // The legacy half of the new top bar (S1.2): the frame owns the bar itself and lends this slot.
-    mount: () => { barHost = hook(el('div', 'p3-bar-main'), 'bar'); renderBar(); return barHost; },
+    // Its hook is `bar-main`: the `bar` hook moved with the status pills to the Activity drawer's bar row
+    // (S1.4), where `test:verdict` reads them.
+    mount: () => { barHost = hook(el('div', 'p3-bar-main'), 'bar-main'); renderBar(); return barHost; },
     // NO `sync`, deliberately. `renderBar()` rebuilds `barHost` wholesale, and that node holds the open
     // brand menu, the Pages menu and the export dialog — refreshing it on every knob edit would close
     // whatever the designer had open, mid-gesture. It re-renders on its own events instead (menu
@@ -8013,7 +8016,9 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     sync: () => syncErrorBar(),
   },
   {
-    key: 'apply-detail', home: 'root', views: ['app'],
+    // In the Activity drawer's body since S1.4 (plan §3.9): the drawer is pinned to the bottom edge, so an
+    // open detail stays in view however far the page scrolls, and it no longer moves `--chrome-h`.
+    key: 'apply-detail', home: 'drawer', views: ['app'],
     // App-level write status, in the chrome for the same reason the error bar is (#483): a per-page or
     // popover home would either be forgotten by the next page or cover the CTA it describes. Minted
     // unconditionally — `renderApplyStatus` is plugin-only, so on web `applyState` stays null and the
@@ -8021,7 +8026,7 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // `build()`, so a hardcoded "hidden" would collapse an open detail (and, one surface up, would drop
     // a live error the moment the user changed page — the hole #388 closed).
     mount: () => {
-      applyDetailHost = hook(el('div', 'applystat-detail'), 'apply-detail');
+      applyDetailHost = hook(el('div', 'p3-detail'), 'apply-detail');
       applyDetailHost.id = APPLY_DETAIL_ID;
       return applyDetailHost;
     },
@@ -8103,13 +8108,22 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
       delete app.dataset.theme;
       // Inspect (S1.3) shows two legacy views until their slices replace them: the contrast contract table
       // and the token list. They are lent here; the shell never imports this file.
-      frame = mountFrame(app, { host: commit.isFigma ? 'figma' : 'web', inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens } });
+      // S1.4: the Activity drawer reads the host session's writes, and the Figma menu runs the writes the
+      // old bar controls ran, both lent the same way.
+      frame = mountFrame(app, {
+        host: commit.isFigma ? 'figma' : 'web',
+        inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
+        activity: activityReading,
+        figma: commit.isFigma ? figmaActions : null,
+      });
     }
     chromeHost = frame.head;
     frame.bar.replaceChildren();
     frame.notices.replaceChildren();
+    frame.drawer.replaceChildren();
     mountSurfaces('bar', view, frame.bar);
     mountSurfaces('root', view, frame.notices);
+    mountSurfaces('drawer', view, frame.drawer);
     frame.legacyPage.replaceChildren(body());
   } else {
     frame?.unmount();
@@ -9227,7 +9241,7 @@ const renderPruneDialog = (): HTMLElement => {
   const cancel = el('button', 'barbtn', 'Cancel') as HTMLButtonElement;
   cancel.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
   const del = hook(el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement, 'dialog-confirm');
-  del.onclick = () => { setHost({ pruneBusy: 'delete', prunePreview: null }); renderBar(); commit.postPrune(lastGoodInput, true); };
+  del.onclick = () => { setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true); };
   foot.append(cancel, del);
   dlg.append(foot);
 
@@ -9382,7 +9396,7 @@ function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, whic
   btn.setAttribute('aria-controls', APPLY_DETAIL_ID);
   btn.setAttribute('aria-label', `${state.headline} — ${noun} details`);
   // Opening one closes the other: one row, so this assignment IS the mutual exclusion.
-  btn.onclick = () => { setHost({ openDetail: open ? null : which }); renderBar(); syncApplyDetail(); };
+  btn.onclick = () => { setHost({ openDetail: open ? null : which }); hostChanged(); };
   return btn;
 }
 
@@ -9396,8 +9410,13 @@ function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, whic
  *  The chrome row is the pattern already established for exactly this by #388's `errbar-global`: status
  *  that belongs to the whole app rather than to a page, mounted once in the chrome, pushing content
  *  down rather than covering it. Being in flow it cannot overlap anything at any width, needs no
- *  z-index, and needs no outside-click dismissal — it is not an overlay. `--chrome-h` must be re-read
- *  because everything sticky below the chrome is positioned from it. */
+ *  z-index, and needs no outside-click dismissal — it is not an overlay.
+ *
+ *  SINCE UI REDESIGN S1.4 the row is the Activity drawer's body (`shell/activity.ts`), beside the pills it
+ *  details, at the bottom of the frame and pinned to the bottom edge, so it stays in view however far the
+ *  page scrolls and still covers nothing above the drawer. It no longer sits in the sticky head, but
+ *  `--chrome-h` is still re-read here: it is cheap, and it keeps the measurement after the bar's repaint
+ *  for any head change a verdict causes. */
 const APPLY_DETAIL_ID = 'apply-detail';
 let applyDetailHost: HTMLElement | null = null;
 const syncApplyDetail = (): void => {
@@ -9417,6 +9436,69 @@ const syncApplyDetail = (): void => {
 subscribe('host', () => { if (barHost) renderBar(); });
 subscribe('host:detail', () => { if (barHost) syncApplyDetail(); });
 
+/** The UI's own host-state change (a write going pending, a detail opened or closed): told through the same
+ *  two topics a host verdict invalidates, in the same order, so the bar, the detail row and the Activity
+ *  drawer (S1.4) each repaint from their subscription. Before S1.4 these callers named `renderBar` and
+ *  `syncApplyDetail` directly, which the drawer could not hear. */
+const hostChanged = (): void => { invalidate('host'); invalidate('host:detail'); };
+
+/** One write's state as the Activity drawer reads it (S1.4). */
+const opReading = (st: HostSession['applyState']): OpReading =>
+  ({ state: st === null ? 'idle' : st === 'pending' ? 'running' : st.ok ? 'ok' : 'bad', ref: st });
+/** The host session's writes, lent to the Activity drawer (`shell/activity.ts`). Pure. A prune preview
+ *  with something to remove is a settled run (its confirm dialog takes over); its verdict, when there is
+ *  one, is the prune's result. */
+const activityReading = (): ActivityReading => {
+  const detailState = host.openDetail === 'apply' ? host.applyState : host.openDetail === 'components' ? host.componentState
+    : host.openDetail === 'filesetup' ? host.fileSetupState : host.openDetail === 'styleguide' ? host.styleGuideState : null;
+  const pv = host.pruneVerdict;
+  return {
+    ops: {
+      apply: opReading(host.applyState),
+      components: opReading(host.componentState),
+      filesetup: opReading(host.fileSetupState),
+      styleguide: opReading(host.styleGuideState),
+      prune: host.pruneBusy ? { state: 'running', ref: host.pruneBusy }
+        : pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv }
+          : host.prunePreview ? { state: 'ok', ref: host.prunePreview } : { state: 'idle', ref: null },
+    },
+    detail: detailState !== null && detailState !== 'pending',
+  };
+};
+
+// ── the writes the bar's controls and the Figma menu run (S1.4) ─────────────────────────────────────
+// One function per write, called by its control and by its Figma menu item, so the two cannot drift.
+// Each sets its own pending state and says so through `hostChanged`; the bar, the detail row and the
+// Activity drawer repaint from that.
+
+/** Apply to Figma. The previous run's detail is stale the instant a new write starts, so it collapses with
+ *  the state. */
+const runApply = (): void => { setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput); };
+/** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
+const runPrune = (): void => { setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false); };
+/** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
+ *  detail is stale the instant a new one starts. */
+const runFileSetup = (): void => {
+  setHost({ fileSetupState: 'pending', openDetail: null });
+  hostChanged(); syncFileSetupRow();
+  commit.postFileSetup();
+};
+/** Prune is unavailable while a prune runs AND while a theme apply is pending: a prune reads the same
+ *  variables an apply writes, so overlapping the two would race a delete against a create. */
+const pruneBlocked = (): boolean => !!host.pruneBusy || host.applyState === 'pending';
+const PRUNE_HINT = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
+
+/** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, the
+ *  file-setup button, and the two pages whose writes need options first (concept v6's "Build set…" and
+ *  "Style guide…"), which open those pages. */
+const figmaActions = (): FigmaAction[] => [
+  { id: 'apply', label: 'Apply to Figma', disabled: host.applyState === 'pending', run: runApply },
+  { id: 'prune', label: host.pruneBusy === 'preview' ? '⋯ Checking…' : host.pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
+  { id: 'file-setup', label: FILE_SETUP_LABEL, disabled: host.fileSetupState === 'pending', run: runFileSetup },
+  { id: 'build', label: 'Build set…', disabled: false, run: () => setPage('components') },
+  { id: 'style-guide', label: 'Style guide…', disabled: false, run: () => setPage('styleGuide') },
+];
+
 /** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
  *  overloaded dropdown. Left: brandmark. Right: brand switcher (identity + examples + new +
  *  import — a brand *source*), Export (artifact *output*), and, in the plugin only, the primary
@@ -9428,12 +9510,19 @@ subscribe('host:detail', () => { if (barHost) syncApplyDetail(); });
 const pinLight = <E extends HTMLElement>(n: E): E => { n.dataset.theme = 'light'; return n; };
 
 function renderBar(): void {
+  // The shell's nodes this places (the verdict, the Agent slot, Activity, the Figma menu) are the same
+  // nodes on every render, so one that held focus gets it back once it is placed again.
+  const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   barHost.innerHTML = '';
+  // The status pills live in the Activity drawer's bar row since S1.4, lent by the frame.
+  const pillHost = frame?.pills ?? null;
+  pillHost?.replaceChildren();
   // THE LEGACY HALF OF THE NEW TOP BAR (UI redesign S1.2). The frame (`shell/frame.ts`) owns the bar and
   // its theme toggle; this paints the controls the legacy code still owns into the slot it lends: the
-  // brand switcher, the plugin's write actions and their pills (until S1.4 moves them into the Figma menu
-  // and the Activity drawer), Export, and the Pages menu. Every control here wears the chrome's classes;
-  // the menus and dialogs they open are legacy surfaces, pinned light (`pinLight`).
+  // brand switcher, Export, the Pages menu and the plugin's Apply to Figma, and places the shell's own
+  // controls among them in concept v6's order (S1.4): the verdict, the Agent chip's slot, Activity and the
+  // Figma menu. The plugin's write verdicts (the pills) go to the Activity drawer. Every control here wears
+  // the chrome's classes; the menus and dialogs they open are legacy surfaces, pinned light (`pinLight`).
 
   // Brand switcher — identity, examples, new, import.
   const bWrap = el('div', 'barmenu-wrap');
@@ -9460,8 +9549,13 @@ function renderBar(): void {
   // brand switcher, on every render rather than re-minted.
   if (frame) barHost.append(frame.verdict);
   barHost.append(el('span', 'p3-spacer'));
+  // The Agent chip's slot (IA-3), then Activity (F2): the frame's nodes, placed, never re-minted.
+  if (frame?.agent) barHost.append(frame.agent);
+  if (frame) barHost.append(frame.activity);
 
   const actions = barHost;
+  // Where a status pill goes: the Activity drawer's bar row (S1.4), or the bar while there is no frame.
+  const pills = pillHost ?? barHost;
 
   // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
   // web (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
@@ -9478,10 +9572,10 @@ function renderBar(): void {
       // is the one boot fact worth reading in full.
       const pill = hook(el('span', 'p3-pill p3-pill-bad', `Saved brand not restored — ${host.restoreError}`), 'status-pill');
       pill.title = host.restoreError;
-      actions.append(pill);
+      pills.append(pill);
     }
-    if (host.applyState) actions.append(renderApplyStatus(host.applyState, 'apply', 'bar'));
-    else if (host.seedOutcome) actions.append(renderSeedPill(host.seedOutcome));
+    if (host.applyState) pills.append(renderApplyStatus(host.applyState, 'apply', 'bar'));
+    else if (host.seedOutcome) pills.append(renderSeedPill(host.seedOutcome));
     const pending = host.applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
@@ -9491,7 +9585,7 @@ function renderBar(): void {
     applyBtn.type = 'button';
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
-    applyBtn.onclick = () => { setHost({ applyState: 'pending', openDetail: null }); renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
+    applyBtn.onclick = runApply;
 
     // The component write's trigger USED TO SIT HERE (#483), a second action beside Apply. #718 moved it
     // to the Components rail page, and the move is a demotion — see `renderComponentsPage`. Apply is the
@@ -9503,28 +9597,25 @@ function renderBar(): void {
     // so a build's verdict stays legible after navigating away from the page that started it. A status
     // that vanished with its control would be worse than the control's old placement: a 648-member build
     // runs ~105s cold (#700), and nobody watches a rail page for that long.
-    if (host.componentState) actions.append(renderApplyStatus(host.componentState, 'components', 'bar'));
+    if (host.componentState) pills.append(renderApplyStatus(host.componentState, 'components', 'bar'));
+    // File setup and the style guide report into the drawer as well (S1.4). Their verdicts opened the shared
+    // detail row before with no pill in the bar to say whose detail it was (#483 asks that the open detail
+    // always belong to a named pill); in the drawer every write's result sits beside the detail it opens.
+    if (host.fileSetupState) pills.append(renderApplyStatus(host.fileSetupState, 'filesetup', 'bar'));
+    if (host.styleGuideState) pills.append(renderApplyStatus(host.styleGuideState, 'styleguide', 'bar'));
 
-    // PRUNE (#1521; modes + all four style kinds since #1570) — a secondary action beside Apply: remove
-    // the styles, modes and variables a config change dropped, which is the whole cleanup path for a
-    // config that SHRANK (6 breakpoints down to 2 strands four `layout` modes and four grid styles).
-    // It never writes, only deletes, and only after the designer confirms the count in the
-    // dialog below — so the #479 / #1152 "never blind-delete on an apply" rule holds. Its verdict is its
-    // own pill (a preview that finds nothing stale, or the outcome of a delete), never the theme
-    // write's, for the same reason the component build keeps its own.
+    // PRUNE (#1521; modes + all four style kinds since #1570): remove the styles, modes and variables a
+    // config change dropped, which is the whole cleanup path for a config that SHRANK (6 breakpoints down
+    // to 2 strands four `layout` modes and four grid styles). It never writes, only deletes, and only
+    // after the designer confirms the count in the dialog below, so the #479 / #1152 "never blind-delete
+    // on an apply" rule holds. Its control moved into the Figma menu in S1.4 (`figmaActions`, `runPrune`).
+    // Its verdict is its own pill (a preview that finds nothing stale, or the outcome of a delete), never
+    // the theme write's, for the same reason the component build keeps its own.
     if (host.pruneVerdict) {
       const pill = hook(el('span', host.pruneVerdict.ok ? 'p3-pill' : 'p3-pill p3-pill-bad', host.pruneVerdict.summary), 'status-pill');
-      pill.title = host.pruneVerdict.summary;   // the pill ellipsizes when the bar is crowded; the full sentence is worth reading
-      actions.append(pill);
+      pill.title = host.pruneVerdict.summary;   // the pill ellipsizes when the row is crowded; the full sentence is worth reading
+      pills.append(pill);
     }
-    const pruneBtn = hook(el('button', 'p3-btn', host.pruneBusy === 'preview' ? '⋯ Checking…' : host.pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale') as HTMLButtonElement, 'prune-open');
-    pruneBtn.type = 'button';
-    // Disabled while a prune is in flight AND while a theme apply is pending — a prune reads the same
-    // variables an apply writes, so overlapping the two would race a delete against a create.
-    pruneBtn.disabled = !!host.pruneBusy || host.applyState === 'pending';
-    pruneBtn.title = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
-    pruneBtn.onclick = () => { setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); renderBar(); commit.postPrune(lastGoodInput, false); };
-    actions.append(pruneBtn);
   }
 
   // Export — opens the export dialog (#723, replacing #159's dropdown). Concept v6 names it with the
@@ -9556,6 +9647,8 @@ function renderBar(): void {
   nWrap.append(nav);
   if (navMenuOpen) nWrap.append(pinLight(renderNavMenu()));
   actions.append(nWrap);
+  // The Figma menu (S1.4, plugin only), then Apply to Figma, the one inverse-filled control, last.
+  if (frame?.figma) actions.append(frame.figma);
   if (applyBtn) actions.append(applyBtn);
 
 
@@ -9570,6 +9663,8 @@ function renderBar(): void {
   // that must sit outside the relative `.barmenu-wrap` stacking context. Present only when a preview with
   // something to remove has landed; `renderBar()` clears `barHost` each call, so its lifetime is the flag.
   if (host.prunePreview) barHost.append(pinLight(renderPruneDialog()));
+  // A shell node placed again above keeps the focus it had (a re-render moved it, which blurs it).
+  if (focused && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
 
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
