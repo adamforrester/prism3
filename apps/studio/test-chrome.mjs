@@ -1594,15 +1594,26 @@ const EMITTED = (() => {
 })();
 ok(Object.values(EMITTED).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')), `the oracle resolved background.primary for every mode from the emission (${JSON.stringify(EMITTED)})`);
 ok(EMITTED.light !== EMITTED.dark, `the oracle's light and dark page colors differ (${EMITTED.light}, ${EMITTED.dark}), so a specimen on the wrong ground can fail`);
-const SPECIMEN_FLOOR = 14;   // primary and the accent (2 strips each), neutral (2), 4 status ramps (8) and opacity (2), less slack
+/** EXPECTED, by name (represented, not counted; docs/34): every strip the default theme's Palettes preview
+ *  draws at 1280, as palette-strip, where each must be a specimen root on the page color. prism3 emits seven
+ *  ramps of 20 steps (two strips of ten each), and the opacity scale's 12 steps make two strips more. The
+ *  alpha ramps are not here: they draw on a checkerboard by design (`preview/palettes.ts`). Literal. */
+const EXPECT_SPECIMENS = ['primary', 'accent', 'neutral', 'success', 'warning', 'danger', 'info', 'opacity'].flatMap((p) => [`${p}-1`, `${p}-2`]);
+/** Every strip in the preview, named by its palette and its place in that palette (1-based), whether it is
+ *  marked a specimen root, and the ground it composites onto. The checkerboard alpha strips are skipped. */
 const groundsOf = (page) => page.evaluate(() => {
   const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
   const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
   const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
   const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
-  const roots = [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="specimen"]')];
-  const card = roots[0]?.closest('.p3-card');
-  return { card: card ? hex(groundOf(card)) : null, roots: roots.map((n) => ({ ground: hex(groundOf(n)), palette: n.closest('[data-palette]')?.dataset.palette ?? (n.closest('[data-p3="opacity-scale"]') ? 'opacity' : '?') })) };
+  const strips = [...document.querySelectorAll('[data-p3="preview-body"] .p3-sqs:not(.p3-checker)')];
+  const card = strips[0]?.closest('.p3-card');
+  const seen = {};
+  return { card: card ? hex(groundOf(card)) : null, strips: strips.map((n) => {
+    const pal = n.closest('[data-palette]')?.dataset.palette ?? (n.closest('[data-p3="opacity-scale"]') ? 'opacity' : '?');
+    seen[pal] = (seen[pal] ?? 0) + 1;
+    return { name: `${pal}-${seen[pal]}`, root: n.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(n)) };
+  }) };
 });
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
@@ -1614,9 +1625,13 @@ for (const host of ['web', 'figma']) {
       const where = `${host} ${theme} 1280, previewing ${mode}`;
       const g = await groundsOf(page);
       const want = EMITTED[mode];
-      ok(g.roots.length >= SPECIMEN_FLOOR, `specimen ground: palettes ${where}: measured ${g.roots.length} specimen roots (floor ${SPECIMEN_FLOOR})`);
-      const bad = g.roots.filter((r) => r.ground !== want);
-      ok(bad.length === 0, `specimen ground: palettes ${where}: every specimen root sits on background.primary ${want}${bad.length ? ` — ${bad.slice(0, 3).map((r) => `${r.palette} ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}`).join(' | ')}` : ''}`);
+      for (const name of EXPECT_SPECIMENS) {
+        const st = g.strips.find((x) => x.name === name);
+        ok(!!st && st.root && st.ground === want, `specimen ground: palettes ${where}: ${name} is a specimen root on background.primary ${want}${
+          !st ? ' — not drawn' : !st.root ? ` — not a specimen root, on ${st.ground === g.card ? `the chrome card (${st.ground})` : st.ground}` : st.ground !== want ? ` — ${st.ground === g.card ? `is the chrome card (${st.ground})` : `is ${st.ground}`}` : ''}`);
+      }
+      const unlisted = g.strips.filter((x) => !EXPECT_SPECIMENS.includes(x.name)).map((x) => x.name);
+      ok(unlisted.length === 0, `specimen ground: palettes ${where}: every strip drawn is a listed specimen${unlisted.length ? ` — unlisted strip ${unlisted.join(', ')}` : ''}`);
     }
     await ctx.close();
   }
@@ -1702,6 +1717,37 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   await nameField.press('Enter');
   await nameField.press('Tab');
   ok(await page.locator('[data-p3="brand-color-name"]').first().inputValue() === was, `edit: renaming a brand color to "primary" is refused and the name stays "${was}"`);
+  // The legacy page's behavior, kept (S2 review): a status role switched from "Use accent" to Custom seeds the
+  // custom color from the ramp named for the role, which a borrowing role does not have, so #808080.
+  await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
+  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
+  await page.locator('[data-p3="status-success-source"]').selectOption('custom');
+  await hooks.need(page, '[data-p3="status-success-hex"]');
+  const seeded = await page.locator('[data-p3="status-success-hex"]').inputValue();
+  ok(seeded === '#808080', `edit: a status color switched from "Use accent" to Custom seeds #808080, as the legacy page did — seeded ${seeded}`);
+  // The neutral sliders, as the legacy page had them: only a custom tint edits them. Under Follow primary the
+  // chroma is read-only; with a pinned neutral both are read-only and show the anchor's own hue and chroma.
+  const sliders = () => page.evaluate(() => {
+    const hue = document.querySelector('[data-p3="neutral-hue-slider"]'), ch = document.querySelector('[data-p3="neutral-chroma-slider"]');
+    const meta = document.querySelector('[data-p3="lever-neutral-anchor"] .p3-colorfield-meta')?.textContent ?? '';
+    const m = /OKLCH ([\d.]+) ([\d.]+) ([\d.]+)°/.exec(meta);
+    return { hue: hue ? { disabled: hue.disabled, value: Number(hue.value) } : null, chroma: ch ? { disabled: ch.disabled, value: Number(ch.value) } : null,
+      anchor: m ? { c: Number(m[2]), h: Number(m[3]) } : null };
+  });
+  await hooks.click(page.locator('[data-p3="neutral-source-custom"]'));
+  const custom = await sliders();
+  ok(custom.hue && !custom.hue.disabled && custom.chroma && !custom.chroma.disabled, `neutral: a custom tint edits hue and chroma (${JSON.stringify(custom)})`);
+  await hooks.click(page.locator('[data-p3="neutral-source-follow"]'));
+  const follow = await sliders();
+  ok(follow.chroma?.disabled === true, `neutral: under Follow primary the chroma slider is read-only, as on the legacy page (${JSON.stringify(follow.chroma)})`);
+  await hooks.click(page.locator('[data-p3="neutral-source-custom"]'));
+  await hooks.click(page.locator('[data-p3="neutral-pin-switch"]'));
+  await hooks.need(page, '[data-p3="neutral-anchor-hex"]');
+  const pinned = await sliders();
+  ok(pinned.hue?.disabled === true && pinned.chroma?.disabled === true && !!pinned.anchor
+    && Math.abs(pinned.hue.value - pinned.anchor.h) <= 1 && Math.abs(pinned.chroma.value - pinned.anchor.c) <= 0.0015,
+  `neutral: a pinned neutral makes hue and chroma read-only and shows the anchor's own (${JSON.stringify(pinned)})`);
   ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }

@@ -140,14 +140,21 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
     neutral: () => {
       const hueL = leverOf('neutral.hue')!, chL = leverOf('neutral.chroma')!;
       const follow = !!brandState.neutral.auto;
+      const pinned = !!brandState.neutral.anchor;
       const a = leverBlock('neutral.hue', { group: true });
       const src = choice('Neutral source', 'neutral-source', [{ v: 'follow', l: 'Follow primary' }, { v: 'custom', l: 'Custom tint' }] as const,
         (v) => edit('neutral.hue', () => setNeutralFollow(v === 'follow')));
       const followLine = subLine('');
       const hue = slider('neutral.hue', 'neutral-hue-slider', hueL.label, (v) => edit('neutral.hue', () => setNeutralHue(v)));
-      a.ctl.append(src.el, follow ? followLine : hue.el);
+      // As the legacy page: only a custom tint edits hue and chroma. A pinned neutral shows the anchor's
+      // own hue and chroma, read-only (they are its readout); under Follow primary the hue follows primary
+      // and chroma is read-only too. (Letting chroma move under Follow primary, which the engine reads, is
+      // held for the owner, UI redesign S2 review.)
+      a.ctl.append(src.el, follow && !pinned ? followLine : hue.el);
+      hue.el.disabled = pinned;
       const b = leverBlock('neutral.chroma', { forId: 'p3-neutral-chroma' });
       const ch = slider('neutral.chroma', 'neutral-chroma-slider', chL.label, (v) => edit('neutral.chroma', () => setNeutralChroma(v)));
+      ch.el.disabled = pinned || follow;
       b.ctl.append(ch.el);
       return [
         { block: a, keys: ['neutral.hue'], sync: () => {
@@ -156,11 +163,15 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           src.set(f ? 'follow' : 'custom');
           const eff = f ? brandState.primary.h : n.hue;
           setText(followLine, `Hue follows primary: ${Math.round(eff * 10) / 10}°.`);
-          hue.set(n.hue);
-          a.setReadout(f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
+          const h0 = n.anchor ? n.anchor.h : n.hue;
+          hue.set(h0);
+          a.setReadout(n.anchor ? sliderReadout(hueL, h0) : f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
           a.setState(n.anchor ? stateLine(`A pinned neutral in Advanced sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
         } },
-        { block: b, keys: ['neutral.chroma'], sync: () => { ch.set(brandState.neutral.chroma); b.setReadout(sliderReadout(chL, brandState.neutral.chroma)); } },
+        { block: b, keys: ['neutral.chroma'], sync: () => {
+          const c0 = brandState.neutral.anchor ? brandState.neutral.anchor.c : brandState.neutral.chroma;
+          ch.set(c0); b.setReadout(sliderReadout(chL, c0));
+        } },
       ];
     },
 

@@ -937,14 +937,62 @@ console.log(`\nColor › Palettes — the moved page, against each brand's emiss
 /** Emitted palettes the preview does not draw as ramps: the fixed white, black and transparent, and the two
  *  alpha ramps, which it draws from the engine's constant step set on a checkerboard. Literal. */
 const NOT_RAMPS = ['white', 'black', 'transparent', 'black-alpha', 'white-alpha'];
-let palettesStates = 0;
-for (const brand of BRANDS) {
-  const { ctx, page, drain } = await openBrand(brand);
-  await hooks.need(page, '[data-p3="palettes-levers"]');
+/** EXPECTED, by name (represented, not counted; docs/34): every strip each corpus brand's Palettes preview
+ *  draws at this suite's 1440px, as palette-strip (1-based), each a specimen root on the page color. Every
+ *  emitted ramp has 20 steps, two strips of ten; the opacity scale's 12 steps make two more. Literal, per
+ *  brand, from the committed emissions; a brand the start screen offers that is not listed fails by name. */
+const strips2 = (ps) => [...ps, 'opacity'].flatMap((p) => [`${p}-1`, `${p}-2`]);
+const EXPECT_STRIPS = {
+  prism3: strips2(['primary', 'accent', 'neutral', 'success', 'warning', 'danger', 'info']),
+  aurora: strips2(['primary', 'accent', 'neutral', 'success', 'warning', 'danger', 'info']),
+  harbor: strips2(['primary', 'neutral', 'success', 'warning', 'danger', 'info']),
+};
+/** A brand's emitted ramps, step → hex, from its committed emission (the oracle). */
+const emittedRamps = async (brand) => {
   const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
   const emitted = tree[Object.keys(tree)[0]].core.palette;
-  const want = Object.fromEntries(Object.entries(emitted).filter(([k]) => !NOT_RAMPS.includes(k))
+  return Object.fromEntries(Object.entries(emitted).filter(([k]) => !NOT_RAMPS.includes(k))
     .map(([k, steps]) => [k, Object.fromEntries(Object.entries(steps).filter(([s]) => !s.startsWith('$')).map(([s, v]) => [s, String(v.$value).toLowerCase()]))]));
+};
+/** What the preview draws: per ramp, each step's label hex and its SQUARE's computed color (in step order,
+ *  read off the label beside it); and every strip by name, with whether it is a specimen root and its ground. */
+const readPalettes = (page) => page.evaluate(() => {
+  const hex = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s); return m ? `#${m[1].split(/[,\s/]+/).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : s; };
+  const ramps = {}, squares = {};
+  for (const b of document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]:not(.p3-pal-reuse)')) {
+    const keys = [...b.querySelectorAll('.p3-sqk-item')].map((li) => li.querySelector('.p3-sqk-step').textContent.trim());
+    ramps[b.dataset.palette] = Object.fromEntries([...b.querySelectorAll('.p3-sqk-item')].map((li, i) => [keys[i], `#${li.querySelector('.p3-sqk-hex').textContent.trim()}`]));
+    squares[b.dataset.palette] = Object.fromEntries([...b.querySelectorAll('.p3-sq')].map((q, i) => [keys[i], hex(getComputedStyle(q).backgroundColor)]));
+  }
+  const seen = {};
+  const strips = [...document.querySelectorAll('[data-p3="preview-body"] .p3-sqs:not(.p3-checker)')].map((n) => {
+    const pal = n.closest('[data-palette]')?.dataset.palette ?? (n.closest('[data-p3="opacity-scale"]') ? 'opacity' : '?');
+    seen[pal] = (seen[pal] ?? 0) + 1;
+    return { name: `${pal}-${seen[pal]}`, root: n.getAttribute('data-p3') === 'specimen', ground: hex(getComputedStyle(n).backgroundColor) };
+  });
+  return { ramps, squares, strips };
+});
+/** Every ramp's labels AND squares against the emission, each failing by palette and step. */
+const checkRamps = (where, want, shown) => {
+  const missing = Object.keys(want).filter((k) => !shown.ramps[k]);
+  const extra = Object.keys(shown.ramps).filter((k) => !want[k]);
+  ok(missing.length === 0 && extra.length === 0, `${where}: the preview draws exactly the emission's ${Object.keys(want).length} ramps${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — not emitted ${extra.join(', ')}` : ''}`);
+  const off = [], offSq = [];
+  for (const [k, steps] of Object.entries(want)) for (const [st, hx] of Object.entries(steps)) {
+    if (shown.ramps[k] && shown.ramps[k][st] !== hx) off.push(`${k} ${st} shows ${shown.ramps[k][st]} (emitted ${hx})`);
+    if (shown.squares[k] && shown.squares[k][st] !== hx) offSq.push(`${k} ${st} is painted ${shown.squares[k][st]} (emitted ${hx})`);
+  }
+  ok(off.length === 0, `${where}: every step of every ramp shows its emitted hex${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
+  ok(offSq.length === 0, `${where}: every square of every ramp is painted its emitted hex${offSq.length ? ` — ${offSq.slice(0, 3).join(' | ')}` : ''}`);
+};
+let palettesStates = 0;
+let recolored = 0;
+for (const [bi, brand] of BRANDS.entries()) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.need(page, '[data-p3="palettes-levers"]');
+  const want = await emittedRamps(brand);
+  const expectStrips = EXPECT_STRIPS[brand.toLowerCase()];
+  ok(!!expectStrips, `${brand} / Palettes: the suite lists the strips this brand's preview draws (EXPECT_STRIPS)`);
   const emission = await loadEmission(brand);
   const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
   ok(modes.length >= 2, `${brand} / Palettes: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
@@ -955,33 +1003,43 @@ for (const brand of BRANDS) {
     palettesStates++;
     const errs = drain();
     ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
-    const shown = await page.evaluate(() => {
-      const hex = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s); return m ? `#${m[1].split(/[,\s/]+/).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : s; };
-      const ramps = {};
-      for (const b of document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]:not(.p3-pal-reuse)')) {
-        ramps[b.dataset.palette] = Object.fromEntries([...b.querySelectorAll('.p3-sqk-item')].map((li) => [li.querySelector('.p3-sqk-step').textContent.trim(), `#${li.querySelector('.p3-sqk-hex').textContent.trim()}`]));
-      }
-      return {
-        ramps,
-        grounds: [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="specimen"]')].map((n) => hex(getComputedStyle(n).backgroundColor)),
-        overflowX: document.documentElement.scrollWidth - window.innerWidth,
-        errorBar: (() => { const e = document.querySelector('[data-p3="error-bar"]'); return { mounted: !!e, shown: !!e && getComputedStyle(e).display !== 'none' }; })(),
-      };
-    });
-    const missing = Object.keys(want).filter((k) => !shown.ramps[k]);
-    const extra = Object.keys(shown.ramps).filter((k) => !want[k]);
-    ok(missing.length === 0 && extra.length === 0, `${where}: the preview draws exactly the emission's ${Object.keys(want).length} ramps${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — not emitted ${extra.join(', ')}` : ''}`);
-    const off = [];
-    for (const [k, steps] of Object.entries(want)) for (const [st, hx] of Object.entries(steps)) if (shown.ramps[k] && shown.ramps[k][st] !== hx) off.push(`${k} ${st} shows ${shown.ramps[k][st]} (emitted ${hx})`);
-    ok(off.length === 0, `${where}: every step of every ramp shows its emitted hex${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
+    const shown = await readPalettes(page);
+    const chrome = await page.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth - window.innerWidth,
+      errorBar: (() => { const e = document.querySelector('[data-p3="error-bar"]'); return { mounted: !!e, shown: !!e && getComputedStyle(e).display !== 'none' }; })(),
+    }));
+    checkRamps(where, want, shown);
     const page0 = emission?.role('background.primary', mode)?.hex;
-    const badGround = shown.grounds.filter((g) => g !== page0);
-    ok(!!page0 && shown.grounds.length >= 8 && badGround.length === 0, `${where}: all ${shown.grounds.length} specimen strips sit on the emission's background.primary ${page0}${badGround.length ? ` — ${badGround.slice(0, 3).join(', ')}` : ''}`);
-    hooks.absent(ok, { seen: shown.errorBar.mounted, state: 'the global error bar mounted, found by its hook' }, !shown.errorBar.shown, `${where}: the global error bar is hidden`);
-    ok(shown.overflowX <= 1, `${where}: no horizontal overflow (${shown.overflowX}px past the viewport)`);
+    ok(!!page0, `${where}: the emission names this mode's background.primary (${page0})`);
+    for (const name of expectStrips ?? []) {
+      const st = shown.strips.find((x) => x.name === name);
+      ok(!!st && st.root && st.ground === page0, `${where}: strip ${name} is a specimen root on the emission's background.primary ${page0}${!st ? ' — not drawn' : !st.root ? ' — not a specimen root' : st.ground !== page0 ? ` — on ${st.ground}` : ''}`);
+    }
+    const unlisted = shown.strips.filter((x) => !(expectStrips ?? []).includes(x.name)).map((x) => x.name);
+    ok(unlisted.length === 0, `${where}: every strip drawn is a listed specimen${unlisted.length ? ` — unlisted strip ${unlisted.join(', ')}` : ''}`);
+    const shownErr = chrome;
+    hooks.absent(ok, { seen: shownErr.errorBar.mounted, state: 'the global error bar mounted, found by its hook' }, !shownErr.errorBar.shown, `${where}: the global error bar is hidden`);
+    ok(shownErr.overflowX <= 1, `${where}: no horizontal overflow (${shownErr.overflowX}px past the viewport)`);
   }
+  // THE RECOLOR PATH. A ramp whose structure did not change keeps its nodes and only has its colors patched
+  // (`recolor` in `preview/palettes.ts`). Switching to the next corpus brand from the brand menu takes that
+  // path for every ramp both brands draw alike, and the squares must then show the NEW brand's emission.
+  const next = BRANDS[(bi + 1) % BRANDS.length];
+  // Back to the first mode, which a brand load resets to, so the page color under the ramps is the same
+  // before and after and the ramps are not rebuilt for a change of ground.
+  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${modes[0]}"]`));
+  await page.evaluate(() => { for (const b of document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')) b.__kept = true; });
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: next }).first());
+  await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"]')?.textContent?.includes(n), next, { timeout: 10000 }).catch(() => {});
+  await hooks.need(page, '[data-p3="palettes-levers"]');
+  const after = await readPalettes(page);
+  const kept = await page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].filter((b) => b.__kept).length);
+  recolored += kept;
+  checkRamps(`${brand} → ${next} / Palettes, ${kept} ramp(s) recolored in place`, await emittedRamps(next), after);
   await ctx.close();
 }
+ok(recolored > 0, `the brand switches recolored ${recolored} ramp(s) in place, so the recolor path was measured`);
 ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesStates} brand × mode states (floor ${BRANDS.length * 2})`);
 
 // =============================================================================================

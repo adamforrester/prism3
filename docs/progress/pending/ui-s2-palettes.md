@@ -23,7 +23,8 @@
 The legacy Palettes region: `anchorStepFor`, `rampBands`, `cascadeRename`, `cascadeRemove`, the "Palettes page (#59)" header, `anchorField`, `brandRow`, `neutralRow`, `renderPrimitives`, `statusSeedHex`, `setStatusHue`, `statusRow`, `renderAlphaAndOpacity` with `ALPHA_STEPS_UI` and `alphaHex`, the unused `chunk`, the `autoPlaceStep` import, the `palettes` rows in `NAV`, `PAGE_COPY` and `PAGE_RENDERERS`, and its `pageHasModeVaryingControl` case. Every behavior survived in the new modules, except the ones retired or changed on purpose (below).
 
 **Behavior changed on purpose, each the option closest to v6:**
-- The neutral's three-way Source select (Auto, Custom tint, Pinned color) is v6's two chips plus the advanced Pinned neutral switch. Pinning now keeps `neutral.auto` as it was (v6), so unpinning returns to the previous source. The legacy select deleted it.
+- The neutral's three-way Source select (Auto, Custom tint, Pinned color) is v6's two chips plus the advanced Pinned neutral switch. The sliders keep the legacy rules (review round): only a custom tint edits hue and chroma, chroma is read-only under Follow primary, and a pinned neutral makes both read-only and shows the anchor's own hue and chroma.
+- **Pinning keeps `neutral.auto`** (v6's behavior, declared here): unpinning returns to the source that was set before. The legacy select deleted `auto` when pinning, so unpinning landed on Custom tint.
 - A status role that borrows or reuses another palette shows one line ("borrows primary", "reuses primary") instead of drawing that ramp a second time. The legacy page repeated the ramp, and v6 left the role out.
 - The anchor pill shows only where the brand pins a color (the legacy page's rule: primary, brand colors, a pinned neutral, a custom status hue). v6 showed 500 on the derived neutral and the Auto status ramps, which claims an anchor nobody set.
 - Removing a brand color is immediate, as it was on the legacy page. v6's confirm dialog, which lists what follows the removal, is not built.
@@ -31,7 +32,7 @@ The legacy Palettes region: `anchorStepFor`, `rampBands`, `cascadeRename`, `casc
 
 ### Tests
 
-- **`test:chrome`: 6,908 assertions** (S1.4: 5,824), about 5 min 30 s. No state is forced any more. The Q2 check and the preview-header checks measure Color › Palettes as it renders. Q2's second case, a page without the sub-nav, waits for the first moved page outside Color (S3). New:
+- **`test:chrome`: 7,216 assertions with the Q4 trial and the review round** (S1.4: 5,940), about 5 min 30 s. No state is forced any more. The Q2 check and the preview-header checks measure Color › Palettes as it renders. Q2's second case, a page without the sub-nav, waits for the first moved page outside Color (S3). New:
   - `NEW_PAGES` beside `LEGACY_PAGES` (each place in exactly one);
   - **specimen ground** on both hosts, both chrome themes and every mode. The oracle is the committed emission's `background.primary`, its alias chain resolved in Node;
   - **controls represented**: the literal `PALETTES_LEVERS`, each manifest key with its tier and hook, rendered exactly once, the advanced ones only behind Show advanced. A lever block outside the list fails as unclassified;
@@ -41,7 +42,7 @@ The legacy Palettes region: `anchorStepFor`, `rampBands`, `cascadeRename`, `casc
   - V1 scroll and focus inside the panes;
   - Inspect over the preview, which restores the preview's scroll;
   - mono text must draw the embedded JetBrains Mono.
-- **`test:smoke`: 3,276** (S1.4: 3,380). The Pages-menu sweep lost Palettes (180 assertions), and a new section, "Color › Palettes, the moved page", runs per corpus brand and per mode on the new hooks. It holds every ramp and every step's hex against the brand's committed emission, every strip's ground against the emission's `background.primary`, and checks 0 console errors, the error bar hidden and no overflow.
+- **`test:smoke`: 3,497** (S1.4: 3,380). The Pages-menu sweep lost Palettes (180 assertions), and a new section, "Color › Palettes, the moved page", runs per corpus brand and per mode on the new hooks. It holds every ramp and every step's hex against the brand's committed emission, every strip's ground against the emission's `background.primary`, and checks 0 console errors, the error bar hidden and no overflow.
 - **`test:verdict` 191/191, `test:start` all pass, `audit:modes --check-badges` 12/12.** Each boot wait moved from the legacy frame to the frame. The verdict's off-page build reaches Palettes by its tab. The mode audit checks that the Pages menu offers Surfaces & fills and no longer offers Palettes.
 - **Studio `test`:** `test-shell-imports` 28 and `test-pages` 71 (it adds "moved pages": each page's status against a literal `MOVED` list, and a `new` page names no legacy page).
 
@@ -79,6 +80,11 @@ The plan lists the step picker (V9) under S2, but concept v6 gives Palettes no u
 
 ### Held for the owner
 
+Behavior alternatives the review round kept out of S2 (S2 stays behavior-neutral), for the owner to decide:
+- **Seed Custom from the borrowed palette.** A status role that uses another palette and is switched to Custom seeds `#808080`, as the legacy page did. The alternative seeds it from the borrowed palette's mid step, so the custom color starts where the role was.
+- **Allow chroma under Follow primary.** The engine reads `neutral.chroma` under Follow primary, but the legacy page (and S2) keep the slider read-only there. The alternative lets it move.
+
+
 Each is the option closest to v6, picked and flagged under the overnight rule. None is brand-facing.
 - **The step picker is unmounted until S4** (above), the orchestrator's call.
 - **Sliders are the native range** filled with `icon`. v6 drew its own track with a `--pct` variable, which the chrome build refuses (only `--p3-*` variables, and only mapped ones). The rail and thumb are not measured for 3:1, because the probe reads CSS edges.
@@ -91,10 +97,30 @@ Each is the option closest to v6, picked and flagged under the overnight rule. N
 
 ### The Q4 trial (its own commit, for the owner's decision)
 
-The owner's QA note Q4 invited a trial on one section: the preview follows the lever being edited. On Color › Palettes, **an edit** to a lever scrolls the preview so the palette it changes is in view: primary to the primary ramp, a brand color to its ramp, either neutral lever or the pinned neutral to the neutral ramp, and a status color to its ramp. A palette already in view is left where it is. **Nothing else moves it.** Focusing a lever, scrolling either pane and changing the mode leave the preview where it was, and the home view never changes (V1). It is one small module, `preview/follow-edit.ts`. The edit handler notes the palette before it rebuilds, and the preview reveals it after its repaint. It is one commit on top of S2, so dropping that commit removes it whole. `test:chrome` section 15 checks that an edit reveals the neutral and primary ramps from the bottom of the preview, and that focus, the levers' scroll and the mode do not move it (6,916 assertions with it).
+The owner's QA note Q4 invited a trial on one section: the preview follows the lever being edited. On Color › Palettes, **an edit** to a lever scrolls the preview so the palette it changes is in view: primary to the primary ramp, a brand color to its ramp, either neutral lever or the pinned neutral to the neutral ramp, and a status color to its ramp. A palette already in view is left where it is. **Nothing else moves it.** Focusing a lever, scrolling either pane and changing the mode leave the preview where it was, and the home view never changes (V1). It is one small module, `preview/follow-edit.ts`. The edit handler notes the palette before it rebuilds, and the preview reveals it after its repaint. It is one commit on top of S2, so dropping that commit removes it whole. `test:chrome` section 15 checks that an edit reveals the neutral and primary ramps from the bottom of the preview, and that focus, the levers' scroll and the mode do not move it (7,216 `test:chrome` assertions with it and the review round).
 
 | | Mutation | Fails with |
 |---|---|---|
 | g | the reveal triggered on focus instead of on an edit | `Q4: focusing a lever does not move the preview (scrollTop 120, was 3024)` |
 
 **For the owner: keep it, apply it everywhere, or drop it.** Adding a brand color and renaming one do not scroll in the trial (the edit has no palette to reveal until the repaint names it).
+
+### Review round (orchestrator's independent review of #1935)
+
+S2 stays behavior-neutral. Where the move had changed behavior, the legacy behavior is back and the alternative is listed for the owner (above).
+- **`statusSeedHex` looks up the ramp named for the role** again (`p.palette === role`, as `main.ts` had). S2 had looked up `roleToPalette`, so a borrowing role switched to Custom seeded the borrowed palette's step 500 instead of `#808080`.
+- **The neutral sliders** follow the legacy rules again: read-only while pinned, showing the anchor's hue and chroma, and chroma read-only under Follow primary. The state line about a pinned neutral ("Hue and chroma are its readout") is now true.
+- **Specimen roots are represented, not counted.** `test:chrome` holds `EXPECT_SPECIMENS` and smoke holds `EXPECT_STRIPS` per corpus brand. Both are literal palette × strip names (`neutral-1`…), each of which must be drawn, marked a specimen root and on the page color, and an unlisted strip fails too. The floors (`>= 14`, `>= 8`) are gone.
+- **Square colors are checked.** Smoke reads each square's computed color against the committed emission, as it already did the labels, on every brand and mode. It also checks after a brand switch from the brand menu, where a ramp whose structure is unchanged keeps its nodes and has its colors patched in place. The patch also runs on every freshly built ramp, so the check covers both paths.
+- `src/preview/follow-edit.ts` is in the repaint guard's `MUST_SCAN`.
+
+Counts: `test:chrome` 7,216, `test:smoke` 3,497, `test-shell-imports` 29.
+
+| | Mutation | Fails with |
+|---|---|---|
+| r1 | `statusSeedHex` back on S2's `roleToPalette` lookup | `edit: a status color switched from "Use accent" to Custom seeds #808080, as the legacy page did — seeded #7a3cff` |
+| r2 | the neutral's first strip unmarked and painted on the card | `test:chrome`: `specimen ground: palettes web light 1280, previewing dark: neutral-1 is a specimen root on background.primary #0d0d0e — not a specimen root, on the chrome card (#ffffff)`; smoke: `aurora / Palettes / dark: strip neutral-1 is a specimen root on the emission's background.primary #0d0d0e — not a specimen root` |
+| r3 | step 500's square painted `#ff00ff` in both paths | `aurora / Palettes / dark: every square of every ramp is painted its emitted hex — primary 500 is painted #ff00ff (emitted #7269ca) …`, and `prism3 → aurora / Palettes, 1 ramp(s) recolored in place: every square …` |
+| r3b | the same, in the recolor path alone | the same messages (the recolor path paints every ramp) |
+| r4 | the hue slider left editable while pinned | `neutral: a pinned neutral makes hue and chroma read-only and shows the anchor's own ({"hue":{"disabled":false,"value":152},…})` |
+| r5 | chroma left editable under Follow primary | `neutral: under Follow primary the chroma slider is read-only, as on the legacy page ({"disabled":false,"value":0.005})` |

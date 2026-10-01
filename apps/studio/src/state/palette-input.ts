@@ -141,11 +141,14 @@ export const statusSource = (role: StatusRole): StatusSource => {
   if (borrowed) return `use:${borrowed}`;
   return brandState.status?.[role] ? 'custom' : 'auto';
 };
-/** The hex a custom hue starts from: the current custom hue, else the ramp's mid step, else gray. */
+/** The hex a custom hue starts from: the current custom hue, else the mid step of the ramp NAMED FOR THE
+ *  ROLE, else gray. Looked up by the role's own name, as the legacy page did: a role that borrows another
+ *  palette has no ramp of its own, so switching it to Custom seeds `#808080`, not the borrowed palette's
+ *  color. (Seeding from the borrowed palette instead is held for the owner, UI redesign S2 review.) */
 export const statusSeedHex = (role: StatusRole): string => {
   const cur = brandState.status?.[role];
   if (cur) return hexOf(cur);
-  const pal = theme.palettes.find((p) => p.palette === ((theme.roleToPalette as Record<string, string>)[role] ?? role));
+  const pal = theme.palettes.find((p) => p.palette === role);
   return pal?.steps.find((s) => s.num === 500)?.hex ?? pal?.steps[Math.floor(pal.steps.length / 2)]?.hex ?? '#808080';
 };
 /** Set a status role's source. The three are exclusive, so each clears the other two. */

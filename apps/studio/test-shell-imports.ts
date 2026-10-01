@@ -81,7 +81,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S1.4: the Activity drawer and the Figma menu, which run writes `main.ts` lends and must not reach a tier.
   'src/shell/activity.ts', 'src/shell/figma.ts',
   // S2: Color › Palettes (its levers and its preview) and the shared controls.
-  'src/domains/color-palettes.ts', 'src/preview/palettes.ts', 'src/ui/lever-kit.ts', 'src/ui/step-picker.ts'];
+  'src/domains/color-palettes.ts', 'src/preview/palettes.ts', 'src/ui/lever-kit.ts', 'src/ui/step-picker.ts',
+  // S2's Q4 trial.
+  'src/preview/follow-edit.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
