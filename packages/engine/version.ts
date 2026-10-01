@@ -2744,6 +2744,41 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.220.0 — folded 2026-10-01 from 3 change notes, newest merge first.
+ *
+ * [lane-links-follow-action · minor · 8b793d96] #1895: an unset `linkPalette` follows the palette the action role resolves to, `roleColors.action`
+ * included (owner decision 2026-10-01). It followed the `actionPalette` lever, so a brand that moved action
+ * with `roleColors.action` got action fills on the new palette and links still on primary. `theme.ts` now
+ * resolves `input.linkPalette ?? roleToPalette.action`, and modes.ts then takes its existing
+ * link-follows-action path, so the link anchors as the action fill does. An explicit `linkPalette` still
+ * wins. No corpus brand sets `roleColors.action`, so no `out/` artifact moves; `schema/lever-manifest.json`
+ * moves for the `linkPalette` description, which now says links follow the action color including a
+ * `roleColors.action` override. The two decisions-log notes for a set `linkPalette` now compare against
+ * the resolved action palette and say "the action color" instead of "actionPalette" (owner decision
+ * 2026-10-01). No token name moves.
+ *
+ * [lane-write-safety-floor · minor · 5a70ec82] Plugin write-path safety floor (#1884, #506 case c): every effect, paint, grid and text style Apply Theme
+ * writes now carries an ownership mark, shared plugin data `prism3`/`owned` = `1`, stamped whether the
+ * style was created or reused. The apply pre-flight reads the mark before the description. A style a
+ * designer re-described is still recognized as Prism3's. Before this, its next apply was refused and named
+ * the style as not created by Prism3. Styles written before the mark existed are still recognized by the
+ * engine's description templates, or by the persisted brand in a file older than the mode stamp, and the
+ * next apply marks them. A file built by any earlier version re-applies with nothing created and no
+ * conflict. Variables carry no mark: the pre-flight judges a variable by its collection's stamp and checks
+ * its type in every era. Nothing changes for a foreign file. It is still refused whole before the first
+ * write, and the verdict names each collision.
+ *
+ * [lane-notes-voice · minor · 07db9e67] Every decisions-log note follows the voice standard's UI register (#1883). `theme.notes` ships in the
+ * MCP `theme_brand` result, each emitted tree's `decisions`, the reports and the studio's Decisions log,
+ * and its notes were engine-voiced: "CONFIRM" directives, all-caps words, issue numbers, a date and
+ * maintainer terms ("hairline sentinel", "LIFT-primary", "DTCG composite spine"). Each note now says
+ * what the engine decided, then why, in plain words. Text only: no decision changes, and no token,
+ * contrast result or contract path moves. The `WCAG 1.4.1` citation the studio's link advisory reads is
+ * kept verbatim. The provenance the notes carried (issue numbers, the date) moved to comments beside
+ * each push. `lint-voice.ts` gains a DECISIONS LOG arm that renders every producer across the corpus, a
+ * sweep of brand inputs and every schema enum value, reads the literals of every push, and fails an issue number, an all-caps word, a date, an internal id or a
+ * maintainer term in any note, and any note no known producer claims.
+ *
  * 0.219.0 — folded 2026-10-01 from 5 change notes, newest merge first.
  *
  * [lane-radius-large-rungs · minor · 6670a1fc] Three container radius rungs, `radius.xl`, `radius.2xl` and `radius.3xl` (#1852). The ladder stopped at
@@ -4409,7 +4444,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.219.0';
+export const ENGINE_VERSION = '0.220.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
