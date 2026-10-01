@@ -109,8 +109,9 @@ export type HostTopic =
 /** What changed. `brand`: the working input, the resolved theme or the error (every `rebuild`, and a
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the
  *  rail destination. `search`: the settings search query. `search:hits`: how many settings it matched on
- *  the page in view. Plus the host topics above. */
-export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'search' | 'search:hits' | HostTopic;
+ *  the page in view. `identity`: the brand's name or namespace moved WITHOUT a rebuild (`syncIdentity`, UI
+ *  redesign S3), so whatever shows the name repaints without a re-resolve. Plus the host topics above. */
+export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'search' | 'search:hits' | 'identity' | HostTopic;
 const subscribers = new Map<Topic, Set<() => void>>();
 
 /** Call `fn` whenever `topic` is invalidated. Returns the unsubscribe. */
@@ -197,6 +198,7 @@ export const syncIdentity = (): void => {
   lastGoodInput.id = brandState.id;
   lastGoodInput.root = brandState.root;
   persist?.(lastGoodInput);   // web reopen reads the fresh identity
+  invalidate('identity');     // S3: the bar's brand name follows the Brand page's name field
 };
 
 /**

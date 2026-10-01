@@ -61,7 +61,7 @@ import {
 // bindings here: read freely, reassigned only through its setters.
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
-  firstRun, rebuild, syncIdentity, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
+  firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
   getPath, setPath, getModeLever, setModeLever, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
   type Mode, type PageKey,
 } from './state/store';
@@ -78,7 +78,6 @@ const NEW_BRAND = (): BrandInput => ({
   primary: { l: 0.55, c: 0.15, h: 262 },
   neutral: { hue: 262, chroma: 0.006, auto: true },   // neutral hue auto-follows primary (262 = primary.h → identical ramp; now live-linked)
 });
-const ROOT_RE = /^[a-z][a-z0-9-]*$/;
 
 // Every ATOMIC control is live — it edits brandState and re-runs the engine on change.
 // Liveness is by control TYPE, not a per-key allowlist: sliders, enums, palette-refs, and
@@ -106,7 +105,6 @@ const NAV = [
   { key: 'sizeRadius', label: 'Size & radius', sub: 'Size, density, corner radius' },
   { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
   { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
-  { key: 'preview', label: 'Preview', sub: 'Components & contrast, all modes', view: true },
   // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
   // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
   // Placement and label are proposed, owner to confirm (docs/45).
@@ -1321,7 +1319,7 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void = paintVolat
  *  the label (a `.tpill`); the resolved primitive + hex + contrast reveal on hover. Reuses the doc-26
  *  shell (`palSection`/`subHead`/`tokenPill`); only the specimen layout is new (`sg-*`). */
 const SG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9l7 .5-5.3 4.6L18.2 21 12 17l-6.2 4 1.5-6.9L2 9.5 9 9z"/></svg>';
-const renderPreviewStyleGuide = (host: HTMLElement): void => {
+const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void => {
   type SGRole = { path: string; hex: string; ratio: number; min: number; alpha?: number };
   const rolesByMode = new Map<string, Record<string, SGRole | undefined>>(
     resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, SGRole | undefined>]));
@@ -1457,7 +1455,10 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
 
   const ground = (sec: HTMLElement): HTMLElement => {
-    const g = el('div', 'sg-ground');
+    // A specimen root (UI redesign S3, plan §9.1): the brand's content on the ground chosen above, which on
+    // the default Page ground is the brand's own `background.primary` for the previewed mode, never the
+    // chrome's card. `test:chrome` and `test:smoke` find it by this hook and measure what it composites to.
+    const g = hook(el('div', 'sg-ground'), 'specimen');
     const head = sec.querySelector('.psec-head');
     while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
     const bg = paint(cur, surf.key);
@@ -1490,7 +1491,9 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const bar = el('div', 'sg-surfbar');
   const sel = hook(selectEl('cap'), 'style-guide-ground');
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
-  sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
+  // The repaint is the caller's (Brand's preview, UI redesign S3), so the select redraws the Style guide in
+  // place, never through a legacy tier.
+  sel.onchange = () => { sgSurface = sel.value; repaint(); };
   const stack = el('div', 'sg-surfstack');
   const row = el('div', 'sg-surfrow');
   // The swatch sits BESIDE the select, not inside it. A native `option` cannot carry a swatch — it
@@ -1724,7 +1727,6 @@ const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
   sizeRadius: ['Size & radius.', 'Component sizing (control height, driven by density) and corner radius. Both go per-mode outside Light. Each component sets its own padding, and density moves it one step on the spacing scale.'],
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
   motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
-  preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
@@ -4005,40 +4007,11 @@ const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', 
   h.append(renderSpringsSection());
 }, () => [renderMotionSpecimen()]);
 
-/** The Preview destination (docs/23 §7) — the resolved system for the mode picked in the global header,
- *  across three segmented views: the style guide (the roles composed in-context), the all-modes contrast
- *  contract table, and the category-grouped token list. (The former "UI preview" component gallery was
- *  dropped — button padding / badges / nav aren't defined at this stage, so those specimens were
- *  placeholder; the style guide now carries the real value.) */
-type PreviewView = 'styleguide' | 'contrast' | 'tokens';
-let previewView: PreviewView = 'styleguide';
-/** Which background role the Style guide's specimens are previewed on. Module state so it survives
- *  a repaint, like `previewView` and `currentMode` beside it. */
+/** Which background role the Style guide's specimens are previewed on. Module state so it survives a repaint,
+ *  like `currentMode`. The legacy Preview page that held it, with its three views, is gone (UI redesign S3):
+ *  the Style guide is Brand's preview, lent to `preview/brand.ts`, and the contract table and the token
+ *  list are Inspect's (S1.3). */
 let sgSurface = 'background.primary';
-const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['styleguide', 'Style guide'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
-const renderPreviewPage = (host: PageHost): void => {
-  const [title, lede] = PAGE_COPY.preview;
-  host.append(hero(title, lede));
-  // Segmented view-switcher (docs/23 §7) — the three "look at the result" views in one destination.
-  const seg = el('div', 'pvseg');
-  for (const [k, label] of PREVIEW_VIEWS) {
-    const b = el('button', 'pvseg-b' + (previewView === k ? ' on' : ''), label) as HTMLButtonElement;
-    b.onclick = () => { if (previewView !== k) { previewView = k; renderWorkspace(); } };
-    seg.append(b);
-  }
-  host.append(seg);
-  const vol = el('div', 'stage-vol');
-  host.append(vol);
-  setVolatile([vol], () => {
-    vol.innerHTML = '';
-    const pv = el('div', 'pvhost');
-    vol.append(pv);
-    if (previewView === 'styleguide') renderPreviewStyleGuide(pv);
-    else if (previewView === 'contrast') renderPreviewContracts(pv);
-    else renderPreviewTokens(pv);
-  });
-  paintVolatile();
-};
 
 /**
  * Which defs can actually be materialized, ASKED rather than listed (#804).
@@ -7618,6 +7591,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         activity: { read: activityReading, closeDetail: closeOpenDetail },
         figma: commit.isFigma ? figmaActions : null,
+        // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
+        lend: { styleGuide: renderPreviewStyleGuide },
       });
     }
     chromeHost = frame.head;
@@ -7740,15 +7715,8 @@ const pageHasModeVaryingControl = (): boolean => {
   // to drive. Same conclusion as Primitives and Preview, reached from the other end: those have no
   // per-mode values, this one shows them all at once.
   if (page === 'typography') return false;
-  // Preview is THREE views with three different answers, so the rule lands per VIEW, not per page.
-  // Measured Light->Dark on the rendered TEXT (#439):
-  //   Style guide         8 of 373 lines differ — it renders the ACTIVE mode, and says so
-  //                       ("ON LIGHT SURFACE" -> "ON DARK SURFACE"). The bar does real work.
-  //   Contrast contracts  0 of 54  — every mode is already a column (Pair | Light | Dark | HC ...)
-  //   Token list          1 of 940 — one caption; every mode is already a column pair
-  // The two column views meet exactly the condition stated for Typography above: when every
-  // mode-varying value is a column, the bar has nothing left to drive. Same rule, finer grain.
-  if (page === 'preview') return previewView === 'styleguide';
+  // (The Preview page's per-view rule went with the page, UI redesign S3: the Style guide is Brand's
+  // preview, whose header carries the mode control, and its other two views are Inspect's.)
   return true;
 };
 
@@ -7796,7 +7764,6 @@ const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
   sizeRadius: renderSizeRadiusPage,
   layout: renderLayoutPage,
   motion: renderMotionPage,
-  preview: renderPreviewPage,
   styleGuide: renderStyleGuidePage,
   components: renderComponentsPage,
 };
@@ -8173,6 +8140,11 @@ subscribe('page', () => { if (frame && !loading && !firstRun()) build(); });
 // the writer still calls `apply()`, which syncs the chrome itself, so this would run it twice.
 subscribe('brand', () => { if (frame && !loading && !firstRun() && isNewPage(page)) syncChrome(); });
 
+// A NAME TYPED ON THE BRAND PAGE REACHES THE BAR THROUGH THE STORE (UI redesign S3). Brand › Identity writes
+// the name per keystroke without a rebuild (#1196), and `syncIdentity` tells the `identity` topic; the brand
+// switcher's name is patched in place, as the brand menu's Name field used to patch it by name.
+subscribe('identity', () => { const n = barHost?.querySelector('.p3-brand-name'); if (n) n.textContent = brandState.id; });
+
 // A MODE CHANGE FROM THE NEW SHELL REPAINTS THE LEGACY PAGE THROUGH THE STORE (UI redesign S1.3). The
 // preview's mode control calls `setCurrentMode` and nothing else; the legacy writers (the mode strip, the
 // brand menu's mode toggles) call it and then repaint themselves. So this waits a microtask and repaints
@@ -8402,52 +8374,21 @@ const renderOverwriteConfirm = (pending: { input: BrandInput; origin: Origin }):
 const renderBrandMenu = (): HTMLElement => {
   const menu = hook(el('div', 'brandmenu'), 'brand-menu');
 
-  menu.append(el('div', 'bm-cap', 'Current brand'));
-  const field = (label: string, value: string, mono: boolean, role: string, oninput: (v: string, input: HTMLInputElement) => void): HTMLElement => {
-    const f = el('label', 'bm-field');
-    f.append(el('span', 'bm-lab', label));
-    const inp = hook(el('input', 'bm-in' + (mono ? ' mono' : '')) as HTMLInputElement, role);
-    inp.value = value; inp.spellcheck = false;
-    inp.oninput = () => oninput(inp.value, inp);
-    f.append(inp);
-    return f;
-  };
-  // The Examples `.cur` marker is computed from `brandState.id`, which the Name field below writes per
-  // keystroke WITHOUT re-rendering this menu (a re-render mid-typing takes the caret with it). So the
-  // marker is patched in place, next to the brand switcher's name patch, from the SAME predicate the render uses
-  // (#1075) — otherwise it goes stale while the menu is open and only corrects on the next open. Which
-  // key that predicate should compare (the id, or the origin) is #1073's question, deliberately not
-  // answered here: whichever it becomes, render and patch read the one function.
+  // The brand's Name and Namespace fields left this menu for Brand › Identity (UI redesign S3, IA-1), where
+  // the name writes per keystroke through `syncIdentity` (#1196) and the namespace warns while it is a
+  // reserved or placeholder one (T2). The bar's name follows through the store's `identity` topic.
+  // The Examples `.cur` marker is computed at render, from `brandState.id`: no field in this menu writes the
+  // name any more, so nothing can move it while the menu is open (#1075's in-place patch had that subject).
   const isCurrentExample = (name: string): boolean => name === brandState.id;
-  const exampleItems: Array<[string, HTMLElement]> = [];
-  const markCurrentExample = (): void => { for (const [name, b] of exampleItems) b.classList.toggle('cur', isCurrentExample(name)); };
-  menu.append(field('Name', brandState.id, false, 'brand-menu-name', (v) => {
-    brandState.id = v.trim() || 'untitled';
-    (barHost.querySelector('.p3-brand-name') as HTMLElement).textContent = brandState.id;
-    markCurrentExample();
-    syncIdentity();   // #1196 — reach lastGoodInput (persist / Apply / design.md / filename) without a rebuild; the name is not in any ref, so no re-resolve
-  }));
-  const nsHint = el('p', 'bm-hint');
-  const setHint = () => { nsHint.textContent = `Tokens emit under ${brandState.root ?? 'prism'}.*`; };
-  menu.append(field('Namespace', brandState.root ?? 'prism', true, 'brand-menu-namespace', (v, inp) => {
-    const t = v.trim();
-    // Only a VALID root is committed — an invalid one leaves brandState.root untouched and marks the
-    // input, so it never reaches emission. syncIdentity keeps persist/Apply fresh per-keystroke; the
-    // local `theme` used by the token export is re-resolved lazily by ensureThemeFresh at export time
-    // (a rebuild here, per keystroke, would re-resolve the whole theme as the designer types the root).
-    if (ROOT_RE.test(t)) { brandState.root = t; inp.classList.remove('bad'); setHint(); syncIdentity(); }   // #1196
-    else inp.classList.add('bad');
-  }));
-  setHint();
-  menu.append(nsHint);
 
   // Modes are back in this dropdown (#432), reversing #171 — which had moved them to an "Edit modes"
   // popover on the mode strip, "next to the mode you're viewing". Two things changed since: the strip
   // moved onto the page, where a popover competes with page content rather than hanging off a header;
   // and WHICH modes a brand generates turned out to be brand configuration, sitting more naturally
   // beside namespace and the example brands than beside a per-page selector. Selecting a mode stays on
-  // the strip — only managing the SET moved. Rendered inline rather than as a nested popover.
-  menu.append(el('div', 'bm-div'));
+  // the strip — only managing the SET moved. Rendered inline rather than as a nested popover. (UI redesign
+  // S3 moved Name and Namespace to Brand › Identity, so Modes leads the menu; Brand › Modes edits the same
+  // set, and this copy stays until a slice retires it: the plan retires only the two fields.)
   menu.append(el('div', 'bm-cap', 'Modes'));
   menu.append(renderModeSetMenu(renderBar, true));
 
@@ -8455,7 +8396,6 @@ const renderBrandMenu = (): HTMLElement => {
   menu.append(el('div', 'bm-cap', 'Examples'));
   for (const name of Object.keys(BRANDS)) {
     const b = hook(el('button', 'bm-item' + (isCurrentExample(name) ? ' cur' : '')) as HTMLButtonElement, 'brand-menu-example');
-    exampleItems.push([name, b]);
     const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     b.append(d, el('span', undefined, name));
     // #1033: through the guard, not straight to `loadBrand`. Examples STAY here and stay one click from
@@ -9238,7 +9178,7 @@ const renderNavMenu = (): HTMLElement => {
     };
     menu.append(it);
   });
-  menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form.'));
   // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
   // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
   // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version

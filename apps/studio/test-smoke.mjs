@@ -508,15 +508,15 @@ const classifyPair = (p, emission, mode) => {
  *    above what a sweep of nothing-but-chrome states totals, so it catches every state rendering only
  *    its chrome — which the per-state floor clears once per state and structurally cannot catch in
  *    aggregate.
- *  - `SWEEP_STATE_FLOOR` (32) — the product of the three per-axis minimums already asserted below
- *    (≥ 2 brands × ≥ 2 modes × ≥ 8 pages), so it raises no new bar. What it adds is a NAMED failure
+ *  - `SWEEP_STATE_FLOOR` (28) — the product of the three per-axis minimums already asserted below
+ *    (≥ 2 brands × ≥ 2 modes × ≥ 7 pages; the Preview page left the Pages menu in UI redesign S3), so it raises no new bar. What it adds is a NAMED failure
  *    for a sweep that visits nothing: at zero states the loop body never runs, so contrast, console
  *    errors and mode agreement are all ABSENT rather than failing, and absence is what this file
  *    keeps having to convert into a failure.
  */
 const STATE_NODE_FLOOR = 12;
 const SWEEP_NODE_FLOOR = 8000;
-const SWEEP_STATE_FLOOR = 32;
+const SWEEP_STATE_FLOOR = 28;
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
  *  derived mode, where the read-only note replaces every editor, so the per-state range starts at 0 and
@@ -526,16 +526,17 @@ const SWEEP_STATE_FLOOR = 32;
  *  retires controls — this is the site #1232 fixed, the count belongs in the live output, not frozen in
  *  a comment beside a passing assertion. */
 const SWEEP_FIELD_FLOOR = 250;
-/** The brand menu's own minimum, asserted per open (#1031). The popover carries Name and Namespace
- *  unconditionally, plus `.bm-ta` once the import box is open — three controls is what the surface
- *  promises, and this is the count that turns "the sweep was clean" into "the sweep looked here".
- *  Text rows are floored separately at a deliberately loose 6: the menu renders four captions, two
- *  labels, a hint and the example rows, and a floor near the real number would fail on wording. */
-const BRANDMENU_FIELD_FLOOR = 3;
+/** The brand menu's own minimum, asserted per open (#1031). The popover carried Name and Namespace until UI
+ *  redesign S3 moved them to Brand › Identity (chrome, measured by `test:chrome` in both themes, and by the
+ *  Brand section below); what it still carries is `.bm-ta` once the import box is open, so one control is
+ *  what the surface promises, and this is the count that turns "the sweep was clean" into "the sweep looked
+ *  here". Text rows are floored separately at a deliberately loose 6: the menu renders captions, the mode
+ *  rows and the example rows, and a floor near the real number would fail on wording. */
+const BRANDMENU_FIELD_FLOOR = 1;
 const BRANDMENU_TEXT_FLOOR = 6;
-/** The three by IDENTITY — Name, Namespace, the import textarea. Named because the floor above can only
- *  say "three of something", and #1031 was a defect in a specific field, not in a quantity of fields. */
-const BRANDMENU_CONTROLS = ['[data-p3="brand-menu-name"]', '[data-p3="brand-menu-namespace"]', '[data-p3="import-text"]'].map(hooks.role);
+/** The one by IDENTITY — the import textarea. Named because the floor above can only say "one of
+ *  something", and #1031 was a defect in a specific field, not in a quantity of fields. */
+const BRANDMENU_CONTROLS = ['[data-p3="import-text"]'].map(hooks.role);
 
 // ---- browser plumbing ------------------------------------------------------------------------
 const browser = await chromium.launch();
@@ -703,7 +704,7 @@ for (const brand of BRANDS) {
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
   const pages = await railLabels(page);
-  ok(pages.length >= 8, `${brand}: the Pages menu offers ${pages.length} destinations`);
+  ok(pages.length >= 7, `${brand}: the Pages menu offers ${pages.length} destinations (S3 took Preview out: its Style guide is Brand's preview)`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
   //
@@ -880,6 +881,108 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 
+// =============================================================================================
+// 1a. Brand — moved to the two panes (UI redesign S3), on its own hooks
+// =============================================================================================
+// The Preview page left the Pages menu in S3: its Style guide is Brand's preview now (the legacy renderer,
+// lent into `preview/brand.ts`), and its other two views are Inspect's (S1.3). So the Style guide's sweep is
+// here, per corpus brand and per mode, held to everything the sweep above held it to: the rendered contrast of
+// every text node and form control, the paired specimens against the contracts of the pairs they preview
+// (#1652, counted into the same totals the sweep asserts below), and each ground on the brand's own
+// `background.primary` from its COMMITTED EMISSION. Then Identity's namespace warning (T2).
+//
+// Mutation (S3, plan): let the namespace field accept `pds3` without the warning (its entry dropped from
+// `RESERVED_NAMESPACES` in `src/state/brand-input.ts`) → `prism3: a reserved namespace warns before export —
+// "pds3" must say "pds3 is the default theme’s placeholder. …", says null`, and the same for each brand's draft.
+console.log(`\nBrand — the moved page, the Style guide per mode, the namespace warning\n${'='.repeat(78)}`);
+/** T2 (v4 review) in concept v6's words: the namespaces that warn before export, and what each says. Literal. */
+const RESERVED_NS = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
+  prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
+let brandStates = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await hooks.need(page, '[data-p3="brand-levers"]');
+  await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="specimen"]');
+  const emission = await loadEmission(brand);
+  const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
+  ok(modes.length >= 2, `${brand} / Brand: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+  for (const mode of modes) {
+    await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+    await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+    await page.evaluate(() => document.fonts.ready);
+    const where = `${brand} / Brand / ${mode}`;
+    brandStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    await settle(page, where);
+    const probe = await page.evaluate(LEGIBILITY_PROBE, '[data-p3="brand-style-guide"]');
+    assertParsed(where, probe.unparsed);
+    ok(probe.rootFound, `${where}: the Style guide is mounted in Brand's preview and was measured`);
+    const rows = probe.text;
+    nodesMeasured += rows.length;
+    fieldsMeasured += probe.fields.length;
+    ok(rows.length >= STATE_NODE_FLOOR, `${where}: the contrast probe measured ${rows.length} text nodes in the Style guide (floor ${STATE_NODE_FLOOR})`);
+    for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
+    const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR);
+    ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
+    const chrome = rows.filter((r) => !r.specimen);
+    specimensMeasured += rows.length - chrome.length;
+    for (const r of chrome) if (r.ratio < worstChrome) { worstChrome = r.ratio; worstChromeWhere = `${where} — ${r.cls} "${r.text}"`; }
+    const chromeUnder = chrome.filter((r) => r.ratio < barOf(r));
+    ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large)${chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
+    const unmarked = rows.filter((r) => r.inlineInk && !r.specimen);
+    ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}` : ''}`);
+    const paired = rows.filter((r) => r.pair);
+    ok(paired.length > 0, `${where}: the Style guide previews paired specimens (${paired.length})`);
+    if (paired.length && emission) {
+      modeCells.add(`${brand}/${mode}`);
+      ok(emission.modes.includes(mode), `${where}: the mode "${mode}" is one the emission carries (${emission.modes.join(', ')})`);
+      const judged = paired.map((r) => ({ r, c: classifyPair(r.pair, emission, mode) }));
+      const bad = judged.filter(({ c }) => c.problem);
+      ok(bad.length === 0, `${where}: every one of ${paired.length} paired specimens renders exactly the engine role pair it claims${bad.length ? ` — ${bad.slice(0, 3).map(({ r, c }) => `"${r.pair.state}" ${c.problem}`).join(' | ')}` : ''}`);
+      const held = judged.filter(({ c }) => !c.problem);
+      for (const { c } of held) pairedByClass[c.cls]++;
+      const pairUnder = held.filter(({ r, c }) => r.ratio < c.bar);
+      ok(pairUnder.length === 0, `${where}: every paired specimen meets the contract of the pair it previews${pairUnder.length ? ` — ${pairUnder.slice(0, 3).map(({ r, c }) => `${r.pair.claim} at ${r.ratio}:1 (${c.contract}, needs ${c.bar}:1)`).join(' | ')}` : ''}`);
+      for (const { r, c } of held.filter(({ c }) => c.cls === 'exempt')) {
+        exemptCells.add(`${brand}/${mode}`);
+        if (r.ratio < worstExempt) { worstExempt = r.ratio; worstExemptWhere = `${where} — ${r.pair.claim}`; }
+        const rest = held.find(({ r: q }) => q.pair.row === r.pair.row && q.pair.state === 'rest');
+        ok(rest && hexOf(rest.r.pair.fill) !== hexOf(r.pair.fill),
+          `${where}: exempt ${r.pair.claim} is distinct from its row's rest fill — the one thing #1281 keeps gated (${rest ? `${hexOf(r.pair.fill)} vs rest ${hexOf(rest.r.pair.fill)}` : 'NO rest specimen in its row'})`);
+      }
+    }
+    const fieldsUnder = probe.fields.filter(fieldFails);
+    ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value at its text bar and its caret at ${CHROME_CARET_MIN}:1${fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map(describeField).join(' | ')}` : ''}`);
+    // Each Style guide ground on the page: the brand's own background.primary for this mode, from its emission.
+    const grounds = await page.evaluate(() => {
+      const hex = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s); return m ? `#${m[1].split(/[,\s/]+/).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : s; };
+      return [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="specimen"]')].map((n) => hex(getComputedStyle(n).backgroundColor));
+    });
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    const offGround = grounds.filter((g) => g !== page0);
+    ok(!!page0 && grounds.length >= 6 && offGround.length === 0, `${where}: all ${grounds.length} Style guide grounds sit on the emission's background.primary ${page0}${offGround.length ? ` — ${offGround.slice(0, 3).join(', ')}` : ''}`);
+    const dom = await page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return { mounted: !!e, shown: !!e && getComputedStyle(e).display !== 'none', overflowX: document.documentElement.scrollWidth - window.innerWidth }; });
+    hooks.absent(ok, { seen: dom.mounted, state: 'the global error bar mounted, found by its hook' }, !dom.shown, `${where}: the global error bar is hidden`);
+    ok(dom.overflowX <= 1, `${where}: no horizontal overflow (${dom.overflowX}px past the viewport)`);
+  }
+  // T2: a reserved or placeholder namespace warns before export, in v6's words; any other says the paths it makes.
+  const root = (await page.inputValue('[data-p3="brand-namespace"]')).trim();
+  const nsWarn = () => page.evaluate(() => document.querySelector('[data-p3="namespace-warning"]')?.textContent ?? null);
+  const shown = await nsWarn();
+  ok(shown === (RESERVED_NS[root] ?? null), `${brand}: a reserved namespace warns before export — "${root}" ${RESERVED_NS[root] ? `must say "${RESERVED_NS[root]}"` : 'must not warn'}, says ${JSON.stringify(shown)}`);
+  for (const ns of Object.keys(RESERVED_NS)) {
+    await page.fill('[data-p3="brand-namespace"]', ns);
+    const said = await nsWarn();
+    ok(said === RESERVED_NS[ns], `${brand}: a reserved namespace warns before export — a draft of "${ns}" must say "${RESERVED_NS[ns]}", says ${JSON.stringify(said)}`);
+  }
+  await page.fill('[data-p3="brand-namespace"]', root);
+  await ctx.close();
+}
+ok(brandStates >= BRANDS.length * 2, `the Brand sweep visited ${brandStates} brand × mode states (floor ${BRANDS.length * 2})`);
+console.log(`  ${brandStates} brand × mode states on Brand: the Style guide's text, fields, paired specimens and grounds, and the namespace warning per brand.`);
+
 // The sweep totals, asserted rather than only printed (#779). Both were reported in the summary and
 // compared to nothing; the state count is what makes "the loop never ran" a failure instead of a
 // silence, and the node total is what catches every state rendering nothing but chrome — which the
@@ -887,7 +990,7 @@ for (const brand of BRANDS) {
 ok(perModeDensityKnobs > 0 && perModeDensityMissing.length === 0,
   `per-mode density: every per-mode Density knob (${perModeDensityKnobs} met) says "${PER_MODE_DENSITY_SENTENCE}"${perModeDensityMissing.length ? ` — MISSING: ${perModeDensityMissing.slice(0, 3).join(' | ')}` : ''}`);
 ok(statesVisited >= SWEEP_STATE_FLOOR,
-  `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
+  `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 7 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
   `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR})`);
 // Both classes REPRESENTED, or the split is vacuous: zero specimens means the marker stopped reaching the
@@ -1862,15 +1965,15 @@ let menuFields = 0;
 for (const brand of BRANDS) {
   for (const scheme of ['light', 'dark']) {
     const { ctx, page, drain } = await openBrand(brand, scheme);
-    // The popover, then the import box inside it — `.bm-ta` is the third control the surface promises
-    // and it only exists once the box is open.
+    // The popover, then the import box inside it — `.bm-ta` is the control the surface promises (S3 moved
+    // Name and Namespace to Brand › Identity), and it only exists once the box is open.
     await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-import"]');
     await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
     // TYPE INTO IT. An empty field renders no glyphs, so measuring a pristine input asserts a
     // computed pairing over ink that is not on screen; a value makes the row describe something drawn.
-    await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'smoke-brand');
+    await page.fill('[data-p3="brand-menu"] [data-p3="import-text"]', 'smoke-brand');
 
     const where = `${brand} / brand menu / ${scheme} scheme`;
     // #1031's FIRST HALF, asserted directly — on the POPOVER, since UI redesign S1.2. Until then the
@@ -1895,10 +1998,9 @@ for (const brand of BRANDS) {
     const probe = await page.evaluate(LEGIBILITY_PROBE, '[data-p3="brand-menu"]');
     assertParsed(where, probe.unparsed);
     ok(probe.rootFound, `${where}: the popover is mounted and was measured`);
-    // WHICH controls, not how many. A count of three passes the day Namespace stops rendering and some
-    // fourth control appears in its place, while still reading as "Name, Namespace and the textarea were
-    // checked" — CLAUDE.md's rule that a scope must assert each promised surface is REPRESENTED. The
-    // count stays underneath as a non-empty floor, which is a different and weaker claim.
+    // WHICH controls, not how many. A count passes the day the textarea stops rendering and some other
+    // control appears in its place — CLAUDE.md's rule that a scope must assert each promised surface is
+    // REPRESENTED. The count stays underneath as a non-empty floor, which is a different and weaker claim.
     const seenHooks = new Set(probe.fields.map((r) => r.hook));
     for (const want of BRANDMENU_CONTROLS) {
       ok(seenHooks.has(want), `${where}: the "${want}" control is mounted and was measured (saw ${probe.fields.map((r) => r.hook ?? r.cls).join(', ') || 'no controls at all'})`);
@@ -1929,9 +2031,9 @@ for (const brand of BRANDS) {
     for (const r of [...probe.fields, ...probe.text]) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} ${r.text}`; }
     ok(bad.length === 0, `${where}: every one of ${probe.fields.length} control(s) and ${probe.text.length} text node(s) meets its bar — text ${CHROME_TEXT_MIN}:1 (${CHROME_LARGE_TEXT_MIN}:1 large), caret ${CHROME_CARET_MIN}:1, specimens ${CONTRAST_FLOOR}:1${
       bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
-    // The Name field must show what was typed — a legible field that lost the value is the same
-    // report ("I cannot read what I typed") from the other direction.
-    ok(await page.inputValue('[data-p3="brand-menu"] [data-p3="brand-menu-name"]') === 'smoke-brand', `${where}: the Name field holds what was typed`);
+    // The field must show what was typed — a legible field that lost the value is the same report ("I
+    // cannot read what I typed") from the other direction.
+    ok(await page.inputValue('[data-p3="brand-menu"] [data-p3="import-text"]') === 'smoke-brand', `${where}: the import field holds what was typed`);
     const errs = drain();
     ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
     await ctx.close();
@@ -1950,18 +2052,25 @@ console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover
 // shipped as the stale default (the silent-resolve class — wrong output, no error), the name persisted
 // stale. This drives that exact path — change ONLY the identity fields, then export/read — so it FAILS on
 // the pre-fix code and passes after. There is no gate one tier up; a human found this by exporting.
+//
+// UI redesign S3 moved both fields from the brand menu to Brand › Identity. The name still writes per
+// keystroke through `syncIdentity`, with no rebuild; the namespace is now a draft until Rename namespace and
+// its confirm (concept v6, T2/Q9), which rebuilds. The path held here is unchanged: an identity change and
+// nothing else, then the persisted blob and the export.
 console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(78)}`);
 {
   const NS = 'ttds';
   const NAME = 'ttds-brand';
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
-  // Open the brand menu and change ONLY the identity fields. `page.fill` dispatches an `input` event, so
-  // each field's real `oninput` handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
-  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-namespace"]');
-  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', NAME);       // Name      → lastGoodInput.id (persisted blob)
-  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-namespace"]', NS);    // Namespace → lastGoodInput.root + theme.root (emission)
+  // Open Brand and change ONLY the identity fields. `page.fill` dispatches an `input` event, so each field's
+  // real handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await hooks.need(page, '[data-p3="brand-namespace"]');
+  await page.fill('[data-p3="brand-name"]', NAME);         // Name      → lastGoodInput.id (persisted blob)
+  await page.fill('[data-p3="brand-namespace"]', NS);      // Namespace → a draft, until it is renamed
+  await hooks.click(page.locator('[data-p3="namespace-rename"]'));
+  await hooks.click(page.locator('[data-p3="namespace-confirm-go"]'));   // → brandState.root, rebuilt (emission)
 
   // (a) Both identity fields reach the persisted blob. Web persists the working brand to localStorage;
   // before the fix an isolated identity change never re-persisted, so a reopen read the stale values.
@@ -2037,9 +2146,11 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const { ctx, page, drain } = await openBrand(atRisk);
   // `openBrand` enters through a start-screen chip, which loads with `{ kind: 'example', id }` — so the
   // origin is already an example and only an EDIT is missing before the guard has something to protect.
+  // The edit is a rename on Brand › Identity (S3 moved the Name field there from the menu).
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
   await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
 
@@ -2052,7 +2163,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   // Cancel keeps the edit. A guard that loses what it was protecting is the failure it exists to stop.
   await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]'));
   await page.waitForSelector('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]', { state: 'detached' });
-  ok(await page.inputValue('[data-p3="brand-menu"] [data-p3="brand-menu-name"]') === 'renamed-in-smoke', 'Cancel leaves the edit in place');
+  ok(await page.inputValue('[data-p3="brand-name"]') === 'renamed-in-smoke', 'Cancel leaves the edit in place');
   const errs = drain();
   ok(errs.length === 0, `overwrite confirm: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
@@ -2073,9 +2184,10 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   // the button carries the `new` origin.
   await hooks.click(page.locator('[data-p3="start-blank"]'));   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
   await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
   await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
 
@@ -2090,41 +2202,13 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   console.log(`  B "${said}"`);
 }
 
-// C — the Examples `.cur` marker stays LIVE while the Name field is typed into (#1075). The Name field
-// patches the bar and does not re-render the menu (a re-render takes the caret), so a render-time marker
-// went stale in the open popover and only corrected on the next open.
-//
-// The oracle is a FRESH RENDER of the same menu (close + reopen), not a restated rule for which item
-// should be marked: which key the marker compares is #1073's open question, and this check must hold
-// whichever way that is answered. It fails if the live markers disagree with what a re-render computes
-// (the stale class), and separately if the fix bought liveness with a re-render (the caret class).
-{
-  const [atRisk] = BRANDS;
-  const { ctx, page, drain } = await openBrand(atRisk);
-  const curItems = () => page.$$eval('[data-p3="brand-menu"] [data-p3="brand-menu-example"].cur', (bs) => bs.map((b) => b.textContent.trim()));
-  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-  const before = await curItems();
-  ok(before.includes(atRisk), `#1075 the loaded example is marked current on open — got [${before.join(', ')}]`);
-  // Tag the live input: a re-render replaces it, and the tag goes with the old node.
-  await page.$eval('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', (i) => { i.dataset.smoke = '1075'; });
-  await page.focus('[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-  await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
-  const live = await curItems();
-  ok(await page.evaluate(() => document.activeElement?.getAttribute('data-smoke') === '1075'),
-    '#1075 typing a name keeps the same, focused Name input (no menu re-render)');
-  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-  await page.waitForSelector('[data-p3="brand-menu"]', { state: 'detached' });
-  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
-  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-  const fresh = await curItems();
-  ok(live.join('|') === fresh.join('|'),
-    `#1075 the open menu's example markers match a fresh render after a rename — live [${live.join(', ')}], fresh [${fresh.join(', ')}]`);
-  const errs = drain();
-  ok(errs.length === 0, `brand-menu markers: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
-  await ctx.close();
-  console.log(`  C before [${before.join(', ')}] live [${live.join(', ')}] fresh [${fresh.join(', ')}]`);
-}
+// C — RETIRED IN UI REDESIGN S3. It held the Examples `.cur` marker live while the menu's Name field was typed
+// into (#1075): the field patched the bar without re-rendering the menu, so a render-time marker went stale in
+// the open popover. S3 moved the Name field to Brand › Identity, so no field in the menu writes the name any
+// more and the marker is computed when the menu renders, from the same `brandState.id` (#1073's question,
+// still open, decides which key it compares). The case it held, a name changing UNDER an open menu, no longer
+// exists; a rename on Brand reaches the bar's name through the store's `identity` topic, which `test:chrome`
+// holds (section 16).
 
 // =============================================================================================
 // 5b. The style guide's Outline hover fill follows the preview ground (#1629)
@@ -2142,8 +2226,9 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 console.log(`\nStyle guide Outline hover on the inverse ground (#1629)\n${'='.repeat(78)}`);
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoRail(page, '[data-p3="rail-page-preview"]');
-  await hooks.need(page, '[data-p3="style-guide-ground"]');
+  // The Style guide is Brand's preview from UI redesign S3 (lent into `preview/brand.ts`).
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="style-guide-ground"]');
   // The primary palette block's Outline row, hover and pressed cells, read by their visible labels.
   const readOutline = () => page.evaluate(() => {
     const block = document.querySelector('[data-p3="style-guide-palette"]');
@@ -2345,15 +2430,24 @@ for (const brand of BRANDS) {
   const pages = await railLabels(page);
   const natural = [];
   const capped = new Map(PILL_CAPS.map((w) => [w, []]));
-  for (const label of pages) {
-    await gotoPage(page, label);
+  // The legacy pages, then Brand: its Style guide, the page with most of the inverse pills, left the Pages
+  // menu in UI redesign S3 and is Brand's preview now.
+  const walkPills = async () => {
     natural.push(...await page.evaluate(PILL_PROBE));
     for (const w of PILL_CAPS) {
       await capPills(page, w);
       capped.get(w).push(...await page.evaluate(PILL_PROBE));
     }
     await capPills(page, null);
+  };
+  for (const label of pages) {
+    await gotoPage(page, label);
+    await walkPills();
   }
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="token-pill"]');
+  await walkPills();
+  pages.push('Brand');
 
   const where = `#1147 / ${brand}`;
   const sample = (rows, fmt) => rows.slice(0, 3).map(fmt).join(' | ');
