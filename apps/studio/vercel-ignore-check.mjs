@@ -15,8 +15,10 @@
  * Run: `node apps/studio/vercel-ignore-check.mjs`   (exits non-zero on drift; wired into CI)
  */
 import { build } from 'esbuild';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve, basename } from 'node:path';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { dirname, resolve, basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -98,3 +100,50 @@ if (leaked.length) {
   process.exit(1);
 }
 console.log('  ✓ no bundled engine file is on the skip list.');
+
+// ---- WHAT THE SCRIPT DECIDES, run for real (owner decision, 2026-10-01) ----------------------------
+// The list above can be right while the decision is wrong: a preview that builds on every engine change
+// burns the 100-a-day Hobby limit (2026-09-30), and a production path that skips an engine change ships a
+// stale site (#474). So the script itself runs against throwaway commits in a temp repo, with each
+// expected exit code written here as a literal (0 = SKIP, 1 = BUILD). Nothing is derived from the script.
+const scratch = mkdtempSync(join(tmpdir(), 'p3-ignore-'));
+const git = (...args) => {
+  const r = spawnSync('git', args, { cwd: scratch, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed in the scratch repo: ${r.stderr}`);
+  return r.stdout.trim();
+};
+const touch = (path, text) => { mkdirSync(dirname(join(scratch, path)), { recursive: true }); writeFileSync(join(scratch, path), text); };
+const decide = (env) => spawnSync('bash', [join(scratch, 'ignore.sh')], { cwd: scratch, env: { PATH: process.env.PATH, HOME: process.env.HOME, ...env } }).status;
+const fails = [];
+const expect = (name, got, want) => {
+  if (got === want) console.log(`  ✓ ${name}`);
+  else fails.push(`${name} (exit ${got}, want ${want} — ${want === 0 ? 'SKIP' : 'BUILD'})`);
+};
+try {
+  copyFileSync(SCRIPT, join(scratch, 'ignore.sh'));
+  git('init', '-q', '-b', 'main');
+  git('config', 'user.email', 'gate@example.invalid'); git('config', 'user.name', 'gate');
+  touch('README.md', 'seed\n'); git('add', '-A'); git('commit', '-qm', 'seed');
+  expect('a commit with no parent BUILDS in a preview (uncertainty builds)', decide({ VERCEL_ENV: 'preview' }), 1);
+  touch('packages/engine/theme.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'engine');
+  expect('an engine-only commit is SKIPPED in a preview', decide({ VERCEL_ENV: 'preview' }), 0);
+  expect('the same engine-only commit BUILDS in production', decide({ VERCEL_ENV: 'production' }), 1);
+  expect('the same engine-only commit BUILDS with VERCEL_ENV unset (the production path)', decide({}), 1);
+  touch('apps/studio/src/main.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'studio');
+  expect('a studio commit BUILDS in a preview', decide({ VERCEL_ENV: 'preview' }), 1);
+  touch('apps/plugin/src/x.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'plugin');
+  expect('a plugin-only commit is SKIPPED in production', decide({ VERCEL_ENV: 'production' }), 0);
+  git('checkout', '-q', '-b', 'side', 'HEAD~2');
+  touch('apps/studio/src/other.ts', 'b\n'); git('add', '-A'); git('commit', '-qm', 'side studio');
+  git('checkout', '-q', 'main'); git('merge', '-q', '--no-edit', 'side');
+  expect('a merge commit is SKIPPED in a preview, even when it brings studio changes', decide({ VERCEL_ENV: 'preview' }), 0);
+  expect('the same merge commit BUILDS in production', decide({ VERCEL_ENV: 'production' }), 1);
+} finally {
+  rmSync(scratch, { recursive: true, force: true });
+}
+if (fails.length) {
+  console.error(`\n✗ vercel-ignore.sh decided ${fails.length} case(s) wrong:`);
+  for (const f of fails) console.error(`    ${f}`);
+  process.exit(1);
+}
+
