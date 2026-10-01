@@ -425,8 +425,10 @@
 .p3-op-body[hidden] { display: none; }
 .p3-op-summary { margin: 0; overflow-wrap: anywhere; }
 .p3-op-phase { display: grid; gap: var(--p3-space-050); }
-.p3-op-prog { height: var(--p3-space-050); border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
-.p3-op-prog > i { display: block; height: 100%; background: var(--p3-icon); }
+.p3-op-prog { display: block; appearance: none; width: 100%; height: var(--p3-space-050); border: none; border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
+.p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }
+.p3-op-prog::-webkit-progress-value { background: var(--p3-icon); }
+.p3-op-prog::-moz-progress-bar { background: var(--p3-icon); }
 .p3-op-history > summary { cursor: pointer; color: var(--p3-text-2); }
 .p3-op-history > ul { margin: var(--p3-space-050) 0 0; padding-left: var(--p3-space-300); }
 /* Under the two panes, the drawer is the preview pane's bottom row (plan §3.9). */

@@ -160,15 +160,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (o.progress && o.progress.total > 1) line.append(` ${o.progress.done} of ${o.progress.total}`);
     wrap.append(line);
     if (o.progress) {
-      const bar = h('div', 'p3-op-prog');
-      bar.setAttribute('role', 'progressbar');
+      // A native `progress`, where v6 sized an `<i>` with an inline width: the chrome sets no inline value
+      // and its stylesheet reads only its own variables, and the element carries the progressbar role itself.
+      const bar = h('progress', 'p3-op-prog') as HTMLProgressElement;
+      bar.max = o.progress.total;
+      bar.value = o.progress.done;
       bar.setAttribute('aria-label', o.phase ?? title);
-      bar.setAttribute('aria-valuemin', '0');
-      bar.setAttribute('aria-valuemax', String(o.progress.total));
-      bar.setAttribute('aria-valuenow', String(o.progress.done));
-      const fill = h('i');
-      fill.style.width = `${(o.progress.done / o.progress.total) * 100}%`;
-      bar.append(fill);
       wrap.append(bar);
     }
     return wrap;
