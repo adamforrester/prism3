@@ -1,6 +1,6 @@
 ## (2026-10-01) — UI redesign S1.4: the Activity drawer, the Figma menu and the Agent chip in the top bar
 
-**STATUS: branch `ui/s1-4-activity`, stacked on `ui/s1-3-pages-preview`; not pushed.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The spec is `docs/superpowers/ui-redesign/implementation-plan.md` §3.5 and §3.9, with the owner's F2 (the drawer's behavior), v5 Q9 (`COLLAPSE_MS`, 4 s), IA-3 and D6 (the Agent chip moves to the top bar and the bottom-left one goes), and the §9.1 runtime-inline-values row (`agent-link-ui.ts:56`).
+**STATUS: PR open from `ui/s1-4-activity`, stacked on #1923 (S1.3) and #1922 (S1.2).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The spec is `docs/superpowers/ui-redesign/implementation-plan.md` §3.5 and §3.9, with the owner's F2 (the drawer's behavior), v5 Q9 (`COLLAPSE_MS`, 4 s), IA-3 and D6 (the Agent chip moves to the top bar and the bottom-left one goes), and the §9.1 runtime-inline-values row (`agent-link-ui.ts:56`).
 
 **What the user sees.**
 - **Activity**, on the top bar of both hosts, after the Agent chip and before Export: the word at full width, a glyph at 380. Its status dot and its name say what concept v6's say: a write running ("Activity, 1 running"), a result that needs attention ("1 needs attention"), or a result nobody has opened ("new result").
