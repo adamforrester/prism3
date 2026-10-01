@@ -760,6 +760,16 @@ for (const host of ['web', 'figma']) {
       for (const t of mb.text) lows.text = Math.min(lows.text, t.r);
       for (const e of mb.edges) lows.edge = Math.min(lows.edge, e.r);
       for (const c of mb.controls) lows.target = Math.min(lows.target, c.w, c.h);
+      // #1770's claim, moved here from the brand menu's Modes section (retired, #1943): the always-on Light row
+      // says it is locked in words at the chrome text bar, never by a fade. The row by its hook, its note found
+      // among the text nodes this probe measured (by the probe's own label), and that node's own ratio.
+      const lightRow = await page.evaluate(() => {
+        const note = document.querySelector('[data-p3="levers-pane"] [data-p3="mode-on-light"] .p3-check-note');
+        return { row: !!note, note: note?.textContent ?? null };
+      });
+      const lightNote = mb.text.find((t) => lightRow.note && t.el.startsWith(`span.p3-check-note "${lightRow.note.slice(0, 20)}`));
+      ok(lightRow.row && !!lightNote && lightNote.r >= TEXT_MIN,
+        `${where} / brand: the locked Light row says so in words ("${lightRow.note}") measured at ${TEXT_MIN}:1 (${lightNote ? `${lightNote.r}:1` : 'not measured'}) (#1770)`);
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s3-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-brand.png`) });
       if (w <= 560) {
         await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
