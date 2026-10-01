@@ -168,7 +168,11 @@ const UI_FONT = 'Inter';      // the embedded face's own family name, as the pla
  *  Back label, a menu item) is the chrome's own copy and must draw in Inter, and a device face drawing any
  *  OTHER glyph fails anywhere. */
 const VERDICT_COPY = ':is([data-p3="status-pill"], [data-p3="status-verdict"], [data-p3="apply-detail"])';
-const FACE_GAPS = { '\u2192': '[data-p3="decisions-log"]', '\u2713': VERDICT_COPY, '\u2717': VERDICT_COPY, '\u26A0': VERDICT_COPY, '\u22EF': VERDICT_COPY };
+/** `⋯` also leads Apply to Figma's own label while a write runs ("⋯ Applying…"), today's bar copy, which
+ *  the same wider subset fixes. Named here rather than tolerated chrome-wide. */
+const RUNNING_LABEL = '[data-p3="apply-to-figma"]';
+const FACE_GAPS = { '\u2192': '[data-p3="decisions-log"]', '\u2713': VERDICT_COPY, '\u2717': VERDICT_COPY, '\u26A0': VERDICT_COPY,
+  '\u22EF': `:is(${VERDICT_COPY}, ${RUNNING_LABEL})` };
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
