@@ -50,6 +50,22 @@
  * whether or not any node was replaced. That half is still independent; the DOM diff is not. Do not
  * "simplify" the blob probe away on the grounds that the DOM diff already says the same thing.
  *
+ * LOCATED BY HOOKS, NOT BY CLASSES OR TITLES (#1829). F1 moved the three browser suites onto `data-p3`
+ * hooks; this audit was left on `.stage`, `.psec`, `.psec-t`, `.mctx-b.derived` and a `/^Light/` text match,
+ * so the first redesign slice to rename a class would have broken it with nothing noticing. Now every
+ * element it finds or clicks is found by its hook, through the same guard as the suites
+ * (`test-hooks.mjs`): a hook it names that never rendered fails by name, and every click goes through
+ * `hooks.click`. A section is found as the parent of its `section-head`, because several sections already
+ * carry a role of their own and a hook is one value. Three things still read classes on purpose: the
+ * `derived` and `on` state tokens on a mode tab (state, not identity, as in the suites), and `.knob`, which
+ * is not a lookup but part of the SIGNATURE — the text a control's label carries. That one is held by a
+ * floor instead: if no control on any bar page reads a label, the signature has gone blind to case 2
+ * below and the audit fails naming it, rather than under-counting in silence.
+ *
+ * NOT IN CI, deliberately. It is a tool, not a gate: without `--check-badges` it reports and exits 0. With
+ * it, it is red on `main` at the time of #1829 (five mismatches, unchanged by the move to hooks), and making
+ * it green is badge-map and audit-probe work of its own (#1887). It is deleted with the mode strip it audits (S13).
+ *
  * VERDICTS
  *   EDITS    — the control set/labels differ between modes. The bar is an EDITING SCOPE here.
  *   displays — only previews/readouts re-resolve. The bar is CONTEXT: useful, but not scoping an edit.
@@ -58,6 +74,14 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+import { hookGuard } from './test-hooks.mjs';
+
+// The same hook guard as the browser suites (#1829): hooks named in this file that never rendered fail by
+// name at the end of the run, and a failure here makes the run exit non-zero even without `--check-badges`,
+// because an audit whose instrument went blind is not a measurement.
+const hooks = hookGuard(import.meta.url);
+const failures = [];
+const ok = (cond, label) => { if (!cond) { failures.push(label); console.log(`   ✗ ${label}`); } };
 
 // Playwright IS a dependency now — an `apps/studio` devDependency, taken by #767 when it settled
 // #333 so the smoke suite could gate in CI without depending on ambient global state on the runner.
@@ -104,13 +128,24 @@ await new Promise((r) => server.listen(8899, '127.0.0.1', r));
 const BRAND = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'harbor';
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
+await hooks.watch(page);
 await page.goto('http://127.0.0.1:8899/index.html', { waitUntil: 'networkidle' });
-await page.getByRole('button', { name: BRAND }).click();
+await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: BRAND }).first());
+await hooks.need(page, '[data-p3="rail-page-palettes"]');
 await page.waitForTimeout(1000);
 
+/** A mode tab by its visible mode name, exactly — the text a designer clicks. */
+const modeTab = (name) => page.locator('[data-p3="mode-tab"]')
+  .filter({ has: page.locator('[data-p3="mode-tab-name"]', { hasText: new RegExp(`^${name}$`) }) }).first();
+/** A rail destination by its hook, which is how every page is reached below. */
+const goStage = async (key) => {
+  await hooks.click(page.locator(`[data-p3="${key}"]`));
+  await page.waitForTimeout(500);
+};
+
 const snap = () => page.evaluate(() => {
-  const ws = document.querySelector('.ws') ?? document.body;
-  const secs = [...ws.querySelectorAll('.psec')];
+  const ws = document.querySelector('[data-p3="workspace"]') ?? document.body;
+  const secs = [...ws.querySelectorAll('[data-p3="section-head"]')].map((h) => h.parentElement);
   const nodes = secs.length ? secs : [...ws.children];
   const sig = (s) => [...s.querySelectorAll('input,select')].map((e) => {
     const label = e.closest('.knob')?.textContent?.trim().slice(0, 60) ?? '';
@@ -120,10 +155,13 @@ const snap = () => page.evaluate(() => {
     return `${label}>>${ctrl}`;
   }).join(' | ');
   return nodes.map((s, i) => {
-    const badge = s.querySelector('.msb');
+    const badge = s.querySelector('[data-p3="mode-scope-badge"]');
     return {
-      name: (s.querySelector('.psec-t')?.textContent ?? s.querySelector('h2,h3')?.textContent ?? `section ${i + 1}`).trim(),
+      name: (s.querySelector('[data-p3="section-title"]')?.textContent ?? s.querySelector('h2,h3')?.textContent ?? `section ${i + 1}`).trim(),
       ctrl: sig(s),
+      // The signature's label half, counted: a control whose `.knob` is gone reads an empty label, and
+      // nothing else would say so (see the header). Totalled per run into a floor below.
+      labelled: [...s.querySelectorAll('input,select')].filter((e) => (e.closest('.knob')?.textContent ?? '').trim() !== '').length,
       html: s.innerHTML,
       // #439 — what the section CLAIMS about itself, so --check-badges can compare claim to
       // measurement. THREE states since #437: the `.on` class no longer separates them, because
@@ -161,21 +199,35 @@ const snap = () => page.evaluate(() => {
   });
 });
 
-const stages = (await page.locator('.stage').allTextContents()).map((s) => s.split('\n')[0].trim());
+// Every rail destination, by hook key and by the label a designer reads.
+const stages = await page.locator('[data-p3^="rail-page-"]').evaluateAll((ns) => ns.map((n) => ({
+  key: n.getAttribute('data-p3'),
+  label: n.querySelector('[data-p3="rail-item-label"]')?.textContent?.trim() ?? n.getAttribute('data-p3'),
+})));
+ok(stages.length > 0, `the rail offers ${stages.length} destination(s) to audit`);
 const tally = { EDITS: 0, displays: 0, inert: 0 };
 const claims = [];
 const noBar = [];
+let controlsSeen = 0, controlsLabelled = 0;
 console.log(`\nMode-sensitivity audit — brand '${BRAND}', Light vs Dark, 1440px\n${'='.repeat(64)}`);
-for (const stage of stages) {
-  await page.locator('.stage').filter({ hasText: stage }).first().click();
-  await page.waitForTimeout(500);
-  if ((await page.locator('.modectx').count()) === 0) { noBar.push(stage); continue; }
-  await page.locator('button').filter({ hasText: /^Light/ }).first().click();
+for (const { key, label: stage } of stages) {
+  await goStage(key);
+  if ((await page.locator('[data-p3="mode-tab"]').count()) === 0) { noBar.push(stage); continue; }
+  await hooks.click(modeTab('Light'));
   await page.waitForTimeout(500);
   const light = await snap();
-  await page.locator('button').filter({ hasText: /^Dark/ }).first().click();
+  // The per-name guard cannot see a hook dropped at ONE of its render sites (#1831), and a section whose
+  // head lost its hook would simply vanish from this table. Every section mints its head and its title
+  // together, so the two counts must agree; a disagreement names the page instead of shrinking it.
+  const found = await page.evaluate(() => {
+    const ws = document.querySelector('[data-p3="workspace"]') ?? document.body;
+    return { heads: ws.querySelectorAll('[data-p3="section-head"]').length, titles: ws.querySelectorAll('[data-p3="section-title"]').length };
+  });
+  ok(found.heads === found.titles, `${stage}: every section title sits in a section the audit can find (${found.heads} section head(s), ${found.titles} title(s))`);
+  await hooks.click(modeTab('Dark'));
   await page.waitForTimeout(650);
   const dark = await snap();
+  for (const s of light) { controlsSeen += s.ctrl ? s.ctrl.split(' | ').length : 0; controlsLabelled += s.labelled; }
   const edits = light.filter((s, i) => dark[i] && s.ctrl !== dark[i].ctrl).length;
   console.log(`\n${stage}  —  ${edits}/${light.length} sections edit per mode`);
   for (const [i, s] of light.entries()) {
@@ -191,7 +243,7 @@ for (const stage of stages) {
                   // A section that does not vary per mode but HAS a control edits one value every
                   // mode uses -- that is 'all-modes', not the same offer as an untouchable specimen.
                   expected: v.trim() === 'EDITS' ? 'per-mode' : s.hasControls ? 'all-modes' : 'none',
-                  badge: s.badge, inset: s.inset, stage, skipped: s.skipped });
+                  badge: s.badge, inset: s.inset, stage: key, skipped: s.skipped });
     console.log(`   ${v}  ${s.name}${s.badge ? '' : '   (no badge)'}`);
   }
 
@@ -209,9 +261,9 @@ for (const stage of stages) {
   // entirely on a derived mode (`renderScreen` / `controlSplitPage`) — so every claim pushed here
   // currently expects 'none'; kept as a guard against that changing silently, the same as the branch
   // it mirrors in main.ts.
-  for (const btn of await page.locator('.mctx-b.derived').all()) {
-    const dlabel = (await btn.locator('.mctx-name').textContent())?.trim() ?? 'derived';
-    await btn.click();
+  for (const btn of await page.locator('[data-p3="mode-tab"].derived').all()) {
+    const dlabel = (await btn.locator('[data-p3="mode-tab-name"]').textContent())?.trim() ?? 'derived';
+    await hooks.click(btn);
     await page.waitForTimeout(500);
     const derived = await snap();
     for (const [i, s] of light.entries()) {
@@ -225,19 +277,22 @@ for (const stage of stages) {
       claims.push({ page: `${stage.slice(0, 18)} · ${dlabel}`, name: s.name,
                     verdict: editsPerMode ? 'EDITS(derived)' : 'n/a',
                     expected: editsPerMode ? 'none' : (match.hasControls ? 'all-modes' : 'none'),
-                    badge: match.badge, inset: match.inset, stage, skipped: match.skipped });
+                    badge: match.badge, inset: match.inset, stage: key, skipped: match.skipped });
     }
   }
-  // Leave every stage on a non-derived mode. `probeSection` below only re-clicks the `.stage` tab, not
+  // Leave every stage on a non-derived mode. `probeSection` below only re-clicks the rail tab, not
   // a mode button, so if a derived-mode click above were the last thing done to the page, EVERY later
   // probe (including ones for unrelated, already-measured Light/Dark claims) would find its section
   // replaced by the generated-mode note and report a false `section-gone` — the derived-mode pass
   // breaking the very claims it was added to protect.
-  if ((await page.locator('.mctx-b.derived').count()) > 0) {
-    await page.locator('button').filter({ hasText: /^Light/ }).first().click();
+  if ((await page.locator('[data-p3="mode-tab"].derived').count()) > 0) {
+    await hooks.click(modeTab('Light'));
     await page.waitForTimeout(500);
   }
 }
+// The floor on the signature's label half (see the header): case 2 of #432 is invisible without labels.
+ok(controlsLabelled > 0, `the signature read a control label for ${controlsLabelled} of ${controlsSeen} control(s) on the bar pages — `
+  + 'none means `.knob` no longer wraps a control, and every label-only per-mode difference would read as inert');
 console.log(`\nNo mode bar: ${noBar.join(' · ')}`);
 console.log(`Totals across bar pages: ${JSON.stringify(tally)}\n`);
 
@@ -270,13 +325,12 @@ console.log(`Totals across bar pages: ${JSON.stringify(tally)}\n`);
  * view-only-ness, so `outcome` is reported separately from `moved`: 'unproven' is never 'proven'.
  */
 const probeSection = async (c) => {
-  await page.locator('.stage').filter({ hasText: c.stage }).first().click();
-  await page.waitForTimeout(500);
+  await goStage(c.stage);
   return page.evaluate(({ secName, wantEditProof }) => {
     const KEY = 'prism3:brandInput';
     const COUNTED = 'input:not([disabled]):not([data-view-only]), select:not([disabled]):not([data-view-only]), textarea:not([disabled]):not([data-view-only])';
-    const find = () => [...document.querySelectorAll('.psec')]
-      .find((s) => (s.querySelector('.psec-t')?.textContent ?? '').trim() === secName);
+    const find = () => [...document.querySelectorAll('[data-p3="section-head"]')].map((h) => h.parentElement)
+      .find((s) => (s.querySelector('[data-p3="section-title"]')?.textContent ?? '').trim() === secName);
     const tagOf = (e) => `${e.tagName.toLowerCase()}.${e.className || '-'}${e.type ? `[${e.type}]` : ''}`;
     // Nudge a control to a value it does not already hold, fire both events a handler might listen for,
     // and report whether changing anything was possible at all.
@@ -371,10 +425,18 @@ if (process.argv.includes('--check-badges')) {
   for (const u of unproven) console.log(`   ${u}`);
   if (bad.length || flush.length || unproven.length) {
     console.log(`\n${bad.length + flush.length + unproven.length} mismatch(es).\n`);
-    process.exit(1);
+    process.exitCode = 1;
+  } else {
+    console.log(`   ✓ every badge matches what the page actually does, all ${claims.filter((c) => c.inset).length} sit inside their section padding,`
+      + `\n     ${proved} editable section(s) provably move the brand, and ${quiet} skipped control(s) provably do not\n`);
   }
-  console.log(`   ✓ every badge matches what the page actually does, all ${claims.filter((c) => c.inset).length} sit inside their section padding,`
-    + `\n     ${proved} editable section(s) provably move the brand, and ${quiet} skipped control(s) provably do not\n`);
 }
 await browser.close();
 server.close();
+
+// Last, so a badge mismatch above still reaches it: the audit's own instrument (#1829).
+hooks.report(ok);
+if (failures.length) {
+  console.log(`\nThe audit's instrument failed ${failures.length} check(s), so its table above is not a measurement.`);
+  process.exitCode = 1;
+}

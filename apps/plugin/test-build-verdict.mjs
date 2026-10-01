@@ -162,6 +162,9 @@ const readSurfaces = (page) => page.evaluate(() => {
     barVerdict: text('[data-p3="bar"] [data-p3="status-verdict"]'),
     barPending: text('[data-p3="bar"] [data-p3="status-pill"]'),
     detail: detail && detail.style.display !== 'none' ? detail.textContent : null,
+    // Mounted, whether or not it is showing: what makes "the detail stays collapsed" a measurement rather
+    // than a lookup that found nothing (#1831).
+    detailMounted: detail !== null,
   };
 });
 
@@ -178,7 +181,7 @@ const openPanel = async () => {
   await page.goto(`${ORIGIN}/`, { waitUntil: 'load' });
   // A real condition, not a sleep: the rail is rendered once the app has booted onto a brand.
   await hooks.need(page, '[data-p3="rail-page-components"]');
-  await page.locator('[data-p3="rail-page-components"]').click();
+  await hooks.click(page.locator('[data-p3="rail-page-components"]'));
   await hooks.need(page, '[data-p3="components-build"]');
   return { page, errors };
 };
@@ -197,8 +200,8 @@ const openPanel = async () => {
  */
 const startBuild = async (page, def, label = 'build') => {
   if (def) await page.selectOption('[data-p3="components-def-picker"]', def);
-  const clicked = await page.locator('[data-p3="components-build"]').first()
-    .click({ timeout: 4000 }).then(() => true, () => false);
+  const clicked = await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 })
+    .then(() => true, () => false);
   if (!clicked) {
     const state = await readSurfaces(page);
     ok(false, `${label}: the Build control could not be clicked — it reads "${state.button}", disabled ${state.buttonDisabled}`);
@@ -316,15 +319,28 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
 // and the sync writes a correct label over the empty one. So the empty initial button is asserted here,
 // directly, in the words on screen — not inferred from the away-and-back case that also happens to
 // catch it. A defect the author introduced while fixing the reported one is still a defect.
+//
+// The two "nothing yet" checks are ABSENCE checks, so they are only measurements once this same panel has
+// shown that the probe CAN see a fraction and a verdict in the page's row (#1831). The guard counts hook
+// names once per run, so a `status-pill` dropped at the row's render site would leave these reading an
+// empty list and passing. The panel is therefore driven through one build after the fresh reading, and the
+// fresh reading is judged against what the same probe saw then.
 {
   const { page, errors } = await openPanel();
   const fresh = await readSurfaces(page);
   ok(fresh.button === '⊞ Build set', `a freshly opened panel offers "⊞ Build set" — read "${fresh.button}"`);
   ok(fresh.buttonDisabled === false, 'a freshly opened panel offers a clickable Build control');
   ok(fresh.pickerDisabled === false, 'a freshly opened panel offers an enabled def picker');
-  ok(fresh.pageVerdict.length === 0, `no verdict is shown before a build has run — found ${JSON.stringify(fresh.pageVerdict)}`);
-  ok(fresh.pagePending.length === 0, `no progress fraction is shown before a build has run — found ${JSON.stringify(fresh.pagePending)}`);
   ok(errors.length === 0, `opening the panel logs no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await startBuild(page, undefined, 'the fresh panel\'s proving build');
+  const during = await readSurfaces(page);
+  await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  const after = await readSurfaces(page);
+  hooks.absent(ok, { seen: after.pageVerdict.some((t) => (t ?? '').includes('✓ built 648')), state: "a verdict in the page's row, after a build on this panel" },
+    fresh.pageVerdict.length === 0, `no verdict is shown before a build has run — found ${JSON.stringify(fresh.pageVerdict)}`);
+  hooks.absent(ok, { seen: during.pagePending.some((t) => /24 of 648/.test(t ?? '')), state: "a live fraction in the page's row, during a build on this panel" },
+    fresh.pagePending.length === 0, `no progress fraction is shown before a build has run — found ${JSON.stringify(fresh.pagePending)}`);
   await page.close();
 }
 
@@ -372,8 +388,14 @@ for (const c of CONDITIONS) {
 
   // No pending text survives the verdict, on either surface. This is the other half of "reaches a
   // visible verdict": a fraction left beside a verdict reads as a build still running.
-  ok(after.pagePending.length === 0, `${c.name}: no stale fraction is left on the page beside the verdict — found ${JSON.stringify(after.pagePending)}`);
-  ok(after.barPending.length === 0, `${c.name}: no stale fraction is left in the bar beside the verdict`);
+  // ABSENCE checks, so each is judged against what the same probe saw during this build (#1831): the
+  // pending pill on that surface was read, and the verdict it should now stand beside has landed.
+  const pageLanded = after.pageVerdict.some((t) => (t ?? '').includes(c.msg.headline));
+  const barLanded = after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline));
+  hooks.absent(ok, { seen: during.pagePending.some((t) => /24 of 648/.test(t ?? '')) && pageLanded, state: "the page's pending pill during the build, then its verdict" },
+    after.pagePending.length === 0, `${c.name}: no stale fraction is left on the page beside the verdict — found ${JSON.stringify(after.pagePending)}`);
+  hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')) && barLanded, state: "the bar's pending pill during the build, then its verdict" },
+    after.barPending.length === 0, `${c.name}: no stale fraction is left in the bar beside the verdict`);
 
   // A build a designer must act on auto-expands its detail; a clean one stays collapsed (#483's rule).
   // Asserted because the misses live in the detail, and this suite exists because of the misses.
@@ -381,7 +403,8 @@ for (const c of CONDITIONS) {
     ok(after.detail !== null && after.detail.length > 0, `${c.name}: the detail row is open, so the misses are readable without a click`);
     ok((after.detail ?? '').includes(c.msg.summary.slice(0, 24)), `${c.name}: the open detail carries the host's own summary`);
   } else {
-    ok(after.detail === null, `${c.name}: a clean verdict leaves the detail collapsed — found ${JSON.stringify(after.detail)}`);
+    hooks.absent(ok, { seen: after.detailMounted, state: 'the detail row mounted beside the verdict' },
+      after.detail === null, `${c.name}: a clean verdict leaves the detail collapsed — found ${JSON.stringify(after.detail)}`);
   }
 
   ok(errors.length === 0, `${c.name}: no console errors (${errors.slice(0, 2).join(' · ')})`);
@@ -474,7 +497,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
-  await page.locator('[data-p3="rail-page-palettes"]').click();
+  await hooks.click(page.locator('[data-p3="rail-page-palettes"]'));
   await page.waitForFunction(() => !document.querySelector('[data-p3="components-row"]'));
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
@@ -495,7 +518,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const landed = await readSurfaces(page);
   ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the chrome, which is what survives navigation');
 
-  await page.locator('[data-p3="rail-page-components"]').click();
+  await hooks.click(page.locator('[data-p3="rail-page-components"]'));
   await hooks.need(page, '[data-p3="components-build"]');
   const back = await readSurfaces(page);
   ok(back.button === '⊞ Build set', `returning to the page shows a clickable control, not the "Building…" it was left on — read "${back.button}"`);
@@ -548,12 +571,20 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     deleteCta: [...document.querySelectorAll('[data-p3="dialog-confirm"]')].map((n) => n.textContent),
     pills: [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-pill"]')].map((n) => n.textContent),
   }));
+  // #1830 — the dialog used to be FOUND by its role and accessible name, which asserted both for free.
+  // F1 moved the lookup to its hook, so they are asserted here instead, by what the accessibility tree
+  // computes: the one dialog named "Prune stale items" must be the hooked prune dialog.
+  const namedDialog = (page) => page.getByRole('dialog', { name: 'Prune stale items', exact: true })
+    .evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
   const settle = (page) => page
     .waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]')
       || [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-pill"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
     .catch(() => {});
 
-  // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog.
+  // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog. Its readings are kept, because they
+  // are the proof the arm below needs: an absence of the dialog means something only once this probe has
+  // been shown one (#1831).
+  let control = { dialog: false, deleteCta: [] };
   {
     const { page, errors } = await openPanel();
     await post(page, preview);
@@ -561,6 +592,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     const s = await readPrune(page);
     ok(s.dialog, '#1663 control: a panel prune preview (no pillOnly) opens the "Prune stale items" dialog, so this probe can see one');
     ok(s.deleteCta.includes('Delete 4 items'), `#1663 control: the dialog's CTA reads "Delete 4 items" — read ${JSON.stringify(s.deleteCta)}`);
+    const named = await namedDialog(page);
+    ok(named.length === 1 && named[0] === 'prune-dialog',
+      `#1830 the prune dialog is a role="dialog" whose accessible name is "Prune stale items" — dialogs by that name: ${JSON.stringify(named)}`);
+    control = s;
     ok(errors.length === 0, `#1663 control: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -571,8 +606,11 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await post(page, { ...preview, pillOnly: true });
     await settle(page);
     const s = await readPrune(page);
-    ok(!s.dialog, '#1663 an agent prune preview (pillOnly) opens NO confirm dialog on the owner\'s screen');
-    ok(s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete CTA — found ${JSON.stringify(s.deleteCta)}`);
+    const landed = s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`);
+    hooks.absent(ok, { seen: control.dialog && landed, state: 'the dialog in the control arm, and the agent preview landing in this one' },
+      !s.dialog, '#1663 an agent prune preview (pillOnly) opens NO confirm dialog on the owner\'s screen');
+    hooks.absent(ok, { seen: control.deleteCta.includes('Delete 4 items') && landed, state: 'the Delete CTA in the control arm, and the agent preview landing in this one' },
+      s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete CTA — found ${JSON.stringify(s.deleteCta)}`);
     ok(s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`),
       `#1663 an agent prune preview reads "Agent preview: ${PRUNE_SUMMARY}" in the bar — read ${JSON.stringify(s.pills)}`);
     ok(errors.length === 0, `#1663 agent preview: no console errors (${errors.slice(0, 2).join(' · ')})`);
@@ -593,7 +631,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     window.__sent = [];
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'style-guide') window.__sent.push(m); });
   });
-  await page.locator('[data-p3="rail-page-style-guide"]').click();
+  await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'));
   await hooks.need(page, '[data-p3="style-guide-draw"]', { timeout: 5000 });
   const readSg = () => page.evaluate(() => {
     const btn = document.querySelector('[data-p3="style-guide-draw"]');
@@ -612,10 +650,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
     '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
 
-  await page.locator('[data-p3="style-guide-customize"] summary').click();
+  await hooks.click(page.locator('[data-p3="style-guide-customize"] summary'));
   await page.locator('[data-p3="style-guide-value-format"] select').selectOption('hsl');
   await page.locator('[data-p3="style-guide-display"] select').selectOption('border');
-  const clicked = await page.locator('[data-p3="style-guide-draw"]').click({ timeout: 4000 }).then(() => true, () => false);
+  const clicked = await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#259 the Draw style guide control can be clicked');
   // postMessage delivers asynchronously; a real condition rather than a sleep.
   await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});

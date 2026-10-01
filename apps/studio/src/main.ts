@@ -871,7 +871,7 @@ const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => 
   // guard the same way the branch two lines down is, not decoration.
   const derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode);
   const editable = perMode || (hasControls && !derivedPerMode);
-  const b = el('span', 'msb' + (editable ? ' on' : ''));
+  const b = hook(el('span', 'msb' + (editable ? ' on' : '')), 'mode-scope-badge');
   const mode = MODE_LABEL[currentMode] ?? currentMode;
   if (perMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', mode));
   else if (hasControls && !derivedPerMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', 'All modes'));
@@ -898,7 +898,9 @@ const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => 
 
 const palSection = (title: string, sub: string): HTMLElement => {
   const sec = el('div', 'psec');
-  const head = el('div', 'psec-head');
+  // `section-head` rather than a hook on `sec`: several sections carry their own role (`section-backgrounds`,
+  // `section-duration-ramp`), and a hook is one value. `mode-audit.mjs` finds every section as its head's parent.
+  const head = hook(el('div', 'psec-head'), 'section-head');
   const txt = el('div', 'psec-txt');
   txt.append(hook(el('h3', 'psec-t', title), 'section-title'), hook(el('p', 'psec-d', sub), 'section-description'));
   head.append(txt);
@@ -2723,7 +2725,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
   if (!roles[`interactive.${col.name}.fill.rest`]) return null;
   const sec = el('div', 'psec');
-  const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', col.title));
+  const head = hook(el('div', 'psec-h'), 'section-head'); head.append(hook(el('p', 'psec-t', col.title), 'section-title'));
   if (col.onRemove) head.append(removeButton(col.onRemove, 'Remove interactive color', 'rmv'));
   sec.append(head, el('p', 'psec-d', col.desc));
   if (col.lead) sec.append(col.lead);
@@ -2913,7 +2915,7 @@ const renderLinksSection = (): HTMLElement | null => {
   const roles = iRoles();
   if (!roles['text.link.default']) return null;
   const sec = hook(el('div', 'psec'), 'section-links');
-  const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', 'Links'));
+  const head = hook(el('div', 'psec-h'), 'section-head'); head.append(hook(el('p', 'psec-t', 'Links'), 'section-title'));
   sec.append(head, el('p', 'psec-d',
     'The global link role, drawn from the link palette below — one link role, no per-accent link roles. '
     + 'The resting link and its focus follow the link palette; the engaged states step away from it. '

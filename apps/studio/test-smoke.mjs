@@ -552,14 +552,14 @@ const watchErrors = (page) => {
  *  nav ever stops marking the destination active, this hangs and then fails loudly, which is the
  *  correct outcome; a sleep would measure the previous page and call it a pass. */
 const gotoPage = async (page, label) => {
-  await page.locator('[data-p3^="rail-page-"]').filter({ has: page.locator('[data-p3="rail-item-label"]', { hasText: label }) }).first().click();
+  await hooks.click(page.locator('[data-p3^="rail-page-"]').filter({ has: page.locator('[data-p3="rail-item-label"]', { hasText: label }) }).first());
   await page.waitForFunction((l) => document.querySelector('[data-p3^="rail-page-"].active [data-p3="rail-item-label"]')?.textContent === l, label);
   await page.evaluate(() => document.fonts.ready);
 };
 /** The same wait, for a destination named by its rail hook rather than by its label — for the sections
  *  that drive one particular page. The sweep keeps `gotoPage`, because it reads its labels off the rail. */
 const gotoRail = async (page, selector) => {
-  await page.locator(selector).click();
+  await hooks.click(page.locator(selector));
   await page.waitForFunction((sel) => document.querySelector(sel)?.classList.contains('active'), selector);
   await page.evaluate(() => document.fonts.ready);
 };
@@ -601,7 +601,7 @@ const settle = async (page, where) => {
 
 /** Same contract for the mode bar: the wait is "the bar says this mode is selected". */
 const selectMode = async (page, label) => {
-  await page.locator('[data-p3="mode-tab"]').filter({ hasText: label }).first().click();
+  await hooks.click(page.locator('[data-p3="mode-tab"]').filter({ hasText: label }).first());
   await page.waitForFunction((m) => document.querySelector('[data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === m, label);
   await page.evaluate(() => document.fonts.ready);
 };
@@ -617,7 +617,7 @@ const openBrand = async (brand, scheme) => {
   await hooks.watch(page);
   const drain = watchErrors(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
-  await page.locator('[data-p3="start-example"]').filter({ hasText: brand }).click();
+  await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
   await hooks.need(page, '[data-p3^="rail-page-"].active');
   await page.evaluate(() => document.fonts.ready);
   return { ctx, page, drain };
@@ -734,6 +734,7 @@ for (const brand of BRANDS) {
           roster,
           chromeMissing: roster.filter((k) => !document.querySelector(`[data-chrome="${k}"]`)),
           errorBarShown: !!err && getComputedStyle(err).display !== 'none',
+          errorBarMounted: !!err,
           errorBarText: err?.textContent?.trim() ?? '',
           // A derived mode (HC light / HC dark / Wireframe) is auto-generated and never hand-tuned, so
           // its editors are replaced by a read-only explanation. That is a legitimate way to have no
@@ -763,7 +764,11 @@ for (const brand of BRANDS) {
       // Now non-vacuous: an ABSENT `.errbar-global` used to read as "hidden" and pass this line, which
       // is the same defect as showing nothing. The roster assertions above are what make it mean
       // "mounted, and with nothing to say" rather than "not there".
-      ok(!dom.errorBarShown, `${where}: the global error bar is hidden${dom.errorBarShown ? ` — "${dom.errorBarText}"` : ''}`);
+      //
+      // The roster proves the surface by its `data-chrome` key, which is not the hook this lookup reads, so
+      // the bar's own hook is proven here too (#1831): dropped, it read as "hidden" and passed — measured.
+      hooks.absent(ok, { seen: dom.errorBarMounted, state: 'the global error bar mounted, found by its hook' },
+        !dom.errorBarShown, `${where}: the global error bar is hidden${dom.errorBarShown ? ` — "${dom.errorBarText}"` : ''}`);
       ok(dom.overflowX <= 1, `${where}: no horizontal overflow (${dom.overflowX}px past the viewport)`);
       if (hasBar) {
         // The bar must AGREE with the mode this state was set to. A mode switch that silently no-ops,
@@ -1119,11 +1124,14 @@ for (const brand of BRANDS) {
     for (const row of rows) {
       const where = `${brand} / ${mode} / ${row.pill}`;
       // (a) — the Source slot names the primitive and offers no ramp.
-      ok(row.source.selects === 0,
+      // Two ABSENCE checks, so each needs the Source slot itself found by this probe first (#1831): a slot
+      // that did not render reads as zero pickers and no ramp step, and would pass both.
+      const sourceSeen = { seen: row.source.text !== null, state: "this row's Source readout" };
+      hooks.absent(ok, sourceSeen, row.source.selects === 0,
         `${where}: the Source slot offers no ramp-step picker — a step of the neutral ramp is opaque and would replace the wash, not retint it (#1210a)`);
       ok(row.source.text === `${expectPal} ${OVERLAY_STEPS.hover}`,
         `${where}: the Source reads "${expectPal} ${OVERLAY_STEPS.hover}", the primitive the engine minted — got "${row.source.text}" (#1210a)`);
-      ok(!/\bneutral\s+\d+\b/.test(row.source.text ?? ''),
+      hooks.absent(ok, sourceSeen, !/\bneutral\s+\d+\b/.test(row.source.text ?? ''),
         `${where}: the Source does not present the wash as a step of the neutral ramp — got "${row.source.text}" (#1210a)`);
       // (b) — the swatch composites over an opaque ground, and the result is a visible tint.
       ok(row.swatch?.hasWashLayer === true,
@@ -1139,7 +1147,8 @@ for (const brand of BRANDS) {
       ok(row.states.length === 2, `${where}: the states strip carries Hover and Pressed (${row.states.map((s) => s.name).join(', ')})`);
       for (const st of row.states) {
         const stepKey = st.name.toLowerCase();
-        ok(st.selects === 0, `${where} / ${st.name}: the state's Source offers no ramp-step picker (#1210a)`);
+        hooks.absent(ok, { seen: st.text !== null, state: `the ${st.name} state's Source readout` },
+          st.selects === 0, `${where} / ${st.name}: the state's Source offers no ramp-step picker (#1210a)`);
         ok(st.text === `${expectPal} ${OVERLAY_STEPS[stepKey] ?? '?'}`,
           `${where} / ${st.name}: the state reads "${expectPal} ${OVERLAY_STEPS[stepKey]}" — got "${st.text}" (#1210a)`);
         ok(st.swatch?.hasWashLayer === true,
@@ -1196,10 +1205,19 @@ for (const brand of BRANDS) {
   // --- 2c. the export actually writes a file ----------------------------------------------------
   // The dialog rendering is #723's suite; what only a browser can check is that clicking Download
   // produces a real file whose bytes parse.
-  await page.locator('[data-p3="export-open"]').click();
+  //
+  // #1830 — the Export button used to be FOUND by its accessible name, which asserted that name for free.
+  // F1 moved the lookup to its hook, so the name is asserted here instead, by what the accessibility tree
+  // computes. `renderBar` sets it on purpose as the button's stable name once the narrow bar hides the word;
+  // without it the wide bar's name is "↓ Export" and the narrow bar's is "↓", and neither matches exactly.
+  const exportNamed = await page.getByRole('button', { name: 'Export', exact: true })
+    .evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
+  ok(exportNamed.length === 1 && exportNamed[0] === 'export-open',
+    `${brand}: the Export button's accessible name is "Export" — buttons by that name: ${JSON.stringify(exportNamed)}`);
+  await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
   const pending = page.waitForEvent('download');
-  await page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]').click();
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
   const dl = await pending;
   ok(dl.suggestedFilename().endsWith('.tokens.json'), `${brand}: the export downloads ${dl.suggestedFilename()}`);
   const body = await readFile(await dl.path(), 'utf8');
@@ -1226,19 +1244,19 @@ for (const brand of BRANDS) {
   // floor on and pinned sizes; harbor does not), so a fixed click list would exercise one and silently
   // no-op on the other.
   await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await page.locator('[data-p3="type-tab-styles"]').click();
+  await hooks.click(page.locator('[data-p3="type-tab-styles"]'));
   await hooks.need(page, '[data-p3="heading-shapes"]');
   const floorToggle = () => page.locator('[data-p3="heading-title-floor"] input[type=checkbox]');
   const floorOn = () => page.evaluate(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked ?? null);
   if (await floorOn()) {
-    await floorToggle().click();
+    await hooks.click(floorToggle());
     await page.waitForFunction(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked === false);
   }
   const release = page.locator('[data-p3="heading-shape-release"]');
-  if (await release.count()) { await release.click(); await hooks.need(page, '[data-p3="heading-shapes"]'); }
+  if (await release.count()) { await hooks.click(release); await hooks.need(page, '[data-p3="heading-shapes"]'); }
   const compact = page.locator('[data-p3="heading-shape-compact"]');
   ok(!(await compact.isDisabled()), `${brand}: with the title floor released, the Compact shape is selectable`);
-  await compact.click();
+  await hooks.click(compact);
   await page.waitForFunction(() => document.querySelector('[data-p3="heading-shape-compact"]')?.getAttribute('aria-pressed') === 'true');
 
   const errState = () => page.evaluate(() => {
@@ -1248,7 +1266,7 @@ for (const brand of BRANDS) {
   const clean = await errState();
   ok(clean.present && !clean.shown, `${brand}: the error surface is mounted and quiet before the refused edit`);
 
-  await floorToggle().click();
+  await hooks.click(floorToggle());
   // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
   // loudly as the defect it is rather than passing on a measurement taken too early.
   const surfaced = await page.waitForFunction(() => {
@@ -1269,9 +1287,9 @@ for (const brand of BRANDS) {
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
   await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await page.locator('[data-p3="type-tab-styles"]').click();
+  await hooks.click(page.locator('[data-p3="type-tab-styles"]'));
   await hooks.need(page, '[data-p3="heading-shapes"]');
-  await floorToggle().click();
+  await hooks.click(floorToggle());
   const cleared = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display === 'none';
@@ -1305,7 +1323,7 @@ for (const brand of BRANDS) {
   const labelExtra = label0.find((b) => !b.checked && b.role !== 'emphasis');
   if (labelExtra) {
     const before = await countOf('label');
-    await boxIn('label', label0, labelExtra.role).click();
+    await hooks.click(boxIn('label', label0, labelExtra.role));
     await repainted('label', before);
   }
   const label1 = await weightRow('label');
@@ -1322,7 +1340,7 @@ for (const brand of BRANDS) {
       const extra = row0.find((b) => !b.checked && b.role !== 'default');
       if (extra) {
         const before = await countOf(cat);
-        await boxIn(cat, row0, extra.role).click();
+        await hooks.click(boxIn(cat, row0, extra.role));
         await repainted(cat, before);
       }
     }
@@ -1338,17 +1356,17 @@ for (const brand of BRANDS) {
   const other = eyebrow0.find((b) => !b.checked);
   if (eyebrowOn.length === 1 && other) {
     const count1 = await countOf('eyebrow');
-    await boxIn('eyebrow', eyebrow0, other.role).click();
+    await hooks.click(boxIn('eyebrow', eyebrow0, other.role));
     await repainted('eyebrow', count1);
     const two = await weightRow('eyebrow');
     ok(two.filter((b) => b.checked).every((b) => !b.disabled),
       `${brand}: with two eyebrow weights ticked, either can be cleared (${JSON.stringify(two.filter((b) => b.checked))})`);
     const count2 = await countOf('eyebrow');
-    await boxIn('eyebrow', eyebrow0, eyebrowOn[0].role).click();
+    await hooks.click(boxIn('eyebrow', eyebrow0, eyebrowOn[0].role));
     await repainted('eyebrow', count2);
     const swapped = await weightRow('eyebrow');
     const swapErr = await errState();
-    ok(swapped.find((b) => b.checked)?.role === other.role && !swapErr.shown,
+    ok(swapped.find((b) => b.checked)?.role === other.role && swapErr.present && !swapErr.shown,
       `${brand}: eyebrow swaps ${eyebrowOn[0].role} → ${other.role} with no engine error (${swapErr.text.slice(0, 90)})`);
   }
 
@@ -1503,7 +1521,7 @@ for (const brand of BRANDS) {
   // NO NAVIGATION INSIDE THIS LOOP. Leaving the page and coming back re-renders it and would cure
   // the very staleness being asserted — the defect is only visible between commits.
   for (const tempo of options) {
-    await page.locator(`[data-p3="section-tempo"] [data-p3="lever-motion-personality-tempo"] input[value="${tempo}"]`).click();
+    await hooks.click(page.locator(`[data-p3="section-tempo"] [data-p3="lever-motion-personality-tempo"] input[value="${tempo}"]`));
     const held = await waitChecked(page, '[data-p3="section-tempo"] [data-p3="lever-motion-personality-tempo"]', tempo);
     ok(held, `${brand}/${tempo}: the tempo chip clicked is the one checked once the page has repainted`);
     if (!held) continue;
@@ -1648,7 +1666,7 @@ for (const brand of BRANDS) {
       for (const o of lever.options) {
         const v = String(o.value);
         if ((await page.evaluate(readChipGroup, c.group)).checked[0] === v) continue;
-        await page.locator(`${c.group} label`).filter({ hasText: o.label }).first().click();
+        await hooks.click(page.locator(`${c.group} label`).filter({ hasText: o.label }).first());
         await waitChecked(page, c.group, v);   // bounded; the two assertions below say what went wrong
         const wrote = await persistedAt(page, c.key);
         ok(String(wrote) === v, `${where}: checking "${o.label}" writes ${v} to the brand (wrote ${wrote})`);
@@ -1754,9 +1772,9 @@ for (const brand of BRANDS) {
     const { ctx, page, drain } = await openBrand(brand, scheme);
     // The popover, then the import box inside it — `.bm-ta` is the third control the surface promises
     // and it only exists once the box is open.
-    await page.locator('[data-p3="brand-switcher"]').click();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-    await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]').click();
+    await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
     // TYPE INTO IT. An empty field renders no glyphs, so measuring a pristine input asserts a
     // computed pairing over ink that is not on screen; a value makes the row describe something drawn.
@@ -1838,7 +1856,7 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   const { ctx, page, drain } = await openBrand(brand);
   // Open the brand menu and change ONLY the identity fields. `page.fill` dispatches an `input` event, so
   // each field's real `oninput` handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
-  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-namespace"]');
   await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', NAME);       // Name      → lastGoodInput.id (persisted blob)
   await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-namespace"]', NS);    // Namespace → lastGoodInput.root + theme.root (emission)
@@ -1861,10 +1879,10 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   // rooted the tree at `ttds` while ~976 colour refs still pointed at `{prism.core.palette.*}`, a root no
   // longer present — dangling aliases, the exact silent-resolve class this PR closes. `roots.includes(NS)`
   // alone cannot see that (it only reads the top-level key); the ref scan over the serialized tree can.
-  await page.locator('[data-p3="export-open"]').click();
+  await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
   const pending = page.waitForEvent('download');
-  await page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]').click();
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
   const dl = await pending;
   let raw = '';
   let roots = [];
@@ -1917,10 +1935,10 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const { ctx, page, drain } = await openBrand(atRisk);
   // `openBrand` enters through a start-screen chip, which loads with `{ kind: 'example', id }` — so the
   // origin is already an example and only an EDIT is missing before the guard has something to protect.
-  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
-  await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first().click();
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
 
   const said = (await page.textContent('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]')).trim();
@@ -1930,7 +1948,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   ok(await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]').count() === 1, 'the confirm offers one Cancel button');
 
   // Cancel keeps the edit. A guard that loses what it was protecting is the failure it exists to stop.
-  await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]').click();
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]'));
   await page.waitForSelector('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]', { state: 'detached' });
   ok(await page.inputValue('[data-p3="brand-menu"] [data-p3="brand-menu-name"]') === 'renamed-in-smoke', 'Cancel leaves the edit in place');
   const errs = drain();
@@ -1951,12 +1969,12 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
   // The "Start blank" button by its own hook: the file-upload label beside it shares its class, and only
   // the button carries the `new` origin.
-  await page.locator('[data-p3="start-blank"]').click();   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
+  await hooks.click(page.locator('[data-p3="start-blank"]'));   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
   await hooks.need(page, '[data-p3^="rail-page-"].active');
-  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
-  await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first().click();
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="overwrite-confirm"]');
 
   const said = (await page.textContent('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]')).trim();
@@ -1982,7 +2000,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const [atRisk] = BRANDS;
   const { ctx, page, drain } = await openBrand(atRisk);
   const curItems = () => page.$$eval('[data-p3="brand-menu"] [data-p3="brand-menu-example"].cur', (bs) => bs.map((b) => b.textContent.trim()));
-  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   const before = await curItems();
   ok(before.includes(atRisk), `#1075 the loaded example is marked current on open — got [${before.join(', ')}]`);
@@ -1993,9 +2011,9 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const live = await curItems();
   ok(await page.evaluate(() => document.activeElement?.getAttribute('data-smoke') === '1075'),
     '#1075 typing a name keeps the same, focused Name input (no menu re-render)');
-  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await page.waitForSelector('[data-p3="brand-menu"]', { state: 'detached' });
-  await page.locator('[data-p3="brand-switcher"]').click();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   const fresh = await curItems();
   ok(live.join('|') === fresh.join('|'),
@@ -2524,7 +2542,7 @@ for (const brand of BRANDS) {
 
   // Pressed is click-to-pin (#291), and the border row is pinnable BECAUSE its edge has a pressed value —
   // its wash never changes, so an affordance keyed off the wash alone would have left this unreachable.
-  await btn.click();
+  await hooks.click(btn);
   // Same reason the hover wait is guarded: a specimen that is not pinnable at all never gets the class, and
   // an unguarded wait would take the process down instead of reporting which assertion noticed.
   const pinned = await page.waitForFunction(
@@ -2533,7 +2551,7 @@ for (const brand of BRANDS) {
   const pressed = await edgeNow();
   ok(pinned && pressed === back.states[1].swatch && pressed !== hovered,
     `${brand}: pinning the specimen paints the PRESSED edge (pinnable=${pinned}, ${pressed}, Pressed swatch ${back.states[1].swatch})`);
-  await btn.click();
+  await hooks.click(btn);
 
   const errs = drain();
   ok(errs.length === 0, `${brand}: 0 console errors across the edge drive${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
@@ -2718,7 +2736,6 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
   });
 
   const before = await readLinks();
-  ok(before.warn === false, `${brand}: no WCAG 1.4.1 warning before a non-distinct link palette is chosen`);
 
   // Drive → neutral: links move to the neutral ramp AND the underline warning fires inline.
   await sel.selectOption('neutral');
@@ -2728,6 +2745,10 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
   });
   const neu = await readLinks();
   ok(neu.warn === true, `${brand}: selecting a neutral link palette surfaces the WCAG 1.4.1 underline warning inline (warn, not force)`);
+  // The two "no warning" checks are ABSENCE checks, so both are judged against the warning this same probe
+  // has now been shown in the Links section (#1831) — not against a lookup that could simply find nothing.
+  const warnSeen = { seen: neu.warn === true, state: 'the WCAG 1.4.1 warning in the Links section, after selecting neutral' };
+  hooks.absent(ok, warnSeen, before.warn === false, `${brand}: no WCAG 1.4.1 warning before a non-distinct link palette is chosen`);
   ok(neu.swatch && neu.swatch !== before.swatch,
     `${brand}: the resting link swatch moves when links are repointed to neutral (${before.swatch} → ${neu.swatch})`);
 
@@ -2737,7 +2758,7 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
     const sec = document.querySelector('[data-p3="section-links"]');
     return ![...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
   });
-  ok((await warnFires()) === false, `${brand}: a colour-distinct (primary) link palette shows no warning`);
+  hooks.absent(ok, warnSeen, (await warnFires()) === false, `${brand}: a colour-distinct (primary) link palette shows no warning`);
 
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Link palette lever raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
@@ -2825,7 +2846,7 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
   await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await page.locator('[data-p3="type-tab-styles"]').click();
+  await hooks.click(page.locator('[data-p3="type-tab-styles"]'));
   await hooks.need(page, '[data-p3="pin-cut-table"]');
 
   // FLOOR: the control is present and reachable for a slot that supports a pin. A studio that dropped
@@ -2871,17 +2892,19 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   // A valid pin (family == bound face) is ACCEPTED, not refused — the engine throw path stays quiet.
   const err = await page.evaluate(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
-    return { shown: !!e && getComputedStyle(e).display !== 'none', text: e?.textContent?.trim() ?? '' };
+    return { present: !!e, shown: !!e && getComputedStyle(e).display !== 'none', text: e?.textContent?.trim() ?? '' };
   });
-  ok(!err.shown, `${brand}: a pin whose family matches the bound face is accepted, no error surfaced${err.shown ? ` — "${err.text.slice(0, 80)}"` : ''}`);
+  // An ABSENCE check: a quiet error surface means something only when the surface is mounted (#1831).
+  hooks.absent(ok, { seen: err.present, state: 'the error surface mounted on this page' },
+    !err.shown, `${brand}: a pin whose family matches the bound face is accepted, no error surfaced${err.shown ? ` — "${err.text.slice(0, 80)}"` : ''}`);
 
   // EMISSION: the pin reaches the emitted DTCG verbatim. Export the tokens (default shape) and find the
   // composite leaves carrying $extensions.prism3.facePin — the engine bakes the Figma Text Style's
   // fontStyle from exactly this (emit-figma-font.ts). Oracle: the same STYLE + bound face typed above.
-  await page.locator('[data-p3="export-open"]').click();
+  await hooks.click(page.locator('[data-p3="export-open"]'));
   await hooks.need(page, '[data-p3="export-dialog"]');
   const pending = page.waitForEvent('download');
-  await page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]').click();
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
   const dl = await pending;
   let emitted = null;
   try {
