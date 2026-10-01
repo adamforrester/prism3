@@ -3,9 +3,8 @@
 //   node docs/superpowers/ui-redesign/style-tiles/build-tiles.mjs
 //
 // Reads the canonical default theme (`packages/engine/out/prism3.tokens.json`, root `pds3`) and its
-// dark overlay, merges them per mode the way the engine emits them (the overlay is a sparse tree of
-// leaves that replace the base leaf at the same path; aliases resolve against the merged tree, so an
-// overlay alias still lands on the base's core palette), and emits `--p3-*` custom properties for
+// dark overlay through `../chrome-tokens.mjs` (the resolver shared with concept v5, which merges them
+// per mode the way the engine emits them), and emits `--p3-*` custom properties for
 // `[data-theme=light]` and `[data-theme=dark]` (plus `[data-theme=system]` under each color scheme).
 //
 // It then inlines those properties into `tiles.src.html` and writes the self-contained
@@ -26,120 +25,18 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// The resolver, the variable map, the fonts and the scans live in ../chrome-tokens.mjs, shared with
+// concept v5 so neither build forks the other.
+import {
+  NS, loadModes, resolve, P, TILE_VARS, CHROME_FONTS, fontFaceCss, fontVarsCss, cssOf, themeBlock,
+  brandLeaks, scanRaw, ratio as ratioOf, fmtRatio,
+} from '../chrome-tokens.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(HERE, '..', '..', '..', '..');
-const OUT = join(ROOT, 'packages', 'engine', 'out');
-const base = JSON.parse(readFileSync(join(OUT, 'prism3.tokens.json'), 'utf8'));
-const darkOverlay = JSON.parse(readFileSync(join(OUT, 'prism3.dark.overlay.tokens.json'), 'utf8'));
-const NS = 'pds3';
+const MODES = loadModes();
 
-// ── merge + resolve ────────────────────────────────────────────────────────────────────────────
-const isLeaf = (n) => n && typeof n === 'object' && '$value' in n;
-function* leaves(node, path = []) {
-  if (isLeaf(node)) { yield [path, node]; return; }
-  if (!node || typeof node !== 'object') return;
-  for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) yield* leaves(v, [...path, k]);
-}
-function merged(overlay) {
-  const tree = structuredClone(base);
-  if (!overlay) return tree;
-  for (const [path, leaf] of leaves(overlay)) {
-    let n = tree;
-    for (const k of path.slice(0, -1)) n = n[k] ??= {};
-    n[path[path.length - 1]] = leaf;
-  }
-  return tree;
-}
-const MODES = { light: merged(null), dark: merged(darkOverlay) };
-
-function leafAt(tree, dotted) {
-  let n = tree;
-  for (const k of dotted.split('.')) { n = n?.[k]; if (n === undefined) throw new Error(`no token at ${dotted}`); }
-  if (!isLeaf(n)) throw new Error(`${dotted} is a group, not a token`);
-  return n;
-}
-// Follows alias chains; returns { value, chain } where chain lists every path visited.
-function resolve(tree, dotted, chain = []) {
-  const leaf = leafAt(tree, dotted);
-  chain.push(dotted);
-  const v = leaf.$value;
-  if (typeof v === 'string' && /^\{[^}]+\}$/.test(v)) return resolve(tree, v.slice(1, -1), chain);
-  return { value: v, leaf, chain };
-}
-const P = (p) => `${NS}.${p}`;
-
-// ── the variable map: one role mapping, resolved per mode ──────────────────────────────────────
-// [variable, token path (below `pds3.`), kind]. The same path serves both themes; only the mode's
-// merged tree differs. Nothing here is a per-theme hand pick.
-const C = 'color', D = 'dim', N = 'num', T = 'time', E = 'ease';
-const VARS = [
-  // surfaces: the page (top bar, levers, preview, drawer) and the inset tint (segment tracks, tips,
-  // the per-mode body, the drawer's cards, badges). `fill-2` is the progress and spinner track.
-  // `bg-2` is only the harness page around the frame.
-  ['bg-page', 'color.background.primary', C],
-  ['bg-2', 'color.background.secondary', C],
-  ['fill-1', 'color.foreground.primary', C],
-  ['fill-2', 'color.foreground.secondary', C],
-  // text and icons
-  ['text', 'color.text.primary', C],
-  ['text-2', 'color.text.secondary', C],
-  ['icon', 'color.icon.primary', C],
-  ['icon-2', 'color.icon.secondary', C],
-  // lines: 1 is the hairline (decorative only: region and section splits), 2 clears 3:1 (slider rail)
-  ['line-1', 'color.border.primary', C],
-  ['line-2', 'color.border.secondary', C],
-  // fields, the selected edge and focus, hover washes
-  ['field-edge', 'color.field.border.rest', C],
-  ['field-edge-hover', 'color.field.border.hover', C],
-  ['ctl-edge', 'color.interactive.neutral.border.rest', C],
-  ['overlay-hover', 'color.interactive.neutral.overlay.hover', C],
-  ['overlay-pressed', 'color.interactive.neutral.overlay.pressed', C],
-  // inverse: the one primary action and the switch's on track
-  ['inv-bg', 'color.inverse.background.primary', C],
-  ['inv-bg-2', 'color.inverse.background.secondary', C],
-  ['inv-text', 'color.inverse.text.primary', C],
-  // status, for verdicts only
-  ['ok-icon', 'color.icon.success', C],
-  ['warn-icon', 'color.icon.warning', C],
-  ['bad-text', 'color.text.danger', C],
-  ['bad-icon', 'color.icon.danger', C],
-  // space
-  ['space-025', 'space.025', D], ['space-050', 'space.050', D], ['space-075', 'space.075', D],
-  ['space-100', 'space.100', D], ['space-150', 'space.150', D], ['space-200', 'space.200', D],
-  ['space-250', 'space.250', D], ['space-300', 'space.300', D], ['space-400', 'space.400', D],
-  ['space-500', 'space.500', D],
-  // radius: `radius.lg` (6px) for every control, field, card and panel; `md` for a segment inside
-  // its track (6 minus the track's 4px inset would be 2px, which reads square); pill for the
-  // verdict, badges, dots, the switch and the slider thumb. No radius above 6px until #1852.
-  ['radius-md', 'radius.md', D], ['radius-lg', 'radius.lg', D], ['radius-pill', 'radius.capsule', D],
-  // borders and focus
-  ['bw-hairline', 'border-width.hairline', D], ['bw-thick', 'border-width.thick', D],
-  ['focus-width', 'focus.ring.width', D], ['focus-offset', 'focus.ring.offset', D],
-  ['focus-offset-field', 'focus.ring.offset-field', D],
-  // control geometry: fields and chips 40, top-bar controls 36, small buttons 28, the drawer bar 44,
-  // the top bar and the tab row 56
-  ['ctl-h', 'core.dimension.40', D], ['ctl-h-sm', 'size.sm.height', D], ['ctl-h-xs', 'size.xs.height', D],
-  ['bar-h', 'size.lg.height', D], ['ctl-h-md', 'size.md.height', D],
-  ['track-h', 'control.size.sm.track', D],
-  ['track-w', 'control.size.sm.width', D], ['thumb', 'control.size.sm.thumb', D],
-  ['thumb-inset', 'control.size.sm.inset', D], ['dot', 'control.size.sm.dot', D],
-  ['icon-xs', 'icon.size.xs', D],
-  ['hit-min', 'core.dimension.24', D], ['swatch-h', 'core.dimension.40', D],
-  // type: sizes, weights, leading and tracking. The families are chrome constants (CHROME_FONTS).
-  ['fs-12', 'core.font.size.12', D], ['fs-14', 'core.font.size.14', D],
-  ['fs-16', 'core.font.size.16', D],
-  ['fw-default', 'core.font.weight-role.default', N], ['fw-emphasis', 'core.font.weight-role.emphasis', N],
-  ['fw-strong', 'core.font.weight-role.strong', N],
-  ['lh-compact', 'core.font.line-height-role.compact', N],
-  ['lh-cozy', 'core.font.line-height-role.cozy', N], ['lh-normal', 'core.font.line-height-role.normal', N],
-  ['ls-snug', 'core.font.letter-spacing-role.snug', D],
-  // motion
-  ['dur-fast', 'motion.duration.fast', T], ['dur-spin', 'motion.duration.spin', T],
-  ['dur-fast-reduced', 'motion.duration-reduced.fast', T],
-  ['dur-spin-reduced', 'motion.duration-reduced.spin', T],
-  ['ease', 'motion.easing-role.default', E],
-];
+// ── the variable map: TILE_VARS in ../chrome-tokens.mjs ────────────────────────────────────────
+const VARS = TILE_VARS;
 
 // Preview CONTENT, not chrome: the brand palette the user is theming. Mode-independent primitives.
 const RAMP = 'core.palette.primary';
@@ -151,48 +48,15 @@ const HARNESS = [
   ['h-frame-tall', '1080px'], ['h-frame-narrow-tall', '720px'], ['h-panel', '440px'],
 ];
 
-// Chrome fonts: NOT from tokens, on purpose. The chrome's face is the product's own, and must not
-// move when the default theme's `core.font.family.body` lever does (that lever is brand content).
-// Both faces are embedded from `fonts/` (the fontsource latin variable subsets, SIL OFL 1.1, licenses
-// alongside) as woff2 data URIs, so the page makes no network request and renders the same on a
-// machine with neither installed. That is the usual case: without them the chrome falls back to
-// DejaVu Sans, which is what made the first pass look dated.
-const CHROME_FONTS = [
-  // [variable, family, woff2 file, fallback stack]
-  ['font-ui', 'Inter', 'inter-latin-wght-normal.woff2', 'system-ui, sans-serif'],
-  ['font-mono', 'JetBrains Mono', 'jetbrains-mono-latin-wght-normal.woff2', 'ui-monospace, monospace'],
-];
-const fontFaces = CHROME_FONTS.map(([, family, file]) => {
-  const b64 = readFileSync(join(HERE, 'fonts', file)).toString('base64');
-  return `@font-face {\n  font-family: "${family}"; font-style: normal; font-weight: 100 900; font-display: block;\n`
-    + `  src: url(data:font/woff2;base64,${b64}) format("woff2");\n}`;
-}).join('\n');
-const fontVars = CHROME_FONTS.map(([n, family, , stack]) => `  --p3-${n}: "${family}", ${stack};`).join('\n');
-
-// ── value formatting ───────────────────────────────────────────────────────────────────────────
-const cssOf = (tree, [name, path, kind]) => {
-  const { value, chain } = resolve(tree, P(path));
-  switch (kind) {
-    case C: case D: case N: case T: return { css: String(value), chain };
-    case E: return { css: `cubic-bezier(${value.join(', ')})`, chain };
-    default: throw new Error(`unknown kind ${kind} for ${name}`);
-  }
-};
+// Chrome fonts: NOT from tokens, on purpose (see CHROME_FONTS in ../chrome-tokens.mjs).
+const fontFaces = fontFaceCss();
+const fontVars = fontVarsCss();
 
 // ── gate 3: no brand in the chrome ─────────────────────────────────────────────────────────────
-const BRAND_RE = /(core\.palette\.(primary|accent))|\.brand\b|\.brand-|\.link\.|border\.focus/;
-const errors = [];
-for (const mode of Object.keys(MODES)) {
-  for (const v of VARS) {
-    if (v[2] !== C) continue;
-    const { chain } = resolve(MODES[mode], P(v[1]));
-    const bad = chain.find((p) => BRAND_RE.test(p));
-    if (bad) errors.push(`chrome var --p3-${v[0]} (${mode}) resolves through brand token ${bad}`);
-  }
-}
+const errors = brandLeaks(MODES, VARS);
 
 // ── emit the generated block ───────────────────────────────────────────────────────────────────
-const block = (mode) => VARS.map((v) => `  --p3-${v[0]}: ${cssOf(MODES[mode], v).css};`).join('\n');
+const block = (mode) => themeBlock(MODES[mode], VARS);
 const light = block('light'), dark = block('dark');
 const rampVars = rampSteps.map((s) => `  --p3-sample-primary-${s}: ${resolve(MODES.light, P(`${RAMP}.${s}`)).value};`).join('\n');
 const sampleRoles = [
@@ -235,18 +99,7 @@ const src = readFileSync(SRC, 'utf8');
 const tileCssMatch = src.match(/<style id="tile-css">([\s\S]*?)<\/style>/);
 if (!tileCssMatch) throw new Error('tiles.src.html has no <style id="tile-css"> block');
 const tileCss = tileCssMatch[1];
-const RAW = [
-  [/#[0-9a-f]{3,8}\b/gi, 'raw hex color'],
-  [/\b(rgba?|hsla?|oklch|oklab|lab|lch|color)\(/gi, 'raw color function'],
-  [/(?<![\w-])-?\d*\.?\d+(px|rem|em|pt|vh|vw|ch)\b/gi, 'raw length'],
-  [/(?<![\w-])\d*\.?\d+(ms|s)\b/gi, 'raw duration'],
-  // T5: no shadows anywhere. Elevation is carried by the background/foreground roles and hairlines.
-  [/\b(box-shadow|text-shadow)\s*:|drop-shadow\(/gi, 'shadow (T5: no shadows)'],
-];
-const scan = (text, where) => {
-  const stripped = text.replace(/\/\*[\s\S]*?\*\//g, '');
-  for (const [re, what] of RAW) for (const m of stripped.matchAll(re)) errors.push(`${where}: ${what} "${m[0]}"`);
-};
+const scan = (text, where) => scanRaw(text, where, errors);
 scan(tileCss, 'tile CSS');
 for (const m of src.matchAll(/\sstyle="([^"]*)"/g)) scan(m[1], 'inline style');
 const defined = new Set([...VARS.map((v) => v[0]), ...HARNESS.map((h) => h[0]), ...CHROME_FONTS.map((f) => f[0]),
@@ -256,27 +109,7 @@ for (const m of src.matchAll(/var\(--p3-([a-z0-9-]+)/g)) if (!defined.has(m[1]))
 for (const [n] of [...VARS, ...CHROME_FONTS, ...HARNESS]) if (!src.includes(`var(--p3-${n})`)) errors.push(`mapped but unused variable --p3-${n}`);
 
 // ── contrast ───────────────────────────────────────────────────────────────────────────────────
-// A pair is measured as drawn: the foreground composited over an OPAQUE background. Anything that
-// is not a 6- or 8-digit hex, or a translucent background (there is nothing defined beneath it to
-// composite over), is refused rather than scored — a NaN compares false against every floor, so an
-// unparsed value would otherwise pass silently.
-const hexRgba = (h) => {
-  const x = typeof h === 'string' && /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(h) ? h.slice(1) : null;
-  if (!x) return null;
-  const n = (i) => parseInt(x.slice(i, i + 2), 16) / 255;
-  return [n(0), n(2), n(4), x.length === 8 ? n(6) : 1];
-};
-const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-const ratio = (a, b) => {
-  const fg = hexRgba(a), bg = hexRgba(b);
-  if (!fg || !bg) return { refused: `not a 6- or 8-digit hex (${!fg ? a : b})` };
-  if (bg[3] < 1) return { refused: `translucent background (${b})` };
-  const drawn = fg.slice(0, 3).map((c, i) => c * fg[3] + bg[i] * (1 - fg[3]));
-  const [x, y] = [lum(drawn), lum(bg)].sort((p, q) => q - p);
-  const r = (x + 0.05) / (y + 0.05);
-  return Number.isFinite(r) ? r : { refused: `ratio is not a number (${a} on ${b})` };
-};
+const ratio = ratioOf;
 const hexOf = (mode, v) => resolve(MODES[mode], P(VARS.find((x) => x[0] === v)[1])).value;
 
 // Declared chrome pairs: [fg var, bg var, floor, what]. The rendered audit covers every element;
@@ -316,7 +149,7 @@ const rows = PAIRS.map(([fg, bg, floor, what]) => {
 
 // Preview content numbers the tile prints (the role table). Computed, never typed.
 const roleRatio = (fg, bg) => ratio(resolve(MODES.light, P(fg)).value, resolve(MODES.light, P(bg)).value);
-const fmt = (r) => `${(Math.floor(r * 100) / 100).toFixed(2)}:1`;
+const fmt = fmtRatio;
 const anchorStep = rampSteps.find((s) => MODES.light[NS].core.palette.primary[s].$extensions?.prism3?.anchor);
 const rampHtml = rampSteps.map((s) => {
   const a = s === anchorStep;
