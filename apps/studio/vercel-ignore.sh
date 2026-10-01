@@ -74,22 +74,6 @@ EXCLUDED=(
 )
 # --- end excluded
 
-# PREVIEWS ARE NARROWER THAN PRODUCTION (owner decision, 2026-10-01). The Hobby plan allows 100
-# deployments a day, and on 2026-09-30 the lanes hit it: almost every engine PR touches a bundled engine
-# file, and every "merge main into the branch" commit diffs as all of main's changes against its first
-# parent. So a PR preview builds only when the commit itself touches the studio, and never for a merge
-# commit (it only brings in main's changes, which main's own production deploy covers). PRODUCTION is
-# unchanged below: any change to a bundle input still builds, so the live site never goes stale. A
-# preview that skips an engine-only change is a stale PREVIEW, which is the accepted cost.
-# `VERCEL_ENV` is set by Vercel in the Ignored Build Step; locally it is unset, which takes the
-# production path. Uncertainty still resolves toward building: a commit with no parent fails the diff
-# and exits 1.
-if [ "${VERCEL_ENV:-}" = "preview" ]; then
-  if git rev-parse -q --verify 'HEAD^2' >/dev/null 2>&1; then exit 0; fi
-  git diff --quiet HEAD^ HEAD -- apps/studio vercel.json || exit 1
-  exit 0
-fi
-
 PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine)
 for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 

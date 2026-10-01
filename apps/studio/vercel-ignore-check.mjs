@@ -101,19 +101,24 @@ if (leaked.length) {
 }
 console.log('  ✓ no bundled engine file is on the skip list.');
 
-// ---- WHAT THE SCRIPT DECIDES, run for real (owner decision, 2026-10-01) ----------------------------
-// The list above can be right while the decision is wrong: a preview that builds on every engine change
-// burns the 100-a-day Hobby limit (2026-09-30), and a production path that skips an engine change ships a
-// stale site (#474). So the script itself runs against throwaway commits in a temp repo, with each
+// ---- WHAT THE SCRIPT DECIDES, run for real ---------------------------------------------------------
+// The list above can be right while the decision is wrong: a production path that skips an engine change
+// ships a stale site (#474). So the script itself runs against throwaway commits in a temp repo, with each
 // expected exit code written here as a literal (0 = SKIP, 1 = BUILD). Nothing is derived from the script.
+// The scratch repo's git runs with a scrubbed environment: an inherited GIT_DIR or GIT_INDEX_FILE (set by
+// git hooks) would otherwise point these commits at the real repository, and a global signing or hooks
+// config would make the gate depend on the developer's machine.
 const scratch = mkdtempSync(join(tmpdir(), 'p3-ignore-'));
+const cleanEnv = (extra = {}) => ({
+  PATH: process.env.PATH, HOME: scratch, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', ...extra,
+});
 const git = (...args) => {
-  const r = spawnSync('git', args, { cwd: scratch, encoding: 'utf8' });
+  const r = spawnSync('git', ['-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd: scratch, encoding: 'utf8', env: cleanEnv() });
   if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed in the scratch repo: ${r.stderr}`);
   return r.stdout.trim();
 };
 const touch = (path, text) => { mkdirSync(dirname(join(scratch, path)), { recursive: true }); writeFileSync(join(scratch, path), text); };
-const decide = (env) => spawnSync('bash', [join(scratch, 'ignore.sh')], { cwd: scratch, env: { PATH: process.env.PATH, HOME: process.env.HOME, ...env } }).status;
+const decide = (env) => spawnSync('bash', [join(scratch, 'ignore.sh')], { cwd: scratch, env: cleanEnv(env) }).status;
 const fails = [];
 const expect = (name, got, want) => {
   if (got === want) console.log(`  ✓ ${name}`);
@@ -124,26 +129,38 @@ try {
   git('init', '-q', '-b', 'main');
   git('config', 'user.email', 'gate@example.invalid'); git('config', 'user.name', 'gate');
   touch('README.md', 'seed\n'); git('add', '-A'); git('commit', '-qm', 'seed');
-  expect('a commit with no parent BUILDS in a preview (uncertainty builds)', decide({ VERCEL_ENV: 'preview' }), 1);
+  expect('a commit with no parent BUILDS (uncertainty builds)', decide({}), 1);
   touch('packages/engine/theme.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'engine');
-  expect('an engine-only commit is SKIPPED in a preview', decide({ VERCEL_ENV: 'preview' }), 0);
-  expect('the same engine-only commit BUILDS in production', decide({ VERCEL_ENV: 'production' }), 1);
-  expect('the same engine-only commit BUILDS with VERCEL_ENV unset (the production path)', decide({}), 1);
+  expect('a bundled engine change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
+  touch('packages/engine/regen.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'excluded');
+  expect('a change to an excluded engine file only is SKIPPED', decide({ VERCEL_ENV: 'production' }), 0);
   touch('apps/studio/src/main.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'studio');
-  expect('a studio commit BUILDS in a preview', decide({ VERCEL_ENV: 'preview' }), 1);
+  expect('a studio change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
   touch('apps/plugin/src/x.ts', 'a\n'); git('add', '-A'); git('commit', '-qm', 'plugin');
-  expect('a plugin-only commit is SKIPPED in production', decide({ VERCEL_ENV: 'production' }), 0);
-  git('checkout', '-q', '-b', 'side', 'HEAD~2');
-  touch('apps/studio/src/other.ts', 'b\n'); git('add', '-A'); git('commit', '-qm', 'side studio');
-  git('checkout', '-q', 'main'); git('merge', '-q', '--no-edit', 'side');
-  expect('a merge commit is SKIPPED in a preview, even when it brings studio changes', decide({ VERCEL_ENV: 'preview' }), 0);
-  expect('the same merge commit BUILDS in production', decide({ VERCEL_ENV: 'production' }), 1);
+  expect('a plugin-only change is SKIPPED', decide({ VERCEL_ENV: 'production' }), 0);
+  touch('vercel.json', '{}\n'); git('add', '-A'); git('commit', '-qm', 'vercel');
+  expect('a vercel.json change BUILDS', decide({ VERCEL_ENV: 'production' }), 1);
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }
+
+// ---- WHICH BRANCHES DEPLOY AT ALL (owner decision, 2026-10-01) ------------------------------------------
+// The Hobby plan allows 100 deployments a day, and on 2026-09-30 the lanes hit it. A build the Ignored Build
+// Step skips STILL counts as a deployment (Vercel's docs), so the ignore step cannot save quota; only
+// `git.deploymentEnabled` stops a deployment being created. Previews are kept for the branches that edit the
+// studio (the UI redesign lane's `ui/*`, during the studio freeze) and for `main`. Checked as literals here:
+// a typo that disabled `main` would stop production deploys silently.
+const vcfg = JSON.parse(readFileSync(resolve(root, '../../vercel.json'), 'utf8'));
+const enabled = vcfg.git?.deploymentEnabled ?? {};
+for (const off of ['lane/*', 'fold/*', 'docs/*', 'claude/*']) {
+  expect(`vercel.json disables deployments for ${off}`, enabled[off] === false ? 0 : 1, 0);
+}
+for (const on of ['main', 'ui/*']) {
+  expect(`vercel.json leaves ${on} deploying`, enabled[on] === false ? 0 : 1, 1);
+}
+
 if (fails.length) {
-  console.error(`\n✗ vercel-ignore.sh decided ${fails.length} case(s) wrong:`);
+  console.error(`\n✗ ${fails.length} deploy decision(s) wrong:`);
   for (const f of fails) console.error(`    ${f}`);
   process.exit(1);
 }
-
