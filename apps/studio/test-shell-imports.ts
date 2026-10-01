@@ -6,11 +6,11 @@
  *
  * New shell code repaints by store subscription: a writer calls a setter, and every surface that reads
  * the topic repaints itself (plan §5). It never calls the legacy repaint tiers, which S13 deletes. So
- * every file under `src/shell/`, `src/domains/` and `src/preview/` must not name `apply`, `applyFull`,
- * `build`, `renderBar`, `renderWorkspace` or `setVolatile`, and a file that does fails here, naming the
- * file, the line and the name. `renderWorkspace` joined the list in S1.3 (orchestrator review of #1923):
- * it is the full legacy page repaint, which `applyFull` and the `mode` subscriber in `main.ts` call, so it
- * is a tier in all but name.
+ * every file under `src/shell/`, `src/domains/`, `src/preview/` and (from S2) `src/ui/` must not name `apply`,
+ * `applyFull`, `build`, `renderBar`, `renderWorkspace` or `setVolatile`, and a file that does fails here,
+ * naming the file, the line and the name. `renderWorkspace` joined the list in S1.3 (orchestrator review of
+ * #1923): it is the full legacy page repaint, which `applyFull` and the `mode` subscriber in `main.ts` call,
+ * so it is a tier in all but name.
  *
  * WHY IT IS INDEPENDENT OF WHAT IT CHECKS (docs/34). The subject is the new source, read from disk. The
  * oracle is the literal list of six names below, written here and never read from `main.ts`, so a tier
@@ -72,12 +72,18 @@ const ok = (cond: boolean, label: string): void => {
 
 /** The legacy repaint tiers, literally (plan §3.10). */
 const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'renderWorkspace', 'setVolatile'] as const;
-/** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices. */
-const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview'];
+/** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices; S2
+ *  adds `ui/`, the shared controls a domain composes from (the lever kit, the step picker), which is new
+ *  code with the same rule. */
+const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview', 'src/ui'];
 /** Files the scan must read, so an empty or misdirected scan cannot pass. */
 const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts', 'src/shell/preview.ts',
   // S1.4: the Activity drawer and the Figma menu, which run writes `main.ts` lends and must not reach a tier.
-  'src/shell/activity.ts', 'src/shell/figma.ts'];
+  'src/shell/activity.ts', 'src/shell/figma.ts',
+  // S2: Color › Palettes (its levers and its preview) and the shared controls.
+  'src/domains/color-palettes.ts', 'src/preview/palettes.ts', 'src/ui/lever-kit.ts', 'src/ui/step-picker.ts',
+  // S2's Q4 trial.
+  'src/preview/follow-edit.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {

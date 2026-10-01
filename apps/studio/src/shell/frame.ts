@@ -14,10 +14,11 @@
  * its selection because it subscribes too. Nothing here calls a legacy repaint tier, and
  * `test-shell-imports.ts` (a test, run by `npm test`) fails any file under `shell/` that names one.
  *
- * WHAT EACH PAGE SHOWS. Every tab and sub-page is still legacy (`pages.ts`), so each shows its legacy page
- * in the full-width legacy frame under the tab row, pinned light (D1, D2). The two panes are built and laid
- * out, and hidden until a domain slice moves a page (S2 first). Depth & motion carries a local switch
- * between its two legacy pages (D8).
+ * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
+ * full-width legacy frame under the tab row, pinned light (D1, D2); Depth & motion carries a local switch
+ * between its two legacy pages (D8). A moved page (`status: 'new'`, Color › Palettes from S2) shows the two
+ * panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
  * (V1), the mode control (Q1) and the Inspect menu, on one row (Q2). The preview body names its home in
@@ -40,12 +41,24 @@
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
  */
 import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
-import { INSPECT, LEGACY_LABEL, TABS, homeOf, legacyOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type PageKey, type Place, type TabId } from './pages';
+import { INSPECT, LEGACY_LABEL, TABS, homeOf, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type LegacyPageKey, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaSource } from './figma';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
+import { mountPalettesLevers } from '../domains/color-palettes';
+import { mountPalettesPreview } from '../preview/palettes';
+
+/** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
+ *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
+ *  compile error. Each mount subscribes to the store and hands back its cleanups. */
+const NEW_PAGES: Record<NewPageKey, {
+  readonly levers: (host: HTMLElement, cleanups: (() => void)[]) => void;
+  readonly preview: (host: HTMLElement, cleanups: (() => void)[]) => void;
+}> = {
+  palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
+};
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
@@ -209,7 +222,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
-  levers.setAttribute('aria-label', 'Settings');
+  levers.id = 'p3-levers';
   const preview = hook(h('section', 'p3-preview'), 'preview-pane');
   preview.setAttribute('aria-label', 'Preview');
   // Q2: the preview's title row shares one header height with the tab row, so the two dividers meet at
@@ -279,6 +292,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   let inspecting: InspectId | null = null;
   let opener: HTMLElement | null = null;
   let scrollBack = 0;
+  let previewBack = 0;
   let painting = false;
   const paintInspect = (): void => {
     if (!inspecting || painting) return;
@@ -297,6 +311,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (!inspecting) {
       opener = from;
       scrollBack = window.scrollY;
+      previewBack = previewBody.scrollTop;   // a moved page scrolls in its preview body, which Inspect hides
     }
     const first = inspecting !== v;
     inspecting = v;
@@ -312,6 +327,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     inspectBody.replaceChildren();
     render();
     window.scrollTo(0, scrollBack);
+    previewBody.scrollTop = previewBack;
     const back = opener && opener.isConnected && opener.getClientRects().length ? opener : null;
     opener = null;
     if (refocus) (back ?? (root.dataset.layout === 'panes' ? previewTitle : legacy)).focus?.();
@@ -325,13 +341,16 @@ export const mountFrame = (app: HTMLElement, opts: {
   let switchFor: string | null = null;
   let switchTabs: HTMLButtonElement[] = [];
 
-  /** Select a place. Shows its first legacy page unless it already shows the current one. */
+  /** Select a place. A moved page is the store's page itself; a legacy place shows its first legacy page
+   *  unless it already shows the current one. */
   const go = (p: Place): void => {
     // V1: a page change shows the new page's home, so Inspect closes with it (as in concept v6).
     if (inspecting && (p.tab !== place?.tab || p.sub !== place?.sub)) closeInspect(false);
     place = p;
+    const moved = newPageOf(p);
+    if (moved) { if (page !== moved) setPage(moved); else render(); return; }
     const pages = legacyOf(p, host);
-    if (pages.length && !pages.includes(page)) setPage(pages[0]);   // `page` repaints the legacy frame
+    if (pages.length && !(pages as readonly string[]).includes(page)) setPage(pages[0]);   // `page` repaints the legacy frame
     else render();
   };
 
@@ -363,7 +382,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   };
 
   /** D8: a place with two legacy pages gets a local switch, labeled with their names, in the frame. */
-  const buildSwitch = (pages: readonly PageKey[]): void => {
+  const buildSwitch = (pages: readonly LegacyPageKey[]): void => {
     const want = pages.length > 1 ? pages.join(' ') : null;
     if (want === switchFor) return;
     switchFor = want;
@@ -390,13 +409,23 @@ export const mountFrame = (app: HTMLElement, opts: {
     switchRow.append(seg);
   };
 
+  // ── the moved page in the two panes (S2 on) ─────────────────────────────────────────────────────
+  let mounted: NewPageKey | null = null;
+  let paneCleanups: (() => void)[] = [];
+  const unmountPanes = (): void => {
+    for (const c of paneCleanups) c();
+    paneCleanups = [];
+    levers.replaceChildren();
+    previewBody.replaceChildren();
+    mounted = null;
+  };
+  cleanups.push(unmountPanes);
+
   let lastLayout: string | null = null;
   const render = (): void => {
-    const pages = place ? legacyOf(place, host) : [page];
+    const pages = place ? legacyOf(place, host) : isNewPage(page) ? [] : [page];
     const isLegacy = pages.length > 0;
-    // Written only when the layout a place calls for changes, never on every render. In S1.3 no page
-    // renders the two panes yet, so `test:chrome` forces `data-layout="panes"` to measure the preview
-    // header (Q2, the mode control, Inspect over the preview); a re-render inside that state keeps it.
+    // Written only when the layout a place calls for changes, never on every render.
     const layout = isLegacy ? 'legacy' : 'panes';
     if (layout !== lastLayout) { root.dataset.layout = layout; lastLayout = layout; }
     root.dataset.pane = pane;
@@ -407,14 +436,27 @@ export const mountFrame = (app: HTMLElement, opts: {
     buildSubRow();
     select(subTabs, place?.sub ? subTabs[TABS.find((t) => t.id === place!.tab)!.subs!.findIndex((s) => s.id === place!.sub)] : null);
     buildSwitch(isLegacy ? pages : []);
+    // The moved page's levers and preview are mounted once per visit, and released when the place changes.
+    const moved = place ? newPageOf(place) : null;
+    if (moved !== mounted) {
+      unmountPanes();
+      if (moved) { NEW_PAGES[moved].levers(levers, paneCleanups); NEW_PAGES[moved].preview(previewBody, paneCleanups); }
+      mounted = moved;
+    }
     select(switchTabs, switchTabs.find((b) => b.id === `p3-switch-${kebab(page)}`) ?? null);
 
     // The legacy frame is the panel the tabs control. With nothing selected (a page no tab shows, such as
     // the plugin's Style guide) it is a plain region.
+    // On a moved page the levers pane is that panel instead, and the tabs point at it.
     const labelledBy = place ? (place.sub ? `p3-sub-${place.sub}` : `p3-tab-${place.tab}`) : null;
-    if (labelledBy) { legacy.setAttribute('role', 'tabpanel'); legacy.setAttribute('aria-labelledby', labelledBy); }
-    else { legacy.removeAttribute('role'); legacy.removeAttribute('aria-labelledby'); }
-    legacy.dataset.legacyPage = kebab(page);
+    const panel = isLegacy ? legacy : levers;
+    const other = isLegacy ? levers : legacy;
+    other.removeAttribute('role'); other.removeAttribute('aria-labelledby');
+    if (!isLegacy) levers.setAttribute('aria-label', 'Settings'); else levers.removeAttribute('aria-label');
+    if (labelledBy) { panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', labelledBy); }
+    else { panel.removeAttribute('role'); panel.removeAttribute('aria-labelledby'); }
+    for (const t of [...tabs, ...subTabs]) t.setAttribute('aria-controls', panel.id);
+    if (isLegacy) legacy.dataset.legacyPage = kebab(page); else delete legacy.dataset.legacyPage;
     root.dataset.place = place ? placeId(place) : '';
 
     // V1: the preview names the page's one home view. Nothing but a place change moves it.

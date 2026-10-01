@@ -16,7 +16,8 @@
  *
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
- * source. A slice moves a page by emptying its list; S13 deletes the field. `PageKey`, the legacy page
+ * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes);
+ * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
  * `PageKey` both ways) fails `typecheck` until its row goes too.
@@ -49,6 +50,9 @@ export type PageData = {
   readonly sections: readonly Section[];
   /** The Roles matrix's families (V2): role-path prefixes. Color's Surfaces & fills and Interactive only. */
   readonly roles?: readonly string[];
+  /** `legacy` until the page's slice moves it, then `new` (S2 moved Color › Palettes first). A `new` page
+   *  draws the two panes from its own modules (`NEW_PAGES` in `frame.ts`) and names no legacy page. */
+  readonly status: 'legacy' | 'new';
   readonly legacy: LegacyList;
 };
 /** A tab. Either it is a page itself, or it holds sub-pages and has no home or sections of its own. */
@@ -62,6 +66,7 @@ export const DOMAINS = [
       { title: 'Personality', desc: 'Each word fills settings you have not set yet. Settings you set win.', rows: [{ ctl: 'personality', schemaOnly: ['personality'] }] },
       { title: 'Modes', rows: [{ ctl: 'modes', schemaOnly: ['modes', 'customModes'] }] },
     ],
+    status: 'legacy',
     legacy: ['preview'],
   },
   {
@@ -80,7 +85,9 @@ export const DOMAINS = [
             ],
           },
         ],
-        legacy: ['palettes'],
+        // S2: moved. Its levers are `domains/color-palettes.ts`, its preview `preview/palettes.ts`.
+        status: 'new',
+        legacy: [],
       },
       {
         id: 'fills', label: 'Surfaces & fills', home: 'surfaces', intro: 'The page and its tiers, the inverse band, the bold fills and the gradients.',
@@ -90,6 +97,7 @@ export const DOMAINS = [
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
         ],
+        status: 'legacy',
         legacy: ['surfaces'],
       },
       {
@@ -123,6 +131,7 @@ export const DOMAINS = [
             ],
           },
         ],
+        status: 'legacy',
         legacy: ['interactive'],
       },
     ],
@@ -149,6 +158,7 @@ export const DOMAINS = [
         ],
       },
     ],
+    status: 'legacy',
     legacy: ['typography'],
   },
   {
@@ -158,6 +168,7 @@ export const DOMAINS = [
       { title: 'Corners', rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'enum', keys: ['controlShape'], drive: 'shape' }] },
       { title: 'Corner base', advanced: true, rows: [{ ctl: 'slider', keys: ['baseMd'], drive: 'radius' }, { ctl: 'toggle', keys: ['radiusHairline'], drive: 'radius' }] },
     ],
+    status: 'legacy',
     legacy: ['sizeRadius'],
   },
   {
@@ -169,6 +180,7 @@ export const DOMAINS = [
       { title: 'Motion', rows: [{ ctl: 'enum', keys: ['motionPersonality.tempo'], drive: 'motion' }, { ctl: 'easing', schemaOnly: ['motionPersonality.easingRoles'] }] },
       { title: 'Shadow tint', advanced: true, rows: [{ ctl: 'tint', keys: ['shadow.tint'], drive: 'elev' }] },
     ],
+    status: 'legacy',
     legacy: ['elevation', 'motion'],
   },
   {
@@ -178,6 +190,7 @@ export const DOMAINS = [
       { title: 'Grid', rows: [{ ctl: 'columns', keys: ['layout.columns'] }, { ctl: 'gridOverrides', schemaOnly: ['layout.columnOverrides'] }] },
       { title: 'Containers', rows: [{ ctl: 'slider', keys: ['layout.containerMax'] }, { ctl: 'slider', keys: ['layout.containerNarrow'] }] },
     ],
+    status: 'legacy',
     legacy: ['layout'],
   },
   {
@@ -196,6 +209,7 @@ export const DOMAINS = [
       },
       { title: 'Sets', rows: [{ ctl: 'sets' }] },
     ],
+    status: 'legacy',
     legacy: { web: ['sizeRadius'], figma: ['components'] },
   },
 ] as const satisfies readonly Domain[];
@@ -214,15 +228,20 @@ type KeysOf<L> = L extends readonly (infer K)[] ? K : L extends { readonly web: 
 export type TabId = DomainT['id'];
 /** Color's sub-pages. */
 export type ColorSubId = SubOf<DomainT>['id'];
-/** The legacy page keys the store's `page` holds: every key a page's `legacy` list names, plus the
- *  Figma menu's. Derived, so it shrinks as each slice empties a list (§3.7, #1846). */
-export type PageKey = KeysOf<PageT['legacy']> | (typeof MENU_LEGACY)[number];
+/** The legacy page keys: every key a page's `legacy` list names, plus the Figma menu's. Derived, so it
+ *  shrinks as each slice empties a list (§3.7, #1846). `NAV` in `main.ts` is checked against this. */
+export type LegacyPageKey = KeysOf<PageT['legacy']> | (typeof MENU_LEGACY)[number];
+/** The pages a slice has moved (`status: 'new'`), by id. Derived, so it grows as each slice moves one. */
+export type NewPageKey = Extract<PageT, { readonly status: 'new' }>['id'];
+/** What the store's `page` holds: a legacy page, or a moved page by its id. The two sets never share a
+ *  key: a slice that moves a page takes its legacy key out of the first set in the same change. */
+export type PageKey = LegacyPageKey | NewPageKey;
 
 /** A place the tab row can select: a tab, or a Color sub-page. */
 export type Place = { readonly tab: TabId; readonly sub?: ColorSubId };
 
 /** The legacy page labels the Depth & motion switch shows (D8: the two legacy page names). */
-export const LEGACY_LABEL: Partial<Record<PageKey, string>> = { elevation: 'Elevation', motion: 'Motion' };
+export const LEGACY_LABEL: Partial<Record<LegacyPageKey, string>> = { elevation: 'Elevation', motion: 'Motion' };
 
 const domainOf = (id: TabId): Domain => DOMAINS.find((d) => d.id === id)!;
 const subsOf = (d: Domain): readonly PageData[] | null => ('subpages' in d ? d.subpages : null);
@@ -235,11 +254,23 @@ export const pageOf = (p: Place): PageData | null => {
   return d as PageData;
 };
 
-const listFor = (l: LegacyList | undefined, host: Host): readonly PageKey[] =>
-  (!l ? [] : Array.isArray(l) ? l : (l as { readonly [H in Host]: readonly string[] })[host]) as readonly PageKey[];
+const listFor = (l: LegacyList | undefined, host: Host): readonly LegacyPageKey[] =>
+  (!l ? [] : Array.isArray(l) ? l : (l as { readonly [H in Host]: readonly string[] })[host]) as readonly LegacyPageKey[];
 
 /** The legacy pages a place shows on this host. Empty for a page a slice has moved. */
-export const legacyOf = (p: Place, host: Host): readonly PageKey[] => listFor(pageOf(p)?.legacy, host);
+export const legacyOf = (p: Place, host: Host): readonly LegacyPageKey[] => listFor(pageOf(p)?.legacy, host);
+
+/** The moved pages' ids, from the data. */
+export const NEW_PAGE_KEYS: readonly NewPageKey[] = (DOMAINS as readonly Domain[])
+  .flatMap((d) => ('subpages' in d ? d.subpages : [d as PageData]))
+  .filter((p) => p.status === 'new').map((p) => p.id as NewPageKey);
+/** Is `k` a moved page (drawn in the two panes), rather than a legacy page? */
+export const isNewPage = (k: PageKey): k is NewPageKey => (NEW_PAGE_KEYS as readonly string[]).includes(k);
+/** The moved page a place is, or null when the place is legacy. */
+export const newPageOf = (p: Place): NewPageKey | null => {
+  const d = pageOf(p);
+  return d && d.status === 'new' ? (d.id as NewPageKey) : null;
+};
 
 /** The tab row's data, in tab order, with each tab's sub-pages. */
 export const TABS: readonly { readonly id: TabId; readonly label: string; readonly subs?: readonly { readonly id: ColorSubId; readonly label: string }[] }[] =
@@ -259,6 +290,7 @@ export const PLACES: readonly Place[] = TABS.flatMap((t) => (t.subs ? t.subs.map
  *  legacy page (Shape and Components on the web) never jumps the selection. Null when no place shows the
  *  page (the plugin's Style guide, a Figma menu item from S1.4 on). */
 export const placeOfPage = (page: PageKey, host: Host, keep: Place | null): Place | null => {
+  if (isNewPage(page)) return PLACES.find((p) => newPageOf(p) === page) ?? null;
   if (keep && legacyOf(keep, host).includes(page)) return keep;
   return PLACES.find((p) => legacyOf(p, host).includes(page)) ?? null;
 };

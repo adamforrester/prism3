@@ -79,13 +79,18 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
     for (const b of radios) {
       const m = b.dataset.mode!;
       const f = v.per.find((x) => x.mode === m)?.f ?? 0;
+      const on = m === currentMode;
+      // Redrawn only when what it says moved (S2: the control is on screen beside the levers now, so a
+      // same-value redraw on every edit cost a layout of the header each time).
+      const sig = `${f}|${on}`;
+      if (b.dataset.sig === sig) continue;
+      b.dataset.sig = sig;
       const dot = h('span', f ? 'p3-dot p3-dot-bad' : 'p3-dot p3-dot-ok');
       dot.setAttribute('aria-hidden', 'true');
       const parts: (Node | string)[] = [h('span', 'p3-mode-name', modeLabel(m)), dot];
       if (f) parts.push(h('span', 'p3-mode-count', String(f)));
       b.replaceChildren(...parts);
       b.setAttribute('aria-label', `${modeLabel(m)}${isDerived(m) ? ', derived' : ''}, ${f ? `${f} below floor` : 'all pairs at or above floor'}`);
-      const on = m === currentMode;
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;
     }
@@ -111,6 +116,8 @@ export const verdictButton = (open: (opener: HTMLElement) => void, cleanups: (()
   const paint = (): void => {
     const v = verdict();
     const line = verdictLine(v);
+    if (b.dataset.line === line) return;   // unchanged: no redraw (S2, as the mode control)
+    b.dataset.line = line;
     const dot = h('span', v.fail ? 'p3-dot p3-dot-bad' : 'p3-dot p3-dot-ok');
     dot.setAttribute('aria-hidden', 'true');
     b.replaceChildren(dot, h('span', 'p3-verdict-text', line));

@@ -31,12 +31,22 @@ export type Verdict = {
 };
 
 let cache: { theme: Theme; modes: string; v: Verdict } | null = null;
+let resolved: { theme: Theme; all: ReturnType<typeof resolveAllModes> } | null = null;
+
+/** Every mode's resolved roles for `theme`, cached by the theme's identity. The verdict reads it, and so
+ *  does any preview that needs a role's resolved color (S2: the Palettes preview reads the page color it
+ *  draws its specimens on), so one edit costs one resolve however many readers there are. */
+export const resolvedModes = (theme: Theme): ReturnType<typeof resolveAllModes> => {
+  if (resolved && resolved.theme === theme) return resolved.all;
+  resolved = { theme, all: resolveAllModes(theme) };
+  return resolved.all;
+};
 
 /** The verdict for `theme`, over `modes` in that order (the order the mode control shows). */
 export const verdictOf = (theme: Theme, modes: readonly string[]): Verdict => {
   const key = modes.join(' ');
   if (cache && cache.theme === theme && cache.modes === key) return cache.v;
-  const byMode = new Map(resolveAllModes(theme).map((m) => [m.mode as string, m]));
+  const byMode = new Map(resolvedModes(theme).map((m) => [m.mode as string, m]));
   const per = modes.map((mode) => {
     let n = 0, f = 0;
     for (const r of Object.values(byMode.get(mode)?.roles ?? {})) {

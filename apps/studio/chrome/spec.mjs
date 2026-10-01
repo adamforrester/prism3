@@ -114,6 +114,10 @@ export const LAYERS = [['bg-page', 'preview'], ['levers-bg', 'levers panel'], ['
  *  as V6_VARS, and held to the same checks (the brand-leak scan, the pairs below when they name one). */
 export const PRODUCT_VARS = [
   ['radius-xl', 'radius.xl', 'radius.xl', D, 'containers and the segmented track (owner, 2026-10-01)'],
+  // S2: concept v6's 56px hero swatch (V7, its `l-hero-sw`) and the step picker's 72px step (V9, its
+  // `l-step`), from the dimension grid rather than as raw lengths.
+  ['hero-sw', 'core.dimension.56', 'core.dimension.56', D, 'the Palettes hero swatch (V7)'],
+  ['step-w', 'core.dimension.72', 'core.dimension.72', D, 'the step picker\'s smallest step (V9)'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -136,6 +140,10 @@ export const SHELL_VARS = [
   'fs-12', 'fs-14', 'fw-default', 'fw-emphasis', 'lh-compact', 'lh-normal',
   // S1.3: the preview title (V8's 20px view title) and the cards' tracked small-capital titles
   'fs-20', 'ls-wide',
+  // S2: the levers panel, the Palettes preview (V7, V8) and the step picker (V9): section and palette titles
+  // at 16, the strong weight and snug tracking v6 sets them in, cozy leading for notes, the warning glyph, the
+  // checkerboard's second ground, the picker step's edge, and the two sizes above.
+  'fs-16', 'fw-strong', 'ls-snug', 'lh-cozy', 'warn-icon', 'fill-2', 'field-edge', 'hero-sw', 'step-w',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
