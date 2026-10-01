@@ -24,7 +24,10 @@
  * `data-view`, which changes on a place change and nothing else. Inspect opens over the preview, or over
  * the legacy frame while the page is legacy (it is the page's preview until its slice moves it), and closes
  * back to it, scroll and focus included. A place change closes it. The verdict on the bar opens it on
- * Contrast.
+ * Contrast. `main.ts` lends Inspect two legacy views as callbacks, `inspect.contrast` (the contract table)
+ * and `inspect.tokens` (the token list, which takes Inspect's own `repaint`). Their bodies live in `main.ts`,
+ * so `test-shell-imports.ts` cannot see what they call; that limit is stated in its header. The same holds
+ * for S1.4's lends below, `activity` (the host session's writes) and `figma` (the write functions).
  *
  * S1.4 adds the Activity drawer (`activity.ts`) at the bottom of the frame, the Activity button and, in the
  * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The legacy bar places

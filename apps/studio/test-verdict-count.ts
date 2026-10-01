@@ -15,8 +15,14 @@
  * proves the counter is not a constant; the derived-mode set against the literal list the owner's mode
  * model names (v6 hatches high contrast and wireframe); and the copy against concept v6, verbatim.
  *
- * Mutation this fails by name: count roles with no floor (drop the `r.min > 0` clause) →
- * `prism3 gates 884 roles across its modes (the v4 review's number) — counted 936`. (Dropping only the
+ * A FAILING COUNT, EXACTLY. A fixture that fails one role in Light and one in Dark must read
+ * "2 of 884 below floor, 2 modes", with both numbers derived by hand in the comment beside it, so a loosened
+ * threshold, a capped `modesFailing` or a count that only looks at Light each move the line.
+ *
+ * Mutations this fails by name: count roles with no floor (drop the `r.min > 0` clause) →
+ * `prism3 gates 884 roles across its modes (the v4 review's number) — counted 936`; the threshold loosened
+ * by 0.5, `modesFailing` capped at 1, or failures counted in Light only →
+ * `two-mode fixture: the bar reads "2 of 884 below floor, 2 modes" — read "…"`. (Dropping only the
  * `against === 'self'` clause changes nothing for prism3, whose self-measured roles carry no minimum; the
  * clause stays as concept v6 wrote it.)
  */
@@ -65,6 +71,32 @@ if (badTheme) {
   ok(light.f >= 1 && bv.fail >= 1 && bv.modesFailing >= 1, `an override below its floor is counted as a failure (light fails ${light.f}, total fail ${bv.fail})`);
   ok(/^\d+ of 884 below floor, \d+ modes?$/.test(verdictLine(bv)), `the failing bar line reads "<n> of 884 below floor, <m> mode(s)" — read "${verdictLine(bv)}"`);
   ok(modeLine(light, 'Light') === `Light: ${light.f} of ${light.n} below`, `a failing mode reads "Light: <f> of <n> below" — read "${modeLine(light, 'Light')}"`);
+}
+
+// A failing count, exactly (orchestrator review of #1923: `>= 1` let a loosened threshold, a capped
+// `modesFailing` and a Light-only count all pass). The fixture re-points `text.secondary` at a pale step in
+// Light and at a dark step in Dark. Derived by hand, not by the module: each override makes that one role
+// fail its 4.5 floor in that one mode (neutral.100 on the Light page, neutral.900 on the Dark page), and no
+// role in the committed `out/prism3.tokens.json` is measured against `text.secondary`, so nothing else moves.
+// High contrast light and dark are resolved on their own and carry no override. So: 2 failures, 1 in Light
+// and 1 in Dark, 2 modes failing, out of the same 884.
+const TWO_MODES_LINE = '2 of 884 below floor, 2 modes';
+const TWO_MODES_HEALTH = '2 of 884 pairs below floor in 2 modes.';
+const TWO_MODES_PER = ['Light: 1 of 221 below', 'Dark: 1 of 221 below', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
+const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark' };
+const two = structuredClone(input) as BrandInput;
+two.overrides = {
+  light: { 'text.secondary': { palette: 'neutral', step: '100' } },
+  dark: { 'text.secondary': { palette: 'neutral', step: '900' } },
+} as BrandInput['overrides'];
+let twoTheme;
+try { twoTheme = brandTheme(two); } catch (e) { twoTheme = null; ok(false, `a two-mode below-floor fixture resolves — threw ${(e as Error).message}`); }
+if (twoTheme) {
+  const tv = verdictOf(twoTheme, resolvePreview(twoTheme).modes);
+  ok(verdictLine(tv) === TWO_MODES_LINE, `two-mode fixture: the bar reads "${TWO_MODES_LINE}" — read "${verdictLine(tv)}"`);
+  ok(healthLine(tv) === TWO_MODES_HEALTH, `two-mode fixture: Health reads "${TWO_MODES_HEALTH}" — read "${healthLine(tv)}"`);
+  const per = tv.per.map((m) => modeLine(m, LABELS[m.mode] ?? m.mode));
+  ok(JSON.stringify(per) === JSON.stringify(TWO_MODES_PER), `two-mode fixture: each mode's line — read ${JSON.stringify(per)}`);
 }
 
 // Derived modes: the owner's mode model (Q1, model B) hatches the generated ones.

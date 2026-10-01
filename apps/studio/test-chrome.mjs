@@ -73,7 +73,9 @@
  *   · THE MODE CONTROL (Q1, model B): a radiogroup of the literal modes, derived ones hatched; choosing a
  *     mode makes the legacy page draw it, and the legacy strip's choice checks it here; arrow keys move.
  *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS` (U+2192, which the engine's notes
- *     carry and the embedded Inter subset does not), one glyph each.
+ *     carry and the embedded Inter subset does not), one glyph each, and only in text inside the Decisions
+ *     log view (its entry's scope in `FACE_GAPS`). A `→` anywhere else in the chrome fails. S1.4 adds the
+ *     four verdict glyphs, each scoped to the write-status pills and the apply detail.
  *
  * S1.4 ADDS (section 10), on both hosts, both themes, at 1280, 640 and 380:
  *   · THE ACTIVITY DRAWER (F2): nothing drawn before anything runs; a write started from the Figma menu opens
@@ -117,6 +119,12 @@
  *   · the Prune stale item running the Apply write → `Figma menu … Prune stale posts a dry-run prune (prune:false) — posted ["apply-theme"]`.
  *   · the bottom-left chip mounted again → `D6 … the bottom-left agent chip is gone …` and the inline-value check.
  *   · the apply pill painted into the top bar → `F2 … the running write's pill sits in the drawer's bar row`.
+ *   S1.3 review (orchestrator's review of #1923):
+ *   · the token list's rows removed → `… Inspect › Tokens opens on Primitives, with palette.neutral.950 at #0d0d0e — row null`.
+ *   · Inspect lending a no-op repaint, or `(h) => renderPreviewTokens(h)` (the `paintVolatile` fallback) →
+ *     `… a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: text.primary → …; row null, …)`.
+ *   · the contract table given no rows → `… Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0`.
+ *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -152,9 +160,15 @@ const UI_FONT = 'Inter';      // the embedded face's own family name, as the pla
  *  UI shows verbatim and must not rewrite. S1.4 measures the plugin's write verdicts for the first time
  *  (they sat in the bar since S1.2, but no state with one was measured): the host's headlines lead with
  *  U+2713 (✓), U+2717 (✗) and U+26A0 (⚠), and a pending write reads U+22EF (⋯) ("⋯ Applying…"). Those strings
- *  are the verdict suite's copy contract, so the fix is a wider subset, outside this slice. A device face
- *  drawing any OTHER glyph still fails. */
-const FACE_GAPS = ['\u2192', '\u2713', '\u2717', '\u26A0', '\u22EF'];
+ *  are the verdict suite's copy contract, so the fix is a wider subset, outside this slice (#1924).
+ *
+ *  Each is tolerated only WHERE that copy reaches the chrome (orchestrator review of #1923): `→` inside the
+ *  Decisions log, where the engine's notes are shown; the four verdict glyphs inside the write-status pills
+ *  and the apply detail, where the host's verdict strings are shown. A gap glyph the chrome writes itself (a
+ *  Back label, a menu item) is the chrome's own copy and must draw in Inter, and a device face drawing any
+ *  OTHER glyph fails anywhere. */
+const VERDICT_COPY = ':is([data-p3="status-pill"], [data-p3="status-verdict"], [data-p3="apply-detail"])';
+const FACE_GAPS = { '\u2192': '[data-p3="decisions-log"]', '\u2713': VERDICT_COPY, '\u2717': VERDICT_COPY, '\u26A0': VERDICT_COPY, '\u22EF': VERDICT_COPY };
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
@@ -455,6 +469,12 @@ const fontsDrawn = async (page) => {
   await cdp.send('CSS.enable');
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
   const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe="text"]' });
+  // Per text node, the gap characters tolerated there: each FACE_GAPS entry, inside its own scope only.
+  const gapScope = new Map();
+  for (const [ch, scope] of Object.entries(FACE_GAPS)) {
+    const { nodeIds: inScope } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${scope} [data-cprobe="text"], ${scope}[data-cprobe="text"]` });
+    for (const id of inScope) { if (!gapScope.has(id)) gapScope.set(id, new Set()); gapScope.get(id).add(ch); }
+  }
   const out = [];
   for (const nodeId of nodeIds) {
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
@@ -463,7 +483,7 @@ const fontsDrawn = async (page) => {
     const text = (function flat(n) { return (n.nodeType === 3 ? n.nodeValue : '') + (n.children ?? []).map(flat).join(''); })(node);
     out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
       gapFonts: fonts.filter((f) => f.familyName !== UI_FONT).reduce((n, f) => n + f.glyphCount, 0),
-      gapChars: [...text].filter((c) => FACE_GAPS.includes(c)).length });
+      gapChars: [...text].filter((c) => gapScope.get(nodeId)?.has(c)).length });
   }
   await cdp.detach();
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); });
@@ -552,7 +572,8 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'legacy', ext
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
-  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph each.
+  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph
+  // each, and only inside the region its copy comes from (each FACE_GAPS entry's scope).
   const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > f.gapChars);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT}${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
@@ -847,6 +868,42 @@ const INSPECT_TABS = ['Contrast', 'Tokens', 'Decisions log'];
  *  (`$extensions.prism3.decisions` in `packages/engine/out/prism3.tokens.json`), never from the page. */
 const DECISIONS = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8')).$extensions?.prism3?.decisions ?? [];
 ok(DECISIONS.length >= 10, `the committed default theme records ${DECISIONS.length} decisions (floor 10, so an empty read fails)`);
+/** Inspect › Tokens' oracle (orchestrator review of #1923: the check read only "a table is there"). One
+ *  primitive and one semantic, by literal path, with the value each must show read from the committed
+ *  `out/prism3.tokens.json`, never from the page or the renderer. The list opens on Primitives; its own
+ *  Semantics control must redraw it, inside Inspect, to the semantic. */
+const OUT = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8'));
+const OUT_ROOT = OUT.$extensions?.prism3?.root;
+const TOK_PRIMITIVE = { cat: 'core', path: 'palette.neutral.950' };
+const TOK_SEMANTIC = { cat: 'color', path: 'text.primary' };
+const at = (cat, path) => path.split('.').reduce((n, k) => n?.[k], OUT[OUT_ROOT]?.[cat]);
+const TOK_PRIMITIVE_HEX = at(TOK_PRIMITIVE.cat, TOK_PRIMITIVE.path)?.$extensions?.prism3?.hex;
+const TOK_SEMANTIC_ALIAS = at(TOK_SEMANTIC.cat, TOK_SEMANTIC.path)?.$extensions?.prism3?.aliasOf?.replace(`${OUT_ROOT}.`, '');
+ok(/^#[0-9a-f]{6}$/i.test(TOK_PRIMITIVE_HEX ?? '') && /^core\.palette\./.test(TOK_SEMANTIC_ALIAS ?? ''),
+  `the committed default theme carries ${TOK_PRIMITIVE.path} (${TOK_PRIMITIVE_HEX}) and ${TOK_SEMANTIC.path} → ${TOK_SEMANTIC_ALIAS}`);
+/** Inspect › Contrast's oracle. Every row: the committed `schema/preview-spec.json`'s contracts, in order,
+ *  in the table's literal "component · variant — label" wording. One pair's ratios: the primary button's
+ *  label on its fill, each mode's ratio read from the emitted `contrast` of
+ *  `color.interactive.primary.on-fill` (measured against `interactive.primary.fill.rest`, asserted below)
+ *  in the committed `out/prism3.tokens.json`. */
+const SPEC = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/preview-spec.json'), 'utf8'));
+const CONTRACT_ROWS = SPEC.components.flatMap((c) => c.variants.flatMap((v) => (v.contracts ?? []).map((ct) => `${c.id} · ${v.name} — ${ct.label ?? `${ct.min}:1`}`)));
+const KNOWN_PAIR = 'button · rest — label on fill';
+const ONFILL = OUT[OUT_ROOT]?.color?.interactive?.primary?.['on-fill']?.$extensions?.prism3 ?? {};
+const MODE_COLS = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark' };
+const KNOWN_RATIOS = Object.fromEntries(Object.entries(MODE_COLS).map(([m, col]) => {
+  const x = m === 'light' ? ONFILL : ONFILL.modes?.[m];
+  return [col, x?.against === 'interactive.primary.fill.rest' && typeof x.contrast === 'number' ? x.contrast.toFixed(2) : null];
+}));
+ok(CONTRACT_ROWS.length >= 10 && CONTRACT_ROWS.includes(KNOWN_PAIR) && Object.values(KNOWN_RATIOS).every(Boolean),
+  `the committed preview spec declares ${CONTRACT_ROWS.length} contracts, including "${KNOWN_PAIR}", whose emitted ratios are ${JSON.stringify(KNOWN_RATIOS)}`);
+/** A legacy table inside `host`, as text: header cells, then each row's cells. */
+const tableText = (page, host) => page.evaluate((host) => {
+  const all = [...document.querySelectorAll(`[data-p3="${host}"] table tr`)];
+  const cells = (r) => [...r.children].map((c) => c.textContent.trim());
+  const head = all.find((r) => r.querySelector('th'));
+  return { head: head ? cells(head) : [], rows: all.filter((r) => !r.querySelector('th')).map(cells) };
+}, host);
 const inspectState = (page) => page.evaluate(() => {
   const vis = (sel) => { const n = document.querySelector(sel); if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
   return {
@@ -883,17 +940,30 @@ for (const host of ['web', 'figma']) {
       ok(health.line === HEALTH_LINE, `${where}: Health reads "${HEALTH_LINE}" — reads "${health.line}"`);
       ok(JSON.stringify(health.modes) === JSON.stringify(HEALTH_MODES), `${where}: Health lists each mode — ${JSON.stringify(health.modes)}`);
       const table = await page.locator('[data-p3="inspect-contrast-table"] table').count();
-      ok(table >= 1, `${where}: Inspect › Contrast carries the contrast contract table (${table} table(s))`);
+      ok(table === 1, `${where}: Inspect › Contrast carries the contrast contract table (${table} table(s))`);
+      const ct = await tableText(page, 'inspect-contrast-table');
+      const labels = ct.rows.map((r) => r[0]);
+      ok(JSON.stringify(labels) === JSON.stringify(CONTRACT_ROWS), `${where}: Inspect › Contrast lists the preview spec's ${CONTRACT_ROWS.length} contracts, in order — listed ${labels.length}${labels.length ? `, first "${labels[0]}"` : ''}`);
+      const known = ct.rows.find((r) => r[0] === KNOWN_PAIR);
+      const shown = known ? Object.fromEntries(Object.keys(KNOWN_RATIOS).map((col) => [col, known[ct.head.indexOf(col)] ?? null])) : null;
+      ok(JSON.stringify(shown) === JSON.stringify(KNOWN_RATIOS), `${where}: Inspect › Contrast shows "${KNOWN_PAIR}" at the emitted ratios ${JSON.stringify(KNOWN_RATIOS)} — shows ${JSON.stringify(shown)}`);
       const m = await measure(page, `${where} / Inspect › Contrast`, host, w);
       check(m, `${where} / Inspect › Contrast`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-contrast"]', '[data-p3="inspect-close"]'] });
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-contrast.png`) });
       // Tokens: the legacy token list, whose own controls redraw it in place, inside Inspect.
       await hooks.click(page.locator('[data-p3="inspect-tab-tokens"]'));
       await hooks.need(page, '[data-p3="inspect-token-list"] table');
+      /** The row whose name cell reads `path`: its cells' text, or null when no row does. */
+      const tokRow = async (path) => (await tableText(page, 'inspect-token-list')).rows.find((r) => r[0] === path) ?? null;
+      const prim = await tokRow(TOK_PRIMITIVE.path);
+      ok(!!prim && prim.slice(1).some((c) => c.includes(TOK_PRIMITIVE_HEX)), `${where}: Inspect › Tokens opens on Primitives, with ${TOK_PRIMITIVE.path} at ${TOK_PRIMITIVE_HEX} — row ${JSON.stringify(prim)}`);
+      ok(!(await tokRow(TOK_SEMANTIC.path)), `${where}: Inspect › Tokens does not list the semantic ${TOK_SEMANTIC.path} before its Semantics control is chosen`);
       const tiers = page.locator('[data-p3="inspect-token-list"] button').filter({ hasText: 'Semantics' });
       await hooks.click(tiers.first());
-      const tok = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="inspect-token-list"]'), aliases: document.querySelectorAll('[data-p3="inspect-token-list"] table').length, text: document.querySelector('[data-p3="inspect-token-list"]')?.textContent.includes('{') ?? false }));
-      ok(tok.open && tok.aliases >= 1, `${where}: a control inside Inspect › Tokens redraws the list inside Inspect (${JSON.stringify(tok)})`);
+      const sem = await tokRow(TOK_SEMANTIC.path);
+      const stillOpen = await page.evaluate(() => !!document.querySelector('[data-p3="inspect-body"] [data-p3="inspect-token-list"]'));
+      ok(stillOpen && !!sem && (sem[1] ?? '').includes(TOK_SEMANTIC_ALIAS) && !(await tokRow(TOK_PRIMITIVE.path)),
+        `${where}: a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: ${TOK_SEMANTIC.path} → ${TOK_SEMANTIC_ALIAS}; row ${JSON.stringify(sem)}, Inspect ${stillOpen ? 'open' : 'closed'})`);
       const mt = await measure(page, `${where} / Inspect › Tokens`, host, w);
       check(mt, `${where} / Inspect › Tokens`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-tokens"]'] });
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-tokens.png`) });
