@@ -55,9 +55,26 @@
  * inline-styled chrome node (the plugin's bottom-left agent chip, which S1.4 removes, D6), and fails as
  * stale the day it stops rendering.
  *
- * ONE FORCED STATE. No page renders the two panes in S1.2 (every place is legacy until S2), so the Q2
- * check sets the frame's `data-layout="panes"` itself, measures the real stylesheet's two header rows,
- * and puts the attribute back. S2 replaces the force with Color › Palettes.
+ * ONE FORCED STATE. No page renders the two panes in S1.2 or S1.3 (every place is legacy until S2), so the
+ * Q2 check, and S1.3's checks of the preview header (the mode control, Inspect over the preview), set the
+ * frame's `data-layout="panes"` themselves and measure the real stylesheet. The frame writes the attribute
+ * only when a place calls for a different layout, so a re-render inside the forced state keeps it. S2
+ * replaces the force with Color › Palettes, the first page that renders the panes for real.
+ *
+ * S1.3 ADDS (sections 7–9), each against a literal oracle typed here or an engine artifact:
+ *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
+ *     two orders; scrolling the page and focusing its controls never changes it; nothing offers "Keep this
+ *     view" (V12).
+ *   · INSPECT (F1): the verdict reads the decided count (884) and opens Inspect › Contrast over the legacy
+ *     frame, with Health first and its literal lines; Tokens redraws in place from its own controls; the
+ *     Decisions log shows the engine's decisions verbatim (oracle: `$extensions.prism3.decisions` in the
+ *     committed `packages/engine/out/prism3.tokens.json`); Back and Escape close it to the page, its scroll
+ *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
+ *   · THE MODE CONTROL (Q1, model B): a radiogroup of the literal modes, derived ones hatched; choosing a
+ *     mode makes the legacy page draw it, and the legacy strip's choice checks it here; arrow keys move.
+ *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS` (U+2192, which the engine's notes
+ *     carry and the embedded Inter subset does not), one glyph each, and only in text inside the Decisions
+ *     log view (`FACE_GAPS_SCOPE`, its `data-p3` hook). A `→` anywhere else in the chrome fails.
  *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
@@ -69,6 +86,20 @@
  *   · `style.color` set on the brand switcher's name → `runtime inline value outside [data-content]`.
  *   · the preview header row given its own height → `Q2: … the two dividers are … apart`.
  *   · the search field rebuilt per keystroke → `search: the field reads "radius" after typing it`.
+ *   S1.3:
+ *   · Brand's and Components' homes swapped in `pages.ts` → `V1 home: web brand shows comps ("Components"), want guide`.
+ *   · scroll-following added to the frame → `V1 scroll: web color-palettes scrolled to 50% and the preview stayed …`.
+ *   · the verdict opening Tokens → `the verdict opens Inspect › Contrast (… selected "Tokens")`.
+ *   · Inspect's Back not restoring the legacy page → `Inspect closes back to the legacy page (…)`.
+ *   · the mode control writing a local value instead of `setCurrentMode` →
+ *     `mode control: choosing Dark makes the legacy page draw Dark (… shows "Light")`.
+ *   · the Decisions log dropping its first note → `… the Decisions log shows the engine's 18 decisions, verbatim and in order`.
+ *   S1.3 review (orchestrator's review of #1923):
+ *   · the token list's rows removed → `… Inspect › Tokens opens on Primitives, with palette.neutral.950 at #0d0d0e — row null`.
+ *   · Inspect lending a no-op repaint, or `(h) => renderPreviewTokens(h)` (the `paintVolatile` fallback) →
+ *     `… a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: text.primary → …; row null, …)`.
+ *   · the contract table given no rows → `… Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0`.
+ *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -99,6 +130,14 @@ const NONTEXT_MIN = 3;        // edges, indicators, glyphs, focus rings (WCAG 1.
 const FOCUS_WIDTH_MIN = 2;
 const TARGET_MIN = 24;
 const UI_FONT = 'Inter';      // the embedded face's own family name, as the platform reports it
+/** Characters the embedded Inter subset does not carry, so a device face draws them. Literal, and each is
+ *  a finding: U+2192 (→) reaches the chrome in the engine's own notes (the Decisions log, S1.3), which the
+ *  UI shows verbatim and must not rewrite. A device face drawing any OTHER glyph still fails. */
+const FACE_GAPS = ['\u2192'];
+/** Where a FACE_GAPS character is tolerated: inside the Decisions log view, and nowhere else in the chrome.
+ *  The engine's notes reach the UI only there; a `→` the chrome writes itself (a Back label, a menu item)
+ *  is the chrome's own copy, which must draw in Inter (orchestrator review of #1923). */
+const FACE_GAPS_SCOPE = '[data-p3="decisions-log"]';
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
@@ -132,7 +171,7 @@ const DEPTH_SWITCH_LABELS = ['Elevation', 'Motion'];
  *  380. Away from Color the sub-pages are not drawn; on Depth & motion the local switch is (`expectFor`). */
 const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]', '[data-p3="tab-components"]'];
 const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills"]', '[data-p3="color-sub-interactive"]'];
-const BAR = ['[data-p3="brand-switcher"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="search-open"]'];
+const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="search-open"]'];
 const EXPECT_CONTROLS = {
   'web wide': [...BAR, '[data-p3="theme-toggle"]', ...TABS, ...COLOR_SUBS],
   'web narrow': [...BAR, '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', ...COLOR_SUBS],
@@ -155,15 +194,20 @@ const FLOORS = {
 };
 /** The controls Tab must reach on the opening page, by hook: each tablist is one stop (a roving tabindex). */
 const FOCUS_STOPS = {
-  'web wide': ['[data-p3="brand-switcher"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="theme-toggle"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="prune-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="prune-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'web wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="theme-toggle"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="prune-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="prune-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
+/** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
+const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts: 5 };
 /** Every chrome control is one of these, by class. A control that is none fails as unclassified. */
-const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
+const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
   ['p3-seg-tab', 'segment'], ['p3-select', 'select'], ['p3-menu-item', 'menu item'], ['p3-search-input', 'search field']];
+/** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
+ *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
+const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]'];
 /** Inline-styled chrome a later slice removes. Each must still render, or the exemption is stale. */
 const INLINE_EXEMPT = [{ sel: '#p3-agent-link', host: 'figma', why: 'the bottom-left agent chip (agent-link-ui.ts), removed by S1.4 (D6)' }];
 
@@ -290,7 +334,8 @@ const PROBE = (opt) => {
     && !el.closest('[data-content]')
     && !(skipLegacy && legacyPage?.contains(el))
     && !el.closest('[data-p3="notices"] > *')
-    && !el.closest('.barmenu-wrap > [data-theme="light"]');
+    && !el.closest('.barmenu-wrap > [data-theme="light"]')
+    && !opt.inspectLegacy.some((sel) => el.closest(sel));
 
   const all = [...(frame?.querySelectorAll('*') ?? [])].filter(inChrome);
   const drawn = all.filter(shown);
@@ -359,6 +404,7 @@ const PROBE = (opt) => {
   const inline = [];
   for (const el of document.querySelectorAll('[style]')) {
     if (el.closest('[data-content]') || (skipLegacy && legacyPage?.contains(el)) || exempt.some((x) => x.contains(el))) continue;
+    if (opt.inspectLegacy.some((sel) => el.closest(sel))) continue;
     if (el.closest('[data-p3="start-screen"]')) continue;
     const props = [...el.style].filter((p) => !p.startsWith('--'));
     if (props.length) inline.push(`${label(el)} sets ${props.slice(0, 4).join(', ')}`);
@@ -370,7 +416,8 @@ const PROBE = (opt) => {
   const L = (c) => (c ? lum(c) : NaN);
   return {
     place, layout: frame?.dataset.layout, w: frame?.dataset.w, theme: document.documentElement.dataset.theme,
-    legacyShown: !!legacyPage && shown(legacyPage), panesShown: [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')].some(shown),
+    legacyShown: !!legacyPage && shown(legacyPage),
+    inspectShown: [...document.querySelectorAll('[data-p3="inspect-body"]')].some(shown), panesShown: [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')].some(shown),
     legacyPage: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
     text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed,
     exemptFound: opt.exempt.map((s) => !!document.querySelector(s)),
@@ -393,11 +440,17 @@ const fontsDrawn = async (page) => {
   await cdp.send('CSS.enable');
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
   const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe="text"]' });
+  const { nodeIds: inScope } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${FACE_GAPS_SCOPE} [data-cprobe="text"], ${FACE_GAPS_SCOPE}[data-cprobe="text"]` });
+  const gapScope = new Set(inScope);
   const out = [];
   for (const nodeId of nodeIds) {
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
     const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
-    out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`) });
+    const { node } = await cdp.send('DOM.describeNode', { nodeId, depth: -1 });
+    const text = (function flat(n) { return (n.nodeType === 3 ? n.nodeValue : '') + (n.children ?? []).map(flat).join(''); })(node);
+    out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
+      gapFonts: fonts.filter((f) => f.familyName !== UI_FONT).reduce((n, f) => n + f.glyphCount, 0),
+      gapChars: gapScope.has(nodeId) ? [...text].filter((c) => FACE_GAPS.includes(c)).length : 0 });
   }
   await cdp.detach();
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); });
@@ -440,17 +493,24 @@ const focusRings = async (page) => {
 
 const columnOf = (host, w) => `${host} ${w <= 560 ? 'narrow' : 'wide'}`;
 const measure = async (page, where, host, w) => {
-  const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, exempt: INLINE_EXEMPT.filter((x) => x.host === host).map((x) => x.sel) });
+  const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, exempt: INLINE_EXEMPT.filter((x) => x.host === host).map((x) => x.sel), inspectLegacy: INSPECT_LEGACY });
   const fonts = await fontsDrawn(page);
   return { ...m, fonts };
 };
 
-const check = (m, where, column, floor = FLOORS[column]) => {
+/** `only`: the controls this state shows, replacing the column's list (the narrow Preview pane, which hides
+ *  the tab row). */
+/** `state`: 'legacy' (the default: the place's legacy page in the legacy frame), 'inspect' (Inspect over the
+ *  legacy frame), or 'forced' (the two panes, forced, see the header). `extra`: hooks this state adds. */
+const check = (m, where, column, floor = FLOORS[column], { state = 'legacy', extra = [], only = null } = {}) => {
   ok(m.unparsed.length === 0, `${where}: every computed color the probe met was parsed${m.unparsed.length ? ` — ${m.unparsed.slice(0, 3).join(' | ')}` : ''}`);
   // the legacy list
   ok(LEGACY_PAGES.includes(m.place), `${where}: place "${m.place}" is in LEGACY_PAGES (no page has moved in S1.2)`);
-  if (LEGACY_PAGES.includes(m.place)) {
-    ok(m.layout === 'legacy' && m.legacyShown && !m.panesShown, `page ${m.place} is listed as legacy and renders the legacy frame (${where}: layout "${m.layout}", legacy page ${m.legacyShown ? 'shown' : 'hidden'}, panes ${m.panesShown ? 'shown' : 'hidden'})`);
+  if (LEGACY_PAGES.includes(m.place) && state === 'legacy') {
+    ok(m.layout === 'legacy' && m.legacyShown && !m.panesShown && !m.inspectShown, `page ${m.place} is listed as legacy and renders the legacy frame (${where}: layout "${m.layout}", legacy page ${m.legacyShown ? 'shown' : 'hidden'}, panes ${m.panesShown ? 'shown' : 'hidden'}, Inspect ${m.inspectShown ? 'shown' : 'hidden'})`);
+  }
+  if (state === 'inspect') {
+    ok(m.layout === 'legacy' && m.inspectShown && !m.legacyShown && !m.panesShown, `${where}: Inspect covers the legacy frame (layout "${m.layout}", Inspect ${m.inspectShown ? 'shown' : 'hidden'}, legacy page ${m.legacyShown ? 'shown' : 'hidden'})`);
   }
   // text
   ok(m.text.length >= floor.text, `${where}: measured ${m.text.length} chrome text nodes (floor ${floor.text})`);
@@ -462,7 +522,7 @@ const check = (m, where, column, floor = FLOORS[column]) => {
   ok(m.unclassified.length === 0, `${where}: every chrome control is classified${m.unclassified.length ? ` — unclassified control ${m.unclassified.slice(0, 4).join(', ')}` : ''}`);
   ok(m.controls.length >= floor.controls, `${where}: measured ${m.controls.length} chrome controls (floor ${floor.controls})`);
   const have = new Set(m.controls.map((c) => c.hook));
-  for (const want of expectFor(column, m.place)) ok(have.has(hooks.role(want)), `${where}: the chrome renders ${want} and it was measured`);
+  for (const want of [...(only ?? expectFor(column, m.place)), ...extra]) ok(have.has(hooks.role(want)), `${where}: the chrome renders ${want} and it was measured`);
   const small = m.controls.filter((c) => c.w < TARGET_MIN - 0.01 || c.h < TARGET_MIN - 0.01);
   ok(small.length === 0, `${where}: every chrome control is at least ${TARGET_MIN} × ${TARGET_MIN}${small.length ? ` — ${small.slice(0, 4).map((c) => `${c.el} ${c.w.toFixed(1)} × ${c.h.toFixed(1)}`).join(' | ')}` : ''}`);
   // edges and indicators
@@ -475,7 +535,9 @@ const check = (m, where, column, floor = FLOORS[column]) => {
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
-  const offFace = m.fonts.filter((f) => !f.fonts.length || f.fonts.some((x) => x !== UI_FONT));
+  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph
+  // each, and only inside the Decisions log (FACE_GAPS_SCOPE).
+  const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > f.gapChars);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT}${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
   ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
@@ -700,6 +762,299 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   const closed = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3'), open: document.querySelector('[data-p3="search"]')?.dataset.open, hidden: document.querySelectorAll('[data-search-hidden]').length }));
   ok(closed.focus === 'search-open' && closed.open === 'false' && closed.hidden === 0, `${where}: Escape closes search, clears the filter, and returns focus to the magnifier (${JSON.stringify(closed)})`);
   await ctx.close();
+}
+
+// =============================================================================================
+// 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
+// =============================================================================================
+console.log(`\nHomes (V1, V12) — one home per page, never moved by scroll or focus\n${'='.repeat(78)}`);
+/** Concept v6's homes, typed here (never imported from `src/shell/pages.ts`): each place's view id and the
+ *  title the preview header shows for it. */
+const EXPECT_HOME = {
+  brand: ['guide', 'Style guide'], 'color-palettes': ['palettes', 'Palettes'], 'color-fills': ['surfaces', 'Surfaces & fills'],
+  'color-interactive': ['interactive', 'Interactive'], type: ['type', 'Type'], shape: ['shape', 'Size & shape'],
+  depth: ['depth', 'Depth & motion'], layout: ['layout', 'Layout'], components: ['comps', 'Components'],
+};
+const previewView = (page) => page.evaluate(() => ({
+  view: document.querySelector('[data-p3="preview-body"]')?.dataset.view ?? null,
+  title: document.querySelector('[data-p3="preview-title"]')?.textContent ?? null,
+}));
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  // Visit every place twice, in two orders, so a home that follows the previous page cannot pass.
+  for (const place of [...Object.keys(PLACE_CLICKS), ...Object.keys(PLACE_CLICKS).reverse()]) {
+    await goPlace(page, place);
+    const got = await previewView(page);
+    const [view, title] = EXPECT_HOME[place];
+    ok(got.view === view && got.title === title, `V1 home: ${host} ${place} shows ${got.view} ("${got.title}"), want ${view} ("${title}")`);
+  }
+  // Scroll and focus, on every place: the preview's view never changes (V1). The legacy page is what
+  // scrolls and takes focus while the page is legacy; every focusable control in it is visited, up to a cap.
+  let scrolls = 0, focuses = 0;
+  for (const place of Object.keys(PLACE_CLICKS)) {
+    await goPlace(page, place);
+    const before = (await previewView(page)).view;
+    for (const at of [0.5, 1, 0]) {
+      await page.evaluate((f) => window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * f), at);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const now = (await previewView(page)).view;
+      scrolls++;
+      ok(now === before, `V1 scroll: ${host} ${place} scrolled to ${at * 100}% and the preview stayed ${before} (now ${now})`);
+    }
+    const n = await page.evaluate(() => document.querySelectorAll('[data-p3="legacy-page"] :is(button, input, select, textarea, [tabindex="0"])').length);
+    const step = Math.max(1, Math.floor(n / 12));
+    for (let i = 0; i < n; i += step) {
+      await page.evaluate((k) => document.querySelectorAll('[data-p3="legacy-page"] :is(button, input, select, textarea, [tabindex="0"])')[k]?.focus(), i);
+      const now = (await previewView(page)).view;
+      focuses++;
+      ok(now === before, `V1 focus: ${host} ${place} control ${i} took focus and the preview stayed ${before} (now ${now})`);
+    }
+  }
+  console.log(`  ${host}: ${scrolls} scroll checks, ${focuses} focus checks`);
+  ok(scrolls >= 27 && focuses >= 27, `${host}: ran ${scrolls} scroll and ${focuses} focus checks (floor 27 each)`);
+  // V12: nothing offers "Keep this view".
+  const keep = await page.evaluate(() => ({ frame: !!document.querySelector('[data-p3="frame"]'), n: [...document.querySelectorAll('[data-p3="frame"] *')].filter((e) => /keep this view/i.test(e.textContent ?? '') && !e.children.length).length }));
+  hooks.absent(ok, { seen: keep.frame, state: 'the frame' }, keep.n === 0, `V12 keep: ${host} offers no "Keep this view" (${keep.n} found)`);
+  ok(errors.length === 0, `${host} homes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 8. Inspect (F1): over the legacy frame, from the verdict; its three views; back to where it was
+// =============================================================================================
+console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
+/** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
+const VERDICT_LINE = 'All 884 pairs at or above floor';
+const HEALTH_LINE = 'All 884 pairs at or above floor.';
+const HEALTH_MODES = ['Light: 221 of 221 at or above', 'Dark: 221 of 221 at or above', 'High contrast light: 221 of 221 at or above', 'High contrast dark: 221 of 221 at or above'];
+const INSPECT_TABS = ['Contrast', 'Tokens', 'Decisions log'];
+/** The Decisions log's oracle: the engine's own decisions for the default theme, from the committed artifact
+ *  (`$extensions.prism3.decisions` in `packages/engine/out/prism3.tokens.json`), never from the page. */
+const DECISIONS = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8')).$extensions?.prism3?.decisions ?? [];
+ok(DECISIONS.length >= 10, `the committed default theme records ${DECISIONS.length} decisions (floor 10, so an empty read fails)`);
+/** Inspect › Tokens' oracle (orchestrator review of #1923: the check read only "a table is there"). One
+ *  primitive and one semantic, by literal path, with the value each must show read from the committed
+ *  `out/prism3.tokens.json`, never from the page or the renderer. The list opens on Primitives; its own
+ *  Semantics control must redraw it, inside Inspect, to the semantic. */
+const OUT = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8'));
+const OUT_ROOT = OUT.$extensions?.prism3?.root;
+const TOK_PRIMITIVE = { cat: 'core', path: 'palette.neutral.950' };
+const TOK_SEMANTIC = { cat: 'color', path: 'text.primary' };
+const at = (cat, path) => path.split('.').reduce((n, k) => n?.[k], OUT[OUT_ROOT]?.[cat]);
+const TOK_PRIMITIVE_HEX = at(TOK_PRIMITIVE.cat, TOK_PRIMITIVE.path)?.$extensions?.prism3?.hex;
+const TOK_SEMANTIC_ALIAS = at(TOK_SEMANTIC.cat, TOK_SEMANTIC.path)?.$extensions?.prism3?.aliasOf?.replace(`${OUT_ROOT}.`, '');
+ok(/^#[0-9a-f]{6}$/i.test(TOK_PRIMITIVE_HEX ?? '') && /^core\.palette\./.test(TOK_SEMANTIC_ALIAS ?? ''),
+  `the committed default theme carries ${TOK_PRIMITIVE.path} (${TOK_PRIMITIVE_HEX}) and ${TOK_SEMANTIC.path} → ${TOK_SEMANTIC_ALIAS}`);
+/** Inspect › Contrast's oracle. Every row: the committed `schema/preview-spec.json`'s contracts, in order,
+ *  in the table's literal "component · variant — label" wording. One pair's ratios: the primary button's
+ *  label on its fill, each mode's ratio read from the emitted `contrast` of
+ *  `color.interactive.primary.on-fill` (measured against `interactive.primary.fill.rest`, asserted below)
+ *  in the committed `out/prism3.tokens.json`. */
+const SPEC = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/preview-spec.json'), 'utf8'));
+const CONTRACT_ROWS = SPEC.components.flatMap((c) => c.variants.flatMap((v) => (v.contracts ?? []).map((ct) => `${c.id} · ${v.name} — ${ct.label ?? `${ct.min}:1`}`)));
+const KNOWN_PAIR = 'button · rest — label on fill';
+const ONFILL = OUT[OUT_ROOT]?.color?.interactive?.primary?.['on-fill']?.$extensions?.prism3 ?? {};
+const MODE_COLS = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark' };
+const KNOWN_RATIOS = Object.fromEntries(Object.entries(MODE_COLS).map(([m, col]) => {
+  const x = m === 'light' ? ONFILL : ONFILL.modes?.[m];
+  return [col, x?.against === 'interactive.primary.fill.rest' && typeof x.contrast === 'number' ? x.contrast.toFixed(2) : null];
+}));
+ok(CONTRACT_ROWS.length >= 10 && CONTRACT_ROWS.includes(KNOWN_PAIR) && Object.values(KNOWN_RATIOS).every(Boolean),
+  `the committed preview spec declares ${CONTRACT_ROWS.length} contracts, including "${KNOWN_PAIR}", whose emitted ratios are ${JSON.stringify(KNOWN_RATIOS)}`);
+/** A legacy table inside `host`, as text: header cells, then each row's cells. */
+const tableText = (page, host) => page.evaluate((host) => {
+  const all = [...document.querySelectorAll(`[data-p3="${host}"] table tr`)];
+  const cells = (r) => [...r.children].map((c) => c.textContent.trim());
+  const head = all.find((r) => r.querySelector('th'));
+  return { head: head ? cells(head) : [], rows: all.filter((r) => !r.querySelector('th')).map(cells) };
+}, host);
+const inspectState = (page) => page.evaluate(() => {
+  const vis = (sel) => { const n = document.querySelector(sel); if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
+  return {
+    open: vis('[data-p3="inspect-body"]'), legacy: vis('[data-p3="legacy-page"]'), previewHead: vis('[data-p3="preview-head"]'),
+    tab: document.querySelector('[data-p3="inspect-head"] [role="tab"][aria-selected="true"]')?.textContent ?? null,
+    tabs: [...document.querySelectorAll('[data-p3="inspect-head"] [role="tab"]')].map((t) => t.textContent),
+    first: document.querySelector('[data-p3="inspect-body"] > * > :first-child')?.getAttribute('data-p3') ?? null,
+    focus: document.activeElement?.getAttribute('data-p3') ?? null,
+    legacyPage: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage, y: Math.round(window.scrollY),
+    view: document.querySelector('[data-p3="preview-body"]')?.dataset.view,
+  };
+});
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const { w, h } of WIDTHS) {
+      const where = `${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme, w, h });
+      const name = await page.evaluate(() => ({ text: document.querySelector('[data-p3="verdict"]')?.textContent, label: document.querySelector('[data-p3="verdict"]')?.getAttribute('aria-label') }));
+      ok(name.label === `Verdict: ${VERDICT_LINE}. Open Inspect, Contrast`, `${where}: the verdict is named "Verdict: ${VERDICT_LINE}. Open Inspect, Contrast" — named "${name.label}"`);
+      if (w > 560) ok(name.text === VERDICT_LINE, `${where}: the verdict reads "${VERDICT_LINE}" — reads "${name.text}"`);
+      // Scroll the legacy page first, so "closes back to it" includes where it was.
+      await page.evaluate(() => window.scrollTo(0, Math.min(400, document.documentElement.scrollHeight - window.innerHeight)));
+      const before = await inspectState(page);
+      await hooks.click(page.locator('[data-p3="verdict"]'));
+      // Wait for Inspect, not for Health: a verdict that opened another view must fail by name below.
+      await hooks.need(page, '[data-p3="inspect-body"] > *');
+      const s1 = await inspectState(page);
+      ok(s1.open && !s1.legacy, `the verdict opens Inspect over the legacy frame (${where}: Inspect ${s1.open ? 'shown' : 'hidden'}, legacy page ${s1.legacy ? 'shown' : 'hidden'})`);
+      ok(s1.tab === 'Contrast', `the verdict opens Inspect › Contrast (${where}: selected "${s1.tab}")`);
+      ok(JSON.stringify(s1.tabs) === JSON.stringify(INSPECT_TABS), `${where}: Inspect's views are ${INSPECT_TABS.join(', ')} — read ${s1.tabs.join(', ')}`);
+      ok(s1.first === 'health', `${where}: Health is at the top of Inspect › Contrast (first is "${s1.first}")`);
+      ok(s1.focus === 'inspect-tab-contrast', `${where}: focus moves to the Contrast tab (on "${s1.focus}")`);
+      const health = await page.evaluate(() => ({ line: document.querySelector('[data-p3="health-summary"]')?.textContent, modes: [...document.querySelectorAll('[data-p3="health-modes"] li')].map((l) => l.textContent) }));
+      ok(health.line === HEALTH_LINE, `${where}: Health reads "${HEALTH_LINE}" — reads "${health.line}"`);
+      ok(JSON.stringify(health.modes) === JSON.stringify(HEALTH_MODES), `${where}: Health lists each mode — ${JSON.stringify(health.modes)}`);
+      const table = await page.locator('[data-p3="inspect-contrast-table"] table').count();
+      ok(table === 1, `${where}: Inspect › Contrast carries the contrast contract table (${table} table(s))`);
+      const ct = await tableText(page, 'inspect-contrast-table');
+      const labels = ct.rows.map((r) => r[0]);
+      ok(JSON.stringify(labels) === JSON.stringify(CONTRACT_ROWS), `${where}: Inspect › Contrast lists the preview spec's ${CONTRACT_ROWS.length} contracts, in order — listed ${labels.length}${labels.length ? `, first "${labels[0]}"` : ''}`);
+      const known = ct.rows.find((r) => r[0] === KNOWN_PAIR);
+      const shown = known ? Object.fromEntries(Object.keys(KNOWN_RATIOS).map((col) => [col, known[ct.head.indexOf(col)] ?? null])) : null;
+      ok(JSON.stringify(shown) === JSON.stringify(KNOWN_RATIOS), `${where}: Inspect › Contrast shows "${KNOWN_PAIR}" at the emitted ratios ${JSON.stringify(KNOWN_RATIOS)} — shows ${JSON.stringify(shown)}`);
+      const m = await measure(page, `${where} / Inspect › Contrast`, host, w);
+      check(m, `${where} / Inspect › Contrast`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-contrast"]', '[data-p3="inspect-close"]'] });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-contrast.png`) });
+      // Tokens: the legacy token list, whose own controls redraw it in place, inside Inspect.
+      await hooks.click(page.locator('[data-p3="inspect-tab-tokens"]'));
+      await hooks.need(page, '[data-p3="inspect-token-list"] table');
+      /** The row whose name cell reads `path`: its cells' text, or null when no row does. */
+      const tokRow = async (path) => (await tableText(page, 'inspect-token-list')).rows.find((r) => r[0] === path) ?? null;
+      const prim = await tokRow(TOK_PRIMITIVE.path);
+      ok(!!prim && prim.slice(1).some((c) => c.includes(TOK_PRIMITIVE_HEX)), `${where}: Inspect › Tokens opens on Primitives, with ${TOK_PRIMITIVE.path} at ${TOK_PRIMITIVE_HEX} — row ${JSON.stringify(prim)}`);
+      ok(!(await tokRow(TOK_SEMANTIC.path)), `${where}: Inspect › Tokens does not list the semantic ${TOK_SEMANTIC.path} before its Semantics control is chosen`);
+      const tiers = page.locator('[data-p3="inspect-token-list"] button').filter({ hasText: 'Semantics' });
+      await hooks.click(tiers.first());
+      const sem = await tokRow(TOK_SEMANTIC.path);
+      const stillOpen = await page.evaluate(() => !!document.querySelector('[data-p3="inspect-body"] [data-p3="inspect-token-list"]'));
+      ok(stillOpen && !!sem && (sem[1] ?? '').includes(TOK_SEMANTIC_ALIAS) && !(await tokRow(TOK_PRIMITIVE.path)),
+        `${where}: a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: ${TOK_SEMANTIC.path} → ${TOK_SEMANTIC_ALIAS}; row ${JSON.stringify(sem)}, Inspect ${stillOpen ? 'open' : 'closed'})`);
+      const mt = await measure(page, `${where} / Inspect › Tokens`, host, w);
+      check(mt, `${where} / Inspect › Tokens`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-tokens"]'] });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-tokens.png`) });
+      // The Decisions log: the engine's notes, in its order and its words.
+      await hooks.click(page.locator('[data-p3="inspect-tab-log"]'));
+      await hooks.need(page, '[data-p3="decisions-list"]');
+      const notes = await page.evaluate(() => [...document.querySelectorAll('[data-p3="decisions-list"] [data-p3="decision"]')].map((n) => n.textContent));
+      ok(JSON.stringify(notes) === JSON.stringify(DECISIONS), `${where}: the Decisions log shows the engine's ${DECISIONS.length} decisions, verbatim and in order — showed ${notes.length}${notes.length ? `, first "${notes[0].slice(0, 40)}…"` : ''}`);
+      const ml = await measure(page, `${where} / Inspect › Decisions log`, host, w);
+      check(ml, `${where} / Inspect › Decisions log`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-log"]'] });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-log.png`) });
+      // Back: the legacy page, where it was, with focus on the verdict that opened Inspect.
+      await hooks.click(page.locator('[data-p3="inspect-close"]'));
+      const s2 = await inspectState(page);
+      ok(!s2.open && s2.legacy && s2.legacyPage === before.legacyPage, `Inspect closes back to the legacy page (${where}: Inspect ${s2.open ? 'shown' : 'hidden'}, page "${s2.legacyPage}", was "${before.legacyPage}")`);
+      ok(Math.abs(s2.y - before.y) <= 1, `${where}: Inspect closes back to where the page was scrolled (y ${s2.y}, was ${before.y})`);
+      ok(s2.focus === 'verdict', `${where}: closing Inspect returns focus to the verdict that opened it (on "${s2.focus}")`);
+      ok(s2.view === before.view, `${where}: Inspect never moves the preview's home (${s2.view}, was ${before.view})`);
+      // Escape closes it too.
+      await hooks.click(page.locator('[data-p3="verdict"]'));
+      await hooks.need(page, '[data-p3="health"]');
+      await page.keyboard.press('Escape');
+      const s3 = await inspectState(page);
+      ok(!s3.open && s3.legacy && s3.focus === 'verdict', `${where}: Escape closes Inspect back to the page (${JSON.stringify({ open: s3.open, focus: s3.focus })})`);
+      ok(errors.length === 0, `${where} Inspect: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      await ctx.close();
+    }
+  }
+}
+{
+  // A page change closes Inspect (V1: a new page shows its home).
+  const { ctx, page } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  await hooks.click(page.locator('[data-p3="verdict"]'));
+  await hooks.need(page, '[data-p3="health"]');
+  await goPlace(page, 'type');
+  const s = await inspectState(page);
+  ok(!s.open && s.legacy && s.legacyPage === 'typography' && s.view === 'type', `a tab change closes Inspect and shows the new page (${JSON.stringify({ open: s.open, page: s.legacyPage, view: s.view })})`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 9. The preview header in the two-pane layout (FORCED, see the header): the mode control and Inspect
+// =============================================================================================
+console.log(`\nThe preview header — the mode control and Inspect (two panes, forced)\n${'='.repeat(78)}`);
+/** The default theme's modes, as the mode control must show them, and which are derived (hatched): the
+ *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. */
+const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true]];
+const force = (page) => page.evaluate(() => { document.querySelector('[data-p3="frame"]').dataset.layout = 'panes'; });
+const unforce = (page) => page.evaluate(() => { document.querySelector('[data-p3="frame"]').dataset.layout = 'legacy'; });
+const modeState = (page) => page.evaluate(() => ({
+  radios: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => ({
+    mode: b.dataset.mode, label: b.querySelector('.p3-mode-name')?.textContent, checked: b.getAttribute('aria-checked'), role: b.getAttribute('role'),
+    hatch: /repeating-linear-gradient/.test(getComputedStyle(b).backgroundImage), tab: b.tabIndex })),
+  group: document.querySelector('[data-p3="mode-control"]')?.getAttribute('role'),
+  legacy: document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent ?? null,
+}));
+for (const theme of ['light', 'dark']) {
+  const where = `web ${theme} 1280 (forced panes)`;
+  const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
+  // Surfaces & fills: a legacy page with a mode strip (Palettes has none; palettes are primitives).
+  await goPlace(page, 'color-fills');
+  await force(page);
+  const st = await modeState(page);
+  ok(st.group === 'radiogroup', `${where}: the mode control is a radiogroup (role "${st.group}")`);
+  ok(JSON.stringify(st.radios.map((r) => [r.mode, r.label])) === JSON.stringify(EXPECT_MODES.map(([m, l]) => [m, l])), `${where}: the mode control offers ${EXPECT_MODES.map(([, l]) => l).join(', ')} — read ${st.radios.map((r) => r.label).join(', ')}`);
+  for (const [m, , derived] of EXPECT_MODES) {
+    const r = st.radios.find((x) => x.mode === m);
+    if (r?.checked !== 'true') ok(r?.hatch === derived, `${where}: ${m} is ${derived ? '' : 'not '}hatched (derived modes are, Q1)`);
+  }
+  ok(st.radios.filter((r) => r.checked === 'true').map((r) => r.mode).join() === 'light' && st.radios.every((r) => r.role === 'radio'), `${where}: Light is the one checked radio at boot (${st.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
+  const mp = await measure(page, `${where} / preview header`, 'web', 1280);
+  check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR, { state: 'forced', extra: ['[data-p3="mode-option"]', '[data-p3="inspect-open"]'] });
+  if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-mode-control.png`) });
+  // The mode control writes the mode, and the legacy page agrees.
+  await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
+  await unforce(page);
+  await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
+  const a = await modeState(page);
+  ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
+  ok(a.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a.legacy}")`);
+  // The other way: the legacy strip writes the same mode, and the control follows.
+  await hooks.click(page.locator('[data-p3="legacy-page"] [data-p3="mode-tab"]').filter({ hasText: 'HC light' }));
+  const b = await modeState(page);
+  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true' && b.legacy === 'HC light', `${where}: the legacy strip's HC light checks HC light in the mode control (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)}, strip "${b.legacy}")`);
+  // Arrow keys move along the radios and choose as they go.
+  await force(page);
+  await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
+  await page.keyboard.press('ArrowRight');
+  const c = await modeState(page);
+  const focusMode = await page.evaluate(() => document.activeElement?.dataset.mode);
+  ok(c.radios.find((r) => r.mode === 'hc-dark')?.checked === 'true' && focusMode === 'hc-dark', `${where}: ArrowRight on HC light checks and focuses HC dark (checked ${c.radios.filter((r) => r.checked === 'true').map((r) => r.mode)}, focus ${focusMode})`);
+  // Inspect from the preview header: it covers the preview, not the levers, and closes back to it.
+  const homeBefore = (await previewView(page)).view;
+  await hooks.click(page.locator('[data-p3="inspect-open"]'));
+  await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'));
+  await hooks.need(page, '[data-p3="inspect-token-list"]');
+  const pin = await page.evaluate(() => {
+    const vis = (sel) => { const n = document.querySelector(sel); if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const line = (sel) => document.querySelector(sel)?.getBoundingClientRect().bottom;
+    return { inspect: vis('[data-p3="inspect-body"]'), head: vis('[data-p3="preview-head"]'), levers: vis('[data-p3="levers-pane"]'), tab: document.querySelector('[data-p3="inspect-head"] [aria-selected="true"]')?.textContent, gap: Math.abs(line('[data-p3="tab-row"]') - line('[data-p3="inspect-head"]')) };
+  });
+  ok(pin.inspect && !pin.head && pin.levers && pin.tab === 'Tokens', `${where}: Inspect opens over the preview, beside the levers (${JSON.stringify(pin)})`);
+  ok(pin.gap <= ALIGN_TOLERANCE, `Q2 ${where}: Inspect's header divider meets the tab row's (${pin.gap.toFixed(2)}px apart)`);
+  if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-panes-inspect.png`) });
+  await hooks.click(page.locator('[data-p3="inspect-close"]'));
+  const back = await page.evaluate(() => ({ head: !!document.querySelector('[data-p3="preview-head"]')?.getClientRects().length, focus: document.activeElement?.getAttribute('data-p3'), view: document.querySelector('[data-p3="preview-body"]')?.dataset.view }));
+  ok(back.head && back.focus === 'inspect-open' && back.view === homeBefore, `${where}: Inspect closes back to the preview, focus on Inspect (${JSON.stringify(back)})`);
+  ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page } = await open({ host, theme, w, h });
+      await force(page);
+      if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+      const where = `${host} ${theme} ${w} (forced panes)`;
+      const mp = await measure(page, `${where} / preview header`, host, w);
+      // Narrow, on the Preview pane: the bar, the pane toggle and the preview header; the tab row is hidden (Q7).
+      const narrowPreview = w <= 560 ? [...BAR.filter((x) => x !== '[data-p3="search-open"]'),
+        ...(host === 'web' ? ['[data-p3="theme-toggle"]'] : ['[data-p3="apply-to-figma"]', '[data-p3="prune-open"]']),
+        '[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-preview"]'] : null;
+      check(mp, `${where} / preview header`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'forced', extra: ['[data-p3="mode-option"]', '[data-p3="inspect-open"]'], only: narrowPreview });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-mode-control.png`) });
+      await ctx.close();
+    }
+  }
 }
 
 hooks.report(ok);

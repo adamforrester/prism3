@@ -1401,7 +1401,9 @@ const tokTierOf = (node: TreeNode): TokTier =>
 const COMPOSITE_PART: Record<string, string> = {
   fontFamily: 'Family', fontSize: 'Size', fontWeight: 'Weight', lineHeight: 'Leading', letterSpacing: 'Tracking',
 };
-const renderPreviewTokens = (host: HTMLElement): void => {
+/** `repaint` redraws the list after one of its own controls changes: the legacy Preview page's live slot,
+ *  or Inspect's body (S1.3), which lends its own. */
+const renderPreviewTokens = (host: HTMLElement, repaint: () => void = paintVolatile): void => {
   ensureThemeFresh();                   // #1196 — the live token list shows the same namespace the export would emit
   const tree = buildTree(theme).tree;
   const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
@@ -1566,7 +1568,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   const seg = el('div', mix('pvseg', 'tok-seg'));
   for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
     const b = el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label) as HTMLButtonElement;
-    b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; paintVolatile(); } };
+    b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; repaint(); } };
     seg.append(b);
   }
   host.append(seg);
@@ -1577,13 +1579,13 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
       showSel.append(new Option(label, v));
     showSel.value = tokShow;
-    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; paintVolatile(); };
+    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; repaint(); };
     bar.append(pfield('Show', showSel));
 
     const pseg = el('div', 'seg');
     for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
       const b = el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label) as HTMLButtonElement;
-      b.onclick = () => { if (tokPath !== k) { tokPath = k; paintVolatile(); } };
+      b.onclick = () => { if (tokPath !== k) { tokPath = k; repaint(); } };
       pseg.append(b);
     }
     bar.append(pfield('Alias path', pseg));
@@ -1592,7 +1594,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   catSel.append(new Option('All categories', ''));
   for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
   catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
-  catSel.onchange = () => { tokCat = catSel.value; paintVolatile(); };
+  catSel.onchange = () => { tokCat = catSel.value; repaint(); };
   bar.append(pfield('Category', catSel));
   host.append(bar);
 
@@ -8099,7 +8101,9 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
     if (!frame) {
       app.innerHTML = '';
       delete app.dataset.theme;
-      frame = mountFrame(app, { host: commit.isFigma ? 'figma' : 'web' });
+      // Inspect (S1.3) shows two legacy views until their slices replace them: the contrast contract table
+      // and the token list. They are lent here; the shell never imports this file.
+      frame = mountFrame(app, { host: commit.isFigma ? 'figma' : 'web', inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens } });
     }
     chromeHost = frame.head;
     frame.bar.replaceChildren();
@@ -8463,7 +8467,10 @@ const reconcileRegions = (host: HTMLElement, want: readonly HTMLElement[]): { ke
 // the same path a tab click takes: the list can arrive before or after that page first renders, so
 // caching plus a re-render makes the order irrelevant.
 subscribe('fonts', () => renderWorkspace());
+/** The mode the legacy page was last drawn in (see the `mode` subscription). */
+let paintedMode: Mode | null = null;
 function renderWorkspace(): void {
+  paintedMode = currentMode;
   // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
   // than global chrome (#432). Mounted from the DECLARATION rather than by name, so a second piece of
   // page furniture cannot arrive here wired to one of its two obligations.
@@ -8640,6 +8647,15 @@ let loading = false;
 // load, and re-renders the legacy frame (the P2 pattern: one permanent subscription whose painter asks
 // whether its surface is live). The tab row subscribes separately, for its own selection.
 subscribe('page', () => { if (frame && !loading && !firstRun()) build(); });
+
+// A MODE CHANGE FROM THE NEW SHELL REPAINTS THE LEGACY PAGE THROUGH THE STORE (UI redesign S1.3). The
+// preview's mode control calls `setCurrentMode` and nothing else; the legacy writers (the mode strip, the
+// brand menu's mode toggles) call it and then repaint themselves. So this waits a microtask and repaints
+// only when the legacy page was last drawn in another mode: a legacy writer has already repainted by
+// then, and the shell's control has not. One permanent subscription, the P2 pattern.
+subscribe('mode', () => queueMicrotask(() => {
+  if (frame && !loading && !firstRun() && paintedMode !== currentMode) renderWorkspace();
+}));
 
 /** Replace the working brand wholesale (switch / new / import / host restore) and re-render.
  *
@@ -9439,7 +9455,11 @@ function renderBar(): void {
   sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; } renderBar(); };
   bWrap.append(sel);
   if (brandMenuOpen) bWrap.append(pinLight(renderBrandMenu()));
-  barHost.append(bWrap, el('span', 'p3-spacer'));
+  barHost.append(bWrap);
+  // The verdict (S1.3): the shell's node, kept current by its own subscription and moved here, after the
+  // brand switcher, on every render rather than re-minted.
+  if (frame) barHost.append(frame.verdict);
+  barHost.append(el('span', 'p3-spacer'));
 
   const actions = barHost;
 
