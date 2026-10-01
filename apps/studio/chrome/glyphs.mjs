@@ -34,6 +34,11 @@
  * emitted trees each with at least one note, and each file in `MUST_READ` parsed with at least one
  * string literal. An emptied or moved surface fails by name rather than passing on nothing.
  *
+ * THE STUDIO BUILD NOW READS `apps/plugin/src`, for this check only. Nothing read here reaches the
+ * output, so a plugin change still cannot change the deployed site, and `vercel-ignore.sh` is right to
+ * leave `apps/plugin/**` off its trigger list. A plugin change can only fail this check, and CI runs the
+ * studio build on every PR, so `main` cannot hold such a failure for a later site build to find.
+ *
  * Node only; it never reaches a bundle.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
