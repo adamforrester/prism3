@@ -216,7 +216,7 @@ export function glyphGaps({ fontFile = join(FONTS_DIR, CHROME_FONTS.find(([n]) =
     const allowed = FACE_LACKS[cp]?.files ?? [];
     const off = [...files].filter(([f]) => !allowed.includes(f));
     if (off.length) {
-      errors.push(`${U(cp)} ${show(cp)} is not in the embedded face ${faceName}, and the chrome can be handed it at ${off.slice(0, 4).map(([, w]) => w).join(', ')}${off.length > 4 ? ` and ${off.length - 4} more files` : ''} (re-subset: the recipe is beside CHROME_FONTS in tokens.mjs)`);
+      errors.push(`${U(cp)} ${show(cp)} is not in the embedded face ${faceName}, and the chrome can be handed it at ${off.slice(0, 4).map(([, w]) => w).join(', ')}${off.length > 4 ? ` and ${off.length - 4} more files` : ''} (if Inter carries it, re-subset: the recipe is beside CHROME_FONTS in tokens.mjs; if not, it is a design question, and FACE_LACKS here is where a decision is recorded)`);
     }
   }
   for (const [k, { files }] of Object.entries(FACE_LACKS)) {
