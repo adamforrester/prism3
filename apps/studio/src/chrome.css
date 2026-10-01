@@ -1,0 +1,17 @@
+/*
+ * The new shell's stylesheet (UI redesign, docs/superpowers/ui-redesign/implementation-plan.md §3.1).
+ *
+ * Hand-written rules only. It reaches the bundle through the virtual import `p3:chrome-css`, after the
+ * generated `--p3-*` variables, and `installStyles` receives it with `styles.css`, so the class-scope
+ * law covers both. The build fails, naming what failed, when this file carries a raw or named color,
+ * `currentColor`, a length, duration or shadow, a `var()` fallback or a URL that is not a `data:` URI,
+ * reads anything but `var(--p3-*)`, reads a variable the map does not define, or leaves a mapped
+ * variable unread. See `apps/studio/chrome/esbuild-plugin.mjs`.
+ *
+ * Classes here take the `p3-` scope, which `styles.css` does not use. Nothing wears them yet: the frame
+ * arrives in S1.2, so these rules change nothing on screen today.
+ *
+ * The comments here ship in both bundles, so they are held to US English and the voice standard.
+ */
+.p3-frame { background: var(--p3-bg-page); color: var(--p3-text); font-family: var(--p3-font-ui); }
+.p3-value { font-family: var(--p3-font-mono); }

@@ -15,6 +15,7 @@
  * Run: `node apps/studio/vercel-ignore-check.mjs`   (exits non-zero on drift; wired into CI)
  */
 import { build } from 'esbuild';
+import { chromeCss } from './chrome/esbuild-plugin.mjs';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -35,13 +36,18 @@ const excluded = new Set(block[1].split('\n').map((l) => l.trim()).filter((l) =>
 
 // `loader` mirrors the real build (#769 — `src/styles.css` arrives as TEXT). Its absence would not
 // misreport here, it would fail outright: esbuild refuses to import CSS into JS with no output path
-// configured, and `write: false` gives this build none. Kept in step with `package.json`'s `build`
+// configured, and `write: false` gives this build none. Kept in step with `build.mjs`
 // so the metafile below describes the bundle that actually ships.
 const res = await build({
   entryPoints: [resolve(root, 'src/entry.ts')],   // the bundle's entry since #896 — same one `build` names
   bundle: true,
   format: 'esm',
   loader: { '.css': 'text' },
+  // `src/entry.ts` imports the virtual `p3:chrome-css` (UI redesign S1.1). Without the plugin this build
+  // stops at `Could not resolve "p3:chrome-css"`. The plugin reads `packages/engine/out/*.tokens.json`
+  // from disk, so those files never appear in the metafile; they are not on the skip list either, and
+  // `vercel-ignore.sh` triggers on all of `packages/engine` apart from that list.
+  plugins: [chromeCss()],
   write: false,
   metafile: true,
   logLevel: 'silent',

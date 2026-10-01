@@ -32,9 +32,10 @@
 //      steps in either theme.
 //  10. OFFLINE. The output would make a network request. The only @font-face allowed is a data: URI.
 //
-// The resolver, the tile's variable map, the fonts and the scans come from ./chrome-tokens.mjs, shared
-// with style-tiles/build-tiles.mjs and build-v5.mjs; this file does not change it. The rendered audit
-// is audit-v6.mjs.
+// The resolver, the tile's variable map, the fonts and the scans come from apps/studio/chrome/tokens.mjs,
+// shared with style-tiles/build-tiles.mjs, build-v5.mjs and the product build; this file does not change
+// it. v6's own rows, pairs and layers (V6_VARS, PAIRS, LAYERS) live in apps/studio/chrome/spec.mjs, so
+// the mockup and the product read one spec. The rendered audit is audit-v6.mjs.
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join, relative } from 'node:path';
@@ -43,7 +44,8 @@ import { tmpdir } from 'node:os';
 import {
   loadModes, resolve, leaves, P, C, D, TILE_VARS, CHROME_FONTS, fontFaceCss, fontVarsCss, cssOf, themeBlock,
   brandLeaks, scanRaw, ratio, fmtRatio,
-} from './chrome-tokens.mjs';
+} from '../../../apps/studio/chrome/tokens.mjs';
+import { V6_VARS, VARS_FOR, ALIAS, PAIRS, LAYER_STEP, LAYERS } from '../../../apps/studio/chrome/spec.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..', '..');
@@ -173,33 +175,7 @@ for (const [s, n] of Object.entries(perSub)) console.log(`  ${s.padEnd(18)} ${St
 
 // ---- 4-9. chrome tokens -----------------------------------------------------------------------------
 const MODES = loadModes();
-// The tile's map, plus v6's layering and edge roles. A v6 row may name a different token per theme,
-// because IA-2 and B1 are orderings and thresholds, not one role: the same ladder position lands on a
-// different step in the dark overlay. Each entry is [variable, light path, dark path, kind, what].
-const V6_VARS = [
-  // IA-2. Neutral 025 has no semantic role in light, so the light side reads the ramp step directly. It
-  // is noted as a possible engine role, not filed. Dark has no step between 950 and 900, so the same
-  // "a little off the page" position is background.secondary (neutral 900).
-  ['levers-bg', 'core.palette.neutral.025', 'color.background.secondary', C, 'levers panel (IA-2)'],
-  // The top bar: light background.secondary (neutral 050); dark background.tertiary (neutral 850),
-  // one more step up the dark ladder, so the three surfaces keep their order in both themes. Secondary
-  // text is 4.17:1 on neutral 850, so nothing on the bar is set in text-2: the bar carries primary text,
-  // glyphs (3:1) and white-filled controls. The audit measures every text node on it.
-  ['bar-bg', 'color.background.secondary', 'color.background.tertiary', C, 'top bar (IA-2)'],
-  // B1. The control edge on the page and on the levers panel: neutral 400 (border.secondary) in light,
-  // 3.28:1 on white and 3.06:1 on neutral 025. In dark the token that clears 3:1 closest on neutral
-  // 950 and 900 is field.border.rest (neutral 550: 3.52 and 3.25; neutral 600 is 2.91 and 2.68).
-  ['edge', 'color.border.secondary', 'color.field.border.rest', C, 'control edge on the page and levers (B1)'],
-  // B1. On the top bar border.secondary fails in light (2.70:1 on neutral 050), so the bar keeps
-  // field.border.rest (3.18:1). In dark, field.border.rest fails on neutral 850 (2.92:1) and
-  // border.secondary (neutral 500) clears it closest (3.52:1).
-  ['edge-bar', 'color.field.border.rest', 'color.border.secondary', C, 'control edge on the top bar (B1)'],
-  // Type for the hierarchy the owner asked for (V8): a 20px view title, and tracked small capitals for
-  // card titles. Same token in both themes.
-  ['fs-20', 'core.font.size.20', 'core.font.size.20', D, 'view title'],
-  ['ls-wide', 'core.font.letter-spacing-role.wide', 'core.font.letter-spacing-role.wide', D, 'card title tracking'],
-];
-const VARS_FOR = (mode) => [...TILE_VARS, ...V6_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k])];
+// V6_VARS and VARS_FOR live in apps/studio/chrome/spec.mjs, shared with the product build.
 const VARS = VARS_FOR('light'); // names and kinds; the paths differ per theme only for V6_VARS
 // Chrome layout constants: NOT from tokens. The token set has no panel, menu or dialog widths (T3 (7):
 // "the chrome's own layout"), and a viewport cap needs vw/vh.
@@ -215,7 +191,6 @@ const LAYOUT = [
 ];
 // Harness geometry: NOT from tokens (the frames the owner reviews at).
 const HARNESS = [['h-frame-wide', '1280px'], ['h-frame-tall', '900px'], ['h-frame-narrow', '380px'], ['h-frame-short', '420px']];
-const ALIAS = { Inter: 'P3 Chrome UI', 'JetBrains Mono': 'P3 Chrome Mono' };
 
 for (const mode of ['light', 'dark']) errors.push(...brandLeaks({ [mode]: MODES[mode] }, VARS_FOR(mode)));
 
@@ -238,43 +213,7 @@ const defined = new Set([...VARS.map((v) => v[0]), ...LAYOUT.map((l) => l[0]), .
 for (const vm of src.matchAll(/var\(--p3-([a-z0-9-]+)/g)) if (!defined.has(vm[1])) errors.push(`undefined variable --p3-${vm[1]}`);
 for (const [n] of [...VARS, ...CHROME_FONTS, ...LAYOUT, ...HARNESS]) if (!src.includes(`var(--p3-${n})`)) errors.push(`mapped but unused variable --p3-${n}`);
 
-// Declared chrome pairs: [fg var, bg var, floor, what]. The design intent, checked before anything
-// renders; audit-v6.mjs measures every rendered element independently. B1: every edge-on-ground
-// combination the chrome draws is here, in both themes. Grounds: bg-page (the preview, cards, fields,
-// menus), levers-bg (the levers panel), bar-bg (the top bar), fill-1 (insets: tracks, pickers, tips).
-const PAIRS = [
-  ['text', 'bg-page', 4.5, 'body text on the page'],
-  ['text', 'levers-bg', 4.5, 'text on the levers panel'],
-  ['text', 'bar-bg', 4.5, 'text on the top bar'],
-  ['text', 'fill-1', 4.5, 'text on an inset'],
-  ['text-2', 'bg-page', 4.5, 'secondary text on the page'],
-  ['text-2', 'levers-bg', 4.5, 'secondary text on the levers panel (intro, tabs)'],
-  ['text-2', 'fill-1', 4.5, 'secondary text on an inset (tags, derived hatch, unselected segment)'],
-  ['inv-text', 'inv-bg', 4.5, 'Apply Theme'], ['inv-text', 'inv-bg-2', 4.5, 'Apply Theme, hover'],
-  ['bad-text', 'bg-page', 4.5, 'danger text on the page'], ['bad-text', 'fill-1', 4.5, 'danger text on an inset (error cause)'],
-  // B1 edges
-  ['edge', 'bg-page', 3, 'control edge on the page, a card or a menu'],
-  ['edge', 'levers-bg', 3, 'control edge on the levers panel (search, tab-row controls)'],
-  ['edge-bar', 'bar-bg', 3, 'control edge on the top bar (brand, verdict, Export, Figma, agent chip)'],
-  ['field-edge', 'fill-1', 3, 'control edge in an inset (selected segment, picker step, per-mode body)'],
-  ['field-edge', 'bg-page', 3, 'edge of a selected segment on a page-colored track (the 380 top row)'],
-  ['field-edge-hover', 'bg-page', 3, 'edge on hover; slider thumb edge'],
-  ['field-edge-hover', 'levers-bg', 3, 'edge on hover on the levers panel'],
-  ['ctl-edge', 'bg-page', 3, 'selected chip edge; focus ring on the page'],
-  ['ctl-edge', 'levers-bg', 3, 'focus ring on the levers panel'],
-  ['ctl-edge', 'bar-bg', 3, 'focus ring and pressed edge on the top bar'],
-  ['ctl-edge', 'fill-1', 3, 'focus ring and selected edge on an inset'],
-  ['text', 'bg-page', 3, 'selected tab underline in the preview'],
-  ['text', 'levers-bg', 3, 'selected tab underline on the levers panel'],
-  ['line-2', 'bg-page', 3, 'slider rail; menu and dialog edge'], ['icon', 'bg-page', 3, 'slider fill'],
-  ['inv-bg', 'bg-page', 3, 'switch on track'],
-  ['icon-2', 'bg-page', 3, 'info glyph, chevrons, switch off knob'], ['icon-2', 'fill-1', 3, 'glyph on an inset'],
-  ['icon-2', 'levers-bg', 3, 'glyph on the levers panel'], ['icon-2', 'bar-bg', 3, 'glyph on the top bar'],
-  ['ok-icon', 'bar-bg', 3, 'verdict dot on the top bar'], ['ok-icon', 'bg-page', 3, 'check in a badge'], ['ok-icon', 'fill-1', 3, 'check in a status pill'],
-  ['bad-icon', 'bar-bg', 3, 'failure dot on the top bar'], ['bad-icon', 'bg-page', 3, 'refused-field outline'], ['bad-icon', 'fill-1', 3, 'error glyph in a pill or card'],
-  ['warn-icon', 'bg-page', 3, 'warning glyph'], ['warn-icon', 'fill-1', 3, 'warning glyph in a pill'],
-  ['text', 'fill-2', 3, 'progress fill on its track'], ['icon', 'fill-2', 3, 'spinner arc on its track'],
-];
+// PAIRS (the declared chrome pairs) live in apps/studio/chrome/spec.mjs.
 const pathOf = (mode, v) => VARS_FOR(mode).find((x) => x[0] === v)?.[1];
 const hexOf = (mode, v) => { const p = pathOf(mode, v); if (!p) throw new Error(`no variable --p3-${v}`); return resolve(MODES[mode], P(p)).value; };
 const rows = PAIRS.map(([fg, bg, floor, what]) => {
@@ -287,11 +226,7 @@ const rows = PAIRS.map(([fg, bg, floor, what]) => {
   return r;
 });
 
-// IA-2 layers: the preview, the levers panel and the top bar must be three distinct steps, in one
-// direction, in both themes. A literal floor per step: 1.04:1 separates neighboring neutral steps
-// (the smallest pair here is 1.07:1) and rejects a panel pointed back at the page (1.00:1).
-const LAYER_STEP = 1.04;
-const LAYERS = [['bg-page', 'preview'], ['levers-bg', 'levers panel'], ['bar-bg', 'top bar']];
+// LAYER_STEP and LAYERS (IA-2) live in apps/studio/chrome/spec.mjs.
 const layerRows = [];
 for (const mode of ['light', 'dark']) {
   const lum = (v) => { const h = hexOf(mode, v).slice(1); const c = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((x) => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };

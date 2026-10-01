@@ -3,7 +3,7 @@
 //   node docs/superpowers/ui-redesign/style-tiles/build-tiles.mjs
 //
 // Reads the canonical default theme (`packages/engine/out/prism3.tokens.json`, root `pds3`) and its
-// dark overlay through `../chrome-tokens.mjs` (the resolver shared with concept v5, which merges them
+// dark overlay through `apps/studio/chrome/tokens.mjs` (the resolver shared with concept v5, which merges them
 // per mode the way the engine emits them), and emits `--p3-*` custom properties for
 // `[data-theme=light]` and `[data-theme=dark]` (plus `[data-theme=system]` under each color scheme).
 //
@@ -25,17 +25,17 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-// The resolver, the variable map, the fonts and the scans live in ../chrome-tokens.mjs, shared with
+// The resolver, the variable map, the fonts and the scans live in apps/studio/chrome/tokens.mjs, shared with
 // concept v5 so neither build forks the other.
 import {
   NS, loadModes, resolve, P, TILE_VARS, CHROME_FONTS, fontFaceCss, fontVarsCss, cssOf, themeBlock,
   brandLeaks, scanRaw, ratio as ratioOf, fmtRatio,
-} from '../chrome-tokens.mjs';
+} from '../../../../apps/studio/chrome/tokens.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MODES = loadModes();
 
-// ── the variable map: TILE_VARS in ../chrome-tokens.mjs ────────────────────────────────────────
+// ── the variable map: TILE_VARS in apps/studio/chrome/tokens.mjs ────────────────────────────────────────
 const VARS = TILE_VARS;
 
 // Preview CONTENT, not chrome: the brand palette the user is theming. Mode-independent primitives.
@@ -48,7 +48,7 @@ const HARNESS = [
   ['h-frame-tall', '1080px'], ['h-frame-narrow-tall', '720px'], ['h-panel', '440px'],
 ];
 
-// Chrome fonts: NOT from tokens, on purpose (see CHROME_FONTS in ../chrome-tokens.mjs).
+// Chrome fonts: NOT from tokens, on purpose (see CHROME_FONTS in apps/studio/chrome/tokens.mjs).
 const fontFaces = fontFaceCss();
 const fontVars = fontVarsCss();
 

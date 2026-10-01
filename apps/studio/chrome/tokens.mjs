@@ -1,7 +1,10 @@
-// Prism3 chrome tokens: the shared resolver for the chrome builds (style tiles, concept v5).
+// Prism3 chrome tokens: the shared resolver for every chrome build (the studio and plugin bundles,
+// through `esbuild-plugin.mjs`; and the mockups: style tiles, concept v5 and v6).
 //
 // Extracted from `style-tiles/build-tiles.mjs` so the tile and v5 read the same tokens the same way
-// and neither forks the other. Both builds import from here; nothing here writes a file.
+// and neither forks the other. Moved here from `docs/superpowers/ui-redesign/` in S1.1 of the UI
+// redesign, unchanged apart from this header and `FONTS_DIR`, so the product and the mockups read
+// one module. Every build imports from here; nothing here writes a file.
 //
 // It reads the canonical default theme (`packages/engine/out/prism3.tokens.json`, root `pds3`) and its
 // dark overlay, merges them per mode the way the engine emits them (the overlay is a sparse tree of
@@ -9,8 +12,9 @@
 // overlay alias still lands on the base's core palette), and turns a variable map into `--p3-*`
 // custom properties for each theme.
 //
-// Also here, because both builds enforce them: the raw-value scan (no hex, color function, length,
-// duration or shadow in chrome CSS), the brand-leak check (no chrome color through the brand palette
+// Also here, because every build enforces them: the raw-value scan (no hex, color function, length,
+// duration or shadow in chrome CSS; the product adds named colors, `currentColor`, `var()` fallbacks
+// and non-`data:` URLs in `scanRawStrict`), the brand-leak check (no chrome color through the brand palette
 // or a brand, link or focus role), WCAG contrast, and the embedded chrome fonts.
 //
 // Zero dependencies, no network.
@@ -21,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = join(HERE, '..', '..', '..');
-export const FONTS_DIR = join(HERE, 'style-tiles', 'fonts');
+export const FONTS_DIR = join(HERE, 'fonts');
 export const NS = 'pds3';
 
 // ── merge + resolve ────────────────────────────────────────────────────────────────────────────
@@ -167,7 +171,7 @@ export function brandLeaks(modes, vars) {
 // ── chrome fonts ───────────────────────────────────────────────────────────────────────────────
 // Chrome fonts: NOT from tokens, on purpose. The chrome's face is the product's own, and must not
 // move when the default theme's `core.font.family.body` lever does (that lever is brand content).
-// Both faces are embedded from `style-tiles/fonts/` (the fontsource latin variable subsets, SIL OFL
+// Both faces are embedded from `fonts/` beside this file (the fontsource latin variable subsets, SIL OFL
 // 1.1, licenses alongside) as woff2 data URIs, so the page makes no network request and renders the
 // same on a machine with neither installed.
 export const CHROME_FONTS = [
@@ -202,6 +206,65 @@ export const RAW = [
 export function scanRaw(text, where, errors) {
   const stripped = text.replace(/\/\*[\s\S]*?\*\//g, '');
   for (const [re, what] of RAW) for (const m of stripped.matchAll(re)) errors.push(`${where}: ${what} "${m[0]}"`);
+}
+
+// ── the product's stricter scan ────────────────────────────────────────────────────────────────
+// The product's `chrome.css` is held to more than RAW (PR #1905 review, finding 4). The mockups keep
+// RAW alone, so their builds do not move. On top of RAW, a declaration value may not carry:
+//   - a CSS named color (CSS Color 4's list, below, as a literal). `transparent` is left off on
+//     purpose: it is no color, and it is allowed, with `inherit`, `initial`, `unset` and `none`;
+//   - `currentColor`, which inherits whatever color the brand's content set. Nothing needs it yet;
+//     the first rule that does should say why here;
+//   - a `var(--x, fallback)`: a fallback would draw when the map is missing a name, which is the
+//     failure [variables] exists to catch, and it is usually a raw value besides;
+//   - a `url()` that is not a `data:` URI, anywhere, including inside `image-set()`, and a bare
+//     string inside `image-set()` that is not one (`image-set("https://…" 1x)` needs no `url(`).
+// Values only: selectors, property names and quoted strings are not read for color names, so
+// `.p3-tan` or `white-space` is not a color.
+export const CSS_NAMED_COLORS = new Set([
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black', 'blanchedalmond',
+  'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse', 'chocolate', 'coral',
+  'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan', 'darkgoldenrod', 'darkgray',
+  'darkgreen', 'darkgrey', 'darkkhaki', 'darkmagenta', 'darkolivegreen', 'darkorange', 'darkorchid',
+  'darkred', 'darksalmon', 'darkseagreen', 'darkslateblue', 'darkslategray', 'darkslategrey',
+  'darkturquoise', 'darkviolet', 'deeppink', 'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue',
+  'firebrick', 'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro', 'ghostwhite', 'gold', 'goldenrod',
+  'gray', 'green', 'greenyellow', 'grey', 'honeydew', 'hotpink', 'indianred', 'indigo', 'ivory', 'khaki',
+  'lavender', 'lavenderblush', 'lawngreen', 'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan',
+  'lightgoldenrodyellow', 'lightgray', 'lightgreen', 'lightgrey', 'lightpink', 'lightsalmon',
+  'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey', 'lightsteelblue', 'lightyellow',
+  'lime', 'limegreen', 'linen', 'magenta', 'maroon', 'mediumaquamarine', 'mediumblue', 'mediumorchid',
+  'mediumpurple', 'mediumseagreen', 'mediumslateblue', 'mediumspringgreen', 'mediumturquoise',
+  'mediumvioletred', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'navajowhite', 'navy',
+  'oldlace', 'olive', 'olivedrab', 'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen',
+  'paleturquoise', 'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue',
+  'purple', 'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+  'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey', 'snow',
+  'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat', 'white',
+  'whitesmoke', 'yellow', 'yellowgreen',
+]);
+/** Pushes one message per RAW hit, and per hit of the stricter product rules above, onto `errors`. */
+export function scanRawStrict(text, where, errors) {
+  scanRaw(text, where, errors);
+  const code = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const m of code.matchAll(/var\(\s*--[a-z0-9-]+\s*,[^)]*\)?/gi)) errors.push(`${where}: var() fallback "${m[0]}"`);
+  for (const m of code.matchAll(/url\(\s*(["']?)(?!data:)[^)]*\)?/gi)) errors.push(`${where}: url() that is not a data: URI "${m[0]}"`);
+  for (const set of code.matchAll(/(?:-webkit-)?image-set\(([^;{}]*)/gi)) {
+    for (const s of set[1].matchAll(/(["'])(?!data:)[^"']*\1/g)) errors.push(`${where}: image-set() source that is not a data: URI ${s[0]}`);
+  }
+  // Declaration values: the innermost `{ … }` blocks, split into `property: value`.
+  for (const block of code.matchAll(/\{([^{}]*)\}/g)) {
+    for (const decl of block[1].split(';')) {
+      const i = decl.indexOf(':');
+      if (i < 0) continue;
+      const value = decl.slice(i + 1).replace(/(["'])[^"']*\1/g, '""');
+      for (const id of value.matchAll(/(?<![\w-])[a-z][a-z0-9-]*/gi)) {
+        const k = id[0].toLowerCase();
+        if (k === 'currentcolor') errors.push(`${where}: currentColor "${id[0]}"`);
+        else if (CSS_NAMED_COLORS.has(k)) errors.push(`${where}: named color "${id[0]}"`);
+      }
+    }
+  }
 }
 
 // ── contrast (WCAG 2.x relative luminance) ─────────────────────────────────────────────────────
