@@ -272,7 +272,11 @@
 /* The mode control (Q1, model B): a radio group on the bar's step, the selected mode filled like a selected
    segment. A derived mode is hatched while it is not the one selected. It scrolls sideways when a brand
    ships more modes than fit, so the header never wraps. */
+.p3-modes-wrap { display: flex; flex: 0 1 auto; min-width: 0; }
 .p3-modes { flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+/* More modes than fit (S3 review): the select of the same modes instead, never a clipped radio (concept v6's
+   slim preview). */
+.p3-modes-wrap[data-fit="select"] > .p3-modes, .p3-modes-wrap:not([data-fit="select"]) > .p3-modes-select { display: none; }
 .p3-mode { flex: none; gap: var(--p3-space-075); padding: 0 var(--p3-space-150); }
 .p3-mode[data-derived="true"]:not([aria-checked="true"]) {
   background-image: repeating-linear-gradient(135deg, transparent 0 var(--p3-space-050), var(--p3-fill-1) var(--p3-space-050) var(--p3-space-100));
@@ -513,6 +517,62 @@
 .p3-advbody { display: grid; gap: var(--p3-space-200); justify-self: stretch; }
 .p3-nextrow { display: flex; }
 .p3-btn.p3-btn-page:hover { border-color: var(--p3-field-edge-hover); }
+
+/* ── Brand (S3): Identity, Personality, Modes ──────────────────────────────────────────────── */
+/* v5 answer 4: Brand name and Token namespace side by side at every width, 380 included; the notes span both. */
+.p3-idrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-200); align-items: end; }
+.p3-idnotes { display: grid; gap: var(--p3-space-100); }
+.p3-idnotes-row { display: flex; }
+/* A text field with its own edge (B1), a control's height and radius. */
+.p3-text-input {
+  width: 100%; min-width: 0; min-height: var(--p3-ctl-h); padding: 0 var(--p3-space-150);
+  border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
+}
+.p3-text-input.p3-value { font-family: var(--p3-font-mono); }
+.p3-text-input:hover { border-color: var(--p3-field-edge-hover); }
+.p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+/* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. */
+.p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
+.p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }
+.p3-btn.p3-chip > .p3-ico { display: none; }
+.p3-btn.p3-chip[aria-pressed="true"] { border-color: var(--p3-ctl-edge); }
+.p3-btn.p3-chip[aria-pressed="true"] > .p3-ico { display: inline-block; color: var(--p3-text); }
+/* Modes: a check per mode, its name and its note on one line (concept v6). The row is the control and its
+   target; the box is the drawn edge (field-edge on the page, B1), so the row itself shows an edge only on hover.
+   Light is a fixed row, not a control: its box is dashed, as v6 draws a check that cannot change. */
+.p3-checks { display: grid; gap: var(--p3-space-025); }
+.p3-check { display: flex; align-items: center; gap: var(--p3-space-150); min-height: var(--p3-ctl-h-xs); padding: var(--p3-space-050) var(--p3-space-100); border: var(--p3-bw-hairline) solid transparent; border-radius: var(--p3-radius-lg); }
+.p3-btn.p3-check { justify-content: flex-start; width: 100%; border-color: transparent; background-color: transparent; white-space: normal; text-align: left; font-weight: var(--p3-fw-default); }
+.p3-btn.p3-check:hover { border-color: var(--p3-field-edge-hover); }
+.p3-btn.p3-check[aria-disabled="true"] { cursor: not-allowed; }
+.p3-check-box {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--p3-space-200); height: var(--p3-space-200);
+  border: var(--p3-bw-hairline) solid var(--p3-field-edge); border-radius: var(--p3-radius-md); background: var(--p3-bg-page);
+}
+.p3-check-box > .p3-ico { display: none; }
+.p3-check[aria-checked="true"] .p3-check-box { background: var(--p3-text); border-color: var(--p3-text); }
+.p3-check[aria-checked="true"] .p3-check-box > .p3-ico { display: block; color: var(--p3-bg-page); }
+:is(.p3-check-fixed, .p3-check[aria-disabled="true"]) .p3-check-box { border-style: dashed; }
+.p3-check-fixed .p3-check-box > .p3-ico { display: block; color: var(--p3-text); }
+.p3-check-text { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--p3-space-075); min-width: 0; }
+.p3-check-name { color: var(--p3-text); }
+.p3-check-note { color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
+/* Custom modes: name, base, remove, wrapping at the narrow widths. */
+.p3-cmrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
+.p3-cmrow > .p3-text-input { flex: 1 1 var(--p3-step-w); width: auto; }
+.p3-cmrow > .p3-selwrap { flex: 1 1 var(--p3-step-w); }
+.p3-cm-based { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-cmadd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-150); }
+/* A confirm drawn in place (concept v6's confirm dialog): the dialog's edge on the page ground. */
+.p3-confirm {
+  display: grid; gap: var(--p3-space-150); padding: var(--p3-space-200); border-radius: var(--p3-radius-xl);
+  border: var(--p3-bw-hairline) solid var(--p3-line-2); background: var(--p3-bg-page); line-height: var(--p3-lh-cozy);
+}
+.p3-confirm-title { margin: 0; font-weight: var(--p3-fw-strong); }
+.p3-confirm-line { margin: 0; }
+.p3-confirm-list { display: grid; gap: var(--p3-space-050); margin: 0; padding-left: var(--p3-space-300); font-size: var(--p3-fs-12); }
+.p3-confirm-row { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 
 /* ── the Palettes preview (S2, V7): a container per group, large squares, labels under them ───── */
 .p3-preview-stack { padding: var(--p3-space-400); gap: var(--p3-space-300); }

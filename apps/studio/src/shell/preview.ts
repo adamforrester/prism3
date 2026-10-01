@@ -53,9 +53,30 @@ export const stepKey = (list: readonly HTMLElement[], from: HTMLElement, key: st
 
 // ── the mode control ───────────────────────────────────────────────────────────────────────────────
 /** A radio group of the brand's modes. Each radio carries a status dot (and the count below floor, when
- *  there is one), as in concept v6; a derived mode is hatched while it is not the one selected. */
+ *  there is one), as in concept v6; a derived mode is hatched while it is not the one selected.
+ *
+ *  NO OPTION IS EVER CLIPPED (orchestrator review of #1939). The header is one row (Q2), so a brand with more
+ *  modes than fit beside the title (a custom mode or two) does not wrap it. Instead the radios give way to a
+ *  select of the same modes, as concept v6 does when its preview is slim (its `modesel`), and come back when
+ *  they fit again. Which one shows is measured from the radios' own widths whenever the header resizes or the
+ *  mode set changes; a scroll that hides an option is never left on screen. */
 export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
+  const wrap = h('div', 'p3-modes-wrap');
   const group = hook(h('div', 'p3-seg p3-modes'), 'mode-control');
+  const selWrap = h('div', 'p3-selwrap p3-modes-select');
+  const select = hook(h('select', 'p3-select'), 'mode-select');
+  select.setAttribute('aria-label', 'Preview mode');
+  select.onchange = () => { if (currentMode !== select.value) setCurrentMode(select.value as typeof currentMode); };
+  selWrap.append(select, glyph('chev'));
+  wrap.append(group, selWrap);
+  wrap.dataset.fit = 'radios';
+  /** Radios when every one fits, the select otherwise. */
+  const fit = (): void => {
+    if (!wrap.isConnected) return;
+    if (wrap.dataset.fit !== 'radios') wrap.dataset.fit = 'radios';
+    const over = group.scrollWidth > group.clientWidth + 1;
+    if (over) wrap.dataset.fit = 'select';
+  };
   group.setAttribute('role', 'radiogroup');
   group.setAttribute('aria-label', 'Preview mode');
   let radios: HTMLButtonElement[] = [];
@@ -75,6 +96,7 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
         return b;
       });
       group.replaceChildren(...radios);
+      queueMicrotask(fit);
     }
     for (const b of radios) {
       const m = b.dataset.mode!;
@@ -94,6 +116,17 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;
     }
+    // The select carries the same modes in the same words (concept v6's `modesel`).
+    const opts = modes.map((m) => {
+      const f = v.per.find((x) => x.mode === m)?.f ?? 0;
+      return [m, `${modeLabel(m)}${isDerived(m) ? ' (derived)' : ''} · ${f ? `${f} below floor` : 'all pass'}`];
+    });
+    const sig = JSON.stringify(opts);
+    if (select.dataset.sig !== sig) {
+      select.dataset.sig = sig;
+      select.replaceChildren(...opts.map(([m, l]) => { const o = h('option', undefined, l); o.value = m; return o; }));
+    }
+    if (select.value !== currentMode) select.value = currentMode;
   };
   group.addEventListener('keydown', (e) => {
     const to = stepKey(radios, e.target as HTMLElement, e.key);
@@ -104,7 +137,12 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
   });
   cleanups.push(subscribe('mode', paint), subscribe('brand', paint));
   paint();
-  return group;
+  // The header's width decides the fit; it is observed once the control is placed in it. Toggling between the
+  // radios and the select never changes the header's own size, so this cannot loop.
+  const ro = new ResizeObserver(fit);
+  queueMicrotask(() => { if (wrap.parentElement) ro.observe(wrap.parentElement); fit(); });
+  cleanups.push(() => ro.disconnect());
+  return wrap;
 };
 
 // ── the verdict on the top bar ─────────────────────────────────────────────────────────────────────

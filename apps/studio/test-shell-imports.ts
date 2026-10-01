@@ -6,8 +6,8 @@
  *
  * New shell code repaints by store subscription: a writer calls a setter, and every surface that reads
  * the topic repaints itself (plan §5). It never calls the legacy repaint tiers, which S13 deletes. So
- * every file under `src/shell/`, `src/domains/`, `src/preview/` and (from S2) `src/ui/` must not name `apply`,
- * `applyFull`, `build`, `renderBar`, `renderWorkspace` or `setVolatile`, and a file that does fails here,
+ * every file under `src/shell/`, `src/domains/`, `src/preview/`, (from S2) `src/ui/` and (from #1928)
+ * `src/state/` must not name `apply`, `applyFull`, `build`, `renderBar`, `renderWorkspace` or `setVolatile`, and a file that does fails here,
  * naming the file, the line and the name. `renderWorkspace` joined the list in S1.3 (orchestrator review of
  * #1923): it is the full legacy page repaint, which `applyFull` and the `mode` subscriber in `main.ts` call,
  * so it is a tier in all but name.
@@ -30,14 +30,23 @@
  * `globalThis['build']()` and a computed or template key never spell the tier as an identifier, and a module
  * outside the scanned folders can re-export a tier under any name. So:
  *   - an element access whose key is a string or plain template literal naming a tier is a reference too;
- *   - an import (static, `export … from`, or dynamic `import()`) of `src/main.ts`, or of any module under
- *     `src/` that imports it, fails, naming the import. `main.ts` is where the tiers live; a shell module
+ *   - an import (static, `export … from`, or dynamic `import()`) of `src/main.ts`, or of any module that
+ *     imports it, fails, naming the import. `main.ts` is where the tiers live; a shell module
  *     with no path to it cannot reach them except through a global, and a global access spelled with a
  *     literal key is the first arm. The graph is built from the source on disk, never from a list, so a new
  *     module that starts importing `main.ts` taints itself and every importer the day it does.
+ * Three refinements to that arm (#1928, the orchestrator's delta check of #1922). A `.js` or `.mjs`
+ * specifier is resolved to its `.ts` source, because `moduleResolution: bundler` accepts `../main.js` for
+ * `main.ts`. A relative import that resolves outside `src/` is followed like any other, because a bridge
+ * module beside `src/` can re-export a tier under a neutral name. And a type-only import (`import type`,
+ * `export type`, or a list whose every specifier is `type`) is no edge, because the compiler erases it,
+ * so it cannot reach a tier. If `verbatimModuleSyntax` is ever switched on, `import { type X }` keeps a
+ * bare `import '…'` at run time; that runs a module and hands nothing over, so skipping it stays sound.
  * What still gets past: a key computed at run time (`m[k]` with `k` built from strings) on an object that
  * did not come from a tainted import — a global the page itself put there. Nothing in `main.ts` exports
- * its tiers onto a global today.
+ * its tiers onto a global today. And a bare specifier is read as a package and not followed, so the
+ * workspace's own name for this app (`@prism3/studio/src/main`, which resolves through `node_modules`)
+ * is not followed either (#1944).
  *
  * WHAT A STATIC SCAN OF THE SHELL CANNOT SEE: A CALLBACK `main.ts` LENDS. `main.ts` hands the shell
  * functions to call (`mountFrame(app, { inspect: { contrast, tokens } })`, and whatever S1.4 and later lend).
@@ -52,13 +61,15 @@
  * `void import('../main');` → `src/shell/frame.ts:<line>: imports "../main", which reaches src/main.ts`.
  * S1.3 (orchestrator review of #1923): `(m as any)['apply']()` in `src/shell/preview.ts` →
  * `src/shell/preview.ts:<line>: references the legacy repaint tier "apply"`; `export { apply } from '../main';`
- * in `src/state/verdict.ts`, which `preview.ts` imports → the verdict.ts line names the tier only if
- * verdict.ts were scanned, so it fails on the import instead: `src/shell/preview.ts:<line>: imports
- * "../state/verdict", which reaches src/main.ts`; `renderWorkspace` named in a shell file →
- * `… references the legacy repaint tier "renderWorkspace"`.
+ * in `src/state/verdict.ts`, which `preview.ts` imports → `src/shell/preview.ts:<line>: imports
+ * "../state/verdict", which reaches src/main.ts`, and, since #1928 scans `src/state/`, also
+ * `src/state/verdict.ts:<line>: references the legacy repaint tier "apply"`; `renderWorkspace` named in a
+ * shell file → `… references the legacy repaint tier "renderWorkspace"`. #1928's three refinements are
+ * proven on in-memory fixtures below, each with its expected offender written out, so reverting a fix
+ * fails that fixture by name.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
@@ -74,16 +85,23 @@ const ok = (cond: boolean, label: string): void => {
 const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'renderWorkspace', 'setVolatile'] as const;
 /** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices; S2
  *  adds `ui/`, the shared controls a domain composes from (the lever kit, the step picker), which is new
- *  code with the same rule. */
-const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview', 'src/ui'];
+ *  code with the same rule. `state/` (#1928, from the review of S3) is the store and the pure inputs a
+ *  domain writes through; a write there that reached a tier would repaint for every surface at once. */
+const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview', 'src/ui', 'src/state'];
 /** Files the scan must read, so an empty or misdirected scan cannot pass. */
 const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts', 'src/shell/preview.ts',
   // S1.4: the Activity drawer and the Figma menu, which run writes `main.ts` lends and must not reach a tier.
   'src/shell/activity.ts', 'src/shell/figma.ts',
+  // #1928: the store and the inputs beside it.
+  'src/state/store.ts', 'src/state/verdict.ts', 'src/state/palette-input.ts', 'src/state/host-session.ts',
   // S2: Color › Palettes (its levers and its preview) and the shared controls.
   'src/domains/color-palettes.ts', 'src/preview/palettes.ts', 'src/ui/lever-kit.ts', 'src/ui/step-picker.ts',
   // S2's Q4 trial.
-  'src/preview/follow-edit.ts'];
+  'src/preview/follow-edit.ts',
+  // S3: Brand (its levers and its preview, which calls the Style guide `main.ts` lends it).
+  'src/domains/brand.ts', 'src/preview/brand.ts',
+  // S3: Brand's state module (palette-input is listed with #1928's above).
+  'src/state/brand-input.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -105,13 +123,31 @@ const references = (src: string, file: string): { line: number; name: string }[]
   return hits;
 };
 
-/** Every module specifier `src` imports — static, `export … from`, and dynamic `import()` — with its line. */
+/** True for an import or re-export the compiler erases (#1928): `import type`, `export type`, or a
+ *  named list in which every specifier is marked `type`. A default import, a namespace import, a bare
+ *  `import '…'` and an empty `{}` all keep a runtime edge, so they stay. */
+const typeOnly = (n: ts.ImportDeclaration | ts.ExportDeclaration): boolean => {
+  if (ts.isImportDeclaration(n)) {
+    const c = n.importClause;
+    if (!c) return false;
+    if (c.isTypeOnly) return true;
+    if (c.name) return false;
+    const b = c.namedBindings;
+    return !!b && ts.isNamedImports(b) && b.elements.length > 0 && b.elements.every((e) => e.isTypeOnly);
+  }
+  if (n.isTypeOnly) return true;
+  const c = n.exportClause;
+  return !!c && ts.isNamedExports(c) && c.elements.length > 0 && c.elements.every((e) => e.isTypeOnly);
+};
+
+/** Every module specifier `src` imports at run time — static, `export … from`, and dynamic `import()` —
+ *  with its line. Type-only imports are left out (`typeOnly`). */
 const imports = (src: string, file: string): { line: number; spec: string }[] => {
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
   const out: { line: number; spec: string }[] = [];
   const at = (n: ts.Node): number => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   const visit = (n: ts.Node): void => {
-    if ((ts.isImportDeclaration(n) || ts.isExportDeclaration(n)) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier)) {
+    if ((ts.isImportDeclaration(n) || ts.isExportDeclaration(n)) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier) && !typeOnly(n)) {
       out.push({ line: at(n), spec: n.moduleSpecifier.text });
     }
     if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword && n.arguments[0]) {
@@ -177,35 +213,108 @@ for (const o of offenders) ok(false, o);
 ok(offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} references a legacy repaint tier (${files.length} file(s) scanned)`);
 
 // ── the import arm: no path from the new source to main.ts ───────────────────────────────────────
-const SRC = join(ROOT, 'src');
-const MAIN = join(SRC, 'main.ts');
-const resolveSpec = (from: string, spec: string): string | null => {
+/** How the import arm reads a tree: the disk for the real one, a map for the fixtures below. */
+type Tree = { isFile: (p: string) => boolean; read: (p: string) => string };
+const DISK: Tree = { isFile: (p) => existsSync(p) && statSync(p).isFile(), read: (p) => readFileSync(p, 'utf8') };
+/** A specifier ending in a JS extension names its TS source, as `tsc` and esbuild read it under
+ *  `moduleResolution: bundler` (#1928): `../main.js` is `../main.ts`. Every JS extension is tried against
+ *  every TS one, wider than `tsc` (which maps `.mjs` only to `.mts`), because a guard that resolves too
+ *  much fails loudly and one that resolves too little passes. */
+const JS_EXT = /\.(js|jsx|mjs|cjs)$/;
+const TS_EXTS = ['.ts', '.tsx', '.mts', '.cts'];
+const resolveSpec = (tree: Tree, from: string, spec: string): string | null => {
   if (spec === '<computed>') return '<computed>';
   if (!spec.startsWith('.')) return null;   // a package; not this app's source
   const base = join(dirname(from), spec);
-  for (const c of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) if (existsSync(c) && statSync(c).isFile()) return c;
+  const stem = base.replace(JS_EXT, '');
+  const cands = [...(stem === base ? [] : TS_EXTS.map((e) => stem + e)), base, ...TS_EXTS.map((e) => base + e), join(base, 'index.ts')];
+  for (const c of cands) if (tree.isFile(c)) return c;
   return null;
 };
+/** The import arm over one tree. The graph starts from `roots` and follows every relative import to
+ *  wherever it resolves, inside `src/` or not (#1928: a bridge module beside `src/` re-exporting a tier
+ *  was invisible when the walk stopped at `src/`). Then `main` and every module with a path to it are
+ *  tainted, and each import in `scan` that lands on a tainted module is an offender, named. */
+const importArm = (tree: Tree, root: string, roots: string[], scan: string[]): { offenders: string[]; tainted: Set<string>; read: Set<string> } => {
+  const main = join(root, 'src', 'main.ts');
+  const edges = new Map<string, string[]>();
+  const queue = [...roots, ...scan];
+  while (queue.length) {
+    const f = queue.pop()!;
+    if (edges.has(f)) continue;
+    // A stylesheet or JSON file resolves too; it has no imports to read.
+    const out = /\.[cm]?[jt]sx?$/.test(f) ? imports(tree.read(f), f).map((i) => resolveSpec(tree, f, i.spec)).filter((t): t is string => !!t && t !== '<computed>') : [];
+    edges.set(f, out);
+    queue.push(...out);
+  }
+  // Tainted: main.ts, and every module with a path to it. Fixed point over the graph read from the tree.
+  const tainted = new Set<string>([main]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const [f, out] of edges) if (!tainted.has(f) && out.some((t) => tainted.has(t))) { tainted.add(f); grew = true; }
+  }
+  const offenders: string[] = [];
+  for (const f of scan) {
+    const rel = relative(root, f).split('\\').join('/');
+    for (const i of imports(tree.read(f), rel)) {
+      const t = resolveSpec(tree, f, i.spec);
+      if (t === '<computed>') offenders.push(`${rel}:${i.line}: a dynamic import() with a computed specifier, which this guard cannot follow`);
+      else if (t && tainted.has(t)) offenders.push(`${rel}:${i.line}: imports "${i.spec}", which reaches src/main.ts`);
+    }
+  }
+  return { offenders, tainted, read: new Set(edges.keys()) };
+};
+
+// The arm sees what it is for (#1928). Each fixture is a small tree held in memory, with a `main.ts` and
+// one shell file; the expected offender is written out in full, so a resolver that stops reaching main.ts
+// fails on that line by name.
+const FX = join('/', 'fixture', 'apps', 'studio');
+const fxArm = (shell: string, extra: Record<string, string> = {}): string[] => {
+  const files = new Map<string, string>(Object.entries({ 'src/main.ts': 'export const build = () => {};', ...extra, 'src/shell/x.ts': shell })
+    .map(([k, v]) => [join(FX, k), v]));
+  const tree: Tree = { isFile: (p) => files.has(p), read: (p) => files.get(p) ?? '' };
+  const roots = [...files.keys()].filter((p) => p.startsWith(join(FX, 'src')));
+  return importArm(tree, FX, roots, [join(FX, 'src/shell/x.ts')]).offenders;
+};
+const fxFails = (label: string, shell: string, want: string, extra?: Record<string, string>): void => {
+  const got = fxArm(shell, extra);
+  ok(got.includes(want), `${label} → ${want}${got.includes(want) ? '' : ` (got: ${got.length ? got.join('; ') : 'nothing'})`}`);
+};
+const fxPasses = (label: string, shell: string, extra?: Record<string, string>): void => {
+  const got = fxArm(shell, extra);
+  ok(got.length === 0, `${label} passes${got.length ? ` (got: ${got.join('; ')})` : ''}`);
+};
+// Gap 1: a `.js` or `.mjs` specifier names main.ts.
+fxFails('a ".js" specifier', "import * as M from '../main.js'; const k = 'bu' + 'ild'; (M as any)[k]();",
+  'src/shell/x.ts:1: imports "../main.js", which reaches src/main.ts');
+fxFails('a ".mjs" specifier', "import * as M from '../main.mjs';", 'src/shell/x.ts:1: imports "../main.mjs", which reaches src/main.ts');
+fxFails('a ".js" specifier through a module', "import { y } from '../state/y.js';",
+  'src/shell/x.ts:1: imports "../state/y.js", which reaches src/main.ts', { 'src/state/y.ts': "export * from '../main.js';" });
+// Gap 2: a module outside src/ is followed.
+fxFails('a bridge module outside src/', "import { b3 } from '../../bridge3';",
+  'src/shell/x.ts:1: imports "../../bridge3", which reaches src/main.ts', { 'bridge3.ts': "export { build as b3 } from './src/main';" });
+// Gap 3: a type-only import erases, so it is no path, directly or through a module.
+fxPasses('"import type" of main.ts', "import type { X } from '../main';");
+fxPasses('"import { type X }" of main.ts', "import { type X, type Y } from '../main';");
+fxPasses('"export type" from main.ts', "export type { X } from '../main';");
+fxPasses('"import type" through a module', "import { y } from '../state/y';",
+  { 'src/state/y.ts': "import type { X } from '../main';\nexport type { Y } from '../main';\nexport const y = 1;" });
+// …and a type-only import beside a value import of main.ts still fails on the value import.
+fxFails('a type specifier beside a value specifier', "import { type X, y } from '../main';",
+  'src/shell/x.ts:1: imports "../main", which reaches src/main.ts');
+fxFails('"import type" beside a value import', "import type { X } from '../main';\nimport { y } from '../main';",
+  'src/shell/x.ts:2: imports "../main", which reaches src/main.ts');
+ok(!fxArm("import type { X } from '../main';\nimport { y } from '../main';").some((o) => o.startsWith('src/shell/x.ts:1:')),
+  'the "import type" line beside a value import is not itself reported');
+
+const SRC = join(ROOT, 'src');
+const MAIN = join(SRC, 'main.ts');
 const allSrc = walk(SRC);
 ok(allSrc.includes(MAIN), 'the import graph read src/main.ts');
-const edges = new Map(allSrc.map((f) => [f, imports(readFileSync(f, 'utf8'), f).map((i) => resolveSpec(f, i.spec)).filter((t): t is string => !!t)]));
-// Tainted: main.ts, and every module with a path to it. Fixed point over the graph read from disk.
-const tainted = new Set<string>([MAIN]);
-for (let grew = true; grew;) {
-  grew = false;
-  for (const [f, ts_] of edges) if (!tainted.has(f) && ts_.some((t) => tainted.has(t))) { tainted.add(f); grew = true; }
-}
-const importOffenders: string[] = [];
-for (const f of files) {
-  const rel = relative(ROOT, f).split('\\').join('/');
-  for (const i of imports(readFileSync(f, 'utf8'), rel)) {
-    const t = resolveSpec(f, i.spec);
-    if (t === '<computed>') importOffenders.push(`${rel}:${i.line}: a dynamic import() with a computed specifier, which this guard cannot follow`);
-    else if (t && tainted.has(t)) importOffenders.push(`${rel}:${i.line}: imports "${i.spec}", which reaches src/main.ts`);
-  }
-}
-for (const o of importOffenders) ok(false, o);
-ok(importOffenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src/main.ts or a module that does (${tainted.size} module(s) reach it)`);
+const arm = importArm(DISK, ROOT, allSrc, files);
+const outside = [...arm.read].filter((f) => !f.startsWith(SRC + sep)).length;
+for (const o of arm.offenders) ok(false, o);
+ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src/main.ts or a module that does (${arm.tainted.size} module(s) reach it; ${arm.read.size} module(s) read, ${outside} outside src/)`);
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
 if (failed) process.exit(1);
