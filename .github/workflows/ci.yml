@@ -949,3 +949,25 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run -w @prism3/studio test:smoke
+
+      # #1897 — the mode audit, gating on its INSTRUMENT only, and REMOVED AT S13: the UI redesign's
+      # cleanup slice deletes `mode-audit.mjs` with the mode strip it audits, and this step, its
+      # `verify.ts` row and its three checklist lines go in the same PR.
+      #
+      # WHY IT GATES AT ALL. #1891 moved the audit onto `data-p3` hooks under `test-hooks.mjs` (#1829).
+      # Three of those hooks (`section-head`, `section-title`, `mode-scope-badge`) are read by THIS FILE
+      # ALONE — no other suite names them — so until this step a redesign slice could drop one with
+      # every gate green, and the audit would go blind with nobody running it.
+      #
+      # WHAT RED MEANS, and why `--check-badges` is NOT passed. Without the flag the audit's table is
+      # a report and exits 0; it exits 1 only when its own instrument fails, each by name: a hook it
+      # names never rendered, a page's section heads and section titles disagree in count, or no
+      # control label was read (the signature's floor). With the flag it is red on main over the
+      # badge mismatches filed as #1887, so passing it here would make this step red on day one.
+      #
+      # After the smoke suite on purpose: it reuses the same browser setup, and a failure in the
+      # smoke suite explains a failure here, rather than the reverse. ~30s locally.
+      - name: "Studio mode audit can still find what it measures (#1897, removed at S13)"
+        run: |
+          npx playwright install --with-deps chromium
+          npm run -w @prism3/studio audit:modes
