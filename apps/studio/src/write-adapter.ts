@@ -135,7 +135,7 @@ export type HostMessage =
 /** The commit seam: the per-host "apply this theme" action, distinct from the preview.
  *  `web` implementations are the UI's own exporters; `figma` posts to the main thread. */
 export interface HostCommit {
-  /** True only in the Figma plugin — the UI shows an "Apply to Figma variables" action + the
+  /** True only in the Figma plugin — the UI shows an "Apply Theme" action + the
    *  read-back seed panel. `false` on web (the export bar is the commit path there). */
   readonly isFigma: boolean;
   /** Post the current brand to the host for materialisation (Figma only; no-op on web). The

@@ -2793,9 +2793,7 @@ const renderInteractiveMatrix = (host: HTMLElement): void => {
 // `modeAnchors` / `brandState.overrides`; hc-light/hc-dark/wireframe are DERIVED-only (auto from the
 // contrast contracts, read-only verification views); primitives are mode-independent so this
 // control never renders on that stage. Replaces the mode chips that used to overflow the brand
-// dropdown. Managing WHICH modes exist moved to the brand menu (#432) — see `renderModeSetMenu`.
-let addModeOpen = false;         // C2 — the "+ Add mode" inline form is expanded
-let addModeName = '';            // C2 — survives popover re-renders
+// dropdown. Managing WHICH modes exist is Brand › Modes (UI redesign S3; the brand menu's copy went with #1943).
 const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
 /** #423 — a DERIVED mode is generated from light/dark (accessibility floors for HC, mechanical
  *  grayscale for wireframe) and the engine REFUSES per-mode levers on it: `CUSTOMIZABLE_MODES` is
@@ -2804,102 +2802,7 @@ const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
  *  table that shows every mode AS COLUMNS has no such gate — each column must check for itself, or the
  *  click reaches the engine and the user reads a raw internal error string. */
 const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
-const RESERVED_MODE_NAMES = new Set<string>(['light', 'dark', 'hc-light', 'hc-dark', 'wireframe']);
 const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
-
-/** The mode-SET editor (which modes this brand generates + custom modes). Host-agnostic since #432:
- *  it moved from a popover on the mode strip into the brand menu, so the caller supplies both the
- *  repaint (the strip and the brand menu are re-rendered by different functions) and whether to drop
- *  the popover chrome. Everything else — validation, the locked Light row, the add form — is unchanged. */
-const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => {
-  const menu = el('div', 'mctx-menu' + (inline ? ' inline' : ''));
-  const modes = brandState.modes ?? ALL_MODES;
-  const darkOn = modes.includes('dark');
-  const hcOn = modes.includes('hc-light') || modes.includes('hc-dark');
-  const wireOn = modes.includes('wireframe');
-  menu.append(el('div', 'mctx-mcap', 'Modes this brand generates'));
-
-  // #57 — Light is the forced base mode; render the row as clearly LOCKED (grayed check, no hover, a lock
-  // glyph) rather than a live checkbox that can't be unticked. #1770: the lock is SAID by the glyph, not by
-  // fading the row — the fade took a legal `--faint` "always" (5.13:1) down to 2.95:1. The glyph is named
-  // for assistive tech; the row's title carries the reason.
-  const lightRow = hook(el('div', 'mctx-opt on fixed'), 'mode-base-row');
-  lightRow.title = 'Light is always generated — it’s the base mode, so it can’t be turned off.';
-  const lock = iconEl('lock', 'currentColor');
-  hook(lock, 'mode-base-lock'); lock.setAttribute('class', 'mctx-lock'); lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', 'Locked');
-  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), lock, hook(el('span', 'mctx-always', 'always'), 'mode-base-always'));
-  menu.append(lightRow);
-
-  const opt = (label: string, on: boolean, title: string, toggle: () => void): void => {
-    const row = el('button', 'mctx-opt' + (on ? ' on' : '')) as HTMLButtonElement;
-    row.title = title;
-    row.append(el('span', 'mctx-box', on ? '✓' : ''), el('span', undefined, label));
-    row.onclick = toggle;
-    menu.append(row);
-  };
-  opt('Dark', darkOn, 'A dark appearance — generated, editable', () => setModes(!darkOn, hcOn, wireOn));
-  opt('High contrast', hcOn, 'AAA contrast floors — auto-derived, read-only', () => setModes(darkOn, !hcOn, wireOn));
-  opt('Wireframe', wireOn, 'Grayscale, sharp corners — auto-derived, generate-only', () => setModes(darkOn, hcOn, !wireOn));
-
-  // Custom modes (C2) — each seeds (live-inherits) a customizable base (light/dark), then tunes via
-  // its own overrides/anchors. Listed with a remove; the add form validates the name client-side
-  // (the engine re-validates on rebuild). Base options are the generated customizable modes.
-  menu.append(el('div', 'mctx-div'));
-  const customs = brandState.customModes ?? [];
-  if (customs.length) {
-    menu.append(el('div', 'mctx-mcap', 'Custom modes'));
-    customs.forEach((cm, i) => {
-      const row = el('div', 'mctx-custom');
-      row.append(el('span', 'mctx-cname', cm.name), el('span', 'mctx-cbase', `↳ ${cm.base}`));
-      const rm = el('button', 'mctx-crm', '×') as HTMLButtonElement;
-      rm.title = 'Remove custom mode';
-      rm.onclick = () => {
-        brandState.customModes!.splice(i, 1);
-        if (!brandState.customModes!.length) brandState.customModes = undefined;
-        if (currentMode === cm.name) setCurrentMode('light');   // don't strand the view on a gone mode
-        applyFull();
-      };
-      row.append(rm);
-      menu.append(row);
-    });
-  }
-
-  if (!addModeOpen) {
-    const add = el('button', 'mctx-opt') as HTMLButtonElement;
-    add.append(el('span', 'mctx-box'), el('span', undefined, '+ Add mode…'));
-    add.onclick = () => { addModeOpen = true; repaint(); };
-    menu.append(add);
-  } else {
-    const form = el('div', 'mctx-addform');
-    const nameIn = el('input', 'mctx-addname') as HTMLInputElement;
-    nameIn.type = 'text'; nameIn.placeholder = 'e.g. marketing-dark'; nameIn.value = addModeName; nameIn.spellcheck = false;
-    nameIn.oninput = () => { addModeName = nameIn.value; };
-    const baseSel = selectEl('sm fill');
-    for (const bm of ['light', ...(darkOn ? ['dark'] : [])]) baseSel.append(optionEl(bm, MODE_LABEL[bm] ?? bm));
-    const err = el('p', 'mctx-adderr');
-    const doAdd = () => {
-      const nm = addModeName.trim();
-      if (!/^[a-z0-9][a-z0-9-]*$/.test(nm)) { err.textContent = 'Lowercase letters, digits, hyphens; start with a letter or digit.'; return; }
-      if (RESERVED_MODE_NAMES.has(nm) || (brandState.customModes ?? []).some((c) => c.name === nm)) { err.textContent = 'That name is taken (a built-in or existing custom mode).'; return; }
-      (brandState.customModes ?? (brandState.customModes = [])).push({ name: nm, base: baseSel.value as 'light' | 'dark' });
-      addModeOpen = false; addModeName = '';
-      setCurrentMode(nm as Mode);                             // jump into the new mode to tune it
-      applyFull();
-    };
-    const addBtn = el('button', 'mctx-addbtn', 'Add mode') as HTMLButtonElement;
-    addBtn.onclick = doAdd;
-    const cancel = el('button', 'mctx-addcancel', 'Cancel') as HTMLButtonElement;
-    cancel.onclick = () => { addModeOpen = false; addModeName = ''; repaint(); };
-    const btns = el('div', 'mctx-addbtns'); btns.append(addBtn, cancel);
-    // #56 — label the name field and the base select (the only label used to live inside the select).
-    const nameField = el('div', 'mctx-addfield'); nameField.append(el('label', 'mctx-addlab', 'Mode name'), nameIn);
-    const baseField = el('div', 'mctx-addfield'); baseField.append(el('label', 'mctx-addlab', 'Base mode'), baseSel);
-    form.append(nameField, baseField, err, btns);
-    menu.append(form);
-  }
-  menu.append(el('p', 'mctx-note', 'A custom mode seeds from its base every build, then deviates via the per-mode color controls (interactive, foreground).'));
-  return menu;
-};
 
 const renderModeContext = (): HTMLElement => {
   const strip = el('div', 'modectx');
@@ -2931,7 +2834,7 @@ const renderModeContext = (): HTMLElement => {
   strip.append(left);
 
   // No "Edit modes" control here any more (#432): managing WHICH modes exist is brand configuration,
-  // not a per-page action, so it lives in the brand menu. This strip is now purely a selector — which
+  // not a per-page action, so it lives on Brand › Modes (#1943). This strip is now purely a selector — which
   // is also what lets it scroll rather than wrap, since it no longer has to reserve room for a button.
   return strip;
 };
@@ -2952,11 +2855,11 @@ const renderGeneratedNote = (): HTMLElement => {
   chip.append(el('span', 'gv-mark', ok ? '✓' : '✗'),
     el('span', undefined, ok ? 'Every contrast contract passes in this mode' : 'Some contracts fail in this mode — see Preview → Contrast contracts'));
   box.append(chip);
-  // Points at the brand menu, not the mode strip: managing WHICH modes exist moved there in #432 (see
-  // renderModeContext above). No blanket "preview below" promise here any more either — several pages
+  // Points at Brand › Modes, not the mode strip: managing WHICH modes exist is there (#432 put it in the brand
+  // menu; #1943 left Brand › Modes the one place). No blanket "preview below" promise here any more either — several pages
   // that reach this note (Size & radius, Layout) render no specimen at all, and Surfaces/Typography pass
   // an empty specimen list, so the claim was false on 4 of the 7 pages that can show this note.
-  box.append(el('p', 'genview-hint', 'Toggle which modes generate from the brand menu’s “Modes” section.'));
+  box.append(el('p', 'genview-hint', 'Toggle which modes generate from Brand › Modes.'));
   return box;
 };
 
@@ -4101,7 +4004,7 @@ const FILE_SETUP_LABEL = 'Set up file';
 /**
  * The Components page (#718) — the new home of the component write, moved off the primary action bar.
  *
- * THE MOVE IS A DEMOTION. The control sat beside **Apply to Figma** (Apply Theme since UI redesign S11), which is the terminal action of
+ * THE MOVE IS A DEMOTION. The control sat beside **Apply Theme**, which is the terminal action of
  * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
  * at ~162ms per member (#700) and materializes a fraction of the catalogue, so a slot next to Apply
  * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
@@ -4307,7 +4210,7 @@ const renderComponentsPage = (host: PageHost): void => {
  *  WHY IN PLACE RATHER THAN `renderWorkspace()`. The `component-result` handler used to call only
  *  `renderBar()` + `syncApplyDetail()`, both of which are CHROME — so the bar's pill showed the verdict
  *  while this row, which is page content, kept whatever the last page render had put there. A designer who
- *  started a build here and stayed here saw `⋯ Building…`, disabled, permanently: the state machine had
+ *  started a build here and stayed here saw `… Building…`, disabled, permanently: the state machine had
  *  already moved on, and only the paint was stale. Verified by reproducing all five terminating conditions
  *  against the built plugin bundle, and confirmed to be paint-only rather than state — navigating away and
  *  back recovered the button every time, which is why the field report's only known recovery was a restart.
@@ -4337,7 +4240,7 @@ const syncComponentRow = (opts: { staged?: true } = {}): void => {
   if (!row || !componentSel || !componentBtn) return;
   if (!opts.staged && !row.isConnected) return;
   const pending = host.componentState === 'pending';
-  componentBtn.textContent = pending ? 'Building…' : '⊞ Build set';
+  componentBtn.textContent = pending ? '… Building…' : '⊞ Build set';
   // Disabled while in flight is both the signal and the guard, same call the Apply button makes: a second
   // click would post a concurrent build over the same page.
   componentBtn.disabled = pending;
@@ -4355,7 +4258,7 @@ subscribe('host:components', () => syncComponentRow());
 
 /** The file-setup row's status, refreshed in place (#1558). The same mechanism as `syncComponentRow`, and
  *  for the same reasons: the `file-setup-result` handler is on the message path and this row is page
- *  content, so a verdict that reached only the chrome would leave the button frozen at "⋯ Setting up…".
+ *  content, so a verdict that reached only the chrome would leave the button frozen at "… Setting up…".
  *  Simpler than the build's because file-setup has no picker to leave untouched and no progress to render —
  *  the button label and disabled flag plus the verdict pill are the whole of it. `staged` carries the same
  *  meaning: the render path calls it before the row is reconciled in, the message path about a live one. */
@@ -4366,7 +4269,7 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   if (!row || !fileSetupBtn) return;
   if (!opts.staged && !row.isConnected) return;
   const pending = host.fileSetupState === 'pending';
-  fileSetupBtn.textContent = pending ? 'Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
+  fileSetupBtn.textContent = pending ? '… Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
   // Disabled while in flight is both the signal and the guard, same call the build and Apply buttons make:
   // a second click would post a concurrent scaffold over the same file.
   fileSetupBtn.disabled = pending;
@@ -4446,7 +4349,7 @@ const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
   if (!row || !styleGuideBtn) return;
   if (!opts.staged && !row.isConnected) return;
   const pending = host.styleGuideState === 'pending';
-  styleGuideBtn.textContent = pending ? 'Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
+  styleGuideBtn.textContent = pending ? '… Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
   styleGuideBtn.disabled = pending;
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (host.styleGuideState) row.prepend(renderApplyStatus(host.styleGuideState, 'styleguide'));
@@ -5001,7 +4904,7 @@ const renderTypefaceBindings = (): HTMLElement => {
         // interactive select here is what let a click reach the engine and surface
         // "mode 'hc-dark' is generate-only and not customizable" verbatim.
         const self = el('span', 'mtbl-selfval mono', base || '—');
-        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in the brand menu’s “Modes” section if you don't want it generated.`;
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in Brand › Modes if you don't want it generated.`;
         td.append(self);
       } else {
         const ovRaw = getModeLever(m, `families.${cat}`);
@@ -7361,7 +7264,6 @@ const ICON_PATH: Record<string, string> = {
   triangle: '<path d="M12 4l9 16H3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.01"/>',
   x: '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
   info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.01"/>',
-  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
 };
 const iconEl = (name: string, stroke: string): SVGElement => {
   const svg = document.createElementNS(SVGNS, 'svg');
@@ -8127,9 +8029,8 @@ subscribe('brand', () => { if (frame && !loading && !firstRun() && isNewPage(pag
 subscribe('identity', () => { const n = barHost?.querySelector('.p3-brand-name'); if (n) n.textContent = brandState.id; });
 
 // A MODE CHANGE FROM THE NEW SHELL REPAINTS THE LEGACY PAGE THROUGH THE STORE (UI redesign S1.3). The
-// preview's mode control calls `setCurrentMode` and nothing else; the legacy writers (the mode strip, the
-// brand menu's mode toggles) call it and then repaint themselves. So this waits a microtask and repaints
-// only when the legacy page was last drawn in another mode: a legacy writer has already repainted by
+// preview's mode control calls `setCurrentMode` and nothing else; the legacy writer (the mode strip) calls it
+// and then repaints itself. So this waits a microtask and repaints only when the legacy page was last drawn in another mode: a legacy writer has already repainted by
 // then, and the shell's control has not. One permanent subscription, the P2 pattern.
 subscribe('mode', () => queueMicrotask(() => {
   if (frame && !loading && !firstRun() && paintedMode !== currentMode) renderWorkspace();
@@ -8154,20 +8055,6 @@ const loadBrand = (input: BrandInput, origin: Origin): void => {
   try { loadInput(input, origin); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   build();
-};
-
-/** Set the generated modes from the toggles. Light is always present; HC adds hc-light, plus
- *  hc-dark only when dark is also on; wireframe (greyscale, generate-only) appends last — the
- *  engine's canonical mode order (docs/11 Pillar 1). */
-const setModes = (dark: boolean, hc: boolean, wire: boolean): void => {
-  const m: Mode[] = ['light'];
-  if (dark) m.push('dark');
-  if (hc) { m.push('hc-light'); if (dark) m.push('hc-dark'); }
-  if (wire) m.push('wireframe');
-  brandState.modes = m;
-  rebuild();
-  if (!rp.modes.includes(currentMode)) setCurrentMode(rp.modes[0]);   // dropped the selected mode
-  build();                                                          // bar toggles + preview mode selector both change
 };
 
 /** Trigger a client-side file download (Blob → object URL → anchor click). */
@@ -8362,18 +8249,9 @@ const renderBrandMenu = (): HTMLElement => {
   // name any more, so nothing can move it while the menu is open (#1075's in-place patch had that subject).
   const isCurrentExample = (name: string): boolean => name === brandState.id;
 
-  // Modes are back in this dropdown (#432), reversing #171 — which had moved them to an "Edit modes"
-  // popover on the mode strip, "next to the mode you're viewing". Two things changed since: the strip
-  // moved onto the page, where a popover competes with page content rather than hanging off a header;
-  // and WHICH modes a brand generates turned out to be brand configuration, sitting more naturally
-  // beside namespace and the example brands than beside a per-page selector. Selecting a mode stays on
-  // the strip — only managing the SET moved. Rendered inline rather than as a nested popover. (UI redesign
-  // S3 moved Name and Namespace to Brand › Identity, so Modes leads the menu; Brand › Modes edits the same
-  // set, and this copy stays until a slice retires it: the plan retires only the two fields.)
-  menu.append(el('div', 'bm-cap', 'Modes'));
-  menu.append(renderModeSetMenu(renderBar, true));
-
-  menu.append(el('div', 'bm-div'));
+  // No Modes section (owner decision 2026-10-01, #1943). #432 had put the mode set here; S3 gave Brand › Modes
+  // its own editor with different rules (a check per mode, a confirm before Dark off, the drops it lists), and
+  // two editors of one set disagreed. Brand › Modes is the one place modes are edited, so Examples leads.
   menu.append(el('div', 'bm-cap', 'Examples'));
   for (const name of Object.keys(BRANDS)) {
     const b = hook(el('button', 'bm-item' + (isCurrentExample(name) ? ' cur' : '')) as HTMLButtonElement, 'brand-menu-example');
@@ -8902,7 +8780,7 @@ const PRUNE_HINT = 'Removes the styles, modes and variables this config no longe
  *  "Style guide…"), which open those pages. */
 const figmaActions = (): FigmaAction[] => [
   { id: 'apply', label: 'Apply Theme', disabled: host.applyState === 'pending', run: runApply },
-  { id: 'prune', label: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
+  { id: 'prune', label: host.pruneBusy === 'preview' ? '… Checking…' : host.pruneBusy === 'delete' ? '… Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, disabled: host.fileSetupState === 'pending', run: runFileSetup },
   { id: 'build', label: 'Build set…', disabled: false, run: () => setPage('components') },
   { id: 'style-guide', label: 'Style guide…', disabled: false, run: () => setPage('styleGuide') },
@@ -8947,7 +8825,7 @@ function renderBar(): void {
   // Closing the menu discards a staged load with it (#1033) — an unanswered "Replace the current brand?"
   // must not be waiting behind a reopened menu, where the next click on Replace would answer a question
   // asked about a state that has since moved on.
-  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; } renderBar(); };
+  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } renderBar(); };
   bWrap.append(sel);
   if (brandMenuOpen) bWrap.append(pinLight(renderBrandMenu()));
   barHost.append(bWrap);
@@ -8972,7 +8850,7 @@ function renderBar(): void {
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
     // second concurrent write over the same variables. Disabled while in flight is both the signal and
     // the guard. Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
-    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? 'Applying…' : 'Apply Theme') as HTMLButtonElement, 'apply-to-figma');
+    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? '… Applying…' : 'Apply Theme') as HTMLButtonElement, 'apply-to-figma');
     applyBtn.type = 'button';
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
@@ -9047,7 +8925,7 @@ function renderBar(): void {
       // scrim decides what "outside" means for it. Left here, this handler would close the dialog on the
       // first click that landed on a setting — every control in it is outside `.barmenu-wrap`.
       if ((brandMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
-        brandMenuOpen = false; navMenuOpen = false; importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; renderBar();
+        brandMenuOpen = false; navMenuOpen = false; importOpen = false; pendingLoad = null; renderBar();
       }
     });
     // Escape closes the dialog. Bound once, alongside the click dismissal, for the same reason: the bar

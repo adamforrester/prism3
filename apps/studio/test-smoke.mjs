@@ -530,8 +530,8 @@ const SWEEP_FIELD_FLOOR = 250;
  *  redesign S3 moved them to Brand › Identity (chrome, measured by `test:chrome` in both themes, and by the
  *  Brand section below); what it still carries is `.bm-ta` once the import box is open, so one control is
  *  what the surface promises, and this is the count that turns "the sweep was clean" into "the sweep looked
- *  here". Text rows are floored separately at a deliberately loose 6: the menu renders captions, the mode
- *  rows and the example rows, and a floor near the real number would fail on wording. */
+ *  here". Text rows are floored separately at a deliberately loose 6: the menu renders a caption, the example
+ *  rows, its two actions and the import box's own, and a floor near the real number would fail on wording. */
 const BRANDMENU_FIELD_FLOOR = 1;
 const BRANDMENU_TEXT_FLOOR = 6;
 /** The one by IDENTITY — the import textarea. Named because the floor above can only say "one of
@@ -2087,17 +2087,26 @@ for (const brand of BRANDS) {
       ...probe.fields.filter(fieldFails).map(describeField),
       ...probe.text.filter((r) => r.ratio < barOf(r)).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`),
     ];
-    // #1770 — the locked Light row is locked by a GLYPH, not by a fade. It sat at 2.95:1 until then (a legal
-    // `--faint` "always" through `opacity: .72`), so the row's own text must be among what was measured —
-    // held to the bar above, not merely present — and the glyph must carry a name assistive tech can read.
-    const locked = await page.evaluate(() => {
-      const row = document.querySelector('[data-p3="brand-menu"] [data-p3="mode-base-row"]');
-      const lock = row?.querySelector('[data-p3="mode-base-lock"]');
-      return { row: !!row, lockName: lock?.getAttribute('role') === 'img' ? (lock.getAttribute('aria-label') ?? '') : '' };
+    // #1943 (owner decision, 2026-10-01): the brand menu offers NO mode control. Brand › Modes is the one place
+    // modes are edited; the menu's Modes section followed different rules and went. #1770's locked-Light-row
+    // check went with its subject: Brand › Modes' Light row is held to the chrome bar by `test:chrome` §1.
+    // A mode control is anything that toggles or picks (a checkbox, radio, switch, pressed state or select) or
+    // anything whose words name a mode, read from its own text, its accessible name and its title. The
+    // proof is the menu itself: open, found by its hook, with text drawn in it, in this same state.
+    const modeCtl = await page.evaluate(() => {
+      const menu = document.querySelector('[data-p3="brand-menu"]');
+      if (!menu) return { open: false, nodes: 0, found: [] };
+      const MODE_WORDS = /\b(modes?|light|dark|high contrast|wireframe)\b/i;
+      const own = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(' ').trim();
+      const all = [...menu.querySelectorAll('*')];
+      const found = all.filter((n) => n.matches('input[type="checkbox"], input[type="radio"], select, [role="checkbox"], [role="radio"], [role="switch"], [aria-checked], [aria-pressed]')
+        || MODE_WORDS.test(own(n)) || MODE_WORDS.test(n.getAttribute('aria-label') ?? '') || MODE_WORDS.test(n.getAttribute('title') ?? ''))
+        .map((n) => `${n.tagName.toLowerCase()}.${(n.getAttribute('class') ?? '').split(' ')[0]} "${(own(n) || n.getAttribute('aria-label') || n.getAttribute('title') || '').slice(0, 30)}"`);
+      return { open: true, nodes: all.filter((n) => own(n)).length, found };
     });
-    ok(probe.text.some((r) => r.hook === hooks.role('[data-p3="mode-base-always"]')) && locked.row,
-      `${where}: the locked Light row is mounted and its "always" label was measured at the chrome bar (#1770)`);
-    ok(locked.lockName.length > 0, `${where}: the locked row's lock glyph is an image with an accessible name ("${locked.lockName}") (#1770)`);
+    hooks.absent(ok, { seen: modeCtl.open && modeCtl.nodes > 0 && probe.rootFound, state: 'the brand menu open, found by its hook, with text drawn in it' },
+      modeCtl.found.length === 0,
+      `${where}: the brand menu offers no mode control; Brand › Modes is the one place modes are edited (#1943)${modeCtl.found.length ? ` — found ${modeCtl.found.slice(0, 4).join(' | ')}` : ''}`);
     for (const r of [...probe.fields, ...probe.text]) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} ${r.text}`; }
     ok(bad.length === 0, `${where}: every one of ${probe.fields.length} control(s) and ${probe.text.length} text node(s) meets its bar — text ${CHROME_TEXT_MIN}:1 (${CHROME_LARGE_TEXT_MIN}:1 large), caret ${CHROME_CARET_MIN}:1, specimens ${CONTRAST_FLOOR}:1${
       bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);

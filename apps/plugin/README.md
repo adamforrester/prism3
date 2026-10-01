@@ -320,7 +320,7 @@ npm test -w @prism3/plugin           # write + read + persist + float + styles +
 Then in Figma: **Plugins → Development → Import plugin from manifest…** → pick `apps/plugin/manifest.json`.
 The UI iframe is a single self-contained HTML file (the bundled shared UI is inlined) — required because
 the iframe has no server to fetch from and ships with no network access. Tune the brand with the knobs,
-then open the brand menu → **↳ Apply to Figma variables** to materialise the whole generated
+then select **Apply Theme** (on the top bar, or in the Figma menu) to materialise the whole generated
 system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`, `space`, `radius`,
 `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
 Text Styles (#237, see above) — into the current file; the panel reports any existing Prism3 theme

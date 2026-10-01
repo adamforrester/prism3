@@ -200,7 +200,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     ].filter((o) => o.names.length);
     const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
     const orphanNote = orphanCount
-      ? `, ⚠️ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
+      ? `, ⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
     // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
     // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
@@ -225,7 +225,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // still exist and every binding into them still resolves. It is stale, not broken, and the
     // decision to remove it is the designer's, since it may hold variables they bound by hand.
     const strandedNote = stranded.length
-      ? `, ⚠️ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
+      ? `, ⚠ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
       : '';
     // Rename migrations (#1013) — the other half of the orphan report above. A variable the plan renamed
     // is moved in place (id preserved, so every binding a designer made comes with it) rather than left
@@ -242,24 +242,24 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     const migRefused = mig.outcomes.filter((o) => isRefusal(o.status));
     const renameNote =
       (migrated.length ? `, ${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '') +
-      (migRefused.length ? `, ⚠️ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '') +
-      (mig.refusals.length ? `, ⚠️ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '');
+      (migRefused.length ? `, ⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '') +
+      (mig.refusals.length ? `, ⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '');
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
     // guess was wrong and would have cost these styles before".
     const resolvedNote = ts.resolvedStyles ? `, ${ts.resolvedStyles} font styles name-resolved` : '';
     const skippedNote = ts.skipped.length
-      ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
+      ? `, ⚠ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
     // #680: the fonts loaded ahead of the write, and any face that would not load. Only NAMED faces are
     // listed — a crossed pair that does not exist is the ordinary case (most family × style combinations
     // are not real), and listing those would bury the reportable ones. `refused` should be empty on every
     // healthy apply: it means the preload missed something and the write survived it.
     const fontNote = pf.unavailable.length
-      ? `, ⚠️ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
+      ? `, ⚠ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
       : '';
     const refusedNote = tv.refused.length
-      ? `, ⚠️ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
+      ? `, ⚠ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
       : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
@@ -648,14 +648,14 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
     // moment the executor returns — the moment the pill says done and the file was previously frozen for
     // 1m10s — and the console telemetry below still carries its number, so #684's coupling is intact. What
-    // #908 removed is the designer waiting for it: awaited here, a busy host held `⋯ Building…` for the
+    // #908 removed is the designer waiting for it: awaited here, a busy host held `Building…` for the
     // whole tick budget (8.4s at 20ms of work per tick, 40s at 100ms) and then reported `null`. The
     // ordering is `verdictBeforeSettle`'s, and its header says why it is a named function with a test.
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
       // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
       // starved file can produce one miss per binding per member and the whole list is not a summary.
       const missNote = r.misses.length
-        ? `, ⚠️ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
+        ? `, ⚠ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
         : '';
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
       // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
@@ -810,15 +810,15 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
       } else {
         assets = { built: res.built, fontMisses: res.fontMisses };
         assetNote = `, built ${res.built.join(' + ')}` +
-          (res.fontMisses.length ? ` (⚠️ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
+          (res.fontMisses.length ? ` (⚠ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
       }
       // The style-guide cell sets (#259) beside them — adopted wherever the file already has them, in any case.
       const cells = await ensureStyleGuideCells(figma, page);
       assets = { ...assets, styleGuideCells: cells };
-      if (cells.built.length) assetNote += `, built ${cells.built.join(' + ')}${cells.fontMisses.length ? ` (⚠️ ${cells.fontMisses.slice(0, 2).join('; ')})` : ''}`;
+      if (cells.built.length) assetNote += `, built ${cells.built.join(' + ')}${cells.fontMisses.length ? ` (⚠ ${cells.fontMisses.slice(0, 2).join('; ')})` : ''}`;
       if (cells.adopted.length) assetNote += `, style-guide cells already present: ${cells.adopted.map((a) => a.page ? `${a.name} on ${a.page}` : a.name).join(', ')}`;
     } else {
-      assetNote = ', ⚠️ no File Components page — assets not built';
+      assetNote = ', ⚠ no File Components page — assets not built';
     }
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}`;
     sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets } });

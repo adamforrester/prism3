@@ -243,7 +243,7 @@ const CONDITIONS = [
   {
     name: 'build with misses',
     why: "#866's four DISCARDED refs — the reason this surface matters at all",
-    msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠️ 4 misses (focus/ring/offset; icon/size; …)" },
+    msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" },
     verdictOpens: true,
   },
   {
@@ -363,7 +363,7 @@ for (const c of CONDITIONS) {
   await startBuild(page, undefined, c.name);
 
   const during = await readSurfaces(page);
-  ok(during.button === 'Building…', `${c.name}: the button reads "Building…" while in flight`);
+  ok(during.button === '… Building…', `${c.name}: the button reads "… Building…" while in flight`);
   ok(during.buttonDisabled === true, `${c.name}: the button is disabled while in flight — a second click would post a concurrent build`);
 
   // BOTH live pills advance, which is the second defect (see the header). Asserted per condition rather
@@ -560,7 +560,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
   await startBuild(page, undefined, 'the second of two builds');
   const second = await readSurfaces(page);
-  ok(second.button === 'Building…', 'a second build can be started from the resolved state');
+  ok(second.button === '… Building…', 'a second build can be started from the resolved state');
   ok(second.pagePending.some((t) => /24 of 648/.test(t ?? '')), "the second build's progress reports too, rather than the first verdict staying put");
   await post(page, { type: 'component-result', ok: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
   await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
@@ -680,7 +680,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // postMessage delivers asynchronously; a real condition rather than a sleep.
   await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
   const pending = await readSg();
-  ok(pending.button === 'Drawing…' && pending.disabled === true, `#259 a run in flight reads "Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
+  ok(pending.button === '… Drawing…' && pending.disabled === true, `#259 a run in flight reads "… Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
   ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
     `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
 
@@ -718,7 +718,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const clicked = await hooks.click(page.locator('[data-p3="file-setup-button"]'), { timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#1845 the Set up file control can be clicked');
   const pending = await readFs();
-  ok(pending.button === 'Setting up…' && pending.disabled === true, `#1845 a file setup in flight reads "Setting up…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
+  ok(pending.button === '… Setting up…' && pending.disabled === true, `#1845 a file setup in flight reads "… Setting up…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
 
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
   await page.waitForFunction(() => document.querySelector('[data-p3="file-setup-button"]')?.textContent === '⊞ Set up file', null, { timeout: 5000 }).catch(() => {});
@@ -857,7 +857,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const VERDICTS = [
     { op: 'apply', msg: { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' } },
-    { op: 'components', msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠️ 4 misses (focus/ring/offset; icon/size; …)" } },
+    { op: 'components', msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" } },
     { op: 'filesetup', msg: { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' } },
     { op: 'styleguide', msg: { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: no variables in this file' } },
   ];
