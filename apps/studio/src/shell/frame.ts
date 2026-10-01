@@ -23,7 +23,9 @@
  * `data-view`, which changes on a place change and nothing else. Inspect opens over the preview, or over
  * the legacy frame while the page is legacy (it is the page's preview until its slice moves it), and closes
  * back to it, scroll and focus included. A place change closes it. The verdict on the bar opens it on
- * Contrast.
+ * Contrast. `main.ts` lends Inspect two legacy views as callbacks, `inspect.contrast` (the contract table)
+ * and `inspect.tokens` (the token list, which takes Inspect's own `repaint`). Their bodies live in `main.ts`,
+ * so `test-shell-imports.ts` cannot see what they call; that limit is stated in its header.
  *
  * NARROW MODE (Q7) is a width class, `data-w="narrow"`, set from the frame's own width, because the chrome
  * stylesheet may not hold a raw length and a media or container query needs one. Under it the tab row

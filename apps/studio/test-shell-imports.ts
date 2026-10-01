@@ -7,11 +7,13 @@
  * New shell code repaints by store subscription: a writer calls a setter, and every surface that reads
  * the topic repaints itself (plan §5). It never calls the legacy repaint tiers, which S13 deletes. So
  * every file under `src/shell/`, `src/domains/` and `src/preview/` must not name `apply`, `applyFull`,
- * `build`, `renderBar` or `setVolatile`, and a file that does fails here, naming the file, the line and
- * the name.
+ * `build`, `renderBar`, `renderWorkspace` or `setVolatile`, and a file that does fails here, naming the
+ * file, the line and the name. `renderWorkspace` joined the list in S1.3 (orchestrator review of #1923):
+ * it is the full legacy page repaint, which `applyFull` and the `mode` subscriber in `main.ts` call, so it
+ * is a tier in all but name.
  *
  * WHY IT IS INDEPENDENT OF WHAT IT CHECKS (docs/34). The subject is the new source, read from disk. The
- * oracle is the literal list of five names below, written here and never read from `main.ts`, so a tier
+ * oracle is the literal list of six names below, written here and never read from `main.ts`, so a tier
  * renamed in `main.ts` cannot shrink the list. The match is on IDENTIFIERS in the parsed source (the
  * TypeScript scanner), not on text, so a comment or a string that mentions `build()` is not a reference,
  * and an import, a call, a callback parameter or a property access spelled with one of the names is. That
@@ -20,8 +22,8 @@
  *
  * NON-VACUOUS. A scan that found no files, or that cannot see a planted reference, would pass on nothing.
  * So the scan must read the shell's files by name (the frame, the page data, the theme, the DOM
- * helpers and, from S1.3, the preview header and Inspect), and the detector is run first on a fixture that holds each of the five names and must report
- * all five.
+ * helpers and, from S1.3, the preview header and Inspect), and the detector is run first on a fixture that holds each of the six names and must report
+ * all six.
  *
  * TWO MORE ARMS, because a name match alone is evadable (orchestrator review of #1922). `(m as any)['build']()`,
  * `globalThis['build']()` and a computed or template key never spell the tier as an identifier, and a module
@@ -36,9 +38,23 @@
  * did not come from a tainted import — a global the page itself put there. Nothing in `main.ts` exports
  * its tiers onto a global today.
  *
+ * WHAT A STATIC SCAN OF THE SHELL CANNOT SEE: A CALLBACK `main.ts` LENDS. `main.ts` hands the shell
+ * functions to call (`mountFrame(app, { inspect: { contrast, tokens } })`, and whatever S1.4 and later lend).
+ * Those are defined in `main.ts`, outside the scanned folders, and reach the shell as values with neutral
+ * names, so a lent closure whose body calls `apply()` or `renderWorkspace()` repaints a legacy tier from a
+ * shell call site that names nothing. This guard does not check that and does not pretend to: the lent
+ * bodies are legacy code, reviewed where they are written in `main.ts`, and each lend is listed in the
+ * frame's header. What it does hold is that the shell cannot pick a tier up for itself.
+ *
  * Mutations this fails by name: add `import { build } from '../main';` to `src/shell/frame.ts` →
  * `src/shell/frame.ts:<line>: references the legacy repaint tier "build"`; add
  * `void import('../main');` → `src/shell/frame.ts:<line>: imports "../main", which reaches src/main.ts`.
+ * S1.3 (orchestrator review of #1923): `(m as any)['apply']()` in `src/shell/preview.ts` →
+ * `src/shell/preview.ts:<line>: references the legacy repaint tier "apply"`; `export { apply } from '../main';`
+ * in `src/state/verdict.ts`, which `preview.ts` imports → the verdict.ts line names the tier only if
+ * verdict.ts were scanned, so it fails on the import instead: `src/shell/preview.ts:<line>: imports
+ * "../state/verdict", which reaches src/main.ts`; `renderWorkspace` named in a shell file →
+ * `… references the legacy repaint tier "renderWorkspace"`.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -54,7 +70,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 /** The legacy repaint tiers, literally (plan §3.10). */
-const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'setVolatile'] as const;
+const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'renderWorkspace', 'setVolatile'] as const;
 /** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices. */
 const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview'];
 /** Files the scan must read, so an empty or misdirected scan cannot pass. */
@@ -108,6 +124,7 @@ const FIXTURE = [
   'export const go = (apply: () => void) => { apply(); build(); };',
   'const host = { renderBar: () => {} }; host.renderBar(); applyFull();',
   'declare const setVolatile: (h: unknown[], p: () => void) => void; setVolatile([], () => {});',
+  "import { renderWorkspace } from '../main'; renderWorkspace();",
 ].join('\n');
 const ACCESS_FIXTURE = [
   "declare const m: Record<string, () => void>;",
