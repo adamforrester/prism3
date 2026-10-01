@@ -2744,6 +2744,49 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.219.0 — folded 2026-10-01 from 5 change notes, newest merge first.
+ *
+ * [lane-radius-large-rungs · minor · 6670a1fc] Three container radius rungs, `radius.xl`, `radius.2xl` and `radius.3xl` (#1852). The ladder stopped at
+ * `radius.lg` (6px at the default scale), so a card, panel, sheet or dialog wanting an 8-16px corner bound a
+ * `core.dimension.*` primitive, which `radiusScale` never moves. The new rungs are `baseMd` x 2, x 3 and x 4,
+ * scaled by `radiusScale` and snapped to the 2px sub-grid like the rungs below them: 8, 12 and 16px at the
+ * default (owner decision, 2026-09-30, reproducing Prism 2's container ramp), 16, 24 and 32px on aurora
+ * (`radiusScale` 2), 0 at `radiusScale` 0. They reach every emission the ladder already reaches: DTCG, the
+ * per-mode overrides (`modeLevers.radius`, wireframe), the Figma `radius` collection, `.ai.json`, and the
+ * reports. No component binds them yet. The Figma dimension sort now treats a key as a number only when the
+ * whole key is one, so `2xl` and `3xl` list after `xl` rather than before `none` (`parseFloat('2xl')` is 2).
+ * The colour emitter's copy of that sort takes the same rule; no colour key is digit-led, so no colour
+ * output moves. Caveat, as for #1594: the order fixes CREATION order only. In a Figma file that already
+ * holds the radius collection the plugin cannot reorder variables, so the three new rungs are appended after
+ * `capsule` (and `hairline`, where a brand has it). Only a newly built file gets ladder order.
+ * CONTRACT 14.0.0 to 14.1.0 (three guaranteed paths added).
+ *
+ * [lane-paste-packer-remeasure · patch · 218c959e] #1814: `planSetChunks` measures every chunk as it will ship, at its final index and total, and keeps moving a
+ * variant on to the next chunk until every chunk of more than one variant fits the budget. It used to move one
+ * variant off an over-budget last chunk and never measure again. For every set and budget measured the chunks
+ * are the same as before; the loop replaces an unstated one-byte margin with a measurement.
+ *
+ * [lane-paste-axes-placement · minor · b1f0add1] #1809: the MCP paste script (the chunked `planSetChunks` payload) gets the two find-or-create
+ * fixes the plugin got in #1780 and #1750. A paste over a component set whose variant AXES differ from the plan's
+ * (an axis gained, lost or renamed) is refused on every chunk with the plugin's own `set -> AXES CHANGED` miss, and
+ * nothing is appended into the old set. A new set pasted onto a page that already has content is placed
+ * top-aligned with the sets there and 160px right of everything in its row, instead of at the origin over the
+ * set before it. Chunk 1 places it; later chunks append and do not move it. The chunk shell grows 1,176 bytes, so
+ * icon-button's set packs into 16 chunks, from 14.
+ *
+ * [lane-weight-intent-exclusions · minor · 34464962] #1746: `validateComponentDef` refuses a `figmaProperties.excludeCoordinates` entry that names the def's
+ * `weightIntent` axis. A brand that ships one weight for the group drops that axis (`applyWeightIntent`), and the
+ * entry would then be ignored by the projector while `figmaVariantCount` still counted the rest of it, so #1355's
+ * integrity check would fire on a def that validated. No def in the registry names it, so no emitted artifact
+ * moves.
+ *
+ * [lane-mcp-prose-scope · patch · da4d42eb] The MCP server's `theme_from_brief` `brief` argument description no longer uses an RFC 2119 `MUST`
+ * (#1806): "It must open with a --- YAML frontmatter fence on the first line." The voice standard permits
+ * those levels in the payload channel only, and an MCP description is not that channel. Found by the
+ * voice gate's new MCP scope: `lint-us-english.ts` and `lint-voice.ts` now scan `tools/list` as the
+ * server returns it over stdio (`mcp-served.ts`), with the six tool names asserted present. No committed
+ * artifact moves.
+ *
  * 0.218.0 — folded 2026-09-30 from 3 change notes, newest merge first.
  *
  * [lane-theme-from-brief-default · minor · 8f664ecb] #1868: the MCP tool theme_from_brief returned no decisions log unless the caller named sections,
@@ -4366,7 +4409,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.218.0';
+export const ENGINE_VERSION = '0.219.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
