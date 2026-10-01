@@ -23,6 +23,7 @@
  *   · routes/<cmd>: the UI message and the agent command reach the same `ACTIONS` entry
  *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted
  *   · brackets/<cmd>: the panel is told the agent's command started and finished, around its verdict (S11)
+ *     (mutation: the dispatcher's `onStart` call removed → every `brackets/<cmd>` fails, by name)
  *   · envelope: every field of the result envelope, for every command
  *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
  *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)

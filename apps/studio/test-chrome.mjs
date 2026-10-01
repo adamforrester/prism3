@@ -200,6 +200,11 @@
  *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
  *   · the row header's toggle removed (S11) → `F2 … the row's own header collapses it, and the drawer stays open`.
  *   · the Figma menu's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator('[data-p3="figma-option-apply"]')`, and the run goes on.
+ *   S11 (#1788), each run against the built bundles:
+ *   · the drawer's auto-open on a start removed → `F2 … Apply opens the drawer by itself while it runs, pinned to the bottom edge`.
+ *   · the success collapse never scheduled → `F2 … a success collapses the drawer by 5 s (COLLAPSE_MS is 4 s), its result still on the drawer's bar row`.
+ *   · the drawer's reveal branch removed, or the page pill's click without `hostChanged()` →
+ *     `F2 … clicking the failure's verdict on the page row opens the drawer on its Set up file row, expanded`.
  *   S1.3 review (orchestrator's review of #1923):
  *   · the token list's rows removed → `… Inspect › Tokens opens on Primitives, with palette.neutral.950 at #0d0d0e — row null`.
  *   · Inspect lending a no-op repaint, or `(h) => renderPreviewTokens(h)` (the `paintVolatile` fallback) →

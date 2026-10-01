@@ -735,9 +735,18 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // The plugin brackets every agent command that has an operation with `agent-started` and
 // `agent-finished` (`agent-dispatch.ts`, asserted in `test-agent-link.ts`). Between the two the panel's
 // Activity drawer shows the run on its operation's row, tagged Agent, while the panel's own buttons keep
-// their idle labels and stay enabled: the agent's write is not the designer's click, and #1944's
-// behavior-neutral rule holds. EXPECTED is each row state written here as a literal; ACTUAL is the built
+// their idle labels and stay enabled: the agent's write is not the designer's click, and
+// the write stays behavior-neutral. EXPECTED is each row state written here as a literal; ACTUAL is the built
 // panel's DOM after each host message.
+//
+// MUTATIONS, each run against the built bundle and each failing here by name:
+//   · `reduce` ignoring `agent-started` → `S11 an agent's Apply Theme run opens the Activity drawer …`.
+//   · `settleAgent` dropped → `S11 the agent's verdict lands on the row, still tagged Agent — state running`.
+//   · the drawer's auto-open on a start removed → `S11 an agent's Apply Theme run opens … drawer open false`.
+//   · the row's revert on a run with no verdict removed → `S11 a run that finishes with no verdict reverts …`.
+//   · `opReading` tagging no run as the agent's → `S11 the running row is tagged Agent …` and the build arm.
+//   · the reveal branch removed, or the pill's click without `hostChanged()` → `S11 clicking it opens the drawer …`.
+//   · the success collapse never scheduled → `clean build: a clean verdict does not pin the drawer open …`.
 {
   const { page, errors } = await openPanel();
   const readOp = (k) => page.evaluate((key) => {
