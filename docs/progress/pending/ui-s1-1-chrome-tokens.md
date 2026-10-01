@@ -51,6 +51,28 @@ The checks stay independent of what they check (docs/34). The subject is `chrome
 
 **Verify.** `npm run verify`: 67/67 gates PASS, 0 FAIL, 0 SKIP, in 839 s. Run separately on the new bundles, `lint-sandbox-reject`, `lint-bundle-prose`, `lint-us-english` and `lint-voice` pass.
 
+**Review round (orchestrator's independent review, 2026-10-01).** Main was merged in at `b3a41bdf` (the `vercel-ignore-check.mjs` import conflict from #1901). Four findings were addressed in this PR rather than S1.2, because the code is this PR's.
+- **Finding 1, the merged tree.** #1903 changed `packages/engine/out/`, which this build reads. On the merged tree the studio and plugin builds are green (`dist/main.js` keeps 0 `node:` builtins, `lint-sandbox-reject` clean), and the brand-leak check still fails by name: `TILE_VARS` `text` pointed at `color.text.link.default` gives `[brand] chrome var --p3-text (light) resolves through brand token pds3.color.text.link.default`, and again for dark.
+- **Finding 3, the font license. The owner decided a notice is enough, not the full license text.** The notice now carries each face's copyright line, read from its `OFL-*.txt` beside the woff2 rather than typed into the template, plus the OFL 1.1 URL (https://openfontlicense.org). A new `[license]` check fails the build when either OFL file is missing or has no copyright line, and when the output has no comment line that carries both a face's copyright line and the URL. The check reads the license file, not the template, so editing the template cannot move the oracle with it.
+- **Finding 4, the raw-value scan.** `chrome.css` now goes through `scanRawStrict` (`tokens.mjs`): RAW, plus CSS named colors (CSS Color 4's 148, as a literal list), `currentColor`, `var(--x, fallback)`, any `url()` that is not a `data:` URI (inside `image-set()` too), and a bare string source in `image-set()` that is not one. Named colors are matched in declaration values only, after quoted strings are dropped, so a class or property name such as `white-space` is not read as a color. `transparent`, `inherit`, `initial`, `unset` and `none` stay allowed. `currentColor` is refused: nothing needs it yet. The mockups keep `scanRaw` (RAW alone), so their builds do not move.
+- **Finding 5, the declared pairs.** A new `[pairs]` check evaluates every `PAIRS` entry whose two variables are both in `SHELL_VARS`, in both themes, at its literal floor, with `tokens.mjs`'s alpha- and NaN-safe `ratio` (a refused ratio fails, it never passes). The floors are literals in `PAIRS`; the colors are the engine's emitted tokens. It also fails on a mapped color variable that takes part in no evaluated pair, unless it is listed in the new `DECORATIVE` (`spec.mjs`, empty today, each future entry to say why). It runs inside the build, so it needs no new CI step and `lint-doc-gates` is unaffected. Today it evaluates `text` on `bg-page` at 4.5 and at 3.
+
+Each mutation ran after a `wip:` commit, with its diff checked non-empty, and was restored from `HEAD`:
+
+| Mutation | Fails with |
+|---|---|
+| `OFL-Inter.txt` deleted | `[license] font license missing: apps/studio/chrome/fonts/OFL-Inter.txt (Inter)` (and `OFL-JetBrains-Mono.txt` in the plugin build, by the same name) |
+| the notice stripped from the template | `[license] the bundled CSS carries no license notice for Inter (want "Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)" and https://openfontlicense.org on one comment line)`, and the same for JetBrains Mono |
+| `color: black` | `[raw] apps/studio/src/chrome.css: named color "black"` |
+| `var(--p3-bg-page, white)` | `[raw] … var() fallback "var(--p3-bg-page, white)"` and `[raw] … named color "white"` |
+| `image-set(url(https://x))` | `[raw] … url() that is not a data: URI "url(https://x)"` |
+| `image-set("https://x" 1x)` | `[raw] … image-set() source that is not a data: URI "https://x"` |
+| `border-color: currentColor` | `[raw] … currentColor "currentColor"` |
+| M5: the dark overlay's `color.text.primary` set to neutral 950, the page ground | `[pairs] text on bg-page in dark: 1.00:1 < 4.5:1 (body text on the page)`, and `< 3:1` for the tab underline row |
+| `line-1` mapped and read, in no pair | `[pairs] --p3-line-1 is a mapped color in no declared pair whose other side is mapped; declare one in PAIRS or list it in DECORATIVE (spec.mjs)` |
+
+The bundle changes only in the notice comment's text. Nothing on screen moves.
+
 **Traps for whoever re-verifies this.**
 - **Do not compare a rebuilt mockup with the committed one.** The committed `concept-v6.html` and `concept-v5.html` are stale against the engine (they embed 0.217.0; this base builds 0.219.0), so a rebuild differs from the committed copy before anything moves. Compare a rebuild before the change with a rebuild after it, on the same tree.
 - **CDP `getPlatformFontsForNode` on a container counts its descendants' text.** With a probe appended to `body`, `body` reported Inter while every legacy element drew in DejaVu. A font check must read leaf text nodes, which matters for S1.2's `test:chrome`.
@@ -59,7 +81,6 @@ The checks stay independent of what they check (docs/34). The subject is `chrome
 - **Nothing sets `data-theme` yet.** The generated `:root` block sets `color-scheme: light`, which is what both hosts already render, so the dark blocks are inert until S1.2's toggle and the plugin's `figma-dark` mapping set the attribute.
 
 **Held for the owner, not decided here.**
-- **The font notice in the bundle.** The generated CSS carries a two-line comment naming each face's copyright holder and the SIL OFL 1.1. OFL 1.1 condition 2 asks that each copy carry the copyright notice and the license, and allows that in "machine-readable metadata fields" of the font; whether the woff2 name tables carry it was not checked (no font tooling here). Whether the shipped plugin and site need the full license text is the owner's call.
 - **`font-display: block`** came across from the mockup unchanged. With `data:` faces there is nothing to wait for over the network, but the choice ships in the product now.
 
-**Deferred, per the plan.** `lint:contrast` is not yet extended to `spec.mjs`'s pairs (§6.1 names no slice for it). With only text on the page ground mapped, the one product pair is `text` on `bg-page` (19.42:1 light, 18.13:1 dark). It fits best in S1.2, with the first surfaces that make the pairs matter.
+**No longer deferred.** The declared pairs are now checked in the build (the review round above), so `lint:contrast` does not need extending for them. Today's one product pair is `text` on `bg-page` (19.42:1 light, 18.13:1 dark).

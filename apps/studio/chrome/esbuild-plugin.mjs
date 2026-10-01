@@ -7,18 +7,25 @@
  * `data:` URIs under chrome-only names, and appends `apps/studio/src/chrome.css`. The module's default
  * export is that text, and `src/entry.ts` hands it to `installStyles` with `styles.css`.
  *
- * IT FAILS THE BUILD, naming each failure, on the four checks from `build-v6.mjs` that concern the CSS
+ * IT FAILS THE BUILD, naming each failure, on the five checks from `build-v6.mjs` that concern the CSS
  * it produces, plus the inputs they need:
  *
  *   [raw]       `chrome.css` carries a raw hex, color function, length, duration or shadow (v6 check 4);
- *               or reads a variable that is not `--p3-*`.
+ *               a named color, `currentColor`, a `var()` fallback, or a `url()` or `image-set()`
+ *               source that is not a `data:` URI (`scanRawStrict`); or reads a variable that is not
+ *               `--p3-*`.
  *   [variables] `chrome.css` reads a `--p3-*` the map does not define, or the map defines one
  *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead.
  *   [brand]     a chrome color resolves through the brand palette or a brand, link or focus role, in
  *               either theme (v6 check 7).
  *   [offline]   the output would make a network request: a remote `url()`, an `@import`, or an
  *               `@font-face` that is not a `data:` URI (v6 check 10).
+ *   [pairs]     a PAIRS entry (`spec.mjs`) whose two variables are both mapped measures under its
+ *               literal floor in either theme (v6 check 8); or a mapped color variable takes part in
+ *               no such pair and is not listed in DECORATIVE.
  *   [fonts]     a chrome face's woff2 file is missing.
+ *   [license]   a chrome face's OFL file is missing or has no copyright line, or the output lacks a
+ *               comment line carrying that copyright line and the OFL URL.
  *   [map]       SHELL_VARS names a variable no mockup row maps.
  *
  * WHY THE CHECKS ARE INDEPENDENT OF WHAT THEY CHECK (docs/34). The subject is the hand-written
@@ -35,9 +42,18 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
-  ROOT, FONTS_DIR, CHROME_FONTS, loadModes, fontFaceCss, fontVarsCss, themeBlock, brandLeaks, scanRaw,
+  ROOT, FONTS_DIR, CHROME_FONTS, C, P, loadModes, resolve, fontFaceCss, fontVarsCss, themeBlock, brandLeaks,
+  scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
-import { VARS_FOR, ALIAS, SHELL_VARS } from './spec.mjs';
+import { VARS_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE } from './spec.mjs';
+
+// Each chrome face's license file, beside the woff2 in `fonts/`. The copyright line the bundle's
+// notice carries is read from this file, never typed here, so the notice cannot drift from the
+// license that came with the font. The URL is the OFL 1.1's own home. The owner decided on
+// 2026-10-01 that the bundle carries a notice (copyright line and license URL), not the full text.
+export const FONT_LICENSES = { Inter: 'OFL-Inter.txt', 'JetBrains Mono': 'OFL-JetBrains-Mono.txt' };
+export const OFL_URL = 'https://openfontlicense.org';
+const COPYRIGHT_RE = /Copyright \d{4}[^()\n]*\([^)\n]*\)/;
 
 export const CHROME_CSS_MODULE = 'p3:chrome-css';
 export const CHROME_CSS_FILE = join(ROOT, 'apps', 'studio', 'src', 'chrome.css');
@@ -56,6 +72,7 @@ const watchFiles = () => [
   join(ROOT, 'packages', 'engine', 'out', 'prism3.tokens.json'),
   join(ROOT, 'packages', 'engine', 'out', 'prism3.dark.overlay.tokens.json'),
   ...CHROME_FONTS.map(([, , file]) => join(FONTS_DIR, file)),
+  ...Object.values(FONT_LICENSES).map((file) => join(FONTS_DIR, file)),
 ];
 
 /**
@@ -76,6 +93,18 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     if (!existsSync(p)) fail('fonts', `chrome font missing: ${rel(p)} (${family})`);
   }
 
+  // [license] each face's OFL file must exist and carry a copyright line; the notice is built from it.
+  const notices = [];
+  for (const [, family] of CHROME_FONTS) {
+    const file = FONT_LICENSES[family];
+    if (!file) { fail('license', `no license file declared for ${family} (FONT_LICENSES in esbuild-plugin.mjs)`); continue; }
+    const p = join(FONTS_DIR, file);
+    if (!existsSync(p)) { fail('license', `font license missing: ${rel(p)} (${family})`); continue; }
+    const line = readFileSync(p, 'utf8').match(COPYRIGHT_RE)?.[0];
+    if (!line) { fail('license', `no copyright line in ${rel(p)} (${family})`); continue; }
+    notices.push([family, line]);
+  }
+
   let src = null;
   try { src = readFileSync(chromeCssFile, 'utf8'); } catch { fail('raw', `cannot read ${rel(chromeCssFile)}`); }
   if (errors.length) return { css: null, errors };
@@ -94,7 +123,7 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
   // [raw] the hand-written rules carry no raw value and read only chrome variables.
   const where = rel(chromeCssFile);
   const raw = [];
-  scanRaw(src, where, raw);
+  scanRawStrict(src, where, raw);
   for (const msg of raw) fail('raw', msg);
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of code.matchAll(/var\(\s*--([a-z0-9-]+)/gi)) {
@@ -107,6 +136,30 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
   for (const u of used) if (!defined.has(u)) fail('variables', `${where}: undefined variable --p3-${u}`);
   for (const d of defined) if (!used.has(d)) fail('variables', `mapped but unused variable --p3-${d} (${where} never reads it)`);
 
+  // [pairs] every declared pair whose two variables the product maps, in both themes, at its floor.
+  // The floors are literals in PAIRS; the colors are the engine's emitted tokens, resolved per theme.
+  const mapped = new Set(names);
+  const colorOf = (mode, name) => {
+    const row = rows[mode].find((r) => Array.isArray(r) && r[0] === name);
+    return row && row[2] === C ? resolve(modes[mode], P(row[1])).value : null;
+  };
+  const paired = new Set();
+  for (const [fg, bg, floor, what] of PAIRS) {
+    if (!mapped.has(fg) || !mapped.has(bg)) continue;
+    paired.add(fg); paired.add(bg);
+    for (const mode of ['light', 'dark']) {
+      const r = ratio(colorOf(mode, fg), colorOf(mode, bg));
+      if (typeof r !== 'number') fail('pairs', `${fg} on ${bg} in ${mode}: refused, ${r.refused} (${what})`);
+      else if (!(r >= floor)) fail('pairs', `${fg} on ${bg} in ${mode}: ${fmtRatio(r)} < ${floor}:1 (${what})`);
+    }
+  }
+  // Represented, not counted: every mapped color variable takes part in an evaluated pair, or is
+  // listed in DECORATIVE (spec.mjs) as carrying no contrast duty.
+  for (const r of rows.light) {
+    if (!Array.isArray(r) || r[2] !== C || paired.has(r[0]) || DECORATIVE.includes(r[0])) continue;
+    fail('pairs', `--p3-${r[0]} is a mapped color in no declared pair whose other side is mapped; declare one in PAIRS or list it in DECORATIVE (spec.mjs)`);
+  }
+
   if (errors.length) return { css: null, errors };
 
   const css = `/* Prism3 chrome variables, generated at build time from the default theme by
@@ -114,8 +167,8 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
 :root {
 ${fontVarsCss(ALIAS)}
 }
-/* Inter: Copyright 2016 The Inter Project Authors. JetBrains Mono: Copyright 2020 The JetBrains Mono
-   Project Authors. Both are licensed under the SIL Open Font License, Version 1.1. */
+/* Embedded fonts.
+${notices.map(([family, line]) => `   ${family}: ${line}. Licensed under the SIL Open Font License, Version 1.1: ${OFL_URL}`).join('\n')} */
 ${fontFaceCss(ALIAS)}
 :root, [data-theme="light"] {
   color-scheme: light;
@@ -139,6 +192,15 @@ ${src}`;
   if (/@import\b/i.test(out)) fail('offline', 'an @import');
   for (const ff of out.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
     if (!/src:\s*url\(data:font\/woff2;base64,/.test(ff[1])) fail('offline', '@font-face that is not a data: URI');
+  }
+
+  // [license] the output carries, on one comment line, each embedded face's copyright line (read from
+  // its OFL file, not from the template above) and the OFL URL.
+  const commentLines = (css.match(/\/\*[\s\S]*?\*\//g) ?? []).join('\n').split('\n');
+  for (const [family, line] of notices) {
+    if (!commentLines.some((l) => l.includes(line) && l.includes(OFL_URL))) {
+      fail('license', `the bundled CSS carries no license notice for ${family} (want "${line}" and ${OFL_URL} on one comment line)`);
+    }
   }
   return errors.length ? { css: null, errors } : { css, errors };
 }

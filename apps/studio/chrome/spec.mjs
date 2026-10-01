@@ -100,3 +100,10 @@ export const LAYERS = [['bg-page', 'preview'], ['levers-bg', 'levers panel'], ['
 // The mockup's rows have `radius-lg` (TILE_VARS) and no `radius.xl`, so the slice that adds containers
 // adds that row as the product's own. Neither is mapped yet: S1.1 draws no container and no control.
 export const SHELL_VARS = ['bg-page', 'text'];
+
+// Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
+// The product build evaluates every PAIRS entry whose two variables are both in SHELL_VARS, in both
+// themes, and fails on a mapped color variable that takes part in none of them. A name listed here is
+// exempt from that, and only from that. Each entry says why it is decorative. Empty in S1.1: the two
+// mapped colors are a pair.
+export const DECORATIVE = [];

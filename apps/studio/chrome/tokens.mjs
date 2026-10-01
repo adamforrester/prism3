@@ -13,7 +13,8 @@
 // custom properties for each theme.
 //
 // Also here, because every build enforces them: the raw-value scan (no hex, color function, length,
-// duration or shadow in chrome CSS), the brand-leak check (no chrome color through the brand palette
+// duration or shadow in chrome CSS; the product adds named colors, `currentColor`, `var()` fallbacks
+// and non-`data:` URLs in `scanRawStrict`), the brand-leak check (no chrome color through the brand palette
 // or a brand, link or focus role), WCAG contrast, and the embedded chrome fonts.
 //
 // Zero dependencies, no network.
@@ -205,6 +206,65 @@ export const RAW = [
 export function scanRaw(text, where, errors) {
   const stripped = text.replace(/\/\*[\s\S]*?\*\//g, '');
   for (const [re, what] of RAW) for (const m of stripped.matchAll(re)) errors.push(`${where}: ${what} "${m[0]}"`);
+}
+
+// ── the product's stricter scan ────────────────────────────────────────────────────────────────
+// The product's `chrome.css` is held to more than RAW (PR #1905 review, finding 4). The mockups keep
+// RAW alone, so their builds do not move. On top of RAW, a declaration value may not carry:
+//   - a CSS named color (CSS Color 4's list, below, as a literal). `transparent` is left off on
+//     purpose: it is no color, and it is allowed, with `inherit`, `initial`, `unset` and `none`;
+//   - `currentColor`, which inherits whatever color the brand's content set. Nothing needs it yet;
+//     the first rule that does should say why here;
+//   - a `var(--x, fallback)`: a fallback would draw when the map is missing a name, which is the
+//     failure [variables] exists to catch, and it is usually a raw value besides;
+//   - a `url()` that is not a `data:` URI, anywhere, including inside `image-set()`, and a bare
+//     string inside `image-set()` that is not one (`image-set("https://…" 1x)` needs no `url(`).
+// Values only: selectors, property names and quoted strings are not read for color names, so
+// `.p3-tan` or `white-space` is not a color.
+export const CSS_NAMED_COLORS = new Set([
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black', 'blanchedalmond',
+  'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse', 'chocolate', 'coral',
+  'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan', 'darkgoldenrod', 'darkgray',
+  'darkgreen', 'darkgrey', 'darkkhaki', 'darkmagenta', 'darkolivegreen', 'darkorange', 'darkorchid',
+  'darkred', 'darksalmon', 'darkseagreen', 'darkslateblue', 'darkslategray', 'darkslategrey',
+  'darkturquoise', 'darkviolet', 'deeppink', 'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue',
+  'firebrick', 'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro', 'ghostwhite', 'gold', 'goldenrod',
+  'gray', 'green', 'greenyellow', 'grey', 'honeydew', 'hotpink', 'indianred', 'indigo', 'ivory', 'khaki',
+  'lavender', 'lavenderblush', 'lawngreen', 'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan',
+  'lightgoldenrodyellow', 'lightgray', 'lightgreen', 'lightgrey', 'lightpink', 'lightsalmon',
+  'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey', 'lightsteelblue', 'lightyellow',
+  'lime', 'limegreen', 'linen', 'magenta', 'maroon', 'mediumaquamarine', 'mediumblue', 'mediumorchid',
+  'mediumpurple', 'mediumseagreen', 'mediumslateblue', 'mediumspringgreen', 'mediumturquoise',
+  'mediumvioletred', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'navajowhite', 'navy',
+  'oldlace', 'olive', 'olivedrab', 'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen',
+  'paleturquoise', 'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue',
+  'purple', 'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+  'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey', 'snow',
+  'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat', 'white',
+  'whitesmoke', 'yellow', 'yellowgreen',
+]);
+/** Pushes one message per RAW hit, and per hit of the stricter product rules above, onto `errors`. */
+export function scanRawStrict(text, where, errors) {
+  scanRaw(text, where, errors);
+  const code = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const m of code.matchAll(/var\(\s*--[a-z0-9-]+\s*,[^)]*\)?/gi)) errors.push(`${where}: var() fallback "${m[0]}"`);
+  for (const m of code.matchAll(/url\(\s*(["']?)(?!data:)[^)]*\)?/gi)) errors.push(`${where}: url() that is not a data: URI "${m[0]}"`);
+  for (const set of code.matchAll(/(?:-webkit-)?image-set\(([^;{}]*)/gi)) {
+    for (const s of set[1].matchAll(/(["'])(?!data:)[^"']*\1/g)) errors.push(`${where}: image-set() source that is not a data: URI ${s[0]}`);
+  }
+  // Declaration values: the innermost `{ … }` blocks, split into `property: value`.
+  for (const block of code.matchAll(/\{([^{}]*)\}/g)) {
+    for (const decl of block[1].split(';')) {
+      const i = decl.indexOf(':');
+      if (i < 0) continue;
+      const value = decl.slice(i + 1).replace(/(["'])[^"']*\1/g, '""');
+      for (const id of value.matchAll(/(?<![\w-])[a-z][a-z0-9-]*/gi)) {
+        const k = id[0].toLowerCase();
+        if (k === 'currentcolor') errors.push(`${where}: currentColor "${id[0]}"`);
+        else if (CSS_NAMED_COLORS.has(k)) errors.push(`${where}: named color "${id[0]}"`);
+      }
+    }
+  }
 }
 
 // ── contrast (WCAG 2.x relative luminance) ─────────────────────────────────────────────────────
