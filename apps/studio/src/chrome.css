@@ -606,7 +606,8 @@
 .p3-ancmark { display: inline-block; flex: none; width: var(--p3-dot); height: var(--p3-dot); margin-right: var(--p3-space-075); background: var(--p3-text); transform: rotate(45deg); }
 .p3-sqk-step .p3-ancmark { margin-right: var(--p3-space-050); }
 .p3-sqrow { display: grid; gap: var(--p3-space-100); }
-/* A strip: a specimen root, painted with the brand's page color (see preview/palettes.ts). */
+/* A strip: a specimen root. Its inline paint is the brand's page color, seen only where the squares leave it
+   uncovered (a short last strip, the translucent opacity squares); why it stays: `specimenRoot` in preview/palettes.ts. */
 .p3-sqs {
   display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); border-radius: var(--p3-radius-lg); overflow: hidden;
   outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
