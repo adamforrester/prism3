@@ -33,10 +33,12 @@ export type LeverBlock = {
 /** One lever: its label (a legend when the control is a group), an info button with the manifest's
  *  description as a toggletip, an optional readout, the control, an optional state line, and the refused
  *  mark an engine refusal shows. */
-export const leverBlock = (key: string, opts: { label?: string; group?: boolean; forId?: string } = {}): LeverBlock => {
+export const leverBlock = (key: string, opts: { label?: string; group?: boolean; forId?: string; desc?: string } = {}): LeverBlock => {
   const L = leverOf(key);
   const label = opts.label ?? L?.label ?? key;
-  const desc = L?.description ?? '';
+  // A schema input that is not a manifest lever (Brand's name, namespace, personality and modes, S3) has no
+  // manifest description, so its page hands one in (concept v6's words) or shows no info button.
+  const desc = L?.description ?? opts.desc ?? '';
   const el = hook(h(opts.group ? 'fieldset' : 'div', 'p3-lever'), leverHook(key));
   el.id = `p3-lv-${slug(key)}`;
   const head = h(opts.group ? 'legend' : 'div', 'p3-lever-head');
@@ -80,7 +82,7 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
 /** A plain note under a control (`hint`), or a warning. */
 export const stateLine = (text: string, kind: 'hint' | 'warn' = 'hint'): HTMLElement => {
   const p = h('p', kind === 'hint' ? 'p3-state p3-state-hint' : 'p3-state p3-state-warn');
-  p.append(glyph(kind === 'hint' ? 'info' : 'x'), h('span', undefined, text));
+  p.append(glyph(kind === 'hint' ? 'info' : 'warn'), h('span', undefined, text));
   return p;
 };
 export const subLine = (text: string): HTMLElement => h('p', 'p3-sub', text);
@@ -230,4 +232,97 @@ export const switchButton = (id: string, label: string, role: string, words: { o
     el,
     set: (on) => { el.setAttribute('aria-checked', String(on)); el.dataset.on = String(on); setText(text, on ? words.on : words.off); },
   };
+};
+
+/** A one-line text field with its own edge (B1), labeled by its lever (`forId`) or by `label`. Writes on
+ *  every keystroke when `onInput` is given, and on Enter or blur through `onCommit`. `set` never touches a
+ *  focused field, so a caret survives every repaint. */
+export const textField = (id: string, role: string, opts: { label?: string; mono?: boolean; describedBy?: string;
+  onInput?: (v: string) => void; onCommit?: (v: string, field: HTMLInputElement) => void }): { el: HTMLInputElement; set: (v: string) => void } => {
+  const el = hook(h('input', opts.mono ? 'p3-text-input p3-value' : 'p3-text-input'), role);
+  el.type = 'text';
+  el.id = id;
+  el.spellcheck = false;
+  el.autocomplete = 'off';
+  if (opts.label) el.setAttribute('aria-label', opts.label);
+  if (opts.describedBy) el.setAttribute('aria-describedby', opts.describedBy);
+  if (opts.onInput) { const f = opts.onInput; el.addEventListener('input', () => f(el.value)); }
+  if (opts.onCommit) {
+    const f = opts.onCommit;
+    el.addEventListener('change', () => f(el.value, el));
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') f(el.value, el); });
+  }
+  return { el, set: (v) => { if (!focused(el) && el.value !== v) el.value = v; } };
+};
+
+/** A check: a button with `role="checkbox"`, a box that shows the check glyph when on, its name and a note
+ *  (concept v6's mode rows). Unavailable is `aria-disabled`, so it keeps its focus stop and says why in its
+ *  note, which is its description. */
+export const checkRow = (id: string, role: string, name: string, onToggle: (on: boolean) => void): {
+  el: HTMLButtonElement; set: (on: boolean, note: string, locked?: boolean) => void;
+} => {
+  const el = hook(h('button', 'p3-btn p3-btn-page p3-check'), role);
+  el.type = 'button';
+  el.id = id;
+  el.setAttribute('role', 'checkbox');
+  const box = h('span', 'p3-check-box');
+  box.setAttribute('aria-hidden', 'true');
+  box.append(glyph('check'));
+  const text = h('span', 'p3-check-text');
+  const nm = h('span', 'p3-check-name', name);
+  const note = h('span', 'p3-check-note');
+  note.id = `${id}-note`;
+  text.append(nm, note);
+  el.setAttribute('aria-describedby', note.id);
+  el.append(box, text);
+  el.onclick = () => { if (el.getAttribute('aria-disabled') !== 'true') onToggle(el.getAttribute('aria-checked') !== 'true'); };
+  return {
+    el,
+    set: (on, n, locked = false) => {
+      if (el.getAttribute('aria-checked') !== String(on)) el.setAttribute('aria-checked', String(on));
+      if (locked) el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled');
+      setText(note, n);
+    },
+  };
+};
+
+/** A word that is on or off: a button with `aria-pressed`, the check glyph showing when it is on (concept
+ *  v6's chips). */
+export const toggleChip = (role: string, word: string, onToggle: (on: boolean) => void): { el: HTMLButtonElement; set: (on: boolean) => void } => {
+  const el = hook(h('button', 'p3-btn p3-btn-page p3-chip'), role);
+  el.type = 'button';
+  el.dataset.word = word;
+  el.append(glyph('check'), h('span', 'p3-btn-label', word));
+  el.onclick = () => onToggle(el.getAttribute('aria-pressed') !== 'true');
+  return { el, set: (on) => { if (el.getAttribute('aria-pressed') !== String(on)) el.setAttribute('aria-pressed', String(on)); } };
+};
+
+/** A confirm drawn in place, under the control that asked for it (concept v6's confirm dialog, inline): a
+ *  title, what the action changes, the action and Cancel. Focus moves to the action; Escape or Cancel
+ *  closes it and returns focus to `back`. */
+export const inlineConfirm = (role: string, opts: { title: string; body: readonly (string | HTMLElement)[]; action: string;
+  onConfirm: () => void; onCancel: () => void; back: () => HTMLElement | null }): HTMLElement => {
+  const el = hook(h('div', 'p3-confirm'), role);
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'false');
+  const title = h('p', 'p3-confirm-title', opts.title);
+  title.id = `p3-${role}-title`;
+  el.setAttribute('aria-labelledby', title.id);
+  el.append(title, ...opts.body.map((b) => (typeof b === 'string' ? h('p', 'p3-confirm-line', b) : b)));
+  const row = h('div', 'p3-confirm-row');
+  const go = hook(h('button', 'p3-btn p3-btn-page'), `${role}-go`);
+  go.type = 'button';
+  go.append(h('span', 'p3-btn-label', opts.action));
+  const cancel = hook(h('button', 'p3-btn p3-btn-page'), `${role}-cancel`);
+  cancel.type = 'button';
+  cancel.append(h('span', 'p3-btn-label', 'Cancel'));
+  // `back` is asked AFTER the action, since the action may redraw the lever the confirm sits in.
+  const close = (f: () => void): void => { f(); opts.back()?.focus(); };
+  go.onclick = () => close(opts.onConfirm);
+  cancel.onclick = () => close(opts.onCancel);
+  el.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); close(opts.onCancel); } });
+  row.append(go, cancel);
+  el.append(row);
+  queueMicrotask(() => { if (go.isConnected) go.focus(); });
+  return el;
 };

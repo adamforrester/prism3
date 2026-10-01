@@ -97,7 +97,11 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S2: Color › Palettes (its levers and its preview) and the shared controls.
   'src/domains/color-palettes.ts', 'src/preview/palettes.ts', 'src/ui/lever-kit.ts', 'src/ui/step-picker.ts',
   // S2's Q4 trial.
-  'src/preview/follow-edit.ts'];
+  'src/preview/follow-edit.ts',
+  // S3: Brand (its levers and its preview, which calls the Style guide `main.ts` lends it).
+  'src/domains/brand.ts', 'src/preview/brand.ts',
+  // S3: Brand's state module (palette-input is listed with #1928's above).
+  'src/state/brand-input.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
