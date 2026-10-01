@@ -23,7 +23,7 @@
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import type { AgentLinkState, AgentResult, AgentProgress } from './agent-protocol';
+import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -255,7 +255,13 @@ export type MainToUi =
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
   | { type: 'agent-progress'; id: string; progress: AgentProgress }
   /** A console line printed while an agent command runs, streamed to the bridge. */
-  | { type: 'agent-log'; id: string; line: string };
+  | { type: 'agent-log'; id: string; line: string }
+  /** An agent command has started, and has finished (UI redesign S11): what lets the panel's Activity
+   *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
+   *  included; the panel decides which have an operation to show. `finished` follows the command's
+   *  terminal verdict, and is sent even when its handler threw and posted none. */
+  | { type: 'agent-started'; id: string; cmd: AgentCmd }
+  | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

@@ -31,6 +31,20 @@ export type Verdict = { ok: boolean; headline: string; summary: string };
 export type ActionState = Verdict | 'pending' | null;
 /** Whose detail row is open, at most one. */
 export type DetailKey = 'apply' | 'components' | 'filesetup' | 'styleguide';
+/** The operations the Activity drawer shows (UI redesign S11): the four writes with a verdict slot, the
+ *  prune, and the boot read-back. */
+export type OpKey = DetailKey | 'prune' | 'readback';
+/** The operation an agent command runs, by the command's name. `status` writes nothing and posts no
+ *  verdict, so it has none. Keyed by the plugin's `AgentCmd` names, which arrive as strings. */
+export const AGENT_OP: Readonly<Record<string, OpKey>> = {
+  'apply-theme': 'apply', 'build-components': 'components', 'file-setup': 'filesetup', 'style-guide': 'styleguide',
+  prune: 'prune', readback: 'readback',
+};
+/** Which operation's verdict a host message is. */
+const VERDICT_OP: Partial<Record<HostMessage['kind'], OpKey>> = {
+  'apply-result': 'apply', 'component-result': 'components', 'file-setup-result': 'filesetup', 'style-guide-result': 'styleguide',
+  'prune-result': 'prune', 'seed-info': 'readback',
+};
 
 /** Every host-fed slot, one per fact: the host sends one kind per fact, and the UI keeps a slot per
  *  kind. Moved from `main.ts` with their rationale. */
@@ -126,6 +140,20 @@ export interface HostSession {
    *  `Roboto` loads while `roboto`, `ROBOTO` and `" Regular"` all fail — so a case-insensitive lookup
    *  here would claim a face will load when the write is going to skip it. */
   readonly hostFontStyles: ReadonlyMap<string, number>;
+  /** The agent command the Activity drawer shows as running (UI redesign S11), `null` when none is.
+   *
+   *  A SLOT OF ITS OWN, not the action's `pending`. The action slots say what the panel posted, and the
+   *  panel's own controls read them: `applyState === 'pending'` disables Apply and the prune. An agent's
+   *  command does not go through them, and setting them would change what those controls do while it
+   *  runs, which is not this slice's to change. So the drawer reads both: an operation is running when
+   *  its slot is pending OR this names it and is not `settled`.
+   *
+   *  `settled` turns true when the command's verdict lands (it is forwarded as the panel's own), so the
+   *  verdict is recorded as the agent's. `agent-finished` clears the slot. A command that ends with no
+   *  verdict (its handler threw) leaves the operation's slot as it was. `progress` is the agent build's
+   *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
+   *  the panel's own build is pending. */
+  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null } | null;
 }
 
 /** The session before the host has said anything — and, on web, forever. */
@@ -144,7 +172,14 @@ export const initialHostSession = (): HostSession => ({
   openDetail: null,
   hostFonts: [],
   hostFontStyles: new Map(),
+  agentRun: null,
 });
+
+/** The session with the agent's run marked settled, when `m` is that run's verdict. */
+const settleAgent = (s: HostSession, m: HostMessage): HostSession => {
+  const r = s.agentRun;
+  return r && !r.settled && VERDICT_OP[m.kind] === r.op ? { ...s, agentRun: { ...r, settled: true, progress: null } } : s;
+};
 
 /**
  * The next session after a host message. Pure: no DOM, no repaint, no brand-session write.
@@ -154,7 +189,9 @@ export const initialHostSession = (): HostSession => ({
  * `restore-input-empty` (its effect is on the brand session, in `main.ts`). Every accepted message
  * returns a new object, so `topicsFor` and `brandEffectFor` can tell a refusal from an acceptance by identity.
  */
-export const reduce = (s: HostSession, m: HostMessage): HostSession => {
+export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
+  // Every verdict settles the agent's run of its operation first; the cases below read `s`.
+  const s = settleAgent(prev, m);
   switch (m.kind) {
     case 'restore-input': {
       // The blob is public shared-data (any plugin can write it), so its shape is validated the way
@@ -166,6 +203,17 @@ export const reduce = (s: HostSession, m: HostMessage): HostSession => {
     }
     case 'restore-input-empty':
       return s;
+    case 'agent-started': {
+      const op = AGENT_OP[m.cmd];
+      return op ? { ...s, agentRun: { id: m.id, op, settled: false, progress: null } } : s;
+    }
+    case 'agent-progress': {
+      const r = s.agentRun;
+      if (!r || r.id !== m.id || r.settled || r.op !== 'components') return s;
+      return { ...s, agentRun: { ...r, progress: { phase: m.phase, done: m.done, total: m.total } } };
+    }
+    case 'agent-finished':
+      return s.agentRun && s.agentRun.id === m.id ? { ...s, agentRun: null } : s;
     case 'restore-input-error':
       return { ...s, restoreError: m.message };
     case 'font-list':
@@ -243,5 +291,9 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'component-progress': return next === prev ? [] : ['host:progress'];
     case 'prune-result': return ['host'];
     case 'seed-info': return ['host'];
+    // UI redesign S11: the Activity drawer's agent rows. A start or an end it does not show moves nothing.
+    case 'agent-started': return next === prev ? [] : ['host'];
+    case 'agent-finished': return next === prev ? [] : ['host'];
+    case 'agent-progress': return next === prev ? [] : ['host:progress'];
   }
 };

@@ -1,34 +1,39 @@
 /**
- * The Activity drawer and the Activity button (UI redesign S1.4, `docs/superpowers/ui-redesign/implementation-plan.md`
+ * The Activity drawer and the Activity button (UI redesign S1.4 and S11, `docs/superpowers/ui-redesign/implementation-plan.md`
  * §3.9; the owner's F2, and v5 Q9 for the 4 s collapse).
  *
- * WHAT IT HOLDS IN S1.4. What exists today, moved here from the top bar: the status pills (the boot
- * read-back, each write's verdict, the prune outcome) and the apply detail, the one row that spells a
- * verdict out. Both stay legacy-rendered and keep their hooks (`status-pill`, `status-verdict`,
- * `apply-detail`), so `test:verdict` reads them where it always did. The drawer lends two slots to
- * `main.ts`: the drawer's bar row, which the legacy bar paints the pills into (hook `bar`, the name the
- * verdict suite reads them under), and its body, where the apply detail is mounted. The per-operation
- * activity model (progress, causes, history, agent-started work) is S11.
+ * WHAT IT HOLDS SINCE S11: concept v6's activity model. One row per operation that has run in this session
+ * (Apply Theme, Build set, Set up file, Style guide, Prune stale, Read-back), each with its verdict, the
+ * time it started, a body that says what it is doing or what it found, and its earlier results. An
+ * operation an agent ran is tagged Agent, running and after (#1788). The drawer's bar row is v6's: the
+ * newest operation's title and phase or verdict, its time, and how many are running or need attention.
+ *
+ * The verdicts are the host's own headlines, unchanged, and the bodies its summaries: this slice moves
+ * where they are shown and invents none of them. Errors grouped by cause, the counts toggles and the modes
+ * table v6 draws need structured results from the writers, which today send prose; they are a follow-up.
  *
  * F2, AS BUILT HERE. The Activity button in the top bar shows and hides the drawer at any time, and its
  * status dot says what concept v6's says: an operation running, a result that needs attention, or a new
  * result nobody has opened. The drawer opens by itself when an operation starts, collapses by itself
  * `COLLAPSE_MS` after a success (unless it was opened by hand, another operation is still running, or
  * focus or the pointer is inside it), and stays open on a failure or a warning until it is closed. A
- * write's verdict is `ok: false` for both a failure and a warning, so both keep it open. At 380 an
- * operation shows in the strip (the drawer's bar row, pinned to the bottom edge) instead of opening the
- * drawer, and a failure or a warning opens the full-pane sheet.
+ * write's verdict is `ok: false` for both a failure and a warning, so both keep it open, and both count
+ * as needing attention. At 380 an operation shows in the strip (the drawer's bar row, pinned to the
+ * bottom edge) instead of opening the drawer, and a failure or a warning opens the full-pane sheet.
  *
  * HOW IT LEARNS WHAT HAPPENED: store topics, never a legacy repaint tier (plan §3.10). `main.ts` lends a
- * pure reading of its host session (`ActivitySource`): each write's state, and whether a result's detail
- * is open. The drawer subscribes to `host` and `host:detail`, compares the reading with the last one, and
- * reacts to the change: a write that started, one that finished well, one that finished badly. The legacy
- * writers say a write started by invalidating `host`, the topic a host verdict invalidates.
+ * pure reading of its host session (`ActivitySource`): each operation's state, its verdict and summary,
+ * its phase and progress while it runs, and whether an agent ran it; and which result a page asked to be
+ * shown. The drawer subscribes to `host` and `host:detail`, compares the reading with the last one, and
+ * reacts to the change: an operation that started, one that finished well, one that finished badly. The
+ * history and the times are the drawer's own: they are what it saw happen, not host state. `host:progress`
+ * rewrites the running build's progress in place, as the page's pill does.
  *
  * The drawer sits at the bottom of the frame, pinned to the bottom edge, so it works on every page while
  * every page is legacy: under the legacy frame, or under the preview pane once a page moves (S2).
  */
 import { subscribe } from '../state/store';
+import type { OpKey } from '../state/host-session';
 import type { Host } from './pages';
 import { glyph, h, hook } from './dom';
 
@@ -37,16 +42,32 @@ export const COLLAPSE_MS = 4000;
 /** A collapse that comes due while focus or the pointer is inside the drawer waits this long, then looks
  *  again (concept v6). */
 export const COLLAPSE_RECHECK_MS = 1500;
+/** Earlier results kept per operation (concept v6). */
+export const HISTORY_MAX = 5;
 
-/** One write, as the drawer reads it. `ref` is the state's own value, so a new verdict that replaces an
- *  equal one is still a change. */
+/** Concept v6's operation titles (`OP_TITLE`). The drawer lists operations in the order they first ran. */
+export const OP_TITLE: Readonly<Record<OpKey, string>> = {
+  'apply': 'Apply Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guide', prune: 'Prune stale', readback: 'Read-back',
+};
+
+/** One operation, as the drawer reads it. `ref` is the state's own value, so a new verdict that replaces
+ *  an equal one is still a change. `verdict` and `summary` are the host's, once it has answered; `phase`
+ *  and `progress` say how far it has got while it runs. */
 export type OpState = 'idle' | 'running' | 'ok' | 'bad';
-export type OpReading = { readonly state: OpState; readonly ref: unknown };
-/** What `main.ts` lends: every write by name, and whether a result's detail is open. Pure; no DOM. */
-export type ActivityReading = { readonly ops: Readonly<Record<string, OpReading>>; readonly detail: boolean };
+export type OpReading = {
+  readonly state: OpState;
+  readonly ref: unknown;
+  readonly verdict: string | null;
+  readonly summary: string | null;
+  readonly phase: string | null;
+  readonly progress: { readonly done: number; readonly total: number } | null;
+  readonly agent: boolean;
+};
+/** What `main.ts` lends: every operation by key, and the result a page asked to show (a page's verdict
+ *  pill clicked, or a bad verdict landing), `null` when none is. Pure; no DOM. */
+export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null };
 export type ActivitySource = () => ActivityReading;
-/** What `main.ts` lends the drawer: the reading, and how to close the open result detail. A collapse
- *  closes the detail with the body that shows it, so a pill never says "expanded" over a hidden detail. */
+/** What `main.ts` lends the drawer: the reading, and how to say a requested result has been shown. */
 export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void };
 
 export type Activity = {
@@ -54,21 +75,29 @@ export type Activity = {
   readonly button: HTMLButtonElement;
   /** The drawer, at the bottom of the frame. */
   readonly drawer: HTMLElement;
-  /** Slot: the status pills, painted by the legacy bar. */
-  readonly pills: HTMLElement;
-  /** Slot: the apply detail, mounted by the chrome surfaces. */
-  readonly detail: HTMLElement;
 };
 
 /** The words the Activity button's name adds, as concept v6 has them. */
 const statusWords = (running: number, failed: number, unread: boolean): string =>
-  [running && `${running} running`, failed && `${failed} ${failed === 1 ? 'needs' : 'need'} attention`, !running && !failed && unread && 'new result']
+  [running && `${running} running`, failed && attention(failed), !running && !failed && unread && 'new result']
     .filter(Boolean).join(', ');
+const attention = (n: number): string => `${n} ${n === 1 ? 'needs' : 'need'} attention`;
+
+/** A clock time, HH:MM, as concept v6 stamps an operation. */
+const clock = (d: Date): string => d.toTimeString().slice(0, 5);
+
+/** One result, as the drawer recorded it. */
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown };
+/** One operation's record: what the drawer has seen of it this session. */
+type Rec = { t: string; result: Result | null; history: Result[] };
+
+const EMPTY: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
 
 /** Mount the drawer and its button. `narrow` reads the frame's width tier; `cleanups` takes the
- *  subscriptions and the pending collapse. */
-export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean }, cleanups: (() => void)[]): Activity => {
+ *  subscriptions and the pending collapse. `now` is the clock the times are read from. */
+export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date }, cleanups: (() => void)[]): Activity => {
   const { narrow } = opts;
+  const now = opts.now ?? (() => new Date());
   const { read, closeDetail } = opts.lend;
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
@@ -84,23 +113,23 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const drawer = hook(h('section', 'p3-drawer'), 'activity-drawer');
   drawer.id = 'p3-activity';
   drawer.setAttribute('aria-label', 'Activity');
-  const barRow = h('div', 'p3-drawer-bar');
-  const toggle = hook(h('button', 'p3-btn p3-btn-ghost p3-drawer-toggle'), 'activity-toggle');
+  // The bar row is one button, as v6's is: the newest operation, its time, the counts, and the chevron.
+  const toggle = hook(h('button', 'p3-drawer-bar'), 'activity-toggle');
   toggle.type = 'button';
   toggle.setAttribute('aria-controls', 'p3-activity-body');
-  toggle.append(glyph('pulse'), h('span', 'p3-btn-label', 'Activity'), glyph('chev'));
-  // The pills' slot carries the hook the verdict suite reads them under (`bar`): they were the bar's.
-  const pills = hook(h('div', 'p3-drawer-pills'), 'bar');
-  barRow.append(toggle, pills);
   const body = hook(h('div', 'p3-drawer-body'), 'activity-body');
   body.id = 'p3-activity-body';
-  const detail = h('div', 'p3-drawer-slot');
-  // Shown while no result's detail is open. The plugin's line is concept v6's; the studio runs no write.
+  // v6's "Close Activity", which only the full-pane sheet at 380 shows (the stylesheet hides it wider).
+  const close = hook(h('button', 'p3-btn p3-btn-ghost p3-drawer-close'), 'activity-close');
+  close.type = 'button';
+  close.append(glyph('x'), h('span', undefined, 'Close Activity'));
+  const rows = h('div', 'p3-ops');
+  // Shown while nothing has run. The plugin's line is concept v6's; the studio runs no write.
   const note = hook(h('p', 'p3-note p3-drawer-note', opts.host === 'figma'
     ? 'Results of Apply, Build and Prune appear here after they run.'
     : 'Nothing has run in this session.'), 'activity-note');
-  body.append(detail, note);
-  drawer.append(barRow, body);
+  body.append(close, rows, note);
+  drawer.append(toggle, body);
 
   // ── state ──────────────────────────────────────────────────────────────────────────────────────
   let open = false;     // the body shows
@@ -108,21 +137,136 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   let unread = false;   // a result landed while it was closed
   let timer: ReturnType<typeof setTimeout> | null = null;
   let last = read();
+  /** Every operation seen this session, in the order it first ran (v6). */
+  const recs = new Map<OpKey, Rec>();
+  /** The operations whose bodies are expanded. */
+  const expanded = new Set<OpKey>();
+  /** The rendered rows, keyed, so a repaint keeps the header that holds focus. */
+  const rowEls = new Map<OpKey, { root: HTMLElement; head: HTMLButtonElement; tag: HTMLElement; pill: HTMLElement; when: HTMLElement; body: HTMLElement; progress: HTMLElement | null }>();
 
   const counts = (r: ActivityReading): { running: number; failed: number } => {
     const ops = Object.values(r.ops);
     return { running: ops.filter((o) => o.state === 'running').length, failed: ops.filter((o) => o.state === 'bad').length };
   };
   const clear = (): void => { if (timer !== null) clearTimeout(timer); timer = null; };
-  /** Close the body. The open result detail closes with it (its pill's `aria-expanded` and chevron follow
-   *  the host session's `openDetail`), so clicking that pill afterward opens the detail again rather than
-   *  closing a detail nobody can see. `closeDetail` tells `host` and `host:detail`, so `onHost` runs inside
-   *  it and finds nothing to act on. */
-  const collapse = (): void => { open = false; auto = false; if (last.detail) closeDetail(); };
+  const collapse = (): void => { open = false; auto = false; };
+
+  // ── painting ───────────────────────────────────────────────────────────────────────────────────
+  /** The running operation's phase line and progress bar (v6 `progressHtml`). */
+  const progressEl = (title: string, o: OpReading): HTMLElement => {
+    const wrap = hook(h('div', 'p3-op-phase'), 'op-progress');
+    const line = h('span');
+    line.append(h('b', undefined, o.phase ?? 'Running'));
+    if (o.progress && o.progress.total > 1) line.append(` ${o.progress.done} of ${o.progress.total}`);
+    wrap.append(line);
+    if (o.progress) {
+      const bar = h('div', 'p3-op-prog');
+      bar.setAttribute('role', 'progressbar');
+      bar.setAttribute('aria-label', o.phase ?? title);
+      bar.setAttribute('aria-valuemin', '0');
+      bar.setAttribute('aria-valuemax', String(o.progress.total));
+      bar.setAttribute('aria-valuenow', String(o.progress.done));
+      const fill = h('i');
+      fill.style.width = `${(o.progress.done / o.progress.total) * 100}%`;
+      bar.append(fill);
+      wrap.append(bar);
+    }
+    return wrap;
+  };
+
+  const paintRow = (k: OpKey, rec: Rec, o: OpReading): void => {
+    let el = rowEls.get(k);
+    if (!el) {
+      const root = hook(h('div', 'p3-op'), 'activity-op');
+      root.dataset.op = k;
+      const head = hook(h('button', 'p3-op-head'), 'op-head');
+      head.type = 'button';
+      head.id = `p3-op-${k}-h`;
+      head.setAttribute('aria-controls', `p3-op-${k}-b`);
+      const tag = h('span', 'p3-op-agent');
+      tag.append(glyph('agent'), 'Agent');
+      const pill = hook(h('span', 'p3-pill'), 'op-verdict');
+      const when = h('span', 'p3-op-when');
+      head.append(glyph('chevr'), h('b', undefined, OP_TITLE[k]), tag, pill, when);
+      const b = hook(h('div', 'p3-op-body'), 'op-body');
+      b.id = `p3-op-${k}-b`;
+      head.onclick = () => { if (expanded.has(k)) expanded.delete(k); else expanded.add(k); paint(); };
+      root.append(head, b);
+      el = { root, head, tag, pill, when, body: b, progress: null };
+      rowEls.set(k, el);
+    }
+    const running = o.state === 'running';
+    const res = rec.result;
+    const bad = running ? false : res ? !res.ok : false;
+    el.tag.hidden = !(running ? o.agent : res?.agent);
+    el.pill.className = bad ? 'p3-pill p3-pill-bad' : 'p3-pill';
+    el.pill.textContent = running ? 'Running' : res?.verdict ?? '';
+    el.pill.hidden = !running && !res;
+    el.root.dataset.state = running ? 'running' : res ? (res.ok ? 'ok' : 'bad') : 'idle';
+    el.when.textContent = rec.t;
+    const isOpen = expanded.has(k);
+    el.head.setAttribute('aria-expanded', String(isOpen));
+    el.body.hidden = !isOpen;
+    const parts: Node[] = [];
+    el.progress = null;
+    if (running) {
+      el.progress = progressEl(OP_TITLE[k], o);
+      parts.push(el.progress);
+      // True of this plugin: the build lands each set on its own page and shows it (v6's line).
+      if (k === 'components') parts.push(h('p', 'p3-note', "Build set switches Figma to the set's page."));
+    } else if (res?.summary) {
+      parts.push(hook(h('p', 'p3-op-summary', res.summary), 'op-summary'));
+    }
+    if (rec.history.length) {
+      const d = hook(h('details', 'p3-op-history'), 'op-history');
+      d.append(h('summary', undefined, `Earlier results (${rec.history.length})`));
+      const ul = h('ul');
+      for (const x of rec.history) ul.append(h('li', undefined, `${x.t} · ${x.verdict}${x.agent ? ' · Agent' : ''}${x.summary ? `: ${x.summary}` : ''}`));
+      d.append(ul);
+      // A repaint keeps an open history open.
+      const was = el.body.querySelector('details');
+      if (was?.open) d.open = true;
+      parts.push(d);
+    }
+    el.body.replaceChildren(...parts);
+  };
+
+  /** The operation the bar row leads with: one running, else the newest result (v6). */
+  const leadOf = (): OpKey | null => {
+    const keys = [...recs.keys()];
+    const run = keys.find((k) => last.ops[k].state === 'running');
+    if (run) return run;
+    return keys.reduce<OpKey | null>((a, k) => (a === null || recs.get(k)!.t >= recs.get(a)!.t ? k : a), null);
+  };
+
+  const paintBar = (): void => {
+    const { running, failed } = counts(last);
+    const lead = leadOf();
+    const parts: Node[] = [];
+    if (lead) {
+      const o = last.ops[lead];
+      const rec = recs.get(lead)!;
+      const run = o.state === 'running';
+      const d = h('span', 'p3-dot p3-status-dot');
+      d.setAttribute('aria-hidden', 'true');
+      d.dataset.state = run ? 'run' : rec.result && !rec.result.ok ? 'bad' : 'ok';
+      const text = h('span', 'p3-drawer-last');
+      text.append(h('b', undefined, OP_TITLE[lead]), ` · ${run ? o.phase ?? 'Running' : rec.result?.verdict ?? ''}`);
+      parts.push(d, text, h('span', 'p3-op-when', rec.t));
+    } else {
+      parts.push(glyph('pulse'), h('span', 'p3-drawer-last', 'Activity'));
+    }
+    parts.push(h('span', 'p3-spacer'));
+    const count = [running && `${running} running`, failed && attention(failed)].filter(Boolean).join(' · ');
+    if (count) parts.push(h('span', 'p3-drawer-count', count));
+    parts.push(glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
+    toggle.replaceChildren(...parts);
+  };
 
   const paint = (): void => {
     const { running, failed } = counts(last);
     drawer.dataset.open = String(open);
+    drawer.dataset.ever = String(recs.size > 0);
     body.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
     button.setAttribute('aria-expanded', String(open));
@@ -131,6 +275,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     drawer.dataset.state = kind;
     const words = statusWords(running, failed, unread);
     button.setAttribute('aria-label', words ? `Activity, ${words}` : 'Activity');
+    paintBar();
+    for (const [k, rec] of recs) paintRow(k, rec, last.ops[k]);
+    const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
+    if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) rows.replaceChildren(...order);
+    note.hidden = recs.size > 0;
   };
 
   /** The collapse that comes due `COLLAPSE_MS` after a success. */
@@ -150,22 +299,63 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     paint();
   };
 
+  const recOf = (k: OpKey): Rec => {
+    let r = recs.get(k);
+    if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
+    return r;
+  };
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, agent: o.agent, t, ref: o.ref });
+  /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
+  const retire = (rec: Rec): void => {
+    if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);
+    rec.result = null;
+  };
+
   /** Compare the host's reading with the last one, and act on what moved (F2). */
   const onHost = (): void => {
-    const now = read();
-    let started = false, settledOk = false, settledBad = false, landedOk = false;
-    for (const [k, n] of Object.entries(now.ops)) {
-      const p = last.ops[k] ?? { state: 'idle', ref: null };
-      if (n.state === 'running') { if (p.state !== 'running') started = true; }
-      else if (n.state === 'bad') { if (p.state !== 'bad' || n.ref !== p.ref) settledBad = true; }
-      else if (n.state === 'ok') {
-        if (p.state === 'running') settledOk = true;
-        else if (n.ref !== p.ref) landedOk = true;
+    const cur = read();
+    let started = false, settledOk = false, settledBad = false, landedOk = false, ended = false;
+    for (const k of Object.keys(cur.ops) as OpKey[]) {
+      const n = cur.ops[k];
+      const p = last.ops[k] ?? EMPTY;
+      if (n.state === 'running') {
+        if (p.state !== 'running') {
+          // v6 `startOp`: the last result becomes history, and the row opens on the run.
+          const rec = recOf(k);
+          retire(rec);
+          rec.t = clock(now());
+          expanded.add(k);
+          started = true;
+        }
+        continue;
       }
+      if (p.state === 'running') {
+        const rec = recOf(k);
+        // A run that ended with no verdict of its own (an agent command whose handler threw) leaves the
+        // operation where it was: its last result comes back from the history, and nothing is announced.
+        if (n.state === 'idle' || n.ref === rec.history[0]?.ref) {
+          rec.result = rec.history[0] && n.state !== 'idle' ? rec.history[0] : null;
+          if (rec.result) rec.history = rec.history.slice(1);
+          if (!rec.result && !rec.history.length) { recs.delete(k); rowEls.delete(k); expanded.delete(k); }
+          ended = true;
+          continue;
+        }
+        rec.result = resultOf(n, rec.t);
+        if (n.state === 'bad') { settledBad = true; expanded.add(k); } else settledOk = true;
+        continue;
+      }
+      if (n.state === 'idle' || (n.state === p.state && n.ref === p.ref)) continue;
+      // A result that arrived without a run the drawer saw: the boot read-back, or a prune preview.
+      const rec = recOf(k);
+      retire(rec);
+      rec.t = clock(now());
+      rec.result = resultOf(n, rec.t);
+      if (n.state === 'bad') { settledBad = true; expanded.add(k); } else landedOk = true;
     }
-    const detailOpened = now.detail && !last.detail;
-    last = now;
-    const stillRunning = counts(now).running > 0;
+    // A result a page asked to show (its verdict pill clicked, or a bad verdict) opens the drawer on it.
+    const reveal = cur.detail !== null && cur.detail !== last.detail ? cur.detail : null;
+    last = cur;
+    const stillRunning = counts(cur).running > 0;
     if (settledBad) {
       // A failure or a warning stays open until it is closed, and at 380 it opens the sheet.
       open = true; auto = false; unread = false; clear();
@@ -178,14 +368,36 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       if (!open) unread = true;
       else if (auto && !stillRunning && settledOk) { clear(); timer = setTimeout(tick, COLLAPSE_MS); }
     }
-    // A result opened for reading (its pill clicked) opens the drawer, by hand: it does not collapse.
-    if (detailOpened && !open) { open = true; auto = false; unread = false; clear(); }
+    if (!settledBad && !started && ended && open && auto && !stillRunning) { clear(); timer = setTimeout(tick, COLLAPSE_MS); }
+    if (reveal && recs.has(reveal)) {
+      // Opened for reading, by hand: it does not collapse.
+      expanded.add(reveal);
+      if (!open) { open = true; auto = false; unread = false; clear(); }
+    }
     paint();
+    // The request is answered: clear it, so the same pill asks again next time. `closeDetail` tells `host`
+    // and `host:detail`, so `onHost` runs inside it and finds nothing to act on.
+    if (cur.detail !== null) closeDetail();
+  };
+
+  /** A chunk boundary of the running build: rewrite its progress in place, not the row (focus, open details). */
+  const onProgress = (): void => {
+    const cur = read();
+    for (const [k, el] of rowEls) {
+      const o = cur.ops[k];
+      if (o.state !== 'running' || !el.progress || !el.progress.isConnected) continue;
+      const next = progressEl(OP_TITLE[k], o);
+      el.progress.replaceWith(next);
+      el.progress = next;
+    }
+    last = { ...last, ops: { ...last.ops, ...Object.fromEntries((Object.keys(cur.ops) as OpKey[]).filter((k) => cur.ops[k].state === 'running' && last.ops[k]?.state === 'running').map((k) => [k, cur.ops[k]])) } };
+    paintBar();
   };
 
   button.onclick = () => show(!open, true);
   toggle.onclick = () => show(!open, true);
-  cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), clear);
+  close.onclick = () => { show(false, true); button.focus(); };
+  cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
   paint();
-  return { button, drawer, pills, detail };
+  return { button, drawer };
 };

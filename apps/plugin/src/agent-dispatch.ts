@@ -119,6 +119,12 @@ type Deps = {
    *  show a button's (the owner's call). Progress readings are not forwarded: the panel only counts a build
    *  it started itself. */
   forward?(m: MainToUi): void;
+  /** A valid command as it starts and as it finishes, whatever its outcome (UI redesign S11). The panel's
+   *  Activity drawer shows an agent's command running the way it shows a button's; the forwarded verdict
+   *  alone cannot say when it began, or that a command which threw has ended. Reports only: neither
+   *  writes to the file, and a throw from either never fails the command. */
+  onStart?(id: string, cmd: AgentCmd): void;
+  onFinish?(id: string, cmd: AgentCmd): void;
 };
 
 /** Per-command routes into the table. The ONLY place a command meets a handler — see the header. */
@@ -213,6 +219,7 @@ export const createDispatcher = (deps: Deps) => {
       if (logs.length < LOG_CAP) logs.push(line); else logsDropped++;
       deps.onLog?.(c.id, line);
     };
+    try { deps.onStart?.(c.id, c.cmd); } catch { /* a reader; see `forward` */ }
     try {
       await teeConsole(onLine, () => ROUTES[c.cmd](c, deps.actions, sink, deps));
     } catch (e) {
@@ -222,6 +229,8 @@ export const createDispatcher = (deps: Deps) => {
         finishedAt: now().toISOString(),
         ...(progress.length ? { progress } : {}),
       };
+    } finally {
+      try { deps.onFinish?.(c.id, c.cmd); } catch { /* a reader; see `forward` */ }
     }
     if (logsDropped) logs.push(`… ${logsDropped} more lines not kept`);
     // One terminal verdict per action is the handlers' own invariant (#908); if more than one arrived,

@@ -115,7 +115,13 @@ accepts('font-list without styles (older host)', { type: 'font-list', families: 
 
 drops('agent-link-state (the panel\'s own listener reads it)', wire({ type: 'agent-link-state', state: { on: true } }));
 drops('agent-result', wire({ type: 'agent-result', result: { id: 'a' } }));
-drops('agent-progress', wire({ type: 'agent-progress', id: 'a', progress: {} }));
+// UI redesign S11: the agent's runs, which the Activity drawer shows.
+accepts('agent-started', { type: 'agent-started', id: 'a1', cmd: 'apply-theme' }, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' });
+accepts('agent-finished', { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' }, { kind: 'agent-finished', id: 'a1' });
+accepts('agent-progress', { type: 'agent-progress', id: 'b1', progress: { phase: 'build', done: 24.6, total: 648, chunkMs: 40 } },
+  { kind: 'agent-progress', id: 'b1', phase: 'build', done: 24, total: 648 });
+drops('agent-progress with no reading', wire({ type: 'agent-progress', id: 'a', progress: {} }));
+drops('agent-started with no id', wire({ type: 'agent-started', cmd: 'apply-theme' }));
 drops('agent-log', wire({ type: 'agent-log', id: 'a', line: 'x' }));
 drops('an unknown type', wire({ type: 'apply-results', ok: true, summary: 's' }));
 drops('an inherited key as type (toString)', wire({ type: 'toString' }));

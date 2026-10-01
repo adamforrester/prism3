@@ -961,6 +961,9 @@ const dispatch = createDispatcher({
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
+  // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
+  onStart: (id, cmd) => postToUi({ type: 'agent-started', id, cmd }),
+  onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
