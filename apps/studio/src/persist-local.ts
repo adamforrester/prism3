@@ -79,3 +79,34 @@ export const clearInput = (store: LocalStore): void => {
     /* nothing to do — a store that can't remove also can't have persisted */
   }
 };
+
+// ---- the chrome theme (UI redesign S1.2, plan §3.3) ----------------------------------------------
+// The studio's light / dark / system choice is kept per viewer, beside the brand but never inside it: a
+// theme choice stored in the brand input would read as a brand edit, the same reason export settings
+// stay out of it. Same best-effort rule as the brand: a store that throws or holds junk reads as the
+// default, and a write that throws is skipped.
+
+/** The chrome theme a viewer can choose. `system` follows the device. */
+export type ThemePref = 'light' | 'dark' | 'system';
+/** Storage key for the chrome theme. */
+export const THEME_KEY = 'prism3:chromeTheme';
+const THEME_PREFS: readonly ThemePref[] = ['light', 'dark', 'system'];
+
+/** The stored theme, or `system` when nothing valid is stored or the store throws. */
+export const restoreThemePref = (store: LocalStore): ThemePref => {
+  try {
+    const v = store.getItem(THEME_KEY);
+    return (THEME_PREFS as readonly string[]).includes(v ?? '') ? (v as ThemePref) : 'system';
+  } catch {
+    return 'system';
+  }
+};
+
+/** Keep the theme choice. Best-effort, like `persistInput`. */
+export const persistThemePref = (store: LocalStore, pref: ThemePref): void => {
+  try {
+    store.setItem(THEME_KEY, pref);
+  } catch {
+    /* storage unavailable: the choice holds for this session only */
+  }
+};

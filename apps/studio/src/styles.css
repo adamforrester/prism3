@@ -133,7 +133,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .start-chip .dot{width:12px;height:12px;border-radius:50%;flex:none}
 
 .chrome{position:sticky;top:0;z-index:20;background:var(--paper)}
-.bar{display:flex;align-items:center;justify-content:space-between;padding:26px 2px 12px}
 /* Sticky at the chrome's lower edge so the mode context still never scrolls away — the property
    it had as tier 2 of the header, preserved through the move (#432). Background is required:
    page content scrolls underneath it. z-index sits below .chrome (20) so it tucks, not overlaps. */
@@ -146,18 +145,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
 .wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
 .studio{color:var(--muted);font-size:13px;border-left:1px solid var(--line2);padding-left:11px}
-.bar-actions{display:flex;align-items:center;gap:10px}
 .barmenu-wrap{position:relative}
-.brandsel,.barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
-.brandsel.open,.barbtn.open,.barbtn:hover,.brandsel:hover{border-color:var(--ink2)}
-.brandsel .dot{width:12px;height:12px;border-radius:4px}
-.brandsel .caret,.barbtn .caret{color:var(--faint);margin-left:2px}
+.barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
+.barbtn.open,.barbtn:hover{border-color:var(--ink2)}
+.barbtn .caret{color:var(--faint);margin-left:2px}
 .barbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .barbtn.primary:hover{background:var(--ink2);border-color:var(--ink2)}
-/* Off by default; the max-width:900 rule below turns it on where the rail turns off. This base
-   declaration must come BEFORE that rule — a media query adds no specificity, so a later
-   .navbtn{display:none} would simply win at every width and the control would never appear. */
-.navbtn{display:none}
 .bar-seed{font-size:11.5px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-seed.bad{color:#a12}
 /* The apply status pill + its detail row. The pill is bounded and single-line like .bar-seed — that
@@ -308,15 +301,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .start-upload{display:inline-flex;align-items:center;gap:6px}
 .start-imp-err{margin:9px 0 0;font-size:12px;color:#a12;line-height:1.5}
 
-.shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:60px;align-items:start;margin-top:20px}
-.rail{position:sticky;top:calc(var(--chrome-h, 120px) + 10px);display:flex;flex-direction:column;gap:4px}
-.rail-div{height:1px;background:var(--line);margin:10px 10px}
-.stage{display:flex;align-items:center;gap:13px;text-align:left;border:1px solid transparent;background:none;font:inherit;padding:11px 12px;border-radius:var(--r-sm);cursor:pointer;color:var(--ink2)}
-.stage:hover{background:var(--panel)}
-.stage.active{background:var(--panel);border-color:var(--line2)}
+/* The legacy page's column, inside the new frame's full-width legacy frame (UI redesign S1.2). It carries
+   the box #app used to: the 1200px cap and its gutters. The rail that sat in its first column is gone;
+   its destinations are the Pages menu in the top bar. */
+.shell{max-width:1120px;margin:20px auto 0;padding:0 40px 120px}
 .stage-t{display:flex;flex-direction:column;line-height:1.3;gap:2px}
 .stage-t b{font-weight:600;font-size:13.5px}
-.stage.active .stage-t b{color:var(--ink)}
 .stage-t small{color:var(--faint);font-size:11.5px}
 .rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
 /* Build identity (#474) — quiet by default, legible when you go looking for it. */
@@ -1540,11 +1530,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
    1fr track never clamps and the widest child drags the whole column past the viewport.
    The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
-/* Below 900 the rail is not a sidebar. It used to become a static stack, which measured ~690px tall
-   and pushed every page's content below the fold; it is now hidden and its destinations move into
-   the Pages menu in the bar, which costs 0px of vertical space. The two must switch together —
-   whichever way this breakpoint moves, exactly one of rail/navbtn is visible at any width. */
-@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{display:none}.navbtn{display:flex}.phead{gap:16px}.pfield.r{margin-left:0}}
+@media(max-width:900px){.phead{gap:16px}.pfield.r{margin-left:0}}
 /* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
    gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
 /* The bar's dropdowns are anchored right:0 to their wrapper, which is only safe while the wrapper
@@ -1557,18 +1543,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
    edge and hung 9px off at 360px. Dropping the wrappers to static makes the actions row itself the
    containing block, so both panels align to the row's right edge — the one edge that is always
    flush with the viewport gutter, whatever the buttons ahead of them are doing. */
-@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap;margin-left:auto;position:relative}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
-/* Compact bar. Full labels need ~455px and the row has 456 at 480px — i.e. it only "fits" by a
-   pixel, so the treatment starts before the numbers get tight. Dropping the "Theme studio"
-   descriptor and the Export word (the ↓ and caret stay, and aria-label keeps the accessible name)
-   takes the row to ~278px, which is a single line down to ~312px of viewport. */
-@media(max-width:560px){.studio{display:none}.barbtn-lab{display:none}}
-/* The Pages control. Hidden by default — the 900 rule above turns it on exactly where the rail
-   turns off. It keeps the current page name while there is room for it (159–173px of bar slack at
-   480–900), which is the orientation a bare glyph cannot give; below 480 it degrades to the glyph.
-   Below 380 the wordmark goes too: a third control needs ~54px and the bar has only 53px of slack
-   at 360 and 13px at 320, so without this the row wraps back to two lines on small phones. */
-@media(max-width:480px){.navbtn-lab{display:none}}
+@media(max-width:640px){#app,.shell{padding:0 16px 72px}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.lab{padding:0 3px}}
+/* The start screen's mark: the descriptor goes first, then the wordmark, as the column narrows. */
+@media(max-width:560px){.studio{display:none}}
 @media(max-width:380px){.wordmark{display:none}}
 .navmenu{width:300px;max-height:calc(100vh - 130px);overflow-y:auto}
 .nav-item{display:flex;width:100%;text-align:left;border:0;background:none;font:inherit;padding:9px 8px;border-radius:var(--r-xs);cursor:pointer;color:var(--ink2)}
@@ -1583,7 +1560,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
    ly-table pushed the page 57px, ctable was silently clipped by an ancestor (worse — the cells
    were unreadable rather than reachable). display:block turns each into its own scroll box, so
    the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
-@media(max-width:480px){#app{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
+@media(max-width:480px){#app,.shell{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
 /* Plugin resize grip (#144) — plugin-only; a Figma iframe has no window chrome of its own.
    touch-action:none so the pointer capture owns the gesture instead of the page scrolling. */
 .resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}

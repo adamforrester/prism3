@@ -495,10 +495,12 @@ const classifyPair = (p, emission, mode) => {
  * is restated here as a literal, because a corpus size written into a comment reads as measured-now and
  * goes stale silently the next time the studio grows a control. What each floor is, and why:
  *
- *  - `STATE_NODE_FLOOR` (20) — below the sparsest LEGITIMATE state (Typography and Layout in a derived
+ *  - `STATE_NODE_FLOOR` (12) — below the sparsest LEGITIMATE state (Typography and Layout in a derived
  *    mode, where the editors are replaced by the read-only note), so that note can lose lines without
  *    tripping it, and a state the probe comes back empty from fails BY NAME rather than passing
- *    quietly. It deliberately sits below even a page's chrome-only node count, so it never pretends to
+ *    quietly. It was 20 while the rail stood beside every page; UI redesign S1.2 replaced the rail's
+ *    labels, subtitles, note and build stamp with the tab row and the Pages menu (closed while a state
+ *    is measured), and the sparsest state dropped below 20 for that reason alone. It deliberately sits below even a page's chrome-only node count, so it never pretends to
  *    detect a blanked workspace: that case is covered, and covered better, by the
  *    `controls > 0 || readOnlyNote > 0` assertion in the loop, which names the condition instead of
  *    proxying it through a count.
@@ -512,7 +514,7 @@ const classifyPair = (p, emission, mode) => {
  *    errors and mode agreement are all ABSENT rather than failing, and absence is what this file
  *    keeps having to convert into a failure.
  */
-const STATE_NODE_FLOOR = 20;
+const STATE_NODE_FLOOR = 12;
 const SWEEP_NODE_FLOOR = 8000;
 const SWEEP_STATE_FLOOR = 32;
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
@@ -548,19 +550,46 @@ const watchErrors = (page) => {
   return () => seen.splice(0, seen.length);
 };
 
-/** Click a rail destination and WAIT FOR THE PAGE TO BE THE ACTIVE ONE — not for a duration. If the
- *  nav ever stops marking the destination active, this hangs and then fails loudly, which is the
- *  correct outcome; a sleep would measure the previous page and call it a pass. */
+/** The Pages menu (UI redesign S1.2): the old rail, moved into the top bar's Pages menu with its hooks. The
+ *  tab row navigates too, but the sweep walks every LEGACY page, and only the menu lists them all by their
+ *  old names. Opened when it is closed; closed again by its own button. */
+const openPages = async (page) => {
+  if (await page.locator('[data-p3="pages-menu-list"]').count() === 0) await hooks.click(page.locator('[data-p3="pages-menu"]'));
+  await hooks.need(page, '[data-p3="pages-menu-list"]');
+};
+const closePages = async (page) => {
+  if (await page.locator('[data-p3="pages-menu-list"]').count() > 0) await hooks.click(page.locator('[data-p3="pages-menu"]'));
+};
+/** The rail's own labels, read from the `b` that carries them — the `small` beside it is the subtitle, and
+ *  taking the button's whole textContent would glue the two together. Read from the open menu. */
+const railLabels = async (page) => {
+  await openPages(page);
+  const labels = (await page.locator('[data-p3^="rail-page-"] [data-p3="rail-item-label"]').allTextContents()).map((s) => s.trim());
+  await closePages(page);
+  return labels;
+};
+/** WAIT FOR THE LEGACY FRAME TO SHOW THE PAGE — not for a duration. The frame states the legacy page it
+ *  shows (`data-legacy-page`, the rail hook's suffix). If navigation ever stops landing, this hangs and
+ *  then fails loudly, which is the correct outcome; a sleep would measure the previous page and call it a
+ *  pass. */
+const legacyShows = (page, slug) =>
+  page.waitForFunction((s) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === s, slug);
+/** Click a Pages menu destination by its label, and wait for the frame to show it. */
 const gotoPage = async (page, label) => {
-  await hooks.click(page.locator('[data-p3^="rail-page-"]').filter({ has: page.locator('[data-p3="rail-item-label"]', { hasText: label }) }).first());
-  await page.waitForFunction((l) => document.querySelector('[data-p3^="rail-page-"].active [data-p3="rail-item-label"]')?.textContent === l, label);
+  await openPages(page);
+  const item = page.locator('[data-p3^="rail-page-"]').filter({ has: page.locator('[data-p3="rail-item-label"]', { hasText: label }) }).first();
+  await hooks.need(page, item);
+  const slug = (await item.getAttribute('data-p3')).slice('rail-page-'.length);
+  await hooks.click(item);
+  await legacyShows(page, slug);
   await page.evaluate(() => document.fonts.ready);
 };
 /** The same wait, for a destination named by its rail hook rather than by its label — for the sections
- *  that drive one particular page. The sweep keeps `gotoPage`, because it reads its labels off the rail. */
+ *  that drive one particular page. The sweep keeps `gotoPage`, because it reads its labels off the menu. */
 const gotoRail = async (page, selector) => {
+  await openPages(page);
   await hooks.click(page.locator(selector));
-  await page.waitForFunction((sel) => document.querySelector(sel)?.classList.contains('active'), selector);
+  await legacyShows(page, hooks.role(selector).slice('rail-page-'.length));
   await page.evaluate(() => document.fonts.ready);
 };
 
@@ -618,7 +647,7 @@ const openBrand = async (brand, scheme) => {
   const drain = watchErrors(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
   await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
-  await hooks.need(page, '[data-p3^="rail-page-"].active');
+  await hooks.need(page, '[data-p3="legacy-frame"]');
   await page.evaluate(() => document.fonts.ready);
   return { ctx, page, drain };
 };
@@ -673,10 +702,8 @@ for (const brand of BRANDS) {
   ok(emission !== null && emission.modes.length >= 2,
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
-  // The rail's own labels, read from the `b` that carries them — the `small` beside it is the
-  // subtitle, and taking the button's whole textContent would glue the two together.
-  const pages = (await page.locator('[data-p3^="rail-page-"] [data-p3="rail-item-label"]').allTextContents()).map((s) => s.trim());
-  ok(pages.length >= 8, `${brand}: the rail offers ${pages.length} destinations`);
+  const pages = await railLabels(page);
+  ok(pages.length >= 8, `${brand}: the Pages menu offers ${pages.length} destinations`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
   //
@@ -1745,23 +1772,28 @@ ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip group
 //
 // #1031's mechanism has TWO necessary halves: the document opts into `color-scheme: light dark`, AND
 // a control leaves its `color` to the UA while the author paints its background from a light token.
-// Only then does the UA supply near-white ink over a light field. `apps/studio/index.html` declares
-// no `color-scheme` at all, so the first half is false here and the studio is structurally immune.
+// Only then does the UA supply near-white ink over a light field. Until UI redesign S1.2 the studio
+// declared no `color-scheme` at all, so the first half was false and the studio was structurally immune.
+// S1.2 gave the chrome a real dark scheme: in a dark theme the document resolves dark, so the first half
+// is now TRUE at the document, and the immunity moved onto every legacy surface, which is pinned light
+// with `data-theme="light"`. That is why the direct assertion below reads the popover and its controls,
+// not the document, and why this section's dark run is now the run that matters.
 //
 // MEASURED: adding `color-scheme: light dark` to the studio's shell and re-running this section
 // still passes — because the fix for #1031 also gave every studio control an author `color`, so
 // the second half is now false too. A ratio assertion under an emulated dark scheme therefore
 // catches this class only in combination with a NEW control that omits `color`, which is a real but
 // compound tripwire and not the one the comment above it originally claimed. So the first half gets
-// its own assertion, on the resolved `color-scheme` of the shell — one line, fails the moment the
-// opt-in appears, and independent of how well the stylesheet happens to be inked that week. The
+// its own assertion, on the resolved `color-scheme` of the popover and of each control in it — fails the
+// moment the opt-in reaches a legacy field, and independent of how well the stylesheet happens to be
+// inked that week. The
 // emulated-dark pass stays for the compound case: a control added later without a `color` fails here
 // and nowhere else.
 //
 // What none of this can cover is the artifact where the defect actually lived: `apps/plugin/dist/ui.html`,
-// built by another workspace. Its shell is the one that WAS opted in, and #1031 turned that off. That
-// bundle is measured by `apps/plugin/test-start-screen.mjs` §8 (#1041): the same direct `color-scheme`
-// arm, the same bars, both emulated schemes crossed with Figma's stubbed light and dark themes, every rail
+// built by another workspace. Its shell is the one that WAS opted in, and #1031 turned that off (S1.2
+// turned it back on, with the legacy surfaces pinned light). That bundle is measured by
+// `apps/plugin/test-start-screen.mjs` §8 (#1041): the same direct `color-scheme` arm, the same bars, both emulated schemes crossed with Figma's stubbed light and dark themes, every rail
 // page that host offers, and this popover — so a `light dark` opt-in coming back to the plugin shell
 // fails there by name, and nothing in this file claims to see it.
 console.log(`\nBrand-menu popover (#1031)\n${'='.repeat(78)}`);
@@ -1781,14 +1813,24 @@ for (const brand of BRANDS) {
     await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'smoke-brand');
 
     const where = `${brand} / brand menu / ${scheme} scheme`;
-    // #1031's FIRST HALF, asserted directly. `normal` is what the studio's shell resolves to (it
-    // declares nothing); `light` would also be fine. Anything naming `dark` hands the UA the field
-    // ink, the caret, autofill and native option lists from a dark palette over surfaces this
-    // stylesheet paints from light tokens unconditionally — and the option list is not something any
-    // in-page probe can measure, which is why the opt-in itself is the thing to hold.
-    const resolved = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
-    ok(resolved === 'normal' || resolved === 'light',
-      `${where}: the shell resolves a light-only color-scheme (resolved "${resolved}") — the studio paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
+    // #1031's FIRST HALF, asserted directly — on the POPOVER, since UI redesign S1.2. Until then the
+    // whole document resolved light (the studio declared nothing) and that was the line held here. The
+    // chrome now has a real dark scheme (the frame follows the device by default, so this arm's dark run
+    // has a dark document), and the legacy surfaces still painted from light tokens are pinned light with
+    // `data-theme="light"`. So the opt-in that matters is the popover's own, and each of its controls':
+    // anything naming `dark` there hands the UA the field ink, the caret, autofill and native option lists
+    // from a dark palette over a surface this stylesheet paints light, and the option list is not
+    // something any in-page probe can measure, which is why the opt-in itself is the thing to hold.
+    const schemes = await page.evaluate(() => {
+      const menu = document.querySelector('[data-p3="brand-menu"]');
+      return { menu: menu ? getComputedStyle(menu).colorScheme : 'unmounted',
+        fields: [...(menu?.querySelectorAll('input, select, textarea') ?? [])].map((f) => [f.getAttribute('data-p3') ?? f.tagName, getComputedStyle(f).colorScheme]) };
+    });
+    ok(schemes.menu === 'normal' || schemes.menu === 'light',
+      `${where}: the brand menu resolves a light-only color-scheme (resolved "${schemes.menu}") — it paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
+    const darkFields = schemes.fields.filter(([, cs]) => /\bdark\b/.test(cs));
+    ok(schemes.fields.length > 0 && darkFields.length === 0,
+      `${where}: every control in the brand menu resolves a light color-scheme (${schemes.fields.length} read${darkFields.length ? `; dark: ${darkFields.map(([h, cs]) => `${h} "${cs}"`).join(', ')}` : ''})`);
     await settle(page, where);
     const probe = await page.evaluate(LEGIBILITY_PROBE, '[data-p3="brand-menu"]');
     assertParsed(where, probe.unparsed);
@@ -1970,7 +2012,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   // The "Start blank" button by its own hook: the file-upload label beside it shares its class, and only
   // the button carries the `new` origin.
   await hooks.click(page.locator('[data-p3="start-blank"]'));   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
-  await hooks.need(page, '[data-p3^="rail-page-"].active');
+  await hooks.need(page, '[data-p3="legacy-frame"]');
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');
@@ -2240,7 +2282,7 @@ const PILL_CAPS = [200, 130];
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  const pages = (await page.locator('[data-p3^="rail-page-"] [data-p3="rail-item-label"]').allTextContents()).map((s) => s.trim());
+  const pages = await railLabels(page);
   const natural = [];
   const capped = new Map(PILL_CAPS.map((w) => [w, []]));
   for (const label of pages) {

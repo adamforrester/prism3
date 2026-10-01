@@ -44,6 +44,8 @@ import { sizeColumnHeader } from './size-labels';
 import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import { describeControl, paletteRefOptions, leverHook, type ControlOption } from './levers/controls';
+import { mountFrame, type Frame } from './shell/frame';
+import { glyph } from './shell/dom';
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin, type SeedOutcome,
@@ -58,7 +60,7 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, rebuild, syncIdentity, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
-  getPath, setPath, getModeLever, setModeLever, subscribe, invalidate,
+  getPath, setPath, getModeLever, setModeLever, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -235,7 +237,9 @@ const syncErrorBar = (): void => {
     if (lastError) console.error(`the 'error' chrome surface is not mounted in this view, so an engine error is going unreported: ${lastError} (#772)`);
     return;
   }
-  globalErrHost.style.display = lastError ? '' : 'none';
+  // `hidden`, not an inline `display`: the bar sits in the frame's notices row, which is chrome, and the
+  // chrome carries no runtime inline values (`test:chrome`).
+  globalErrHost.hidden = !lastError;
   if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -7903,6 +7907,8 @@ const hero = (title: string, lede: string): HTMLElement => {
 let app: HTMLElement;
 export const mountApp = (root: HTMLElement): void => { app = root; };
 let workspace: HTMLElement;
+/** The new frame (S1.2), while the app view is mounted; null on the start view. */
+let frame: Frame | null = null;
 let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
 let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
 
@@ -7952,9 +7958,10 @@ type ChromeSurface = {
   /** Stable identity. Stamped as `data-chrome` on the mounted node and published in the roster, so
    *  "is this surface actually there" is answerable from the rendered page rather than from this file. */
   readonly key: string;
-  /** `root` surfaces are mounted into the chrome header by `mountView`; `workspace` surfaces are minted
-   *  by `renderWorkspace` alongside the page they scope. */
-  readonly home: 'root' | 'workspace';
+  /** `root` surfaces are mounted by `mountView` into the chrome header on the start view, and into the
+   *  frame's notices row on the app view; `bar` surfaces into the frame's top bar (UI redesign S1.2);
+   *  `workspace` surfaces are minted by `renderWorkspace` alongside the page they scope. */
+  readonly home: 'bar' | 'root' | 'workspace';
   /** Which root views carry it. */
   readonly views: readonly RootView[];
   /** Mint the node. The mounter stamps and appends it, so a surface cannot land unstamped or in the
@@ -7983,8 +7990,9 @@ type ChromeSurface = {
  *  Uniform wrapping means moving a declaration cannot arm that trap. */
 const CHROME_SURFACES: readonly ChromeSurface[] = [
   {
-    key: 'brand-bar', home: 'root', views: ['app'],
-    mount: () => { barHost = hook(el('div', 'bar'), 'bar'); renderBar(); return barHost; },
+    key: 'brand-bar', home: 'bar', views: ['app'],
+    // The legacy half of the new top bar (S1.2): the frame owns the bar itself and lends this slot.
+    mount: () => { barHost = hook(el('div', 'p3-bar-main'), 'bar'); renderBar(); return barHost; },
     // NO `sync`, deliberately. `renderBar()` rebuilds `barHost` wholesale, and that node holds the open
     // brand menu, the Pages menu and the export dialog — refreshing it on every knob edit would close
     // whatever the designer had open, mid-gesture. It re-renders on its own events instead (menu
@@ -8082,18 +8090,40 @@ const chromeRoster = (view: RootView): string[] =>
  *  means "which surfaces does this view carry" is answered by the declaration rather than by whichever
  *  branch of `build()` happened to be written first. */
 const mountView = (view: RootView, body: () => HTMLElement): void => {
-  app.innerHTML = '';
   document.documentElement.dataset.chromeRoster = chromeRoster(view).join(' ');
-  // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
-  // the persistent mode selector. The mode bar is NOT tier 2 any more (#432) — it is minted into the
-  // workspace instead — so the chrome carries brand identity and app-level status.
-  const chrome = el('header', 'chrome');
-  chromeHost = chrome;
-  mountSurfaces('root', view, chrome);
+  if (view === 'app') {
+    // THE APP VIEW LIVES IN THE NEW FRAME (UI redesign S1.2, `shell/frame.ts`): the top bar, the tab row
+    // and the legacy frame. The frame is mounted once and outlives every render, so a tab keeps focus
+    // across the page change it causes; what is re-minted here, on every `build()`, is what the frame
+    // lends: the bar's legacy controls, the notices row and the legacy page.
+    if (!frame) {
+      app.innerHTML = '';
+      delete app.dataset.theme;
+      frame = mountFrame(app, { host: commit.isFigma ? 'figma' : 'web' });
+    }
+    chromeHost = frame.head;
+    frame.bar.replaceChildren();
+    frame.notices.replaceChildren();
+    mountSurfaces('bar', view, frame.bar);
+    mountSurfaces('root', view, frame.notices);
+    frame.legacyPage.replaceChildren(body());
+  } else {
+    frame?.unmount();
+    frame = null;
+    app.innerHTML = '';
+    // The start screen is legacy until S12, so it is pinned light like the legacy frame (D2).
+    app.dataset.theme = 'light';
+    // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
+    // the persistent mode selector. The mode bar is NOT tier 2 any more (#432) — it is minted into the
+    // workspace instead — so the chrome carries brand identity and app-level status.
+    const chrome = el('header', 'chrome');
+    chromeHost = chrome;
+    mountSurfaces('root', view, chrome);
+    app.append(chrome, body());
+  }
   // Sync AFTER the append, never before: a surface's first paint is its sync, and the initial state is
   // always DERIVED — page nav re-runs `build()`, so a hardcoded "hidden" at mount would drop a live
   // error the moment the user changed page, which is the hole #388 closed.
-  app.append(chrome, body());
   syncChrome();
   syncChromeHeight();
 };
@@ -8229,8 +8259,13 @@ function renderModeStrip(): void {
  *  now that it doesn't. Measured from the chrome element itself, and re-read whenever the chrome can
  *  change height: the global error bar shows and hides inside it. */
 function syncChromeHeight(): void {
-  if (chromeHost) document.documentElement.style.setProperty('--chrome-h', `${chromeHost.offsetHeight}px`);
+  // In the app view the frame owns the sticky region, and at narrow widths only its top row is sticky,
+  // so the frame measures it.
+  if (frame) frame.syncSticky();
+  else if (chromeHost) document.documentElement.style.setProperty('--chrome-h', `${chromeHost.offsetHeight}px`);
 }
+/** The sticky region's height, as last published. */
+const chromeHeight = (): number => parseFloat(document.documentElement.style.getPropertyValue('--chrome-h')) || 0;
 
 /** Every destination in the rail, keyed by `PageKey` — so a page added to `NAV` fails to compile
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
@@ -8488,6 +8523,9 @@ function renderWorkspace(): void {
   const focusedRadio = document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'radio'
     && workspace.contains(document.activeElement) ? document.activeElement : null;
   const radioName = focusedRadio?.name, radioValue = focusedRadio?.value;
+  // The search marks are cleared off the live regions first, so a region a search hid is compared on its
+  // content alone and kept when nothing else changed; `applySearch` marks the result again below.
+  clearSearchMarks();
   reconcileRegions(workspace, regions);
   if (focusedRadio && !focusedRadio.isConnected && radioName) {
     const again = [...workspace.querySelectorAll<HTMLInputElement>('input[type="radio"]')]
@@ -8499,8 +8537,45 @@ function renderWorkspace(): void {
   // surface's paint is honest: `syncErrorBar` judges itself by `isConnected` (#772), and syncing before
   // the reconcile would report a correct-but-not-yet-placed surface as the very defect it exists to find.
   syncChrome();
+  applySearch();
   syncStuck();
 }
+
+// ---- settings search over a legacy page (UI redesign S1.2, the owner's QA note Q3) -------------------
+// The search field lives in the new frame's levers header and writes `searchQuery` (`setSearch`); this
+// legacy surface subscribes to it, the P2 way, and filters the legacy page in view to it: a pass over the
+// rendered DOM that marks what does not match, never a re-render, so the field keeps its caret. A setting
+// is a `.knob`, matched on its label, its description and its lever key; a workspace region with no
+// matching setting is hidden with it, except the page's hero and the chrome surfaces. The count goes back
+// through `setSearchHits` for the field's status line. Bespoke editors (palette rows, the surfaces
+// grid, the gradient editor) are not knobs and are hidden while a search runs; real search over every
+// lever, with the page it lives on, arrives with the levers panel from S2.
+const SEARCH_HIDDEN = 'data-search-hidden';
+const clearSearchMarks = (): void => {
+  for (const n of workspace?.querySelectorAll(`[${SEARCH_HIDDEN}]`) ?? []) n.removeAttribute(SEARCH_HIDDEN);
+};
+function applySearch(): void {
+  if (!workspace?.isConnected) return;
+  clearSearchMarks();
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) { if (searchHits !== null) setSearchHits(null); return; }
+  const said = (k: Element): string => [
+    k.querySelector(':scope > .knob-label, .chips-legend')?.textContent ?? '',
+    k.querySelector('[data-p3="control-description"]')?.textContent ?? '',
+    ...[...k.querySelectorAll('[data-p3^="lever-"]')].map((n) => (n.getAttribute('data-p3') ?? '').slice('lever-'.length).replace(/-/g, ' ')),
+  ].join(' ').toLowerCase();
+  let hits = 0;
+  for (const k of workspace.querySelectorAll('.knob')) {
+    if (said(k).includes(q)) hits++;
+    else k.setAttribute(SEARCH_HIDDEN, '');
+  }
+  for (const r of workspace.children) {
+    if (r.classList.contains('hero') || r.hasAttribute('data-chrome')) continue;
+    if (!r.querySelector(`.knob:not([${SEARCH_HIDDEN}])`)) r.setAttribute(SEARCH_HIDDEN, '');
+  }
+  setSearchHits(hits);
+}
+subscribe('search', () => applySearch());
 
 /** The bar is sticky, so page content slides under it. Without a shadow that reads as a hard cut at
  *  the bar's own background colour rather than as a layer. `.stuck` is applied only once the bar has
@@ -8512,7 +8587,7 @@ function renderWorkspace(): void {
  *  exactly the situation where the user is reading an error. */
 function syncStuck(): void {
   if (!modeStripHost) return;
-  const chromeH = chromeHost?.offsetHeight ?? 0;
+  const chromeH = chromeHeight();
   modeStripHost.classList.toggle('stuck', modeStripHost.getBoundingClientRect().top <= chromeH + 0.5);
 }
 let stuckBound = false;
@@ -8557,6 +8632,14 @@ let importText = '';            // M-17: survives re-renders so a failed paste i
  *  it belongs to and the confirm button re-authors nothing. */
 let pendingLoad: { input: BrandInput; origin: Origin } | null = null;
 let outsideBound = false;
+/** True while `loadBrand` is inside `loadInput` — see there. */
+let loading = false;
+
+// A PAGE CHANGE REPAINTS THROUGH THE STORE (UI redesign S1.2). The new tab row, the Depth & motion switch
+// and the Pages menu all call `setPage` and nothing else; this legacy surface subscribes once, at module
+// load, and re-renders the legacy frame (the P2 pattern: one permanent subscription whose painter asks
+// whether its surface is live). The tab row subscribes separately, for its own selection.
+subscribe('page', () => { if (frame && !loading && !firstRun()) build(); });
 
 /** Replace the working brand wholesale (switch / new / import / host restore) and re-render.
  *
@@ -8571,7 +8654,10 @@ let outsideBound = false;
 const loadBrand = (input: BrandInput, origin: Origin): void => {
   // The store replaces the input, sets the provenance from that same value, and resets the view to
   // the first page and mode (`loadInput`); what is left here is this file's own menus and the render.
-  loadInput(input, origin);
+  // `loadInput` sets the page before it resolves the new brand, so the `page` subscriber must not
+  // render mid-load: the `build()` below is the one render, against the resolved brand.
+  loading = true;
+  try { loadInput(input, origin); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   build();
 };
@@ -8787,7 +8873,7 @@ const renderBrandMenu = (): HTMLElement => {
   };
   // The Examples `.cur` marker is computed from `brandState.id`, which the Name field below writes per
   // keystroke WITHOUT re-rendering this menu (a re-render mid-typing takes the caret with it). So the
-  // marker is patched in place, next to the `.bs-name` patch, from the SAME predicate the render uses
+  // marker is patched in place, next to the brand switcher's name patch, from the SAME predicate the render uses
   // (#1075) — otherwise it goes stale while the menu is open and only corrects on the next open. Which
   // key that predicate should compare (the id, or the origin) is #1073's question, deliberately not
   // answered here: whichever it becomes, render and patch read the one function.
@@ -8796,7 +8882,7 @@ const renderBrandMenu = (): HTMLElement => {
   const markCurrentExample = (): void => { for (const [name, b] of exampleItems) b.classList.toggle('cur', isCurrentExample(name)); };
   menu.append(field('Name', brandState.id, false, 'brand-menu-name', (v) => {
     brandState.id = v.trim() || 'untitled';
-    (barHost.querySelector('.bs-name') as HTMLElement).textContent = brandState.id;
+    (barHost.querySelector('.p3-brand-name') as HTMLElement).textContent = brandState.id;
     markCurrentExample();
     syncIdentity();   // #1196 — reach lastGoodInput (persist / Apply / design.md / filename) without a rebuild; the name is not in any ref, so no re-resolve
   }));
@@ -9230,32 +9316,36 @@ subscribe('host:progress', () => {
  */
 function renderSeedPill(o: SeedOutcome): HTMLElement {
   if (o.state === 'error') {
-    const pill = hook(el('span', 'bar-seed bad', o.message), 'status-pill');
-    pill.title = o.message;   // `.bar-seed` ellipsizes at 220px; the whole message is worth reading
+    const pill = hook(el('span', 'p3-pill p3-pill-bad', o.message), 'status-pill');
+    pill.title = o.message;   // the pill ellipsizes when the bar is crowded; the whole message is worth reading
     return pill;
   }
-  if (o.state === 'absent') return hook(el('span', 'bar-seed', 'No existing Prism3 theme in this file — start from the knobs.'), 'status-pill');
+  if (o.state === 'absent') return hook(el('span', 'p3-pill', 'No existing Prism3 theme in this file — start from the knobs.'), 'status-pill');
   // state 2 — the file is ours, its knobs are not recoverable. A success with a limitation.
   const text = isUnrecoverable(o)
     ? `${o.detail} — knobs not stored in this file, so these are defaults`
     : o.detail;
-  const pill = hook(el('span', 'bar-seed' + (o.contractOk ? '' : ' bad'), text), 'status-pill');
+  const pill = hook(el('span', o.contractOk ? 'p3-pill' : 'p3-pill p3-pill-bad', text), 'status-pill');
   pill.title = text;
   return pill;
 }
 
-function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide'): HTMLElement {
+function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide', where: 'bar' | 'row' = 'row'): HTMLElement {
   const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : which === 'styleguide' ? 'style guide' : 'component build';
+  // The same pill in two homes: the new top bar draws it in the chrome's own classes (S1.2), and a page
+  // row in the legacy frame keeps the legacy ones, which its row sync looks up to replace.
+  const inBar = where === 'bar';
+  const pendingPill = (text: string): HTMLElement => hook(inBar ? el('span', 'p3-pill', text) : el('span', 'bar-seed', text), 'status-pill');
   if (state === 'pending') {
     // The theme write's pending text is static and the component build's is not (#684), so only the
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
     // second; a 648-member build takes tens of seconds, which is precisely why it reports.
-    if (which === 'apply') return hook(el('span', 'bar-seed', 'Writing to Figma…'), 'status-pill');
+    if (which === 'apply') return pendingPill('Writing to Figma…');
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
-    if (which === 'filesetup') return hook(el('span', 'bar-seed', 'Setting up file…'), 'status-pill');
-    if (which === 'styleguide') return hook(el('span', 'bar-seed', 'Drawing the style guide…'), 'status-pill');
-    const node = hook(el('span', 'bar-seed', componentPendingText()), 'status-pill');
+    if (which === 'filesetup') return pendingPill('Setting up file…');
+    if (which === 'styleguide') return pendingPill('Drawing the style guide…');
+    const node = pendingPill(componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
     componentPendingEls.add(node);
@@ -9263,11 +9353,12 @@ function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, whic
   }
   const open = host.openDetail === which;
   const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');
-  const btn = hook(el('button', cls) as HTMLButtonElement, 'status-verdict');
+  const btn = hook((inBar ? el('button', state.ok ? 'p3-pill p3-pill-btn p3-pill-ok' : 'p3-pill p3-pill-btn p3-pill-bad') : el('button', cls)) as HTMLButtonElement, 'status-verdict');
+  if (inBar) btn.type = 'button';
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
   // type and color), and an element with a class but no rule is a name reserved against nothing — the
   // shape the scope law (#770) exists to make unspellable.
-  btn.append(document.createTextNode(state.headline), el('span', 'caret', open ? '▴' : '▾'));
+  btn.append(document.createTextNode(state.headline), inBar ? glyph('chev') : el('span', 'caret', open ? '▴' : '▾'));
   // The accessible name has to carry the headline, because the caret glyph is the only other content and
   // a screen reader would otherwise announce a bare triangle. `aria-expanded` states the disclosure, and
   // `aria-controls` names the row it opens — which lives in the chrome, not inside this button.
@@ -9300,7 +9391,7 @@ const syncApplyDetail = (): void => {
   // pill is not the open one: there is a single source for "which", and both the pill and this read it.
   const state = host.openDetail === 'apply' ? host.applyState : host.openDetail === 'components' ? host.componentState : host.openDetail === 'filesetup' ? host.fileSetupState : host.openDetail === 'styleguide' ? host.styleGuideState : null;
   const show = state !== null && state !== 'pending';
-  applyDetailHost.style.display = show ? '' : 'none';
+  applyDetailHost.hidden = !show;   // `hidden`, for the reason `syncErrorBar` gives
   if (show) applyDetailHost.textContent = state.summary;
   syncChromeHeight();
 };
@@ -9315,98 +9406,72 @@ subscribe('host:detail', () => { if (barHost) syncApplyDetail(); });
  *  import — a brand *source*), Export (artifact *output*), and, in the plugin only, the primary
  *  Apply-to-Figma CTA (the terminal action of the plugin flow). Modes live in the workspace
  *  mode-context strip (#171), not here. The bar is sticky (see `.bar`). */
+/** A legacy surface opened from the new chrome, pinned light (D2): `data-theme="light"` resets the chrome
+ *  variables and `color-scheme` beneath it, so its fields keep dark UA ink on their light ground in a dark
+ *  theme (#1031). */
+const pinLight = <E extends HTMLElement>(n: E): E => { n.dataset.theme = 'light'; return n; };
+
 function renderBar(): void {
   barHost.innerHTML = '';
-  const mark = el('div', 'brandmark');
-  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
-  barHost.append(mark);
-
-  const actions = el('div', 'bar-actions');
+  // THE LEGACY HALF OF THE NEW TOP BAR (UI redesign S1.2). The frame (`shell/frame.ts`) owns the bar and
+  // its theme toggle; this paints the controls the legacy code still owns into the slot it lends: the
+  // brand switcher, the plugin's write actions and their pills (until S1.4 moves them into the Figma menu
+  // and the Activity drawer), Export, and the Pages menu. Every control here wears the chrome's classes;
+  // the menus and dialogs they open are legacy surfaces, pinned light (`pinLight`).
 
   // Brand switcher — identity, examples, new, import.
   const bWrap = el('div', 'barmenu-wrap');
-  const sel = hook(el('button', 'brandsel' + (brandMenuOpen ? ' open' : '')) as HTMLButtonElement, 'brand-switcher');
-  const dot = el('span', 'dot'); dot.style.background = hex(oklchToRgb(brandState.primary));
-  sel.append(dot, el('span', 'bs-name', brandState.id), el('span', 'caret', '▾'));
+  const sel = hook(el('button', 'p3-brand') as HTMLButtonElement, 'brand-switcher');
+  sel.type = 'button';
+  sel.setAttribute('aria-expanded', String(brandMenuOpen));
+  // The swatch is the brand's color, so it is brand content: `data-content` marks it, and its inline
+  // background is the one runtime value the chrome may carry. The chrome's class sits on the frame
+  // around it, never inside it.
+  const sw = el('span', 'p3-swatch');
+  const dot = el('span');
+  dot.setAttribute('data-content', '');
+  dot.style.background = hex(oklchToRgb(brandState.primary));
+  sw.append(dot);
+  sel.append(sw, el('span', 'p3-brand-name', brandState.id), glyph('chev'));
   // Closing the menu discards a staged load with it (#1033) — an unanswered "Replace the current brand?"
   // must not be waiting behind a reopened menu, where the next click on Replace would answer a question
   // asked about a state that has since moved on.
-  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; } renderBar(); };
+  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; } renderBar(); };
   bWrap.append(sel);
-  if (brandMenuOpen) bWrap.append(renderBrandMenu());
-  actions.append(bWrap);
+  if (brandMenuOpen) bWrap.append(pinLight(renderBrandMenu()));
+  barHost.append(bWrap, el('span', 'p3-spacer'));
 
-  // Export — opens the export dialog (#723, replacing #159's dropdown). The affordance is unchanged:
-  // same `.barbtn`, same icon-only behavior at narrow widths, same accessible name. What changed is
-  // what it opens. The CARET IS GONE, and that is the one deliberate difference — a caret says "a menu
-  // drops from here", and this now opens a centered dialog. Keeping it would have been a small lie
-  // about where to look next.
-  const eWrap = el('div', 'barmenu-wrap');
-  const exp = hook(el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement, 'export-open');
-  // The word is its own span so the narrow bar can drop to icon-only (the arrow alone) without
-  // touching the arrow. Nested inside one span with the space INSIDE the label, so wide layout renders
-  // "↓ Export" exactly as before — no extra flex gap appears between them.
-  const expText = el('span');
-  expText.append(document.createTextNode('↓'), el('span', 'barbtn-lab', ' Export'));
-  exp.append(expText);
-  exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
-  exp.setAttribute('aria-haspopup', 'dialog');
-  exp.setAttribute('aria-expanded', String(exportMenuOpen));
-  exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; renderBar(); };
-  eWrap.append(exp);
-  actions.append(eWrap);
-
-  // Pages — the rail as a menu. Below 900 the rail stops being a sidebar (see the stylesheet); left
-  // as a static stack it is ~690px of destinations sitting above every page's content, so on a phone
-  // you scroll past the whole nav before reaching anything. Same dropdown pattern as the two controls
-  // beside it rather than a drawer — one overlay behaviour in this bar, not two. Hidden above 900,
-  // where the real sidebar is back.
-  const nWrap = el('div', 'barmenu-wrap');
-  const nav = el('button', mix('barbtn', 'navbtn', navMenuOpen ? 'open' : '')) as HTMLButtonElement;
-  const curPage = NAV.find((s) => s.key === page);
-  // Same nested-span shape as Export: the space lives INSIDE the label span, so hiding the label
-  // leaves a bare glyph with no orphaned whitespace and no extra flex gap.
-  const navText = el('span');
-  navText.append(document.createTextNode('☰'), el('span', 'navbtn-lab', ' ' + (curPage?.label ?? 'Pages')));
-  nav.append(navText, el('span', 'caret', '▾'));
-  nav.setAttribute('aria-label', 'Pages');
-  nav.onclick = (e) => {
-    e.stopPropagation();
-    navMenuOpen = !navMenuOpen; brandMenuOpen = false; exportMenuOpen = false; importOpen = false;
-    renderBar();
-  };
-  nWrap.append(nav);
-  if (navMenuOpen) nWrap.append(renderNavMenu());
-  actions.append(nWrap);
+  const actions = barHost;
 
   // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
   // web (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
   // eliminated; see `renderApplyStatus`). Its status is `applyState`; the #109 boot read-back keeps its own
   // pill, shown only until the first apply, after which the write's own result is the newer fact and
   // "what was in the file when I opened it" is no longer what the designer is asking about.
+  let applyBtn: HTMLButtonElement | null = null;
   if (commit.isFigma) {
     // #480: independent of the applyState/seedOutcome slot below — a restore refusal is a fact about
     // BOOT, not about the write button, and must stay visible even once an apply (or the read-back)
     // has something else to say in that slot.
     if (host.restoreError) {
-      // `title` carries the full message — the pill itself truncates (`.bar-seed` is a fixed-width,
-      // single-line, ellipsized slot), and this is the one boot fact worth reading in full.
-      const pill = hook(el('span', 'bar-seed bad', `Saved brand not restored — ${host.restoreError}`), 'status-pill');
+      // `title` carries the full message — the pill itself truncates when the bar is crowded, and this
+      // is the one boot fact worth reading in full.
+      const pill = hook(el('span', 'p3-pill p3-pill-bad', `Saved brand not restored — ${host.restoreError}`), 'status-pill');
       pill.title = host.restoreError;
       actions.append(pill);
     }
-    if (host.applyState) actions.append(renderApplyStatus(host.applyState, 'apply'));
+    if (host.applyState) actions.append(renderApplyStatus(host.applyState, 'apply', 'bar'));
     else if (host.seedOutcome) actions.append(renderSeedPill(host.seedOutcome));
     const pending = host.applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
     // second concurrent write over the same variables. Disabled while in flight is both the signal and
-    // the guard.
-    const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : 'Apply to Figma') as HTMLButtonElement;
+    // the guard. Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
+    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? '⋯ Applying…' : 'Apply to Figma') as HTMLButtonElement, 'apply-to-figma');
+    applyBtn.type = 'button';
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
     applyBtn.onclick = () => { setHost({ applyState: 'pending', openDetail: null }); renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
-    actions.append(applyBtn);
 
     // The component write's trigger USED TO SIT HERE (#483), a second action beside Apply. #718 moved it
     // to the Components rail page, and the move is a demotion — see `renderComponentsPage`. Apply is the
@@ -9418,21 +9483,22 @@ function renderBar(): void {
     // so a build's verdict stays legible after navigating away from the page that started it. A status
     // that vanished with its control would be worse than the control's old placement: a 648-member build
     // runs ~105s cold (#700), and nobody watches a rail page for that long.
-    if (host.componentState) actions.append(renderApplyStatus(host.componentState, 'components'));
+    if (host.componentState) actions.append(renderApplyStatus(host.componentState, 'components', 'bar'));
 
     // PRUNE (#1521; modes + all four style kinds since #1570) — a secondary action beside Apply: remove
     // the styles, modes and variables a config change dropped, which is the whole cleanup path for a
     // config that SHRANK (6 breakpoints down to 2 strands four `layout` modes and four grid styles).
     // It never writes, only deletes, and only after the designer confirms the count in the
     // dialog below — so the #479 / #1152 "never blind-delete on an apply" rule holds. Its verdict is its
-    // own `.bar-seed` pill (a preview that finds nothing stale, or the outcome of a delete), never the
-    // theme write's, for the same reason the component build keeps its own.
+    // own pill (a preview that finds nothing stale, or the outcome of a delete), never the theme
+    // write's, for the same reason the component build keeps its own.
     if (host.pruneVerdict) {
-      const pill = hook(el('span', 'bar-seed' + (host.pruneVerdict.ok ? '' : ' bad'), host.pruneVerdict.summary), 'status-pill');
-      pill.title = host.pruneVerdict.summary;   // `.bar-seed` ellipsizes at 220px; the full sentence is worth reading
+      const pill = hook(el('span', host.pruneVerdict.ok ? 'p3-pill' : 'p3-pill p3-pill-bad', host.pruneVerdict.summary), 'status-pill');
+      pill.title = host.pruneVerdict.summary;   // the pill ellipsizes when the bar is crowded; the full sentence is worth reading
       actions.append(pill);
     }
-    const pruneBtn = el('button', 'barbtn', host.pruneBusy === 'preview' ? '⋯ Checking…' : host.pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale') as HTMLButtonElement;
+    const pruneBtn = hook(el('button', 'p3-btn', host.pruneBusy === 'preview' ? '⋯ Checking…' : host.pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale') as HTMLButtonElement, 'prune-open');
+    pruneBtn.type = 'button';
     // Disabled while a prune is in flight AND while a theme apply is pending — a prune reads the same
     // variables an apply writes, so overlapping the two would race a delete against a create.
     pruneBtn.disabled = !!host.pruneBusy || host.applyState === 'pending';
@@ -9441,7 +9507,37 @@ function renderBar(): void {
     actions.append(pruneBtn);
   }
 
-  barHost.append(actions);
+  // Export — opens the export dialog (#723, replacing #159's dropdown). Concept v6 names it with the
+  // word alone; at narrow widths the word gives way to a glyph, and the accessible name stays "Export".
+  const eWrap = el('div', 'barmenu-wrap');
+  const exp = hook(el('button', 'p3-btn p3-btn-collapse') as HTMLButtonElement, 'export-open');
+  exp.type = 'button';
+  exp.append(glyph('export'), el('span', 'p3-btn-label', 'Export'));
+  exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
+  exp.setAttribute('aria-haspopup', 'dialog');
+  exp.setAttribute('aria-expanded', String(exportMenuOpen));
+  exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; navMenuOpen = false; importOpen = false; renderBar(); };
+  eWrap.append(exp);
+  actions.append(eWrap);
+
+  // Pages — the old rail, as a menu (D1, D5). The tab row navigates now; this keeps every legacy page
+  // reachable by its old name until its domain slice retires it, and S13 removes the menu.
+  const nWrap = el('div', 'barmenu-wrap');
+  const nav = hook(el('button', 'p3-btn p3-btn-collapse') as HTMLButtonElement, 'pages-menu');
+  nav.type = 'button';
+  nav.append(glyph('pages'), el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
+  nav.setAttribute('aria-label', 'Pages');
+  nav.setAttribute('aria-expanded', String(navMenuOpen));
+  nav.onclick = (e) => {
+    e.stopPropagation();
+    navMenuOpen = !navMenuOpen; brandMenuOpen = false; exportMenuOpen = false; importOpen = false;
+    renderBar();
+  };
+  nWrap.append(nav);
+  if (navMenuOpen) nWrap.append(pinLight(renderNavMenu()));
+  actions.append(nWrap);
+  if (applyBtn) actions.append(applyBtn);
+
 
   // The export dialog is appended to the BAR HOST, not inside `.barmenu-wrap` (#723). Two reasons, both
   // concrete: the wrap is `position:relative` for the dropdowns that hang off it, which would trap a
@@ -9449,11 +9545,11 @@ function renderBar(): void {
   // outside a `.barmenu-wrap`, so a dialog inside one would be dismissed by its own scrim click on the
   // way to the scrim's own handler. Ordering the two would have been the bug; not overlapping them is
   // the fix. `renderBar()` clears `barHost` on every call, so the dialog's lifetime is still one flag.
-  if (exportMenuOpen) barHost.append(renderExportDialog());
+  if (exportMenuOpen) barHost.append(pinLight(renderExportDialog()));
   // The prune confirm dialog (#1521), appended for the same reasons the export dialog is — a modal scrim
   // that must sit outside the relative `.barmenu-wrap` stacking context. Present only when a preview with
   // something to remove has landed; `renderBar()` clears `barHost` each call, so its lifetime is the flag.
-  if (host.prunePreview) barHost.append(renderPruneDialog());
+  if (host.prunePreview) barHost.append(pinLight(renderPruneDialog()));
 
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
@@ -9488,7 +9584,7 @@ function renderBar(): void {
  *  is silently lost on the way into the menu. */
 const renderNavMenu = (): HTMLElement => {
   // menu variant — navmenu re-skins the shared popover
-  const menu = el('div', mix('brandmenu', 'navmenu'));
+  const menu = hook(el('div', mix('brandmenu', 'navmenu')), 'pages-menu-list');
   menu.append(el('div', 'bm-cap', 'Pages'));
   const nav = railNav();
   nav.forEach((s, i) => {
@@ -9499,17 +9595,36 @@ const renderNavMenu = (): HTMLElement => {
     // (docs/23 §6's deferred Output group is exactly that) and survives `figmaOnly` filtering, which
     // changes which index the boundary lands on between the two hosts.
     if (isFirstView(nav, i)) menu.append(el('div', 'bm-div'));
-    const it = el('button', 'nav-item' + (s.key === page ? ' cur' : '')) as HTMLButtonElement;
+    // The rail's hooks and its `active` state came with it (S1.2, plan §4), so the suites' page sweep
+    // reaches every legacy page the way it did: `rail-page-<key>` in kebab-case, the label on its own hook.
+    const it = hook(el('button', 'nav-item' + (s.key === page ? ' cur active' : '')) as HTMLButtonElement, `rail-page-${s.key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`);
     const t = el('span', 'stage-t');
-    t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
+    t.append(hook(el('b', undefined, s.label), 'rail-item-label'), el('small', undefined, s.sub));
     it.append(t);
     it.onclick = () => {
       navMenuOpen = false;
-      if (page !== s.key) { setPage(s.key); build(); } else renderBar();
+      // `setPage` alone: the `page` subscriber re-renders the legacy frame, and with it this bar.
+      if (page !== s.key) setPage(s.key); else renderBar();
     };
     menu.append(it);
   });
   menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
+  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
+  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
+  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
+  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
+  // It sat at the foot of the rail, and came into the menu with it (S1.2).
+  //
+  // The two readings moved to `build-identity.ts` in #836, unchanged for the web and extended for the
+  // plugin, where the field used to be the literal `plugin` in every checkout. That made this the one
+  // chip that could have said which tree Figma was running and did not — and it was the OTHER field,
+  // `engine 0.21.0`, that eventually caught it on 2026-08-26. Both sentences below are now asserted in
+  // `test-build-identity.ts`; inline in this file they were unreachable by any test.
+  const stamp = hook(el('p', 'rail-build'), 'build-stamp');
+  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', buildChip(PRISM3_BUILD)));
+  stamp.title = buildTitle(PRISM3_BUILD);
+  menu.append(stamp);
   return menu;
 };
 
@@ -9620,40 +9735,9 @@ export const build = (): void => {
   // instead of being the one screen in the studio that renders outside the chrome entirely (#772).
   if (firstRun()) { mountView('start', () => renderStartScreen()); return; }
 
+  // The rail is gone (UI redesign S1.2, D1): the tab row in the frame navigates, and the old rail
+  // survives as the Pages menu in the top bar (`renderNavMenu`), with its hooks and its build stamp.
   const shell = el('div', 'shell');
-  const rail = el('nav', 'rail');
-  // Rail-as-data (docs/23 §7): a flat list of focused destinations, no ordinals — top-to-bottom order
-  // carries the compose sequence. The `view` destinations (Preview, then Components in the plugin) sit
-  // after a single divider — `isFirstView` places it; `railNav` decides which of them this host has.
-  const nav = railNav();
-  nav.forEach((s, i) => {
-    if (isFirstView(nav, i)) rail.append(el('div', 'rail-div'));
-    // One hook per destination, `rail-page-<key>` in kebab-case, so a suite can reach a page without its label.
-    const it = hook(el('button', 'stage' + (s.key === page ? ' active' : '')) as HTMLButtonElement, `rail-page-${s.key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`);
-    const t = el('span', 'stage-t');
-    t.append(hook(el('b', undefined, s.label), 'rail-item-label'), el('small', undefined, s.sub));
-    it.append(t);
-    it.onclick = () => { if (page !== s.key) { setPage(s.key); build(); } };
-    rail.append(it);
-  });
-  rail.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
-  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
-  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
-  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
-  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
-  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
-  //
-  // The two readings moved to `build-identity.ts` in #836, unchanged for the web and extended for the
-  // plugin, where the field used to be the literal `plugin` in every checkout. That made this the one
-  // chip that could have said which tree Figma was running and did not — and it was the OTHER field,
-  // `engine 0.21.0`, that eventually caught it on 2026-08-26. Both sentences below are now asserted in
-  // `test-build-identity.ts`; inline in this file they were unreachable by any test.
-  const stamp = el('p', 'rail-build');
-  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', buildChip(PRISM3_BUILD)));
-  stamp.title = buildTitle(PRISM3_BUILD);
-  rail.append(stamp);
-  shell.append(rail);
-
   workspace = hook(el('section', 'ws'), 'workspace');
   shell.append(workspace);
   mountView('app', () => shell);

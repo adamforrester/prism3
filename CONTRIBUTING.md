@@ -1144,6 +1144,17 @@ npm run test:smoke   -w @prism3/studio      # the headless DOM/interaction suite
                                             #   once (playwright is an apps/studio devDependency; the
                                             #   engine core stays dependency-free and buildless)
 npm run check:ignore -w @prism3/studio      # Vercel ignore list still matches the real bundle
+npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured as RENDERED (UI redesign
+                                            #   S1.2): host × theme × width over BOTH bundles, so run
+                                            #   it AFTER the web and plugin builds. Text 4.5:1, edges
+                                            #   and indicators 3:1, focus rings, 24px targets, the
+                                            #   fonts drawn (CDP, not document.fonts.check), no
+                                            #   shadows, no runtime inline values outside
+                                            #   [data-content], no horizontal scroll at 640, controls
+                                            #   represented by hook, the IA-2 layer order, and the
+                                            #   legacy frame map. Its colors are read from the render;
+                                            #   lint:contrast reads the declaration — partners, not
+                                            #   copies. Same one-off browser as test:smoke
 npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors — STATIC, the
                                             #   token VALUES. Its complement is test:smoke above, which
                                             #   measures what RENDERS; neither subsumes the other (a

@@ -45,7 +45,7 @@ import {
   ROOT, FONTS_DIR, CHROME_FONTS, C, P, loadModes, resolve, fontFaceCss, fontVarsCss, themeBlock, brandLeaks,
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
-import { VARS_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE } from './spec.mjs';
+import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE } from './spec.mjs';
 
 // Each chrome face's license file, beside the woff2 in `fonts/`. The copyright line the bundle's
 // notice carries is read from this file, never typed here, so the notice cannot drift from the
@@ -60,9 +60,10 @@ export const CHROME_CSS_FILE = join(ROOT, 'apps', 'studio', 'src', 'chrome.css')
 const NAMESPACE = 'p3-chrome';
 const rel = (p) => relative(ROOT, p).split('\\').join('/');
 
-/** The product's rows for one theme: each SHELL_VARS name, with the mockup's token path for that theme. */
+/** The product's rows for one theme: each SHELL_VARS name, with the mockup's token path for that theme,
+ *  or the product's own row (PRODUCT_VARS) for a name the mockup never mapped. */
 export function shellRows(mode, names = SHELL_VARS) {
-  const rows = VARS_FOR(mode);
+  const rows = [...VARS_FOR(mode), ...PRODUCT_FOR(mode)];
   return names.map((n) => rows.find((r) => r[0] === n) ?? n);
 }
 
@@ -85,7 +86,7 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
 
   // [map] every name must have a row, in both themes.
   const rows = { light: shellRows('light', names), dark: shellRows('dark', names) };
-  for (const r of rows.light) if (typeof r === 'string') fail('map', `SHELL_VARS names --p3-${r}, which no row in TILE_VARS (tokens.mjs) or V6_VARS (spec.mjs) maps`);
+  for (const r of rows.light) if (typeof r === 'string') fail('map', `SHELL_VARS names --p3-${r}, which no row in TILE_VARS (tokens.mjs), V6_VARS or PRODUCT_VARS (spec.mjs) maps`);
 
   // [fonts] each face's file must exist before anything reads it.
   for (const [, family, file] of CHROME_FONTS) {

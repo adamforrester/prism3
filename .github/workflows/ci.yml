@@ -249,6 +249,15 @@ jobs:
       - name: Plugin start-moment suite (#1197)
         run: npm run -w @prism3/plugin test:start
 
+      # UI redesign S1.2: the new shell's chrome, measured as rendered, in both hosts — text at 4.5:1,
+      # edges and indicators at 3:1, focus rings, 24px targets, the fonts actually drawn (CDP), no
+      # shadows, no runtime inline values, no horizontal scroll at 640, controls represented by hook,
+      # the IA-2 layer order, the Q2 header line, and the legacy frame map. A separate suite from smoke
+      # because its axes are host × theme × width, not page × mode × brand. AFTER BOTH BUILDS: it drives
+      # the studio's dist/main.js and the plugin's dist/ui.html. The browser comes from the verdict step.
+      - name: New shell chrome suite (UI redesign S1.2)
+        run: npm run -w @prism3/studio test:chrome
+
       # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
       # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
       # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file

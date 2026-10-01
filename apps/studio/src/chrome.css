@@ -1,5 +1,5 @@
 /*
- * The new shell's stylesheet (UI redesign, docs/superpowers/ui-redesign/implementation-plan.md §3.1).
+ * The new shell's stylesheet (UI redesign, docs/superpowers/ui-redesign/implementation-plan.md §3).
  *
  * Hand-written rules only. It reaches the bundle through the virtual import `p3:chrome-css`, after the
  * generated `--p3-*` variables, and `installStyles` receives it with `styles.css`, so the class-scope
@@ -8,10 +8,259 @@
  * reads anything but `var(--p3-*)`, reads a variable the map does not define, or leaves a mapped
  * variable unread. See `apps/studio/chrome/esbuild-plugin.mjs`.
  *
- * Classes here take the `p3-` scope, which `styles.css` does not use. Nothing wears them yet: the frame
- * arrives in S1.2, so these rules change nothing on screen today.
+ * Classes here take the `p3-` scope, which `styles.css` does not use. State is read from ARIA attributes
+ * and from the frame's `data-w` (width tier) and `data-layout` (legacy or panes), never from a shared
+ * state class.
+ *
+ * WHAT THIS STYLES IN S1.2: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with
+ * Color's sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes. The
+ * legacy surfaces inside it (the legacy page, the brand menu, the Pages menu, the dialogs) keep
+ * `styles.css` and are pinned light with `data-theme="light"`. So no rule here sets a font or a color
+ * on a container that holds legacy content: each chrome control sets its own, and legacy text keeps
+ * inheriting the legacy body's.
+ *
+ * Layering (IA-2): the top bar on `bar-bg`, the tab row on `levers-bg`, the preview pane on `bg-page`.
+ * Edges (B1): a control on the top bar takes `edge-bar`, a control on the levers ground takes `edge`.
+ * Radius (owner, 2026-10-01): containers take `radius-xl`, controls take `radius-lg`. No shadows (T5).
  *
  * The comments here ship in both bundles, so they are held to US English and the voice standard.
  */
-.p3-frame { background: var(--p3-bg-page); color: var(--p3-text); font-family: var(--p3-font-ui); }
+
+/* The app view's root gives up the legacy column box; the legacy page's column carries it now. */
+#app.p3-app { max-width: none; margin: 0; padding: 0; }
+
+/* ── the frame ───────────────────────────────────────────────────────────────────────────── */
+.p3-head { position: sticky; top: 0; z-index: 30; }
+.p3-panes { display: none; }
+.p3-ico { width: var(--p3-icon-xs); height: var(--p3-icon-xs); flex: none; display: block; }
+
+/* ── the top bar ─────────────────────────────────────────────────────────────────────────── */
+.p3-bar {
+  display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h);
+  padding: 0 var(--p3-space-300); background: var(--p3-bar-bg);
+  border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-bar-slot { display: contents; }
+.p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--p3-space-100); position: relative; }
+.p3-spacer { flex: 1 1 auto; }
+
+/* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
+.p3-btn, .p3-brand {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--p3-space-100); flex: none;
+  min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-200); border-radius: var(--p3-radius-lg);
+  border: var(--p3-bw-hairline) solid var(--p3-edge-bar); background-color: var(--p3-bg-page); color: var(--p3-text);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis);
+  line-height: var(--p3-lh-compact); white-space: nowrap; cursor: pointer;
+}
+.p3-btn:hover, .p3-brand:hover { border-color: var(--p3-field-edge-hover); }
+.p3-btn .p3-ico, .p3-brand .p3-ico { color: var(--p3-icon-2); }
+.p3-btn-primary { background-color: var(--p3-inv-bg); color: var(--p3-inv-text); border-color: var(--p3-inv-bg); }
+.p3-btn-primary:hover { background-color: var(--p3-inv-bg-2); border-color: var(--p3-inv-bg-2); }
+.p3-btn[disabled] { cursor: not-allowed; color: var(--p3-text-2); border-style: dashed; }
+.p3-btn-primary[disabled] { background-color: var(--p3-bg-page); border-color: var(--p3-edge-bar); }
+.p3-btn-ghost { border-color: transparent; background-color: transparent; }
+/* A ghost control shows an edge on hover, the bar's own (B1), instead of a wash. */
+.p3-btn-ghost:hover { border-color: var(--p3-edge-bar); }
+.p3-btn-icon { padding: 0; min-width: var(--p3-ctl-h-sm); }
+/* Export and Pages: the word at full width, the glyph alone when narrow (the accessible name stays). */
+.p3-btn-collapse > .p3-ico:first-child { display: none; }
+:is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item):focus-visible {
+  outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset);
+}
+
+/* The brand switcher: the brand's swatch, its name, a chevron. */
+.p3-brand { justify-content: flex-start; padding: 0 var(--p3-space-150); min-width: 0; flex: 0 1 auto; }
+.p3-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.p3-swatch {
+  display: block; flex: none; width: var(--p3-space-200); height: var(--p3-space-200); border-radius: var(--p3-radius-md);
+  overflow: hidden; outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
+}
+.p3-swatch > span { display: block; width: 100%; height: 100%; }
+/* The brand menu hangs from the switcher's left edge: the switcher starts the bar. */
+.p3-bar-main .barmenu-wrap:first-child .brandmenu { left: 0; right: auto; }
+
+/* Status pills (the plugin's write verdicts, until S1.4 moves them into the Activity drawer). */
+.p3-pill {
+  display: inline-flex; align-items: center; gap: var(--p3-space-050); flex: 0 1 auto; min-width: 0;
+  min-height: var(--p3-hit-min); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-pill);
+  border: var(--p3-bw-hairline) solid var(--p3-edge-bar); background: var(--p3-bg-page); color: var(--p3-text);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis);
+  line-height: var(--p3-lh-compact); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p3-pill-bad { color: var(--p3-bad-text); }
+.p3-pill-btn { cursor: pointer; overflow: visible; }
+.p3-pill-btn .p3-ico { color: var(--p3-icon-2); }
+.p3-pill-btn[aria-expanded="true"] .p3-ico { transform: rotate(180deg); }
+
+/* The theme menu: three radio items (F3). */
+.p3-popwrap { position: relative; display: inline-flex; }
+.p3-menu {
+  position: absolute; z-index: 40; top: calc(100% + var(--p3-space-050)); right: 0; display: grid; min-width: max-content;
+  padding: var(--p3-space-050); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
+  border: var(--p3-bw-hairline) solid var(--p3-line-2);
+}
+.p3-menu-item {
+  display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-150);
+  border: 0; border-radius: var(--p3-radius-lg); background: none; color: var(--p3-text); cursor: pointer; text-align: left;
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default); white-space: nowrap;
+}
+.p3-menu-item:hover { background: var(--p3-fill-1); }
+.p3-menu-item .p3-ico { color: var(--p3-icon-2); }
+.p3-menu-note { margin-left: auto; padding-left: var(--p3-space-200); color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-menu-item > .p3-ico:last-child { visibility: hidden; color: var(--p3-icon); }
+.p3-menu-item[aria-checked="true"] { font-weight: var(--p3-fw-emphasis); }
+.p3-menu-item[aria-checked="true"] > .p3-ico:last-child { visibility: visible; }
+
+/* ── the tab row (IA-1): the levers header ───────────────────────────────────────────────── */
+/* ONE HEADER HEIGHT (the owner's QA note Q2): the tab row and the preview's title row are both
+   `bar-h` tall and share one grid row in the two-pane layout, so their dividers meet at one y. */
+.p3-nav {
+  display: flex; align-items: center; gap: var(--p3-space-200); min-height: var(--p3-bar-h);
+  padding: 0 var(--p3-space-300); background: var(--p3-levers-bg); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+/* The tabs scroll sideways when they do not fit; the inline padding keeps the first tab's focus ring inside. */
+.p3-tabs {
+  display: flex; align-self: stretch; flex: 1 1 auto; min-width: 0; gap: var(--p3-space-200); overflow-x: auto; scrollbar-width: none;
+  padding: 0 var(--p3-space-075); margin: 0 calc(-1 * var(--p3-space-075));
+}
+.p3-tab {
+  position: relative; display: inline-flex; align-items: center; flex: none; min-height: var(--p3-bar-h); padding: 0;
+  border: 0; border-bottom: var(--p3-bw-thick) solid transparent; background: none; cursor: pointer; white-space: nowrap;
+  color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default);
+}
+.p3-tab:hover { color: var(--p3-text); }
+.p3-tab[aria-selected="true"] { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); border-bottom-color: var(--p3-text); }
+.p3-tab:focus-visible { outline: none; }
+.p3-tab:focus-visible::before {
+  content: ""; position: absolute; inset: var(--p3-space-150) calc(-1 * var(--p3-space-075)); pointer-events: none;
+  border: var(--p3-focus-width) solid var(--p3-ctl-edge); border-radius: var(--p3-radius-lg);
+}
+.p3-domrow { display: none; }
+.p3-selwrap { position: relative; display: block; flex: 1 1 auto; min-width: 0; }
+.p3-selwrap > .p3-ico { position: absolute; right: var(--p3-space-150); top: 50%; transform: translateY(-50%); color: var(--p3-icon-2); pointer-events: none; }
+.p3-select {
+  appearance: none; width: 100%; min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-500) 0 var(--p3-space-200);
+  border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); cursor: pointer;
+}
+.p3-select:hover { border-color: var(--p3-field-edge-hover); }
+
+/* Settings search (Q3): a magnifier at the end of the levers header opens a field in place. */
+.p3-search { display: flex; align-items: center; flex: none; min-width: 0; }
+.p3-search-box { display: none; }
+.p3-search[data-open="true"] { flex: 0 1 50%; }
+.p3-search[data-open="true"] .p3-search-open { display: none; }
+.p3-search[data-open="true"] .p3-search-box { display: flex; position: relative; align-items: center; gap: var(--p3-space-100); flex: 1 1 auto; min-width: 0; }
+.p3-search-box > .p3-ico { position: absolute; left: var(--p3-space-150); color: var(--p3-icon-2); pointer-events: none; }
+.p3-search-input {
+  flex: 1 1 auto; min-width: 0; min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-150) 0 var(--p3-space-500);
+  border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
+}
+.p3-search-input::placeholder { color: var(--p3-text-2); opacity: 1; }
+.p3-search-input::-webkit-search-cancel-button { appearance: none; }
+.p3-frame[data-w="narrow"] .p3-search-close { min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
+.p3-search-input:hover { border-color: var(--p3-field-edge-hover); }
+.p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-search-status:empty { display: none; }
+/* A setting the query does not match, and a section with none that do, on a legacy page. */
+.p3-legacy [data-search-hidden] { display: none !important; }
+
+/* Color's sub-pages, and the Depth & motion switch: a segmented tablist. Its track is the top bar's step,
+   so it reads on the gray tab row in both themes, and the selected segment's edge is measured against
+   that track (B1). The labels stay primary text: secondary text is under 4.5:1 on the dark track, so the
+   selected one is told apart by its fill, its edge and its weight. Concentric corners: the track's
+   radius-xl is the segment's radius-lg plus the track's inset. */
+/* Q1: the sub-pages sit under the tab row's divider, at the top of the levers panel. */
+.p3-subnav { display: flex; padding: var(--p3-space-150) var(--p3-space-300); background: var(--p3-levers-bg); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-subnav:empty { display: none; }
+.p3-seg {
+  display: inline-flex; gap: var(--p3-space-025); padding: var(--p3-space-025); min-width: 0;
+  border-radius: var(--p3-radius-xl); background: var(--p3-bar-bg);
+}
+.p3-seg-tab {
+  flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; cursor: pointer;
+  min-height: calc(var(--p3-ctl-h) - 2 * var(--p3-space-025)); padding: 0 var(--p3-space-300);
+  border: var(--p3-bw-hairline) solid transparent; border-radius: var(--p3-radius-lg); background: none;
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default);
+}
+.p3-seg-tab:hover { border-color: var(--p3-edge-bar); }
+.p3-seg-tab[aria-selected="true"], .p3-seg-tab[aria-pressed="true"] {
+  background: var(--p3-bg-page); border-color: var(--p3-edge-bar); font-weight: var(--p3-fw-emphasis);
+}
+.p3-pane-toggle { display: none; }
+
+/* ── notices: the engine error and the apply detail, legacy cards pinned light ───────────── */
+.p3-notices { padding: var(--p3-space-150) var(--p3-space-300) 0; background: var(--p3-bg-page); }
+.p3-notices:not(:has(> :not([hidden]))) { display: none; }
+
+/* ── the legacy frame (D1) ───────────────────────────────────────────────────────────────── */
+/* No background: the legacy page draws on the legacy body's ground, as it always has. */
+.p3-legacy { display: block; }
+.p3-switchrow { display: flex; padding: var(--p3-space-300) var(--p3-space-300) 0; }
+.p3-switchrow:empty { display: none; }
+
+/* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
+/* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
+   whatever either row holds. The sub-pages open the levers column under the line (Q1). */
+.p3-frame[data-layout="panes"] {
+  position: fixed; inset: 0; display: grid; grid-template-columns: 42% minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-areas: "bar bar" "notices notices" "nav phead" "subnav pbody" "levers pbody";
+}
+.p3-frame[data-layout="panes"] :is(.p3-head, .p3-panes, .p3-preview) { display: contents; }
+.p3-frame[data-layout="panes"] .p3-bar { grid-area: bar; }
+.p3-frame[data-layout="panes"] .p3-notices { grid-area: notices; }
+.p3-frame[data-layout="panes"] :is(.p3-nav, .p3-subnav) { border-right: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-frame[data-layout="panes"] .p3-nav { grid-area: nav; }
+.p3-frame[data-layout="panes"] .p3-subnav { grid-area: subnav; border-bottom: 0; }
+.p3-frame[data-layout="panes"] .p3-subnav .p3-seg { display: flex; width: 100%; }
+.p3-frame[data-layout="panes"] .p3-legacy { display: none; }
+.p3-levers {
+  grid-area: levers; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-levers-bg);
+  border-right: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-preview-head {
+  grid-area: phead; display: flex; align-items: center; gap: var(--p3-space-200); min-height: var(--p3-bar-h);
+  padding: 0 var(--p3-space-400); background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-preview-body { grid-area: pbody; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-bg-page); }
+
+/* ── narrow (Q7): one column, one sticky top row, the tabs as a select ───────────────────── */
+.p3-frame[data-w="narrow"] .p3-head { display: contents; }
+.p3-frame[data-w="narrow"] .p3-bar {
+  position: sticky; top: 0; z-index: 30; flex-wrap: wrap; min-height: var(--p3-ctl-h-sm);
+  gap: var(--p3-space-075); padding: var(--p3-space-025) var(--p3-space-150);
+}
+.p3-frame[data-w="narrow"] .p3-bar-main { flex-wrap: wrap; gap: var(--p3-space-075); }
+.p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
+.p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
+.p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
+.p3-frame[data-w="narrow"] .p3-btn-collapse { padding: 0; min-width: var(--p3-ctl-h-xs); }
+.p3-frame[data-w="narrow"] .p3-btn-collapse > .p3-ico:first-child { display: block; }
+.p3-frame[data-w="narrow"] .p3-btn-collapse > :is(.p3-btn-label, .p3-ico:last-child:not(:first-child)) { display: none; }
+.p3-frame[data-w="narrow"] .p3-nav { gap: var(--p3-space-100); padding: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-tabs { display: none; }
+.p3-frame[data-w="narrow"] .p3-domrow { display: flex; flex: 1 1 auto; min-width: 0; }
+.p3-frame[data-w="narrow"] .p3-search[data-open="true"] { flex: 1 1 auto; }
+.p3-frame[data-w="narrow"] .p3-nav:has(.p3-search[data-open="true"]) .p3-domrow { display: none; }
+.p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] :is(.p3-subnav, .p3-switchrow) .p3-seg { display: flex; width: 100%; }
+.p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-switchrow { padding: var(--p3-space-150) var(--p3-space-150) 0; }
+.p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
+.p3-frame[data-layout="panes"][data-w="narrow"] {
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-areas: "bar" "notices" "nav" "subnav" "levers";
+}
+.p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-head { grid-area: nav; }
+.p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-body { grid-area: levers; }
+.p3-frame[data-layout="panes"][data-w="narrow"][data-pane="settings"] :is(.p3-preview-head, .p3-preview-body) { display: none; }
+.p3-frame[data-layout="panes"][data-w="narrow"][data-pane="preview"] :is(.p3-levers, .p3-nav, .p3-subnav) { display: none; }
+.p3-frame[data-layout="panes"][data-w="narrow"] .p3-pane-toggle { display: inline-flex; }
+.p3-frame[data-layout="panes"][data-w="narrow"] .p3-bar { position: static; }
+
+/* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }
