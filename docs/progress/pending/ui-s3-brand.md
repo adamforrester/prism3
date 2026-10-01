@@ -52,7 +52,7 @@ The legacy Preview page: its `NAV` row, its `PAGE_COPY` and `PAGE_RENDERERS` row
 ### Traps
 
 - **Playwright will not click an `aria-disabled` element.** The locked High contrast dark keeps its focus stop, so the suite activates it by keyboard, which is the claim anyway.
-- **The lent Style guide is not chrome.** Its select and its specimen buttons are focus stops with 1px rings (`styles.css`). `test:chrome`'s ring walk stops at it, as it stops at a legacy page.
+- **The lent Style guide is not chrome.** Its select and its specimen buttons are focus stops with 1px rings (`styles.css`). `test:chrome`'s ring walk stops at it, as it stops at a legacy page (#1940).
 - **A `test:chrome` mutation run that rebuilds only the studio** fails on the web host alone: the plugin rows drive `apps/plugin/dist/ui.html`.
 
 ### Held for the owner
@@ -66,7 +66,7 @@ Each is the option closest to v6, picked and flagged under the overnight rule. N
 - **The warning glyph is v6's triangle**, added to the shell's glyphs; the kit's warning line used ✕ before, and nothing on Palettes used it.
 - **The Style guide is the legacy one, lent**, on a white card even in dark chrome (as Inspect's legacy views are), not v6's newer specimen page.
 - **At 380 the two Identity fields align on their bottoms**, so "Token namespace" can wrap above its field.
-- **The brand menu keeps Modes** beside Brand › Modes (the plan retires only Name and Namespace), and the two editors follow diverging rules: the menu has one High contrast toggle, keeps per-mode data when a mode goes, and never asks; Brand › Modes has a check per mode, asks before Dark off and drops what it lists. The orchestrator is filing an issue for the owner from the #1939 review; the menu is unchanged here.
+- **The brand menu keeps Modes** beside Brand › Modes (the plan retires only Name and Namespace), and the two editors follow diverging rules: the menu has one High contrast toggle, keeps per-mode data when a mode goes, and never asks; Brand › Modes has a check per mode, asks before Dark off and drops what it lists. Filed for the owner as #1943; the menu is unchanged here.
 - **Removing a custom mode that has overrides removes the mode and its overrides** (after Brand's confirm lists them). The legacy menu refused that removal.
 - **More modes than fit in the preview header show as a select of the same modes** (v6's slim-preview `modesel`), never a clipped radio, and the radios come back when they fit. At 640 the default theme's four radios already did not fit: the old scroll hid all of them past the control's edge, and nothing measured it.
 - **New neutral copy** (v6's unless marked; the orchestrator's review added the second list): "Brand name", "Token namespace", "Every token path starts with it. Renaming it renames every path.", "Rename namespace", "Rename every token path", "Renames every token path: ‹a›.color.text.primary becomes ‹b›.color.text.primary. Consumers referencing the old names stop resolving." (v6's with full paths for its "…"), "A namespace is lowercase letters, digits and hyphens, and starts with a letter." (new), "Personality words", "‹word›: ‹Label› → ‹value›, ….", "Modes on", "Always generated: it’s the base mode.", the four mode notes, "Off while dark is off: it follows dark.", "No overrides are set in this mode." (new), "Custom modes", "Based on", "Base of ‹name›" (new, the select's name), "Copies light or dark, then takes its own overrides.", "Add custom mode", "Remove ‹name›", "Continue to Color › Palettes".
@@ -94,4 +94,4 @@ Counts after the review round and the merge: `test:chrome` 8,422; `test:smoke` 3
 
 ### Not done
 
-- The Style guide's 1px focus rings and focusable specimen buttons are a legacy defect, measured and not fixed (one concern per PR); to be filed.
+- The Style guide's 1px focus rings and focusable specimen buttons are a legacy defect, measured and not fixed (one concern per PR); filed as #1940.
