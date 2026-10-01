@@ -7,6 +7,113 @@
 
 ---
 
+## (2026-10-01) — Container radius rungs: radius.xl, radius.2xl and radius.3xl follow the radius lever (#1852)
+
+**STATUS: PR open from `lane/radius-large-rungs`, labeled DO NOT MERGE.** ENGINE bump by change note (`engine: minor`). CONTRACT 14.0.0 → 14.1.0 (MINOR, three guaranteed paths added), baseline accepted with `token-contract.ts --accept`.
+
+**What was wrong.** At the default scale the radius roles were `none` 0, `sm` 2, `md` 4, `lg` 6, then the pills. A container wanting 8-16px corners bound a `core.dimension.*` primitive, which `radiusScale` never moves, so its corner stopped following the brand. The UI redesign's style tiles hit it (their `core.dimension.8` and `.12` corners).
+
+**Owner decision (2026-09-30).** Three container rungs: `xl` 8px, `2xl` 12px, `3xl` 16px at `radiusScale` 1, that is `baseMd` × 2, × 3 and × 4. The lane first proposed two rungs (8 and 16, reaching 12 only through the lever) and held the 12px question. The owner chose three, so the ladder reproduces Prism 2's whole container ramp and the t-shirt sequence stays unbroken.
+
+**What changed.** Three rungs on the scaled ladder in `scale.ts`. At `baseMd` 4:
+
+| rung | 0 | 0.5 | 1 | 1.5 | 2 |
+|---|---|---|---|---|---|
+| `xl` | 0 | 4 | 8 | 12 | 16 |
+| `2xl` | 0 | 6 | 12 | 18 | 24 |
+| `3xl` | 0 | 8 | 16 | 24 | 32 |
+
+Every emission reads `theme.dims.radius`, so nothing else needed wiring: DTCG, per-mode overrides, the Figma `radius` collection, `.ai.json`, `tokens.html`, the modes and fidelity reports.
+
+**The evidence.** Prism 2's container radius ramp is 2/4/6/8/12/16, which is 0.5/1/1.5/2/3/4 × 4px. The engine's ladder already reproduced its first three steps, and `xl`/`2xl`/`3xl` are the other three. The standard-dialect example brief corroborates: its own `m` 8, `l` 12 and `xl` 16 now match rungs in its fidelity report, where before they had no equivalent. `3xl` stays under the `round` pill at any legal input (at most `baseMd` 12 × 4 × scale 2 = 96 < 128).
+
+**The #1015 question does not reopen.** The selection-control corner is still clamped from `radius.sm` (`controlRadius`), so no new rung reaches a 12-24px box.
+
+**A sort bug the new names exposed.** `emit-figma-dims.ts`'s `byNumericKey` used `parseFloat`, which reads `'2xl'` as 2 and `'3xl'` as 3, so both listed first in the Figma collection, ahead of `none`. It now treats a key as numeric only when the whole key is a number. No other collection moved: `2xl`/`3xl` are the first digit-led t-shirt keys to pass through that sort (layout modes do not use it). `emit-figma-color.ts` carries its own copy of the helper, whose comment claimed to mirror this one; it now uses the same whole-key rule and no colour output moves. **Caveat, as for #1594:** this fixes creation order only. The plugin cannot reorder variables in a file that already holds the radius collection, so there the three rungs are appended after `capsule` (and `hairline`). Only a newly built file gets ladder order.
+
+**Studio deferred to #1881.** `lint-ramp-steps.ts` fails when an engine rung is missing from the studio's `RADIUS_STEPS` and not declared. `apps/studio/src` belongs to the UI redesign lane, so this PR declares `xl`, `2xl` and `3xl` in that ramp's `omits`, citing #1881. Adding them to the list alone is not enough: `rp.dims` holds only preview-bound refs, so they would render at 0px (#1177). #1881 carries both halves and the removal of the three `omits`.
+
+**Review follow-ups folded in.** `test.ts`'s L-03 probes, including `radiusScale(1000)`, are now wrapped, and so is the #1852 block's ladder call. Before, a rung that ignored the lever made `radiusScale` throw and aborted the whole suite before any later block ran. It now fails by name. A literal assertion pins `3xl` at 96px, under `round`'s 128, at the largest legal input. `lint-ramp-steps.ts` checked `omits` in one direction only (the #387 shape in `docs/34`). It gains arm C (STALE OMISSION: an omitted rung that the studio's list now shows) and arm D (UNKNOWN OMISSION: an omitted rung that is not in any compared ladder).
+
+**Traps for whoever re-verifies.**
+- The test oracle is literal per lever stop and per brand, never `RADIUS_LADDER`'s factors. A test that recomputed `snap2(baseMd × factor × scale)` would agree with any factor edit.
+- `L-03`'s small-scale assertion enumerates the whole ladder (`0,0,2,2,2,4,4` at scale 0.25). A rung added later moves it too.
+- The contract baseline was re-accepted from `main`'s 14.0.0 copy when the third rung arrived. Accepting on top of the two-rung baseline would have demanded 14.2.0 for what ships as one MINOR.
+- No component binds the new rungs yet. Which surface uses which rung is a design call for the redesign and component lanes.
+
+---
+
+## (2026-09-30) — The paste packer re-measures what it ships, and the out-of-order chunk guard is tested (#1814)
+
+**STATUS: PR open from `lane/paste-packer-remeasure`, labeled DO NOT MERGE.** Engine bump owed (`engine: patch`, change note `lane-paste-packer-remeasure.md`): no committed artifact moves, and the chunks are the same for every set and budget measured.
+
+**1. The re-measure.** When the last chunk (the one carrying the properties) came out over budget, `planSetChunks` moved one variant into a new chunk and never measured again. The move adds a chunk, so `TOTAL` can gain a digit and widen every header by a byte. Now a loop emits every chunk as it will ship, finds the first chunk of more than one variant that is over budget, passes its last variant to the front of the next chunk (or a new last chunk), and measures again. A single-variant chunk over budget stays, as before.
+
+**What the measurement found, which the issue did not expect.** The digit cannot push a chunk over with the current packer, so the test the issue asked for ("a budget tuned so the move happens and the digit bump pushes a chunk over") cannot be built. The packer's estimate charges a comma for every variant, and a chunk of k variants ships k - 1 commas, so every packed chunk measures at least one byte under its estimate, and that byte absorbs the wider `TOTAL`. Measured on `main`: for each of six defs whose set packs into 10 chunks ending in a single-variant chunk at some budget, re-packing at a budget one byte under the largest shipped chunk put no chunk over. The margin was real and unstated; the loop now makes the property hold by measurement, and the comment beside it says where the byte comes from.
+
+**What the tests can and cannot catch.** The textarea set at 124 budgets (30,000 to 42,000 in 97-byte steps) needs a move at 14 of them, always off the last chunk. With the loop disabled, those 14 ship an over-budget last chunk, and the sweep arm fails by name. Replacing the new code with `main`'s leaves every arm green, because `main`'s one move already handled the last chunk and the digit case never occurs. The move into a middle chunk is likewise unreachable with real sets.
+
+**2. The out-of-order guard.** Chunk 2 of #1798's split grid, pasted on an empty page, now has a test: `set: null`, the literal `NOT FOUND … paste the chunks in order` miss, and nothing on the page. Mutating `FIRST` to `true` fails it by name.
+
+**Review round.** The middle-chunk move was unreachable with real sets, so two reviewer mutations were not caught. One sent the moved variant to the back of the next chunk instead of the front, and the suite stayed green. The other let a one-variant chunk be split, which crashed the suite with a TypeError instead of failing by name. Two changes close them:
+- The loop is now its own export, `settleChunks`, taking a `ship` function. A test drives it with made-up weights, worked by hand, that force a move out of a middle chunk. It asserts the exact chunks: order kept, no chunk empty, and a one-item chunk over budget left alone.
+- `test.ts` now prints the failures it has already recorded when a later line throws. Before this, the crash that the second mutation causes at the first `planSetChunks` call hid the arm that had already named it.
+
+---
+
+## (2026-09-30) — The paste script refuses a set whose axes changed, and places a new set beside the page's content (#1809)
+
+**STATUS: PR open from `lane/paste-axes-placement`, labeled DO NOT MERGE.** Engine bump owed (`engine: minor`, change note `lane-paste-axes-placement.md`).
+
+**What was wrong.** The plugin got two find-or-create fixes, #1780 (#1808: refuse a set whose variant axes differ from the plan's) and #1750 (place a new set beside the page's content). The MCP paste script's chunk body (`PAYLOAD_CHUNK_BODY` in `anatomy-figma.ts`) has its own find-or-create and got neither. A paste after an axis change appended every member into the old set, which Figma then reports as broken, and a second set pasted onto a page landed at the origin over the first.
+
+**The fix.** Both rules are written into the chunk body again, not shared: the paste script cannot import the plugin, and a shared helper would leave the parity arm comparing one function with itself (docs/34 shape 2).
+- **Refusal.** The axis lists are read off the member names, as `memberAxisLists` does. The miss is the plugin's string, character for character, and the result carries `axesChanged` as the plugin's does.
+- **On every chunk, not only chunk 1.** The issue said only chunk 1 needs the check, since later chunks append into the set chunk 1 made. That holds when chunk 1 created the set. When chunk 1 was refused, chunk 2 finds the old set by name and would append into it. On a set chunk 1 made, the check always passes, so running it everywhere costs nothing but bytes. Mutation a2 (`if(set&&FIRST)`) shows the difference.
+- **Placement.** `placeNewSet`'s rule: top-aligned with the sets already there (or all content when there is none), 160 right of everything overlapping the set's row. Only when the chunk creates the set, which is chunk 1. A set that exists keeps its position.
+
+**The deliberate limit.** Chunk 1 places the set using its own height. Later chunks grow the set down and right and do not move it, while the plugin places once at the finished height. So a node below chunk 1's rows but inside the finished set's rows can be covered by the paste where the plugin would have pushed past it. Filed as #1856 rather than fixed here.
+
+**Bytes.** Every chunk carries the new code. The first, indented spelling cost 1,511 bytes of shell; the compacted one costs 1,176. Either way icon-button's set packs into 16 chunks, up from 14, and the pin in `test.ts` moves with a note. The position read-back the plugin has was left out: the stub stores `x`/`y` as plain fields, so no gate could make it fail.
+
+**Tests** (`test.ts`, the `#1809` block after the #1798 split grid). Every expectation is a literal: the miss strings, the axis lists, the pinned 504x348 box of the 36-member button set, and every coordinate (664,0 beside it; 1160,0 past a note in the row but not a header above; 760,40 beside content with no set). The plugin runs on the same page states as the parity arms.
+
+**Review round.** Independent review found two arms missing, each shown by a mutation that left the suite green. First, a hand-made child (`Button copy`) inside the existing set: the coordinate-name filter keeps it from counting as an axis list, so pasting all 36 still appends the 9 new members. Second, a node wholly below the row: it does not push the set, which stays at 664,0. Both arms run the paste and the plugin on the same page state, and each reviewer mutation now fails its arm by name.
+
+---
+
+## (2026-09-30) — An exclusion may not name the weight-intent axis (#1746)
+
+**STATUS: PR open from `lane/weight-intent-exclusions`, labeled DO NOT MERGE.** Engine bump owed (`engine: minor`, change note `lane-weight-intent-exclusions.md`).
+
+**What was wrong.** When a brand ships one weight for a group, `applyWeightIntent` drops the weight axis from `variantAxes` but leaves `excludeCoordinates` alone. An entry naming the dropped axis then never matches in the projector, because no coordinate carries the axis, while `figmaVariantCount` ignores the missing axis and applies the rest of the entry. Measured on a synthetic field-label with `[{ weight: ['bold'], size: ['large'] }]` at `{ body: ['default'] }`: 12 members projected, 8 counted, and #1355's integrity check fires. No def triggers it today.
+
+**The choice: refuse at validation, not rewrite (my technical call; the issue offered both).** `validateComponentDef`'s weightIntent block now refuses any entry that names the weightIntent axis, by index. A rewrite would have to decide what "exclude bold here" means once bold and regular are one member: drop the entry when it excludes only some weights, and drop just the axis key when it excludes all of them. That rule would then have to hold alike in `applyWeightIntent` and in anything that re-derives the count. The refusal is three lines, and no def in the registry needs the combination. If one ever does, the rewrite is the way to lift the refusal.
+
+**Tests** (`test.ts`, beside the sparse-grid arms). Literal counts on a synthetic field-label: the refusal by name, and in the second entry only; an exclusion on the other axes validates and survives the collapse with projector and count agreeing (20, then 10); and the fixture that shows why, where the refused combination collapses to 12 projected against 8 counted.
+
+---
+
+## (2026-09-30) — The prose gates read the MCP server's tools/list as served (#1806)
+
+**STATUS: PR open from `lane/mcp-prose-scope`, labeled DO NOT MERGE.** ENGINE bump by change note (`engine: patch`: one served description sentence changes, and no committed artifact moves).
+
+**What was wrong.** Neither `lint-us-english.ts` nor `lint-voice.ts` read the MCP server's tool and argument descriptions, which every connecting agent reads. `catalogue` shipped there twice and passed CI; #1804 fixed both by hand before merging, so nothing in a gate would catch the third.
+
+**What changed.**
+- **`mcp-served.ts`** spawns `mcp.ts` over stdio, as `mcp-test.ts` does, sends one `tools/list` and returns the reply. A failure is an `error`, never an empty list. Only this acquisition is shared: each gate applies its own rules and its own literal list of the six tool names.
+- **Both gates scan every string in each served tool, one at a time.** US English runs `enGb`; the voice gate runs the §2 rules and `normative`. A hit names its JSON path (`list_levers.description`). The first cut scanned `JSON.stringify(tool, null, 2)`, and review measured the hole: JSON writes a newline as the two characters `\n`, which glue onto the next word, so `\nSimply … MUST … \nMUST NOT` caught 1 of 3 and `\nprogramme` passed. The gates now walk the parsed reply, values and keys. A reply that lacks a listed tool, has a tool with no description, or does not arrive is `blind`, fatal before any verdict. A tool added to the server is scanned without being listed, because the scan walks the reply.
+- **One real hit, fixed.** `theme_from_brief`'s `brief` description said "MUST open with a --- YAML frontmatter fence". The voice standard allows RFC 2119 levels only in the payload channel, and an MCP description is not that channel. It now says "It must open with…", the wording `design-md.ts`'s own error uses.
+
+**Why the served reply and not a grep of `mcp.ts`.** `toolDefs` assembles the list at request time, and part of it is the inlined theme schema's summaries. A source grep would read comments that never ship and would miss that schema text. It is also the surface an agent actually receives.
+
+**Traps for whoever re-verifies.**
+- **The server is spawned as one node process.** Under tsx, `mcp-served.ts` reuses `process.execArgv`, which holds tsx's loader flags, instead of `npx tsx`. With `npx tsx`, a timeout would kill the outer process and orphan the inner one. tsx is not a repo dependency, so its path cannot be named directly.
+- **The `--files` flag does not list this surface.** It prints files, and this surface is not one. The headline's per-surface counts do show it, as "6  MCP tools/list".
+- **The en-GB half had nothing to find today**, because #1804 cleaned it by hand. Its mutation (`catalogue` put back into `list_levers`'s description) is what shows it can fail. The voice half found a real hit on its first run.
+
+---
+
 ## (2026-09-30) — Engine README: how to connect an agent to the local MCP server (#1860)
 
 **STATUS: PR from `docs/mcp-connect-readme`.** Docs only, so no ENGINE bump.
