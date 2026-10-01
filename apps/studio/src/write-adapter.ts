@@ -17,7 +17,7 @@
  * PURE-adjacent: imports only TYPES (the engine's, and the plugin's wire contract) + DOM. No `node:*`.
  */
 import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
-import type { UiToMain, StyleGuideOptions } from '../../plugin/src/messages';
+import type { UiToMain, MainToUi, OfType, StyleGuideOptions } from '../../plugin/src/messages';
 
 type Mode = ResolvedPreview['modes'][number];
 
@@ -207,6 +207,112 @@ export type StyleGuideOptionsMsg = StyleGuideOptions;
 /** Post one message to the main thread; the bridge unwraps `{ pluginMessage }`. */
 const post = (msg: UiToMain): void => parent.postMessage({ pluginMessage: msg }, '*');
 
+/** The INBOUND wire shape is the plugin's own `MainToUi` (#1840), imported as a TYPE like `UiToMain` above.
+ *
+ *  It still arrives over `postMessage`, so it is validated field by field rather than cast: the sender is
+ *  another context, and an older or newer host build can send a different shape. What changed is where
+ *  the validator gets its field NAMES. It used to read a loose shape written out here beside `MainToUi`,
+ *  so a field renamed in `messages.ts` kept being read under its old name, arrived as `undefined`, and
+ *  no typecheck or test noticed. Each validator below now receives `Untrusted<member>`: the member's own
+ *  keys, every value `unknown`. Reading a key the member does not have is a compile error at the read,
+ *  while every value is still checked before it is used. */
+type Untrusted<M> = { readonly [K in keyof M]?: unknown };
+type Validator<K extends MainToUi['type']> = (m: Untrusted<OfType<MainToUi, K>>) => HostMessage | null;
+
+/** A `{ok, headline, summary}` verdict. `headline` falls back to the ok flag, not to the summary: a host
+ *  build older than the headline field sends none, and letting the ~150-char summary land in the pill
+ *  would restore exactly the truncation the field exists to remove. */
+type VerdictKind = 'apply-result' | 'component-result' | 'file-setup-result' | 'style-guide-result';
+const verdict = (kind: VerdictKind, m: Untrusted<OfType<MainToUi, VerdictKind>>, okText: string, failText: string): HostMessage => {
+  const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? okText : failText;
+  return { kind, ok: !!m.ok, headline, summary: String(m.summary ?? '') };
+};
+
+/** One entry per `MainToUi` kind, keyed by the union itself, so a kind added in `messages.ts` is a compile
+ *  error here until it is either handled or declared `null`. `null` means the kind is not this adapter's:
+ *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
+ *  table has no side effects and the web bundle, which never calls `toHostMessage`, drops it whole. */
+const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
+  'apply-result': (m) => verdict('apply-result', m, '✓ applied', '✗ apply failed'),
+  // The default says "built" without a count, because an older host that sends no headline sends no
+  // counts to put in one either.
+  'component-result': (m) => verdict('component-result', m, '✓ built', '✗ build failed'),
+  'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
+  'style-guide-result': (m) => verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'),   // #259
+  'component-progress': (m) => {
+    // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
+    // above, which fall back to a default headline. A result is a fact the designer is waiting for,
+    // so a degraded one is still worth showing; a progress reading is one of dozens and the next one
+    // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
+    const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
+    const done = n(m.done);
+    const total = n(m.total);
+    // `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
+    // unknown phase from a newer host should not print its name.
+    const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
+    return phase && done !== null && total !== null && total > 0
+      ? { kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 }
+      : null;
+  },
+  'prune-result': (m) => {
+    // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
+    // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.
+    const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
+    if (count === null) return null;
+    // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
+    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) };
+  },
+  // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
+  // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
+  // claims nothing about a stored input, whereas defaulting true would assert the file is ours
+  // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
+  'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present }),
+  'restore-input': (m) => (m.input ? { kind: 'restore-input', input: m.input } : null),
+  'restore-input-empty': () => ({ kind: 'restore-input-empty' }),
+  'restore-input-error': (m) => ({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') }),
+  'font-list': (m) => {
+    if (!Array.isArray(m.families)) return null;
+    // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
+    // rather than guaranteed, and a non-string would reach `textContent` downstream.
+    //
+    // `styles` is index-parallel to `families`, so the two must be filtered TOGETHER — filtering
+    // names first and mapping counts afterwards would shift every count by the number of dropped
+    // names and mis-report every family after the first bad one. Zip, then drop pairs.
+    const rawStyles = Array.isArray(m.styles) ? (m.styles as unknown[]) : null;
+    const families: string[] = [];
+    const styles: number[] = [];
+    (m.families as unknown[]).forEach((f, i) => {
+      if (typeof f !== 'string') return;
+      families.push(f);
+      // A missing/!finite count reads as 0 = "unknown", which the UI renders as a bare tick rather
+      // than inventing a number. Older hosts send no `styles` at all, which lands here too.
+      const n = rawStyles ? rawStyles[i] : undefined;
+      styles.push(typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+    });
+    return { kind: 'font-list', families, styles };
+  },
+  // The agent link's messages. The panel's own listeners read them (`agent-link-ui.ts`, and the bridge
+  // relay in `agent-bridge-relay.ts`); the shared UI body never does.
+  'agent-link-state': null,
+  'agent-result': null,
+  'agent-progress': null,
+  'agent-log': null,
+};
+
+/** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,
+ *  so `test-write-adapter.ts` drives it with literals. The `type` is looked up as an OWN key of `INBOUND`,
+ *  so an inherited name such as `toString` is dropped like any other unknown kind. */
+export const toHostMessage = (data: unknown): HostMessage | null => {
+  const m: unknown = data ? (data as { pluginMessage?: unknown }).pluginMessage : undefined;
+  if (!m || typeof m !== 'object') return null;
+  const type = (m as { type?: unknown }).type;
+  if (typeof type !== 'string' || !Object.prototype.hasOwnProperty.call(INBOUND, type)) return null;
+  // Each validator's parameter is its own member's keys, so the table is a union of functions; the lookup
+  // has already matched `type` to the member, which the compiler cannot follow through a string index.
+  const validate = INBOUND[type as MainToUi['type']] as ((m: object) => HostMessage | null) | null;
+  return validate ? validate(m) : null;
+};
+
 /** Figma commit — the DOM-only bridge half (no `figma.*`; lives in the iframe). Posts to the
  *  main thread via `parent.postMessage` and listens for the main thread's replies. */
 const figmaCommit = (): HostCommit => ({
@@ -236,89 +342,8 @@ const figmaCommit = (): HostCommit => ({
   },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
-      const m = (e.data && e.data.pluginMessage) as
-        | {
-            type?: string; ok?: boolean; present?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
-            families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
-            applied?: unknown; count?: unknown; pillOnly?: unknown;
-          }
-        | undefined;
-      if (!m) return;
-      if (m.type === 'apply-result') {
-        // `headline` falls back to the ok flag, not to the summary: a host build older than this one
-        // sends no headline, and letting the ~150-char summary land in the pill would restore exactly
-        // the truncation this field exists to remove.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ applied' : '✗ apply failed';
-        cb({ kind: 'apply-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'component-result') {
-        // Same headline fallback, same reason (see above). The default says "built" without a count,
-        // because an older host that sends no headline sends no counts to put in one either.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ built' : '✗ build failed';
-        cb({ kind: 'component-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'file-setup-result') {
-        // #1558. Same headline fallback as the two result kinds above, same reason: a host build older than
-        // this one sends no headline, and letting the full summary land in the pill would restore the
-        // truncation the headline exists to remove.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ file set up' : '✗ setup failed';
-        cb({ kind: 'file-setup-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'style-guide-result') {
-        // #259. Same headline fallback, same reason.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ style guide written' : '✗ style guide failed';
-        cb({ kind: 'style-guide-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'component-progress') {
-        // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
-        // above, which fall back to a default headline. A result is a fact the designer is waiting for,
-        // so a degraded one is still worth showing; a progress reading is one of dozens and the next one
-        // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
-        const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
-        const done = n(m.done);
-        const total = n(m.total);
-        // `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
-        // unknown phase from a newer host should read as generic progress instead of printing its name.
-        const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
-        if (phase && done !== null && total !== null && total > 0) {
-          cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
-        }
-      } else if (m.type === 'prune-result') {
-        // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
-        // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.
-        const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
-        if (count !== null) {
-          // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
-          cb({ kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) });
-        }
-      } else if (m.type === 'seed-info') {
-        // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
-        // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
-        // claims nothing about a stored input, whereas defaulting true would assert the file is ours
-        // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
-        cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present });
-      } else if (m.type === 'restore-input' && m.input) {
-        cb({ kind: 'restore-input', input: m.input });
-      } else if (m.type === 'restore-input-empty') {
-        cb({ kind: 'restore-input-empty' });
-      } else if (m.type === 'restore-input-error') {
-        cb({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') });
-      } else if (m.type === 'font-list' && Array.isArray(m.families)) {
-        // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
-        // rather than guaranteed, and a non-string would reach `textContent` downstream.
-        //
-        // `styles` is index-parallel to `families`, so the two must be filtered TOGETHER — filtering
-        // names first and mapping counts afterwards would shift every count by the number of dropped
-        // names and mis-report every family after the first bad one. Zip, then drop pairs.
-        const rawStyles = Array.isArray(m.styles) ? (m.styles as unknown[]) : null;
-        const families: string[] = [];
-        const styles: number[] = [];
-        (m.families as unknown[]).forEach((f, i) => {
-          if (typeof f !== 'string') return;
-          families.push(f);
-          // A missing/!finite count reads as 0 = "unknown", which the UI renders as a bare tick rather
-          // than inventing a number. Older hosts send no `styles` at all, which lands here too.
-          const n = rawStyles ? rawStyles[i] : undefined;
-          styles.push(typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
-        });
-        cb({ kind: 'font-list', families, styles });
-      }
+      const msg = toHostMessage(e.data);
+      if (msg) cb(msg);
     });
     // Listener attached — signal the main thread it can post (and run the boot read-back, #109).
     post({ type: 'ui-ready' });
