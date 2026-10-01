@@ -308,7 +308,7 @@ thing.** Recording the difference here rather than only on the task, because the
 and this doc does not.
 
 **What shipped.** One `view` destination in the rail, plugin-only, carrying the component
-write's trigger — the control that was previously a second button beside **Apply to Figma**.
+write's trigger — the control that was previously a second button beside **Apply Theme** (labeled Apply to Figma until 2026-10-01).
 It builds the Button component set (648 variants) onto the current Figma page.
 
 **Why it moved, and what the move means.** #718 decided the component write is **internal

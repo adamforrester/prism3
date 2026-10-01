@@ -41,7 +41,7 @@ export const agentLinkStatusText = (s: AgentLinkState | null): string => {
   const last = s.lastCommand
     ? ` · last: ${s.lastCommand.cmd} ${s.lastCommand.headline} (${s.lastCommand.finishedAt.slice(11, 19)})`
     : ' · no command yet';
-  const inbox = s.inboxError ? ` · ⚠️ ${s.inboxError}` : '';
+  const inbox = s.inboxError ? ` · ⚠ ${s.inboxError}` : '';
   return listening + last + inbox;
 };
 
