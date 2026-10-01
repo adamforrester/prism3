@@ -137,14 +137,20 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
 await hooks.watch(page);
 await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
 await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: BRAND }).first());
-await hooks.need(page, '[data-p3="rail-page-palettes"]');
+await hooks.need(page, '[data-p3="legacy-frame"]');
 await page.waitForTimeout(1000);
 
 /** A mode tab by its visible mode name, exactly — the text a designer clicks. */
 const modeTab = (name) => page.locator('[data-p3="mode-tab"]')
   .filter({ has: page.locator('[data-p3="mode-tab-name"]', { hasText: new RegExp(`^${name}$`) }) }).first();
-/** A rail destination by its hook, which is how every page is reached below. */
+/** The Pages menu (UI redesign S1.2): the old rail, moved into the top bar with its hooks. */
+const openPages = async () => {
+  if (await page.locator('[data-p3="pages-menu-list"]').count() === 0) await hooks.click(page.locator('[data-p3="pages-menu"]'));
+  await hooks.need(page, '[data-p3="pages-menu-list"]');
+};
+/** A rail destination by its hook, through the Pages menu, which is how every page is reached below. */
 const goStage = async (key) => {
+  await openPages();
   await hooks.click(page.locator(`[data-p3="${key}"]`));
   await page.waitForTimeout(500);
 };
@@ -205,12 +211,15 @@ const snap = () => page.evaluate(() => {
   });
 });
 
-// Every rail destination, by hook key and by the label a designer reads.
+// Every rail destination, by hook key and by the label a designer reads, read off the open Pages menu.
+await openPages();
 const stages = await page.locator('[data-p3^="rail-page-"]').evaluateAll((ns) => ns.map((n) => ({
   key: n.getAttribute('data-p3'),
   label: n.querySelector('[data-p3="rail-item-label"]')?.textContent?.trim() ?? n.getAttribute('data-p3'),
 })));
+await hooks.click(page.locator('[data-p3="pages-menu"]'));
 ok(stages.length > 0, `the rail offers ${stages.length} destination(s) to audit`);
+ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-palettes"]')), 'the Pages menu offers the opening page, Palettes');
 const tally = { EDITS: 0, displays: 0, inert: 0 };
 const claims = [];
 const noBar = [];

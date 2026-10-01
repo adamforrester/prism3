@@ -511,6 +511,16 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // UI redesign S1.2: the new shell's chrome, measured as rendered. It drives BOTH bundles — the
+    // studio's dist/main.js and the plugin's dist/ui.html — so it is ordered after both builds.
+    id: 'chrome',
+    ciStep: 'New shell chrome suite (UI redesign S1.2)',
+    cmd: ws('@prism3/studio', 'test:chrome'),
+    after: ['build-web', 'build-plugin'],
+    why: 'it drives the built dist/main.js and dist/ui.html in a browser',
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that

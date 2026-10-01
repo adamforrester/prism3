@@ -130,7 +130,7 @@ const readStart = (page) => page.evaluate(() => {
     chips: [...document.querySelectorAll('[data-p3="start-example"]')].map((c) => c.textContent.trim()),
     upload: !!q('[data-p3="start-file"]'),
     // The editor's own surfaces — asserted positively so "nothing rendered" cannot pass as "hydrated".
-    editorRail: document.querySelectorAll('[data-p3^="rail-page-"]').length,
+    editorTabs: document.querySelectorAll('[data-p3="tab-row"] [role="tab"]').length,
     brandSel: q('[data-p3="brand-switcher"]')?.textContent ?? null,
   };
 });
@@ -167,7 +167,7 @@ console.log('\n2. a file WITH a persisted brand hydrates, and shows NO start scr
   ok(await waitStart(page, false), 'restore-input does NOT put the panel on the start screen');
   const s = await readStart(page);
   // POSITIVE, not merely "no start screen": a blank page satisfies the negative form.
-  ok(s.editorRail > 0, `the editor rendered — ${s.editorRail} rail destinations`);
+  ok(s.editorTabs > 0, `the editor rendered — ${s.editorTabs} tabs`);
   ok((s.brandSel ?? '').includes('restored-brand'), `the restored brand is the working brand ("${s.brandSel}")`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
   await page.close();
@@ -212,7 +212,7 @@ console.log('\n3. variables in the file but no stored brand: start screen, and t
   const s = await readStart(page);
   hooks.absent(ok, { seen: sawStart, state: 'the start screen, earlier in this same panel' },
     !s.start, 'a late empty-restore does NOT discard a brand the designer already chose');
-  ok(s.editorRail > 0, 'and the editor is still standing');
+  ok(s.editorTabs > 0, 'and the editor is still standing');
   await page.close();
 }
 
@@ -242,7 +242,7 @@ console.log('\n5. each path lands in the editor');
   await waitStart(page, true);
   await hooks.click(page.locator('[data-p3="start-example"]').first());
   ok(await waitStart(page, false), 'an example chip enters the editor');
-  ok((await readStart(page)).editorRail > 0, 'and the editor rendered');
+  ok((await readStart(page)).editorTabs > 0, 'and the editor rendered');
   await page.close();
 }
 {
@@ -451,11 +451,15 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
         op: round(op), cls: name(el), text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
         hook: el.getAttribute('data-p3'),
+        // #1031's first half, per field: the scheme the UA resolves for this control, and how light the
+        // ground it is drawn on is. A dark scheme over a light ground is the mechanism exactly.
+        scheme: cs.colorScheme, groundLum: round(lum(ground)),
         ...classify(el, cs),
       });
     }
     scratch?.remove();
-    return { text, fields, unparsed, colorScheme: getComputedStyle(document.documentElement).colorScheme };
+    const legacy = document.querySelector('[data-p3="legacy-frame"]');
+    return { text, fields, unparsed, legacyScheme: legacy ? getComputedStyle(legacy).colorScheme : null };
   };
 
   // The bars, AUTHORED here as WCAG states them — not imported from the studio suite, so a change to one
@@ -532,8 +536,14 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       uniq.length ? ` — ${uniq.length} not: ${uniq.slice(0, 3).map((u) => `${u.cls} ${u.prop} "${u.value}"`).join(' | ')}` : ''}`);
     textTotal += m.text.length; fieldTotal += m.fields.length;
     for (const r of m.text.filter((x) => !x.specimen)) if (r.ratio < worst.ratio) worst = { ratio: r.ratio, where: `${where} — ${r.cls} "${r.text}"` };
-    ok(!/\bdark\b/.test(m.colorScheme),
-      `${where}: the shell resolves a light-only color-scheme ("${m.colorScheme}") — opting into dark hands the UA the field ink, caret and option lists over surfaces painted from light tokens (#1031)`);
+    // #1031's FIRST HALF. Until UI redesign S1.2 this read the document, which had to resolve light. The
+    // chrome now follows Figma's theme for real, so in Figma's dark theme the document resolves dark, and
+    // the line held is the one #1031 was about: no control resolves a dark scheme over a light ground, and
+    // the legacy frame, whose surfaces are still painted from light tokens, resolves light.
+    const mismatched = m.fields.filter((f) => /\bdark\b/.test(f.scheme) && f.groundLum > 0.5);
+    ok(mismatched.length === 0,
+      `${where}: no form control resolves a dark color-scheme over a light ground — that hands the UA the field ink, caret and option lists (#1031)${mismatched.length ? ` — ${mismatched.slice(0, 3).map((f) => `${f.hook ?? f.cls} "${f.scheme}" on a ground at luminance ${f.groundLum}`).join(' | ')}` : ''}`);
+    if (m.legacyScheme !== null) ok(!/\bdark\b/.test(m.legacyScheme), `${where}: the legacy frame resolves a light color-scheme ("${m.legacyScheme}"), pinned until each page moves (D2)`);
     ok(m.text.length >= STATE_TEXT_FLOOR, `${where}: measured ${m.text.length} text nodes (floor ${STATE_TEXT_FLOOR})`);
     const textUnder = m.text.filter((r) => r.ratio < barOf(r));
     ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
@@ -579,12 +589,17 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await measure(page, `${tag} / start screen`);
         await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
-        await hooks.need(page, '[data-p3^="rail-page-"].active');
+        await hooks.need(page, '[data-p3="legacy-frame"]');
+        // The old rail is the Pages menu now (UI redesign S1.2), with the rail's hooks on its items.
+        await hooks.click(page.locator('[data-p3="pages-menu"]'));
+        await hooks.need(page, '[data-p3="pages-menu-list"]');
         const rail = await page.$$eval('[data-p3^="rail-page-"]', (els) => els.map((e) => ({
           hook: e.getAttribute('data-p3'), label: e.querySelector('[data-p3="rail-item-label"]')?.textContent.trim() ?? '' })));
+        await hooks.click(page.locator('[data-p3="pages-menu"]'));
         for (const { hook, label } of rail) {
+          await hooks.click(page.locator('[data-p3="pages-menu"]'));
           await hooks.click(page.locator(`[data-p3="${hook}"]`));
-          await page.waitForFunction((h) => document.querySelector(`[data-p3="${h}"]`)?.classList.contains('active'), hook);
+          await page.waitForFunction((h) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === h.slice('rail-page-'.length), hook);
           await page.evaluate(() => document.fonts.ready);
           pagesSeen.add(hook);
           await measure(page, `${tag} / ${label}`);

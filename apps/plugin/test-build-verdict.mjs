@@ -103,6 +103,16 @@ const UI = join(ROOT, 'dist/ui.html');
 // The guard fails any hook this file names that never rendered, by name (`../studio/test-hooks.mjs`).
 const hooks = hookGuard(import.meta.url);
 
+/** A legacy page, reached through the Pages menu (UI redesign S1.2): the old rail moved into the top bar
+ *  with its `rail-page-<key>` hooks. Opens the menu, clicks the destination, and waits for the legacy frame
+ *  to say it shows that page (`data-legacy-page`, the hook's suffix) — a real condition, not a sleep. */
+const gotoRail = async (page, selector) => {
+  if (await page.locator('[data-p3="pages-menu-list"]').count() === 0) await hooks.click(page.locator('[data-p3="pages-menu"]'));
+  await hooks.click(page.locator(selector));
+  await page.waitForFunction((s) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === s,
+    hooks.role(selector).slice('rail-page-'.length));
+};
+
 // ---- the assertion harness -------------------------------------------------------------------
 // Same `ok(...)` shape as the studio suites, so a failure line means the same thing in all of them.
 let failed = 0;
@@ -161,7 +171,7 @@ const readSurfaces = (page) => page.evaluate(() => {
     pagePending: text('[data-p3="components-row"] [data-p3="status-pill"]'),
     barVerdict: text('[data-p3="bar"] [data-p3="status-verdict"]'),
     barPending: text('[data-p3="bar"] [data-p3="status-pill"]'),
-    detail: detail && detail.style.display !== 'none' ? detail.textContent : null,
+    detail: detail && getComputedStyle(detail).display !== 'none' ? detail.textContent : null,
     // Mounted, whether or not it is showing: what makes "the detail stays collapsed" a measurement rather
     // than a lookup that found nothing (#1831).
     detailMounted: detail !== null,
@@ -179,9 +189,9 @@ const openPanel = async () => {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(`${ORIGIN}/`, { waitUntil: 'load' });
-  // A real condition, not a sleep: the rail is rendered once the app has booted onto a brand.
-  await hooks.need(page, '[data-p3="rail-page-components"]');
-  await hooks.click(page.locator('[data-p3="rail-page-components"]'));
+  // A real condition, not a sleep: the legacy frame is rendered once the app has booted onto a brand.
+  await hooks.need(page, '[data-p3="legacy-frame"]');
+  await gotoRail(page, '[data-p3="rail-page-components"]');
   await hooks.need(page, '[data-p3="components-build"]');
   return { page, errors };
 };
@@ -497,7 +507,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
-  await hooks.click(page.locator('[data-p3="rail-page-palettes"]'));
+  await gotoRail(page, '[data-p3="rail-page-palettes"]');
   await page.waitForFunction(() => !document.querySelector('[data-p3="components-row"]'));
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
@@ -518,7 +528,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const landed = await readSurfaces(page);
   ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the chrome, which is what survives navigation');
 
-  await hooks.click(page.locator('[data-p3="rail-page-components"]'));
+  await gotoRail(page, '[data-p3="rail-page-components"]');
   await hooks.need(page, '[data-p3="components-build"]');
   const back = await readSurfaces(page);
   ok(back.button === '⊞ Build set', `returning to the page shows a clickable control, not the "Building…" it was left on — read "${back.button}"`);
@@ -631,7 +641,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     window.__sent = [];
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'style-guide') window.__sent.push(m); });
   });
-  await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'));
+  await gotoRail(page, '[data-p3="rail-page-style-guide"]');
   await hooks.need(page, '[data-p3="style-guide-draw"]', { timeout: 5000 });
   const readSg = () => page.evaluate(() => {
     const btn = document.querySelector('[data-p3="style-guide-draw"]');
@@ -716,7 +726,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // "In this Figma" once it has, since the verdicts under it are then Figma's own (docs/34 shape 16).
 {
   const { page, errors } = await openPanel();
-  await hooks.click(page.locator('[data-p3="rail-page-typography"]'));
+  await gotoRail(page, '[data-p3="rail-page-typography"]');
   await hooks.need(page, '[data-p3="typeface-source"]', { timeout: 5000 });
   const source = () => page.evaluate(() => document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null);
   const before = await source();

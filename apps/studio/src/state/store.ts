@@ -106,8 +106,9 @@ export type HostTopic =
 
 /** What changed. `brand`: the working input, the resolved theme or the error (every `rebuild`, and a
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the
- *  rail destination. Plus the host topics above. */
-export type Topic = 'brand' | 'origin' | 'mode' | 'page' | HostTopic;
+ *  rail destination. `search`: the settings search query. `search:hits`: how many settings it matched on
+ *  the page in view. Plus the host topics above. */
+export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'search' | 'search:hits' | HostTopic;
 const subscribers = new Map<Topic, Set<() => void>>();
 
 /** Call `fn` whenever `topic` is invalidated. Returns the unsubscribe. */
@@ -237,6 +238,18 @@ export const clearOrigin = (): void => {
 
 export const setCurrentMode = (m: Mode): void => { currentMode = m; invalidate('mode'); };
 export const setPage = (k: PageKey): void => { page = k; invalidate('page'); };
+
+// ---- settings search (UI redesign S1.2, the owner's QA note Q3) -------------------------------------
+// View state, like the page and the mode: never part of the brand. The search field writes the query;
+// whatever shows settings filters itself to it and reports how many it matched. The field itself only
+// reads `searchHits`, so typing never rebuilds it.
+
+/** The settings search query, as typed. Empty means no search. */
+export let searchQuery = '';
+/** How many settings the query matched on the page in view, or null when nothing has been searched. */
+export let searchHits: number | null = null;
+export const setSearch = (q: string): void => { searchQuery = q; invalidate('search'); };
+export const setSearchHits = (n: number | null): void => { searchHits = n; invalidate('search:hits'); };
 
 // ---- paths into the input --------------------------------------------------------------------------
 

@@ -18,7 +18,8 @@
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import type { Origin } from './provenance';
-import { persistInput, restoreInput } from './persist-local';
+import { persistInput, restoreInput, type LocalStore } from './persist-local';
+import { initTheme } from './shell/theme';
 import { BRANDS, BOOT_BRAND, initSession, setPersist } from './state/store';
 import { commit, handleHostMessage, mountApp, installStyles, mountResizeGrip, build } from './main';
 // The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769) — see step 4 below for
@@ -91,6 +92,16 @@ if (typeof STYLE !== 'string' || STYLE.length < 1000) {
 }
 // Both sheets in one call, the shell's last, so the class-scope law reads them as one stylesheet.
 installStyles(`${STYLE}\n${CHROME}`);
+
+// ---- 4b. the chrome theme (UI redesign S1.2) -------------------------------------------------------------
+// The studio's light / dark / system choice, read before the first render so the frame never paints in
+// the wrong theme. Web only: the plugin's own entry maps Figma's theme instead, and offers no choice.
+// Reading `localStorage` can itself throw when site data is blocked; the theme then follows the device.
+if (PRISM3_HOST !== 'figma') {
+  let store: LocalStore | null = null;
+  try { store = localStorage; } catch { /* blocked: follow the device */ }
+  initTheme(store);
+}
 
 // ---- 5. the resize grip ------------------------------------------------------------------------------
 if (PRISM3_HOST === 'figma') mountResizeGrip();

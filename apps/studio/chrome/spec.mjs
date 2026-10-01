@@ -62,6 +62,8 @@ export const PAIRS = [
   ['field-edge', 'bg-page', 3, 'edge of a selected segment on a page-colored track (the 380 top row)'],
   ['field-edge-hover', 'bg-page', 3, 'edge on hover; slider thumb edge'],
   ['field-edge-hover', 'levers-bg', 3, 'edge on hover on the levers panel'],
+  // Added by the product (S1.2): a top-bar control's edge on hover. The mockup drew a hover wash there.
+  ['field-edge-hover', 'bar-bg', 3, 'edge on hover on the top bar'],
   ['ctl-edge', 'bg-page', 3, 'selected chip edge; focus ring on the page'],
   ['ctl-edge', 'levers-bg', 3, 'focus ring on the levers panel'],
   ['ctl-edge', 'bar-bg', 3, 'focus ring and pressed edge on the top bar'],
@@ -86,24 +88,55 @@ export const LAYERS = [['bg-page', 'preview'], ['levers-bg', 'levers panel'], ['
 
 // ── the product's map ──────────────────────────────────────────────────────────────────────────
 // The variables the shipped chrome defines, by NAME. Each name is looked up in the mockup's rows
-// (TILE_VARS, then V6_VARS through VARS_FOR), so the product inherits the mockup's token path for
-// each theme and cannot fork it. The fonts are always defined (CHROME_FONTS in `tokens.mjs`).
+// (TILE_VARS, then V6_VARS through VARS_FOR), then in the product's own rows below, so the product
+// inherits the mockup's token path for each theme and cannot fork it. The fonts are always defined
+// (CHROME_FONTS in `tokens.mjs`).
 //
 // The map grows with the shell (§3.1): the product build fails on a variable defined here that
 // `apps/studio/src/chrome.css` never reads, so each slice adds a name in the same change that adds the
-// rule reading it. S1.1 maps the page ground and the text, and nothing else.
+// rule reading it. S1.1 mapped the page ground and the text. S1.2 adds what the frame draws: the three
+// layers (IA-2), the B1 edges for the top bar and the gray tab row, the controls' geometry, type, space
+// and focus, and the radius split below.
 //
-// RADIUS, decided by the owner on 2026-10-01, for the slice that first draws a container or a control:
-// #1852 landed `radius.xl`, `2xl` and `3xl` (8, 12 and 16 at the default scale). Containers (cards,
-// panels, the drawer) take `radius.xl`; controls (fields, chips, buttons, segments) take `radius.lg`.
-// Both map from those role tokens, never from a dimension primitive, so they follow the radius lever.
-// The mockup's rows have `radius-lg` (TILE_VARS) and no `radius.xl`, so the slice that adds containers
-// adds that row as the product's own. Neither is mapped yet: S1.1 draws no container and no control.
-export const SHELL_VARS = ['bg-page', 'text'];
+// RADIUS, decided by the owner on 2026-10-01: #1852 landed `radius.xl`, `2xl` and `3xl` (8, 12 and 16 at
+// the default scale). Containers (cards, panels, the drawer, a menu) take `radius.xl`; controls (fields,
+// chips, buttons, segments, tabs) take `radius.lg`. Both map from those role tokens, never from a
+// dimension primitive, so they follow the radius lever. The mockup's rows have `radius-lg` (TILE_VARS) and
+// no `radius.xl`, so `radius-xl` is the product's own row, in PRODUCT_VARS. S1.2 draws the first container
+// (the theme menu, and the segmented track concentric around its segments) and maps it.
+//
+// Neutral 025 is read directly from `core.palette.neutral.025` through v6's `levers-bg` row, as IA-2
+// decided; the engine role for it is not filed yet (D7).
+
+/** Rows the product adds beyond the mockup's: [variable, light path, dark path, kind, what]. Same shape
+ *  as V6_VARS, and held to the same checks (the brand-leak scan, the pairs below when they name one). */
+export const PRODUCT_VARS = [
+  ['radius-xl', 'radius.xl', 'radius.xl', D, 'containers and the segmented track (owner, 2026-10-01)'],
+];
+export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
+
+export const SHELL_VARS = [
+  // the three layers (IA-2) and the hairlines between them
+  'bg-page', 'levers-bg', 'bar-bg', 'fill-1', 'line-1', 'line-2',
+  // text, glyphs, status
+  'text', 'text-2', 'icon', 'icon-2', 'bad-text',
+  // edges (B1), hover and focus
+  'edge', 'edge-bar', 'field-edge-hover', 'ctl-edge', 'focus-width', 'focus-offset',
+  // the inverse fill: Apply, and nothing else
+  'inv-bg', 'inv-bg-2', 'inv-text',
+  // geometry
+  'bar-h', 'ctl-h', 'ctl-h-sm', 'ctl-h-xs', 'hit-min', 'icon-xs', 'bw-hairline', 'bw-thick',
+  'radius-md', 'radius-lg', 'radius-xl', 'radius-pill',
+  'space-025', 'space-050', 'space-075', 'space-100', 'space-150', 'space-200', 'space-300', 'space-400', 'space-500',
+  // type
+  'fs-12', 'fs-14', 'fw-default', 'fw-emphasis', 'lh-compact', 'lh-normal',
+];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
 // The product build evaluates every PAIRS entry whose two variables are both in SHELL_VARS, in both
 // themes, and fails on a mapped color variable that takes part in none of them. A name listed here is
-// exempt from that, and only from that. Each entry says why it is decorative. Empty in S1.1: the two
-// mapped colors are a pair.
-export const DECORATIVE = [];
+// exempt from that, and only from that. Each entry says why it is decorative. S1.2 lists one: the
+// hairline (`border.primary`) that splits the bar, the tab row, the sub-nav and the two panes, and rings the
+// brand swatch. It is never a control's boundary; every control edge is a declared pair at 3:1. S1.2 maps
+// no hover wash: a hover shows an edge (a declared pair) or the inset fill (`fill-1`, paired with text).
+export const DECORATIVE = ['line-1'];
