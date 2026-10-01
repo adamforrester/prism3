@@ -37,6 +37,7 @@
     "./theme": "./theme.ts",
     "./tree": "./tree.ts",
     "./version": "./version.ts",
+    "./vocabulary": "./vocabulary.ts",
     "./write-plan": "./write-plan.ts",
     "./schema/example-brands.json": "./schema/example-brands.json",
     "./schema/nb-measured.json": "./schema/nb-measured.json"

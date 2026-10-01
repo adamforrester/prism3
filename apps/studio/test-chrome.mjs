@@ -132,6 +132,41 @@
  * preview to the palette it changes; focusing a lever, scrolling the levers and changing the mode do not.
  * Mutation: the trigger moved from the edit to focus → `Q4: focusing a lever does not move the preview (…)`.
  *
+ * S3 ADDS (section 16, and Brand in sections 1, 2, 3, 7 and 11):
+ *   · MOVED: Brand leaves `LEGACY_PAGES` for `NEW_PAGES`; it renders the two panes on both hosts, both themes, at
+ *     1280, 640 and 380 (section 1), its Preview pane at 380, and the rings Tab draws through its levers.
+ *   · Q2's SECOND CASE, for real: a page without the sub-nav (Brand), the two dividers at one y (section 3).
+ *   · SPECIMEN GROUND: the Style guide's grounds, lent into Brand's preview, sit on the brand's background.primary
+ *     for the previewed mode (section 11).
+ *   · CONTROLS REPRESENTED: the five schema inputs v6 homes on Brand (`BRAND_LEVERS`, literal) each render once,
+ *     and no other lever block does; Personality offers the engine's nine words (literal) in its order.
+ *   · v5 answer 4: Brand name and Token namespace side by side at 1280, 640 and 380, both hosts.
+ *   · T2: the placeholder (`pds3`) and the reserved (`prism`) namespaces warn in v6's words; a draft reaches
+ *     nothing until Rename namespace and its confirm; Escape closes the confirm back to the field.
+ *   · Q3: dark off asks first, naming high contrast dark and the verdict's new count (442 of 884, from Health's
+ *     literal 221 per mode); Cancel keeps it; confirming drops both; high contrast dark stays locked off with
+ *     its reason until dark is back, and dark back does not bring it back.
+ *   · The name reaches the bar per keystroke (the `identity` topic) and the persisted brand; personality and the
+ *     custom modes reach the brand; the Style guide's own select redraws it inside the preview (the lent repaint).
+ *
+ *   S3 mutations, each after a `wip:` commit, each failing by name (the studio rebuilt; the plugin bundle not):
+ *   · the namespace lever not rendered → `web 1280: Brand lever root renders its hook lever-root once — rendered 0`.
+ *   · the personality lever rendered twice → `web 1280: Brand lever personality renders its hook lever-personality once — rendered 2`.
+ *   · the preview following focus in Brand's levers → `V1 focus: web brand control 0 took focus and the preview stayed guide (now palettes)`.
+ *   · a Style guide ground drawn on the card → `specimen ground: brand web light 1280, previewing dark: every specimen root sits
+ *     on background.primary #0d0d0e — Background is the chrome card (#ffffff) | …`.
+ *   · Brand's preview title row moved 4px → `Q2 light 1280 / brand: the tab row's divider and the preview title row's divider
+ *     are 4.00px apart (tolerance 0.5px)`.
+ *
+ * S3 REVIEW ROUND (orchestrator's review of #1939): the Style guide's roots by name (`STYLE_GUIDE_ROOTS`); each
+ * personality chip's word against the engine's vocabulary; a refused Dark off (a custom mode based on Dark)
+ * named in the confirm, marked refused, the saved brand unchanged; and section 17, the mode control at 4, 5 and
+ * 6 modes at every width, no option clipped. Mutations: Border drawn off its ground → `specimen ground: brand …
+ * Border is a specimen root on background.primary … — not a specimen root, on the chrome card (#ffffff)`; the
+ * soft chip labeled "gentle" → `web 1280: personality chip 7 reads "gentle" and writes "soft"; the engine's word
+ * is "soft"`; no fallback to the select → `web light 1280 / brand, 5 modes: every mode is choosable in the
+ * preview header, none clipped — {…"clipped":["custom-1"]…}`.
+ *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
  *
@@ -220,16 +255,16 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['brand', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
-/** The places a slice has moved into the two panes (S2: Color › Palettes). A slice that moves a place adds it
- *  here in the same change; a place in both lists, or in neither, fails by name. */
-const NEW_PAGES = ['color-palettes'];
+const LEGACY_PAGES = ['color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+/** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand). A slice that moves a place
+ *  adds it here in the same change; a place in both lists, or in neither, fails by name. */
+const NEW_PAGES = ['brand', 'color-palettes'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
-  web: { brand: ['preview'], 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
+  web: { 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
-  figma: { brand: ['preview'], 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
+  figma: { 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
@@ -266,16 +301,27 @@ const DEPTH_SWITCH = ['[data-p3="legacy-switch-elevation"]', '[data-p3="legacy-s
 const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-hex"]', '[data-p3="brand-color-name"]', '[data-p3="brand-color-remove"]',
   '[data-p3="brand-color-add"]', '[data-p3="neutral-source-follow"]', '[data-p3="neutral-source-custom"]', '[data-p3="neutral-chroma-slider"]',
   '[data-p3="palettes-advanced"]', '[data-p3="palettes-continue"]'];
-const PREVIEW_HEAD = ['[data-p3="mode-option"]', '[data-p3="inspect-open"]'];
+/** Brand in the two panes (S3): the levers it must render, by hook (v6's Identity, Personality and Modes, and
+ *  the way on to Color). */
+const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]', '[data-p3="lever-info"]', '[data-p3="personality-word"]',
+  '[data-p3="mode-on-dark"]', '[data-p3="mode-on-hc-light"]', '[data-p3="mode-on-hc-dark"]', '[data-p3="mode-on-wireframe"]',
+  '[data-p3="custom-mode-add"]', '[data-p3="brand-continue"]'];
+/** Each moved place's levers, by place. */
+const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS };
+/** The preview header: the mode choice and Inspect. The mode choice is the radios, or, where they do not all fit
+ *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
+ *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
+const PREVIEW_HEAD = [['[data-p3="mode-option"]', '[data-p3="mode-select"]'], '[data-p3="inspect-open"]'];
 const PANE_TOGGLE = ['[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-preview"]'];
 const expectFor = (column, place, state = 'page') => {
   const narrow = column.endsWith('narrow');
   const base = EXPECT_CONTROLS[column].filter((h) => place.startsWith('color-') || !COLOR_SUBS.includes(h));
-  if (place !== 'color-palettes') return [...base, ...(place === 'depth' ? DEPTH_SWITCH : [])];
+  const levers = LEVERS_CONTROLS[place];
+  if (!levers) return [...base, ...(place === 'depth' ? DEPTH_SWITCH : [])];
   // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
   if (narrow && state !== 'page') return [...base.filter((x) => !['[data-p3="tab-select"]', '[data-p3="search-open"]', ...COLOR_SUBS].includes(x)), ...PANE_TOGGLE, ...(state === 'preview' ? PREVIEW_HEAD : [])];
-  if (narrow) return [...base, ...PALETTES_LEVERS_CONTROLS, ...PANE_TOGGLE];
-  return [...base, ...PALETTES_LEVERS_CONTROLS, ...(state === 'inspect' ? [] : PREVIEW_HEAD)];
+  if (narrow) return [...base, ...levers, ...PANE_TOGGLE];
+  return [...base, ...levers, ...(state === 'inspect' ? [] : PREVIEW_HEAD)];
 };
 /** Per column, the least each measurement must have seen on the opening page, so an empty read fails
  *  naming itself. Set below the measured values (printed per state), above what a chrome that rendered
@@ -300,10 +346,15 @@ const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts
 const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
   ['p3-seg-tab', 'segment'], ['p3-select', 'select'], ['p3-menu-item', 'menu item'], ['p3-search-input', 'search field'],
   // S2: the levers panel's text fields and sliders, and the step picker's steps.
-  ['p3-hex-input', 'text field'], ['p3-range', 'slider'], ['p3-step', 'picker step']];
+  ['p3-hex-input', 'text field'], ['p3-range', 'slider'], ['p3-step', 'picker step'],
+  // S3: Brand's name, namespace and custom-mode name fields.
+  ['p3-text-input', 'text field']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
-const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]'];
+const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
+  // S3: the Style guide, lent to Brand's preview the same way (pinned light, `styles.css`). Its specimens are
+  // section 11's; its legibility is `test:smoke`'s Brand section.
+  '[data-p3="brand-style-guide"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -560,7 +611,9 @@ const focusRings = async (page) => {
     const r = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el || el === document.body) return { done: false, skip: true };
-      if (el.closest('[data-p3="legacy-page"]')) return { done: true };
+      // Tab has left the chrome for a legacy page, or for the Style guide lent into Brand's preview (S3), which
+      // draws in `styles.css` like the legacy page it came from.
+      if (el.closest('[data-p3="legacy-page"], [data-p3="brand-style-guide"]')) return { done: true };
       const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
       const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
       const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
@@ -635,7 +688,10 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   ok(m.unclassified.length === 0, `${where}: every chrome control is classified${m.unclassified.length ? ` — unclassified control ${m.unclassified.slice(0, 4).join(', ')}` : ''}`);
   ok(m.controls.length >= floor.controls, `${where}: measured ${m.controls.length} chrome controls (floor ${floor.controls})`);
   const have = new Set(m.controls.map((c) => c.hook));
-  for (const want of [...(only ?? expectFor(column, m.place, state)), ...extra]) ok(have.has(hooks.role(want)), `${where}: the chrome renders ${want} and it was measured`);
+  for (const want of [...(only ?? expectFor(column, m.place, state)), ...extra]) {
+    const alts = Array.isArray(want) ? want : [want];
+    ok(alts.some((a) => have.has(hooks.role(a))), `${where}: the chrome renders ${alts.join(' or ')} and it was measured`);
+  }
   const small = m.controls.filter((c) => c.w < TARGET_MIN - 0.01 || c.h < TARGET_MIN - 0.01);
   ok(small.length === 0, `${where}: every chrome control is at least ${TARGET_MIN} × ${TARGET_MIN}${small.length ? ` — ${small.slice(0, 4).map((c) => `${c.el} ${c.w.toFixed(1)} × ${c.h.toFixed(1)}`).join(' | ')}` : ''}`);
   // edges and indicators
@@ -695,6 +751,29 @@ for (const host of ['web', 'figma']) {
       const badRing = rings.filter((r) => r.width < FOCUS_WIDTH_MIN || r.r < NONTEXT_MIN);
       ok(badRing.length === 0, `${where}: every focused chrome control draws a ring at least ${FOCUS_WIDTH_MIN}px wide at ${NONTEXT_MIN}:1${badRing.length ? ` — ${badRing.slice(0, 4).map((r) => `focus ${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
       for (const r of rings) lows.focus = Math.min(lows.focus, r.r);
+      // S3: Brand, the second moved page, in the same column: its levers, then (narrow) its Preview pane, then
+      // the rings Tab draws through its levers.
+      await goPlace(page, 'brand');
+      const mb = await measure(page, `${where} / brand`, host, w);
+      check(mb, `${where} / brand`, column, PLACE_FLOOR);
+      report(mb, `${where} / brand`);
+      for (const t of mb.text) lows.text = Math.min(lows.text, t.r);
+      for (const e of mb.edges) lows.edge = Math.min(lows.edge, e.r);
+      for (const c of mb.controls) lows.target = Math.min(lows.target, c.w, c.h);
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s3-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-brand.png`) });
+      if (w <= 560) {
+        await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        const mp = await measure(page, `${where} / brand preview`, host, w);
+        check(mp, `${where} / brand preview`, column, { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s3-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-brand-preview.png`) });
+        await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+      }
+      const brandRings = await page.evaluate(() => { document.querySelector('[data-p3="levers-pane"]').scrollTop = 0; return true; }) && await focusRings(page);
+      const brandReached = new Set(brandRings.map((r) => r.hook));
+      for (const want of ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]', '[data-p3="personality-word"]']) ok(brandReached.has(hooks.role(want)), `${where} / brand: Tab reaches ${want} and its ring was measured`);
+      const badBrandRing = brandRings.filter((r) => r.width < FOCUS_WIDTH_MIN || r.r < NONTEXT_MIN);
+      ok(badBrandRing.length === 0, `${where} / brand: every focused control draws a ring at least ${FOCUS_WIDTH_MIN}px wide at ${NONTEXT_MIN}:1${badBrandRing.length ? ` — ${badBrandRing.slice(0, 4).map((r) => `focus ${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
+      for (const r of brandRings) lows.focus = Math.min(lows.focus, r.r);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       await ctx.close();
     }
@@ -739,7 +818,7 @@ for (const host of ['web', 'figma']) {
 console.log(`\nQ2 — the tab row and the preview title row share one divider\n${'='.repeat(78)}`);
 // MEASURED ON COLOR › PALETTES, FOR REAL (S2): the first page that renders the two panes. S1.2 and S1.3 forced
 // `data-layout="panes"` here because no page did; that force is gone. Q2 also asks for a page WITHOUT the
-// sub-nav, and none renders the panes yet: the first moved page outside Color (S3, Brand) adds it here.
+// sub-nav: S3 moved Brand, the first page outside Color in the panes, so `NEW_PAGES` carries that case too.
 for (const theme of ['light', 'dark']) {
   const { ctx, page } = await open({ host: 'web', theme, w: 1280, h: 900 });
   for (const place of NEW_PAGES) {
@@ -755,6 +834,9 @@ for (const theme of ['light', 'dark']) {
     const gap = g.nav && g.head ? Math.abs(g.nav.bottom - g.head.bottom) : Infinity;
     ok(gap <= ALIGN_TOLERANCE, `Q2 ${where}: the tab row's divider and the preview title row's divider are ${gap.toFixed(2)}px apart (tolerance ${ALIGN_TOLERANCE}px)`);
     if (place.startsWith('color-')) ok(g.sub?.shown && g.sub.bottom > g.nav.bottom, `Q1 ${where}: the Color sub-nav sits under the tab row's divider`);
+    // Q2's second case, measured for real from S3: Brand is the first moved page without the sub-nav, so the
+    // tab row alone meets the preview title row. The sub-nav must be absent, or this is the first case again.
+    else hooks.absent(ok, { seen: !!g.nav?.shown, state: 'the tab row' }, !g.sub?.shown, `Q2 ${where}: a page outside Color draws no sub-nav, so the check above is the case without it`);
     // All seven tabs fit the levers column at 1280 (S2 closed the row up so they do), so none is out of view.
     const fit = await page.evaluate(() => { const t = document.querySelector('[data-p3="tab-row"] [role="tablist"]'); return { sw: t.scrollWidth, cw: t.clientWidth }; });
     ok(fit.sw <= fit.cw + 1, `${where}: the seven tabs fit the levers column without scrolling (${fit.sw}px in ${fit.cw}px)`);
@@ -1561,7 +1643,7 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 // 11. S2: specimens sit on the brand's page color for the previewed mode, never on the chrome's card
 // =============================================================================================
-console.log(`\nSpecimen grounds — Color › Palettes (plan §6.1, §9.1)\n${'='.repeat(78)}`);
+console.log(`\nSpecimen grounds — Color › Palettes and Brand (plan §6.1, §9.1)\n${'='.repeat(78)}`);
 /** THE ORACLE, resolved in Node from the engine's committed emission, never from the page: each mode's
  *  `color.background.primary`, its alias chain followed through the base tree with that mode's overlay. */
 const EMITTED = (() => {
@@ -1600,31 +1682,47 @@ const groundsOf = (page) => page.evaluate(() => {
   const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
   const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
   const strips = [...document.querySelectorAll('[data-p3="preview-body"] .p3-sqs:not(.p3-checker)')];
-  const card = strips[0]?.closest('.p3-card');
+  // S3: Brand's Style guide, lent into the preview. Each of its sections is named by its title; its root is the
+  // ground it draws its specimens on. A section drawn without one is measured where its content actually sits.
+  const secs = [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="brand-style-guide"] .psec')];
+  const card = (strips[0] ?? secs[0])?.closest('.p3-card, .p3-legacy-card');
   const seen = {};
-  return { card: card ? hex(groundOf(card)) : null, strips: strips.map((n) => {
+  return { card: card ? hex(groundOf(card)) : null, strips: [...strips.map((n) => {
     const pal = n.closest('[data-palette]')?.dataset.palette ?? (n.closest('[data-p3="opacity-scale"]') ? 'opacity' : '?');
     seen[pal] = (seen[pal] ?? 0) + 1;
     return { name: `${pal}-${seen[pal]}`, root: n.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(n)) };
-  }) };
+  }), ...secs.map((sec) => {
+    const g = sec.querySelector(':scope > .sg-ground');
+    return { name: sec.querySelector('[data-p3="section-title"]')?.textContent ?? '?', root: !!g && g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g ?? sec.lastElementChild ?? sec)) };
+  })] };
 });
+/** The Style guide's specimen roots, by section title, in order: each section `renderPreviewStyleGuide` draws on a
+ *  ground (S3; modeled on S2's `EXPECT_SPECIMENS`). Literal (orchestrator review of #1939). */
+const STYLE_GUIDE_ROOTS = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
+/** Each moved place's preview, with the specimens it must draw, by name. */
+const SPECIMEN_PLACES = { 'color-palettes': ['palettes', EXPECT_SPECIMENS], brand: ['brand', STYLE_GUIDE_ROOTS] };
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
-    for (const [mode] of EXPECT_MODES) {
-      if (host === 'figma' && mode.startsWith('hc')) continue;
-      await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-      await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
-      const where = `${host} ${theme} 1280, previewing ${mode}`;
-      const g = await groundsOf(page);
-      const want = EMITTED[mode];
-      for (const name of EXPECT_SPECIMENS) {
-        const st = g.strips.find((x) => x.name === name);
-        ok(!!st && st.root && st.ground === want, `specimen ground: palettes ${where}: ${name} is a specimen root on background.primary ${want}${
-          !st ? ' — not drawn' : !st.root ? ` — not a specimen root, on ${st.ground === g.card ? `the chrome card (${st.ground})` : st.ground}` : st.ground !== want ? ` — ${st.ground === g.card ? `is the chrome card (${st.ground})` : `is ${st.ground}`}` : ''}`);
+    for (const [place, [label, expect]] of Object.entries(SPECIMEN_PLACES)) {
+      await goPlace(page, place);
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+        await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await groundsOf(page);
+        const want = EMITTED[mode];
+        for (const name of expect) {
+          const st = g.strips.find((x) => x.name === name);
+          ok(!!st && st.root && st.ground === want, `specimen ground: ${label} ${where}: ${name} is a specimen root on background.primary ${want}${
+            !st ? ' — not drawn' : !st.root ? ` — not a specimen root, on ${st.ground === g.card ? `the chrome card (${st.ground})` : st.ground}` : st.ground !== want ? ` — ${st.ground === g.card ? `is the chrome card (${st.ground})` : `is ${st.ground}`}` : ''}`);
+        }
+        const unlisted = g.strips.filter((x) => !expect.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: ${label} ${where}: every ${label === 'brand' ? 'Style guide section' : 'strip'} drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       }
-      const unlisted = g.strips.filter((x) => !EXPECT_SPECIMENS.includes(x.name)).map((x) => x.name);
-      ok(unlisted.length === 0, `specimen ground: palettes ${where}: every strip drawn is a listed specimen${unlisted.length ? ` — unlisted strip ${unlisted.join(', ')}` : ''}`);
+      // Back to Light, so the next place starts where the page booted.
+      await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
     }
     await ctx.close();
   }
@@ -1947,6 +2045,258 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, 's2-q4-after-edit.png') });
   ok(errors.length === 0, `Q4: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
   await ctx.close();
+}
+
+// =============================================================================================
+// 16. S3: Brand — its levers represented, Identity side by side, the namespace warning, Personality, the
+//     modes (Q3), and the Style guide lent into the preview
+// =============================================================================================
+console.log(`\nBrand — the levers, the namespace, the modes (S3)\n${'='.repeat(78)}`);
+/** The schema inputs v6 homes on Brand, with the hook each lever block must render once. Literal: the
+ *  decision (IA-1: Brand holds identity, personality and modes), never read from `pages.ts`. None is a
+ *  manifest lever, so the hook rule is `leverHook`'s, applied here by hand. */
+const BRAND_LEVERS = [['id', '[data-p3="lever-id"]'], ['root', '[data-p3="lever-root"]'], ['personality', '[data-p3="lever-personality"]'],
+  ['modes', '[data-p3="lever-modes"]'], ['customModes', '[data-p3="lever-custom-modes"]']];
+/** The engine's personality words, in its order (`TRAITS`, `packages/engine/vocabulary.ts`), typed here. */
+const PERSONALITY = ['energetic', 'calm', 'premium', 'restrained', 'bold', 'generous', 'dense', 'soft', 'sharp'];
+/** What one word fills, by manifest key: `soft` sets radiusScale and shadow.softness to "soft" (vocabulary.ts). */
+const SOFT_SETS = [['radiusScale', 'soft'], ['shadow.softness', 'soft']];
+/** T2 (v4 review) in concept v6's words: the namespace warning for each reserved or placeholder value. */
+const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
+  prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
+/** Q3 (v4 review 3, v5): the confirm's sentence for the default theme, 221 gated pairs per mode (Health's literal). */
+const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
+/** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
+ *  decision in the words chosen for it, typed here. */
+const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 442 pairs leave the verdict (884 becomes 442).';
+const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
+const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
+const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
+
+/** The engine's own vocabulary, bundled for Node from its source (as section 14 bundles `color.ts`): each chip's
+ *  visible word must be the word the engine knows, the one it writes (orchestrator review of #1939). */
+const VOCAB = await (async () => {
+  const esbuild = await import('esbuild');
+  const out = await esbuild.build({ entryPoints: [join(REPO, 'packages/engine/vocabulary.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  return import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`);
+})();
+const ENGINE_WORDS = Object.keys(VOCAB.TRAITS ?? {});
+ok(ENGINE_WORDS.length === PERSONALITY.length, `the engine's vocabulary carries ${ENGINE_WORDS.length} personality words (the decision lists ${PERSONALITY.length})`);
+// Represented, and side by side (v5 answer 4) at every width, on both hosts.
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of WIDTHS) {
+    const { ctx, page } = await open({ host, theme: 'light', w, h });
+    await goPlace(page, 'brand');
+    const where = `${host} ${w}`;
+    const counts = await page.evaluate((hs) => Object.fromEntries(hs.map((hk) => [hk, document.querySelectorAll(`[data-p3="levers-pane"] ${hk}`).length])), BRAND_LEVERS.map(([, hk]) => hk));
+    for (const [key, hk] of BRAND_LEVERS) ok(counts[hk] === 1, `${where}: Brand lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${counts[hk]}`);
+    const strays = await page.evaluate((hs) => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !hs.includes(`[data-p3="${r}"]`)), BRAND_LEVERS.map(([, hk]) => hk));
+    ok(strays.length === 0, `${where}: every lever block on Brand is one of its ${BRAND_LEVERS.length} inputs${strays.length ? ` — unclassified lever ${strays.join(', ')}` : ''}`);
+    const words = await page.locator('[data-p3="personality-word"]').evaluateAll((ns) => ns.map((n) => n.dataset.word));
+    ok(JSON.stringify(words) === JSON.stringify(PERSONALITY), `${where}: Personality offers the engine's ${PERSONALITY.length} words in its order — offers ${JSON.stringify(words)}`);
+    // What each chip SAYS, against what the engine calls the word it writes: a chip labeled one word and
+    // writing another passes the `data-word` check above.
+    const chipText = await page.locator('[data-p3="personality-word"]').evaluateAll((ns) => ns.map((n) => [n.dataset.word, n.textContent.trim()]));
+    chipText.forEach(([w, t], i) => ok(t === ENGINE_WORDS[i] && w === ENGINE_WORDS[i], `${where}: personality chip ${i} reads "${t}" and writes "${w}"; the engine's word is "${ENGINE_WORDS[i]}"`));
+    ok(chipText.length === ENGINE_WORDS.length, `${where}: one chip per engine word (${chipText.length} of ${ENGINE_WORDS.length})`);
+    const id = await page.evaluate(() => {
+      const r = (sel) => { const n = document.querySelector(sel); if (!n) return null; const b = n.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width }; };
+      return { name: r('[data-p3="brand-name"]'), ns: r('[data-p3="brand-namespace"]') };
+    });
+    ok(!!id.name && !!id.ns && Math.abs(id.name.b - id.ns.b) < 1 && id.name.r <= id.ns.l && id.name.w >= 80 && id.ns.w >= 80,
+      `v5 answer 4 ${where}: Brand name and Token namespace sit side by side, on one line (${JSON.stringify(id)})`);
+    await ctx.close();
+  }
+}
+
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  // One case, run to its end or stopped by name (as section 10's are): a step that throws, such as a field a
+  // mutation removed, fails here and the run goes on to its report.
+  try {
+  await goPlace(page, 'brand');
+  const view0 = await previewView(page);
+  const nsNote = () => page.evaluate(() => ({
+    warn: document.querySelector('[data-p3="namespace-warning"]')?.textContent ?? null,
+    path: document.querySelector('[data-p3="namespace-path"]')?.textContent ?? null,
+    rename: !!document.querySelector('[data-p3="namespace-rename"]'),
+    field: document.querySelector('[data-p3="brand-namespace"]')?.value,
+    described: document.querySelector('[data-p3="brand-namespace"]')?.getAttribute('aria-describedby'),
+  }));
+  // T2: the default theme boots on its placeholder namespace, and the field says so before any export.
+  const n0 = await nsNote();
+  ok(n0.field === 'pds3' && n0.warn === NS_WARN.pds3, `T2: the default theme's namespace field reads pds3 and warns "${NS_WARN.pds3}" (${JSON.stringify(n0)})`);
+  ok(n0.described === 'p3-namespace-note' && !n0.rename, `T2: the namespace field is described by its note, and offers no rename while unchanged (${JSON.stringify(n0)})`);
+  const field = page.locator('[data-p3="brand-namespace"]');
+  await page.evaluate(() => { document.querySelector('[data-p3="brand-namespace"]').dataset.cid = 'same'; });
+  await field.fill('prism');
+  const n1 = await nsNote();
+  ok(n1.warn === NS_WARN.prism && n1.rename, `T2: a draft of "prism" warns "${NS_WARN.prism}" and offers the rename (${JSON.stringify(n1)})`);
+  await field.fill('acme');
+  const n2 = await nsNote();
+  ok(n2.warn === null && n2.path === 'Token paths start with acme, for example acme.color.text.primary.' && n2.rename, `T2: a draft of "acme" warns nothing and names the paths it makes (${JSON.stringify(n2)})`);
+  ok(await page.evaluate(() => document.querySelector('[data-p3="brand-namespace"]').dataset.cid === 'same'), 'namespace: the field is the same element after typing (never rebuilt)');
+  ok((await persisted(page))?.root === 'pds3', `namespace: a draft reaches nothing until it is renamed (persisted root "${(await persisted(page))?.root}")`);
+  // The rename asks once more, in place, and only its confirm renames.
+  await hooks.click(page.locator('[data-p3="namespace-rename"]'));
+  await hooks.need(page, '[data-p3="namespace-confirm"]');
+  const conf = await page.evaluate(() => ({ title: document.querySelector('[data-p3="namespace-confirm"] .p3-confirm-title')?.textContent, role: document.querySelector('[data-p3="namespace-confirm"]')?.getAttribute('role'), focus: document.activeElement?.getAttribute('data-p3') }));
+  ok(conf.title === 'Rename namespace to acme' && conf.role === 'dialog' && conf.focus === 'namespace-confirm-go', `namespace: Rename asks first, its action focused (${JSON.stringify(conf)})`);
+  const mc = await measure(page, 'web light 1280 / brand, rename confirm open', 'web', 1280);
+  check(mc, 'web light 1280 / brand, rename confirm open', 'web wide', PLACE_FLOOR, { extra: ['[data-p3="namespace-confirm-go"]', '[data-p3="namespace-confirm-cancel"]'] });
+  await page.keyboard.press('Escape');
+  const esc = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="namespace-confirm"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+  ok(!esc.open && esc.focus === 'brand-namespace', `namespace: Escape closes the confirm and returns to the field (${JSON.stringify(esc)})`);
+  await hooks.click(page.locator('[data-p3="namespace-rename"]'));
+  await hooks.click(page.locator('[data-p3="namespace-confirm-go"]'));
+  await page.waitForFunction(() => !document.querySelector('[data-p3="namespace-rename"]'));
+  const n3 = await nsNote();
+  ok((await persisted(page))?.root === 'acme' && n3.field === 'acme' && n3.path?.startsWith('Token paths start with acme'), `namespace: confirming renames the brand's namespace (persisted "${(await persisted(page))?.root}", ${JSON.stringify(n3)})`);
+  // The name: per keystroke, to the bar's brand switcher, the field never rebuilt.
+  const nm = page.locator('[data-p3="brand-name"]');
+  await page.evaluate(() => { document.querySelector('[data-p3="brand-name"]').dataset.cid = 'same'; });
+  await nm.fill('acme-brand');
+  const nmState = await page.evaluate(() => ({ bar: document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent, same: document.querySelector('[data-p3="brand-name"]').dataset.cid === 'same', focus: document.activeElement?.getAttribute('data-p3') }));
+  ok(nmState.bar === 'acme-brand' && nmState.same && nmState.focus === 'brand-name', `name: typing a name reaches the bar's brand switcher, the field kept and focused (${JSON.stringify(nmState)})`);
+  ok((await persisted(page))?.id === 'acme-brand', `name: the name reaches the persisted brand without a rebuild (#1196) — "${(await persisted(page))?.id}"`);
+
+  // Personality: a word turns on, says what it fills, and reaches the brand.
+  const soft = page.locator('[data-p3="personality-word"][data-word="soft"]');
+  await hooks.click(soft);
+  const want = `soft: ${SOFT_SETS.map(([k, v]) => `${labelOf(k)} → ${v}`).join(', ')}.`;
+  const ps = await page.evaluate(() => ({ pressed: document.querySelector('[data-p3="personality-word"][data-word="soft"]')?.getAttribute('aria-pressed'), sub: document.querySelector('[data-p3="lever-personality"] .p3-sub')?.textContent }));
+  ok(ps.pressed === 'true' && ps.sub === want, `personality: choosing soft presses it and says "${want}" (${JSON.stringify(ps)})`);
+  ok(JSON.stringify((await persisted(page))?.personality) === '["soft"]', `personality: soft reaches the brand (${JSON.stringify((await persisted(page))?.personality)})`);
+  await hooks.click(soft);
+  ok((await persisted(page))?.personality === undefined, `personality: unpressing the last word clears it (${JSON.stringify((await persisted(page))?.personality)})`);
+
+  // Q3: dark off takes high contrast dark with it, after a confirm that says what goes and what the verdict becomes.
+  ok(JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","hc-dark"]', `Q3: the default theme previews four modes (${await modeRadios(page)})`);
+  await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
+  await hooks.need(page, '[data-p3="mode-off-confirm"]');
+  const dc = await page.evaluate(() => ({ title: document.querySelector('[data-p3="mode-off-confirm"] .p3-confirm-title')?.textContent, lines: [...document.querySelectorAll('[data-p3="mode-off-confirm"] .p3-confirm-line')].map((n) => n.textContent), focus: document.activeElement?.getAttribute('data-p3'), go: document.querySelector('[data-p3="mode-off-confirm-go"]')?.textContent }));
+  ok(dc.title === DARK_OFF_TITLE && dc.lines[0] === DARK_OFF_LINE && dc.go === 'Turn off both modes' && dc.focus === 'mode-off-confirm-go',
+    `Q3: turning dark off first says it takes high contrast dark and what the verdict becomes (${JSON.stringify(dc)})`);
+  if (SHOTS) await page.screenshot({ path: join(SHOTS, 's3-studio-light-1280-dark-off-confirm.png') });
+  await hooks.click(page.locator('[data-p3="mode-off-confirm-cancel"]'));
+  const kept = await checkState(page, '[data-p3="mode-on-dark"]');
+  ok(kept?.checked === 'true' && await page.evaluate(() => document.activeElement?.getAttribute('data-p3')) === 'mode-on-dark', `Q3: Cancel keeps dark on and returns focus to it (${JSON.stringify(kept)})`);
+  await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
+  await hooks.click(page.locator('[data-p3="mode-off-confirm-go"]'));
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
+  const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
+  const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict"]')?.textContent);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 442 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
+  // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
+  // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
+  await page.locator('[data-p3="mode-on-hc-dark"]').focus();
+  await page.keyboard.press('Space');
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]', `Q3: the locked high contrast dark cannot be turned on (${await modeRadios(page)})`);
+  await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 3);
+  const back = await checkState(page, '[data-p3="mode-on-hc-dark"]');
+  ok(JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light"]' && back?.checked === 'false' && !back.locked, `Q3: dark on again unlocks high contrast dark and leaves it off (${await modeRadios(page)}, ${JSON.stringify(back)})`);
+  // A mode with nothing to drop turns off at once: wireframe on, then off.
+  await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"]'));
+  await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+  const wf = await page.evaluate(() => ({ confirm: !!document.querySelector('[data-p3="mode-off-confirm"]'), radio: !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"]') }));
+  ok(!wf.confirm && !wf.radio, `modes: wireframe turns on, and off again with no confirm (it drops nothing) (${JSON.stringify(wf)})`);
+  // A custom mode: added, named, previewable, removed.
+  await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
+  const cm = await page.evaluate(() => ({ name: document.querySelector('[data-p3="custom-mode-name"]')?.value, focus: document.activeElement?.getAttribute('data-p3') }));
+  ok(cm.name === 'custom-1' && cm.focus === 'custom-mode-name', `custom modes: Add custom mode adds custom-1, previewable, its name focused (${JSON.stringify(cm)})`);
+  // A custom mode based on Dark makes the engine refuse Dark off (orchestrator review of #1939): the confirm says
+  // so first, and confirming anyway is refused whole, the brand and the saved brand exactly as they were.
+  await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
+  await page.waitForFunction(() => document.querySelector('[data-p3="custom-mode-base"]')?.value === 'dark');
+  const savedBefore = JSON.stringify(await persisted(page));
+  await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
+  await hooks.need(page, '[data-p3="mode-off-confirm"]');
+  const based = await page.evaluate(() => document.querySelector('[data-p3="mode-off-based"]')?.textContent ?? null);
+  ok(based === BASED_ON_DARK, `Q3: the Dark-off confirm names the custom mode based on dark — says ${JSON.stringify(based)}`);
+  await hooks.click(page.locator('[data-p3="mode-off-confirm-go"]'));
+  const refusedNow = await page.evaluate(() => ({ refused: document.querySelector('[data-p3="lever-modes"]')?.dataset.refused ?? null, dark: document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') }));
+  ok(refusedNow.refused === 'true' && refusedNow.dark === 'true' && JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","custom-1"]',
+    `Q3: a refused Dark off marks Modes refused and leaves dark on (${JSON.stringify(refusedNow)}, modes ${await modeRadios(page)})`);
+  ok(JSON.stringify(await persisted(page)) === savedBefore, 'Q3: a refused Dark off leaves the saved brand exactly as it was');
+  await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
+  await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
+  ok(true, 'custom modes: removing custom-1 takes it out of the preview\'s modes');
+
+  // The Style guide is lent, and its own control redraws it in place, inside the preview (never a legacy tier).
+  const sg = () => page.evaluate(() => ({ ground: document.querySelector('[data-p3="brand-style-guide"] [data-p3="style-guide-ground"]')?.value ?? null, roots: document.querySelectorAll('[data-p3="preview-body"] [data-p3="brand-style-guide"] [data-p3="specimen"]').length }));
+  const sg0 = await sg();
+  await page.locator('[data-p3="brand-style-guide"] [data-p3="style-guide-ground"]').selectOption('inverse.background.primary');
+  const sg1 = await sg();
+  ok(sg0.ground === 'background.primary' && sg1.ground === 'inverse.background.primary' && sg1.roots === STYLE_GUIDE_ROOTS.length, `Style guide: its ground select redraws it inside Brand's preview (${JSON.stringify(sg0)} → ${JSON.stringify(sg1)})`);
+  const view1 = await previewView(page);
+  ok(view1.view === view0.view && view1.view === 'guide', `V1 edit: Brand's edits never move the preview's home (${view1.view}, was ${view0.view})`);
+  // Continue opens Color › Palettes.
+  await hooks.click(page.locator('[data-p3="brand-continue"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-palettes');
+  ok(true, 'Brand: Continue to Color › Palettes opens Color › Palettes');
+  ok(errors.length === 0, `Brand: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S3 Brand: the case stopped at a step that threw, and the rest of it was skipped — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally {
+    await ctx.close();
+  }
+}
+
+// =============================================================================================
+// 17. S3 review: the mode control never clips an option, with 5 and 6 modes (a custom mode or two)
+// =============================================================================================
+console.log(`\nThe mode control with 5 and 6 modes (S3 review)\n${'='.repeat(78)}`);
+/** What a user can choose in the preview header: each radio drawn wholly inside the control's visible box, or,
+ *  when the select is shown instead, its options. A radio cut off by the control's edge counts as not choosable. */
+const choosable = (page) => page.evaluate(() => {
+  const group = document.querySelector('[data-p3="mode-control"]');
+  const sel = document.querySelector('[data-p3="mode-select"]');
+  const shown = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+  const g = group?.getBoundingClientRect();
+  const radios = shown(group) ? [...group.querySelectorAll('[data-p3="mode-option"]')] : [];
+  const whole = radios.filter((r) => { const b = r.getBoundingClientRect(); return b.left >= g.left - 0.5 && b.right <= g.right + 0.5; });
+  return { radios: radios.length, clipped: radios.filter((r) => !whole.includes(r)).map((r) => r.dataset.mode),
+    modes: shown(sel) ? [...sel.options].map((o) => o.value) : whole.map((r) => r.dataset.mode), select: shown(sel), selected: shown(sel) ? sel.value : null };
+});
+for (const { w, h } of WIDTHS) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w, h });
+  try {
+    await goPlace(page, 'brand');
+    const want = ['light', 'dark', 'hc-light', 'hc-dark'];
+    // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
+    // scroll hid one; the select shows them all).
+    if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    const c4 = await choosable(page);
+    ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
+    if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+    for (const n of [1, 2]) {
+      await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+      want.push(`custom-${n}`);
+      await page.waitForFunction((k) => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === k, want.length);
+      if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const c = await choosable(page);
+      const where = `web light ${w} / brand, ${want.length} modes`;
+      ok(c.clipped.length === 0 && JSON.stringify(c.modes) === JSON.stringify(want), `${where}: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c)}`);
+      if (c.select) {
+        await page.locator('[data-p3="mode-select"]').selectOption(`custom-${n}`);
+        const now = await choosable(page);
+        ok(now.selected === `custom-${n}`, `${where}: choosing custom-${n} in the select previews it (${now.selected})`);
+      }
+      const m = await measure(page, where, 'web', w);
+      check(m, where, columnOf('web', w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: w <= 560 ? 'preview' : 'page', only: [] });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s3-studio-light-${w}-brand-${want.length}-modes.png`) });
+      if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+    }
+    ok(errors.length === 0, `mode control ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
 }
 
 hooks.report(ok);

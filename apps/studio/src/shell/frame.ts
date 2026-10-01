@@ -16,8 +16,8 @@
  *
  * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
  * full-width legacy frame under the tab row, pinned light (D1, D2); Depth & motion carries a local switch
- * between its two legacy pages (D8). A moved page (`status: 'new'`, Color › Palettes from S2) shows the two
- * panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * between its two legacy pages (D8). A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3)
+ * shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
  * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
@@ -49,14 +49,19 @@ import { figmaMenu, type FigmaSource } from './figma';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
 import { mountPalettesPreview } from '../preview/palettes';
+import { mountBrandLevers } from '../domains/brand';
+import { mountBrandPreview, type PageLends } from '../preview/brand';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
  *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
  *  compile error. Each mount subscribes to the store and hands back its cleanups. */
 const NEW_PAGES: Record<NewPageKey, {
   readonly levers: (host: HTMLElement, cleanups: (() => void)[]) => void;
-  readonly preview: (host: HTMLElement, cleanups: (() => void)[]) => void;
+  /** `lend`: the legacy renderers `main.ts` lends a preview until its slice replaces them (S3: Brand's
+   *  Style guide), as Inspect is lent its two legacy views. */
+  readonly preview: (host: HTMLElement, cleanups: (() => void)[], lend: PageLends) => void;
 }> = {
+  brand: { levers: mountBrandLevers, preview: mountBrandPreview },
   palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
 };
 
@@ -133,6 +138,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
+  /** The legacy renderers lent to the moved pages' previews (S3: the Style guide). */
+  readonly lend: PageLends;
 }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
@@ -440,7 +447,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     const moved = place ? newPageOf(place) : null;
     if (moved !== mounted) {
       unmountPanes();
-      if (moved) { NEW_PAGES[moved].levers(levers, paneCleanups); NEW_PAGES[moved].preview(previewBody, paneCleanups); }
+      if (moved) { NEW_PAGES[moved].levers(levers, paneCleanups); NEW_PAGES[moved].preview(previewBody, paneCleanups, opts.lend); }
       mounted = moved;
     }
     select(switchTabs, switchTabs.find((b) => b.id === `p3-switch-${kebab(page)}`) ?? null);
