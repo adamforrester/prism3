@@ -1809,6 +1809,11 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   ok(added.n === n0 + 1 && added.focus === 'brand-color-name', `edit: Add brand color adds a ramp to the preview and focuses the new color's name (${JSON.stringify(added)}, was ${n0})`);
   const rm = page.locator('[data-p3="brand-color-remove"]').last();
   await hooks.click(rm);
+  // Removing asks first (owner, 2026-10-01; the confirm's own checks are in 13c). Counted, not waited on, so a
+  // removal that skips the confirm fails here by name instead of ending the run.
+  const asked = await page.locator('[data-p3="brand-color-confirm-go"]').count();
+  ok(asked === 1, `edit: removing a brand color asks first (${asked} confirm shown)`);
+  if (asked) await hooks.click(page.locator('[data-p3="brand-color-confirm-go"]'));
   await page.waitForFunction((n) => document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]').length === n, n0, { timeout: 5000 }).catch(() => {});
   ok(await ramps() === n0, `edit: removing that color takes its ramp out of the preview (${await ramps()}, want ${n0})`);
   // A rename onto another palette's name is refused, and the field puts the old name back.
@@ -1818,15 +1823,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   await nameField.press('Enter');
   await nameField.press('Tab');
   ok(await page.locator('[data-p3="brand-color-name"]').first().inputValue() === was, `edit: renaming a brand color to "primary" is refused and the name stays "${was}"`);
-  // The legacy page's behavior, kept (S2 review): a status role switched from "Use accent" to Custom seeds the
-  // custom color from the ramp named for the role, which a borrowing role does not have, so #808080.
   await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
-  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
-  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
-  await page.locator('[data-p3="status-success-source"]').selectOption('custom');
-  await hooks.need(page, '[data-p3="status-success-hex"]');
-  const seeded = await page.locator('[data-p3="status-success-hex"]').inputValue();
-  ok(seeded === '#808080', `edit: a status color switched from "Use accent" to Custom seeds #808080, as the legacy page did — seeded ${seeded}`);
   // The neutral sliders, as the legacy page had them: only a custom tint edits them. Under Follow primary the
   // chroma is read-only; with a pinned neutral both are read-only and show the anchor's own hue and chroma.
   const sliders = () => page.evaluate(() => {
@@ -1850,6 +1847,139 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
     && Math.abs(pinned.hue.value - pinned.anchor.h) <= 1 && Math.abs(pinned.chroma.value - pinned.anchor.c) <= 0.0015,
   `neutral: a pinned neutral makes hue and chroma read-only and shows the anchor's own (${JSON.stringify(pinned)})`);
   ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 13b. A status color switched to Custom starts from the color the role resolves to (owner, 2026-10-01)
+// =============================================================================================
+// THE ORACLE is the engine itself, bundled for Node from its source: the boot brand (the committed
+// example-brands.json's prism3, read at BOOT_INPUT) with the case's source set, resolved, and the role's
+// light-mode `foreground.<role>` read off it. It never calls `statusSeedHex`. The page's own preview is a
+// second witness: the oracle's hex must be one of the squares the preview draws for the palette the role
+// draws from, so the oracle and the page are resolving the same brand.
+console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'='.repeat(78)}`);
+{
+  const esbuild = await import('esbuild');
+  const eng = await esbuild.build({ stdin: { contents: "export { brandTheme } from '@prism3/engine/theme'; export { resolveAllModes } from '@prism3/engine/modes';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+    bundle: true, platform: 'node', format: 'esm', write: false, loader: { '.json': 'json' }, logLevel: 'silent' });
+  const { brandTheme, resolveAllModes } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
+  // What the role resolves to with `src` set, the way the source select writes it: a borrow is `roleColors`,
+  // Auto is neither `roleColors` nor `status` for that role.
+  const oracle = (role, src) => {
+    const inp = structuredClone(BOOT_INPUT);
+    if (inp.status) delete inp.status[role];
+    if (inp.roleColors) delete inp.roleColors[role];
+    if (src.startsWith('use:')) inp.roleColors = { ...(inp.roleColors ?? {}), [role]: src.slice(4) };
+    const t = brandTheme(inp);
+    const light = resolveAllModes(t).find((m) => m.mode === 'light');
+    return { hex: light.roles[`foreground.${role}`]?.hex?.toLowerCase(), palette: t.roleToPalette[role] };
+  };
+  // Each role's hooks, spelled literally for the hook guard.
+  const CASES = [
+    { role: 'success', src: 'use:accent', name: 'Use accent', sel: '[data-p3="status-success-source"]', hex: '[data-p3="status-success-hex"]', pick: '[data-p3="status-success-color"]' },
+    { role: 'warning', src: 'auto', name: 'Auto', sel: '[data-p3="status-warning-source"]', hex: '[data-p3="status-warning-hex"]', pick: '[data-p3="status-warning-color"]' },
+    { role: 'danger', src: 'use:primary', name: 'Use primary', sel: '[data-p3="status-danger-source"]', hex: '[data-p3="status-danger-hex"]', pick: '[data-p3="status-danger-color"]' },
+  ];
+  for (const { role, src, name, sel: selQ, hex: hexQ, pick: pickQ } of CASES) {
+    const want = oracle(role, src);
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+    const sel = page.locator(selQ);
+    await sel.selectOption(src);
+    await page.waitForFunction(([q, v]) => document.querySelector(q)?.value === v, [selQ, src], { timeout: 5000 }).catch(() => {});
+    const drawn = await page.evaluate((p) => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')]
+      .filter((n) => n.dataset.palette === p && !n.classList.contains('p3-pal-reuse')).flatMap((n) => [...n.querySelectorAll('.p3-sqk-hex')].map((x) => `#${x.textContent.toLowerCase()}`)), want.palette);
+    ok(!!want.hex && drawn.includes(want.hex), `status seed: ${role} on "${name}" resolves to ${want.hex} (engine, light foreground.${role}), a square the preview draws in palette.${want.palette} — drew ${drawn.length} squares${drawn.includes(want.hex) ? '' : ` (${drawn.slice(0, 4).join(' ')}…)`}`);
+    await sel.selectOption('custom');
+    await hooks.need(page, hexQ);
+    const field = page.locator(hexQ);
+    const seeded = await field.inputValue();
+    ok(seeded === want.hex, `status seed: ${role} switched from "${name}" to Custom starts from the color the role resolved to, ${want.hex} — seeded ${seeded}`);
+    const state = await page.evaluate(([r, sq, pq]) => ({ src: document.querySelector(sq)?.value, picker: document.querySelector(pq)?.value,
+      own: [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === r && !n.classList.contains('p3-pal-reuse')) }), [role, selQ, pickQ]);
+    ok(state.src === 'custom' && /^#[0-9a-f]{6}$/.test(seeded) && state.picker === seeded && state.own,
+      `status seed: ${role}'s seeded color is a valid custom color (source custom, the picker agrees, its own ramp in the preview) (${JSON.stringify({ seeded, ...state })})`);
+    // Editable: a typed hex takes, and the source label follows it.
+    const label = () => page.evaluate((q) => document.querySelector(q)?.selectedOptions[0]?.textContent ?? '', selQ);
+    const l0 = await label();
+    const next = seeded === '#2266cc' ? '#cc6622' : '#2266cc';
+    await field.fill(next);
+    await field.press('Enter');
+    await page.waitForFunction(([q, l]) => document.querySelector(q)?.selectedOptions[0]?.textContent !== l, [selQ, l0], { timeout: 5000 }).catch(() => {});
+    const l1 = await label();
+    ok(l1 !== l0 && l1.startsWith('Custom: ') && await field.inputValue() === next, `status seed: ${role}'s custom color is editable — typing ${next} moves the source to "${l1}" (was "${l0}")`);
+    ok(errors.length === 0, `status seed (${role}): 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
+}
+
+// =============================================================================================
+// 13c. Removing a brand color asks first, in place (owner, 2026-10-01)
+// =============================================================================================
+// THE ORACLE for "nothing saved" and "exactly today's removal" is the brand the web host persists after
+// every edit (`prism3:brandInput` in localStorage), read before and after. The expected removal is written
+// out here for this brand, by hand, from what the removal has always done (S2's cascade, docs/24 #53): the
+// color leaves `brandColors`, a status role that borrowed it goes back to Auto, and a gradient stop on it
+// moves to primary. It never calls `removalEffects` or `cascadeRemove`.
+console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const accentRamp = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'));
+  // Make the removal cascade: success borrows accent (prism3's two gradients already have accent stops).
+  await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
+  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  ok(b0?.roleColors?.success === 'accent' && b0.brandColors?.some((x) => x.name === 'accent'), `confirm: the setup persisted, with success borrowing accent (${JSON.stringify(b0?.roleColors)})`);
+  const rmAccent = page.locator('[data-p3="brand-color-remove"][aria-label="Remove accent"]');
+  const panel = () => page.evaluate(() => {
+    const c = document.querySelectorAll('[data-p3="brand-color-confirm"]');
+    const el = c[0];
+    return { n: c.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, items: [...(el?.querySelectorAll('li') ?? [])].map((x) => x.textContent),
+      named: el ? document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent ?? null : null, focus: document.activeElement?.getAttribute('data-p3') ?? null };
+  });
+  // Asks first: the click opens the confirm and removes nothing. If it does not ask, the checks after this one
+  // have nothing to drive, so they are skipped and this one fails by name.
+  await hooks.click(rmAccent);
+  const p1 = await panel();
+  confirmChecks: {
+  const WANT_ITEMS = ['The success color goes back to Auto.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
+  ok(p1.n === 1 && p1.title === 'Remove accent?' && p1.named === 'Remove accent?' && p1.focus === 'brand-color-confirm-go',
+    `confirm: Remove accent asks first, "Remove accent?" names it and focus is on its action, as S3's confirms do (${JSON.stringify(p1)})`);
+  ok(JSON.stringify(p1.items) === JSON.stringify(WANT_ITEMS), `confirm: it names what else the removal changes — ${JSON.stringify(p1.items)}, want ${JSON.stringify(WANT_ITEMS)}`);
+  ok(await accentRamp() && await stored() === before, 'confirm: while it asks, accent is still in the preview and nothing is saved');
+  if (p1.n !== 1) break confirmChecks;
+  // Cancel writes nothing, closes, and returns focus to the button.
+  await hooks.click(page.locator('[data-p3="brand-color-confirm-cancel"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const p2 = await panel();
+  ok(p2.n === 0 && p2.focus === 'brand-color-remove', `confirm: Cancel closes it and returns focus to the remove button (${JSON.stringify(p2)})`);
+  const afterCancel = await stored();
+  ok(afterCancel === before && await accentRamp(), `confirm: Cancel saves nothing — the stored brand is byte-identical and accent keeps its ramp${afterCancel === before ? '' : ` (now ${afterCancel?.slice(0, 120)}…)`}`);
+  if (!await rmAccent.count()) break confirmChecks;
+  // Escape is Cancel.
+  await hooks.click(rmAccent);
+  await hooks.need(page, '[data-p3="brand-color-confirm"]');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const p3 = await panel();
+  ok(p3.n === 0 && p3.focus === 'brand-color-remove' && await stored() === before, `confirm: Escape closes it and saves nothing (${JSON.stringify(p3)})`);
+  // Confirm is today's removal and cascade, exactly.
+  const want = structuredClone(b0);
+  want.brandColors = want.brandColors.filter((x) => x.name !== 'accent');
+  delete want.roleColors.success;
+  if (!Object.keys(want.roleColors).length) delete want.roleColors;
+  for (const g of want.gradients ?? []) for (const st of g.stops) if (st.palette === 'accent') st.palette = 'primary';
+  await hooks.click(rmAccent);
+  await hooks.click(page.locator('[data-p3="brand-color-confirm-go"]'));
+  await page.waitForFunction(() => ![...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'), null, { timeout: 5000 }).catch(() => {});
+  const got = JSON.parse(await stored() ?? 'null')?.input;
+  ok(!await accentRamp() && canon(got) === canon(want), `confirm: Remove removes accent with the same cascade as before — ${canon(got) === canon(want) ? 'the stored brand is the expected one' : wireDiff({ input: got }, { input: want })}`);
+  }
+  ok(errors.length === 0, `confirm: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
 
@@ -2034,20 +2164,63 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
-  // An edit does: the neutral chroma, by keyboard on its slider, reveals the neutral ramp.
+  // An edit does, and smoothly (owner, 2026-10-01). A recorder on the preview body's `scrollTo` notes the
+  // behavior each reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
+  // it has held still for ten frames: a smooth reveal passes through positions between start and end.
+  await page.evaluate(() => {
+    window.__reveals = [];
+    const o = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (...a) {
+      if (this.matches('[data-p3="preview-body"]')) window.__reveals.push(a[0] && typeof a[0] === 'object' ? a[0].behavior ?? 'auto' : 'auto');
+      return o.apply(this, a);
+    };
+  });
+  const reveals = () => page.evaluate(() => window.__reveals.splice(0));
+  const frames = () => page.evaluate(() => new Promise((res) => {
+    const b = document.querySelector('[data-p3="preview-body"]');
+    const tops = [Math.round(b.scrollTop)];
+    let still = 0;
+    const tick = () => {
+      const t = Math.round(b.scrollTop);
+      still = t === tops[tops.length - 1] ? still + 1 : 0;
+      tops.push(t);
+      if (still >= 10 || tops.length > 300) res(tops); else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+  const between = (tops, from) => new Set(tops.filter((t) => t !== from && t !== tops[tops.length - 1])).size;
+  // The neutral chroma, by keyboard on its slider, reveals the neutral ramp.
   await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await reveals();
   await page.keyboard.press('ArrowRight');
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const t1 = await frames();
   const e1 = await state('neutral');
   ok(e1.inView && e1.top < bottom, `Q4: editing the neutral chroma scrolls the preview to the neutral ramp (in view ${e1.inView}, scrollTop ${e1.top}, was ${bottom})`);
+  const r1 = await reveals();
+  ok(r1.length >= 1 && r1.every((x) => x === 'smooth'), `Q4: without reduced motion the reveal asks for a smooth scroll — asked ${JSON.stringify(r1)}`);
+  ok(between(t1, bottom) >= 2, `Q4: without reduced motion the preview passes through positions on its way (${between(t1, bottom)} in-between positions over ${t1.length} frames, ${t1[0]} → ${t1[t1.length - 1]})`);
   // And the primary hex, from the bottom again, reveals the primary ramp.
   await toBottom();
   await page.locator('[data-p3="primary-hex"]').fill('#2244aa');
   await page.locator('[data-p3="primary-hex"]').press('Enter');
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await frames();
   const e2 = await state('primary');
   ok(e2.inView, `Q4: editing the primary color scrolls the preview to the primary ramp (in view ${e2.inView}, scrollTop ${e2.top})`);
   ok(e2.view === 'palettes', `Q4: an edit never changes the preview's home (V1) — ${e2.view}`);
+  // Under reduced motion the reveal jumps: the ramp is in view as soon as the edit returns, with no frames
+  // in between.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const bottom2 = await toBottom();
+  await reveals();
+  await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await page.keyboard.press('ArrowRight');
+  const e3 = await state('neutral');
+  const t3 = await frames();
+  const r3 = await reveals();
+  ok(e3.inView && e3.top < bottom2, `Q4: under reduced motion the neutral ramp is in view right after the edit (in view ${e3.inView}, scrollTop ${e3.top}, was ${bottom2})`);
+  ok(r3.length >= 1 && r3.every((x) => x === 'instant'), `Q4: under reduced motion the reveal asks for an instant scroll — asked ${JSON.stringify(r3)}`);
+  ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   // The mode does not move it.
   const before = await toBottom();
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));

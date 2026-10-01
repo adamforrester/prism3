@@ -16,6 +16,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { brandState, lastGoodInput, theme } from './store';
+import { resolvedModes } from './verdict';
 
 export const STATUS_ROLES = ['success', 'warning', 'danger', 'info'] as const;
 export type StatusRole = typeof STATUS_ROLES[number];
@@ -76,6 +77,28 @@ export const cascadeRemove = (removed: string): void => {
     if (!brandState.interactivePalettes.length) brandState.interactivePalettes = undefined;
   }
   if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === removed) s.palette = 'primary'; }));
+};
+
+/** What removing palette `name` also changes, one line each, in the order `cascadeRemove` applies it: the
+ *  confirm lists these before the removal (owner, 2026-10-01). Read from the working brand, so the list is
+ *  what Confirm will do. An empty list means nothing else names the palette. */
+export const removalEffects = (name: string): string[] => {
+  const out: string[] = [];
+  if (brandState.actionPalette === name) out.push('Actions go back to primary.');
+  if (brandState.linkPalette === name) out.push('Links go back to their default color.');
+  const rc = brandState.roleColors as Record<string, string> | undefined;
+  for (const r of Object.keys(rc ?? {})) {
+    if (rc![r] !== name) continue;
+    out.push((STATUS_ROLES as readonly string[]).includes(r) ? `The ${r} color goes back to Auto.` : `The ${r} role goes back to its default palette.`);
+  }
+  if (brandState.interactivePalettes?.some((e) => e.palette === name)) out.push(`Its interactive color column is removed.`);
+  if (Array.isArray(brandState.gradients)) {
+    for (const g of brandState.gradients) {
+      const n = g.stops.filter((st) => st.palette === name).length;
+      if (n) out.push(`In the ${g.name} gradient, ${n === 1 ? '1 stop switches' : `${n} stops switch`} to primary.`);
+    }
+  }
+  return out;
 };
 
 /** Add a brand color, `accent<n>` at the first free number. Materialized on the EDIT, never on a render
@@ -141,15 +164,23 @@ export const statusSource = (role: StatusRole): StatusSource => {
   if (borrowed) return `use:${borrowed}`;
   return brandState.status?.[role] ? 'custom' : 'auto';
 };
-/** The hex a custom hue starts from: the current custom hue, else the mid step of the ramp NAMED FOR THE
- *  ROLE, else gray. Looked up by the role's own name, as the legacy page did: a role that borrows another
- *  palette has no ramp of its own, so switching it to Custom seeds `#808080`, not the borrowed palette's
- *  color. (Seeding from the borrowed palette instead is held for the owner, UI redesign S2 review.) */
+/** The hex a custom hue starts from: the current custom hue, else the color the role resolves to right now,
+ *  in light mode: `foreground.<role>` in the engine's resolved output (`resolvedModes(theme)`, the cache
+ *  the verdict and the preview already share). Switching to Custom then starts where the role already was,
+ *  with no jump, whatever the source was before: Auto (the synthesized or reused status color), a borrowed
+ *  palette ("Use accent" gives the accent color the role was drawing), or a per-mode override (the
+ *  resolved output already carries it). Owner decision, 2026-10-01, which closes the S2 review's held
+ *  item; the legacy page seeded `#808080` for a borrowing role.
+ *
+ *  WHY THE RESOLVED ROLE AND NOT A RAMP STEP. `foreground.<role>` is the role's own fill, the color the
+ *  status draws as. Picking a step from `roleToPalette` and `roleAnchorStep` would re-derive the engine's
+ *  answer here, and would miss an override that repoints the role. `#808080` is left only as the answer
+ *  when a theme emits no such role, which no brand does. */
 export const statusSeedHex = (role: StatusRole): string => {
   const cur = brandState.status?.[role];
   if (cur) return hexOf(cur);
-  const pal = theme.palettes.find((p) => p.palette === role);
-  return pal?.steps.find((s) => s.num === 500)?.hex ?? pal?.steps[Math.floor(pal.steps.length / 2)]?.hex ?? '#808080';
+  const light = resolvedModes(theme).find((m) => m.mode === 'light');
+  return parseHex(light?.roles[`foreground.${role}`]?.hex ?? '') ?? '#808080';
 };
 /** Set a status role's source. The three are exclusive, so each clears the other two. */
 export const setStatusSource = (role: StatusRole, src: StatusSource): void => {
