@@ -1715,15 +1715,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   await nameField.press('Enter');
   await nameField.press('Tab');
   ok(await page.locator('[data-p3="brand-color-name"]').first().inputValue() === was, `edit: renaming a brand color to "primary" is refused and the name stays "${was}"`);
-  // The legacy page's behavior, kept (S2 review): a status role switched from "Use accent" to Custom seeds the
-  // custom color from the ramp named for the role, which a borrowing role does not have, so #808080.
   await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
-  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
-  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
-  await page.locator('[data-p3="status-success-source"]').selectOption('custom');
-  await hooks.need(page, '[data-p3="status-success-hex"]');
-  const seeded = await page.locator('[data-p3="status-success-hex"]').inputValue();
-  ok(seeded === '#808080', `edit: a status color switched from "Use accent" to Custom seeds #808080, as the legacy page did — seeded ${seeded}`);
   // The neutral sliders, as the legacy page had them: only a custom tint edits them. Under Follow primary the
   // chroma is read-only; with a pinned neutral both are read-only and show the anchor's own hue and chroma.
   const sliders = () => page.evaluate(() => {
@@ -1748,6 +1740,70 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   `neutral: a pinned neutral makes hue and chroma read-only and shows the anchor's own (${JSON.stringify(pinned)})`);
   ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
+}
+
+// =============================================================================================
+// 13b. A status color switched to Custom starts from the color the role resolves to (owner, 2026-10-01)
+// =============================================================================================
+// THE ORACLE is the engine itself, bundled for Node from its source: the boot brand (the committed
+// example-brands.json's prism3, read at BOOT_INPUT) with the case's source set, resolved, and the role's
+// light-mode `foreground.<role>` read off it. It never calls `statusSeedHex`. The page's own preview is a
+// second witness: the oracle's hex must be one of the squares the preview draws for the palette the role
+// draws from, so the oracle and the page are resolving the same brand.
+console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'='.repeat(78)}`);
+{
+  const esbuild = await import('esbuild');
+  const eng = await esbuild.build({ stdin: { contents: "export { brandTheme } from '@prism3/engine/theme'; export { resolveAllModes } from '@prism3/engine/modes';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+    bundle: true, platform: 'node', format: 'esm', write: false, loader: { '.json': 'json' }, logLevel: 'silent' });
+  const { brandTheme, resolveAllModes } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
+  // What the role resolves to with `src` set, the way the source select writes it: a borrow is `roleColors`,
+  // Auto is neither `roleColors` nor `status` for that role.
+  const oracle = (role, src) => {
+    const inp = structuredClone(BOOT_INPUT);
+    if (inp.status) delete inp.status[role];
+    if (inp.roleColors) delete inp.roleColors[role];
+    if (src.startsWith('use:')) inp.roleColors = { ...(inp.roleColors ?? {}), [role]: src.slice(4) };
+    const t = brandTheme(inp);
+    const light = resolveAllModes(t).find((m) => m.mode === 'light');
+    return { hex: light.roles[`foreground.${role}`]?.hex?.toLowerCase(), palette: t.roleToPalette[role] };
+  };
+  // Each role's hooks, spelled literally for the hook guard.
+  const CASES = [
+    { role: 'success', src: 'use:accent', name: 'Use accent', sel: '[data-p3="status-success-source"]', hex: '[data-p3="status-success-hex"]', pick: '[data-p3="status-success-color"]' },
+    { role: 'warning', src: 'auto', name: 'Auto', sel: '[data-p3="status-warning-source"]', hex: '[data-p3="status-warning-hex"]', pick: '[data-p3="status-warning-color"]' },
+    { role: 'danger', src: 'use:primary', name: 'Use primary', sel: '[data-p3="status-danger-source"]', hex: '[data-p3="status-danger-hex"]', pick: '[data-p3="status-danger-color"]' },
+  ];
+  for (const { role, src, name, sel: selQ, hex: hexQ, pick: pickQ } of CASES) {
+    const want = oracle(role, src);
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+    const sel = page.locator(selQ);
+    await sel.selectOption(src);
+    await page.waitForFunction(([q, v]) => document.querySelector(q)?.value === v, [selQ, src], { timeout: 5000 }).catch(() => {});
+    const drawn = await page.evaluate((p) => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')]
+      .filter((n) => n.dataset.palette === p && !n.classList.contains('p3-pal-reuse')).flatMap((n) => [...n.querySelectorAll('.p3-sqk-hex')].map((x) => `#${x.textContent.toLowerCase()}`)), want.palette);
+    ok(!!want.hex && drawn.includes(want.hex), `status seed: ${role} on "${name}" resolves to ${want.hex} (engine, light foreground.${role}), a square the preview draws in palette.${want.palette} — drew ${drawn.length} squares${drawn.includes(want.hex) ? '' : ` (${drawn.slice(0, 4).join(' ')}…)`}`);
+    await sel.selectOption('custom');
+    await hooks.need(page, hexQ);
+    const field = page.locator(hexQ);
+    const seeded = await field.inputValue();
+    ok(seeded === want.hex, `status seed: ${role} switched from "${name}" to Custom starts from the color the role resolved to, ${want.hex} — seeded ${seeded}`);
+    const state = await page.evaluate(([r, sq, pq]) => ({ src: document.querySelector(sq)?.value, picker: document.querySelector(pq)?.value,
+      own: [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === r && !n.classList.contains('p3-pal-reuse')) }), [role, selQ, pickQ]);
+    ok(state.src === 'custom' && /^#[0-9a-f]{6}$/.test(seeded) && state.picker === seeded && state.own,
+      `status seed: ${role}'s seeded color is a valid custom color (source custom, the picker agrees, its own ramp in the preview) (${JSON.stringify({ seeded, ...state })})`);
+    // Editable: a typed hex takes, and the source label follows it.
+    const label = () => page.evaluate((q) => document.querySelector(q)?.selectedOptions[0]?.textContent ?? '', selQ);
+    const l0 = await label();
+    const next = seeded === '#2266cc' ? '#cc6622' : '#2266cc';
+    await field.fill(next);
+    await field.press('Enter');
+    await page.waitForFunction(([q, l]) => document.querySelector(q)?.selectedOptions[0]?.textContent !== l, [selQ, l0], { timeout: 5000 }).catch(() => {});
+    const l1 = await label();
+    ok(l1 !== l0 && l1.startsWith('Custom: ') && await field.inputValue() === next, `status seed: ${role}'s custom color is editable — typing ${next} moves the source to "${l1}" (was "${l0}")`);
+    ok(errors.length === 0, `status seed (${role}): 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
 }
 
 // =============================================================================================
