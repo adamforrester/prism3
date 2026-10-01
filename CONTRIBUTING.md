@@ -247,7 +247,9 @@ a check that always has something to say is one nobody reads.
 
 Its `GATES` array is the **fifth** authored statement of what the gates are, beside this section,
 `CLAUDE.md` §4, the PR template and `ci.yml` — and `lint-doc-gates.ts` compares it against `ci.yml` in
-**both** directions, joined on each step's `- name:` verbatim. That is what makes `ci.yml` checkable
+**both** directions, joined on each step's `- name:` verbatim, and then compares each joined pair's
+command word for word (#1919): a flag dropped from one of the two files fails by name. A flag dropped
+from both does not, because the two copies then agree. That is what makes `ci.yml` checkable
 at all: this file's other three comparisons take `ci.yml` as ground truth, so before #789 a gate
 *missing* from `ci.yml` left four artifacts in perfect agreement and fired nothing. Measured, not
 assumed — deleting the `lint-paint.ts` step from `ci.yml` left the previous gate exiting 0. Its
