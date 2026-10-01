@@ -269,8 +269,8 @@ The CLIs and the runbook are in `tools/figma-mcp/`.
 ## Scope (the agent link — an agent drives the running plugin by command)
 
 "The plugin does the writing; the agent does the triggering and reading of the output." With the owner's
-**Agent link** switched on (a temporary dashed chip, bottom-left of the panel — its placement and name are
-open owner decisions), an agent sends a command and reads back a structured result. One protocol, two
+**Agent link** switched on (the **Agent: Off** chip in the top bar opens a small popover with the switch,
+IA-3 and D6; it replaced the bottom-left chip in UI redesign S1.4), an agent sends a command and reads back a structured result. One protocol, two
 transports: A, the file mailbox, and B, the local desktop bridge.
 
 - ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
@@ -304,7 +304,8 @@ transports: A, the file mailbox, and B, the local desktop bridge.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
 The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,
-no fork) and mounts the agent-link chip beside it, so the web build carries none of it.
+no fork) and mounts the Agent chip into the top bar's `bar-agent` slot, which only the plugin's frame
+renders, so the web build carries none of it.
 
 ## Run
 

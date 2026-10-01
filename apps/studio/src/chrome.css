@@ -13,8 +13,9 @@
  * state class.
  *
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
- * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); and the
- * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3). The
+ * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); the
+ * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3); and the
+ * Activity button and drawer, the Figma menu and the plugin's Agent chip (S1.4). The
  * legacy surfaces inside it (the legacy page, the brand menu, the Pages menu, the dialogs) keep
  * `styles.css` and are pinned light with `data-theme="light"`. So no rule here sets a font or a color
  * on a container that holds legacy content: each chrome control sets its own, and legacy text keeps
@@ -100,16 +101,18 @@
 .p3-dot-ok { background: var(--p3-ok-icon); }
 .p3-dot-bad { background: var(--p3-bad-icon); }
 
-/* Status pills (the plugin's write verdicts, until S1.4 moves them into the Activity drawer). */
+/* Status pills: the plugin's write verdicts, in the Activity drawer's bar row since S1.4, so on the page
+   ground with the page's edge (B1). */
 .p3-pill {
   display: inline-flex; align-items: center; gap: var(--p3-space-050); flex: 0 1 auto; min-width: 0;
   min-height: var(--p3-hit-min); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-pill);
-  border: var(--p3-bw-hairline) solid var(--p3-edge-bar); background: var(--p3-bg-page); color: var(--p3-text);
+  border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page); color: var(--p3-text);
   font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis);
   line-height: var(--p3-lh-compact); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .p3-pill-bad { color: var(--p3-bad-text); }
 .p3-pill-btn { cursor: pointer; overflow: visible; }
+.p3-pill-btn:hover { border-color: var(--p3-field-edge-hover); }
 .p3-pill-btn .p3-ico { color: var(--p3-icon-2); }
 .p3-pill-btn[aria-expanded="true"] .p3-ico { transform: rotate(180deg); }
 
@@ -126,6 +129,8 @@
   font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default); white-space: nowrap;
 }
 .p3-menu-item:hover { background: var(--p3-fill-1); }
+.p3-menu-item[disabled] { color: var(--p3-text-2); cursor: not-allowed; }
+.p3-menu-item[disabled]:hover { background: none; }
 .p3-menu-item .p3-ico { color: var(--p3-icon-2); }
 .p3-menu-note { margin-left: auto; padding-left: var(--p3-space-200); color: var(--p3-text-2); font-size: var(--p3-fs-12); }
 .p3-menu-item > .p3-ico:last-child { visibility: hidden; color: var(--p3-icon); }
@@ -228,8 +233,8 @@
    whatever either row holds. The sub-pages open the levers column under the line (Q1). */
 .p3-frame[data-layout="panes"] {
   position: fixed; inset: 0; display: grid; grid-template-columns: 42% minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
-  grid-template-areas: "bar bar" "notices notices" "nav phead" "subnav pbody" "levers pbody";
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "bar bar" "notices notices" "nav phead" "subnav pbody" "levers pbody" "levers drawer";
 }
 .p3-frame[data-layout="panes"] :is(.p3-head, .p3-panes, .p3-preview) { display: contents; }
 .p3-frame[data-layout="panes"] .p3-bar { grid-area: bar; }
@@ -341,8 +346,8 @@
 .p3-frame[data-w="narrow"] .p3-switchrow { padding: var(--p3-space-150) var(--p3-space-150) 0; }
 .p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
-  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr);
-  grid-template-areas: "bar" "notices" "nav" "subnav" "levers";
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "bar" "notices" "nav" "subnav" "levers" "drawer";
 }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-head { grid-area: nav; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-preview-body { grid-area: levers; }
@@ -358,6 +363,72 @@
 .p3-frame[data-layout="panes"][data-w="narrow"][data-pane="preview"] :is(.p3-levers, .p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-pane-toggle { display: inline-flex; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-bar { position: static; }
+
+/* ── Activity (S1.4, F2): the button's status dot, the drawer, the strip and the sheet ─────── */
+/* The status dot: running (a ring), a result that needs attention, a result nobody has opened. Never the
+   only cue: the button's name carries the same words. */
+.p3-status-dot { box-sizing: border-box; }
+.p3-status-dot[data-state="none"] { display: none; }
+.p3-status-dot[data-state="unread"] { background: var(--p3-icon); }
+.p3-status-dot[data-state="bad"] { background: var(--p3-bad-icon); }
+.p3-status-dot[data-state="run"] { border: var(--p3-bw-thick) solid var(--p3-icon); }
+/* The drawer: at the bottom of the frame, pinned to the bottom edge, on the page ground. Its bar row holds
+   the toggle and the status pills; its body, the open result's detail. Hidden until something has run
+   or it is opened. */
+.p3-drawer {
+  position: sticky; bottom: 0; z-index: 20; display: flex; flex-direction: column; min-height: 0;
+  background: var(--p3-bg-page); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+.p3-drawer[data-open="false"]:has(.p3-drawer-pills:empty) { display: none; }
+.p3-drawer-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); flex: none;
+  min-height: var(--p3-bar-h); padding: var(--p3-space-050) var(--p3-space-300);
+}
+.p3-drawer-pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); flex: 1 1 0; min-width: 0; }
+/* A ghost control on the page ground shows the page's edge on hover (B1). */
+.p3-drawer .p3-btn-ghost:hover { border-color: var(--p3-edge); }
+.p3-drawer[data-open="true"] .p3-drawer-toggle > .p3-ico:last-child { transform: rotate(180deg); }
+.p3-drawer-body {
+  display: grid; gap: var(--p3-space-150); align-content: start; min-height: 0;
+  max-height: calc(4 * var(--p3-bar-h)); overflow: auto; padding: 0 var(--p3-space-300) var(--p3-space-200);
+}
+.p3-drawer-body[hidden] { display: none; }
+.p3-drawer-body:has(.p3-detail:not([hidden])) .p3-drawer-note { display: none; }
+.p3-drawer-note { margin: 0; }
+/* The apply detail: the open verdict spelled out. */
+.p3-detail { color: var(--p3-text); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); overflow-wrap: anywhere; }
+.p3-detail[hidden] { display: none; }
+/* Under the two panes, the drawer is the preview pane's bottom row (plan §3.9). */
+.p3-frame[data-layout="panes"] .p3-drawer { grid-area: drawer; position: static; border-left: 0; }
+/* At 380: the closed drawer is the strip, pinned to the bottom edge; the open drawer is a full-pane sheet
+   under the top row (F2). */
+.p3-frame[data-w="narrow"] .p3-drawer-bar { min-height: var(--p3-ctl-h-sm); gap: var(--p3-space-075); padding: var(--p3-space-050) var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-drawer-body { padding: 0 var(--p3-space-150) var(--p3-space-200); }
+.p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) :is(.p3-nav, .p3-subnav, .p3-notices, .p3-legacy, .p3-panes, .p3-inspect) { display: none; }
+.p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] { flex: 1 1 auto; border-top: 0; }
+.p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-body { flex: 1 1 auto; max-height: none; }
+
+/* The Figma menu (S1.4, plugin only). At 380 it spans the top row, under it, like the Agent popover. */
+.p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }
+.p3-frame[data-w="narrow"] .p3-figma-menu { left: 0; right: 0; }
+
+/* ── the Agent chip (S1.4, IA-3; plugin only) and its popover ─────────────────────────────── */
+.p3-agent-slot { display: inline-flex; }
+.p3-agent-slot:empty { display: none; }
+.p3-agent-dot { box-sizing: border-box; border: var(--p3-bw-hairline) solid var(--p3-icon-2); }
+:is(.p3-agent-chip, .p3-agent-switch)[data-on="true"] .p3-agent-dot { background: var(--p3-ok-icon); border-color: var(--p3-ok-icon); }
+.p3-agent-pop {
+  min-width: 0; width: calc(7 * var(--p3-ctl-h)); gap: var(--p3-space-150); padding: var(--p3-space-200);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+.p3-agent-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-150); }
+.p3-agent-title { font-weight: var(--p3-fw-emphasis); }
+.p3-agent-line { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: normal; overflow-wrap: anywhere; }
+/* At 380 the popover spans the top row, under it, rather than hanging from a chip near the middle. */
+.p3-frame[data-w="narrow"] .p3-agent-slot > .p3-popwrap { position: static; }
+.p3-frame[data-w="narrow"] .p3-agent-pop { left: 0; right: 0; width: auto; }
 
 /* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }
