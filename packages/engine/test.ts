@@ -1105,6 +1105,50 @@ for (const b of brands) {
     `L-07: a low-contrast custom link palette is still rated up to the 4.5:1 link floor (emitted ${(floLink?.ratio ?? 0).toFixed(2)}:1 at ${paletteOf(floLink?.path)}.${floLink?.path.split('.').pop()}) — the floor always holds regardless of palette`);
 }
 
+// #1895 — an UNSET `linkPalette` follows the palette the action role RESOLVES to, `roleColors.action`
+// included (owner decision 2026-10-01). It used to follow the `actionPalette` LEVER, so a brand that moved
+// action with `roleColors.action` got accent buttons and primary links. EXPECTED is authored here as
+// palette-name literals ('accent', 'primary', 'neutral') and the per-mode link floors (4.5:1, 7:1 in high
+// contrast), never read off `theme.roleToPalette` or modes.ts (docs/34 shape 2). An explicit `linkPalette`
+// still wins. BY-NAME MUTATION: put `input.linkPalette ?? actionPalette` back in theme.ts → the first two
+// asserts below fail by name ('primary' instead of 'accent').
+{
+  const B = { id: 'l1895', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const build = (over: Record<string, unknown>) => brandTheme({ ...B, ...over } as unknown as BrandInput);
+  const segOf = (path: string | undefined): string | undefined => path?.split('.').slice(-2)[0];
+  const linkByMode = (t: ReturnType<typeof brandTheme>) =>
+    resolveAllModes(t).map((m) => ({ mode: m.mode, link: (m.roles as any)['text.link.default'] as { path: string; ratio: number } | undefined }));
+  const FLOOR: Record<string, number> = { light: 4.5, dark: 4.5, 'hc-light': 7, 'hc-dark': 7 };
+
+  const rc = build({ roleColors: { action: 'accent' } });
+  ok(rc.linkPalette === 'accent',
+    `#1895: roleColors.action 'accent' with linkPalette unset resolves links to 'accent' (got '${rc.linkPalette}')`);
+  const rcLinks = linkByMode(rc);
+  ok(rcLinks.length === 4 && rcLinks.every((r) => segOf(r.link?.path) === 'accent'),
+    `#1895: with roleColors.action 'accent', text.link.default sits on the accent ramp in every mode (got ${rcLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
+  ok(rcLinks.every((r) => FLOOR[r.mode] !== undefined && (r.link?.ratio ?? 0) >= FLOOR[r.mode]),
+    `#1895: the accent link clears its floor in every mode (4.5:1, 7:1 in high contrast) (got ${rcLinks.map((r) => `${r.mode}=${r.link?.ratio?.toFixed(2)}`).join(', ')})`);
+
+  const rcLp = build({ roleColors: { action: 'accent' }, linkPalette: 'primary' });
+  const rcLpLinks = linkByMode(rcLp);
+  ok(rcLp.linkPalette === 'primary' && rcLpLinks.every((r) => segOf(r.link?.path) === 'primary'),
+    `#1895: an explicit linkPalette 'primary' still wins over roleColors.action 'accent' (got '${rcLp.linkPalette}'; ${rcLpLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
+
+  // WCAG 1.4.1: a link that follows a NEUTRAL action now carries the underline warning; pointing links
+  // back at a chromatic palette clears it.
+  const has141 = (t: ReturnType<typeof brandTheme>): boolean => t.notes.some((n) => /WCAG 1\.4\.1/.test(n));
+  const rcNeu = build({ roleColors: { action: 'neutral' } });
+  ok(rcNeu.linkPalette === 'neutral' && has141(rcNeu),
+    `#1895: roleColors.action 'neutral' carries links to neutral and fires the WCAG 1.4.1 underline warning (got '${rcNeu.linkPalette}', warning ${has141(rcNeu)})`);
+  ok(!has141(build({ roleColors: { action: 'neutral' }, linkPalette: 'accent' })),
+    '#1895: roleColors.action neutral with linkPalette accent emits no WCAG 1.4.1 warning');
+
+  // A brand that sets no roleColors.action is unchanged: links stay on the action lever's palette.
+  ok(build({}).linkPalette === 'primary' && build({ actionPalette: 'accent' }).linkPalette === 'accent',
+    '#1895: without roleColors.action, an unset linkPalette still lands on primary (default) or the actionPalette accent');
+}
+
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
 //
 // Why this needs its own block on top of the corpus sweep above: that sweep would catch the

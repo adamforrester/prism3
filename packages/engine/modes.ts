@@ -1905,7 +1905,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // pin here would let a deliberate fill choice silently push link text below its floor. A link
     // colour is overridable in its own right.
     // The link palette (#1496). Links DEFAULT to following the action palette — `theme.linkPalette`
-    // resolves to the action palette when the `linkPalette` lever is unset, so `linkFollowsAction` is
+    // resolves to `roleToPalette.action` (= `r2p.action`, a `roleColors.action` rebase included, #1895)
+    // when the `linkPalette` lever is unset, so `linkFollowsAction` is
     // true and the derivation below is byte-identical to pre-#1496 (same `r2p.action` name, same anchor
     // path). A brand that sets `linkPalette` decouples links onto another palette (primary / neutral / a
     // custom accent). When decoupled we use the palette's own baseline anchor (`theme.linkAnchorStep`),

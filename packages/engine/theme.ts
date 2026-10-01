@@ -250,8 +250,9 @@ export type Theme = {
   roleToPalette: Record<Role, string>;
   roleAnchorStep: Record<Role, number>;
   // The palette the LINK role draws from (#1496). Resolved to a concrete palette name: `input.linkPalette`
-  // when set, else the action palette (so an unset `linkPalette` is byte-identical to pre-#1496 output —
-  // links follow interactive color). `link` is not a `Role` (the semantic-role machinery does not gain a
+  // when set, else the palette the action role resolved to, `roleToPalette.action` (so an unset
+  // `linkPalette` is byte-identical to pre-#1496 output — links follow interactive color, including a
+  // `roleColors.action` rebase, #1895). `link` is not a `Role` (the semantic-role machinery does not gain a
   // member), just the resolved input `modes.ts` reads to derive `linkBase`.
   linkPalette: string;
   // The fill/ink anchor step for the link palette (#1496), computed exactly like `roleAnchorStep.action`
@@ -458,8 +459,9 @@ export type BrandInput = {
    *  here (e.g. an accent, or even neutral). The engine FLAGS this decision in
    *  notes so it's an explicit, confirmable choice — never a silent assumption. */
   actionPalette?: string;
-  /** Which palette drives the LINK colour (#1496). Defaults to FOLLOWING the action palette — an unset
-   *  `linkPalette` resolves to whatever `actionPalette` resolves to, so existing brands are byte-identical.
+  /** Which palette drives the LINK colour (#1496). Defaults to FOLLOWING the action colour — an unset
+   *  `linkPalette` resolves to whatever palette the action role resolves to: `actionPalette`, or
+   *  `roleColors.action` when that rebases it (#1895).
    *  Set it to point links at `primary`, `neutral`, or a `brandColors` entry INDEPENDENTLY of the action
    *  palette (a brand whose CTA colour is not the right link colour). Whatever the choice, the link ink is
    *  still rated up to its own contrast floor. When the chosen palette is not colour-distinct from body
@@ -3023,12 +3025,15 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (actionBrandColor) notes.push(`action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
 
   // ---- link palette (#1496) ----
-  // Links DEFAULT to following the action palette: an unset `linkPalette` resolves to `actionPalette`, so
-  // the resolved name AND anchor step below equal the action's, and modes.ts reproduces today's `linkBase`
-  // byte-for-byte. A brand may point links at a different palette — primary, neutral, or a brandColors
+  // Links DEFAULT to following the action colour: an unset `linkPalette` resolves to the palette the action
+  // role RESOLVED to (`roleToPalette.action`, final after the roleColors pass above), not the `actionPalette`
+  // lever. The two differ when `roleColors.action` rebases action, and links followed the lever there,
+  // leaving them on primary under an accent CTA (#1895; owner decision 2026-10-01: links follow the action
+  // color, roleColors.action included). Following the resolved name makes modes.ts take its
+  // `linkFollowsAction` path, so the link anchors exactly as the action does. A brand may point links at a different palette — primary, neutral, or a brandColors
   // entry — without moving the rest of interactive colour. The link ink is still rated up to its own
   // contrast floor in modes.ts regardless of the palette (the a11y floor always holds, #1510).
-  const linkPalette = input.linkPalette ?? actionPalette;
+  const linkPalette = input.linkPalette ?? roleToPalette.action;
   if (!palettes.some((p) => p.palette === linkPalette))
     throw new Error(`linkPalette '${linkPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   const linkBrandColor = (input.brandColors ?? []).find((b) => b.name === linkPalette);
