@@ -253,15 +253,18 @@ export const parseColor = (v: unknown): FigmaColor => {
  *  key iteration emits integer-like keys (`"100"`…`"950"`) FIRST in ascending-numeric order, then
  *  leading-zero string keys (`"025"`,`"050"`) in insertion order — so each palette ramp's two lightest
  *  tints landed after `950` in the emitted (hence Figma-created) order. Sorts a COPY, never mutates the
- *  input. Non-numeric keys (ramp names like `red`, `black-alpha`; semantic keys like `background`)
- *  `parseFloat` to NaN and compare EQUAL, so a stable sort leaves them in insertion order — a no-op for
- *  every non-leading-zero group. A local mirror of the same helper in `emit-figma-dims.ts` (#1594): the
+ *  input. Non-numeric keys (ramp names like `red`, `black-alpha`; semantic keys like `background`) are
+ *  not numbers and compare EQUAL, so a stable sort leaves them in insertion order — a no-op for every
+ *  non-leading-zero group. A key counts as a number only when ALL of it is one, not by `parseFloat`
+ *  (which reads `2xl` as 2): no colour key is digit-led today, so this moves no output, but it keeps the
+ *  two copies the same rule (#1852). A local mirror of the same helper in `emit-figma-dims.ts` (#1594): the
  *  two colour/dimension emitters are deliberately separate modules (see the `core-palette`/`core-dimension`
  *  collection note above), so each carries its own copy rather than coupling them through a shared import. */
 const byNumericKey = (keys: string[]): string[] =>
   [...keys].sort((a, b) => {
-    const na = parseFloat(a);
-    const nb = parseFloat(b);
+    const num = (k: string): number => (/^\d+(\.\d+)?$/.test(k) ? Number(k) : NaN);
+    const na = num(a);
+    const nb = num(b);
     const aNum = Number.isFinite(na);
     const bNum = Number.isFinite(nb);
     if (aNum && bNum) return na - nb;

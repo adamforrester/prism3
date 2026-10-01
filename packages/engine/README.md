@@ -276,8 +276,10 @@ organized by Curtis's three tiers (knowledge-base 02/22/24):
   `.025/.050/.075` sub-steps. The number means "n× base" invariantly across
   brands — the white-label-honest encoding. Density-free.
 - **`radius`** — a small bounded, genuinely-semantic set, so t-shirt naming
-  holds: `none/sm/md/lg/round`. One scalar `radius.scale` drives it (`1` = sharp
-  `2/4/6`; `2` = soft `4/8/12`; `0` collapses all but the pill).
+  holds: `none/sm/md/lg/xl/2xl/3xl`, plus the fixed pills `round`/`capsule`. One
+  scalar `radius.scale` drives it (`1` = `2/4/6/8/12/16`; `2` = soft
+  `4/8/12/16/24/32`; `0` collapses all but the pills). `xl`/`2xl`/`3xl` are the
+  container corners — card, panel, sheet, dialog (#1852).
 - **`size`** — *component* tier, t-shirt (`xs…xl`). Each size is a **contract**
   for a control height, so a `md` button/input/select agree. Dimensions only:
   "size is for size, space is for space". This is the layer **`density`** acts on:

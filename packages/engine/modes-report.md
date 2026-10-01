@@ -1137,6 +1137,9 @@ Radius — scale `1`:
 | radius.sm | 2 |
 | radius.md | 4 |
 | radius.lg | 6 |
+| radius.xl | 8 |
+| radius.2xl | 12 |
+| radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
@@ -2300,6 +2303,9 @@ Radius — scale `1`:
 | radius.sm | 2 |
 | radius.md | 4 |
 | radius.lg | 6 |
+| radius.xl | 8 |
+| radius.2xl | 12 |
+| radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
@@ -3465,6 +3471,9 @@ Radius — scale `2`:
 | radius.sm | 4 |
 | radius.md | 8 |
 | radius.lg | 12 |
+| radius.xl | 16 |
+| radius.2xl | 24 |
+| radius.3xl | 32 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
@@ -4629,6 +4638,9 @@ Radius — scale `1`:
 | radius.sm | 2 |
 | radius.md | 4 |
 | radius.lg | 6 |
+| radius.xl | 8 |
+| radius.2xl | 12 |
+| radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
