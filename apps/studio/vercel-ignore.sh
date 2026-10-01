@@ -77,9 +77,20 @@ EXCLUDED=(
 PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine)
 for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 
-# `--quiet` exits 0 when the diff is empty and 1 when it is not. Anything else (a shallow clone with
-# no HEAD^, a bad ref) is an ERROR, not a "nothing changed" — so it must build. The `|| exit 1`
-# catches every non-zero code, error and change alike, and only a genuinely empty diff reaches
-# `exit 0`. Uncertainty always resolves toward building.
-git diff --quiet HEAD^ HEAD -- "${PATHS[@]}" || exit 1
+# WHAT THE DIFF IS AGAINST (#1953). Not `HEAD^`: a branch whose newest commit touches only docs (a progress
+# fragment after the commit that changed the app) was skipped while its earlier commits changed the site, so
+# a PR could have no preview at all. The base is the last commit Vercel successfully deployed for this
+# branch, which Vercel provides as `VERCEL_GIT_PREVIOUS_SHA`. With no previous deploy (a new branch), or a
+# previous SHA this clone does not have (a shallow clone, a force-push), there is nothing to compare with,
+# so it builds. A build skipped here still counts against the daily deployment quota (Vercel's docs), so
+# building more often costs build minutes, not quota.
+BASE="${VERCEL_GIT_PREVIOUS_SHA:-}"
+[ -n "$BASE" ] || exit 1
+git cat-file -e "${BASE}^{commit}" 2>/dev/null || exit 1
+
+# `--quiet` exits 0 when the diff is empty and 1 when it is not. Anything else (a bad ref) is an ERROR,
+# not a "nothing changed" — so it must build. The `|| exit 1` catches every non-zero code, error and
+# change alike, and only a genuinely empty diff reaches `exit 0`. Uncertainty always resolves toward
+# building.
+git diff --quiet "$BASE" HEAD -- "${PATHS[@]}" || exit 1
 exit 0

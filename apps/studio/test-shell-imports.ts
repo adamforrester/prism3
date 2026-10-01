@@ -42,11 +42,15 @@
  * `export type`, or a list whose every specifier is `type`) is no edge, because the compiler erases it,
  * so it cannot reach a tier. If `verbatimModuleSyntax` is ever switched on, `import { type X }` keeps a
  * bare `import '…'` at run time; that runs a module and hands nothing over, so skipping it stays sound.
+ * Two more (#1944). A bare specifier is resolved as the compiler resolves it, with the studio tsconfig's
+ * options, and followed wherever it lands outside `node_modules` once links are followed: the workspace
+ * links `@prism3/studio` to this app, so `@prism3/studio/src/main` is `main.ts`, and every result is made
+ * real, so a relative path through `node_modules` lands the same way. And a computed `import(p)` in a module
+ * the graph reads but does not scan cannot be followed, so that module and every importer are refused
+ * under their own message rather than dropped from the graph.
  * What still gets past: a key computed at run time (`m[k]` with `k` built from strings) on an object that
  * did not come from a tainted import — a global the page itself put there. Nothing in `main.ts` exports
- * its tiers onto a global today. And a bare specifier is read as a package and not followed, so the
- * workspace's own name for this app (`@prism3/studio/src/main`, which resolves through `node_modules`)
- * is not followed either (#1944).
+ * its tiers onto a global today.
  *
  * WHAT A STATIC SCAN OF THE SHELL CANNOT SEE: A CALLBACK `main.ts` LENDS. `main.ts` hands the shell
  * functions to call (`mountFrame(app, { inspect: { contrast, tokens } })`, and whatever S1.4 and later lend).
@@ -66,9 +70,9 @@
  * `src/state/verdict.ts:<line>: references the legacy repaint tier "apply"`; `renderWorkspace` named in a
  * shell file → `… references the legacy repaint tier "renderWorkspace"`. #1928's three refinements are
  * proven on in-memory fixtures below, each with its expected offender written out, so reverting a fix
- * fails that fixture by name.
+ * fails that fixture by name; #1944's two are proven the same way.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -200,7 +204,9 @@ const commentLine = references(FIXTURE, 'fixture.ts').filter((r) => r.line === 2
 ok(commentLine.length === 0, 'the detector does not report a name inside a comment or a string');
 
 // ── the new source ───────────────────────────────────────────────────────────────────────────────
-const ROOT = dirname(fileURLToPath(import.meta.url));
+// Real, so a path the resolver reaches through a link (macOS's `/tmp`, the workspace's `node_modules`) is
+// compared with the same spelling as the files the walk reads (#1944).
+const ROOT = realpathSync(dirname(fileURLToPath(import.meta.url)));
 const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => {
   const p = join(dir, f);
   return statSync(p).isDirectory() ? walk(p) : /\.tsx?$/.test(f) ? [p] : [];
@@ -218,46 +224,84 @@ for (const o of offenders) ok(false, o);
 ok(offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} references a legacy repaint tier (${files.length} file(s) scanned)`);
 
 // ── the import arm: no path from the new source to main.ts ───────────────────────────────────────
-/** How the import arm reads a tree: the disk for the real one, a map for the fixtures below. */
-type Tree = { isFile: (p: string) => boolean; read: (p: string) => string };
-const DISK: Tree = { isFile: (p) => existsSync(p) && statSync(p).isFile(), read: (p) => readFileSync(p, 'utf8') };
+/** How the import arm reads a tree: the disk for the real one, a map for the fixtures below. `real` is
+ *  where a path lands once links are followed, and `isDir` serves the compiler's resolver (#1944). */
+type Tree = { isFile: (p: string) => boolean; isDir: (p: string) => boolean; read: (p: string) => string; real: (p: string) => string };
+const DISK: Tree = {
+  isFile: (p) => existsSync(p) && statSync(p).isFile(),
+  isDir: (p) => existsSync(p) && statSync(p).isDirectory(),
+  read: (p) => readFileSync(p, 'utf8'),
+  real: (p) => realpathSync(p),
+};
+/** The studio's own module options, read from its tsconfig: they are how esbuild and `tsc` resolve a
+ *  bare specifier here, which is the thing a bare-specifier hole exploits (#1944). */
+const STUDIO_OPTIONS = ((): ts.CompilerOptions => {
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const cfg = ts.readConfigFile(join(dir, 'tsconfig.json'), ts.sys.readFile).config;
+  return ts.parseJsonConfigFileContent(cfg, ts.sys, dir).options;
+})();
 /** A specifier ending in a JS extension names its TS source, as `tsc` and esbuild read it under
  *  `moduleResolution: bundler` (#1928): `../main.js` is `../main.ts`. Every JS extension is tried against
  *  every TS one, wider than `tsc` (which maps `.mjs` only to `.mts`), because a guard that resolves too
  *  much fails loudly and one that resolves too little passes. */
 const JS_EXT = /\.(js|jsx|mjs|cjs)$/;
 const TS_EXTS = ['.ts', '.tsx', '.mts', '.cts'];
+/** Where a specifier lands, links followed; `null` for a third-party package or nothing found.
+ *  A bare specifier is resolved the way the compiler does (#1944). A package is not this repo's source and
+ *  is not followed, but a workspace link is: `@prism3/studio` is linked to this app, so
+ *  `@prism3/studio/src/main` is `src/main.ts`, and `@prism3/engine/theme` is the engine's own source.
+ *  The test is where the path lands once links are followed: under `node_modules`, a package; anywhere
+ *  else, source, followed like a relative import. A relative path through `node_modules` lands by the
+ *  same rule, which is why every result is made real. */
 const resolveSpec = (tree: Tree, from: string, spec: string): string | null => {
   if (spec === '<computed>') return '<computed>';
-  if (!spec.startsWith('.')) return null;   // a package; not this app's source
+  if (!spec.startsWith('.')) {
+    const hit = ts.resolveModuleName(spec, from, STUDIO_OPTIONS, {
+      fileExists: tree.isFile, readFile: (p) => (tree.isFile(p) ? tree.read(p) : undefined), directoryExists: tree.isDir, realpath: tree.real,
+    }).resolvedModule?.resolvedFileName;
+    if (!hit) return null;
+    const at = tree.real(hit);
+    return at.split(sep).includes('node_modules') ? null : at;
+  }
   const base = join(dirname(from), spec);
   const stem = base.replace(JS_EXT, '');
   const cands = [...(stem === base ? [] : TS_EXTS.map((e) => stem + e)), base, ...TS_EXTS.map((e) => base + e), join(base, 'index.ts')];
-  for (const c of cands) if (tree.isFile(c)) return c;
+  for (const c of cands) if (tree.isFile(c)) return tree.real(c);
   return null;
 };
-/** The import arm over one tree. The graph starts from `roots` and follows every relative import to
- *  wherever it resolves, inside `src/` or not (#1928: a bridge module beside `src/` re-exporting a tier
- *  was invisible when the walk stopped at `src/`). Then `main` and every module with a path to it are
- *  tainted, and each import in `scan` that lands on a tainted module is an offender, named. */
-const importArm = (tree: Tree, root: string, roots: string[], scan: string[]): { offenders: string[]; tainted: Set<string>; read: Set<string> } => {
-  const main = join(root, 'src', 'main.ts');
+/** The import arm over one tree. The graph starts from `roots` and follows every import that lands on
+ *  source to wherever it resolves, inside `src/` or not (#1928: a bridge module beside `src/` re-exporting
+ *  a tier was invisible when the walk stopped at `src/`). Then `main` and every module with a path to it are
+ *  tainted, and each import in `scan` that lands on a tainted module is an offender, named.
+ *  A module the graph reads but does not scan can hold a computed `import(p)`, which can load `main.ts`
+ *  for whoever calls it (#1944). Its edge cannot be followed, so the module itself is the end of the
+ *  path: it and every module with a path to it are tainted the same way, under their own message. */
+const importArm = (tree: Tree, root: string, roots: string[], scan: string[]): { offenders: string[]; tainted: Set<string>; opaque: Set<string>; read: Set<string> } => {
+  const main = tree.real(join(root, 'src', 'main.ts'));
   const edges = new Map<string, string[]>();
+  const computed = new Set<string>();
   const queue = [...roots, ...scan];
   while (queue.length) {
     const f = queue.pop()!;
     if (edges.has(f)) continue;
     // A stylesheet or JSON file resolves too; it has no imports to read.
-    const out = /\.[cm]?[jt]sx?$/.test(f) ? imports(tree.read(f), f).map((i) => resolveSpec(tree, f, i.spec)).filter((t): t is string => !!t && t !== '<computed>') : [];
+    const targets = /\.[cm]?[jt]sx?$/.test(f) ? imports(tree.read(f), f).map((i) => resolveSpec(tree, f, i.spec)) : [];
+    if (targets.includes('<computed>')) computed.add(f);
+    const out = targets.filter((t): t is string => !!t && t !== '<computed>');
     edges.set(f, out);
     queue.push(...out);
   }
-  // Tainted: main.ts, and every module with a path to it. Fixed point over the graph read from the tree.
-  const tainted = new Set<string>([main]);
-  for (let grew = true; grew;) {
-    grew = false;
-    for (const [f, out] of edges) if (!tainted.has(f) && out.some((t) => tainted.has(t))) { tainted.add(f); grew = true; }
-  }
+  // Fixed point over the graph read from the tree: the seeds, and every module with a path to one.
+  const reach = (seeds: Iterable<string>): Set<string> => {
+    const r = new Set<string>(seeds);
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const [f, out] of edges) if (!r.has(f) && out.some((t) => r.has(t))) { r.add(f); grew = true; }
+    }
+    return r;
+  };
+  const tainted = reach([main]);
+  const opaque = reach(computed);
   const offenders: string[] = [];
   for (const f of scan) {
     const rel = relative(root, f).split('\\').join('/');
@@ -265,20 +309,29 @@ const importArm = (tree: Tree, root: string, roots: string[], scan: string[]): {
       const t = resolveSpec(tree, f, i.spec);
       if (t === '<computed>') offenders.push(`${rel}:${i.line}: a dynamic import() with a computed specifier, which this guard cannot follow`);
       else if (t && tainted.has(t)) offenders.push(`${rel}:${i.line}: imports "${i.spec}", which reaches src/main.ts`);
+      else if (t && opaque.has(t)) offenders.push(`${rel}:${i.line}: imports "${i.spec}", which reaches a dynamic import() with a computed specifier`);
     }
   }
-  return { offenders, tainted, read: new Set(edges.keys()) };
+  return { offenders, tainted, opaque, read: new Set(edges.keys()) };
 };
 
 // The arm sees what it is for (#1928). Each fixture is a small tree held in memory, with a `main.ts` and
 // one shell file; the expected offender is written out in full, so a resolver that stops reaching main.ts
 // fails on that line by name.
 const FX = join('/', 'fixture', 'apps', 'studio');
+/** The workspace's link, as `npm ci` lays it: `node_modules/@prism3/studio` is this app (#1944). */
+const FX_LINK = join(FX, 'node_modules', '@prism3', 'studio');
+const fxReal = (p: string): string => (p === FX_LINK || p.startsWith(FX_LINK + sep) ? FX + p.slice(FX_LINK.length) : p);
 const fxArm = (shell: string, extra: Record<string, string> = {}): string[] => {
-  const files = new Map<string, string>(Object.entries({ 'src/main.ts': 'export const build = () => {};', ...extra, 'src/shell/x.ts': shell })
+  const files = new Map<string, string>(Object.entries({ 'src/main.ts': 'export const build = () => {};', 'package.json': '{ "name": "@prism3/studio" }', ...extra, 'src/shell/x.ts': shell })
     .map(([k, v]) => [join(FX, k), v]));
-  const tree: Tree = { isFile: (p) => files.has(p), read: (p) => files.get(p) ?? '' };
-  const roots = [...files.keys()].filter((p) => p.startsWith(join(FX, 'src')));
+  const tree: Tree = {
+    isFile: (p) => files.has(fxReal(p)),
+    isDir: (p) => [...files.keys()].some((f) => f.startsWith(fxReal(p) + sep)) || p === FX_LINK || FX_LINK.startsWith(p + sep),
+    read: (p) => files.get(fxReal(p)) ?? '',
+    real: fxReal,
+  };
+  const roots = [...files.keys()].filter((p) => p.startsWith(join(FX, 'src') + sep));
   return importArm(tree, FX, roots, [join(FX, 'src/shell/x.ts')]).offenders;
 };
 const fxFails = (label: string, shell: string, want: string, extra?: Record<string, string>): void => {
@@ -311,15 +364,67 @@ fxFails('"import type" beside a value import', "import type { X } from '../main'
   'src/shell/x.ts:2: imports "../main", which reaches src/main.ts');
 ok(!fxArm("import type { X } from '../main';\nimport { y } from '../main';").some((o) => o.startsWith('src/shell/x.ts:1:')),
   'the "import type" line beside a value import is not itself reported');
+// #1944, hole 1: the workspace's own name for this app is a link to it, so it is followed, directly, through
+// a module, and spelled as a relative path through `node_modules`. A third-party package is still not.
+fxFails('the workspace link "@prism3/studio/src/main"', "import * as M from '@prism3/studio/src/main'; const k = 'bu' + 'ild'; (M as any)[k]();",
+  'src/shell/x.ts:1: imports "@prism3/studio/src/main", which reaches src/main.ts');
+fxFails('the workspace link through a module', "import { y } from '../state/y';",
+  'src/shell/x.ts:1: imports "../state/y", which reaches src/main.ts', { 'src/state/y.ts': "export * from '@prism3/studio/src/main';" });
+fxFails('a relative path through node_modules', "import * as M from '../../node_modules/@prism3/studio/src/main';",
+  'src/shell/x.ts:1: imports "../../node_modules/@prism3/studio/src/main", which reaches src/main.ts');
+fxPasses('a third-party package', "import { z } from 'some-pkg';",
+  { 'node_modules/some-pkg/package.json': '{ "name": "some-pkg", "main": "index.js" }', 'node_modules/some-pkg/index.js': "export * from '../../src/main';" });
+// #1944, hole 2: a computed import() in a module the graph follows but does not scan taints that module.
+fxFails('a computed import() in a followed module', "import { load } from '../levers/load';",
+  'src/shell/x.ts:1: imports "../levers/load", which reaches a dynamic import() with a computed specifier',
+  { 'src/levers/load.ts': 'export const load = (p: string) => import(p);' });
+fxFails('a computed import() two modules away', "import { y } from '../state/y';",
+  'src/shell/x.ts:1: imports "../state/y", which reaches a dynamic import() with a computed specifier',
+  { 'src/state/y.ts': "export { load as y } from '../../bridge4';", 'bridge4.ts': 'export const load = (p: string) => import(p);' });
+fxPasses('a literal import() in a followed module', "import { load } from '../levers/load';",
+  { 'src/levers/load.ts': "export const load = () => import('./other');", 'src/levers/other.ts': 'export const o = 1;' });
 
 const SRC = join(ROOT, 'src');
 const MAIN = join(SRC, 'main.ts');
 const allSrc = walk(SRC);
 ok(allSrc.includes(MAIN), 'the import graph read src/main.ts');
+// The resolver, on the real tree: the workspace's own name for this app lands on this checkout's
+// `main.ts`. A `node_modules` linked to another checkout would land elsewhere and leave the bare-specifier
+// arm blind here, so that fails loudly rather than passing on nothing (#1944).
+const FRAME = join(SRC, 'shell', 'frame.ts');
+const selfName = resolveSpec(DISK, FRAME, '@prism3/studio/src/main');
+ok(selfName === MAIN, `"@prism3/studio/src/main" resolves to this checkout's src/main.ts (got ${selfName ?? 'nothing'})`);
+ok(resolveSpec(DISK, FRAME, 'typescript') === null, 'a third-party package ("typescript") is not followed');
 const arm = importArm(DISK, ROOT, allSrc, files);
 const outside = [...arm.read].filter((f) => !f.startsWith(SRC + sep)).length;
 for (const o of arm.offenders) ok(false, o);
-ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src/main.ts or a module that does (${arm.tainted.size} module(s) reach it; ${arm.read.size} module(s) read, ${outside} outside src/)`);
+ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src/main.ts or a module that does (${arm.tainted.size} module(s) reach it; ${arm.opaque.size} reach a computed import(); ${arm.read.size} module(s) read, ${outside} outside src/)`);
+
+// ── one Style guide, two pages (UI redesign S4a, owner decision Q5) ──────────────────────────────────
+// The legacy Style guide in `main.ts` and Color › Surfaces & fills' preview must draw the five color sections
+// from the SAME modules, so the two cannot drift. Subject: `main.ts` and `preview/surfaces.ts`, read from disk.
+// Oracle: the literal list of the five sections' exported renderers and the module they live in. `main.ts`
+// must import the five through `preview/sections/index` (as `COLOR_SECTIONS`) and must DEFINE none of the
+// section titles itself; `preview/surfaces.ts` must import `COLOR_SECTIONS` too. A copy pasted back into
+// `main.ts` fails by the title it draws.
+{
+  const SECTION_TITLES = ['Background', 'Foreground', 'Text color', 'Border', 'Icon'];
+  const SECTION_FILES = ['background', 'foreground', 'text-color', 'border', 'icon'];
+  const mainSrc = readFileSync(MAIN, 'utf8');
+  const surfSrc = readFileSync(join(SRC, 'preview/surfaces.ts'), 'utf8');
+  const importsSections = (src: string, file: string): boolean =>
+    imports(src, file).some((i) => i.spec.endsWith('preview/sections/index') || i.spec === './sections/index');
+  ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
+  ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
+  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')) && /\bCOLOR_SECTIONS\b/.test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')),
+    'both the Style guide and Surfaces & fills draw COLOR_SECTIONS');
+  for (const t of SECTION_TITLES) {
+    const own = new RegExp(`palSection\\(\\s*'${t}'`).test(mainSrc);
+    ok(!own, `src/main.ts draws no "${t}" section of its own${own ? ` — main.ts defines its own "${t}" section (palSection('${t}', …)): the Style guide would drift from Surfaces & fills` : ''}`);
+  }
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
+}
 
 // ── one Style guide, two pages (UI redesign S4a, owner decision Q5) ──────────────────────────────────
 // The legacy Style guide in `main.ts` and Color › Surfaces & fills' preview must draw the five color sections
