@@ -5,7 +5,7 @@
  * WHAT IT OWNS AND WHAT IT LENDS. The frame is mounted once per app view and outlives every legacy
  * render, so a tab keeps focus across the page change it causes. It lends slots to the legacy code in
  * `main.ts`, which fills them on every `build()`: the bar's legacy controls (brand switcher, Export, Pages
- * and the plugin's Apply to Figma), the notices (the engine error), the legacy page itself, and from S1.4
+ * and the plugin's Apply Theme), the notices (the engine error), the legacy page itself, and from S1.4
  * the Activity drawer's two (the status pills and the apply detail). Everything else here is the shell's
  * own.
  *

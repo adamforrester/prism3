@@ -1730,7 +1730,7 @@ const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
-  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply to Figma.'],
+  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply Theme.'],
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
@@ -4101,7 +4101,7 @@ const FILE_SETUP_LABEL = 'Set up file';
 /**
  * The Components page (#718) — the new home of the component write, moved off the primary action bar.
  *
- * THE MOVE IS A DEMOTION. The control sat beside **Apply to Figma**, which is the terminal action of
+ * THE MOVE IS A DEMOTION. The control sat beside **Apply Theme**, which is the terminal action of
  * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
  * at ~162ms per member (#700) and materializes a fraction of the catalogue, so a slot next to Apply
  * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
@@ -4271,7 +4271,7 @@ const renderComponentsPage = (host: PageHost): void => {
   // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
   // designer cannot recover from the result: the set binds variables by name, so a build into an
   // unthemed file misses every binding.
-  compBtn.title = 'Builds the selected set on this page. Apply to Figma first — it binds those variables.';
+  compBtn.title = 'Builds the selected set on this page. Apply Theme first — it binds those variables.';
   // `componentProgress` clears here as well as on the result (#684) — belt and braces on purpose. The
   // result handler is the normal path, but a build that THROWS in the main thread before the executor
   // returns posts a failed result, and one that never answers at all posts nothing; without this line a
@@ -4307,7 +4307,7 @@ const renderComponentsPage = (host: PageHost): void => {
  *  WHY IN PLACE RATHER THAN `renderWorkspace()`. The `component-result` handler used to call only
  *  `renderBar()` + `syncApplyDetail()`, both of which are CHROME — so the bar's pill showed the verdict
  *  while this row, which is page content, kept whatever the last page render had put there. A designer who
- *  started a build here and stayed here saw `⋯ Building…`, disabled, permanently: the state machine had
+ *  started a build here and stayed here saw `… Building…`, disabled, permanently: the state machine had
  *  already moved on, and only the paint was stale. Verified by reproducing all five terminating conditions
  *  against the built plugin bundle, and confirmed to be paint-only rather than state — navigating away and
  *  back recovered the button every time, which is why the field report's only known recovery was a restart.
@@ -4337,7 +4337,7 @@ const syncComponentRow = (opts: { staged?: true } = {}): void => {
   if (!row || !componentSel || !componentBtn) return;
   if (!opts.staged && !row.isConnected) return;
   const pending = host.componentState === 'pending';
-  componentBtn.textContent = pending ? '⋯ Building…' : '⊞ Build set';
+  componentBtn.textContent = pending ? '… Building…' : '⊞ Build set';
   // Disabled while in flight is both the signal and the guard, same call the Apply button makes: a second
   // click would post a concurrent build over the same page.
   componentBtn.disabled = pending;
@@ -4355,7 +4355,7 @@ subscribe('host:components', () => syncComponentRow());
 
 /** The file-setup row's status, refreshed in place (#1558). The same mechanism as `syncComponentRow`, and
  *  for the same reasons: the `file-setup-result` handler is on the message path and this row is page
- *  content, so a verdict that reached only the chrome would leave the button frozen at "⋯ Setting up…".
+ *  content, so a verdict that reached only the chrome would leave the button frozen at "… Setting up…".
  *  Simpler than the build's because file-setup has no picker to leave untouched and no progress to render —
  *  the button label and disabled flag plus the verdict pill are the whole of it. `staged` carries the same
  *  meaning: the render path calls it before the row is reconciled in, the message path about a live one. */
@@ -4366,7 +4366,7 @@ const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
   if (!row || !fileSetupBtn) return;
   if (!opts.staged && !row.isConnected) return;
   const pending = host.fileSetupState === 'pending';
-  fileSetupBtn.textContent = pending ? '⋯ Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
+  fileSetupBtn.textContent = pending ? '… Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
   // Disabled while in flight is both the signal and the guard, same call the build and Apply buttons make:
   // a second click would post a concurrent scaffold over the same file.
   fileSetupBtn.disabled = pending;
@@ -4446,7 +4446,7 @@ const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
   if (!row || !styleGuideBtn) return;
   if (!opts.staged && !row.isConnected) return;
   const pending = host.styleGuideState === 'pending';
-  styleGuideBtn.textContent = pending ? '⋯ Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
+  styleGuideBtn.textContent = pending ? '… Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
   styleGuideBtn.disabled = pending;
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (host.styleGuideState) row.prepend(renderApplyStatus(host.styleGuideState, 'styleguide'));
@@ -8926,7 +8926,7 @@ const activityReading = (): ActivityReading => {
 // Each sets its own pending state and says so through `hostChanged`; the bar, the detail row and the
 // Activity drawer repaint from that.
 
-/** Apply to Figma. The previous run's detail is stale the instant a new write starts, so it collapses with
+/** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
  *  the state. */
 const runApply = (): void => { setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput); };
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
@@ -8947,8 +8947,8 @@ const PRUNE_HINT = 'Removes the styles, modes and variables this config no longe
  *  file-setup button, and the two pages whose writes need options first (concept v6's "Build set…" and
  *  "Style guide…"), which open those pages. */
 const figmaActions = (): FigmaAction[] => [
-  { id: 'apply', label: 'Apply to Figma', disabled: host.applyState === 'pending', run: runApply },
-  { id: 'prune', label: host.pruneBusy === 'preview' ? '⋯ Checking…' : host.pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
+  { id: 'apply', label: 'Apply Theme', disabled: host.applyState === 'pending', run: runApply },
+  { id: 'prune', label: host.pruneBusy === 'preview' ? '… Checking…' : host.pruneBusy === 'delete' ? '… Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, disabled: host.fileSetupState === 'pending', run: runFileSetup },
   { id: 'build', label: 'Build set…', disabled: false, run: () => setPage('components') },
   { id: 'style-guide', label: 'Style guide…', disabled: false, run: () => setPage('styleGuide') },
@@ -8974,7 +8974,7 @@ function renderBar(): void {
   pillHost?.replaceChildren();
   // THE LEGACY HALF OF THE NEW TOP BAR (UI redesign S1.2). The frame (`shell/frame.ts`) owns the bar and
   // its theme toggle; this paints the controls the legacy code still owns into the slot it lends: the
-  // brand switcher, Export, the Pages menu and the plugin's Apply to Figma, and places the shell's own
+  // brand switcher, Export, the Pages menu and the plugin's Apply Theme, and places the shell's own
   // controls among them in concept v6's order (S1.4): the verdict, the Agent chip's slot, Activity and the
   // Figma menu. The plugin's write verdicts (the pills) go to the Activity drawer. Every control here wears
   // the chrome's classes; the menus and dialogs they open are legacy surfaces, pinned light (`pinLight`).
@@ -9012,7 +9012,7 @@ function renderBar(): void {
   // Where a status pill goes: the Activity drawer's bar row (S1.4), or the bar while there is no frame.
   const pills = pillHost ?? barHost;
 
-  // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
+  // Apply Theme — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
   // web (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
   // eliminated; see `renderApplyStatus`). Its status is `applyState`; the #109 boot read-back keeps its own
   // pill, shown only until the first apply, after which the write's own result is the newer fact and
@@ -9036,7 +9036,7 @@ function renderBar(): void {
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
     // second concurrent write over the same variables. Disabled while in flight is both the signal and
     // the guard. Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
-    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? '⋯ Applying…' : 'Apply to Figma') as HTMLButtonElement, 'apply-to-figma');
+    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? '… Applying…' : 'Apply Theme') as HTMLButtonElement, 'apply-to-figma');
     applyBtn.type = 'button';
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
@@ -9102,7 +9102,7 @@ function renderBar(): void {
   nWrap.append(nav);
   if (navMenuOpen) nWrap.append(pinLight(renderNavMenu()));
   actions.append(nWrap);
-  // The Figma menu (S1.4, plugin only), then Apply to Figma, the one inverse-filled control, last.
+  // The Figma menu (S1.4, plugin only), then Apply Theme, the one inverse-filled control, last.
   if (frame?.figma) actions.append(frame.figma);
   if (applyBtn) actions.append(applyBtn);
 

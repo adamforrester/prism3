@@ -71,9 +71,11 @@
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
  *   · THE MODE CONTROL (Q1, model B): a radiogroup of the literal modes, derived ones hatched; choosing a
  *     mode makes the legacy page draw it, and the legacy strip's choice checks it here; arrow keys move.
- *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS`, one glyph each, and only in text
- *     inside its entry's scope. S1.3 listed U+2192 (→) for the Decisions log and S1.4 the four verdict
- *     glyphs; #1924 re-subset the face, so only U+22EF (⋯), which Inter lacks, is left.
+ *   · NO DEVICE FACE: every chrome text element draws in the embedded faces, every glyph. S1.3 tolerated
+ *     U+2192 (→) in the Decisions log and S1.4 the four verdict glyphs, in a scoped `FACE_GAPS` list; #1924
+ *     re-subset the face to carry them, and the owner's 2026-10-01 copy decision replaced the last one,
+ *     U+22EF (⋯), with "…" (U+2026). The list was empty, so it is gone, scope map and all: a device face
+ *     drawing any glyph anywhere in the chrome fails.
  *
  * S1.4 ADDS (section 10), on both hosts, both themes, at 1280, 640 and 380:
  *   · THE ACTIVITY DRAWER (F2): nothing drawn before anything runs; a write started from the Figma menu opens
@@ -192,7 +194,7 @@
  *   S1.4 review (orchestrator's review of #1929):
  *   · the pill's click without `hostChanged()`, or the drawer's `detailOpened` branch removed →
  *     `F2 … clicking the failure's pill on a closed drawer opens the drawer on its detail, the pill expanded — open false, …`.
- *   · `runApply` posting `{}` → `Figma menu … Apply to Figma posts the brand the page loaded (…), whole — input differs at id, root, …`.
+ *   · `runApply` posting `{}` → `Figma menu … Apply Theme posts the brand the page loaded (…), whole — input differs at id, root, …`.
  *   · `runPrune` posting a stale input → `Figma menu … Prune stale posts the brand the page loaded with confirm false, whole — input differs at id`.
  *   · the popover's focusout handler removed → `IA-3 … Tab past the switch closes the popover`.
  *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
@@ -238,23 +240,16 @@ const UI_FONT = 'Inter';      // the embedded face's own family name, as the pla
  *  element whose computed family asks for the chrome's mono alias must draw this one, and nothing else. */
 const MONO_FONT = 'JetBrains Mono';
 const MONO_ALIAS = 'P3 Chrome Mono';
-/** Characters the embedded Inter face does not carry, so a device face draws them. Literal, and each is
- *  a finding. #1924 re-subset the face to carry U+2192 (→), which the engine's notes use (the Decisions
- *  log, S1.3), and U+2713 (✓), U+2717 (✗) and U+26A0 (⚠), which lead the host's write verdicts (S1.4). The
- *  `[glyphs]` build check (`chrome/glyphs.mjs`) now fails the build on such a gap in the notes, the
- *  verdicts or the shell's own copy, before this test runs.
- *
- *  What is left is U+22EF (⋯), which a pending write reads ("⋯ Applying…"). Inter has no U+22EF at all, so
- *  no subset can add it. Whether to keep it in a device face, use another character, or embed a fallback
- *  face is a design question held on #1924. It is tolerated only WHERE that copy reaches the chrome
- *  (orchestrator review of #1923): inside the write-status pills and the apply detail, where the host's
- *  verdict strings are shown, and on Apply to Figma's running label. A device face drawing any OTHER glyph,
- *  or `⋯` anywhere else, fails. */
-const VERDICT_COPY = ':is([data-p3="status-pill"], [data-p3="status-verdict"], [data-p3="apply-detail"])';
-/** `⋯` also leads Apply to Figma's own label while a write runs ("⋯ Applying…"), today's bar copy. Named
- *  here rather than tolerated chrome-wide. */
-const RUNNING_LABEL = '[data-p3="apply-to-figma"]';
-const FACE_GAPS = { '\u22EF': `:is(${VERDICT_COPY}, ${RUNNING_LABEL})` };
+/* No device face may draw anything in the chrome. There used to be a `FACE_GAPS` list here: characters the
+ *  embedded Inter did not carry, each tolerated in one scope. #1924 re-subset the face for → ✓ ✗ ⚠, and the
+ *  owner's 2026-10-01 decision replaced U+22EF (⋯), which Inter lacks, with "…" (U+2026), which it carries.
+ *  The `[glyphs]` build check (`chrome/glyphs.mjs`) fails the build on a gap in the notes, the verdicts or
+ *  the shell's own copy before this test runs, and its `NEVER_DRAWN` keeps ⋯ and VS16 out of every source
+ *  literal; this is the as-drawn half. */
+/** The plugin's Apply control, by its literal label (owner, 2026-10-01: concept v6's "Apply Theme" replaces
+ *  "Apply to Figma"), idle and while a write runs. Typed here, never read from the source. */
+const APPLY_LABEL = 'Apply Theme';
+const APPLY_RUNNING = '\u2026 Applying\u2026';
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
@@ -292,7 +287,7 @@ const DEPTH_SWITCH_LABELS = ['Elevation', 'Motion'];
 const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]', '[data-p3="tab-components"]'];
 const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills"]', '[data-p3="color-sub-interactive"]'];
 const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="search-open"]'];
-/** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply to Figma. */
+/** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply Theme. */
 const FIGMA_BAR = ['[data-p3="agent-chip"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
 const EXPECT_CONTROLS = {
   'web wide': [...BAR, '[data-p3="theme-toggle"]', ...TABS, ...COLOR_SUBS],
@@ -593,23 +588,14 @@ const fontsDrawn = async (page) => {
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
   // Every probed text node: `text` (the UI face) or `mono` (the mono face, S2).
   const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
-  // Per text node, the gap characters tolerated there: each FACE_GAPS entry, inside its own scope only.
-  const gapScope = new Map();
-  for (const [ch, scope] of Object.entries(FACE_GAPS)) {
-    const { nodeIds: inScope } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${scope} [data-cprobe], ${scope}[data-cprobe]` });
-    for (const id of inScope) { if (!gapScope.has(id)) gapScope.set(id, new Set()); gapScope.get(id).add(ch); }
-  }
   const out = [];
   for (const nodeId of nodeIds) {
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
     const { attributes } = await cdp.send('DOM.getAttributes', { nodeId });
     const want = attributes[attributes.indexOf('data-cprobe') + 1] === 'mono' ? MONO_FONT : UI_FONT;
     const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
-    const { node } = await cdp.send('DOM.describeNode', { nodeId, depth: -1 });
-    const text = (function flat(n) { return (n.nodeType === 3 ? n.nodeValue : '') + (n.children ?? []).map(flat).join(''); })(node);
     out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
-      gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0),
-      gapChars: [...text].filter((c) => gapScope.get(nodeId)?.has(c)).length });
+      gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0) });
   }
   await cdp.detach();
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); });
@@ -718,9 +704,8 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
-  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph
-  // each, and only inside the region its copy comes from (each FACE_GAPS entry's scope).
-  const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > f.gapChars);
+  // No glyph in any face but the embedded one (no FACE_GAPS: see the note above APPLY_LABEL).
+  const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > 0);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT} (${MONO_FONT} where it is set in mono)${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
   ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
@@ -1312,7 +1297,7 @@ console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(
 const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the bar's two controls, the file-setup
  *  button) and concept v6's two option-first items. Literal. */
-const FIGMA_ITEMS = [['apply', 'Apply to Figma'], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
+const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
@@ -1396,6 +1381,9 @@ const menuState = (page) => page.evaluate(() => ({
   focus: document.activeElement?.getAttribute('data-p3') ?? null,
   page: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
 }));
+/** The bar's Apply control: its text, any aria-label overriding that text, and whether it can run. */
+const applyBar = (page) => page.evaluate(() => { const b = document.querySelector('[data-p3="apply-to-figma"]');
+  return { text: b?.textContent ?? null, name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null }; });
 const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
 
 for (const host of ['web', 'figma']) {
@@ -1519,14 +1507,18 @@ for (const host of ['web', 'figma']) {
         await page.keyboard.press('Tab');
         ok(!(await menuState(page)).open, `Figma menu ${where}: Tab closes the menu`);
 
-        // Apply to Figma, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
+        // The bar's Apply, idle: its label and its accessible name are the literal label.
+        const applyIdle = await applyBar(page);
+        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled,
+          `${where}: the bar's Apply reads "${APPLY_LABEL}", named by its text, and can run (read ${JSON.stringify(applyIdle)})`);
+        // Apply Theme, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
         await takePosts(page);
         await openFigma(page);
         await hooks.click(page.locator('[data-p3="figma-option-apply"]'), WAIT);
         const wa = await takeWrites(page);
         const pa = wa.map(keyOf);
-        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply to Figma posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
-        ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply to Figma posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
+        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply Theme posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
+        ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
         await settle(page);
         const r = await drawerState(page);
         ok(r.pills.includes('Writing to Figma…'), `F2 ${where}: the running write's pill sits in the drawer's bar row (pills ${JSON.stringify(r.pills)})`);
@@ -1541,6 +1533,9 @@ for (const host of ['web', 'figma']) {
         const mr = await measure(page, `${where} / a write running`, host, w);
         check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
         await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
+        const applyBusy = await applyBar(page);
+        ok(applyBusy.text === APPLY_RUNNING && applyBusy.disabled,
+          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", disabled (read ${JSON.stringify(applyBusy)})`);
         // While it runs, the menu offers neither Apply nor Prune (today's rule: a prune reads what an apply writes).
         await openFigma(page);
         const busy = await menuState(page);
@@ -1629,8 +1624,8 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
         const wb = await takeWrites(page);
         const pb = wb.map(keyOf);
-        ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply to Figma posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
-        ok(isWire(wb, FIGMA_WIRE.apply), `${where}: the bar's Apply to Figma posts the brand the page loaded, whole — ${wireDiff(wb[0], FIGMA_WIRE.apply)}`);
+        ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply Theme posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
+        ok(isWire(wb, FIGMA_WIRE.apply), `${where}: the bar's Apply Theme posts the brand the page loaded, whole — ${wireDiff(wb[0], FIGMA_WIRE.apply)}`);
         ok(wa.length === 1 && wb.length === 1 && canon(wa[0]) === canon(wb[0]), `${where}: the bar's Apply and the Figma menu's post the same message — ${wireDiff(wb[0], wa[0])}`);
         const bad2 = errors.filter((e) => !/WebSocket/.test(e));
         ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
