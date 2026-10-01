@@ -18,18 +18,22 @@
  *
  * WHAT `main.ts` NOW IMPORTS FROM HERE instead of defining: `palSection`, `subHead`, `tokenPillSpan`,
  * `isInversePath`, `withInverseBadge`, `colorPath`, `specimen` and `SPECIMEN`. One copy, so a section and
- * the rest of the legacy pages cannot disagree on a pill or a section head.
+ * the rest of the legacy pages cannot disagree on a pill or a section head. S5.1 moved `specimenPair`,
+ * `SPECIMEN_PAIR` and `legibleInkOn` here with the Disabled and Interactive sections, their only readers.
  *
- * THE SHARED-SECTION MARKER (`data-sg-section`, follow-up to #1951). Each of the five section modules stamps
+ * THE SHARED-SECTION MARKER (`data-sg-section`, follow-up to #1951). Each section module (the five, and from
+ * S5.1 Disabled and Interactive) stamps
  * its own root with `data-sg-section="<its file name>"`, as a literal IN THAT MODULE, never through `palSection`
  * or anything else here: `main.ts` imports `palSection`, so a marker set there would also mark a section
  * `main.ts` drew for itself, which is exactly what the marker exists to tell apart. `test-smoke.mjs` holds that
- * every one of the five on the Style guide and on Surfaces & fills carries its marker, so a section `main.ts`
+ * every one of the five on the Style guide and on Surfaces & fills, and Disabled and Interactive on the Style
+ * guide, carries its marker, so a section `main.ts`
  * draws on its own (by any spelling, an aliased `palSection` included) fails there by name;
  * `test-shell-imports.ts` holds that no file outside `sections/` writes the marker. Invisible: an attribute.
  *
  * NO DOM AT IMPORT, NO STORE. The context is handed the resolved roles; nothing here reads the session.
  */
+import { contrast, hexToRgb } from '@prism3/engine/color';
 import { fmtRatio } from '../../ui/step-picker';
 
 export { fmtRatio };
@@ -54,6 +58,26 @@ export const hook = <E extends Element>(n: E, role: string): E => { n.setAttribu
  *  specimen cannot land as chrome. */
 export const SPECIMEN = 'data-specimen';
 export const specimen = <T extends HTMLElement>(e: T): T => { e.setAttribute(SPECIMEN, ''); return e; };
+/** A specimen that previews one ENGINE ROLE PAIR — an ink role on a fill role, both mode-relative keys as
+ *  `paint()` takes them (#1652). The smoke suite reads the pair, resolves both roles from the committed
+ *  emission rather than from this file's `paint()`, and holds the node to the contract THAT PAIR carries:
+ *  the ink's own `min` where the fill is the ink's `against`, the #1281 exemption where it is a pressed /
+ *  selected state of the ink's own fill. So the claim is written beside the paint call, not derived from
+ *  it: a call site that paints one pair and claims another fails there by name. (Moved from `main.ts` in
+ *  UI redesign S5.1, unchanged.) */
+export const SPECIMEN_PAIR = 'data-specimen-pair';
+export const specimenPair = <T extends HTMLElement>(e: T, ink: string, fill: string): T => { specimen(e).setAttribute(SPECIMEN_PAIR, `${ink} on ${fill}`); return e; };
+
+/** #555 — a legible ink for a background whose lightness isn't known statically (a resolved fill that can
+ *  land on either side of the light/dark line depending on mode, e.g. an "inverse of the current mode"
+ *  band). Picks whichever of a fixed dark/light ink pair actually clears against the given background,
+ *  rather than assuming the background's lightness. Falls back to the dark ink for a background this can't
+ *  parse as hex (e.g. 'transparent'). (Moved from `main.ts` in UI redesign S5.1, unchanged.) */
+export const legibleInkOn = (bgHex: string, dark = '#191920', light = '#f7f7f7'): string => {
+  if (!bgHex.startsWith('#')) return dark;
+  const bg = hexToRgb(bgHex);
+  return contrast(hexToRgb(dark), bg) >= contrast(hexToRgb(light), bg) ? dark : light;
+};
 
 /** A section: its head (title and one line) and nothing else yet; the caller appends the body. */
 export const palSection = (title: string, sub: string): HTMLElement => {

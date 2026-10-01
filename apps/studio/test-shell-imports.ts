@@ -110,7 +110,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/domains/color-fills.ts', 'src/preview/surfaces.ts', 'src/state/fills-input.ts',
   'src/preview/sections/kit.ts', 'src/preview/sections/cards.ts', 'src/preview/sections/index.ts',
   'src/preview/sections/background.ts', 'src/preview/sections/foreground.ts', 'src/preview/sections/text-color.ts',
-  'src/preview/sections/border.ts', 'src/preview/sections/icon.ts'];
+  'src/preview/sections/border.ts', 'src/preview/sections/icon.ts',
+  // S5.1: the Style guide's Disabled and Interactive sections, shared, and Color › Interactive's writes.
+  'src/preview/sections/disabled.ts', 'src/preview/sections/interactive.ts', 'src/state/interactive-input.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -424,6 +426,23 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   }
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
   for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
+
+  // S5.1: the Style guide's Disabled and Interactive sections moved to `preview/sections/` too, so Color ›
+  // Interactive (S5.2) can draw the same code. Until then `main.ts` is their only drawer, and the arm holds
+  // that it draws them through the shared renderers (by name, in code rather than comments) and keeps no
+  // copy. The oracle is literal: the two renderer names, their files, and the copy each section's head
+  // draws. Interactive is matched by its title. Disabled is matched by the shared section's description,
+  // not its title: the legacy Interactive page keeps a lever section of its own titled "Disabled" (the
+  // disabled-strategy controls) until S5.2 retires that page, and it is not the Style guide's.
+  const code = mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '');
+  for (const [fn, file] of [['disabledSection', 'disabled'], ['interactiveSection', 'interactive']] as const) {
+    ok(new RegExp(`\\b${fn}\\(`).test(code), `src/main.ts draws the Style guide's ${file} section through the shared ${fn}()`);
+    ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports the ${file} section from ./${file}`);
+  }
+  const ownInteractive = /palSection\(\s*'Interactive'/.test(mainSrc);
+  ok(!ownInteractive, `src/main.ts draws no "Interactive" section of its own${ownInteractive ? " — main.ts defines its own \"Interactive\" section (palSection('Interactive', …)): the Style guide would drift from Color › Interactive" : ''}`);
+  const ownDisabled = mainSrc.includes('One shared, stateless inert set');
+  ok(!ownDisabled, `src/main.ts draws no Style guide "Disabled" section of its own${ownDisabled ? ' — main.ts carries the shared Disabled section\'s copy ("One shared, stateless inert set"): the Style guide would drift from Color › Interactive' : ''}`);
 }
 
 // ── one Style guide, two pages (UI redesign S4a, owner decision Q5) ──────────────────────────────────
@@ -460,7 +479,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of SECTION_FILES) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
