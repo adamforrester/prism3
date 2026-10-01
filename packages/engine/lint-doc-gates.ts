@@ -296,14 +296,18 @@ export type Step = { name: string; run: string };
  * below, which is why its self-checks pin it to LITERAL arrays rather than to its own output on the
  * other side (`docs/34`, shape 11 — a lens both sides go through can hide a difference from both).
  *
- * WHAT COUNTS AS THE INVOCATION. A line of the step's `run:` that STARTS with `npm run `, `npx … tsx`
- * or `sh ` — the three forms `verify.ts` builds argv in. Every other line is setup and is not compared:
- * today that is only `npx playwright install --with-deps chromium`, which `verify.ts` replaces with
- * `chromiumPrecondition` rather than running. A step must yield EXACTLY ONE invocation; zero or two is
- * a finding, because the row runs one command and there is then nothing unambiguous to pair it with.
- * That rule is also what makes an inline env prefix loud rather than ignored: `FOO=1 npx tsx x.ts`
- * does not start with an invocation, yields zero, and fails — it does not get compared with `FOO=1`
- * silently dropped.
+ * WHAT COUNTS AS THE INVOCATION, AND WHAT ELSE A STEP MAY HOLD. A line of the step's `run:` that
+ * STARTS with `npm run `, `npx … tsx` or `sh ` — the three forms `verify.ts` builds argv in — is the
+ * invocation, and a step must yield EXACTLY ONE: zero or two is a finding, because the row runs one
+ * command and there is then nothing unambiguous to pair it with. EVERY OTHER LINE is refused unless it
+ * is blank, a `#` comment, or on `SETUP_LINES` — a short list, written by hand, of setup `verify.ts`
+ * replaces rather than runs (today only the Playwright download, which `chromiumPrecondition` stands in
+ * for). The review of #1933 is why the rule is a list and not a shape: when non-invocation lines were
+ * simply skipped, a second command under the audit step — `node …/extra-gate.mjs`, `npx playwright
+ * test`, `bash tools/…`, `npm test -w …`, `npm run-script …`, or `set +e` … `true` wrapped around the
+ * real command — left this arm green (`docs/34`, shape 15: the walk excluded the hard cases). It also
+ * makes an inline env prefix (`FOO=1 npx tsx x.ts`) or an `export FOO=1` line loud rather than
+ * ignored. Adding to `SETUP_LINES` is a deliberate act; widening it into a pattern is the hole again.
  *
  * WHAT IS REFUSED rather than guessed at: an invocation line carrying a quote, `$`, a backslash, a
  * backtick or a shell operator (`| & ; < > ( )`). This is a word split, not a shell, and the safe
@@ -316,29 +320,38 @@ export type Step = { name: string; run: string };
  * `npm run s --flag` hands `--flag` to npm and `npm run s -- --flag` hands it to the script; the
  * `tsx@4` pin included, because a different major is a different parser.
  *
- * WHAT IS NOT COMPARED: environment. A step's `env:` map, and the variables Actions sets on its own
- * (`GITHUB_EVENT_NAME`, `GITHUB_BASE_REF`), are not arguments, and `verify.ts` sets its own (`CI`,
- * `FORCE_COLOR`). No step in `ci.yml` has an `env:` map today; a gate whose behavior depends on one
- * is outside this arm.
+ * WHAT IS NOT COMPARED: environment set OUTSIDE `run:`. A step's `env:` map, and the variables
+ * Actions sets on its own (`GITHUB_EVENT_NAME`, `GITHUB_BASE_REF`), are not arguments, and `verify.ts`
+ * sets its own (`CI`, `FORCE_COLOR`). An `env:` map passes this arm unexamined; no step in `ci.yml`
+ * has one today, and a gate whose behavior depends on one is outside this arm. Environment set INSIDE
+ * `run:` (a prefix or an `export` line) is refused by the line rule above.
  *
  * WHAT IT CANNOT SEE (#1919's R6): a flag dropped from BOTH files. The two copies then agree, and this
  * is a parity check. The three checklists do name the flag (`audit:modes -- --check-badges` in all
  * three), but holding the prose to "every flag named beside a gate is on the CI step" needs a rule for
  * which mention is the gate's run line — `CONTRIBUTING.md` §3 also documents `token-contract.ts
- * --accept` — and that is a decision about what the docs must say, held for the owner.
+ * --accept`. The owner's decision (#1933): leave it to review. The failure message below tells anyone
+ * dropping a flag to check the checklists; nothing here enforces it.
  */
 export class ArgvRefusal extends Error {}
 
 const INVOCATION_START = /^(?:npm\s+run\s|npx\s+(?:--yes\s+|-y\s+)?tsx(?:@\S+)?\s|sh\s)/;
 const UNSPLITTABLE = /["'`$\\|&;<>()]/;
 
+/** Setup lines a step paired with a runner COMMAND may carry besides its one invocation, verbatim
+ *  after trimming. `verify.ts` replaces each with a precondition rather than running it. A hand-written
+ *  list on purpose — see ARM 5 above. */
+export const SETUP_LINES = new Set<string>(['npx playwright install --with-deps chromium']);
+
 /** The invocation lines of one step's `run:` text, each split into words. Throws `ArgvRefusal` on an
- *  invocation line the word split cannot represent honestly. */
+ *  invocation line the word split cannot represent honestly, and on any line that is neither an
+ *  invocation, blank, a comment, nor on `SETUP_LINES`. */
 export const ciInvocationsOf = (run: string): string[][] => {
   const out: string[][] = [];
   for (const raw of run.split('\n')) {
     const line = raw.trim();
-    if (!INVOCATION_START.test(line)) continue;
+    if (!line || line.startsWith('#') || SETUP_LINES.has(line)) continue;
+    if (!INVOCATION_START.test(line)) throw new ArgvRefusal(`a line that is neither the step's command nor allow-listed setup (SETUP_LINES): ${line}`);
     if (UNSPLITTABLE.test(line)) throw new ArgvRefusal(`an invocation with shell syntax this word split does not model: ${line}`);
     out.push(line.split(/\s+/));
   }
@@ -368,14 +381,24 @@ export type ArgvFinding = { step: string; problem: string };
 
 /** ARM 5. For every runner row with a `cmd`, the `ci.yml` step of the same name must run the same
  *  argv. Rows without a `cmd` (`derive` gates) are skipped — they run no command to compare. A row
- *  whose step is missing is arm 3's finding, not this one's, so it is skipped here too. */
-export const runnerArgvDiff = (steps: Step[], gates: { ciStep: string; cmd?: string[] }[]): ArgvFinding[] => {
+ *  whose step is missing is arm 3's finding, not this one's, so it is skipped here too.
+ *
+ *  Returns `checked` beside the findings: every step that REACHED A VERDICT here, agreeing or not.
+ *  The real run asserts it equals the set of command rows, so a row skipped by either `continue` below
+ *  — or by any skip added later — fails by name instead of shrinking the comparison while the summary
+ *  still counts the input (#1933's review: `docs/34`, shapes 14 and 21). */
+export const runnerArgvDiff = (
+  steps: Step[],
+  gates: { ciStep: string; cmd?: string[] }[],
+): { findings: ArgvFinding[]; checked: string[] } => {
   const byName = new Map(steps.map((s) => [s.name, s]));
   const findings: ArgvFinding[] = [];
+  const checked: string[] = [];
   for (const g of gates) {
     if (!g.cmd) continue;
     const step = byName.get(g.ciStep);
     if (!step) continue;
+    checked.push(g.ciStep);
     let inv: string[][];
     try { inv = ciInvocationsOf(step.run); } catch (e) {
       findings.push({ step: g.ciStep, problem: (e as Error).message });
@@ -396,7 +419,7 @@ export const runnerArgvDiff = (steps: Step[], gates: { ciStep: string; cmd?: str
     ].filter(Boolean).join('; ') || 'same words, different order or count';
     findings.push({ step: g.ciStep, problem: `ci.yml runs \`${ci.join(' ')}\`, verify.ts runs \`${local.join(' ')}\` (${delta})` });
   }
-  return findings;
+  return { findings, checked };
 };
 
 /** Parse ci.yml's flat step list: `- name: <name>` (quoted or bare — a bare name containing a colon,
@@ -836,7 +859,9 @@ if (!orphanGateFiles('        run: npx tsx packages/engine/lint-known.ts', ['pac
 
 // 8. ARM 5 (#1919) — the argv comparison. Every expectation below is a LITERAL array or a literal step
 //    name, never `canonicalArgv` applied to the other side: the normalizer is the one thing both sides
-//    of this arm go through, so it is pinned from outside (docs/34, shape 11).
+//    of this arm go through, so it is pinned from outside (docs/34, shape 11). The literals are MIXED
+//    CASE on purpose (#1933's review): with all-lowercase literals, a normalizer that lowercased every
+//    word passed every check here while making `--Check` and `--check` the same flag.
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 // 8a. The word split: setup lines are skipped, the invocation is split, a block scalar parsed by the
 //     shipped `parseSteps` reaches it intact.
@@ -847,66 +872,99 @@ jobs:
       - name: Sample audit
         run: |
           npx playwright install --with-deps chromium
-          npm run -w @prism3/sample audit:sample -- --check-sample
+          npm run -w @prism3/Sample audit:Sample -- --check-Sample
 `;
 const auditStep = parseSteps(ARGV_YAML).find((s) => s.name === 'Sample audit');
-if (!auditStep || !same(ciInvocationsOf(auditStep.run), [['npm', 'run', '-w', '@prism3/sample', 'audit:sample', '--', '--check-sample']])) {
+if (!auditStep || !same(ciInvocationsOf(auditStep.run), [['npm', 'run', '-w', '@prism3/Sample', 'audit:Sample', '--', '--check-Sample']])) {
   selfFails.push('arm 5 does not read a block-scalar step as one invocation with its flag (setup line skipped, `--` and the flag kept)');
 }
-if (!same(ciInvocationsOf('npx --yes tsx@4 packages/engine/regen.ts --check'), [['npx', '--yes', 'tsx@4', 'packages/engine/regen.ts', '--check']])) {
+if (!same(ciInvocationsOf('npx --yes tsx@4 packages/engine/Regen.ts --Check'), [['npx', '--yes', 'tsx@4', 'packages/engine/Regen.ts', '--Check']])) {
   selfFails.push('arm 5 splits an `npx tsx` invocation wrong');
 }
-if (!same(ciInvocationsOf('sh tools/sample/mutations.sh'), [['sh', 'tools/sample/mutations.sh']])) {
+if (!same(ciInvocationsOf('sh tools/Sample/mutations.sh'), [['sh', 'tools/Sample/mutations.sh']])) {
   selfFails.push('arm 5 does not see an `sh` invocation');
 }
 // 8b. The one normalization, both directions: workspace placement and spelling collapse to ONE form;
-//     the `--` separator and the tsx pin do NOT.
-const CANON = ['npm', 'run', '-w', '@prism3/sample', 'audit:sample', '--', '--check-sample'];
+//     the `--` separator, the tsx pin and the case of every word do NOT.
+const CANON = ['npm', 'run', '-w', '@prism3/Sample', 'audit:Sample', '--', '--check-Sample'];
 for (const spelling of [
-  ['npm', 'run', 'audit:sample', '-w', '@prism3/sample', '--', '--check-sample'],
-  ['npm', 'run', '--workspace', '@prism3/sample', 'audit:sample', '--', '--check-sample'],
-  ['npm', 'run', 'audit:sample', '--workspace=@prism3/sample', '--', '--check-sample'],
+  ['npm', 'run', 'audit:Sample', '-w', '@prism3/Sample', '--', '--check-Sample'],
+  ['npm', 'run', '--workspace', '@prism3/Sample', 'audit:Sample', '--', '--check-Sample'],
+  ['npm', 'run', 'audit:Sample', '--workspace=@prism3/Sample', '--', '--check-Sample'],
 ]) {
   if (!same(canonicalArgv(spelling), CANON)) selfFails.push(`arm 5 does not normalize the equivalent spelling \`${spelling.join(' ')}\``);
 }
-if (same(canonicalArgv(['npm', 'run', '-w', '@prism3/sample', 'audit:sample', '--check-sample']), CANON)) {
+if (same(canonicalArgv(['npm', 'run', '-w', '@prism3/Sample', 'audit:Sample', '--check-Sample']), CANON)) {
   selfFails.push('arm 5 treats `s --flag` (a flag npm reads) as `s -- --flag` (a flag the script reads)');
 }
-if (!same(canonicalArgv(['npx', '--yes', 'tsx@4', 'a.ts', '--check']), ['npx', '--yes', 'tsx@4', 'a.ts', '--check'])) {
+if (!same(canonicalArgv(['npx', '--yes', 'tsx@4', 'A.ts', '--Check']), ['npx', '--yes', 'tsx@4', 'A.ts', '--Check'])) {
   selfFails.push('arm 5 rewrites an `npx tsx` argv it should leave literal');
 }
 // 8c. runnerArgvDiff end to end over hand-made steps and rows: silent on agreement and on an
 //     equivalent spelling; fires BY STEP NAME on #1919's R7 in both directions, on a positional
-//     argument, on an env prefix, on shell syntax and on two invocations; skips a derive row.
+//     argument, on a case difference, on an `sh` argument, on an env prefix or `export` line, on shell
+//     syntax, on two invocations and on every second-command shape #1933's review found; skips a
+//     derive row; and reports each row it reached a verdict on in `checked`.
 const S = (name: string, run: string): Step => ({ name, run });
 const A = 'Sample audit';
-const ROW = { ciStep: A, cmd: ['npm', 'run', '-w', '@prism3/sample', 'audit:sample', '--', '--check-sample'] };
-const argvCase = (run: string, row: { ciStep: string; cmd?: string[] } = ROW) => runnerArgvDiff([S(A, run)], [row]);
-if (argvCase('npm run -w @prism3/sample audit:sample -- --check-sample').length) {
+const ROW = { ciStep: A, cmd: ['npm', 'run', '-w', '@prism3/Sample', 'audit:Sample', '--', '--check-Sample'] };
+const CMD = 'npm run -w @prism3/Sample audit:Sample -- --check-Sample';
+const argvCase = (run: string, row: { ciStep: string; cmd?: string[] } = ROW) => runnerArgvDiff([S(A, run)], [row]).findings;
+const agree = runnerArgvDiff([S(A, CMD)], [ROW]);
+if (agree.findings.length) {
   selfFails.push('arm 5 flags a ci.yml step and runner row that run the same argv (false positive)');
 }
-if (argvCase('npm run audit:sample --workspace=@prism3/sample -- --check-sample').length) {
+if (!same(agree.checked, [A])) selfFails.push('arm 5 does not report a row it compared in `checked` — the scope assertion would have nothing to count');
+if (argvCase('npx playwright install --with-deps chromium\n' + CMD).length) {
+  selfFails.push('arm 5 refuses the allow-listed Playwright setup line (false positive)');
+}
+if (argvCase('npm run audit:Sample --workspace=@prism3/Sample -- --check-Sample').length) {
   selfFails.push('arm 5 flags an equivalent workspace spelling (false positive)');
 }
-if (!argvCase('npm run -w @prism3/sample audit:sample').some((f) => f.step === A && f.problem.includes('only in verify.ts: -- --check-sample'))) {
+if (!argvCase('npm run -w @prism3/Sample audit:Sample').some((f) => f.step === A && f.problem.includes('only in verify.ts: -- --check-Sample'))) {
   selfFails.push('arm 5 misses a flag dropped from ci.yml only — #1919\'s R7');
 }
-if (!argvCase('npm run -w @prism3/sample audit:sample -- --check-sample', { ciStep: A, cmd: ['npm', 'run', '-w', '@prism3/sample', 'audit:sample'] }).some((f) => f.step === A && f.problem.includes('only in ci.yml: -- --check-sample'))) {
+if (!argvCase(CMD, { ciStep: A, cmd: ['npm', 'run', '-w', '@prism3/Sample', 'audit:Sample'] }).some((f) => f.step === A && f.problem.includes('only in ci.yml: -- --check-Sample'))) {
   selfFails.push('arm 5 misses a flag dropped from verify.ts only');
 }
-if (!runnerArgvDiff([S('Drift', 'npx --yes tsx@4 packages/engine/regen.ts')], [{ ciStep: 'Drift', cmd: ['npx', '--yes', 'tsx@4', 'packages/engine/regen.ts', '--check'] }]).some((f) => f.step === 'Drift')) {
+if (!argvCase('npm run -w @prism3/Sample audit:Sample -- --check-sample').some((f) => f.step === A && f.problem.includes('only in ci.yml: --check-sample'))) {
+  selfFails.push('arm 5 treats two flags that differ only in case as one');
+}
+if (!runnerArgvDiff([S('Drift', 'npx --yes tsx@4 packages/engine/regen.ts')], [{ ciStep: 'Drift', cmd: ['npx', '--yes', 'tsx@4', 'packages/engine/regen.ts', '--check'] }]).findings.some((f) => f.step === 'Drift')) {
   selfFails.push('arm 5 misses `regen.ts` vs `regen.ts --check` on an npx-tsx step');
 }
-if (!argvCase('GITHUB_EVENT_NAME=push npm run -w @prism3/sample audit:sample -- --check-sample').some((f) => f.step === A && f.problem.includes('0 invocation line(s)'))) {
-  selfFails.push('arm 5 compares past an inline env prefix instead of refusing it');
+const shCase = runnerArgvDiff([S('Fresh', 'sh tools/Fresh/mutations.sh --quick')], [{ ciStep: 'Fresh', cmd: ['sh', 'tools/Fresh/mutations.sh'] }]);
+if (!shCase.findings.some((f) => f.step === 'Fresh' && f.problem.includes('only in ci.yml: --quick')) || !same(shCase.checked, ['Fresh'])) {
+  selfFails.push('arm 5 misses an argument added to an `sh` step, or does not count it as checked');
 }
-if (!argvCase('npm run -w @prism3/sample audit:sample -- "--check-sample"').some((f) => f.step === A && f.problem.includes('shell syntax'))) {
+for (const prefix of ['GITHUB_EVENT_NAME=push ' + CMD, 'export GITHUB_EVENT_NAME=push\n' + CMD]) {
+  if (!argvCase(prefix).some((f) => f.step === A && f.problem.includes('neither the step\'s command nor allow-listed setup'))) {
+    selfFails.push(`arm 5 compares past environment set inside run: instead of refusing it: ${JSON.stringify(prefix)}`);
+  }
+}
+for (const extra of [
+  'node apps/studio/scripts/extra-gate.mjs',
+  'npx playwright test apps/studio/e2e',
+  'bash tools/extra/gate.sh',
+  'npm test -w @prism3/Sample',
+  'npm run-script -w @prism3/Sample extra',
+  'set +e',
+]) {
+  if (!argvCase(`${CMD}\n${extra}`).some((f) => f.step === A && f.problem.includes(`allow-listed setup (SETUP_LINES): ${extra}`))) {
+    selfFails.push(`arm 5 lets a second, unlisted line ride along with the step's command: ${extra}`);
+  }
+}
+if (!argvCase(`set +e\n${CMD}\ntrue`).some((f) => f.step === A && f.problem.includes('SETUP_LINES): set +e'))) {
+  selfFails.push('arm 5 lets `set +e` … `true` wrap the step\'s command');
+}
+if (!argvCase('npm run -w @prism3/Sample audit:Sample -- "--check-Sample"').some((f) => f.step === A && f.problem.includes('shell syntax'))) {
   selfFails.push('arm 5 word-splits a quoted argument instead of refusing it');
 }
-if (!argvCase('npm run -w @prism3/sample audit:sample -- --check-sample\nsh tools/x.sh').some((f) => f.step === A && f.problem.includes('2 invocation line(s)'))) {
+if (!argvCase(`${CMD}\nsh tools/x.sh`).some((f) => f.step === A && f.problem.includes('2 invocation line(s)'))) {
   selfFails.push('arm 5 pairs a runner row with one of two ci.yml invocations');
 }
-if (runnerArgvDiff([S(A, 'set -euo pipefail\ngrep -q x y.js')], [{ ciStep: A }]).length) {
+const deriveCase = runnerArgvDiff([S(A, 'set -euo pipefail\ngrep -q x y.js')], [{ ciStep: A }]);
+if (deriveCase.findings.length || deriveCase.checked.length) {
   selfFails.push('arm 5 compares a `derive` row, which runs no command');
 }
 
@@ -1048,10 +1106,9 @@ if (runnerDiff.unrun.length || runnerDiff.extra.length) {
   process.exit(1);
 }
 
-// ARM 5 runs only once arm 3 has passed, so every row with a `cmd` has a step to pair with — a row
-// skipped here for want of a step would be a silent narrowing, and arm 3 has just ruled that out.
+// ARM 5 runs only once arm 3 has passed, so every row with a `cmd` has a step to pair with.
 const commandRows = GATES.filter((g) => g.cmd);
-const argvFindings = runnerArgvDiff(realSteps, GATES);
+const { findings: argvFindings, checked: argvChecked } = runnerArgvDiff(realSteps, GATES);
 // SCOPE FLOOR, the same "did it look" shape as the others: a GATES that lost its `cmd` fields would
 // compare nothing and pass.
 if (commandRows.length < 50) {
@@ -1059,7 +1116,23 @@ if (commandRows.length < 50) {
   console.error('    Either the runner genuinely shrank (update this floor in the same PR), or its rows stopped carrying `cmd`.');
   process.exit(1);
 }
-console.log(`    argv: ${commandRows.length} runner command(s) compared to their ci.yml step, word for word`);
+// SCOPE EQUALITY (#1933's review): the rows this arm REACHED A VERDICT ON must be exactly the rows that
+// carry a command. Counting the input instead let a skip inside `runnerArgvDiff` shrink the comparison
+// while the summary line still printed the full count (`docs/34`, shapes 14 and 21).
+{
+  const want = commandRows.map((g) => g.ciStep).sort();
+  const got = [...argvChecked].sort();
+  if (JSON.stringify(want) !== JSON.stringify(got)) {
+    const unchecked = want.filter((n) => !got.includes(n));
+    const extra = got.filter((n) => !want.includes(n));
+    console.error(`\n❌ arm 5 compared ${got.length} of the ${want.length} verify.ts row(s) that run a command — it skipped some:\n`);
+    for (const n of unchecked) console.error(`    "${n}" runs a command in verify.ts and was NOT compared to its ci.yml step`);
+    for (const n of extra) console.error(`    "${n}" was compared but is not a verify.ts row with a command`);
+    if (!unchecked.length && !extra.length) console.error('    same names, different multiplicity — a row was compared twice or a ciStep is duplicated');
+    process.exit(1);
+  }
+}
+console.log(`    argv: ${argvChecked.length} runner command(s) compared to their ci.yml step, word for word`);
 if (argvFindings.length) {
   console.error(`\n❌ ${argvFindings.length} gate(s) run with different arguments in ci.yml and verify.ts (#1919):\n`);
   for (const f of argvFindings) console.error(`    "${f.step}": ${f.problem}`);
