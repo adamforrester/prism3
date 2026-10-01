@@ -786,14 +786,15 @@ export const GATES: Gate[] = [
   },
   {
     // #1897 — REMOVED AT S13, with `mode-audit.mjs` and the mode strip it audits (UI redesign plan).
-    // Gates the audit's INSTRUMENT, not its table: without `--check-badges` it exits 1 only when a hook
-    // it names never rendered, a page's section heads and titles disagree in count, or no control label
-    // was read. `--check-badges` stays off because #1887's mismatches make it red on main. Three hooks
-    // (`section-head`, `section-title`, `mode-scope-badge`) are read by this audit alone, so this row
-    // is the only thing that notices one being dropped.
+    // Gates the audit's INSTRUMENT (a hook it names never rendered, a page's section heads and titles
+    // disagreeing in count, no control label read) and, since #1887, its TABLE through `--check-badges`:
+    // every badge against the measurement, every editable badge against a control that provably moves
+    // the brand. The three unbadged sections filed as #1912 are known gaps in the audit itself, and fail
+    // the run once they go stale. Three hooks (`section-head`, `section-title`, `mode-scope-badge`) are
+    // read by this audit alone, so this row is the only thing that notices one being dropped.
     id: 'mode-audit',
-    ciStep: 'Studio mode audit can still find what it measures (#1897, removed at S13)',
-    cmd: ws('@prism3/studio', 'audit:modes'),
+    ciStep: 'Studio mode audit: its instrument, and every badge against what it measures (#1897, #1887, removed at S13)',
+    cmd: [...ws('@prism3/studio', 'audit:modes'), '--', '--check-badges'],
     after: ['build-web', 'smoke'],
     why: 'it drives the built dist/main.js in a browser, and a smoke failure explains a failure here',
     precondition: chromiumPrecondition,

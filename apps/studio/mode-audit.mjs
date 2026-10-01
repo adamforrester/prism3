@@ -62,11 +62,16 @@
  * floor instead: if no control on any bar page reads a label, the signature has gone blind to case 2
  * below and the audit fails naming it, rather than under-counting in silence.
  *
- * IN CI WITHOUT `--check-badges` (#1897), so CI gates the INSTRUMENT, not the table: without the flag the
- * table is a report, and the run exits 1 only through `ok()` above (a hook never rendered, heads and titles
- * disagreeing, the label floor). With the flag it is red on `main` at the time of #1829 (mismatches that vary
- * by brand, #1887, unchanged by the move to hooks), and making it green is badge-map and audit-probe work of
- * its own (#1887). It is deleted with the mode strip it audits (S13), and its CI step goes with it.
+ * IN CI WITH `--check-badges` (#1897 added the step for the INSTRUMENT, #1887 added the flag). Without the
+ * flag the table is a report, and the run exits 1 only through `ok()` above (a hook never rendered, heads
+ * and titles disagreeing, the label floor). With it, every badge must also match the measurement. #1887
+ * found the flag red on `main` with five to six mismatches depending on brand, from two causes, diagnosed
+ * one by one. The radio-group ones (Density & size, Tempo, aurora's Icon colors) were this file's probe,
+ * which could not change a radio; `poke` is fixed. The three sections with no badge at all (Links, Control
+ * shape, Buttons) are the studio's map, filed as #1912, and they stand below as `KNOWN_BADGE_GAPS`: named,
+ * issue-numbered, and failing the run the moment they go stale. CI runs the default brand (harbor);
+ * aurora and prism3 measured identically at the time of #1887. It is deleted with the mode strip it audits
+ * (S13), and its CI step goes with it.
  *
  * VERDICTS
  *   EDITS    — the control set/labels differ between modes. The bar is an EDITING SCOPE here.
@@ -342,6 +347,23 @@ const probeSection = async (c) => {
     // and report whether changing anything was possible at all.
     const poke = (e) => {
       if (!e) return 'gone';
+      // A RADIO is changed by checking a DIFFERENT member of its group, and the event belongs to that
+      // member (#1887). The fallthrough below rewrote `value` and fired `change` on the radio already
+      // checked, which re-picks the option it already holds: the chip groups (#1675) read the option from
+      // a closure, not from `value`, so the brand stayed put and Density & size, Tempo and Icon colors
+      // all read as "no control here moves the brand". The worse half was the other direction: on a
+      // lever whose default is not written into the brand, re-picking it wrote the default explicitly,
+      // the blob moved, and Control shape "proved" editable without its value changing at all.
+      if (e.type === 'radio') {
+        // An unnamed radio is a group of one: there is nothing else to check, so it cannot be exercised.
+        const other = e.name ? [...e.getRootNode().querySelectorAll(`input[type="radio"][name="${CSS.escape(e.name)}"]`)]
+          .find((r) => r !== e && !r.checked && !r.disabled) : undefined;
+        if (!other) return 'single-option';
+        other.checked = true;
+        other.dispatchEvent(new Event('input', { bubbles: true }));
+        other.dispatchEvent(new Event('change', { bubbles: true }));
+        return 'poked';
+      }
       if (e.tagName === 'SELECT') {
         const other = [...e.options].find((o) => o.value !== e.value);
         if (!other) return 'single-option';
@@ -391,8 +413,36 @@ const probeSection = async (c) => {
   }, { secName: c.name, wantEditProof: c.expected !== 'none' });
 };
 
+/**
+ * KNOWN BADGE GAPS — mismatches this audit measures CORRECTLY, where the studio is wrong and the fix
+ * belongs to another lane (#1887). Each row names the issue that owns the fix, and is a literal written
+ * from the measurement and the source, never computed from either. That keeps the row independent of
+ * both sides of the comparison (docs/34): it is a third, hand-stated record of exactly what is wrong.
+ *
+ * A row EXCUSES only an exact match: same page, same section, same expected badge, same rendered badge.
+ * Anything else is a new mismatch and counts. In particular, a section whose MEASUREMENT moves (Links
+ * stops measuring per-mode, say) fails here even though it still renders no badge.
+ *
+ * A row FAILS WHEN STALE. If its mismatch does not occur in this run, because the map entry landed, the
+ * section was renamed, or the measurement changed, the run fails naming the row and its issue. So an
+ * exception cannot outlive its bug, and the fixing PR has to delete the row in the same change.
+ */
+const KNOWN_BADGE_GAPS = [
+  // #1912: SECTION_MODE_SCOPE has no entry for these three, so `attachModeBadges` skips them. Links pins a
+  // color for the current mode (`linkAbsPicker` writes `overrides[currentMode]`); Control shape and
+  // Buttons are global levers (`csLeverStack(…, false)`).
+  { page: 'Interactive', name: 'Links', expected: 'per-mode', renders: null, issue: 1912 },
+  { page: 'Size & radius', name: 'Control shape', expected: 'all-modes', renders: null, issue: 1912 },
+  { page: 'Size & radius', name: 'Buttons', expected: 'all-modes', renders: null, issue: 1912 },
+];
+const knownGapFor = (c) => KNOWN_BADGE_GAPS.find((k) =>
+  k.page === c.page && k.name === c.name && k.expected === c.expected && k.renders === c.badge);
+
 if (process.argv.includes('--check-badges')) {
-  const bad = claims.filter((c) => c.badge !== c.expected);
+  const mismatched = claims.filter((c) => c.badge !== c.expected);
+  const bad = mismatched.filter((c) => !knownGapFor(c));
+  const known = mismatched.filter((c) => knownGapFor(c));
+  const stale = KNOWN_BADGE_GAPS.filter((k) => !known.some((c) => knownGapFor(c) === k));
   // A badge that sits outside its section's padding box is a placement bug, checked in the same pass
   // (#562). `>= 0` on both axes: the badge may sit lower than the padding edge (a taller title pushes
   // the flex row's cross-axis) but must never be above or right of it.
@@ -404,6 +454,15 @@ if (process.argv.includes('--check-badges')) {
   }
   for (const c of flush)
     console.log(`   ${c.page} / ${c.name}\n      badge escapes the section padding box: top ${c.inset.top}px, right ${c.inset.right}px (both must be >= 0)`);
+  for (const c of known)
+    console.log(`   known, #${knownGapFor(c).issue}: ${c.page} / ${c.name} expects '${c.expected}', renders ${c.badge === null ? 'no badge' : `'${c.badge}'`} (not counted)`);
+  for (const k of stale) {
+    const now = claims.find((c) => c.page === k.page && c.name === k.name);
+    console.log(`   STALE known gap #${k.issue}: ${k.page} / ${k.name} (expects '${k.expected}', renders ${k.renders === null ? 'no badge' : `'${k.renders}'`}) did not occur — `
+      + (now ? `the audit now expects '${now.expected}' and the page renders ${now.badge === null ? 'no badge' : `'${now.badge}'`}`
+             : 'no section by that name was measured on that page')
+      + '. Delete the row from KNOWN_BADGE_GAPS, or correct it if the gap changed shape');
+  }
 
   // Third axis (#574): what the badge CLAIMS about editability, checked against what the controls do to
   // the brand — not against the same `querySelector` main.ts used, which is how the badge and the audit
@@ -429,11 +488,11 @@ if (process.argv.includes('--check-badges')) {
     else if (p.editProof) proved++;
   }
   for (const u of unproven) console.log(`   ${u}`);
-  if (bad.length || flush.length || unproven.length) {
-    console.log(`\n${bad.length + flush.length + unproven.length} mismatch(es).\n`);
+  if (bad.length || flush.length || unproven.length || stale.length) {
+    console.log(`\n${bad.length + flush.length + unproven.length + stale.length} mismatch(es).\n`);
     process.exitCode = 1;
   } else {
-    console.log(`   ✓ every badge matches what the page actually does, all ${claims.filter((c) => c.inset).length} sit inside their section padding,`
+    console.log(`   ✓ every badge matches what the page actually does, except ${known.length} known gap(s) named above, all ${claims.filter((c) => c.inset).length} sit inside their section padding,`
       + `\n     ${proved} editable section(s) provably move the brand, and ${quiet} skipped control(s) provably do not\n`);
   }
 }
