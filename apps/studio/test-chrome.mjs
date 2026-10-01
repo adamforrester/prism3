@@ -71,9 +71,11 @@
  *     and the opener's focus; a tab change closes it. Measured at every width, both themes, both hosts.
  *   · THE MODE CONTROL (Q1, model B): a radiogroup of the literal modes, derived ones hatched; choosing a
  *     mode makes the legacy page draw it, and the legacy strip's choice checks it here; arrow keys move.
- *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS`, one glyph each, and only in text
- *     inside its entry's scope. S1.3 listed U+2192 (→) for the Decisions log and S1.4 the four verdict
- *     glyphs; #1924 re-subset the face, so only U+22EF (⋯), which Inter lacks, is left.
+ *   · NO DEVICE FACE: every chrome text element draws in the embedded faces, every glyph. S1.3 tolerated
+ *     U+2192 (→) in the Decisions log and S1.4 the four verdict glyphs, in a scoped `FACE_GAPS` list; #1924
+ *     re-subset the face to carry them, and the owner's 2026-10-01 copy decision replaced the last one,
+ *     U+22EF (⋯), with "…" (U+2026). The list was empty, so it is gone, scope map and all: a device face
+ *     drawing any glyph anywhere in the chrome fails.
  *
  * S1.4 ADDS (section 10), on both hosts, both themes, at 1280, 640 and 380:
  *   · THE ACTIVITY DRAWER (F2): nothing drawn before anything runs; a write started from the Figma menu opens
@@ -192,7 +194,7 @@
  *   S1.4 review (orchestrator's review of #1929):
  *   · the pill's click without `hostChanged()`, or the drawer's `detailOpened` branch removed →
  *     `F2 … clicking the failure's pill on a closed drawer opens the drawer on its detail, the pill expanded — open false, …`.
- *   · `runApply` posting `{}` → `Figma menu … Apply to Figma posts the brand the page loaded (…), whole — input differs at id, root, …`.
+ *   · `runApply` posting `{}` → `Figma menu … Apply Theme posts the brand the page loaded (…), whole — input differs at id, root, …`.
  *   · `runPrune` posting a stale input → `Figma menu … Prune stale posts the brand the page loaded with confirm false, whole — input differs at id`.
  *   · the popover's focusout handler removed → `IA-3 … Tab past the switch closes the popover`.
  *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
@@ -238,23 +240,16 @@ const UI_FONT = 'Inter';      // the embedded face's own family name, as the pla
  *  element whose computed family asks for the chrome's mono alias must draw this one, and nothing else. */
 const MONO_FONT = 'JetBrains Mono';
 const MONO_ALIAS = 'P3 Chrome Mono';
-/** Characters the embedded Inter face does not carry, so a device face draws them. Literal, and each is
- *  a finding. #1924 re-subset the face to carry U+2192 (→), which the engine's notes use (the Decisions
- *  log, S1.3), and U+2713 (✓), U+2717 (✗) and U+26A0 (⚠), which lead the host's write verdicts (S1.4). The
- *  `[glyphs]` build check (`chrome/glyphs.mjs`) now fails the build on such a gap in the notes, the
- *  verdicts or the shell's own copy, before this test runs.
- *
- *  What is left is U+22EF (⋯), which a pending write reads ("⋯ Applying…"). Inter has no U+22EF at all, so
- *  no subset can add it. Whether to keep it in a device face, use another character, or embed a fallback
- *  face is a design question held on #1924. It is tolerated only WHERE that copy reaches the chrome
- *  (orchestrator review of #1923): inside the write-status pills and the apply detail, where the host's
- *  verdict strings are shown, and on Apply to Figma's running label. A device face drawing any OTHER glyph,
- *  or `⋯` anywhere else, fails. */
-const VERDICT_COPY = ':is([data-p3="status-pill"], [data-p3="status-verdict"], [data-p3="apply-detail"])';
-/** `⋯` also leads Apply to Figma's own label while a write runs ("⋯ Applying…"), today's bar copy. Named
- *  here rather than tolerated chrome-wide. */
-const RUNNING_LABEL = '[data-p3="apply-to-figma"]';
-const FACE_GAPS = { '\u22EF': `:is(${VERDICT_COPY}, ${RUNNING_LABEL})` };
+/* No device face may draw anything in the chrome. There used to be a `FACE_GAPS` list here: characters the
+ *  embedded Inter did not carry, each tolerated in one scope. #1924 re-subset the face for → ✓ ✗ ⚠, and the
+ *  owner's 2026-10-01 decision replaced U+22EF (⋯), which Inter lacks, with "…" (U+2026), which it carries.
+ *  The `[glyphs]` build check (`chrome/glyphs.mjs`) fails the build on a gap in the notes, the verdicts or
+ *  the shell's own copy before this test runs, and its `NEVER_DRAWN` keeps ⋯ and VS16 out of every source
+ *  literal; this is the as-drawn half. */
+/** The plugin's Apply control, by its literal label (owner, 2026-10-01: concept v6's "Apply Theme" replaces
+ *  "Apply to Figma"), idle and while a write runs. Typed here, never read from the source. */
+const APPLY_LABEL = 'Apply Theme';
+const APPLY_RUNNING = '\u2026 Applying\u2026';
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
@@ -292,7 +287,7 @@ const DEPTH_SWITCH_LABELS = ['Elevation', 'Motion'];
 const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]', '[data-p3="tab-components"]'];
 const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills"]', '[data-p3="color-sub-interactive"]'];
 const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="search-open"]'];
-/** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply to Figma. */
+/** The plugin's own top-bar controls (S1.4): the Agent chip (IA-3), the Figma menu, and Apply Theme. */
 const FIGMA_BAR = ['[data-p3="agent-chip"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
 const EXPECT_CONTROLS = {
   'web wide': [...BAR, '[data-p3="theme-toggle"]', ...TABS, ...COLOR_SUBS],
@@ -593,23 +588,14 @@ const fontsDrawn = async (page) => {
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
   // Every probed text node: `text` (the UI face) or `mono` (the mono face, S2).
   const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
-  // Per text node, the gap characters tolerated there: each FACE_GAPS entry, inside its own scope only.
-  const gapScope = new Map();
-  for (const [ch, scope] of Object.entries(FACE_GAPS)) {
-    const { nodeIds: inScope } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${scope} [data-cprobe], ${scope}[data-cprobe]` });
-    for (const id of inScope) { if (!gapScope.has(id)) gapScope.set(id, new Set()); gapScope.get(id).add(ch); }
-  }
   const out = [];
   for (const nodeId of nodeIds) {
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
     const { attributes } = await cdp.send('DOM.getAttributes', { nodeId });
     const want = attributes[attributes.indexOf('data-cprobe') + 1] === 'mono' ? MONO_FONT : UI_FONT;
     const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
-    const { node } = await cdp.send('DOM.describeNode', { nodeId, depth: -1 });
-    const text = (function flat(n) { return (n.nodeType === 3 ? n.nodeValue : '') + (n.children ?? []).map(flat).join(''); })(node);
     out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
-      gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0),
-      gapChars: [...text].filter((c) => gapScope.get(nodeId)?.has(c)).length });
+      gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0) });
   }
   await cdp.detach();
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); });
@@ -718,9 +704,8 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
-  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph
-  // each, and only inside the region its copy comes from (each FACE_GAPS entry's scope).
-  const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > f.gapChars);
+  // No glyph in any face but the embedded one (no FACE_GAPS: see the note above APPLY_LABEL).
+  const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > 0);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT} (${MONO_FONT} where it is set in mono)${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
   ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
@@ -775,6 +760,16 @@ for (const host of ['web', 'figma']) {
       for (const t of mb.text) lows.text = Math.min(lows.text, t.r);
       for (const e of mb.edges) lows.edge = Math.min(lows.edge, e.r);
       for (const c of mb.controls) lows.target = Math.min(lows.target, c.w, c.h);
+      // #1770's claim, moved here from the brand menu's Modes section (retired, #1943): the always-on Light row
+      // says it is locked in words at the chrome text bar, never by a fade. The row by its hook, its note found
+      // among the text nodes this probe measured (by the probe's own label), and that node's own ratio.
+      const lightRow = await page.evaluate(() => {
+        const note = document.querySelector('[data-p3="levers-pane"] [data-p3="mode-on-light"] .p3-check-note');
+        return { row: !!note, note: note?.textContent ?? null };
+      });
+      const lightNote = mb.text.find((t) => lightRow.note && t.el.startsWith(`span.p3-check-note "${lightRow.note.slice(0, 20)}`));
+      ok(lightRow.row && !!lightNote && lightNote.r >= TEXT_MIN,
+        `${where} / brand: the locked Light row says so in words ("${lightRow.note}") measured at ${TEXT_MIN}:1 (${lightNote ? `${lightNote.r}:1` : 'not measured'}) (#1770)`);
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s3-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-brand.png`) });
       if (w <= 560) {
         await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
@@ -1312,7 +1307,7 @@ console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(
 const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the bar's two controls, the file-setup
  *  button) and concept v6's two option-first items. Literal. */
-const FIGMA_ITEMS = [['apply', 'Apply to Figma'], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
+const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
@@ -1396,6 +1391,9 @@ const menuState = (page) => page.evaluate(() => ({
   focus: document.activeElement?.getAttribute('data-p3') ?? null,
   page: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
 }));
+/** The bar's Apply control: its text, any aria-label overriding that text, and whether it can run. */
+const applyBar = (page) => page.evaluate(() => { const b = document.querySelector('[data-p3="apply-to-figma"]');
+  return { text: b?.textContent ?? null, name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null }; });
 const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
 
 for (const host of ['web', 'figma']) {
@@ -1519,14 +1517,18 @@ for (const host of ['web', 'figma']) {
         await page.keyboard.press('Tab');
         ok(!(await menuState(page)).open, `Figma menu ${where}: Tab closes the menu`);
 
-        // Apply to Figma, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
+        // The bar's Apply, idle: its label and its accessible name are the literal label.
+        const applyIdle = await applyBar(page);
+        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled,
+          `${where}: the bar's Apply reads "${APPLY_LABEL}", named by its text, and can run (read ${JSON.stringify(applyIdle)})`);
+        // Apply Theme, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
         await takePosts(page);
         await openFigma(page);
         await hooks.click(page.locator('[data-p3="figma-option-apply"]'), WAIT);
         const wa = await takeWrites(page);
         const pa = wa.map(keyOf);
-        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply to Figma posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
-        ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply to Figma posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
+        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply Theme posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
+        ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
         await settle(page);
         const r = await drawerState(page);
         ok(r.pills.includes('Writing to Figma…'), `F2 ${where}: the running write's pill sits in the drawer's bar row (pills ${JSON.stringify(r.pills)})`);
@@ -1541,6 +1543,9 @@ for (const host of ['web', 'figma']) {
         const mr = await measure(page, `${where} / a write running`, host, w);
         check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
         await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
+        const applyBusy = await applyBar(page);
+        ok(applyBusy.text === APPLY_RUNNING && applyBusy.disabled,
+          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", disabled (read ${JSON.stringify(applyBusy)})`);
         // While it runs, the menu offers neither Apply nor Prune (today's rule: a prune reads what an apply writes).
         await openFigma(page);
         const busy = await menuState(page);
@@ -1629,8 +1634,8 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
         const wb = await takeWrites(page);
         const pb = wb.map(keyOf);
-        ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply to Figma posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
-        ok(isWire(wb, FIGMA_WIRE.apply), `${where}: the bar's Apply to Figma posts the brand the page loaded, whole — ${wireDiff(wb[0], FIGMA_WIRE.apply)}`);
+        ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply Theme posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
+        ok(isWire(wb, FIGMA_WIRE.apply), `${where}: the bar's Apply Theme posts the brand the page loaded, whole — ${wireDiff(wb[0], FIGMA_WIRE.apply)}`);
         ok(wa.length === 1 && wb.length === 1 && canon(wa[0]) === canon(wb[0]), `${where}: the bar's Apply and the Figma menu's post the same message — ${wireDiff(wb[0], wa[0])}`);
         const bad2 = errors.filter((e) => !/WebSocket/.test(e));
         ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
@@ -1804,6 +1809,11 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   ok(added.n === n0 + 1 && added.focus === 'brand-color-name', `edit: Add brand color adds a ramp to the preview and focuses the new color's name (${JSON.stringify(added)}, was ${n0})`);
   const rm = page.locator('[data-p3="brand-color-remove"]').last();
   await hooks.click(rm);
+  // Removing asks first (owner, 2026-10-01; the confirm's own checks are in 13c). Counted, not waited on, so a
+  // removal that skips the confirm fails here by name instead of ending the run.
+  const asked = await page.locator('[data-p3="brand-color-confirm-go"]').count();
+  ok(asked === 1, `edit: removing a brand color asks first (${asked} confirm shown)`);
+  if (asked) await hooks.click(page.locator('[data-p3="brand-color-confirm-go"]'));
   await page.waitForFunction((n) => document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]').length === n, n0, { timeout: 5000 }).catch(() => {});
   ok(await ramps() === n0, `edit: removing that color takes its ramp out of the preview (${await ramps()}, want ${n0})`);
   // A rename onto another palette's name is refused, and the field puts the old name back.
@@ -1813,15 +1823,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   await nameField.press('Enter');
   await nameField.press('Tab');
   ok(await page.locator('[data-p3="brand-color-name"]').first().inputValue() === was, `edit: renaming a brand color to "primary" is refused and the name stays "${was}"`);
-  // The legacy page's behavior, kept (S2 review): a status role switched from "Use accent" to Custom seeds the
-  // custom color from the ramp named for the role, which a borrowing role does not have, so #808080.
   await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
-  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
-  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
-  await page.locator('[data-p3="status-success-source"]').selectOption('custom');
-  await hooks.need(page, '[data-p3="status-success-hex"]');
-  const seeded = await page.locator('[data-p3="status-success-hex"]').inputValue();
-  ok(seeded === '#808080', `edit: a status color switched from "Use accent" to Custom seeds #808080, as the legacy page did — seeded ${seeded}`);
   // The neutral sliders, as the legacy page had them: only a custom tint edits them. Under Follow primary the
   // chroma is read-only; with a pinned neutral both are read-only and show the anchor's own hue and chroma.
   const sliders = () => page.evaluate(() => {
@@ -1845,6 +1847,139 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
     && Math.abs(pinned.hue.value - pinned.anchor.h) <= 1 && Math.abs(pinned.chroma.value - pinned.anchor.c) <= 0.0015,
   `neutral: a pinned neutral makes hue and chroma read-only and shows the anchor's own (${JSON.stringify(pinned)})`);
   ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 13b. A status color switched to Custom starts from the color the role resolves to (owner, 2026-10-01)
+// =============================================================================================
+// THE ORACLE is the engine itself, bundled for Node from its source: the boot brand (the committed
+// example-brands.json's prism3, read at BOOT_INPUT) with the case's source set, resolved, and the role's
+// light-mode `foreground.<role>` read off it. It never calls `statusSeedHex`. The page's own preview is a
+// second witness: the oracle's hex must be one of the squares the preview draws for the palette the role
+// draws from, so the oracle and the page are resolving the same brand.
+console.log(`\nStatus seed — Custom starts from the role's resolved color\n${'='.repeat(78)}`);
+{
+  const esbuild = await import('esbuild');
+  const eng = await esbuild.build({ stdin: { contents: "export { brandTheme } from '@prism3/engine/theme'; export { resolveAllModes } from '@prism3/engine/modes';", resolveDir: join(HERE, 'src'), loader: 'ts' },
+    bundle: true, platform: 'node', format: 'esm', write: false, loader: { '.json': 'json' }, logLevel: 'silent' });
+  const { brandTheme, resolveAllModes } = await import(`data:text/javascript;base64,${Buffer.from(eng.outputFiles[0].text).toString('base64')}`);
+  // What the role resolves to with `src` set, the way the source select writes it: a borrow is `roleColors`,
+  // Auto is neither `roleColors` nor `status` for that role.
+  const oracle = (role, src) => {
+    const inp = structuredClone(BOOT_INPUT);
+    if (inp.status) delete inp.status[role];
+    if (inp.roleColors) delete inp.roleColors[role];
+    if (src.startsWith('use:')) inp.roleColors = { ...(inp.roleColors ?? {}), [role]: src.slice(4) };
+    const t = brandTheme(inp);
+    const light = resolveAllModes(t).find((m) => m.mode === 'light');
+    return { hex: light.roles[`foreground.${role}`]?.hex?.toLowerCase(), palette: t.roleToPalette[role] };
+  };
+  // Each role's hooks, spelled literally for the hook guard.
+  const CASES = [
+    { role: 'success', src: 'use:accent', name: 'Use accent', sel: '[data-p3="status-success-source"]', hex: '[data-p3="status-success-hex"]', pick: '[data-p3="status-success-color"]' },
+    { role: 'warning', src: 'auto', name: 'Auto', sel: '[data-p3="status-warning-source"]', hex: '[data-p3="status-warning-hex"]', pick: '[data-p3="status-warning-color"]' },
+    { role: 'danger', src: 'use:primary', name: 'Use primary', sel: '[data-p3="status-danger-source"]', hex: '[data-p3="status-danger-hex"]', pick: '[data-p3="status-danger-color"]' },
+  ];
+  for (const { role, src, name, sel: selQ, hex: hexQ, pick: pickQ } of CASES) {
+    const want = oracle(role, src);
+    const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+    await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+    const sel = page.locator(selQ);
+    await sel.selectOption(src);
+    await page.waitForFunction(([q, v]) => document.querySelector(q)?.value === v, [selQ, src], { timeout: 5000 }).catch(() => {});
+    const drawn = await page.evaluate((p) => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')]
+      .filter((n) => n.dataset.palette === p && !n.classList.contains('p3-pal-reuse')).flatMap((n) => [...n.querySelectorAll('.p3-sqk-hex')].map((x) => `#${x.textContent.toLowerCase()}`)), want.palette);
+    ok(!!want.hex && drawn.includes(want.hex), `status seed: ${role} on "${name}" resolves to ${want.hex} (engine, light foreground.${role}), a square the preview draws in palette.${want.palette} — drew ${drawn.length} squares${drawn.includes(want.hex) ? '' : ` (${drawn.slice(0, 4).join(' ')}…)`}`);
+    await sel.selectOption('custom');
+    await hooks.need(page, hexQ);
+    const field = page.locator(hexQ);
+    const seeded = await field.inputValue();
+    ok(seeded === want.hex, `status seed: ${role} switched from "${name}" to Custom starts from the color the role resolved to, ${want.hex} — seeded ${seeded}`);
+    const state = await page.evaluate(([r, sq, pq]) => ({ src: document.querySelector(sq)?.value, picker: document.querySelector(pq)?.value,
+      own: [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === r && !n.classList.contains('p3-pal-reuse')) }), [role, selQ, pickQ]);
+    ok(state.src === 'custom' && /^#[0-9a-f]{6}$/.test(seeded) && state.picker === seeded && state.own,
+      `status seed: ${role}'s seeded color is a valid custom color (source custom, the picker agrees, its own ramp in the preview) (${JSON.stringify({ seeded, ...state })})`);
+    // Editable: a typed hex takes, and the source label follows it.
+    const label = () => page.evaluate((q) => document.querySelector(q)?.selectedOptions[0]?.textContent ?? '', selQ);
+    const l0 = await label();
+    const next = seeded === '#2266cc' ? '#cc6622' : '#2266cc';
+    await field.fill(next);
+    await field.press('Enter');
+    await page.waitForFunction(([q, l]) => document.querySelector(q)?.selectedOptions[0]?.textContent !== l, [selQ, l0], { timeout: 5000 }).catch(() => {});
+    const l1 = await label();
+    ok(l1 !== l0 && l1.startsWith('Custom: ') && await field.inputValue() === next, `status seed: ${role}'s custom color is editable — typing ${next} moves the source to "${l1}" (was "${l0}")`);
+    ok(errors.length === 0, `status seed (${role}): 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
+}
+
+// =============================================================================================
+// 13c. Removing a brand color asks first, in place (owner, 2026-10-01)
+// =============================================================================================
+// THE ORACLE for "nothing saved" and "exactly today's removal" is the brand the web host persists after
+// every edit (`prism3:brandInput` in localStorage), read before and after. The expected removal is written
+// out here for this brand, by hand, from what the removal has always done (S2's cascade, docs/24 #53): the
+// color leaves `brandColors`, a status role that borrowed it goes back to Auto, and a gradient stop on it
+// moves to primary. It never calls `removalEffects` or `cascadeRemove`.
+console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const accentRamp = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'));
+  // Make the removal cascade: success borrows accent (prism3's two gradients already have accent stops).
+  await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+  await page.locator('[data-p3="status-success-source"]').selectOption('use:accent');
+  await page.waitForFunction(() => document.querySelector('[data-p3="status-success-source"]')?.value === 'use:accent', null, { timeout: 5000 }).catch(() => {});
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  ok(b0?.roleColors?.success === 'accent' && b0.brandColors?.some((x) => x.name === 'accent'), `confirm: the setup persisted, with success borrowing accent (${JSON.stringify(b0?.roleColors)})`);
+  const rmAccent = page.locator('[data-p3="brand-color-remove"][aria-label="Remove accent"]');
+  const panel = () => page.evaluate(() => {
+    const c = document.querySelectorAll('[data-p3="brand-color-confirm"]');
+    const el = c[0];
+    return { n: c.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, items: [...(el?.querySelectorAll('li') ?? [])].map((x) => x.textContent),
+      named: el ? document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent ?? null : null, focus: document.activeElement?.getAttribute('data-p3') ?? null };
+  });
+  // Asks first: the click opens the confirm and removes nothing. If it does not ask, the checks after this one
+  // have nothing to drive, so they are skipped and this one fails by name.
+  await hooks.click(rmAccent);
+  const p1 = await panel();
+  confirmChecks: {
+  const WANT_ITEMS = ['The success color goes back to Auto.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
+  ok(p1.n === 1 && p1.title === 'Remove accent?' && p1.named === 'Remove accent?' && p1.focus === 'brand-color-confirm-go',
+    `confirm: Remove accent asks first, "Remove accent?" names it and focus is on its action, as S3's confirms do (${JSON.stringify(p1)})`);
+  ok(JSON.stringify(p1.items) === JSON.stringify(WANT_ITEMS), `confirm: it names what else the removal changes — ${JSON.stringify(p1.items)}, want ${JSON.stringify(WANT_ITEMS)}`);
+  ok(await accentRamp() && await stored() === before, 'confirm: while it asks, accent is still in the preview and nothing is saved');
+  if (p1.n !== 1) break confirmChecks;
+  // Cancel writes nothing, closes, and returns focus to the button.
+  await hooks.click(page.locator('[data-p3="brand-color-confirm-cancel"]'));
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const p2 = await panel();
+  ok(p2.n === 0 && p2.focus === 'brand-color-remove', `confirm: Cancel closes it and returns focus to the remove button (${JSON.stringify(p2)})`);
+  const afterCancel = await stored();
+  ok(afterCancel === before && await accentRamp(), `confirm: Cancel saves nothing — the stored brand is byte-identical and accent keeps its ramp${afterCancel === before ? '' : ` (now ${afterCancel?.slice(0, 120)}…)`}`);
+  if (!await rmAccent.count()) break confirmChecks;
+  // Escape is Cancel.
+  await hooks.click(rmAccent);
+  await hooks.need(page, '[data-p3="brand-color-confirm"]');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const p3 = await panel();
+  ok(p3.n === 0 && p3.focus === 'brand-color-remove' && await stored() === before, `confirm: Escape closes it and saves nothing (${JSON.stringify(p3)})`);
+  // Confirm is today's removal and cascade, exactly.
+  const want = structuredClone(b0);
+  want.brandColors = want.brandColors.filter((x) => x.name !== 'accent');
+  delete want.roleColors.success;
+  if (!Object.keys(want.roleColors).length) delete want.roleColors;
+  for (const g of want.gradients ?? []) for (const st of g.stops) if (st.palette === 'accent') st.palette = 'primary';
+  await hooks.click(rmAccent);
+  await hooks.click(page.locator('[data-p3="brand-color-confirm-go"]'));
+  await page.waitForFunction(() => ![...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'), null, { timeout: 5000 }).catch(() => {});
+  const got = JSON.parse(await stored() ?? 'null')?.input;
+  ok(!await accentRamp() && canon(got) === canon(want), `confirm: Remove removes accent with the same cascade as before — ${canon(got) === canon(want) ? 'the stored brand is the expected one' : wireDiff({ input: got }, { input: want })}`);
+  }
+  ok(errors.length === 0, `confirm: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
 
@@ -2029,20 +2164,63 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
-  // An edit does: the neutral chroma, by keyboard on its slider, reveals the neutral ramp.
+  // An edit does, and smoothly (owner, 2026-10-01). A recorder on the preview body's `scrollTo` notes the
+  // behavior each reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
+  // it has held still for ten frames: a smooth reveal passes through positions between start and end.
+  await page.evaluate(() => {
+    window.__reveals = [];
+    const o = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (...a) {
+      if (this.matches('[data-p3="preview-body"]')) window.__reveals.push(a[0] && typeof a[0] === 'object' ? a[0].behavior ?? 'auto' : 'auto');
+      return o.apply(this, a);
+    };
+  });
+  const reveals = () => page.evaluate(() => window.__reveals.splice(0));
+  const frames = () => page.evaluate(() => new Promise((res) => {
+    const b = document.querySelector('[data-p3="preview-body"]');
+    const tops = [Math.round(b.scrollTop)];
+    let still = 0;
+    const tick = () => {
+      const t = Math.round(b.scrollTop);
+      still = t === tops[tops.length - 1] ? still + 1 : 0;
+      tops.push(t);
+      if (still >= 10 || tops.length > 300) res(tops); else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+  const between = (tops, from) => new Set(tops.filter((t) => t !== from && t !== tops[tops.length - 1])).size;
+  // The neutral chroma, by keyboard on its slider, reveals the neutral ramp.
   await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await reveals();
   await page.keyboard.press('ArrowRight');
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const t1 = await frames();
   const e1 = await state('neutral');
   ok(e1.inView && e1.top < bottom, `Q4: editing the neutral chroma scrolls the preview to the neutral ramp (in view ${e1.inView}, scrollTop ${e1.top}, was ${bottom})`);
+  const r1 = await reveals();
+  ok(r1.length >= 1 && r1.every((x) => x === 'smooth'), `Q4: without reduced motion the reveal asks for a smooth scroll — asked ${JSON.stringify(r1)}`);
+  ok(between(t1, bottom) >= 2, `Q4: without reduced motion the preview passes through positions on its way (${between(t1, bottom)} in-between positions over ${t1.length} frames, ${t1[0]} → ${t1[t1.length - 1]})`);
   // And the primary hex, from the bottom again, reveals the primary ramp.
   await toBottom();
   await page.locator('[data-p3="primary-hex"]').fill('#2244aa');
   await page.locator('[data-p3="primary-hex"]').press('Enter');
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await frames();
   const e2 = await state('primary');
   ok(e2.inView, `Q4: editing the primary color scrolls the preview to the primary ramp (in view ${e2.inView}, scrollTop ${e2.top})`);
   ok(e2.view === 'palettes', `Q4: an edit never changes the preview's home (V1) — ${e2.view}`);
+  // Under reduced motion the reveal jumps: the ramp is in view as soon as the edit returns, with no frames
+  // in between.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const bottom2 = await toBottom();
+  await reveals();
+  await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await page.keyboard.press('ArrowRight');
+  const e3 = await state('neutral');
+  const t3 = await frames();
+  const r3 = await reveals();
+  ok(e3.inView && e3.top < bottom2, `Q4: under reduced motion the neutral ramp is in view right after the edit (in view ${e3.inView}, scrollTop ${e3.top}, was ${bottom2})`);
+  ok(r3.length >= 1 && r3.every((x) => x === 'instant'), `Q4: under reduced motion the reveal asks for an instant scroll — asked ${JSON.stringify(r3)}`);
+  ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   // The mode does not move it.
   const before = await toBottom();
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));

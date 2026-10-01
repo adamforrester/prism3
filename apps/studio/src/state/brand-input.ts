@@ -4,7 +4,7 @@
  * module with no DOM, so a Node test can import it.
  *
  * WHY HERE AND NOT IN `main.ts`. The name and namespace fields lived in the legacy brand menu
- * (`renderBrandMenu`), and the mode set beside them (`renderModeSetMenu`). The new page must not import
+ * (`renderBrandMenu`), and the mode set beside them (`renderModeSetMenu`, since retired, #1943). The new page must not import
  * `main.ts` (plan §3.10), so what it needs moved here: the namespace rule (`ROOT_RE`, which the legacy
  * field tested per keystroke), the per-keystroke name write through `syncIdentity` (#1196: no rebuild, so
  * the caret holds), and the mode rules concept v6 decided (Q3: high contrast dark follows dark).
