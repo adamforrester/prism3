@@ -18,7 +18,7 @@ import { build } from 'esbuild';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { dirname, resolve, basename, join } from 'node:path';
+import { dirname, resolve, basename, join, matchesGlob } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -151,13 +151,22 @@ try {
 // studio (the UI redesign lane's `ui/*`, during the studio freeze) and for `main`. Checked as literals here:
 // a typo that disabled `main` would stop production deploys silently.
 const vcfg = JSON.parse(readFileSync(resolve(root, '../../vercel.json'), 'utf8'));
-const enabled = vcfg.git?.deploymentEnabled ?? {};
-for (const off of ['lane/*', 'fold/*', 'docs/*', 'claude/*']) {
-  expect(`vercel.json disables deployments for ${off}`, enabled[off] === false ? 0 : 1, 0);
+const rules = Object.entries(vcfg.git?.deploymentEnabled ?? {});
+// Vercel's rule, from its Git Configuration docs: keys are minimatch globs; an unmatched branch deploys; a
+// branch matching several rules deploys if ANY matching rule is true. Evaluated here per sample branch,
+// never by reading one literal key, so a glob such as "*" or "m*" that would also switch off main fails.
+const deploys = (branch) => {
+  const hits = rules.filter(([glob]) => matchesGlob(branch, glob));
+  return hits.length === 0 || hits.some(([, on]) => on === true);
+};
+for (const [branch, want] of [
+  ['main', true], ['ui/p1-test-hardening', true],
+  ['lane/radius-large-rungs', false], ['fold/2026-10-01', false], ['docs/mcp-connect-readme', false],
+  ['claude/prism3-tokens-rename-etcjdz', false],
+]) {
+  expect(`branch ${branch} ${want ? 'deploys' : 'does not deploy'}`, deploys(branch) ? 1 : 0, want ? 1 : 0);
 }
-for (const on of ['main', 'ui/*']) {
-  expect(`vercel.json leaves ${on} deploying`, enabled[on] === false ? 0 : 1, 1);
-}
+if (!rules.length) fails.push('vercel.json has no git.deploymentEnabled rules — every branch would deploy (the 2026-09-30 quota failure)');
 
 if (fails.length) {
   console.error(`\n✗ ${fails.length} deploy decision(s) wrong:`);
