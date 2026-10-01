@@ -25,6 +25,7 @@ import {
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
+import { noteEdit } from '../preview/follow-edit';
 import { choice, colorField, leverBlock, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
@@ -50,7 +51,16 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
   /** Whether the advanced sections are drawn: when Show advanced is open, and while a search runs. */
   let advDrawn = false;
 
-  const edit = (key: string, write: () => void): void => { lastEdited = key; write(); rebuild(); };
+  /** The palette an edit to `key` changes, for the Q4 trial (`preview/follow-edit.ts`). */
+  const paletteOf = (key: string, name?: string): string | null =>
+    key === 'primary' ? 'primary' : key.startsWith('neutral.') ? 'neutral' : key.startsWith('status.') ? key.slice('status.'.length)
+      : key === 'brandColors' ? name ?? null : null;
+  const edit = (key: string, write: () => void, name?: string): void => {
+    lastEdited = key;
+    write();
+    noteEdit(paletteOf(key, name));   // Q4 trial: the edit, and only an edit, reveals its palette
+    rebuild();
+  };
 
   const shape = (): string => JSON.stringify([
     advOpen, (brandState.brandColors ?? []).map((b) => b.name), !!brandState.neutral.auto, !!brandState.neutral.anchor,
@@ -84,7 +94,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         pick.type = 'color';
         pick.dataset.content = '';
         pick.setAttribute('aria-label', `${c.name} color`);
-        pick.addEventListener('input', () => edit('brandColors', () => setBrandColor(i, pick.value)));
+        pick.addEventListener('input', () => edit('brandColors', () => setBrandColor(i, pick.value), brandState.brandColors?.[i]?.name));
         const name = hook(h('input', 'p3-hex-input p3-name-input'), 'brand-color-name');
         name.type = 'text';
         name.spellcheck = false;

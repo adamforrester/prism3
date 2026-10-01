@@ -88,3 +88,13 @@ Each is the option closest to v6, picked and flagged under the overnight rule. N
 - **Opacity on the page color; alpha on a checkerboard.** The alpha ramps are the same constants for every brand, so they are not specimen roots (named in `preview/palettes.ts`).
 - **No v6 "Compare"** in the preview header (S1.3's call stands).
 - **New neutral copy:** "borrows ‹palette›", "reuses ‹palette›", "Add brand color" (v6's "+ Add brand color" without the plus sign, which is the glyph), "Show 5 advanced" / "Hide 5 advanced" (v6's pattern), "Continue to Surfaces & fills" (v6's pattern), "Brand color name", "Remove ‹name›", "Pick a step" and "Light (base)" (fixture only), "Refused. The preview keeps the last valid theme." (v6's). The status options are v6's: "Auto: reuses ‹p› (‹hue›, ‹h›°)", "Auto: synthesized ‹hue›, ‹h›°", "Custom color", "Custom: ‹hue›, ‹h›°" and "Use ‹p›".
+
+### The Q4 trial (its own commit, for the owner's decision)
+
+The owner's QA note Q4 invited a trial on one section: the preview follows the lever being edited. On Color › Palettes, **an edit** to a lever scrolls the preview so the palette it changes is in view: primary to the primary ramp, a brand color to its ramp, either neutral lever or the pinned neutral to the neutral ramp, and a status color to its ramp. A palette already in view is left where it is. **Nothing else moves it.** Focusing a lever, scrolling either pane and changing the mode leave the preview where it was, and the home view never changes (V1). It is one small module, `preview/follow-edit.ts`. The edit handler notes the palette before it rebuilds, and the preview reveals it after its repaint. It is one commit on top of S2, so dropping that commit removes it whole. `test:chrome` section 15 checks that an edit reveals the neutral and primary ramps from the bottom of the preview, and that focus, the levers' scroll and the mode do not move it (6,916 assertions with it).
+
+| | Mutation | Fails with |
+|---|---|---|
+| g | the reveal triggered on focus instead of on an edit | `Q4: focusing a lever does not move the preview (scrollTop 120, was 3024)` |
+
+**For the owner: keep it, apply it everywhere, or drop it.** Adding a brand color and renaming one do not scroll in the trial (the edit has no palette to reveal until the repaint names it).

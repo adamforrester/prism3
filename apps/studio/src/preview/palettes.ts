@@ -21,6 +21,7 @@ import { currentMode, lastGoodInput, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { STATUS_ROLES, anchorStepFor, rolesByPalette } from '../state/palette-input';
 import { h, hook } from '../shell/dom';
+import { revealGroup, takeEdit } from './follow-edit';
 
 /** The preview width below which a strip holds five squares instead of ten. */
 const SLIM_MAX = 560;
@@ -310,7 +311,8 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
   });
   ro.observe(host);
   cleanups.push(() => ro.disconnect());
-  cleanups.push(subscribe('brand', render), subscribe('mode', render));
+  // Q4 trial: after an edit's repaint, reveal the palette the edit changed (`follow-edit.ts`).
+  cleanups.push(subscribe('brand', () => { render(); const p = takeEdit(); if (p) revealGroup(host, p); }), subscribe('mode', render));
   const w0 = host.getBoundingClientRect().width;
   per = w0 > 0 && w0 < SLIM_MAX ? 5 : 10;
   render();

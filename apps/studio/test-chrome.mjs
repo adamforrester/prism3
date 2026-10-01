@@ -118,6 +118,10 @@
  *   · the preview following focus → `V1 focus: … color-palettes control … the preview stayed palettes (now …)`.
  *   · the step picker writing the next step → `step picker: choosing … writes those steps — wrote …`.
  *
+ * THE Q4 TRIAL (section 15, its own commit, for the owner's decision): an edit to a Palettes lever scrolls the
+ * preview to the palette it changes; focusing a lever, scrolling the levers and changing the mode do not.
+ * Mutation: the trigger moved from the edit to focus → `Q4: focusing a lever does not move the preview (…)`.
+ *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
  *
@@ -1686,6 +1690,55 @@ console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
     await ctx.close();
   }
   fx.close();
+}
+
+// =============================================================================================
+// 15. THE Q4 TRIAL (QA note Q4, for the owner's decision): an EDIT reveals the palette it changes; focus,
+//     scrolling and the mode never move the preview (V1 still holds for them)
+// =============================================================================================
+console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const state = (palette) => page.evaluate((p) => {
+    const body = document.querySelector('[data-p3="preview-body"]');
+    const el = [...body.querySelectorAll('[data-p3="palette"]')].find((n) => n.dataset.palette === p);
+    const b = body.getBoundingClientRect(), r = el?.getBoundingClientRect();
+    return { top: Math.round(body.scrollTop), inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, view: body.dataset.view };
+  }, palette);
+  const toBottom = () => page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = b.scrollHeight; return Math.round(b.scrollTop); });
+  // Focus does not move it.
+  const bottom = await toBottom();
+  ok(bottom > 0 && !(await state('neutral')).inView, `Q4: the preview scrolls (to ${bottom}px), with the neutral ramp out of view, so the checks below can move`);
+  await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await page.locator('[data-p3="primary-hex"]').focus();
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const f = await state('primary');
+  ok(f.top === bottom, `Q4: focusing a lever does not move the preview (scrollTop ${f.top}, was ${bottom})`);
+  // Scrolling the levers pane does not move it.
+  await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
+  // An edit does: the neutral chroma, by keyboard on its slider, reveals the neutral ramp.
+  await page.locator('[data-p3="neutral-chroma-slider"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const e1 = await state('neutral');
+  ok(e1.inView && e1.top < bottom, `Q4: editing the neutral chroma scrolls the preview to the neutral ramp (in view ${e1.inView}, scrollTop ${e1.top}, was ${bottom})`);
+  // And the primary hex, from the bottom again, reveals the primary ramp.
+  await toBottom();
+  await page.locator('[data-p3="primary-hex"]').fill('#2244aa');
+  await page.locator('[data-p3="primary-hex"]').press('Enter');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const e2 = await state('primary');
+  ok(e2.inView, `Q4: editing the primary color scrolls the preview to the primary ramp (in view ${e2.inView}, scrollTop ${e2.top})`);
+  ok(e2.view === 'palettes', `Q4: an edit never changes the preview's home (V1) — ${e2.view}`);
+  // The mode does not move it.
+  const before = await toBottom();
+  await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
+  ok((await state('primary')).top === before, `Q4: changing the mode does not move the preview (scrollTop ${(await state('primary')).top}, was ${before})`);
+  if (SHOTS) await page.screenshot({ path: join(SHOTS, 's2-q4-after-edit.png') });
+  ok(errors.length === 0, `Q4: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
+  await ctx.close();
 }
 
 hooks.report(ok);
