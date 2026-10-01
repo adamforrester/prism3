@@ -325,8 +325,9 @@
 .p3-health-mode { display: flex; align-items: center; gap: var(--p3-space-100); }
 .p3-log-item { padding-bottom: var(--p3-space-100); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-log-item:last-child { padding-bottom: 0; border-bottom: 0; }
-/* A legacy view inside Inspect: pinned light (D2), on its own page-colored container. */
-.p3-legacy-card { min-width: 0; border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+/* A legacy view inside Inspect: pinned light (D2), on its own page-colored container, inset like the
+   chrome's own cards (Health, the Decisions log) so its toolbar does not sit on the container's edge. */
+.p3-legacy-card { min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
 
 /* ── narrow (Q7): one column, one sticky top row, the tabs as a select ───────────────────── */
 .p3-frame[data-w="narrow"] .p3-head { display: contents; }

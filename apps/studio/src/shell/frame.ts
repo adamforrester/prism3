@@ -25,7 +25,10 @@
  * `data-view`, which changes on a place change and nothing else. Inspect opens over the preview, or over
  * the legacy frame while the page is legacy (it is the page's preview until its slice moves it), and closes
  * back to it, scroll and focus included. A place change closes it. The verdict on the bar opens it on
- * Contrast.
+ * Contrast. `main.ts` lends Inspect two legacy views as callbacks, `inspect.contrast` (the contract table)
+ * and `inspect.tokens` (the token list, which takes Inspect's own `repaint`). Their bodies live in `main.ts`,
+ * so `test-shell-imports.ts` cannot see what they call; that limit is stated in its header. The same holds
+ * for S1.4's lends below, `activity` (the host session's writes) and `figma` (the write functions).
  *
  * S1.4 adds the Activity drawer (`activity.ts`) at the bottom of the frame, the Activity button and, in the
  * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The legacy bar places
@@ -41,7 +44,7 @@ import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '..
 import { INSPECT, LEGACY_LABEL, TABS, homeOf, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type LegacyPageKey, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
-import { mountActivity, type ActivitySource } from './activity';
+import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaSource } from './figma';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
@@ -126,8 +129,8 @@ const select = (tabs: readonly HTMLElement[], on: HTMLElement | null): void => {
 export const mountFrame = (app: HTMLElement, opts: {
   readonly host: Host;
   readonly inspect: InspectLegacy;
-  /** The host session's writes, as the Activity drawer reads them (S1.4). */
-  readonly activity: ActivitySource;
+  /** The host session's writes, as the Activity drawer reads them, and how it closes the open detail (S1.4). */
+  readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
 }): Frame => {
@@ -275,7 +278,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // ── Activity (F2), the Figma menu and the Agent chip's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
-  const activity = mountActivity({ host, read: opts.activity, narrow: () => root.dataset.w === 'narrow' }, cleanups);
+  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow' }, cleanups);
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 

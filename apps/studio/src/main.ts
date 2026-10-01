@@ -7616,7 +7616,7 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
       frame = mountFrame(app, {
         host: commit.isFigma ? 'figma' : 'web',
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
-        activity: activityReading,
+        activity: { read: activityReading, closeDetail: closeOpenDetail },
         figma: commit.isFigma ? figmaActions : null,
       });
     }
@@ -8952,6 +8952,10 @@ subscribe('host:detail', () => { if (barHost) syncApplyDetail(); });
  *  drawer (S1.4) each repaint from their subscription. Before S1.4 these callers named `renderBar` and
  *  `syncApplyDetail` directly, which the drawer could not hear. */
 const hostChanged = (): void => { invalidate('host'); invalidate('host:detail'); };
+
+/** Close the open result detail (S1.4): lent to the Activity drawer, which calls it when it collapses, so
+ *  the pill whose detail it was stops reading as expanded while its detail is out of sight. */
+const closeOpenDetail = (): void => { if (host.openDetail === null) return; setHost({ openDetail: null }); hostChanged(); };
 
 /** One write's state as the Activity drawer reads it (S1.4). */
 const opReading = (st: HostSession['applyState']): OpReading =>

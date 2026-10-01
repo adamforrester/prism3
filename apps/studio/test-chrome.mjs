@@ -72,7 +72,9 @@
  *   · THE MODE CONTROL (Q1, model B): a radiogroup of the literal modes, derived ones hatched; choosing a
  *     mode makes the legacy page draw it, and the legacy strip's choice checks it here; arrow keys move.
  *   · FACE GAPS: a device face may draw only the characters in `FACE_GAPS` (U+2192, which the engine's notes
- *     carry and the embedded Inter subset does not), one glyph each.
+ *     carry and the embedded Inter subset does not), one glyph each, and only in text inside the Decisions
+ *     log view (its entry's scope in `FACE_GAPS`). A `→` anywhere else in the chrome fails. S1.4 adds the
+ *     four verdict glyphs, each scoped to the write-status pills and the apply detail.
  *
  * S1.4 ADDS (section 10), on both hosts, both themes, at 1280, 640 and 380:
  *   · THE ACTIVITY DRAWER (F2): nothing drawn before anything runs; a write started from the Figma menu opens
@@ -83,12 +85,19 @@
  *     running, needs attention or new result, in concept v6's words. The studio's drawer opens on its note.
  *   · THE FIGMA MENU (plugin): its five items by literal label; Arrow Down, Home, End, Arrow Up (wrapping),
  *     Escape and Tab; each item's effect observed on the wire (the write message the old control posted,
- *     captured off the bus) or as the legacy page it opens; Apply and Prune stale unavailable while Apply
- *     runs. The studio has none.
+ *     captured off the bus, payload and all: Apply and Prune must carry the brand the page loaded, read
+ *     from the committed `schema/example-brands.json`, never from the UI) or as the legacy page it opens;
+ *     Apply and Prune stale unavailable while Apply runs. The studio has none.
  *   · THE AGENT CHIP (IA-3, D6): in the top bar's Agent slot, the same slot node after the bar re-renders,
  *     "Agent: Off"; its popover's switch posts `agent-link`, and the main thread's state turns it on with
- *     today's status line; Escape closes it to the chip. The bottom-left chip is gone, checked through
+ *     today's status line; Escape closes it to the chip; Tab past the switch closes it; Shift+Tab back to the
+ *     chip keeps it, and Escape on the chip closes it. The bottom-left chip is gone, checked through
  *     `hooks.absent` with the new chip as proof. The studio renders neither the slot nor the chip.
+ *   · A RESULT'S PILL (plugin): closing the drawer closes the detail it showed (the pill reads collapsed, its
+ *     chevron unturned); clicking the pill on a closed drawer opens the drawer on its detail, through the
+ *     store; clicking it again closes the detail and leaves the drawer open on its note.
+ *   · A wait that never resolves in this section fails its case by name ("the case stopped at …") and the
+ *     run goes on to the next case.
  *   · The full chrome probe runs in each of those states: the drawer open, a write running, a failure open,
  *     the Figma menu open, the Agent popover open.
  *
@@ -146,6 +155,21 @@
  *   · the Prune stale item running the Apply write → `Figma menu … Prune stale posts a dry-run prune (prune:false) — posted ["apply-theme"]`.
  *   · the bottom-left chip mounted again → `D6 … the bottom-left agent chip is gone …` and the inline-value check.
  *   · the apply pill painted into the top bar → `F2 … the running write's pill sits in the drawer's bar row`.
+ *   S1.4 review (orchestrator's review of #1929):
+ *   · the pill's click without `hostChanged()`, or the drawer's `detailOpened` branch removed →
+ *     `F2 … clicking the failure's pill on a closed drawer opens the drawer on its detail, the pill expanded — open false, …`.
+ *   · `runApply` posting `{}` → `Figma menu … Apply to Figma posts the brand the page loaded (…), whole — input differs at id, root, …`.
+ *   · `runPrune` posting a stale input → `Figma menu … Prune stale posts the brand the page loaded with confirm false, whole — input differs at id`.
+ *   · the popover's focusout handler removed → `IA-3 … Tab past the switch closes the popover`.
+ *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
+ *   · a collapse leaving the detail open → `F2 … closing the drawer closes the warning's detail with it — its pill reads collapsed, chevron down`.
+ *   · the Figma menu's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator('[data-p3="figma-option-apply"]')`, and the run goes on.
+ *   S1.3 review (orchestrator's review of #1923):
+ *   · the token list's rows removed → `… Inspect › Tokens opens on Primitives, with palette.neutral.950 at #0d0d0e — row null`.
+ *   · Inspect lending a no-op repaint, or `(h) => renderPreviewTokens(h)` (the `paintVolatile` fallback) →
+ *     `… a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: text.primary → …; row null, …)`.
+ *   · the contract table given no rows → `… Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0`.
+ *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -185,9 +209,19 @@ const MONO_ALIAS = 'P3 Chrome Mono';
  *  UI shows verbatim and must not rewrite. S1.4 measures the plugin's write verdicts for the first time
  *  (they sat in the bar since S1.2, but no state with one was measured): the host's headlines lead with
  *  U+2713 (✓), U+2717 (✗) and U+26A0 (⚠), and a pending write reads U+22EF (⋯) ("⋯ Applying…"). Those strings
- *  are the verdict suite's copy contract, so the fix is a wider subset, outside this slice. A device face
- *  drawing any OTHER glyph still fails. */
-const FACE_GAPS = ['\u2192', '\u2713', '\u2717', '\u26A0', '\u22EF'];
+ *  are the verdict suite's copy contract, so the fix is a wider subset, outside this slice (#1924).
+ *
+ *  Each is tolerated only WHERE that copy reaches the chrome (orchestrator review of #1923): `→` inside the
+ *  Decisions log, where the engine's notes are shown; the four verdict glyphs inside the write-status pills
+ *  and the apply detail, where the host's verdict strings are shown. A gap glyph the chrome writes itself (a
+ *  Back label, a menu item) is the chrome's own copy and must draw in Inter, and a device face drawing any
+ *  OTHER glyph fails anywhere. */
+const VERDICT_COPY = ':is([data-p3="status-pill"], [data-p3="status-verdict"], [data-p3="apply-detail"])';
+/** `⋯` also leads Apply to Figma's own label while a write runs ("⋯ Applying…"), today's bar copy, which
+ *  the same wider subset fixes. Named here rather than tolerated chrome-wide. */
+const RUNNING_LABEL = '[data-p3="apply-to-figma"]';
+const FACE_GAPS = { '\u2192': '[data-p3="decisions-log"]', '\u2713': VERDICT_COPY, '\u2717': VERDICT_COPY, '\u26A0': VERDICT_COPY,
+  '\u22EF': `:is(${VERDICT_COPY}, ${RUNNING_LABEL})` };
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
@@ -508,7 +542,14 @@ const fontsDrawn = async (page) => {
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+  // Every probed text node: `text` (the UI face) or `mono` (the mono face, S2).
   const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
+  // Per text node, the gap characters tolerated there: each FACE_GAPS entry, inside its own scope only.
+  const gapScope = new Map();
+  for (const [ch, scope] of Object.entries(FACE_GAPS)) {
+    const { nodeIds: inScope } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${scope} [data-cprobe], ${scope}[data-cprobe]` });
+    for (const id of inScope) { if (!gapScope.has(id)) gapScope.set(id, new Set()); gapScope.get(id).add(ch); }
+  }
   const out = [];
   for (const nodeId of nodeIds) {
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
@@ -519,7 +560,7 @@ const fontsDrawn = async (page) => {
     const text = (function flat(n) { return (n.nodeType === 3 ? n.nodeValue : '') + (n.children ?? []).map(flat).join(''); })(node);
     out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
       gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0),
-      gapChars: [...text].filter((c) => FACE_GAPS.includes(c)).length });
+      gapChars: [...text].filter((c) => gapScope.get(nodeId)?.has(c)).length });
   }
   await cdp.detach();
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-cprobe]')) n.removeAttribute('data-cprobe'); });
@@ -623,7 +664,8 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
-  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph each.
+  // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph
+  // each, and only inside the region its copy comes from (each FACE_GAPS entry's scope).
   const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > f.gapChars);
   ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT} (${MONO_FONT} where it is set in mono)${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
@@ -956,6 +998,42 @@ const INSPECT_TABS = ['Contrast', 'Tokens', 'Decisions log'];
  *  (`$extensions.prism3.decisions` in `packages/engine/out/prism3.tokens.json`), never from the page. */
 const DECISIONS = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8')).$extensions?.prism3?.decisions ?? [];
 ok(DECISIONS.length >= 10, `the committed default theme records ${DECISIONS.length} decisions (floor 10, so an empty read fails)`);
+/** Inspect › Tokens' oracle (orchestrator review of #1923: the check read only "a table is there"). One
+ *  primitive and one semantic, by literal path, with the value each must show read from the committed
+ *  `out/prism3.tokens.json`, never from the page or the renderer. The list opens on Primitives; its own
+ *  Semantics control must redraw it, inside Inspect, to the semantic. */
+const OUT = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8'));
+const OUT_ROOT = OUT.$extensions?.prism3?.root;
+const TOK_PRIMITIVE = { cat: 'core', path: 'palette.neutral.950' };
+const TOK_SEMANTIC = { cat: 'color', path: 'text.primary' };
+const at = (cat, path) => path.split('.').reduce((n, k) => n?.[k], OUT[OUT_ROOT]?.[cat]);
+const TOK_PRIMITIVE_HEX = at(TOK_PRIMITIVE.cat, TOK_PRIMITIVE.path)?.$extensions?.prism3?.hex;
+const TOK_SEMANTIC_ALIAS = at(TOK_SEMANTIC.cat, TOK_SEMANTIC.path)?.$extensions?.prism3?.aliasOf?.replace(`${OUT_ROOT}.`, '');
+ok(/^#[0-9a-f]{6}$/i.test(TOK_PRIMITIVE_HEX ?? '') && /^core\.palette\./.test(TOK_SEMANTIC_ALIAS ?? ''),
+  `the committed default theme carries ${TOK_PRIMITIVE.path} (${TOK_PRIMITIVE_HEX}) and ${TOK_SEMANTIC.path} → ${TOK_SEMANTIC_ALIAS}`);
+/** Inspect › Contrast's oracle. Every row: the committed `schema/preview-spec.json`'s contracts, in order,
+ *  in the table's literal "component · variant — label" wording. One pair's ratios: the primary button's
+ *  label on its fill, each mode's ratio read from the emitted `contrast` of
+ *  `color.interactive.primary.on-fill` (measured against `interactive.primary.fill.rest`, asserted below)
+ *  in the committed `out/prism3.tokens.json`. */
+const SPEC = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/preview-spec.json'), 'utf8'));
+const CONTRACT_ROWS = SPEC.components.flatMap((c) => c.variants.flatMap((v) => (v.contracts ?? []).map((ct) => `${c.id} · ${v.name} — ${ct.label ?? `${ct.min}:1`}`)));
+const KNOWN_PAIR = 'button · rest — label on fill';
+const ONFILL = OUT[OUT_ROOT]?.color?.interactive?.primary?.['on-fill']?.$extensions?.prism3 ?? {};
+const MODE_COLS = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark' };
+const KNOWN_RATIOS = Object.fromEntries(Object.entries(MODE_COLS).map(([m, col]) => {
+  const x = m === 'light' ? ONFILL : ONFILL.modes?.[m];
+  return [col, x?.against === 'interactive.primary.fill.rest' && typeof x.contrast === 'number' ? x.contrast.toFixed(2) : null];
+}));
+ok(CONTRACT_ROWS.length >= 10 && CONTRACT_ROWS.includes(KNOWN_PAIR) && Object.values(KNOWN_RATIOS).every(Boolean),
+  `the committed preview spec declares ${CONTRACT_ROWS.length} contracts, including "${KNOWN_PAIR}", whose emitted ratios are ${JSON.stringify(KNOWN_RATIOS)}`);
+/** A legacy table inside `host`, as text: header cells, then each row's cells. */
+const tableText = (page, host) => page.evaluate((host) => {
+  const all = [...document.querySelectorAll(`[data-p3="${host}"] table tr`)];
+  const cells = (r) => [...r.children].map((c) => c.textContent.trim());
+  const head = all.find((r) => r.querySelector('th'));
+  return { head: head ? cells(head) : [], rows: all.filter((r) => !r.querySelector('th')).map(cells) };
+}, host);
 const inspectState = (page) => page.evaluate(() => {
   const vis = (sel) => { const n = document.querySelector(sel); if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
   return {
@@ -1002,17 +1080,30 @@ for (const host of ['web', 'figma']) {
       ok(health.line === HEALTH_LINE, `${where}: Health reads "${HEALTH_LINE}" — reads "${health.line}"`);
       ok(JSON.stringify(health.modes) === JSON.stringify(HEALTH_MODES), `${where}: Health lists each mode — ${JSON.stringify(health.modes)}`);
       const table = await page.locator('[data-p3="inspect-contrast-table"] table').count();
-      ok(table >= 1, `${where}: Inspect › Contrast carries the contrast contract table (${table} table(s))`);
+      ok(table === 1, `${where}: Inspect › Contrast carries the contrast contract table (${table} table(s))`);
+      const ct = await tableText(page, 'inspect-contrast-table');
+      const labels = ct.rows.map((r) => r[0]);
+      ok(JSON.stringify(labels) === JSON.stringify(CONTRACT_ROWS), `${where}: Inspect › Contrast lists the preview spec's ${CONTRACT_ROWS.length} contracts, in order — listed ${labels.length}${labels.length ? `, first "${labels[0]}"` : ''}`);
+      const known = ct.rows.find((r) => r[0] === KNOWN_PAIR);
+      const shown = known ? Object.fromEntries(Object.keys(KNOWN_RATIOS).map((col) => [col, known[ct.head.indexOf(col)] ?? null])) : null;
+      ok(JSON.stringify(shown) === JSON.stringify(KNOWN_RATIOS), `${where}: Inspect › Contrast shows "${KNOWN_PAIR}" at the emitted ratios ${JSON.stringify(KNOWN_RATIOS)} — shows ${JSON.stringify(shown)}`);
       const m = await measure(page, `${where} / Inspect › Contrast`, host, w);
       check(m, `${where} / Inspect › Contrast`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-contrast"]', '[data-p3="inspect-close"]'] });
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-contrast.png`) });
       // Tokens: the legacy token list, whose own controls redraw it in place, inside Inspect.
       await hooks.click(page.locator('[data-p3="inspect-tab-tokens"]'));
       await hooks.need(page, '[data-p3="inspect-token-list"] table');
+      /** The row whose name cell reads `path`: its cells' text, or null when no row does. */
+      const tokRow = async (path) => (await tableText(page, 'inspect-token-list')).rows.find((r) => r[0] === path) ?? null;
+      const prim = await tokRow(TOK_PRIMITIVE.path);
+      ok(!!prim && prim.slice(1).some((c) => c.includes(TOK_PRIMITIVE_HEX)), `${where}: Inspect › Tokens opens on Primitives, with ${TOK_PRIMITIVE.path} at ${TOK_PRIMITIVE_HEX} — row ${JSON.stringify(prim)}`);
+      ok(!(await tokRow(TOK_SEMANTIC.path)), `${where}: Inspect › Tokens does not list the semantic ${TOK_SEMANTIC.path} before its Semantics control is chosen`);
       const tiers = page.locator('[data-p3="inspect-token-list"] button').filter({ hasText: 'Semantics' });
       await hooks.click(tiers.first());
-      const tok = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="inspect-token-list"]'), aliases: document.querySelectorAll('[data-p3="inspect-token-list"] table').length, text: document.querySelector('[data-p3="inspect-token-list"]')?.textContent.includes('{') ?? false }));
-      ok(tok.open && tok.aliases >= 1, `${where}: a control inside Inspect › Tokens redraws the list inside Inspect (${JSON.stringify(tok)})`);
+      const sem = await tokRow(TOK_SEMANTIC.path);
+      const stillOpen = await page.evaluate(() => !!document.querySelector('[data-p3="inspect-body"] [data-p3="inspect-token-list"]'));
+      ok(stillOpen && !!sem && (sem[1] ?? '').includes(TOK_SEMANTIC_ALIAS) && !(await tokRow(TOK_PRIMITIVE.path)),
+        `${where}: a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: ${TOK_SEMANTIC.path} → ${TOK_SEMANTIC_ALIAS}; row ${JSON.stringify(sem)}, Inspect ${stillOpen ? 'open' : 'closed'})`);
       const mt = await measure(page, `${where} / Inspect › Tokens`, host, w);
       check(mt, `${where} / Inspect › Tokens`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { state: 'inspect', extra: ['[data-p3="inspect-tab-tokens"]'] });
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-inspect-tokens.png`) });
@@ -1155,20 +1246,50 @@ const AGENT_LINE = 'Lets an agent on this computer run Prism3 commands in this f
 const AGENT_ON = { v: 1, on: true, since: '2026-10-01T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000, transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
 const AGENT_ON_LINE = 'Listening — file mailbox, every 1 s · no command yet';
 const AGENT_OFF_LINE = 'Off — agent commands are ignored.';
+/** What each write must carry on the wire, worked out without the UI: the brand the page loaded is the
+ *  committed `schema/example-brands.json`'s prism3 (the start screen's chip), and no edit is made in this
+ *  section, so Apply and Prune must post that input whole. Shapes from `apps/plugin/src/messages.ts`. */
+const BOOT_INPUT = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/example-brands.json'), 'utf8')).prism3;
+const FIGMA_WIRE = { apply: { type: 'apply-theme', input: BOOT_INPUT }, prune: { type: 'prune', input: BOOT_INPUT, confirm: false }, 'file-setup': { type: 'file-setup' } };
+const AGENT_WIRE = { type: 'agent-link', on: true };
+/** Section 10's bound on a wait or a click: a stuck control fails the case by name instead of crashing the run. */
+const WAIT = { timeout: 10000 };
 
 const postMsg = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
-/** Record every write the UI posts toward the main thread (in this harness `parent` is the page itself). */
+/** Record every write the UI posts toward the main thread (in this harness `parent` is the page itself),
+ *  the whole message, payload included. */
 const recordPosts = (page) => page.evaluate(() => {
   window.__writes = [];
   window.addEventListener('message', (e) => {
     const m = e.data?.pluginMessage;
-    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link'].includes(m.type)) {
-      window.__writes.push(m.type === 'prune' ? `prune:${m.confirm}` : m.type === 'agent-link' ? `agent-link:${m.on}` : m.type);
-    }
+    if (m && ['apply-theme', 'prune', 'file-setup', 'build-components', 'style-guide', 'agent-link'].includes(m.type)) window.__writes.push(JSON.parse(JSON.stringify(m)));
   });
 });
-/** The writes posted since the last call. A post is delivered as a task, so one task is let through first. */
-const takePosts = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => { const w = window.__writes.slice(); window.__writes.length = 0; r(w); }, 50)));
+/** The messages posted since the last call. A post is delivered as a task, so one task is let through first. */
+const takeWrites = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => { const w = window.__writes.slice(); window.__writes.length = 0; r(w); }, 50)));
+const keyOf = (m) => (m.type === 'prune' ? `prune:${m.confirm}` : m.type === 'agent-link' ? `agent-link:${m.on}` : m.type);
+/** The writes posted since the last call, by kind. */
+const takePosts = async (page) => (await takeWrites(page)).map(keyOf);
+/** A value with its object keys sorted, as JSON: two messages are the same write when these match. */
+const canon = (v) => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]])) : x));
+/** Where a posted message departs from the one it must be: the fields that differ, and inside `input`, its keys. */
+const wireDiff = (got, want) => {
+  if (!got) return 'nothing posted';
+  const differ = (a, b) => [...new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])].filter((k) => canon(a?.[k]) !== canon(b?.[k]));
+  const keys = differ(got, want);
+  if (!keys.length) return 'the same message';
+  return keys.map((k) => (k === 'input' && got.input && typeof got.input === 'object' ? `input differs at ${differ(got.input, want.input).join(', ') || '(order)'}` : `${k} ${JSON.stringify(got[k])?.slice(0, 60)}`)).join('; ');
+};
+/** One write posted, and it is exactly `want`. */
+const isWire = (ws, want) => ws.length === 1 && canon(ws[0]) === canon(want);
+/** A pill in the drawer's bar row by its headline: its disclosure state and its chevron's drawn transform. */
+const pillOf = (page, headline) => page.evaluate((hl) => {
+  const n = [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="bar"] [data-p3="status-verdict"]')].find((x) => (x.textContent ?? '').startsWith(hl));
+  const ico = n?.querySelector('.p3-ico');
+  return n ? { expanded: n.getAttribute('aria-expanded'), chev: ico ? getComputedStyle(ico).transform : null } : null;
+}, headline);
+/** Why a case stopped: the error's first line, and the locator it was waiting for. */
+const stopped = (e) => { const lines = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n'); return [lines[0], lines.find((l) => /waiting for/.test(l))?.trim()].filter(Boolean).join(' · '); };
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 const drawerState = (page) => page.evaluate(() => {
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
@@ -1195,7 +1316,7 @@ const menuState = (page) => page.evaluate(() => ({
   focus: document.activeElement?.getAttribute('data-p3') ?? null,
   page: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
 }));
-const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]')); await hooks.need(page, '[data-p3="figma-menu"]'); };
+const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
 
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
@@ -1204,194 +1325,242 @@ for (const host of ['web', 'figma']) {
       const narrow = w <= 560;
       const shot = (name) => (SHOTS ? page.screenshot({ path: join(SHOTS, `s14-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-${name}.png`) }) : null);
       const { ctx, page, errors } = await open({ host, theme, w, h });
-      await recordPosts(page);
-      // Idle: nothing has run, so the drawer is not drawn and the button says nothing more than its name.
-      const idle = await drawerState(page);
-      ok(!idle.shown && !idle.open && idle.expanded === 'false' && idle.name === 'Activity' && idle.dot === 'none',
-        `F2 ${where}: before anything runs the drawer is not drawn and Activity reads "Activity" with no dot (${JSON.stringify({ shown: idle.shown, name: idle.name, dot: idle.dot })})`);
+      try {
+        await recordPosts(page);
+        // Idle: nothing has run, so the drawer is not drawn and the button says nothing more than its name.
+        const idle = await drawerState(page);
+        ok(!idle.shown && !idle.open && idle.expanded === 'false' && idle.name === 'Activity' && idle.dot === 'none',
+          `F2 ${where}: before anything runs the drawer is not drawn and Activity reads "Activity" with no dot (${JSON.stringify({ shown: idle.shown, name: idle.name, dot: idle.dot })})`);
 
-      if (host === 'web') {
-        // The studio runs no write: Activity opens the drawer on its note, and closes it again.
-        await hooks.click(page.locator('[data-p3="activity-open"]'));
-        const a = await drawerState(page);
-        ok(a.shown && a.open && a.body && a.expanded === 'true' && a.note === DRAWER_NOTE.web, `F2 ${where}: Activity shows the drawer with "${DRAWER_NOTE.web}" (${JSON.stringify({ open: a.open, note: a.note })})`);
-        const m = await measure(page, `${where} / Activity open`, host, w);
-        check(m, `${where} / Activity open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 3, fonts: 3, controls: 5 } : PLACE_FLOOR, narrow
-          ? { state: 'sheet', only: ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="theme-toggle"]', '[data-p3="activity-toggle"]'] }
-          : { extra: ['[data-p3="activity-toggle"]'] });
-        if (narrow) ok(a.sheet, `F2 ${where}: at 380 Activity opens the full-pane sheet under the top row (sheet ${a.sheet})`);
-        await shot('drawer-open');
-        await hooks.click(page.locator('[data-p3="activity-toggle"]'));
-        const b = await drawerState(page);
-        ok(!b.open && !b.shown && b.expanded === 'false', `F2 ${where}: the drawer's own toggle closes it (${JSON.stringify({ open: b.open, shown: b.shown })})`);
-        await shot('drawer-collapsed');
-        const bar = await page.locator('[data-p3="top-bar"]').count();
-        hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="figma-open"]').count() === 0, `${where}: the studio offers no Figma menu`);
-        hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="bar-agent"]').count() === 0 && await page.locator('[data-p3="agent-chip"]').count() === 0, `${where}: the studio renders no Agent slot or chip`);
-        ok(errors.length === 0, `${where} Activity: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
-        await ctx.close();
-        continue;
-      }
+        if (host === 'web') {
+          // The studio runs no write: Activity opens the drawer on its note, and closes it again.
+          await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+          const a = await drawerState(page);
+          ok(a.shown && a.open && a.body && a.expanded === 'true' && a.note === DRAWER_NOTE.web, `F2 ${where}: Activity shows the drawer with "${DRAWER_NOTE.web}" (${JSON.stringify({ open: a.open, note: a.note })})`);
+          const m = await measure(page, `${where} / Activity open`, host, w);
+          check(m, `${where} / Activity open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 3, fonts: 3, controls: 5 } : PLACE_FLOOR, narrow
+            ? { state: 'sheet', only: ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="theme-toggle"]', '[data-p3="activity-toggle"]'] }
+            : { extra: ['[data-p3="activity-toggle"]'] });
+          if (narrow) ok(a.sheet, `F2 ${where}: at 380 Activity opens the full-pane sheet under the top row (sheet ${a.sheet})`);
+          await shot('drawer-open');
+          await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+          const b = await drawerState(page);
+          ok(!b.open && !b.shown && b.expanded === 'false', `F2 ${where}: the drawer's own toggle closes it (${JSON.stringify({ open: b.open, shown: b.shown })})`);
+          await shot('drawer-collapsed');
+          const bar = await page.locator('[data-p3="top-bar"]').count();
+          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="figma-open"]').count() === 0, `${where}: the studio offers no Figma menu`);
+          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="bar-agent"]').count() === 0 && await page.locator('[data-p3="agent-chip"]').count() === 0, `${where}: the studio renders no Agent slot or chip`);
+          ok(errors.length === 0, `${where} Activity: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+          continue;
+        }
 
-      // ── the Agent chip (IA-3), in the top bar; the bottom-left chip is gone (D6) ───────────────
-      const chip = await page.evaluate(() => {
-        const frame = document.querySelector('[data-p3="frame"]');
-        const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-chip"]');
-        // Anything outside the frame that names an agent or holds a control: where the old chip was mounted.
-        const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !['SCRIPT', 'STYLE'].includes(e.tagName));
-        return {
-          inBar: !!c, name: c?.getAttribute('aria-label') ?? null, text: c?.textContent ?? null,
-          old: !!document.querySelector('#p3-agent-link'),
-          strays: outside.filter((e) => /agent/i.test(e.textContent ?? '') || e.querySelector('button')).map((e) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}`),
-        };
-      });
-      ok(chip.inBar && chip.name === 'Agent: Off', `IA-3 ${where}: the Agent chip sits in the top bar's Agent slot and is named "Agent: Off" (${JSON.stringify({ inBar: chip.inBar, name: chip.name })})`);
-      if (!narrow) ok(chip.text === 'Agent: Off', `IA-3 ${where}: the Agent chip reads "Agent: Off" (reads "${chip.text}")`);
-      hooks.absent(ok, { seen: chip.inBar, state: 'the Agent chip in the top bar' }, !chip.old && chip.strays.length === 0,
-        `D6 ${where}: the bottom-left agent chip is gone — nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'})`);
-      const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
-      // A re-render of the legacy bar (the Pages menu opening and closing) keeps the same slot, chip inside.
-      await hooks.click(page.locator('[data-p3="pages-menu"]'));
-      await hooks.click(page.locator('[data-p3="pages-menu"]'));
-      const kept = await page.evaluate(() => { const s1 = document.querySelector('[data-p3="bar-agent"]'); return s1?.__p3Mark === 'slot' && !!s1.querySelector('[data-p3="agent-chip"]'); });
-      ok(slot && kept, `IA-3 ${where}: the Agent slot is the same node after the bar re-renders, and still holds the chip`);
-      await hooks.click(page.locator('[data-p3="agent-chip"]'));
-      await hooks.need(page, '[data-p3="agent-popover"]');
-      const pop = await page.evaluate(() => ({
-        sw: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('role'), checked: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('aria-checked'),
-        lines: [...document.querySelectorAll('[data-p3="agent-popover"] p')].map((n) => n.textContent), status: document.querySelector('[data-p3="agent-status"]')?.textContent,
-        focus: document.activeElement?.getAttribute('data-p3'), expanded: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-expanded'),
-      }));
-      ok(pop.sw === 'switch' && pop.checked === 'false' && pop.focus === 'agent-switch' && pop.expanded === 'true', `IA-3 ${where}: the chip opens its popover on the switch, off (${JSON.stringify({ sw: pop.sw, checked: pop.checked, focus: pop.focus })})`);
-      ok(pop.lines[0] === AGENT_LINE && pop.status === AGENT_OFF_LINE, `IA-3 ${where}: the popover says what the link does and that it is off (${JSON.stringify(pop.lines)})`);
-      const mc = await measure(page, `${where} / Agent popover`, host, w);
-      check(mc, `${where} / Agent popover`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-switch"]'] });
-      await shot('agent');
-      await takePosts(page);
-      await hooks.click(page.locator('[data-p3="agent-switch"]'));
-      const sent = await takePosts(page);
-      ok(JSON.stringify(sent) === JSON.stringify(['agent-link:true']), `IA-3 ${where}: the switch asks the main thread to turn the link on (posted ${JSON.stringify(sent)})`);
-      await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
-      await page.waitForFunction(() => document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-label') === 'Agent: On', null, { timeout: 5000 }).catch(() => {});
-      const on = await page.evaluate(() => ({ name: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-label'), checked: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('aria-checked'), status: document.querySelector('[data-p3="agent-status"]')?.textContent }));
-      ok(on.name === 'Agent: On' && on.checked === 'true' && on.status === AGENT_ON_LINE, `IA-3 ${where}: the main thread's state turns the chip on and the status line reads "${AGENT_ON_LINE}" (${JSON.stringify(on)})`);
-      await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
-      await page.keyboard.press('Escape');
-      const shut = await page.evaluate(() => ({ pop: !!document.querySelector('[data-p3="agent-popover"]'), focus: document.activeElement?.getAttribute('data-p3') }));
-      ok(!shut.pop && shut.focus === 'agent-chip', `IA-3 ${where}: Escape closes the popover back to the chip (${JSON.stringify(shut)})`);
+        // ── the Agent chip (IA-3), in the top bar; the bottom-left chip is gone (D6) ───────────────
+        const chip = await page.evaluate(() => {
+          const frame = document.querySelector('[data-p3="frame"]');
+          const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-chip"]');
+          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted.
+          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !['SCRIPT', 'STYLE'].includes(e.tagName));
+          return {
+            inBar: !!c, name: c?.getAttribute('aria-label') ?? null, text: c?.textContent ?? null,
+            old: !!document.querySelector('#p3-agent-link'),
+            strays: outside.filter((e) => /agent/i.test(e.textContent ?? '') || e.querySelector('button')).map((e) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}`),
+          };
+        });
+        ok(chip.inBar && chip.name === 'Agent: Off', `IA-3 ${where}: the Agent chip sits in the top bar's Agent slot and is named "Agent: Off" (${JSON.stringify({ inBar: chip.inBar, name: chip.name })})`);
+        if (!narrow) ok(chip.text === 'Agent: Off', `IA-3 ${where}: the Agent chip reads "Agent: Off" (reads "${chip.text}")`);
+        hooks.absent(ok, { seen: chip.inBar, state: 'the Agent chip in the top bar' }, !chip.old && chip.strays.length === 0,
+          `D6 ${where}: the bottom-left agent chip is gone — nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'})`);
+        const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
+        // A re-render of the legacy bar (the Pages menu opening and closing) keeps the same slot, chip inside.
+        await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
+        const kept = await page.evaluate(() => { const s1 = document.querySelector('[data-p3="bar-agent"]'); return s1?.__p3Mark === 'slot' && !!s1.querySelector('[data-p3="agent-chip"]'); });
+        ok(slot && kept, `IA-3 ${where}: the Agent slot is the same node after the bar re-renders, and still holds the chip`);
+        await hooks.click(page.locator('[data-p3="agent-chip"]'), WAIT);
+        await hooks.need(page, '[data-p3="agent-popover"]', WAIT);
+        const pop = await page.evaluate(() => ({
+          sw: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('role'), checked: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('aria-checked'),
+          lines: [...document.querySelectorAll('[data-p3="agent-popover"] p')].map((n) => n.textContent), status: document.querySelector('[data-p3="agent-status"]')?.textContent,
+          focus: document.activeElement?.getAttribute('data-p3'), expanded: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-expanded'),
+        }));
+        ok(pop.sw === 'switch' && pop.checked === 'false' && pop.focus === 'agent-switch' && pop.expanded === 'true', `IA-3 ${where}: the chip opens its popover on the switch, off (${JSON.stringify({ sw: pop.sw, checked: pop.checked, focus: pop.focus })})`);
+        ok(pop.lines[0] === AGENT_LINE && pop.status === AGENT_OFF_LINE, `IA-3 ${where}: the popover says what the link does and that it is off (${JSON.stringify(pop.lines)})`);
+        const mc = await measure(page, `${where} / Agent popover`, host, w);
+        check(mc, `${where} / Agent popover`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-switch"]'] });
+        await shot('agent');
+        await takePosts(page);
+        await hooks.click(page.locator('[data-p3="agent-switch"]'), WAIT);
+        const sw = await takeWrites(page);
+        ok(isWire(sw, AGENT_WIRE), `IA-3 ${where}: the switch asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
+        await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-label') === 'Agent: On', null, { timeout: 5000 }).catch(() => {});
+        const on = await page.evaluate(() => ({ name: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-label'), checked: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('aria-checked'), status: document.querySelector('[data-p3="agent-status"]')?.textContent }));
+        ok(on.name === 'Agent: On' && on.checked === 'true' && on.status === AGENT_ON_LINE, `IA-3 ${where}: the main thread's state turns the chip on and the status line reads "${AGENT_ON_LINE}" (${JSON.stringify(on)})`);
+        await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
+        await page.keyboard.press('Escape');
+        const shut = await page.evaluate(() => ({ pop: !!document.querySelector('[data-p3="agent-popover"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+        ok(!shut.pop && shut.focus === 'agent-chip', `IA-3 ${where}: Escape closes the popover back to the chip (${JSON.stringify(shut)})`);
+        // Focus leaving the popover closes it: Tab past the switch. Shift+Tab back to the chip stays inside, and
+        // Escape on the chip closes the popover it opened.
+        const agentPop = () => page.evaluate(() => ({ pop: !!document.querySelector('[data-p3="agent-popover"]'), expanded: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-expanded'), focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null }));
+        await hooks.click(page.locator('[data-p3="agent-chip"]'), WAIT);
+        await hooks.need(page, '[data-p3="agent-popover"]', WAIT);
+        await page.keyboard.press('Tab');
+        const tabbed = await agentPop();
+        ok(!tabbed.pop && tabbed.expanded === 'false' && tabbed.focus !== 'agent-switch', `IA-3 ${where}: Tab past the switch closes the popover (${JSON.stringify(tabbed)})`);
+        if (!tabbed.pop) await hooks.click(page.locator('[data-p3="agent-chip"]'), WAIT);
+        await hooks.need(page, '[data-p3="agent-popover"]', WAIT);
+        await page.locator('[data-p3="agent-switch"]').focus();
+        await page.keyboard.press('Shift+Tab');
+        const back = await agentPop();
+        ok(back.pop && back.expanded === 'true' && back.focus === 'agent-chip', `IA-3 ${where}: Shift+Tab from the switch to the chip keeps the popover open (${JSON.stringify(back)})`);
+        await page.keyboard.press('Escape');
+        const escChip = await agentPop();
+        ok(!escChip.pop && escChip.expanded === 'false' && escChip.focus === 'agent-chip', `IA-3 ${where}: Escape on the chip closes its open popover (${JSON.stringify(escChip)})`);
 
-      // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
-      await page.locator('[data-p3="figma-open"]').focus();
-      await page.keyboard.press('ArrowDown');
-      const k0 = await menuState(page);
-      ok(k0.open && k0.expanded === 'true' && k0.focus === 'figma-option-apply', `Figma menu ${where}: Arrow Down on the button opens the menu on its first item (${JSON.stringify({ open: k0.open, focus: k0.focus })})`);
-      ok(JSON.stringify(k0.items.map(([hk, l]) => [hk, l])) === JSON.stringify(FIGMA_ITEMS.map(([id, l]) => [hooks.role(FIGMA_OPTION[id]), l])),
-        `Figma menu ${where}: the items read ${FIGMA_ITEMS.map(([, l]) => l).join(', ')} — read ${k0.items.map(([, l]) => l).join(', ')}`);
-      const keys = [];
-      for (const key of ['ArrowDown', 'End', 'Home', 'ArrowUp']) { await page.keyboard.press(key); keys.push((await menuState(page)).focus); }
-      ok(JSON.stringify(keys) === JSON.stringify(['figma-option-prune', 'figma-option-style-guide', 'figma-option-apply', 'figma-option-style-guide']),
-        `Figma menu ${where}: Arrow Down, End, Home and Arrow Up (wrapping) move along the items (${keys.join(', ')})`);
-      const mm = await measure(page, `${where} / Figma menu open`, host, w);
-      check(mm, `${where} / Figma menu open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: Object.values(FIGMA_OPTION) });
-      await shot('figma-menu');
-      await page.keyboard.press('Escape');
-      const k1 = await menuState(page);
-      ok(!k1.open && k1.expanded === 'false' && k1.focus === 'figma-open', `Figma menu ${where}: Escape closes it back to its button (${JSON.stringify({ open: k1.open, focus: k1.focus })})`);
-      await openFigma(page);
-      await page.keyboard.press('Tab');
-      ok(!(await menuState(page)).open, `Figma menu ${where}: Tab closes the menu`);
-
-      // Apply to Figma, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
-      await takePosts(page);
-      await openFigma(page);
-      await hooks.click(page.locator('[data-p3="figma-option-apply"]'));
-      const pa = await takePosts(page);
-      ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply to Figma posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
-      await settle(page);
-      const r = await drawerState(page);
-      ok(r.pills.includes('Writing to Figma…'), `F2 ${where}: the running write's pill sits in the drawer's bar row (pills ${JSON.stringify(r.pills)})`);
-      hooks.absent(ok, { seen: r.pills.length > 0, state: 'a status pill in the drawer' }, r.barPills === 0, `F2 ${where}: no status pill is left in the top bar (${r.barPills} found)`);
-      ok(r.dot === 'run' && r.name === 'Activity, 1 running', `F2 ${where}: Activity's dot and name say a write is running (dot ${r.dot}, name "${r.name}")`);
-      if (narrow) {
-        ok(!r.open && r.shown && r.pinned && !r.body, `F2 ${where}: at 380 a running write shows in the strip, pinned to the bottom edge, and the drawer stays closed (${JSON.stringify({ open: r.open, shown: r.shown, pinned: r.pinned })})`);
-      } else {
-        ok(r.open && r.body && r.expanded === 'true' && r.pinned, `F2 ${where}: Apply opens the drawer by itself while it runs, pinned to the bottom edge (${JSON.stringify({ open: r.open, body: r.body, pinned: r.pinned })})`);
-        ok(r.note === DRAWER_NOTE.figma, `F2 ${where}: the open drawer's body reads "${DRAWER_NOTE.figma}" while nothing is detailed (read "${r.note}")`);
-      }
-      const mr = await measure(page, `${where} / a write running`, host, w);
-      check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
-      await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
-      // While it runs, the menu offers neither Apply nor Prune (today's rule: a prune reads what an apply writes).
-      await openFigma(page);
-      const busy = await menuState(page);
-      const dis = Object.fromEntries(busy.items.map(([hk, , d]) => [hk, d]));
-      ok(dis['figma-option-apply'] === true && dis['figma-option-prune'] === true && dis['figma-option-file-setup'] === false,
-        `Figma menu ${where}: while Apply runs, Apply and Prune stale are unavailable and Set up file is not (${JSON.stringify(dis)})`);
-      await page.keyboard.press('Escape');
-      // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
-      await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
-      const t0 = Date.now();
-      await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-verdict"]')].some((n) => (n.textContent ?? '').includes('✓ Applied')), null, { timeout: 5000 }).catch(() => {});
-      if (w === 1280) {
-        await sinceMs(page, t0, COLLAPSE_MS - 1000);
-        const early = await drawerState(page);
-        ok(early.open && early.body, `F2 ${where}: a success keeps the drawer open at ${(COLLAPSE_MS - 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s) — open ${early.open}`);
-        await sinceMs(page, t0, COLLAPSE_MS + 1000);
-        const late = await drawerState(page);
-        ok(!late.open && !late.body && late.shown && late.pills.some((p) => p.includes('✓ Applied')),
-          `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, pills ${JSON.stringify(late.pills)}`);
-        await shot('drawer-collapsed');
-      } else if (narrow) {
-        const s1 = await drawerState(page);
-        ok(!s1.open && s1.shown && s1.dot === 'unread' && s1.name === 'Activity, new result', `F2 ${where}: at 380 a success stays in the strip and marks a new result (${JSON.stringify({ open: s1.open, dot: s1.dot, name: s1.name })})`);
-      }
-      // Prune stale, from the menu: the dry run the old Prune stale button posted.
-      await openFigma(page);
-      await hooks.click(page.locator('[data-p3="figma-option-prune"]'));
-      const pp = await takePosts(page);
-      ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `Figma menu ${where}: Prune stale posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
-      await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 0, summary: 'Nothing stale to remove.' });
-      // Set up file, from the menu: the write the page's own button posts. Its result fails (light) or warns
-      // (dark), and either keeps the drawer open (F2); at 380 it opens the full-pane sheet.
-      await openFigma(page);
-      await hooks.click(page.locator('[data-p3="figma-option-file-setup"]'));
-      const pf = await takePosts(page);
-      ok(JSON.stringify(pf) === JSON.stringify(FIGMA_EFFECT['file-setup']), `Figma menu ${where}: Set up file posts ${FIGMA_EFFECT['file-setup']} — posted ${JSON.stringify(pf)}`);
-      const kind = theme === 'light' ? 'failure' : 'warning';
-      const bad = theme === 'light'
-        ? { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' }
-        : { type: 'file-setup-result', ok: false, headline: '⚠ 2 pages skipped', summary: '2 pages already present were skipped: Cover, Sandbox' };
-      await postMsg(page, bad);
-      const t1 = Date.now();
-      await page.waitForFunction((s) => document.querySelector('[data-p3="apply-detail"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
-      if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
-      const f = await drawerState(page);
-      ok(f.open && f.body && f.detail === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its detail showing — open ${f.open}, detail "${f.detail}"`);
-      ok(f.dot === 'bad' && f.name === 'Activity, 1 needs attention', `F2 ${where}: Activity's dot and name say a result needs attention (dot ${f.dot}, name "${f.name}")`);
-      if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
-      const mf = await measure(page, `${where} / a ${kind} open`, host, w);
-      check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
-        { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] });
-      if (narrow) await shot('drawer-open');
-      await hooks.click(page.locator('[data-p3="activity-toggle"]'));
-      const c = await drawerState(page);
-      ok(!c.open && c.shown && c.dot === 'bad', `F2 ${where}: the drawer's toggle closes it, and the dot keeps the ${kind} (open ${c.open}, dot ${c.dot})`);
-      // The two option-first items open the pages that hold those options; neither writes on its own.
-      for (const id of ['build', 'style-guide']) {
+        // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
+        await page.locator('[data-p3="figma-open"]').focus();
+        await page.keyboard.press('ArrowDown');
+        const k0 = await menuState(page);
+        ok(k0.open && k0.expanded === 'true' && k0.focus === 'figma-option-apply', `Figma menu ${where}: Arrow Down on the button opens the menu on its first item (${JSON.stringify({ open: k0.open, focus: k0.focus })})`);
+        ok(JSON.stringify(k0.items.map(([hk, l]) => [hk, l])) === JSON.stringify(FIGMA_ITEMS.map(([id, l]) => [hooks.role(FIGMA_OPTION[id]), l])),
+          `Figma menu ${where}: the items read ${FIGMA_ITEMS.map(([, l]) => l).join(', ')} — read ${k0.items.map(([, l]) => l).join(', ')}`);
+        const keys = [];
+        for (const key of ['ArrowDown', 'End', 'Home', 'ArrowUp']) { await page.keyboard.press(key); keys.push((await menuState(page)).focus); }
+        ok(JSON.stringify(keys) === JSON.stringify(['figma-option-prune', 'figma-option-style-guide', 'figma-option-apply', 'figma-option-style-guide']),
+          `Figma menu ${where}: Arrow Down, End, Home and Arrow Up (wrapping) move along the items (${keys.join(', ')})`);
+        const mm = await measure(page, `${where} / Figma menu open`, host, w);
+        check(mm, `${where} / Figma menu open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: Object.values(FIGMA_OPTION) });
+        await shot('figma-menu');
+        await page.keyboard.press('Escape');
+        const k1 = await menuState(page);
+        ok(!k1.open && k1.expanded === 'false' && k1.focus === 'figma-open', `Figma menu ${where}: Escape closes it back to its button (${JSON.stringify({ open: k1.open, focus: k1.focus })})`);
         await openFigma(page);
-        await hooks.click(page.locator(FIGMA_OPTION[id]));
-        await page.waitForFunction((p) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === p, FIGMA_EFFECT[id], { timeout: 5000 }).catch(() => {});
-        const g = await menuState(page);
-        const px = await takePosts(page);
-        ok(g.page === FIGMA_EFFECT[id] && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${FIGMA_EFFECT[id]} page and writes nothing (page "${g.page}", posted ${JSON.stringify(px)})`);
+        await page.keyboard.press('Tab');
+        ok(!(await menuState(page)).open, `Figma menu ${where}: Tab closes the menu`);
+
+        // Apply to Figma, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
+        await takePosts(page);
+        await openFigma(page);
+        await hooks.click(page.locator('[data-p3="figma-option-apply"]'), WAIT);
+        const wa = await takeWrites(page);
+        const pa = wa.map(keyOf);
+        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply to Figma posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
+        ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply to Figma posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
+        await settle(page);
+        const r = await drawerState(page);
+        ok(r.pills.includes('Writing to Figma…'), `F2 ${where}: the running write's pill sits in the drawer's bar row (pills ${JSON.stringify(r.pills)})`);
+        hooks.absent(ok, { seen: r.pills.length > 0, state: 'a status pill in the drawer' }, r.barPills === 0, `F2 ${where}: no status pill is left in the top bar (${r.barPills} found)`);
+        ok(r.dot === 'run' && r.name === 'Activity, 1 running', `F2 ${where}: Activity's dot and name say a write is running (dot ${r.dot}, name "${r.name}")`);
+        if (narrow) {
+          ok(!r.open && r.shown && r.pinned && !r.body, `F2 ${where}: at 380 a running write shows in the strip, pinned to the bottom edge, and the drawer stays closed (${JSON.stringify({ open: r.open, shown: r.shown, pinned: r.pinned })})`);
+        } else {
+          ok(r.open && r.body && r.expanded === 'true' && r.pinned, `F2 ${where}: Apply opens the drawer by itself while it runs, pinned to the bottom edge (${JSON.stringify({ open: r.open, body: r.body, pinned: r.pinned })})`);
+          ok(r.note === DRAWER_NOTE.figma, `F2 ${where}: the open drawer's body reads "${DRAWER_NOTE.figma}" while nothing is detailed (read "${r.note}")`);
+        }
+        const mr = await measure(page, `${where} / a write running`, host, w);
+        check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
+        await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
+        // While it runs, the menu offers neither Apply nor Prune (today's rule: a prune reads what an apply writes).
+        await openFigma(page);
+        const busy = await menuState(page);
+        const dis = Object.fromEntries(busy.items.map(([hk, , d]) => [hk, d]));
+        ok(dis['figma-option-apply'] === true && dis['figma-option-prune'] === true && dis['figma-option-file-setup'] === false,
+          `Figma menu ${where}: while Apply runs, Apply and Prune stale are unavailable and Set up file is not (${JSON.stringify(dis)})`);
+        await page.keyboard.press('Escape');
+        // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
+        await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
+        const t0 = Date.now();
+        await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-verdict"]')].some((n) => (n.textContent ?? '').includes('✓ Applied')), null, { timeout: 5000 }).catch(() => {});
+        if (w === 1280) {
+          await sinceMs(page, t0, COLLAPSE_MS - 1000);
+          const early = await drawerState(page);
+          ok(early.open && early.body, `F2 ${where}: a success keeps the drawer open at ${(COLLAPSE_MS - 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s) — open ${early.open}`);
+          await sinceMs(page, t0, COLLAPSE_MS + 1000);
+          const late = await drawerState(page);
+          ok(!late.open && !late.body && late.shown && late.pills.some((p) => p.includes('✓ Applied')),
+            `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, pills ${JSON.stringify(late.pills)}`);
+          await shot('drawer-collapsed');
+        } else if (narrow) {
+          const s1 = await drawerState(page);
+          ok(!s1.open && s1.shown && s1.dot === 'unread' && s1.name === 'Activity, new result', `F2 ${where}: at 380 a success stays in the strip and marks a new result (${JSON.stringify({ open: s1.open, dot: s1.dot, name: s1.name })})`);
+        }
+        // Prune stale, from the menu: the dry run the old Prune stale button posted.
+        await openFigma(page);
+        await hooks.click(page.locator('[data-p3="figma-option-prune"]'), WAIT);
+        const wp = await takeWrites(page);
+        const pp = wp.map(keyOf);
+        ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `Figma menu ${where}: Prune stale posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
+        ok(isWire(wp, FIGMA_WIRE.prune), `Figma menu ${where}: Prune stale posts the brand the page loaded with confirm false, whole — ${wireDiff(wp[0], FIGMA_WIRE.prune)}`);
+        await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 0, summary: 'Nothing stale to remove.' });
+        // Set up file, from the menu: the write the page's own button posts. Its result fails (light) or warns
+        // (dark), and either keeps the drawer open (F2); at 380 it opens the full-pane sheet.
+        await openFigma(page);
+        await hooks.click(page.locator('[data-p3="figma-option-file-setup"]'), WAIT);
+        const wf = await takeWrites(page);
+        const pf = wf.map(keyOf);
+        ok(JSON.stringify(pf) === JSON.stringify(FIGMA_EFFECT['file-setup']), `Figma menu ${where}: Set up file posts ${FIGMA_EFFECT['file-setup']} — posted ${JSON.stringify(pf)}`);
+        ok(isWire(wf, FIGMA_WIRE['file-setup']), `Figma menu ${where}: Set up file posts ${JSON.stringify(FIGMA_WIRE['file-setup'])} and nothing more — ${wireDiff(wf[0], FIGMA_WIRE['file-setup'])}`);
+        const kind = theme === 'light' ? 'failure' : 'warning';
+        const bad = theme === 'light'
+          ? { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' }
+          : { type: 'file-setup-result', ok: false, headline: '⚠ 2 pages skipped', summary: '2 pages already present were skipped: Cover, Sandbox' };
+        await postMsg(page, bad);
+        const t1 = Date.now();
+        await page.waitForFunction((s) => document.querySelector('[data-p3="apply-detail"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+        if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
+        const f = await drawerState(page);
+        ok(f.open && f.body && f.detail === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its detail showing — open ${f.open}, detail "${f.detail}"`);
+        ok(f.dot === 'bad' && f.name === 'Activity, 1 needs attention', `F2 ${where}: Activity's dot and name say a result needs attention (dot ${f.dot}, name "${f.name}")`);
+        if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
+        const mf = await measure(page, `${where} / a ${kind} open`, host, w);
+        check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
+          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] });
+        if (narrow) await shot('drawer-open');
+        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        const c = await drawerState(page);
+        ok(!c.open && c.shown && c.dot === 'bad', `F2 ${where}: the drawer's toggle closes it, and the dot keeps the ${kind} (open ${c.open}, dot ${c.dot})`);
+        // Closing the drawer closes the detail it showed: the pill reads collapsed, its chevron unturned.
+        const c1 = await pillOf(page, bad.headline);
+        ok(c1?.expanded === 'false' && c1?.chev === 'none', `F2 ${where}: closing the drawer closes the ${kind}'s detail with it — its pill reads collapsed, chevron down (${JSON.stringify(c1)})`);
+        // Clicking that pill opens its detail, and the drawer hears it through the store and opens by hand.
+        const pillLoc = page.locator('[data-p3="activity-drawer"] [data-p3="status-verdict"]').filter({ hasText: bad.headline });
+        await hooks.click(pillLoc, WAIT);
+        await settle(page);
+        const d1 = await drawerState(page), q1 = await pillOf(page, bad.headline);
+        ok(d1.open && d1.body && d1.expanded === 'true' && d1.detail === bad.summary && q1?.expanded === 'true' && q1?.chev !== 'none',
+          `F2 ${where}: clicking the ${kind}'s pill on a closed drawer opens the drawer on its detail, the pill expanded — open ${d1.open}, detail "${d1.detail}", pill ${JSON.stringify(q1)}`);
+        await hooks.click(pillLoc, WAIT);
+        await settle(page);
+        const d2 = await drawerState(page), q2 = await pillOf(page, bad.headline);
+        ok(d2.open && d2.detail === null && d2.note === DRAWER_NOTE.figma && q2?.expanded === 'false' && q2?.chev === 'none',
+          `F2 ${where}: clicking the pill again closes its detail, and the drawer stays open on its note — open ${d2.open}, detail "${d2.detail}", note "${d2.note}", pill ${JSON.stringify(q2)}`);
+        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        // The two option-first items open the pages that hold those options; neither writes on its own.
+        for (const id of ['build', 'style-guide']) {
+          await openFigma(page);
+          await hooks.click(page.locator(FIGMA_OPTION[id]), WAIT);
+          await page.waitForFunction((p) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === p, FIGMA_EFFECT[id], { timeout: 5000 }).catch(() => {});
+          const g = await menuState(page);
+          const px = await takePosts(page);
+          ok(g.page === FIGMA_EFFECT[id] && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${FIGMA_EFFECT[id]} page and writes nothing (page "${g.page}", posted ${JSON.stringify(px)})`);
+        }
+        // The bar's own Apply runs the same write the menu's item does.
+        await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+        const wb = await takeWrites(page);
+        const pb = wb.map(keyOf);
+        ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply to Figma posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
+        ok(isWire(wb, FIGMA_WIRE.apply), `${where}: the bar's Apply to Figma posts the brand the page loaded, whole — ${wireDiff(wb[0], FIGMA_WIRE.apply)}`);
+        ok(wa.length === 1 && wb.length === 1 && canon(wa[0]) === canon(wb[0]), `${where}: the bar's Apply and the Figma menu's post the same message — ${wireDiff(wb[0], wa[0])}`);
+        const bad2 = errors.filter((e) => !/WebSocket/.test(e));
+        ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        // A wait that never resolves (a control stuck disabled, a hook that never renders) fails this case by
+        // name and the run goes on to the next one, rather than ending as a TimeoutError.
+        ok(false, `S1.4 ${where}: the case stopped at a wait that never resolved, and the rest of it was skipped — ${stopped(e)}`);
+      } finally {
+        await ctx.close();
       }
-      // The bar's own Apply runs the same write the menu's item does.
-      await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
-      const pb = await takePosts(page);
-      ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply to Figma posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
-      const bad2 = errors.filter((e) => !/WebSocket/.test(e));
-      ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
-      await ctx.close();
     }
   }
 }

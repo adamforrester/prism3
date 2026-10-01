@@ -74,7 +74,7 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
@@ -26943,6 +26943,120 @@ arm: {
   ok(stray.out.length === 1 && stray.out[0].startsWith('STRAY PLACEHOLDER — packages/engine/test.ts holds 1 quoted')
       && typo.out.length === 2 && typo.out.every((p) => p.startsWith('STAMP SHAPE — ')),
     `#1816 rename stamps: a quoted placeholder outside a stamp fails STRAY PLACEHOLDER, a misspelled one fails STAMP SHAPE (${[...stray.out, ...typo.out].join(' | ')})`);
+}
+
+// ---- #1880 FOLDED ENTRIES: landing order is the order MAIN recorded ------------------------------------
+//
+// `lint-progress-order.ts` runs for real over a synthetic history in a scratch repo: a copy of the gate (and
+// the one module it imports) sits untracked at the scratch repo's `packages/engine/`, because the gate reads
+// the repo it lives in. Git runs with a scrubbed environment (no inherited GIT_* or GITHUB_*, no global or
+// system config, no signing, no hooks), the way `apps/studio/vercel-ignore-check.mjs` does, so neither a
+// developer's machine nor CI's own GITHUB_BASE_REF leaks into the fixture. Every commit is dated on
+// 2026-03-01 UTC, so every landing day is that day.
+//
+// main:  m0 seed · m1 adds lane-pre-one · m2 adds lane-pre-two · m3 adds lane-alpha · m4 adds lane-bravo ·
+//        m5 folds all four (newest merge first: Bravo, Alpha, Pre two, Pre one).
+// Every expected line below is a literal, line numbers included: heading k of a fold sits at line 3 + 4k.
+{
+  const scratch = mkdtempSync(join(tmpdir(), 'prism3-progress-order-'));
+  const scrubbed = (extra: Record<string, string>): NodeJS.ProcessEnv => {
+    const env: NodeJS.ProcessEnv = {};
+    for (const [k, v] of Object.entries(process.env)) if (!k.startsWith('GIT_') && !k.startsWith('GITHUB_')) env[k] = v;
+    return { ...env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', ...extra };
+  };
+  let tick = 0;
+  const git = (...args: string[]): string => {
+    const at = new Date(Date.UTC(2026, 2, 1, 12, 0, 0) + 60_000 * tick++).toISOString();
+    const r = spawnSync('git', ['-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', '-c', 'user.name=fixture',
+      '-c', 'user.email=fixture@example.invalid', '-c', 'init.defaultBranch=main', ...args],
+    { cwd: scratch, encoding: 'utf8', env: scrubbed({ HOME: scratch, GIT_AUTHOR_DATE: at, GIT_COMMITTER_DATE: at }) });
+    if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed in the scratch repo: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  const put = (path: string, text: string) => { mkdirSync(dirname(join(scratch, path)), { recursive: true }); writeFileSync(join(scratch, path), text); };
+  const log = (titles: string[]) => put('docs/00-progress.md',
+    '# Progress\n\n' + titles.map((t) => `## (2026-03-01) — ${t}\n\n${t} body.\n\n`).join('') + '## (2026-01-01) — Seed\n\nSeed body.\n');
+  const fragment = (slug: string, title: string) => put(`docs/progress/pending/${slug}.md`, `## (2026-03-01) — ${title}\n\n${title} body.\n`);
+  const commit = (msg: string) => { git('add', '-A', 'docs'); git('commit', '-q', '-m', msg); return git('rev-parse', 'HEAD'); };
+  const run = (ref: string, env: Record<string, string>) => {
+    git('checkout', '-q', '--detach', ref);
+    const r = spawnSync('npx', ['tsx', join(scratch, 'packages/engine/lint-progress-order.ts')], { cwd: HERE, encoding: 'utf8', env: scrubbed(env) });
+    return { status: r.status, lines: `${r.stdout}${r.stderr}`.split('\n') };
+  };
+  const verdict = (r: { lines: string[] }) => r.lines.filter((l) => /folded entries|FOLDED ENTRIES|sits ABOVE|ONE WRITER/.test(l)).join(' | ');
+  try {
+    git('init', '-q');
+    put('packages/engine/lint-progress-order.ts', readFileSync(resolve(HERE, 'lint-progress-order.ts'), 'utf8'));
+    put('packages/engine/rename-stamp-audit.ts', readFileSync(resolve(HERE, 'rename-stamp-audit.ts'), 'utf8'));
+    log([]); put('docs/progress/pending/README.md', 'Pending fragments.\n');
+    commit('m0 seed');
+    fragment('lane-pre-one', 'Pre one'); commit('m1');
+    fragment('lane-pre-two', 'Pre two'); const m2 = commit('m2');
+    fragment('lane-alpha', 'Alpha'); commit('m3');
+    fragment('lane-bravo', 'Bravo'); const m4 = commit('m4');
+    for (const s of ['lane-pre-one', 'lane-pre-two', 'lane-alpha', 'lane-bravo']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Bravo', 'Alpha', 'Pre two', 'Pre one']); const m5 = commit('m5 fold');
+    git('update-ref', 'refs/remotes/origin/main', m5);
+
+    // (b) #1921's shape, and #1880's: the branch forks at m2, merges main at m4 (one merge carries Alpha AND
+    // Bravo, so they share a landing commit) and again at m5 (the fold). Pre one / Pre two landed before the
+    // fork, on main's own first-parent history, so they are still seen and ordered.
+    git('checkout', '-q', '-b', 'b', m2); fragment('lane-topic', 'Topic'); commit('b1 topic');
+    git('merge', '-q', '--no-ff', '-m', 'merge main at m4', m4);
+    git('merge', '-q', '--no-ff', '-m', 'merge main at m5', m5);
+    // (a) #1880's literal ask: ONE merge brings two fragments main landed in order, and the branch folds them.
+    git('checkout', '-q', '-b', 'a', m2); fragment('lane-topic', 'Topic'); commit('a1 topic');
+    git('merge', '-q', '--no-ff', '-m', 'merge main at m4', m4);
+    for (const s of ['lane-alpha', 'lane-bravo']) rmSync(join(scratch, `docs/progress/pending/${s}.md`));
+    log(['Bravo', 'Alpha']); commit('a fold');
+    // The hand-moves: Alpha above Bravo (both landed after the fork), and Pre one above Pre two (both before).
+    git('checkout', '-q', '-b', 'main-moved', m5); log(['Alpha', 'Bravo', 'Pre two', 'Pre one']); commit('hand-move on main');
+    git('checkout', '-q', '-b', 'b-moved', 'b'); log(['Alpha', 'Bravo', 'Pre two', 'Pre one']); commit('hand-move on the branch');
+    git('checkout', '-q', '-b', 'b-moved-pre', 'b'); log(['Bravo', 'Alpha', 'Pre one', 'Pre two']); commit('hand-move of pre-fork entries');
+    // CI's PR merge refs: main is the first parent.
+    git('checkout', '-q', '--detach', m5); git('merge', '-q', '--no-ff', '-m', 'merge ref of b', 'b'); const refB = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '--detach', m5); git('merge', '-q', '--no-ff', '-m', 'merge ref of b-moved', 'b-moved'); const refMoved = git('rev-parse', 'HEAD');
+
+    const PUSH = { GITHUB_EVENT_NAME: 'push' };
+    const PR = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' };
+    const ALL_FOUR = '  ✓ folded entries — 4 folded fragment(s) found in the log at their landing day, newest merge first';
+    const ALPHA_ABOVE_BRAVO = '  · docs/00-progress.md:3 (docs/progress/pending/lane-alpha.md) sits ABOVE docs/00-progress.md:7 (docs/progress/pending/lane-bravo.md), but it landed EARLIER — folded entries are newest merge first';
+
+    const a = run('a', {});
+    ok(a.status === 0 && a.lines.includes("  ✓ folded entries — 0 folded fragment(s) found in the log at their landing day, newest merge first; 2 more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)"),
+      `#1880 folded entries: one merge of main brings two fragments main landed in order; the branch's own fold of them passes, the two unseen (exit ${a.status}: ${verdict(a)})`);
+    const b = run('b', {});
+    ok(b.status === 0 && b.lines.includes("  ✓ folded entries — 2 folded fragment(s) found in the log at their landing day, newest merge first; 2 more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)"),
+      `#1880 folded entries: a branch that merged main before AND after the fold passes, still ordering the 2 pre-fork fragments (exit ${b.status}: ${verdict(b)})`);
+
+    const onMain = run(m5, PUSH);
+    ok(onMain.status === 0 && onMain.lines.includes(ALL_FOUR),
+      `#1880 folded entries: the control — main itself, push run, sees and passes all 4 (exit ${onMain.status}: ${verdict(onMain)})`);
+    const movedOnMain = run('main-moved', PUSH);
+    ok(movedOnMain.status === 1 && movedOnMain.lines.includes(ALPHA_ABOVE_BRAVO),
+      `#1880 folded entries: a hand-moved entry on main (push run) fails BY NAME (exit ${movedOnMain.status}: ${verdict(movedOnMain)})`);
+    const mergeRef = run(refB, PR);
+    ok(mergeRef.status === 0 && mergeRef.lines.includes(ALL_FOUR),
+      `#1880 folded entries: the control — the branch's PR merge ref sees and passes all 4 (exit ${mergeRef.status}: ${verdict(mergeRef)})`);
+    const movedRef = run(refMoved, PR);
+    ok(movedRef.status === 1 && movedRef.lines.includes(ALPHA_ABOVE_BRAVO),
+      `#1880 folded entries: the same hand-move on the PR merge ref (CI) fails BY NAME (exit ${movedRef.status}: ${verdict(movedRef)})`);
+
+    // (d) The hand-move on the branch itself. Entries for fragments that landed before the fork are still
+    // ordered there and fail by name; Alpha / Bravo arrived through the merge, so this arm does not see them
+    // on the branch (the header's "less coverage") — ONE WRITER fails that diff instead, and the merge ref
+    // above fails it by name.
+    const movedPre = run('b-moved-pre', {});
+    ok(movedPre.status === 1 && movedPre.lines.includes('  · docs/00-progress.md:11 (docs/progress/pending/lane-pre-one.md) sits ABOVE docs/00-progress.md:15 (docs/progress/pending/lane-pre-two.md), but it landed EARLIER — folded entries are newest merge first'),
+      `#1880 folded entries: on a branch that merged main, a hand-moved pre-fork entry still fails BY NAME (exit ${movedPre.status}: ${verdict(movedPre)})`);
+    const movedB = run('b-moved', {});
+    ok(movedB.status === 1 && !movedB.lines.includes(ALPHA_ABOVE_BRAVO)
+        && movedB.lines.includes("  ✓ folded entries — 2 folded fragment(s) found in the log at their landing day, newest merge first; 2 more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)")
+        && movedB.lines.some((l) => l.startsWith('✗ ONE WRITER (log) — this diff changes docs/00-progress.md')),
+      `#1880 folded entries: on the branch, a hand-move of entries that arrived through a merge is not seen by this arm (stated limit) and fails ONE WRITER instead (exit ${movedB.status}: ${verdict(movedB)})`);
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 }
 
 // ------------------------------------------------------------------- report
