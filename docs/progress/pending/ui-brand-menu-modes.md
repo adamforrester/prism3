@@ -1,6 +1,6 @@
 ## (2026-10-01) — The brand menu drops its Modes section; Brand › Modes is the one mode editor (#1943)
 
-**STATUS: branch `ui/brand-menu-modes`, stacked on `ui/s3-brand` (#1939); not pushed.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged.
+**STATUS: branch `ui/brand-menu-modes`, off `main` after S3 (#1939) merged; not pushed.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged.
 
 **The decision (owner, 2026-10-01).** S3 left the brand menu's Modes section beside Brand › Modes, and the two editors followed different rules. The menu had one High contrast toggle, kept per-mode data when a mode went, and never asked. Brand › Modes has a check per mode, asks before Dark off and drops what it lists (filed as #1943). The owner decided to remove the Modes section and every mode control from the brand menu. Brand › Modes is now the one place modes are edited. The rest of the menu is unchanged: Examples, + New brand, and Import design.md.
 
