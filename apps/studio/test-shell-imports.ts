@@ -23,8 +23,22 @@
  * helpers), and the detector is run first on a fixture that holds each of the five names and must report
  * all five.
  *
- * Mutation this fails by name: add `import { build } from '../main';` to `src/shell/frame.ts` →
- * `src/shell/frame.ts:<line>: references the legacy repaint tier "build"`.
+ * TWO MORE ARMS, because a name match alone is evadable (orchestrator review of #1922). `(m as any)['build']()`,
+ * `globalThis['build']()` and a computed or template key never spell the tier as an identifier, and a module
+ * outside the scanned folders can re-export a tier under any name. So:
+ *   - an element access whose key is a string or plain template literal naming a tier is a reference too;
+ *   - an import (static, `export … from`, or dynamic `import()`) of `src/main.ts`, or of any module under
+ *     `src/` that imports it, fails, naming the import. `main.ts` is where the tiers live; a shell module
+ *     with no path to it cannot reach them except through a global, and a global access spelled with a
+ *     literal key is the first arm. The graph is built from the source on disk, never from a list, so a new
+ *     module that starts importing `main.ts` taints itself and every importer the day it does.
+ * What still gets past: a key computed at run time (`m[k]` with `k` built from strings) on an object that
+ * did not come from a tainted import — a global the page itself put there. Nothing in `main.ts` exports
+ * its tiers onto a global today.
+ *
+ * Mutations this fails by name: add `import { build } from '../main';` to `src/shell/frame.ts` →
+ * `src/shell/frame.ts:<line>: references the legacy repaint tier "build"`; add
+ * `void import('../main');` → `src/shell/frame.ts:<line>: imports "../main", which reaches src/main.ts`.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -54,10 +68,36 @@ const references = (src: string, file: string): { line: number; name: string }[]
     if (ts.isIdentifier(n) && (LEGACY_TIERS as readonly string[]).includes(n.text)) {
       hits.push({ line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, name: n.text });
     }
+    if (ts.isElementAccessExpression(n)) {
+      const k = n.argumentExpression;
+      if ((ts.isStringLiteral(k) || ts.isNoSubstitutionTemplateLiteral(k)) && (LEGACY_TIERS as readonly string[]).includes(k.text)) {
+        hits.push({ line: sf.getLineAndCharacterOfPosition(k.getStart(sf)).line + 1, name: k.text });
+      }
+    }
     ts.forEachChild(n, visit);
   };
   visit(sf);
   return hits;
+};
+
+/** Every module specifier `src` imports — static, `export … from`, and dynamic `import()` — with its line. */
+const imports = (src: string, file: string): { line: number; spec: string }[] => {
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
+  const out: { line: number; spec: string }[] = [];
+  const at = (n: ts.Node): number => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+  const visit = (n: ts.Node): void => {
+    if ((ts.isImportDeclaration(n) || ts.isExportDeclaration(n)) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier)) {
+      out.push({ line: at(n), spec: n.moduleSpecifier.text });
+    }
+    if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword && n.arguments[0]) {
+      const a0 = n.arguments[0];
+      // A dynamic import with a computed specifier cannot be resolved here, so it is refused outright.
+      out.push({ line: at(n), spec: ts.isStringLiteral(a0) || ts.isNoSubstitutionTemplateLiteral(a0) ? a0.text : '<computed>' });
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return out;
 };
 
 // ── the detector sees what it is for ─────────────────────────────────────────────────────────────
@@ -69,6 +109,24 @@ const FIXTURE = [
   'const host = { renderBar: () => {} }; host.renderBar(); applyFull();',
   'declare const setVolatile: (h: unknown[], p: () => void) => void; setVolatile([], () => {});',
 ].join('\n');
+const ACCESS_FIXTURE = [
+  "declare const m: Record<string, () => void>;",
+  "(m as any)['build']();",
+  'globalThis[`renderBar`]();',
+  "m['harmless']();",
+].join('\n');
+const access = references(ACCESS_FIXTURE, 'access.ts');
+ok(access.some((r) => r.name === 'build' && r.line === 2), 'the detector reports a string-keyed element access to "build"');
+ok(access.some((r) => r.name === 'renderBar' && r.line === 3), 'the detector reports a template-keyed element access to "renderBar"');
+ok(!access.some((r) => r.line === 4), 'the detector does not report an element access with an unrelated key');
+const IMPORT_FIXTURE = [
+  "import { a } from '../main';",
+  "export { b } from './x';",
+  "void import('../main');",
+  "const k = 'm'; void import(k);",
+].join('\n');
+const specs = imports(IMPORT_FIXTURE, 'imports.ts').map((i) => `${i.line}:${i.spec}`);
+for (const want of ['1:../main', '2:./x', '3:../main', '4:<computed>']) ok(specs.includes(want), `the import reader sees ${want}`);
 const seen = new Set(references(FIXTURE, 'fixture.ts').map((r) => r.name));
 for (const name of LEGACY_TIERS) ok(seen.has(name), `the detector reports a reference to "${name}" in a fixture`);
 const commentLine = references(FIXTURE, 'fixture.ts').filter((r) => r.line === 2 || r.line === 3);
@@ -91,6 +149,37 @@ for (const f of files) {
 }
 for (const o of offenders) ok(false, o);
 ok(offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} references a legacy repaint tier (${files.length} file(s) scanned)`);
+
+// ── the import arm: no path from the new source to main.ts ───────────────────────────────────────
+const SRC = join(ROOT, 'src');
+const MAIN = join(SRC, 'main.ts');
+const resolveSpec = (from: string, spec: string): string | null => {
+  if (spec === '<computed>') return '<computed>';
+  if (!spec.startsWith('.')) return null;   // a package; not this app's source
+  const base = join(dirname(from), spec);
+  for (const c of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) if (existsSync(c) && statSync(c).isFile()) return c;
+  return null;
+};
+const allSrc = walk(SRC);
+ok(allSrc.includes(MAIN), 'the import graph read src/main.ts');
+const edges = new Map(allSrc.map((f) => [f, imports(readFileSync(f, 'utf8'), f).map((i) => resolveSpec(f, i.spec)).filter((t): t is string => !!t)]));
+// Tainted: main.ts, and every module with a path to it. Fixed point over the graph read from disk.
+const tainted = new Set<string>([MAIN]);
+for (let grew = true; grew;) {
+  grew = false;
+  for (const [f, ts_] of edges) if (!tainted.has(f) && ts_.some((t) => tainted.has(t))) { tainted.add(f); grew = true; }
+}
+const importOffenders: string[] = [];
+for (const f of files) {
+  const rel = relative(ROOT, f).split('\\').join('/');
+  for (const i of imports(readFileSync(f, 'utf8'), rel)) {
+    const t = resolveSpec(f, i.spec);
+    if (t === '<computed>') importOffenders.push(`${rel}:${i.line}: a dynamic import() with a computed specifier, which this guard cannot follow`);
+    else if (t && tainted.has(t)) importOffenders.push(`${rel}:${i.line}: imports "${i.spec}", which reaches src/main.ts`);
+  }
+}
+for (const o of importOffenders) ok(false, o);
+ok(importOffenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src/main.ts or a module that does (${tainted.size} module(s) reach it)`);
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
 if (failed) process.exit(1);

@@ -11,7 +11,7 @@
  * HOW IT TALKS TO THE REST OF THE APP: store setters out, store topics in (plan §3.10). A tab click calls
  * `setPage`; the legacy frame repaints because `main.ts` subscribes to `page`, and the tab row repaints
  * its selection because it subscribes too. Nothing here calls a legacy repaint tier, and
- * `test-shell-imports.ts` fails the build of any file under `shell/` that names one.
+ * `test-shell-imports.ts` (a test, run by `npm test`) fails any file under `shell/` that names one.
  *
  * WHAT EACH PAGE SHOWS IN S1.2. Every tab and sub-page is still legacy (`pages.ts`), so each shows its
  * legacy page in the full-width legacy frame under the tab row, pinned light (D1, D2). The two panes are

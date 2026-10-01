@@ -793,7 +793,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await post(page, v);
     await page.waitForFunction(() => {
       const d = document.querySelector('[data-p3="apply-detail"]');
-      return !!d && d.style.display !== 'none' && (d.textContent ?? '').length > 0;
+      return !!d && !d.hidden && getComputedStyle(d).display !== 'none' && (d.textContent ?? '').length > 0;
     }, null, { timeout: 5000 }).catch(() => {});
     const seen = await page.evaluate(() => {
       const bar = document.querySelector('[data-p3="bar"]');
@@ -811,7 +811,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
         chromeHeight: chrome ? chrome.offsetHeight : null,
         chromeSticky: !!cs && cs.position === 'sticky' && cs.display !== 'contents',
         chromeHoldsDetail: !!(chrome && bar && detail && chrome.contains(bar) && chrome.contains(detail)),
-        detailOpen: !!detail && detail.style.display !== 'none',
+        // Shown, read the way the browser decides it: S1.2 hides the row with `hidden`, not an inline
+        // `display`, so an inline-style read would call a hidden row open (orchestrator review of #1922).
+        detailOpen: !!detail && !detail.hidden && getComputedStyle(detail).display !== 'none',
       };
     });
     // Resolve each root-style write into a `--chrome-h` write or not: the value after write i is the old
