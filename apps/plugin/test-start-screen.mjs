@@ -201,14 +201,17 @@ console.log('\n3. variables in the file but no stored brand: start screen, and t
   // being the relevant fact the moment the session has one.
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
-  await waitStart(page, true);
-  await page.locator('[data-p3="start-example"]').first().click();
+  // Kept, not discarded: the start screen seen here by the same probe is what makes "no start screen"
+  // below a measurement rather than a lookup that finds nothing (#1831).
+  const sawStart = await waitStart(page, true);
+  await hooks.click(page.locator('[data-p3="start-example"]').first());
   await waitStart(page, false);
   await post(page, { type: 'restore-input-empty' });
   // Give the handler a turn to do the wrong thing before asserting it did not.
   await page.waitForTimeout(150);
   const s = await readStart(page);
-  ok(!s.start, 'a late empty-restore does NOT discard a brand the designer already chose');
+  hooks.absent(ok, { seen: sawStart, state: 'the start screen, earlier in this same panel' },
+    !s.start, 'a late empty-restore does NOT discard a brand the designer already chose');
   ok(s.editorRail > 0, 'and the editor is still standing');
   await page.close();
 }
@@ -219,11 +222,11 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
   const { page, errors } = await openPanel();
   await post(page, { type: 'restore-input', input: NB_BRAND });
   await waitStart(page, false);
-  await page.click('[data-p3="brand-switcher"]');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
   await hooks.need(page, '[data-p3="brand-menu"]');
   const nb = page.locator('[data-p3="brand-menu-new"]');
   ok(await nb.count() > 0 && (await nb.textContent()) === '+ New brand', 'the brand menu offers "+ New brand"');
-  await nb.click();
+  await hooks.click(nb);
   ok(await waitStart(page, true), 'clicking it returns to the start moment');
   const s = await readStart(page);
   ok(s.upload && s.chips.length >= 2, 'with the upload and the examples the direct load could not offer');
@@ -237,7 +240,7 @@ console.log('\n5. each path lands in the editor');
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('[data-p3="start-example"]').first().click();
+  await hooks.click(page.locator('[data-p3="start-example"]').first());
   ok(await waitStart(page, false), 'an example chip enters the editor');
   ok((await readStart(page)).editorRail > 0, 'and the editor rendered');
   await page.close();
@@ -246,7 +249,7 @@ console.log('\n5. each path lands in the editor');
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('[data-p3="start-blank"]').click();
+  await hooks.click(page.locator('[data-p3="start-blank"]'));
   ok(await waitStart(page, false), '"Start blank" enters the editor');
   await page.close();
 }
@@ -553,9 +556,9 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   // Name, Namespace, and the import textarea, each by its hook.
   const BRANDMENU_CONTROLS = ['[data-p3="brand-menu-name"]', '[data-p3="brand-menu-namespace"]', '[data-p3="import-text"]'].map(hooks.role);
   const measureBrandMenu = async (page, where) => {
-    await page.locator('[data-p3="brand-switcher"]').click();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-    await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]').click();
+    await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
     // Typed into, so the Name row measures glyphs that are on screen rather than an empty field.
     await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'plugin-brand');
@@ -574,13 +577,13 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(page, { type: 'restore-input-empty' });
         await waitStart(page, true);
         await measure(page, `${tag} / start screen`);
-        await page.locator('[data-p3="start-example"]').first().click();
+        await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
         await hooks.need(page, '[data-p3^="rail-page-"].active');
         const rail = await page.$$eval('[data-p3^="rail-page-"]', (els) => els.map((e) => ({
           hook: e.getAttribute('data-p3'), label: e.querySelector('[data-p3="rail-item-label"]')?.textContent.trim() ?? '' })));
         for (const { hook, label } of rail) {
-          await page.locator(`[data-p3="${hook}"]`).click();
+          await hooks.click(page.locator(`[data-p3="${hook}"]`));
           await page.waitForFunction((h) => document.querySelector(`[data-p3="${h}"]`)?.classList.contains('active'), hook);
           await page.evaluate(() => document.fonts.ready);
           pagesSeen.add(hook);
@@ -595,7 +598,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(small.page, { type: 'restore-input-empty' });
         await waitStart(small.page, true);
         await measure(small.page, `${tag} / start screen @ ${MIN.width}×${MIN.height}`);
-        await small.page.locator('[data-p3="start-example"]').first().click();
+        await hooks.click(small.page.locator('[data-p3="start-example"]').first());
         await waitStart(small.page, false);
         await measure(small.page, `${tag} / editor @ ${MIN.width}×${MIN.height}`);
         await small.context.close();
