@@ -22,7 +22,6 @@
 import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
-import { autoPlaceStep } from '@prism3/engine/ramp';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
@@ -45,6 +44,7 @@ import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import { describeControl, paletteRefOptions, leverHook, type ControlOption } from './levers/controls';
 import { mountFrame, type Frame } from './shell/frame';
+import { isNewPage, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import { glyph } from './shell/dom';
@@ -99,7 +99,6 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'palettes', label: 'Palettes', sub: 'Brand hues & neutrals → ramps' },
   { key: 'surfaces', label: 'Surfaces & fills', sub: 'Backgrounds, text, gradients' },
   { key: 'interactive', label: 'Interactive', sub: 'Action colors, states, a11y' },
   { key: 'typography', label: 'Typography', sub: 'Families, weights → type scale' },
@@ -122,14 +121,14 @@ const NAV = [
   // destination that only makes sense in the Figma channel is present in the plugin host and omitted
   // from the web rail, rather than rendered inert there. Both NAV consumers read `railNav()`.
   { key: 'components', label: 'Components', sub: 'Internal — build the Button set', view: true, figmaOnly: true },
-] as const satisfies readonly { key: PageKey; label: string; sub: string; view?: boolean; figmaOnly?: boolean }[];
+] as const satisfies readonly { key: LegacyPageKey; label: string; sub: string; view?: boolean; figmaOnly?: boolean }[];
 /** THE OTHER DIRECTION (#1846). `satisfies` above makes every rail row name a `PageKey`; this makes every
  *  `PageKey` have a rail row. `PageKey` used to be DERIVED from `NAV`, so the second half held by
  *  construction; since F2 hand-listed it in `state/store.ts`, a new key with no row compiled, and the page
  *  was reachable only by a `setPage` nobody could click to. Two hand-written lists, checked against each
  *  other both ways, is the independence docs/34 asks for. A missing row fails `typecheck` here, naming the
  *  key in `missingNavRow`. */
-type PageWithoutNavRow = Exclude<PageKey, (typeof NAV)[number]['key']>;
+type PageWithoutNavRow = Exclude<LegacyPageKey, (typeof NAV)[number]['key']>;
 const everyPageHasANavRow: [PageWithoutNavRow] extends [never] ? true : { missingNavRow: PageWithoutNavRow } = true;
 void everyPageHasANavRow;
 
@@ -199,7 +198,7 @@ let volatileHosts: readonly HTMLElement[] = [];
  *  WHY THE DECLARATION EXISTS. `renderWorkspace` no longer destroys the page; it builds the next page
  *  detached and KEEPS every live region whose content is unchanged (that is the whole of #771). A page
  *  renderer's painter closes over nodes it built in that detached tree — `vol` in `renderScreen`, the
- *  `.cs-preview` boxes in `controlSplitPage`, the ramp rows `renderPrimitives` hands to `refreshers`.
+ *  `.cs-preview` boxes in `controlSplitPage`.
  *  If the reconcile keeps the LIVE region those nodes correspond to, the freshly-assigned painter is
  *  left writing into a tree that was never attached, and every later `apply()` paints into nothing.
  *
@@ -394,7 +393,6 @@ const addClass = (n: HTMLElement, cls: string | Mix): void => {
   const next = `${n.className} ${typeof cls === 'string' ? cls : cls.cls}`.trim();
   n.className = typeof cls === 'string' ? checkScope(next) : next;
 };
-const chunk = <T>(a: T[], n: number): T[][] => { const o: T[][] = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
 
 // ---- control kit — the reusable vocabulary every knob + select is built from ----------------------
 // Small structural primitives shared by renderControl and the bespoke editors, so a control (or a whole
@@ -665,83 +663,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
 
 
 // ===========================================================================
-// STAGE 1 — BRAND PRIMITIVES (bespoke)
+// Section containers and the mode-scope badge, shared by the legacy pages
 // ===========================================================================
-
-/** The per-palette pinned anchor step (null = derived, no anchor). */
-const anchorStepFor = (palette: string): number | null => {
-  // Read the LAST-GOOD input (M-16): the ramps paint from the last-good theme, so the anchor
-  // badge must be computed from the same source — else a failing live edit flags the wrong swatch.
-  if (palette === 'primary') return autoPlaceStep(lastGoodInput.primary.l);
-  if (palette === 'neutral') return lastGoodInput.neutral.anchor ? autoPlaceStep(lastGoodInput.neutral.anchor.l) : null;
-  const bc = (lastGoodInput.brandColors ?? []).find((b) => b.name === palette);
-  if (bc) return autoPlaceStep(bc.oklch.l);
-  // A Custom-hue-seeded status role (#157): the picked hue IS the anchor color, same treatment as
-  // primary/neutral/brandColors above. `roleToPalette` defaults each status role to its own name, so
-  // a non-borrowed status ramp's palette name equals the role name.
-  const seed = (STATUS_ROLES as readonly string[]).includes(palette) ? lastGoodInput.status?.[palette as StatusRole] : undefined;
-  return seed ? autoPlaceStep(seed.l) : null;
-};
-
-/** Just the ramp bands — 10 swatches per row, labels beneath. The VOLATILE part of a palette row
- *  (#59): the head (identity / origin / anchor) is stable so open color dialogs + slider drags
- *  survive, and only these bands (plus the derived readouts) repaint on `apply()`. The anchor now
- *  reads on the right of the head + the ◆ step label, so the old on-swatch "anchor" flag is retired. */
-const rampBands = (steps: { num: number; key: string; hex: string }[], anchorStep: number | null): HTMLElement => {
-  const wrap = el('div', 'pramp');
-  const sorted = [...steps].sort((a, b) => a.num - b.num);
-  for (const rowSteps of chunk(sorted, 10)) {
-    const band = el('div', 'band');
-    const strip = el('div', 'strip');
-    const labs = el('div', 'labs');
-    for (const s of rowSteps) {
-      const isAnchor = s.num === anchorStep;
-      const sw = el('div', 'sw' + (isAnchor ? ' is-anchor' : ''));
-      sw.style.background = s.hex;
-      strip.append(sw);
-      const lab = el('div', 'lab');
-      const hexEl = el('span', 'lab-hex mono', s.hex); hexEl.title = s.hex;   // #334 — full value on hover once it can ellipsis
-      lab.append(el('span', 'lab-step mono' + (isAnchor ? ' on' : ''), s.key), hexEl);
-      labs.append(lab);
-    }
-    band.append(strip, labs);
-    wrap.append(band);
-  }
-  return wrap;
-};
-
-// Brand-color reference integrity (docs/24 #53) — when an accent is renamed or removed, every place that
-// references its palette NAME must follow, or the alias graph dangles (e.g. `roleColors.success → 'accent'`
-// stops resolving). Covers the name-referencing fields: actionPalette, linkPalette (#1496), roleColors
-// (borrows), interactivePalettes (accent columns), and gradient stops.
-const cascadeRename = (prev: string, next: string): void => {
-  if (brandState.actionPalette === prev) brandState.actionPalette = next;
-  if (brandState.linkPalette === prev) brandState.linkPalette = next;
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
-  brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
-  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
-};
-const cascadeRemove = (removed: string): void => {
-  if (brandState.actionPalette === removed) brandState.actionPalette = 'primary';
-  // A removed link palette reverts to the default (follow the action palette) rather than a fixed pick.
-  if (brandState.linkPalette === removed) brandState.linkPalette = undefined;
-  const rc = brandState.roleColors as Record<string, string> | undefined;
-  if (rc) { for (const r of Object.keys(rc)) if (rc[r] === removed) delete rc[r]; if (!Object.keys(rc).length) brandState.roleColors = undefined; }
-  if (brandState.interactivePalettes) {
-    brandState.interactivePalettes = brandState.interactivePalettes.filter((e) => e.palette !== removed);
-    if (!brandState.interactivePalettes.length) brandState.interactivePalettes = undefined;
-  }
-  // A gradient stop can't just vanish (a gradient needs ≥2 stops), so repoint any dangling stop to primary.
-  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === removed) s.palette = 'primary'; }));
-};
-
-// ---- Palettes page (#59): full-width palette rows grouped in per-role section containers. ----
-// Each row is a STABLE head (identity swatch + name/path + origin control + anchor readout) above a
-// VOLATILE ramp; `apply()` repaints only the bands + derived readouts (swatch / hex / anchor), so open
-// color dialogs and slider drags survive. Structural source changes (which control is live) go through
-// applyFull. The swatch is a color INPUT when the color is author-chosen (brand always, neutral Pinned,
-// status Custom hue) and a read-out otherwise — and the hex-by-name shows only then.
 
 // A per-role section container with a heading.
 /** Which sections answer to the mode bar. MEASURED, not asserted — every entry comes from
@@ -894,249 +817,6 @@ const pfield = (label: string, control: HTMLElement, right = false): HTMLElement
   const f = el('div', 'pfield' + (right ? ' r' : ''));
   f.append(el('span', 'pfk', label), control);
   return f;
-};
-
-// The right-side anchor readout — ◆ step, a "borrowing <src>" note, or "derived". Returns a setter.
-const anchorField = (): { field: HTMLElement; set: (key: string | undefined, note?: string) => void } => {
-  const v = el('span', 'panchor mono');
-  const field = pfield('Anchor', v, true);
-  const set = (key: string | undefined, note?: string): void => {
-    v.textContent = note ? note : (key ? key : 'derived');
-    v.className = 'panchor mono' + (note ? ' note' : key ? ' dia' : ' none');
-  };
-  return { field, set };
-};
-
-/** One brand palette row — the swatch is always the color picker (author-chosen), the hex always shows.
- *  `paletteName` keys the volatile ramp; `nameEl` is the editable accent name (null → the fixed primary). */
-const brandRow = (getHex: () => string, setHex: (h: string) => void, name: string, path: string | null,
-                  isAction: boolean, paletteName: string, nameEl: HTMLElement | null,
-                  removable: (() => void) | null): { row: HTMLElement; refresh: () => void } => {
-  const row = el('div', 'prow authored show-hex');
-  const head = el('div', 'phead');
-  const ident = el('div', 'pident');
-  const picker = el('input', 'pswatch') as HTMLInputElement;
-  picker.type = 'color'; picker.value = getHex(); picker.title = 'Edit color';
-  const idcol = el('div', 'pidcol');
-  idcol.append(nameEl ?? el('span', 'pname', name));
-  const sub = el('div', 'psub');
-  const hexLab = el('span', 'phex mono', picker.value);
-  sub.append(hexLab);
-  if (path) sub.append(tokenPill(path));
-  if (isAction) {
-    const badge = el('span', 'prole');
-    const dot = el('span', 'prole-dot'); dot.style.background = picker.value;
-    badge.append(dot, document.createTextNode('default interactive color'));
-    sub.append(badge);
-  }
-  idcol.append(sub);
-  ident.append(picker, idcol);
-  if (removable) ident.append(removeButton(removable, 'Remove color', 'prm'));
-  const anchor = anchorField();
-  head.append(ident, anchor.field);
-  const bands = el('div', 'pramp-wrap');
-  row.append(head, bands);
-  picker.oninput = () => { setHex(picker.value); hexLab.textContent = picker.value; apply(); };
-  const refresh = (): void => {
-    const pal = theme.palettes.find((p) => p.palette === paletteName);
-    const aStep = anchorStepFor(paletteName);
-    anchor.set(aStep != null ? pal?.steps.find((s) => s.num === aStep)?.key : undefined);
-    bands.replaceChildren(rampBands(pal?.steps ?? [], aStep));
-  };
-  return { row, refresh };
-};
-
-// The neutral row — three sources: Auto (hue live-follows the brand primary; swatch is a read-out),
-// Custom tint (Hue + Chroma sliders drive the scale; swatch is a read-out) and Pinned color (the swatch
-// IS the color picker → an exact grey pinned to `neutral.anchor`). The padlock marks the two read-out
-// sources — Auto + Custom tint — where the swatch is derived, not directly editable; Pinned's swatch has
-// no lock because it's the one editable picker. Source is a select, matching the status ramps.
-const neutralRow = (): { row: HTMLElement; refresh: () => void } => {
-  const pinned = !!brandState.neutral.anchor;
-  const auto = !pinned && !!brandState.neutral.auto;       // Auto: hue live-follows the brand primary
-  const editable = !pinned && !auto;                        // Custom tint is the only editable source
-  const effHue = auto ? brandState.primary.h : brandState.neutral.hue;   // the hue currently in effect
-  const row = el('div', 'prow' + (pinned ? ' authored show-hex' : ''));
-  const head = el('div', 'phead');
-  const ident = el('div', 'pident');
-
-  const swWrap = el('div', 'pswrap');
-  let swatch: HTMLElement;
-  let hexLab: HTMLElement | null = null;
-  if (pinned) {
-    const a = brandState.neutral.anchor!;
-    const picker = el('input', 'pswatch') as HTMLInputElement;
-    picker.type = 'color'; picker.value = hex(oklchToRgb(a)); picker.title = 'Edit color';
-    picker.oninput = () => { const o = rgbToOklch(hexToRgb(picker.value)); a.l = o.l; a.c = o.c; a.h = o.h; if (hexLab) hexLab.textContent = picker.value; apply(); };
-    swatch = picker;
-    swWrap.append(swatch);
-  } else {
-    // Auto + Custom tint derive the swatch from the scale — mark it locked (not directly editable).
-    swatch = el('div', 'pswatch ro');
-    const lock = el('span', 'plock');
-    lock.innerHTML = '<svg viewBox="0 0 14 14" aria-hidden="true"><rect x="3" y="6.4" width="8" height="5.4" rx="1.3"/><path d="M4.6 6.4V5a2.4 2.4 0 0 1 4.8 0v1.4" fill="none"/></svg>';
-    swWrap.append(swatch, lock);
-  }
-  const idcol = el('div', 'pidcol');
-  idcol.append(el('span', 'pname', 'neutral'));
-  const sub = el('div', 'psub');
-  if (pinned) { hexLab = el('span', 'phex mono', (swatch as HTMLInputElement).value); sub.append(hexLab); }
-  sub.append(tokenPill('palette.neutral'));
-  idcol.append(sub);
-  ident.append(swWrap, idcol);
-
-  // origin — Source select + Hue/Chroma. Editable only under Custom tint; Auto shows the
-  // primary-derived hue read-only, Pinned shows the pinned grey's tint read-only.
-  const origin = el('div', 'porigin');
-  const src = selectEl('sm');
-  src.append(optionEl('auto', 'Auto', auto), optionEl('custom', 'Custom tint', editable), optionEl('pinned', 'Pinned color', pinned));
-  src.onchange = () => {
-    const n = brandState.neutral;
-    if (src.value === 'auto') { delete n.anchor; n.auto = true; }
-    // snapshot the current effective hue so the Custom-tint slider starts where Auto left it (no jump)
-    else if (src.value === 'custom') { delete n.anchor; if (n.auto) { n.hue = brandState.primary.h; delete n.auto; } }
-    else { n.anchor = { l: 0.5, c: Math.min(n.chroma, 0.02), h: effHue }; delete n.auto; }
-    applyFull();
-  };
-  origin.append(pfield('Source', src));
-  const a = brandState.neutral.anchor;
-  const nSlider = (key: string, label: string, max: number, step: number, value: number, fmt: (v: number) => string): HTMLElement => {
-    // Spelled as two literals rather than a concatenation so THIS site — the one #464 was found
-    // on — is checked by the type of `el` and not only by `checkScope` at render (#770).
-    const f = el('div', editable ? 'pfield slider' : 'pfield slider ro');
-    const top = el('div', 'psl-top');
-    const val = el('span', 'psl-val mono', fmt(value));
-    top.append(el('span', 'pfk', label), val);
-    // `psl-range` alone. It used to be minted as `range psl-range`, and `.range{margin-top:10px}` —
-    // an unrelated knob-slider rule — reached it and inflated this field's control row 33px → 44px
-    // (#464). The scope law is what makes that unspellable now; the class it needed is simply gone,
-    // and the neutralizing `margin:0` in the stylesheet has nothing left to neutralize.
-    const input = rangeInput({ className: 'psl-range', min: 0, max, step, value });
-    if (!editable) input.disabled = true;
-    else input.oninput = () => { setPath(brandState, key, Number(input.value)); val.textContent = fmt(Number(input.value)); apply(); };
-    f.append(top, input);
-    return f;
-  };
-  const hueField = nSlider('neutral.hue', 'Hue', 360, 1, pinned ? a!.h : effHue, (v) => `${Math.round(v)}°`);
-  origin.append(hueField, nSlider('neutral.chroma', 'Chroma', 0.03, 0.001, pinned ? a!.c : brandState.neutral.chroma, (v) => v.toFixed(3)));
-  const hueVal = hueField.querySelector('.psl-val') as HTMLElement;
-  const hueInput = hueField.querySelector('.psl-range') as HTMLInputElement;
-
-  const anchor = anchorField();
-  head.append(ident, origin, anchor.field);
-  const bands = el('div', 'pramp-wrap');
-  row.append(head, bands);
-  const refresh = (): void => {
-    const pal = theme.palettes.find((p) => p.palette === 'neutral');
-    const aStep = anchorStepFor('neutral');
-    anchor.set(aStep != null ? pal?.steps.find((s) => s.num === aStep)?.key : undefined);
-    if (!pinned) { const mid = pal?.steps.find((s) => s.num === 500)?.hex; if (mid) swatch.style.background = mid; }
-    // Auto: keep the read-only hue in step with the brand primary as it changes.
-    if (auto) { const h = brandState.primary.h; hueVal.textContent = `${Math.round(h)}°`; hueInput.value = String(h); }
-    bands.replaceChildren(rampBands(pal?.steps ?? [], aStep));
-  };
-  return { row, refresh };
-};
-
-const renderPrimitives = (host: PageHost): void => {
-  host.append(hero('Start from your brand colors.',
-    'Give the engine your exact hues. It grows each into a gamut-aware, contrast-placed ramp and pins your color as the anchor — never shifted. Every semantic role downstream aliases these.'));
-
-  const refreshers: Array<() => void> = [];
-
-  // Brand — primary + accents, each a full-width row; the swatch is the color picker.
-  // The page-local error bar that used to sit here is GONE (#772). It was #388's original surface, left
-  // in place by #389 as a harmless duplicate of the chrome bar — harmless, but also the live example of
-  // the pattern that ticket exists to retire, and a second copy of the message that could drift from the
-  // one every other page shows. Its one piece of extra information (that the ramps below are the last
-  // theme that resolved) moved into `syncErrorBar`, where every page gets it.
-  const brandSec = palSection('Brand palettes', 'Each brand color grown into a gamut-aware, contrast-placed ramp — your color pinned as the anchor, never shifted.');
-  const action = brandState.actionPalette ?? 'primary';
-  {
-    const b = brandRow(
-      () => hex(oklchToRgb(brandState.primary)),
-      (h) => setPath(brandState, 'primary', rgbToOklch(hexToRgb(h))),
-      'primary', 'palette.primary', action === 'primary', 'primary', null, null);
-    brandSec.append(b.row); refreshers.push(b.refresh);
-  }
-  // READ-ONLY here, and that is a prerequisite for #1033 rather than a tidy-up. This line used to
-  // materialize the array — `brandState.brandColors ?? (brandState.brandColors = [])` — from a RENDER,
-  // so every brand whose input omits `brandColors` (harbor, `NEW_BRAND()`, any `design.md` without one,
-  // any brand restored from a Figma file) gained a `brandColors: []` the instant its palettes page drew.
-  // `loadBrand` takes the baseline BEFORE that render, so `isDirty` then reported an untouched brand as
-  // edited from boot onward — measured: a `restore-input`-seeded panel read dirty with no interaction.
-  // That is not cosmetic once a confirm depends on it: #1033's prompt would fire on every Examples click
-  // in a themed file with nothing to lose, which is the "fires every time, gets clicked through" failure
-  // `provenance.ts`'s header says the dirty check exists to prevent, and it also kept #1034's
-  // already-a-new-brand marker permanently off. Materialization moved to the add handler below.
-  //
-  // THE SIBLINGS ARE SIX, and the first count of them was four (corrected in review). `modeLevers`,
-  // `interactivePalettes`, `modeAnchors` and `overrides` use `x ?? (x = …)`; `customModes` uses it too and
-  // was simply missed reading the results; `typography` uses `??=` in `setBrandSize`, which the grep shape
-  // `?? (x = ` cannot match at all. All six are on edit paths — a handler, or a setter only a handler
-  // calls — so the conclusion that the render-path one was unique survives. What does not survive is the
-  // confidence: it came from an instrument blind to a syntactic variant of the idiom it was looking for,
-  // which is the same defect class as the gate rules in docs/34, one layer down in a grep. Search for
-  // BOTH forms. (`setBrandSize`'s own materialization has a separate defect, filed as #1071.)
-  const list = brandState.brandColors ?? [];
-  list.forEach((bc, i) => {
-    const nameEl = el('input', 'pname-input mono') as HTMLInputElement;
-    nameEl.type = 'text'; nameEl.value = bc.name; nameEl.spellcheck = false;
-    nameEl.onchange = () => {
-      const prev = bc.name, next = nameEl.value.trim() || bc.name;
-      if (next === prev) return;
-      // Don't rename onto another palette's name — it would collide / merge the alias graph. Revert.
-      const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name)]);
-      if (taken.has(next)) { nameEl.value = prev; return; }
-      bc.name = next; cascadeRename(prev, next); applyFull();
-    };
-    const b = brandRow(
-      () => hex(oklchToRgb(bc.oklch)),
-      (h) => { bc.oklch = rgbToOklch(hexToRgb(h)); },
-      bc.name, `palette.${bc.name}`, action === bc.name, bc.name, nameEl,
-      () => { const removed = list[i].name; list.splice(i, 1); cascadeRemove(removed); applyFull(); });
-    brandSec.append(b.row); refreshers.push(b.refresh);
-  });
-  brandSec.append(addButton('+ Add brand color', () => {
-    // Materialize on the EDIT (see the note on `list` above) — adding a palette IS an edit, so it is
-    // allowed to move `brandState`. `list` and `arr` are the same array only when the input already had
-    // one; with `brandColors` absent, `list` is the detached `[]` from this render and `arr` is a new
-    // array now on `brandState`. That divergence is unreachable rather than handled: the detached case is
-    // the empty one, so the `forEach` above rendered no rows and nothing holds a reference to `list` —
-    // and `applyFull()` re-renders against the materialized array immediately. An earlier version of this
-    // comment claimed they were the same array either way, which is false in exactly the case the fix
-    // above creates; the reassurance was the wrong shape even though the code is right.
-    const arr = brandState.brandColors ?? (brandState.brandColors = []);
-    const names = new Set(arr.map((b) => b.name));
-    let n = arr.length + 1, nm = `accent${n}`;
-    while (names.has(nm)) nm = `accent${++n}`;
-    arr.push({ name: nm, oklch: { l: 0.55, c: 0.15, h: 235 } });
-    applyFull();
-  }, 'padd'));
-  host.append(brandSec);
-
-  // Neutral — one row, two sources (Custom tint / Pinned color).
-  const neuSec = palSection('Neutral', 'A tinted gray scale that follows your brand hue automatically. Switch to Custom tint to tune it, or Pinned color to lock an exact brand gray.');
-  { const n = neutralRow(); neuSec.append(n.row); refreshers.push(n.refresh); }
-  host.append(neuSec);
-
-  // "Status", not "Validation". The engine input is `status`, the emitted tokens are
-  // `palette.success|warning|danger|info`, and `semanticRoles` rebases onto "a status" — "validation"
-  // appears nowhere in the vocabulary, so it was a UI-invented word for a thing the tokens already
-  // name. Same class as Preview heading a category column `Role` after #415 re-keyed the tier.
-  const valSec = palSection('Status ramps', 'The success / warning / danger / info ramps every semantic role aliases — auto-derived, seeded from a custom hue, or borrowed from a brand palette.');
-  for (const role of STATUS_ROLES) { const s = statusRow(role); valSec.append(s.row); refreshers.push(s.refresh); }
-  host.append(valSec);
-  host.append(renderAlphaAndOpacity());
-
-  // The error half of this closure moved to the declared chrome (#772) — what is left is the page's own
-  // volatile region, which is what `paintVolatile` was always for. The three ramp sections are declared
-  // volatile WHOLE: `refreshers` holds a closure per row, and the rows live inside these sections rather
-  // than in a `.stage-vol` box of their own, so the section is the outermost node the painter reaches.
-  setVolatile([brandSec, neuSec, valSec], () => {
-    refreshers.forEach((r) => r());
-  });
-  paintVolatile();
 };
 
 // ===========================================================================
@@ -2036,8 +1716,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   host.append(ground(secInt));
 };
 
-const PAGE_COPY: Record<PageKey, [string, string]> = {
-  palettes: ['', ''],   // Palettes has its own hero in renderPrimitives
+const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
   surfaces: ['Surfaces & fills.', 'The page backgrounds every role sits on, the text colors derived to stay readable on them, and an optional brand gradient. Text is contrast-placed — override to a specific neutral step and the badge tells you whether it still clears. (Status hues are edited per-ramp on Palettes.)'],
   interactive: ['Interactive color & states.', 'Point actions at the palette that reads best, tune the interactive treatment (hover, inverse, neutral emphasis), and set the accessibility policy — icon contrast + the disabled strategy.'],
   typography: ['Set the type system.', 'Families, weights, and the type scale that shifts the semantic→primitive size mapping. The rem ladder is brand-invariant; the scale is the dial.'],
@@ -2053,99 +1732,10 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
-// Status-color control (docs/21 + status.*). Lives INLINE on each status ramp (primitives
-// stage), not as a standalone section: a designer edits the red/green/amber/blue right where the
-// ramp is shown. Two mutually-exclusive engine mechanisms behind one dropdown —
-//   • Custom hue → `status.<role>` seeds the ramp from a picked hue (the raw status color)
-//   • Use <ramp> → `roleColors.<role>` borrows a declared palette (a red brand's red for danger)
-//   • Auto → clears both (engine default: a synthesised hue, or the danger-red carve)
-// Contrast always re-gates on whatever it lands on; a hue mismatch is flagged in the theme notes.
-// (A future "lock" gate to unlock editing is deferred.)
+// The status roles, in the engine's order. Their colors are set on Color › Palettes (`domains/color-palettes.ts`,
+// UI redesign S2); the legacy pages read the list to tell a status ramp from a brand one.
 const STATUS_ROLES = ['success', 'warning', 'danger', 'info'] as const;
 type StatusRole = typeof STATUS_ROLES[number];
-
-/** Seed hex for the custom-hue picker: the current status ramp's mid step if present, else grey. */
-const statusSeedHex = (role: string): string => {
-  const cur = brandState.status?.[role as StatusRole];
-  if (cur) return hex(oklchToRgb(cur));
-  const pal = theme.palettes.find((p) => p.palette === role);
-  return pal?.steps.find((s) => s.num === 500)?.hex ?? pal?.steps[Math.floor(pal.steps.length / 2)]?.hex ?? '#808080';
-};
-
-/** Write `status.<role>` from a hex (seeds hue + chroma), clearing any borrow (they're exclusive). */
-const setStatusHue = (role: StatusRole, hexVal: string): void => {
-  const rc = { ...(brandState.roleColors ?? {}) } as Record<string, string>; delete rc[role];
-  const o = rgbToOklch(hexToRgb(hexVal));
-  brandState.roleColors = (Object.keys(rc).length ? rc : undefined) as BrandInput['roleColors'];
-  brandState.status = { ...(brandState.status ?? {}), [role]: { l: o.l, c: o.c, h: o.h, chroma: o.c } };
-  apply();
-};
-
-/** One status row — Source select (Auto / Custom hue / borrow a brand palette) on the left,
- *  the anchor on the right. The left swatch is the hue picker only under Custom hue (authored); Auto and
- *  borrow render it as a read-out with no hex-by-name. Source changes are structural → applyFull. */
-const statusRow = (role: StatusRole): { row: HTMLElement; refresh: () => void } => {
-  const borrowed = brandState.roleColors?.[role];
-  const custom = !borrowed && !!brandState.status?.[role];
-  const row = el('div', 'prow' + (custom ? ' authored show-hex' : ''));
-  const head = el('div', 'phead');
-  const ident = el('div', 'pident');
-
-  let swatch: HTMLElement;
-  let hexLab: HTMLElement | null = null;
-  if (custom) {
-    const picker = el('input', 'pswatch') as HTMLInputElement;
-    picker.type = 'color'; picker.value = statusSeedHex(role); picker.title = `Seed the ${role} ramp from a hue`;
-    // `change`, not `oninput`: the volatile bands repaint on commit (dialog close), never mid-drag.
-    picker.onchange = () => { setStatusHue(role, picker.value); if (hexLab) hexLab.textContent = picker.value; };
-    swatch = picker;
-  } else {
-    swatch = el('div', 'pswatch ro');
-  }
-  const idcol = el('div', 'pidcol');
-  idcol.append(el('span', 'pname', role));
-  const sub = el('div', 'psub');
-  if (custom) { hexLab = el('span', 'phex mono', (swatch as HTMLInputElement).value); sub.append(hexLab); }
-  sub.append(tokenPill(`palette.${role}`));
-  idcol.append(sub);
-  ident.append(swatch, idcol);
-
-  const origin = el('div', 'porigin');
-  const sel = selectEl('sm');
-  sel.append(optionEl('auto', 'Auto', !borrowed && !custom), optionEl('custom', 'Custom hue…', custom));
-  for (const p of ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)]) sel.append(optionEl('borrow:' + p, `Use ${p}`, borrowed === p));
-  sel.onchange = () => {
-    const rc = { ...(brandState.roleColors ?? {}) } as Record<string, string>; delete rc[role];
-    const st = { ...(brandState.status ?? {}) } as Record<string, unknown>; delete st[role];
-    if (sel.value === 'custom') { const o = rgbToOklch(hexToRgb(statusSeedHex(role))); st[role] = { l: o.l, c: o.c, h: o.h, chroma: o.c }; }
-    else if (sel.value.startsWith('borrow:')) rc[role] = sel.value.slice('borrow:'.length);
-    brandState.roleColors = (Object.keys(rc).length ? rc : undefined) as BrandInput['roleColors'];
-    brandState.status = (Object.keys(st).length ? st : undefined) as BrandInput['status'];
-    applyFull();
-  };
-  origin.append(pfield('Source', sel));
-
-  const anchor = anchorField();
-  head.append(ident, origin, anchor.field);
-  const bands = el('div', 'pramp-wrap');
-  row.append(head, bands);
-  const refresh = (): void => {
-    // Auto can RESOLVE to another palette: a red brand primary reuses `primary` for danger (no standalone
-    // danger palette is minted), so read the engine's resolved mapping rather than the literal role name —
-    // else the row finds no palette and collapses (white swatch, empty bands). Explicit borrow still wins.
-    const resolved = (theme.roleToPalette as Record<string, string>)[role] ?? role;
-    const srcName = borrowed ?? resolved;
-    const pal = theme.palettes.find((p) => p.palette === srcName);
-    const steps = pal?.steps ?? [];
-    const aStep = anchorStepFor(srcName);
-    // Note the reuse ("via primary") so a user sees why the ramp matches their brand red, not a surprise.
-    const note = borrowed ? `borrowing ${borrowed}` : (resolved !== role ? `via ${resolved}` : undefined);
-    anchor.set(aStep != null ? steps.find((s) => s.num === aStep)?.key : undefined, note);
-    if (!custom) { const mid = steps.find((s) => s.num === 500)?.hex ?? steps[Math.floor(steps.length / 2)]?.hex; if (mid) swatch.style.background = mid; }
-    bands.replaceChildren(rampBands(steps, aStep));
-  };
-  return { row, refresh };
-};
 
 // The Interactive page groups its controls into intent sub-sections. (Gradients — formerly a "Features"
 // group here — now lives on the Surfaces page; page surfaces + text/ink are bespoke editors there.)
@@ -3949,7 +3539,7 @@ const renderSpringsSection = (): HTMLElement => {
  *  contextual specimen nodes, repainted on every edit. A derived mode (HC / wireframe) is auto-derived
  *  + read-only, so the controls are replaced by an explanatory note — the specimens still render it. */
 const renderScreen = (
-  host: HTMLElement, key: PageKey,
+  host: HTMLElement, key: LegacyPageKey,
   sections: (h: HTMLElement) => void,
   specimens: () => Array<HTMLElement | null>,
 ): void => {
@@ -4255,93 +3845,6 @@ const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
   'Nothing to set here. The dimension grid is the fixed 4px-step ladder every geometry token resolves '
   + 'onto — border widths and icon sizes are named aliases onto it, and radius, spacing and component '
   + 'sizes land on its steps. Change those on the sections above; this is what they land on.');
-/** ALPHA RAMPS + THE OPACITY SCALE (review, 2026-08-04). 32 tokens that were emitted and visible
- *  nowhere in the dashboard — the word "alpha" did not appear on this page at all, so the only way to
- *  learn they existed was Preview's token list.
- *
- *  They belong TOGETHER, and on Palettes, for a reason stronger than "somewhere to put them": both are
- *  driven by the SAME `ALPHA_STEPS` set in the engine — the ramps express those steps as color
- *  (black/white composited over any surface), `opacity.*` expresses them as the raw dimensionless
- *  number. One step set, two forms. `opacity.*` is a PRIMITIVE, not a semantic (tree.ts: "opacity
- *  primitive scale (dimensionless 0..1)"), which is why it sits with the palette primitives rather
- *  than with the roles on Surfaces.
- *
- *  Read-only, and fixed for every brand — the steps are a constant, not a lever. The values are
- *  rendered from that same constant rather than plumbed through the theme: the engine hardcodes them
- *  too, so a second source here would be a copy that could drift from nothing.
- *
- *  The swatches sit on a checkerboard because an alpha ramp over an opaque background is
- *  indistinguishable from a solid ramp — the transparency IS the token. */
-const ALPHA_STEPS_UI = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-/** The 8-digit hex the engine emits for an alpha step — `#0000000d`. Built here rather than read from
- *  the tree because these are fixed constants, so a second source could only drift from nothing. */
-const alphaHex = (base: 'black' | 'white', pct: number): string =>
-  `#${base === 'black' ? '000000' : 'ffffff'}${Math.round((pct / 100) * 255).toString(16).padStart(2, '0')}`;
-
-const renderAlphaAndOpacity = (): HTMLElement => {
-  const sec = palSection('Alpha & opacity', 'Black and white at increasing transparency, and the matching dimensionless opacity scale. Fixed for every brand — these are primitives, so there is nothing to tune; they are here so you can see what exists and what each name resolves to.');
-
-  /** A ramp presented exactly like a brand palette: identity head (swatch · name · token pill) over a
-   *  full-width band with the step key and its value beneath — the value sitting where a palette's hex
-   *  sits, because for these that IS the value (`#0000000d`, or a bare `0.05` for opacity). */
-  const ramp = (name: string, path: string, steps: number[], dark: boolean,
-    fill: (pct: number) => string, value: (pct: number) => string, chipPct: number): HTMLElement => {
-    const row = el('div', 'prow');
-    const head = el('div', 'phead');
-    const ident = el('div', 'pident');
-    // The identity chip is the same checkerboard-plus-inner-fill construction as the band swatches, so
-    // it reads as a sample of the ramp rather than a differently-built approximation of one.
-    // read-only palette swatch on the alpha-checker ground
-    const chip = el('div', mix('pswatch', 'ro', 'ao-chk', dark ? 'dark' : ''));
-    const chipFill = el('div', 'ao-fill'); chipFill.style.background = fill(chipPct);
-    chip.append(chipFill);
-    const idcol = el('div', 'pidcol');
-    idcol.append(el('span', 'pname', name));
-    const sub = el('div', 'psub'); sub.append(tokenPill(path));
-    idcol.append(sub);
-    ident.append(chip, idcol);
-    head.append(ident);
-    row.append(head);
-
-    const wrap = el('div', 'pramp');
-    const band = el('div', 'band');
-    const strip = el('div', 'strip');
-    const labs = el('div', 'labs');
-    for (const pct of steps) {
-      // The ground is the SWATCH; the alpha goes on an inner fill. Setting the colour on the swatch
-      // itself replaced the ground — which is exactly what shipped in #442: `.ao-sw.dark` carried the
-      // dark base as `background-color`, the inline `backgroundColor` overwrote it, and all ten white
-      // steps rendered identically because the only thing left behind them was the white panel. The
-      // shadow tint read-out already solved this the same way; this now matches it.
-      // shade swatch on the alpha-checker ground
-      const sw = el('div', mix('sw', 'ao-chk', dark ? 'dark' : ''));
-      const inner = el('div', 'ao-fill'); inner.style.background = fill(pct);
-      sw.append(inner);
-      strip.append(sw);
-      const lab = el('div', 'lab');
-      lab.append(el('span', 'lab-step mono', String(pct)), el('span', 'lab-hex mono', value(pct)));
-      lab.title = `${path}.${pct}`;
-      labs.append(lab);
-    }
-    band.append(strip, labs);
-    wrap.append(band);
-    row.append(wrap);
-    return row;
-  };
-
-  const alphaSteps = ALPHA_STEPS_UI.filter((x) => x > 0 && x < 100);
-  // Black over a light ground, white over a dark one — each ramp on the ground it exists for.
-  sec.append(ramp('Black alpha', 'palette.black-alpha', alphaSteps, false,
-    (p) => `rgba(0,0,0,${p / 100})`, (p) => alphaHex('black', p), 50));
-  sec.append(ramp('White alpha', 'palette.white-alpha', alphaSteps, true,
-    (p) => `rgba(255,255,255,${p / 100})`, (p) => alphaHex('white', p), 50));
-  // Opacity keeps the checkerboard: applying 0.3 opacity to an element genuinely makes what is behind
-  // it show through, so the ground is part of the truth here as much as it is for the alpha ramps.
-  // 0 shows only the ground, which is exactly what 0 means.
-  sec.append(ramp('Opacity', 'opacity', ALPHA_STEPS_UI, false,
-    (p) => `rgba(23,19,53,${p / 100})`, (p) => String(+(p / 100).toFixed(2)), 50));
-  return sec;
-};
 
 /** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
  *  than leaving an empty control column that reads as a rendering bug. */
@@ -4391,7 +3894,7 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
 type SplitBlock = { title: string; sub: string; controls: HTMLElement | null; stack?: boolean; paint: (into: HTMLElement) => void };
 /** The shared scaffold: hero → (derived-mode note, or) one `.cs-split` section per block (controls beside a
  *  preview node) → a page-local `paintVolatile` that repaints only the preview nodes on every `apply()`. */
-const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => SplitBlock[]): void => {
+const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () => SplitBlock[]): void => {
   const [title, lede] = PAGE_COPY[pageKey];
   host.append(hero(title, lede));
   // A derived mode renders a note and no previews — so there is nothing to repaint, and this branch
@@ -8227,12 +7730,9 @@ const pageHasModeVaryingControl = (): boolean => {
   // reads `currentMode`, so a switcher here would change no rendered value — the Palettes case exactly,
   // reached without needing to measure it, because there is no per-mode value to measure.
   if (page === 'components') return false;
-  // Palettes has NO mode-varying value at all — a ramp is mode-invariant, and choosing which STEP a
-  // mode lands on is a Surfaces concern. Measured rather than argued: the workspace markup is
-  // byte-identical between Light and Dark (34555 chars both), so the switcher changed nothing and
-  // only claimed the page had an axis. #268's audit found this and Layout together; Layout was fixed
-  // and this was missed.
-  if (page === 'palettes') return false;
+  // A moved page (Color › Palettes from UI redesign S2) draws no legacy workspace, so it has no strip:
+  // its preview header carries the mode control.
+  if (isNewPage(page)) return false;
   // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
   //  do — the same reasoning that hides it on Primitives, reached from the other direction.
   // #416 — Typography edits every mode-varying value it has (families, weight roles, leading and
@@ -8288,8 +7788,7 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
 /** Every destination in the rail, keyed by `PageKey` — so a page added to `NAV` fails to compile
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
  *  host the chrome mounter produced. */
-const PAGE_RENDERERS: Record<PageKey, PageRenderer> = {
-  palettes: renderPrimitives,
+const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
   surfaces: renderSurfacesPage,
   interactive: renderInteractivePage,
   typography: renderTypographyPage,
@@ -8485,6 +7984,10 @@ subscribe('fonts', () => renderWorkspace());
 let paintedMode: Mode | null = null;
 function renderWorkspace(): void {
   paintedMode = currentMode;
+  // A MOVED PAGE (UI redesign S2 on) draws in the frame's two panes, from its own modules, and the legacy
+  // frame is hidden. Nothing legacy is drawn for it, and the volatile painter is emptied, so a legacy write
+  // that still calls `apply()` (the bar's) repaints no page that is gone.
+  if (isNewPage(page)) { workspace.replaceChildren(); setVolatile([], () => {}); return; }
   // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
   // than global chrome (#432). Mounted from the DECLARATION rather than by name, so a second piece of
   // page furniture cannot arrive here wired to one of its two obligations.
@@ -8576,7 +8079,8 @@ const clearSearchMarks = (): void => {
   for (const n of workspace?.querySelectorAll(`[${SEARCH_HIDDEN}]`) ?? []) n.removeAttribute(SEARCH_HIDDEN);
 };
 function applySearch(): void {
-  if (!workspace?.isConnected) return;
+  // A moved page filters its own levers panel and reports its own count (S2).
+  if (!workspace?.isConnected || isNewPage(page)) return;
   clearSearchMarks();
   const q = searchQuery.trim().toLowerCase();
   if (!q) { if (searchHits !== null) setSearchHits(null); return; }
@@ -8661,6 +8165,13 @@ let loading = false;
 // load, and re-renders the legacy frame (the P2 pattern: one permanent subscription whose painter asks
 // whether its surface is live). The tab row subscribes separately, for its own selection.
 subscribe('page', () => { if (frame && !loading && !firstRun()) build(); });
+
+// AN EDIT ON A MOVED PAGE REPAINTS THE LEGACY CHROME THROUGH THE STORE (UI redesign S2). A moved page's
+// controls call `rebuild()` and nothing else; the `brand` topic repaints its levers, its preview and the
+// shell, and this repaints the legacy chrome around them (the engine-error bar, the bar's brand switcher
+// and dirty state), which `apply()` used to do by name. Only while a moved page is in view: on a legacy page
+// the writer still calls `apply()`, which syncs the chrome itself, so this would run it twice.
+subscribe('brand', () => { if (frame && !loading && !firstRun() && isNewPage(page)) syncChrome(); });
 
 // A MODE CHANGE FROM THE NEW SHELL REPAINTS THE LEGACY PAGE THROUGH THE STORE (UI redesign S1.3). The
 // preview's mode control calls `setCurrentMode` and nothing else; the legacy writers (the mode strip, the

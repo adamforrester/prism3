@@ -114,8 +114,11 @@ import { nbTheme } from './nb-fixture.ts';
 import { readExampleBrand } from './emit-dtcg.ts';
 
 const HERE = import.meta.dirname;
-const STUDIO = join(HERE, '../../apps/studio/src/main.ts');
-const STUDIO_LABEL = 'apps/studio/src/main.ts';
+/** The studio sources the authored step arrays live in. `main.ts` held all of them until UI redesign S2,
+ *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`). A
+ *  file is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name. */
+const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts'];
+const STUDIO_LABEL = 'apps/studio/src/main.ts or apps/studio/src/preview/palettes.ts';
 
 /** One corpus member. `tree` is the brand's committed DTCG tree where one exists, else `null` — a
  *  synthetic lever probe has no emitted artifact, and a ramp whose oracle needs one says so by
@@ -187,7 +190,8 @@ const RAMPS: Ramp[] = [
     },
   },
   {
-    name: 'ALPHA_STEPS_UI',
+    // `ALPHA_STEPS_UI` in `main.ts` until UI redesign S2; now the Palettes preview's `ALPHA_STEPS`.
+    name: 'ALPHA_STEPS',
     label: 'the alpha/opacity ramp',
     source: "the emitted tree's `opacity` node (tree.ts ALPHA_STEPS, module-private)",
     ladder: (b) => opacityKeys(b.tree),
@@ -305,7 +309,7 @@ const discoverByConsumption = (src: string): { name: string; prefix: string }[] 
   return [...out].map(([name, prefix]) => ({ name, prefix }));
 };
 
-const src = readFileSync(STUDIO, 'utf8');
+const src = STUDIO_FILES.map((f) => readFileSync(join(HERE, f), 'utf8')).join('\n');
 
 const corpus: Brand[] = [
   { id: 'nb', theme: nbTheme(), tree: readTree('nb') },

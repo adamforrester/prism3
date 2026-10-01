@@ -142,7 +142,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
 await hooks.watch(page);
 await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
 await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: BRAND }).first());
-await hooks.need(page, '[data-p3="legacy-frame"]');
+await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
 await page.waitForTimeout(1000);
 
 /** A mode tab by its visible mode name, exactly — the text a designer clicks. */
@@ -224,7 +224,11 @@ const stages = await page.locator('[data-p3^="rail-page-"]').evaluateAll((ns) =>
 })));
 await hooks.click(page.locator('[data-p3="pages-menu"]'));
 ok(stages.length > 0, `the rail offers ${stages.length} destination(s) to audit`);
-ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-palettes"]')), 'the Pages menu offers the opening page, Palettes');
+// Color › Palettes left the Pages menu in UI redesign S2 (it draws the two panes now, reached by its tab, and
+// has no mode strip to audit: the mode control is in its preview header). The first Color page still legacy
+// is the one the menu must offer, and Palettes must be gone from it, with the menu's own rows as the proof.
+ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-surfaces"]')), 'the Pages menu offers the first legacy Color page, Surfaces & fills');
+hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-palettes'), 'the Pages menu no longer offers Palettes, which moved to the two panes (S2)');
 const tally = { EDITS: 0, displays: 0, inert: 0 };
 const claims = [];
 const noBar = [];

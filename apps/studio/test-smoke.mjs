@@ -647,7 +647,7 @@ const openBrand = async (brand, scheme) => {
   const drain = watchErrors(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
   await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
-  await hooks.need(page, '[data-p3="legacy-frame"]');
+  await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
   await page.evaluate(() => document.fonts.ready);
   return { ctx, page, drain };
 };
@@ -923,6 +923,66 @@ console.log(`    ${worstFieldWhere}`);
 console.log(`  Lowest exempt pressed specimen: ${worstExempt}:1 (declared pressed min ${PRESSED_MIN}, smoke floor ${CONTRAST_FLOOR.toFixed(1)}:1 — #1281/#1456, not a finding)`);
 console.log(`    ${worstExemptWhere}`);
 console.log(`  Paired specimens: ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (#779) across ${modeCells.size} brand × mode cells.`);
+
+// =============================================================================================
+// 1b. Color › Palettes — moved to the two panes (UI redesign S2), on its own hooks
+// =============================================================================================
+// The sweep above walks the Pages menu, and Palettes left it in S2: it is the opening page, drawn by
+// `domains/color-palettes.ts` and `preview/palettes.ts`. So its sweep is here, on the new hooks, per corpus
+// brand and per mode: what the preview shows is held against the brand's COMMITTED EMISSION
+// (`packages/engine/out/<brand>.tokens.json`), never against the page: every ramp the emission carries, with
+// every step's hex, and each specimen strip on that mode's `background.primary`. The chrome around it
+// (contrast, edges, fonts, targets) is `test:chrome`'s.
+console.log(`\nColor › Palettes — the moved page, against each brand's emission\n${'='.repeat(78)}`);
+/** Emitted palettes the preview does not draw as ramps: the fixed white, black and transparent, and the two
+ *  alpha ramps, which it draws from the engine's constant step set on a checkerboard. Literal. */
+const NOT_RAMPS = ['white', 'black', 'transparent', 'black-alpha', 'white-alpha'];
+let palettesStates = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.need(page, '[data-p3="palettes-levers"]');
+  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const emitted = tree[Object.keys(tree)[0]].core.palette;
+  const want = Object.fromEntries(Object.entries(emitted).filter(([k]) => !NOT_RAMPS.includes(k))
+    .map(([k, steps]) => [k, Object.fromEntries(Object.entries(steps).filter(([s]) => !s.startsWith('$')).map(([s, v]) => [s, String(v.$value).toLowerCase()]))]));
+  const emission = await loadEmission(brand);
+  const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
+  ok(modes.length >= 2, `${brand} / Palettes: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+  for (const mode of modes) {
+    await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+    await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+    const where = `${brand} / Palettes / ${mode}`;
+    palettesStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    const shown = await page.evaluate(() => {
+      const hex = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s); return m ? `#${m[1].split(/[,\s/]+/).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : s; };
+      const ramps = {};
+      for (const b of document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]:not(.p3-pal-reuse)')) {
+        ramps[b.dataset.palette] = Object.fromEntries([...b.querySelectorAll('.p3-sqk-item')].map((li) => [li.querySelector('.p3-sqk-step').textContent.trim(), `#${li.querySelector('.p3-sqk-hex').textContent.trim()}`]));
+      }
+      return {
+        ramps,
+        grounds: [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="specimen"]')].map((n) => hex(getComputedStyle(n).backgroundColor)),
+        overflowX: document.documentElement.scrollWidth - window.innerWidth,
+        errorBar: (() => { const e = document.querySelector('[data-p3="error-bar"]'); return { mounted: !!e, shown: !!e && getComputedStyle(e).display !== 'none' }; })(),
+      };
+    });
+    const missing = Object.keys(want).filter((k) => !shown.ramps[k]);
+    const extra = Object.keys(shown.ramps).filter((k) => !want[k]);
+    ok(missing.length === 0 && extra.length === 0, `${where}: the preview draws exactly the emission's ${Object.keys(want).length} ramps${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — not emitted ${extra.join(', ')}` : ''}`);
+    const off = [];
+    for (const [k, steps] of Object.entries(want)) for (const [st, hx] of Object.entries(steps)) if (shown.ramps[k] && shown.ramps[k][st] !== hx) off.push(`${k} ${st} shows ${shown.ramps[k][st]} (emitted ${hx})`);
+    ok(off.length === 0, `${where}: every step of every ramp shows its emitted hex${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    const badGround = shown.grounds.filter((g) => g !== page0);
+    ok(!!page0 && shown.grounds.length >= 8 && badGround.length === 0, `${where}: all ${shown.grounds.length} specimen strips sit on the emission's background.primary ${page0}${badGround.length ? ` — ${badGround.slice(0, 3).join(', ')}` : ''}`);
+    hooks.absent(ok, { seen: shown.errorBar.mounted, state: 'the global error bar mounted, found by its hook' }, !shown.errorBar.shown, `${where}: the global error bar is hidden`);
+    ok(shown.overflowX <= 1, `${where}: no horizontal overflow (${shown.overflowX}px past the viewport)`);
+  }
+  await ctx.close();
+}
+ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesStates} brand × mode states (floor ${BRANDS.length * 2})`);
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered
@@ -2012,7 +2072,7 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   // The "Start blank" button by its own hook: the file-upload label beside it shares its class, and only
   // the button carries the `new` origin.
   await hooks.click(page.locator('[data-p3="start-blank"]'));   // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
-  await hooks.need(page, '[data-p3="legacy-frame"]');
+  await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
   await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'renamed-in-smoke');

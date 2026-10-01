@@ -589,7 +589,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await measure(page, `${tag} / start screen`);
         await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
-        await hooks.need(page, '[data-p3="legacy-frame"]');
+        await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
         // The old rail is the Pages menu now (UI redesign S1.2), with the rail's hooks on its items.
         await hooks.click(page.locator('[data-p3="pages-menu"]'));
         await hooks.need(page, '[data-p3="pages-menu-list"]');

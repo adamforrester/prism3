@@ -168,5 +168,16 @@ const perSub: Record<string, number> = {};
 for (const r of emitted) { const o = roleOwner(r); if (o) perSub[o] = (perSub[o] ?? 0) + 1; }
 console.log(`  ${Object.entries(perSub).map(([s, n]) => `${s} ${n}`).join(', ')}`);
 
+// ── 4. moved pages (S2 on) ─────────────────────────────────────────────────────────────────────────
+console.log('\n4. Moved pages (plan §4: a slice moves a page by emptying its legacy list)');
+/** The pages the slices have moved so far, literally: a slice that moves one adds it here in the same change. */
+const MOVED = ['color/palettes'];
+const legacyEmpty = (p: Page): boolean => (Array.isArray(p.legacy) ? p.legacy.length === 0 : !(p.legacy as { web: unknown[]; figma: unknown[] }).web.length && !(p.legacy as { web: unknown[]; figma: unknown[] }).figma.length);
+for (const p of PAGES) {
+  const moved = MOVED.includes(p.key);
+  ok(p.status === (moved ? 'new' : 'legacy'), `${p.name} is ${moved ? 'new' : 'legacy'} (status "${p.status}")`);
+  ok(legacyEmpty(p) === (p.status === 'new'), `${p.name}: a new page names no legacy page, a legacy page names at least one (${JSON.stringify(p.legacy)})`);
+}
+
 console.log(`\n${executed - failed}/${executed} page-data assertions passed.`);
 if (failed) process.exit(1);

@@ -189,8 +189,8 @@ const openPanel = async () => {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(`${ORIGIN}/`, { waitUntil: 'load' });
-  // A real condition, not a sleep: the legacy frame is rendered once the app has booted onto a brand.
-  await hooks.need(page, '[data-p3="legacy-frame"]');
+  // A real condition, not a sleep: the frame is rendered once the app has booted onto a brand.
+  await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
   await gotoRail(page, '[data-p3="rail-page-components"]');
   await hooks.need(page, '[data-p3="components-build"]');
   return { page, errors };
@@ -507,7 +507,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
-  await gotoRail(page, '[data-p3="rail-page-palettes"]');
+  // Color › Palettes, by its tab: it left the Pages menu in UI redesign S2 and draws the two panes.
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-palettes"]'));
+  await hooks.need(page, '[data-p3="palettes-levers"]');
   await page.waitForFunction(() => !document.querySelector('[data-p3="components-row"]'));
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});

@@ -55,11 +55,10 @@
  * inline-value check: the one S1.2 named (the plugin's bottom-left agent chip) went in S1.4 (D6), and its
  * exemption went with it, as it said it would.
  *
- * ONE FORCED STATE. No page renders the two panes in S1.2 or S1.3 (every place is legacy until S2), so the
- * Q2 check, and S1.3's checks of the preview header (the mode control, Inspect over the preview), set the
- * frame's `data-layout="panes"` themselves and measure the real stylesheet. The frame writes the attribute
- * only when a place calls for a different layout, so a re-render inside the forced state keeps it. S2
- * replaces the force with Color › Palettes, the first page that renders the panes for real.
+ * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
+ * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
+ * page, into them, so every one of those checks now measures Color › Palettes as it renders. Q2's "a page
+ * without the sub-nav" waits for the first moved page outside Color (S3).
  *
  * S1.3 ADDS (sections 7–9), each against a literal oracle typed here or an engine artifact:
  *   · ONE HOME PER PAGE (V1): every place names its literal home view and title (`EXPECT_HOME`), visited in
@@ -92,6 +91,32 @@
  *     `hooks.absent` with the new chip as proof. The studio renders neither the slot nor the chip.
  *   · The full chrome probe runs in each of those states: the drawer open, a write running, a failure open,
  *     the Figma menu open, the Agent popover open.
+ *
+ * S2 ADDS (sections 11–14, and Palettes in every earlier section, since it is the opening page):
+ *   · MOVED PAGES: `NEW_PAGES` (literal) beside `LEGACY_PAGES`; every place is in exactly one, and a moved place
+ *     renders the two panes (one at 380), never the legacy frame.
+ *   · SPECIMEN GROUND (plan §6.1, §9.1): every specimen root in the Palettes preview sits on the brand's
+ *     `background.primary` for the previewed mode, both hosts, both chrome themes, every mode. Oracle: the
+ *     committed emission, its alias chain resolved here in Node; the rendered ground is composited.
+ *   · CONTROLS REPRESENTED: each manifest key v6 homes on Palettes (`PALETTES_LEVERS`, literal, with its tier
+ *     and hook) renders its `lever-*` hook exactly once, the advanced ones only behind Show advanced; a lever
+ *     block that is none of them fails as unclassified. The new controls are classified (`CONTROL_KINDS`).
+ *   · EDITS: a lever edit repaints the preview by subscription, keeps the field's focus and value, and never
+ *     moves the preview's home (V1); a brand color added or removed adds or removes its ramp; a rename onto
+ *     another palette's name is refused.
+ *   · THE STEP PICKER (V9) on a fixture page this suite builds from `src/ui/step-picker.ts` (it ships
+ *     unmounted until S4): the grid, each ratio against the engine's own contrast function (bundled here
+ *     from `packages/engine/color.ts`), the below-floor mark, the current step, arrow keys, Home, End, Up and
+ *     Down by a row, Enter, the palette select, Return to Auto, Escape and Close returning focus, and the
+ *     step it writes.
+ *   · Mono text: an element set in the chrome's mono alias must draw the embedded JetBrains Mono.
+ *
+ *   S2 mutations, each failing by name:
+ *   · a palette strip drawn on the chrome card → `specimen ground: palettes … is the chrome card (…)`.
+ *   · a Palettes lever not rendered → `Palettes lever primary renders its hook lever-primary once — rendered 0`.
+ *   · a Palettes lever rendered twice → `… renders its hook lever-neutral-chroma once — rendered 2`.
+ *   · the preview following focus → `V1 focus: … color-palettes control … the preview stayed palettes (now …)`.
+ *   · the step picker writing the next step → `step picker: choosing … writes those steps — wrote …`.
  *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
@@ -147,6 +172,10 @@ const NONTEXT_MIN = 3;        // edges, indicators, glyphs, focus rings (WCAG 1.
 const FOCUS_WIDTH_MIN = 2;
 const TARGET_MIN = 24;
 const UI_FONT = 'Inter';      // the embedded face's own family name, as the platform reports it
+/** The embedded monospace face (S2 is the first page to set values in it: hex codes, tokens, step keys). An
+ *  element whose computed family asks for the chrome's mono alias must draw this one, and nothing else. */
+const MONO_FONT = 'JetBrains Mono';
+const MONO_ALIAS = 'P3 Chrome Mono';
 /** Characters the embedded Inter subset does not carry, so a device face draws them. Literal, and each is
  *  a finding: U+2192 (→) reaches the chrome in the engine's own notes (the Decisions log, S1.3), which the
  *  UI shows verbatim and must not rewrite. S1.4 measures the plugin's write verdicts for the first time
@@ -160,13 +189,16 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+const LEGACY_PAGES = ['brand', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+/** The places a slice has moved into the two panes (S2: Color › Palettes). A slice that moves a place adds it
+ *  here in the same change; a place in both lists, or in neither, fails by name. */
+const NEW_PAGES = ['color-palettes'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
-  web: { brand: ['preview'], 'color-palettes': ['palettes'], 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
+  web: { brand: ['preview'], 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
-  figma: { brand: ['preview'], 'color-palettes': ['palettes'], 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
+  figma: { brand: ['preview'], 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
@@ -198,10 +230,22 @@ const EXPECT_CONTROLS = {
   'figma narrow': [...BAR, ...FIGMA_BAR, '[data-p3="tab-select"]', ...COLOR_SUBS],
 };
 const DEPTH_SWITCH = ['[data-p3="legacy-switch-elevation"]', '[data-p3="legacy-switch-motion"]'];
-const expectFor = (column, place) => [
-  ...EXPECT_CONTROLS[column].filter((h) => place.startsWith('color-') || !COLOR_SUBS.includes(h)),
-  ...(place === 'depth' ? DEPTH_SWITCH : []),
-];
+/** Color › Palettes in the two panes (S2): the levers it must render on the Settings side, by hook, and the
+ *  preview header's controls. Narrow shows one pane (the Settings one at boot) and the pane toggle. */
+const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-hex"]', '[data-p3="brand-color-name"]', '[data-p3="brand-color-remove"]',
+  '[data-p3="brand-color-add"]', '[data-p3="neutral-source-follow"]', '[data-p3="neutral-source-custom"]', '[data-p3="neutral-chroma-slider"]',
+  '[data-p3="palettes-advanced"]', '[data-p3="palettes-continue"]'];
+const PREVIEW_HEAD = ['[data-p3="mode-option"]', '[data-p3="inspect-open"]'];
+const PANE_TOGGLE = ['[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-preview"]'];
+const expectFor = (column, place, state = 'page') => {
+  const narrow = column.endsWith('narrow');
+  const base = EXPECT_CONTROLS[column].filter((h) => place.startsWith('color-') || !COLOR_SUBS.includes(h));
+  if (place !== 'color-palettes') return [...base, ...(place === 'depth' ? DEPTH_SWITCH : [])];
+  // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
+  if (narrow && state !== 'page') return [...base.filter((x) => !['[data-p3="tab-select"]', '[data-p3="search-open"]', ...COLOR_SUBS].includes(x)), ...PANE_TOGGLE, ...(state === 'preview' ? PREVIEW_HEAD : [])];
+  if (narrow) return [...base, ...PALETTES_LEVERS_CONTROLS, ...PANE_TOGGLE];
+  return [...base, ...PALETTES_LEVERS_CONTROLS, ...(state === 'inspect' ? [] : PREVIEW_HEAD)];
+};
 /** Per column, the least each measurement must have seen on the opening page, so an empty read fails
  *  naming itself. Set below the measured values (printed per state), above what a chrome that rendered
  *  nothing would give. `PLACE_FLOOR` is the same for every other place, where the sub-pages are gone. */
@@ -223,7 +267,9 @@ const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts: 5 };
 /** Every chrome control is one of these, by class. A control that is none fails as unclassified. */
 const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
-  ['p3-seg-tab', 'segment'], ['p3-select', 'select'], ['p3-menu-item', 'menu item'], ['p3-search-input', 'search field']];
+  ['p3-seg-tab', 'segment'], ['p3-select', 'select'], ['p3-menu-item', 'menu item'], ['p3-search-input', 'search field'],
+  // S2: the levers panel's text fields and sliders, and the step picker's steps.
+  ['p3-hex-input', 'text field'], ['p3-range', 'slider'], ['p3-step', 'picker step']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]'];
@@ -265,8 +311,9 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch();
 
-/** A booted app on the opening page. Studio: from the start screen's prism3 chip, the OS scheme emulated.
- *  Plugin: Figma's theme stubbed, then the start screen the host asks for, then the first example. */
+/** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
+ *  screen's prism3 chip, the OS scheme emulated. Plugin: Figma's theme stubbed, then the start screen the host
+ *  asks for, then the first example. */
 const open = async ({ host, theme, w, h, store }) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
   const page = await ctx.newPage();
@@ -283,7 +330,8 @@ const open = async ({ host, theme, w, h, store }) => {
     await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
     await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
   }
-  await hooks.need(page, '[data-p3="legacy-frame"]');
+  await hooks.need(page, '[data-p3="frame"]');
+  await hooks.need(page, '[data-p3="palettes-levers"]');
   await page.evaluate(() => document.fonts.ready);
   return { ctx, page, errors };
 };
@@ -368,11 +416,12 @@ const PROBE = (opt) => {
     const px = parseFloat(cs.fontSize), weight = Number(cs.fontWeight);
     const large = px >= 24 || (px >= 18.66 && weight >= 700);
     text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large });
-    el.setAttribute('data-cprobe', 'text');
+    el.setAttribute('data-cprobe', cs.fontFamily.includes(opt.monoAlias) ? 'mono' : 'text');
   }
   // fields: the value a field draws, on its own fill
   const fields = [];
-  for (const el of drawn.filter((n) => n.matches('input:not([type="checkbox"]), select'))) {
+  // A range and a color well draw no value text, so they have no ink to measure here.
+  for (const el of drawn.filter((n) => n.matches('input:not([type="checkbox"]):not([type="range"]):not([type="color"]), select'))) {
     const cs = getComputedStyle(el);
     const ink = parse(cs.color, `${label(el)} color`);
     const g = groundOf(el);
@@ -434,6 +483,7 @@ const PROBE = (opt) => {
     place, layout: frame?.dataset.layout, w: frame?.dataset.w, theme: document.documentElement.dataset.theme,
     legacyShown: !!legacyPage && shown(legacyPage),
     inspectShown: [...document.querySelectorAll('[data-p3="inspect-body"]')].some(shown), panesShown: [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')].some(shown),
+    leversShown: [...document.querySelectorAll('[data-p3="levers-pane"]')].some(shown), previewShown: [...document.querySelectorAll('[data-p3="preview-body"]')].some(shown),
     legacyPage: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
     text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed,
     layers: {
@@ -454,15 +504,17 @@ const fontsDrawn = async (page) => {
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
-  const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe="text"]' });
+  const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-cprobe]' });
   const out = [];
   for (const nodeId of nodeIds) {
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+    const { attributes } = await cdp.send('DOM.getAttributes', { nodeId });
+    const want = attributes[attributes.indexOf('data-cprobe') + 1] === 'mono' ? MONO_FONT : UI_FONT;
     const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
     const { node } = await cdp.send('DOM.describeNode', { nodeId, depth: -1 });
     const text = (function flat(n) { return (n.nodeType === 3 ? n.nodeValue : '') + (n.children ?? []).map(flat).join(''); })(node);
     out.push({ el: outerHTML.slice(0, 60), fonts: fonts.map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`),
-      gapFonts: fonts.filter((f) => f.familyName !== UI_FONT).reduce((n, f) => n + f.glyphCount, 0),
+      gapFonts: fonts.filter((f) => f.familyName !== want || !f.isCustomFont).reduce((n, f) => n + f.glyphCount, 0),
       gapChars: [...text].filter((c) => FACE_GAPS.includes(c)).length });
   }
   await cdp.detach();
@@ -493,7 +545,9 @@ const focusRings = async (page) => {
         if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') { width = parseFloat(b.borderTopWidth); color = b.borderTopColor; }
       }
       const c = color ? parse(color) : null;
-      const g = groundOf(el.parentElement);
+      // A ring drawn inside the control's box (a negative outline offset: the two scrolling panes, S2) is seen
+      // against the control's own ground; every other ring against what is outside it.
+      const g = groundOf(width && parseFloat(cs.outlineOffset) < 0 ? el : el.parentElement);
       return { hook: el.getAttribute('data-p3') ?? `${el.tagName.toLowerCase()}.${el.className}`, inFrame: !!el.closest('[data-p3="frame"]'),
         width, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
     });
@@ -506,28 +560,41 @@ const focusRings = async (page) => {
 
 const columnOf = (host, w) => `${host} ${w <= 560 ? 'narrow' : 'wide'}`;
 const measure = async (page, where, host, w) => {
-  const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY });
+  const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS });
   const fonts = await fontsDrawn(page);
   return { ...m, fonts };
 };
 
 /** `only`: the controls this state shows, replacing the column's list (the narrow Preview pane, which hides
  *  the tab row). */
-/** `state`: 'legacy' (the default: the place's legacy page in the legacy frame), 'inspect' (Inspect over the
- *  legacy frame), 'sheet' (the Activity drawer as the full-pane sheet at 380, S1.4), or 'forced' (the two
- *  panes, forced, see the header). `extra`: hooks this state adds. */
-const check = (m, where, column, floor = FLOORS[column], { state = 'legacy', extra = [], only = null } = {}) => {
+/** `state`: 'page' (the default: a legacy place's legacy page in the legacy frame, or a moved place's two
+ *  panes), 'inspect' (Inspect over the legacy frame, or over a moved place's preview), 'sheet' (the Activity
+ *  drawer as the full-pane sheet at 380, S1.4), or 'preview' (a moved place on its narrow Preview pane).
+ *  `extra`: hooks this state adds. */
+const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra = [], only = null } = {}) => {
   ok(m.unparsed.length === 0, `${where}: every computed color the probe met was parsed${m.unparsed.length ? ` — ${m.unparsed.slice(0, 3).join(' | ')}` : ''}`);
-  // the legacy list
-  ok(LEGACY_PAGES.includes(m.place), `${where}: place "${m.place}" is in LEGACY_PAGES (no page has moved in S1.2)`);
-  if (LEGACY_PAGES.includes(m.place) && state === 'legacy') {
-    ok(m.layout === 'legacy' && m.legacyShown && !m.panesShown && !m.inspectShown, `page ${m.place} is listed as legacy and renders the legacy frame (${where}: layout "${m.layout}", legacy page ${m.legacyShown ? 'shown' : 'hidden'}, panes ${m.panesShown ? 'shown' : 'hidden'}, Inspect ${m.inspectShown ? 'shown' : 'hidden'})`);
+  // the two lists: every place is in exactly one
+  const listed = LEGACY_PAGES.includes(m.place), moved = NEW_PAGES.includes(m.place);
+  ok(listed !== moved, `${where}: place "${m.place}" is in exactly one of LEGACY_PAGES and NEW_PAGES (legacy ${listed}, moved ${moved})`);
+  const shows = `layout "${m.layout}", legacy page ${m.legacyShown ? 'shown' : 'hidden'}, levers ${m.leversShown ? 'shown' : 'hidden'}, preview ${m.previewShown ? 'shown' : 'hidden'}, Inspect ${m.inspectShown ? 'shown' : 'hidden'}`;
+  if (listed && state === 'page') {
+    ok(m.layout === 'legacy' && m.legacyShown && !m.panesShown && !m.inspectShown, `page ${m.place} is listed as legacy and renders the legacy frame (${where}: ${shows})`);
+  }
+  if (moved && state === 'page') {
+    // Wide: both panes. Narrow: one pane, the Settings one unless the state says otherwise.
+    const want = m.w === 'narrow' ? m.leversShown && !m.previewShown : m.leversShown && m.previewShown;
+    ok(m.layout === 'panes' && want && !m.legacyShown && !m.inspectShown, `page ${m.place} is listed as moved and renders the two panes (${where}: ${shows})`);
+  }
+  if (moved && state === 'preview') {
+    ok(m.layout === 'panes' && m.previewShown && !m.leversShown && !m.legacyShown, `${where}: the narrow Preview pane shows the preview alone (${shows})`);
   }
   if (state === 'sheet') {
-    ok(m.layout === 'legacy' && !m.legacyShown && !m.panesShown && !m.inspectShown, `${where}: the Activity sheet covers the page (layout "${m.layout}", legacy page ${m.legacyShown ? 'shown' : 'hidden'})`);
+    ok(!m.legacyShown && !m.panesShown && !m.inspectShown, `${where}: the Activity sheet covers the page (${shows})`);
   }
   if (state === 'inspect') {
-    ok(m.layout === 'legacy' && m.inspectShown && !m.legacyShown && !m.panesShown, `${where}: Inspect covers the legacy frame (layout "${m.layout}", Inspect ${m.inspectShown ? 'shown' : 'hidden'}, legacy page ${m.legacyShown ? 'shown' : 'hidden'})`);
+    ok(listed ? m.layout === 'legacy' && m.inspectShown && !m.legacyShown && !m.panesShown
+      : m.layout === 'panes' && m.inspectShown && !m.previewShown && !m.legacyShown && (m.w === 'narrow' || m.leversShown),
+    `${where}: Inspect covers the ${listed ? 'legacy frame' : 'preview'} (${shows})`);
   }
   // text
   ok(m.text.length >= floor.text, `${where}: measured ${m.text.length} chrome text nodes (floor ${floor.text})`);
@@ -539,7 +606,7 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'legacy', ext
   ok(m.unclassified.length === 0, `${where}: every chrome control is classified${m.unclassified.length ? ` — unclassified control ${m.unclassified.slice(0, 4).join(', ')}` : ''}`);
   ok(m.controls.length >= floor.controls, `${where}: measured ${m.controls.length} chrome controls (floor ${floor.controls})`);
   const have = new Set(m.controls.map((c) => c.hook));
-  for (const want of [...(only ?? expectFor(column, m.place)), ...extra]) ok(have.has(hooks.role(want)), `${where}: the chrome renders ${want} and it was measured`);
+  for (const want of [...(only ?? expectFor(column, m.place, state)), ...extra]) ok(have.has(hooks.role(want)), `${where}: the chrome renders ${want} and it was measured`);
   const small = m.controls.filter((c) => c.w < TARGET_MIN - 0.01 || c.h < TARGET_MIN - 0.01);
   ok(small.length === 0, `${where}: every chrome control is at least ${TARGET_MIN} × ${TARGET_MIN}${small.length ? ` — ${small.slice(0, 4).map((c) => `${c.el} ${c.w.toFixed(1)} × ${c.h.toFixed(1)}`).join(' | ')}` : ''}`);
   // edges and indicators
@@ -554,7 +621,7 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'legacy', ext
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
   // A device face may draw only the characters the embedded subset does not carry (FACE_GAPS), one glyph each.
   const offFace = m.fonts.filter((f) => !f.fonts.length || f.gapFonts > f.gapChars);
-  ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT}${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
+  ok(offFace.length === 0, `${where}: every chrome text element draws in the embedded ${UI_FONT} (${MONO_FONT} where it is set in mono)${offFace.length ? ` — ${offFace.slice(0, 3).map((f) => `${f.el} drew ${f.fonts.join(', ') || 'nothing'}`).join(' | ')}` : ''}`);
   // shadows, inline values, overflow
   ok(m.shadows.length === 0, `${where}: no chrome element draws a shadow (T5)${m.shadows.length ? ` — shadow: ${m.shadows.slice(0, 3).join(' | ')}` : ''}`);
   ok(m.inline.length === 0, `${where}: no runtime inline value outside [data-content]${m.inline.length ? ` — ${m.inline.slice(0, 4).join(' | ')}` : ''}`);
@@ -615,9 +682,10 @@ for (const host of ['web', 'figma']) {
     for (const place of Object.keys(PLACE_CLICKS)) {
       await goPlace(page, place);
       const where = `${host} ${theme} 1280 / ${place}`;
-      const want = EXPECT_LEGACY[host][place];
+      const want = EXPECT_LEGACY[host][place] ?? [];
       const shows = await page.evaluate(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage);
-      ok(shows === want[0], `${where}: the tab row lands on legacy page "${want[0]}" (plan §4) — shows "${shows}"`);
+      if (NEW_PAGES.includes(place)) ok(shows === undefined, `${where}: a moved place names no legacy page — names "${shows}"`);
+      else ok(shows === want[0], `${where}: the tab row lands on legacy page "${want[0]}" (plan §4) — shows "${shows}"`);
       if (want.length > 1) {
         // D8: the local switch, its labels, and the second page through it.
         const labels = (await page.locator('[data-p3="legacy-switch"] [role="tab"]').allTextContents()).map((s) => s.trim());
@@ -640,26 +708,27 @@ for (const host of ['web', 'figma']) {
 // 3. Q2: one header line across the split (1280, light and dark, with and without the sub-nav)
 // =============================================================================================
 console.log(`\nQ2 — the tab row and the preview title row share one divider\n${'='.repeat(78)}`);
+// MEASURED ON COLOR › PALETTES, FOR REAL (S2): the first page that renders the two panes. S1.2 and S1.3 forced
+// `data-layout="panes"` here because no page did; that force is gone. Q2 also asks for a page WITHOUT the
+// sub-nav, and none renders the panes yet: the first moved page outside Color (S3, Brand) adds it here.
 for (const theme of ['light', 'dark']) {
   const { ctx, page } = await open({ host: 'web', theme, w: 1280, h: 900 });
-  for (const place of ['color-palettes', 'brand']) {
+  for (const place of NEW_PAGES) {
     await goPlace(page, place);
     const where = `${theme} 1280 / ${place}`;
-    // FORCED (see the header): no page renders the two panes until S2.
     const g = await page.evaluate(() => {
-      const frame = document.querySelector('[data-p3="frame"]');
-      const was = frame.dataset.layout;
-      frame.dataset.layout = 'panes';
       const line = (sel) => { const n = document.querySelector(sel); if (!n) return null; const r = n.getBoundingClientRect(); return { bottom: r.bottom, h: r.height, border: getComputedStyle(n).borderBottomWidth, shown: r.width > 0 && r.height > 0 }; };
-      const out = { nav: line('[data-p3="tab-row"]'), head: line('[data-p3="preview-head"]'), sub: line('[data-p3="sub-nav"]') };
-      frame.dataset.layout = was;
-      return out;
+      return { layout: document.querySelector('[data-p3="frame"]').dataset.layout, nav: line('[data-p3="tab-row"]'), head: line('[data-p3="preview-head"]'), sub: line('[data-p3="sub-nav"]') };
     });
+    ok(g.layout === 'panes', `Q2 ${where}: the page renders the two panes itself, nothing forced (layout "${g.layout}")`);
     ok(g.nav?.shown && g.head?.shown, `Q2 ${where}: both header rows render in the two-pane layout`);
     ok(g.nav?.border === '1px' && g.head?.border === '1px', `Q2 ${where}: both rows draw a bottom divider (${g.nav?.border}, ${g.head?.border})`);
     const gap = g.nav && g.head ? Math.abs(g.nav.bottom - g.head.bottom) : Infinity;
     ok(gap <= ALIGN_TOLERANCE, `Q2 ${where}: the tab row's divider and the preview title row's divider are ${gap.toFixed(2)}px apart (tolerance ${ALIGN_TOLERANCE}px)`);
-    if (place === 'color-palettes') ok(g.sub?.shown && g.sub.bottom > g.nav.bottom, `Q1 ${where}: the Color sub-nav sits under the tab row's divider`);
+    if (place.startsWith('color-')) ok(g.sub?.shown && g.sub.bottom > g.nav.bottom, `Q1 ${where}: the Color sub-nav sits under the tab row's divider`);
+    // All seven tabs fit the levers column at 1280 (S2 closed the row up so they do), so none is out of view.
+    const fit = await page.evaluate(() => { const t = document.querySelector('[data-p3="tab-row"] [role="tablist"]'); return { sw: t.scrollWidth, cw: t.clientWidth }; });
+    ok(fit.sw <= fit.cw + 1, `${where}: the seven tabs fit the levers column without scrolling (${fit.sw}px in ${fit.cw}px)`);
   }
   await ctx.close();
 }
@@ -670,6 +739,8 @@ for (const theme of ['light', 'dark']) {
 console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
+  // A legacy page: the opening page moved to the two panes in S2. Surfaces & fills is the first legacy Color page.
+  await goPlace(page, 'color-fills');
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
@@ -682,7 +753,7 @@ for (const host of ['web', 'figma']) {
       return { name: n.getAttribute('data-p3') ?? n.className, value: n.value, scheme: cs.colorScheme, r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100 };
     }) };
   });
-  const where = `${host} dark / Color › Palettes`;
+  const where = `${host} dark / Color › Surfaces & fills`;
   ok(/\bdark\b/.test(f.doc), `${where}: the document resolves a dark color-scheme ("${f.doc}") — the premise this check is about`);
   ok(f.fields.length >= 1, `${where}: measured ${f.fields.length} legacy field(s) (floor 1)`);
   const bad = f.fields.filter((x) => /\bdark\b/.test(x.scheme) || x.r < TEXT_MIN);
@@ -714,7 +785,7 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   const t = await page.evaluate(() => ({ theme: document.documentElement.dataset.theme, stored: localStorage.getItem('prism3:chromeTheme'), bar: getComputedStyle(document.querySelector('[data-p3="top-bar"]')).backgroundColor }));
   ok(t.theme === 'dark' && t.stored === 'dark', `choosing Dark sets <html data-theme="dark"> and keeps it (${JSON.stringify(t)})`);
   await page.reload({ waitUntil: 'networkidle' });
-  await hooks.need(page, '[data-p3="legacy-frame"]');
+  await hooks.need(page, '[data-p3="frame"]');
   const after = await page.evaluate(() => document.documentElement.dataset.theme);
   ok(after === 'dark', `the theme choice survives a reload (data-theme "${after}")`);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, 's12-studio-dark-1280-chosen.png') });
@@ -779,6 +850,33 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   await ctx.close();
 }
 
+// Search on a moved page (S2): the levers panel filters itself in place, advanced levers included, and counts.
+{
+  const CHROMA = labelOf('neutral.chroma');
+  const PRIMARY = labelOf('primary');
+  ok(!!CHROMA && !!PRIMARY, `the manifest names the neutral chroma lever ("${CHROMA}") and the primary lever ("${PRIMARY}")`);
+  const { ctx, page } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  await hooks.click(page.locator('[data-p3="search-open"]'));
+  await hooks.need(page, '[data-p3="search-input"]');
+  await page.keyboard.type('chroma', { delay: 20 });
+  const r = await page.evaluate((labels) => {
+    const blocks = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')];
+    const vis = (n) => n.getBoundingClientRect().height > 0;
+    const named = (l) => blocks.find((b) => b.querySelector('.p3-lever-name')?.textContent.trim() === l);
+    return { value: document.querySelector('[data-p3="search-input"]').value, status: document.querySelector('[data-p3="search-status"]')?.textContent,
+      shown: blocks.filter(vis).length, chroma: !!named(labels[0]) && vis(named(labels[0])), primary: named(labels[1]) ? vis(named(labels[1])) : null,
+      pinned: !!document.querySelector('[data-p3="lever-neutral-anchor"]') };
+  }, [CHROMA, PRIMARY]);
+  ok(r.value === 'chroma' && r.chroma, `search palettes: typing "chroma" shows the "${CHROMA}" lever (${JSON.stringify(r)})`);
+  ok(r.primary === false, `search palettes: a lever that does not match ("${PRIMARY}") is hidden (${r.primary === null ? 'not on the page' : 'visible'})`);
+  ok(r.pinned, 'search palettes: the search reaches the advanced levers (the pinned neutral is drawn while it runs)');
+  ok(r.status === `${r.shown} settings match`, `search palettes: the status line counts what is shown ("${r.status}", ${r.shown} shown)`);
+  await page.keyboard.press('Escape');
+  const after = await page.evaluate(() => ({ hidden: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].filter((n) => n.getBoundingClientRect().height === 0).length, focus: document.activeElement?.getAttribute('data-p3') }));
+  ok(after.hidden === 0 && after.focus === 'search-open', `search palettes: Escape shows every lever again and returns to the magnifier (${JSON.stringify(after)})`);
+  await ctx.close();
+}
+
 // =============================================================================================
 // 7. One home per page (V1): every place names its literal home, and nothing but a place change moves it
 // =============================================================================================
@@ -809,17 +907,24 @@ for (const host of ['web', 'figma']) {
   for (const place of Object.keys(PLACE_CLICKS)) {
     await goPlace(page, place);
     const before = (await previewView(page)).view;
+    // A moved place scrolls in its panes (the frame is fixed), and its controls are in the levers pane.
+    const moved = NEW_PAGES.includes(place);
+    const scope = moved ? '[data-p3="levers-pane"]' : '[data-p3="legacy-page"]';
     for (const at of [0.5, 1, 0]) {
-      await page.evaluate((f) => window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * f), at);
+      await page.evaluate(([f, mv]) => {
+        if (!mv) { window.scrollTo(0, (document.documentElement.scrollHeight - window.innerHeight) * f); return; }
+        for (const n of document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')) n.scrollTop = (n.scrollHeight - n.clientHeight) * f;
+      }, [at, moved]);
       await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
       const now = (await previewView(page)).view;
       scrolls++;
       ok(now === before, `V1 scroll: ${host} ${place} scrolled to ${at * 100}% and the preview stayed ${before} (now ${now})`);
     }
-    const n = await page.evaluate(() => document.querySelectorAll('[data-p3="legacy-page"] :is(button, input, select, textarea, [tabindex="0"])').length);
+    const n = await page.evaluate((sc) => document.querySelectorAll(`${sc} :is(button, input, select, textarea, [tabindex="0"])`).length, scope);
+    if (moved) ok(n >= 10, `V1 focus: ${host} ${place} offers ${n} controls to focus in its levers (floor 10)`);
     const step = Math.max(1, Math.floor(n / 12));
     for (let i = 0; i < n; i += step) {
-      await page.evaluate((k) => document.querySelectorAll('[data-p3="legacy-page"] :is(button, input, select, textarea, [tabindex="0"])')[k]?.focus(), i);
+      await page.evaluate(([k, sc]) => document.querySelectorAll(`${sc} :is(button, input, select, textarea, [tabindex="0"])`)[k]?.focus(), [i, scope]);
       const now = (await previewView(page)).view;
       focuses++;
       ok(now === before, `V1 focus: ${host} ${place} control ${i} took focus and the preview stayed ${before} (now ${now})`);
@@ -851,12 +956,16 @@ const inspectState = (page) => page.evaluate(() => {
   const vis = (sel) => { const n = document.querySelector(sel); if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
   return {
     open: vis('[data-p3="inspect-body"]'), legacy: vis('[data-p3="legacy-page"]'), previewHead: vis('[data-p3="preview-head"]'),
+    // The page Inspect covers: the legacy page, or a moved page's preview (S2).
+    page: vis('[data-p3="legacy-page"]') || vis('[data-p3="preview-body"]'),
     tab: document.querySelector('[data-p3="inspect-head"] [role="tab"][aria-selected="true"]')?.textContent ?? null,
     tabs: [...document.querySelectorAll('[data-p3="inspect-head"] [role="tab"]')].map((t) => t.textContent),
     first: document.querySelector('[data-p3="inspect-body"] > * > :first-child')?.getAttribute('data-p3') ?? null,
     focus: document.activeElement?.getAttribute('data-p3') ?? null,
     legacyPage: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage, y: Math.round(window.scrollY),
+    py: Math.round(document.querySelector('[data-p3="preview-body"]')?.scrollTop ?? 0),
     view: document.querySelector('[data-p3="preview-body"]')?.dataset.view,
+    place: document.querySelector('[data-p3="frame"]')?.dataset.place,
   };
 });
 for (const host of ['web', 'figma']) {
@@ -867,14 +976,20 @@ for (const host of ['web', 'figma']) {
       const name = await page.evaluate(() => ({ text: document.querySelector('[data-p3="verdict"]')?.textContent, label: document.querySelector('[data-p3="verdict"]')?.getAttribute('aria-label') }));
       ok(name.label === `Verdict: ${VERDICT_LINE}. Open Inspect, Contrast`, `${where}: the verdict is named "Verdict: ${VERDICT_LINE}. Open Inspect, Contrast" — named "${name.label}"`);
       if (w > 560) ok(name.text === VERDICT_LINE, `${where}: the verdict reads "${VERDICT_LINE}" — reads "${name.text}"`);
-      // Scroll the legacy page first, so "closes back to it" includes where it was.
-      await page.evaluate(() => window.scrollTo(0, Math.min(400, document.documentElement.scrollHeight - window.innerHeight)));
+      // Scroll the page first, so "closes back to it" includes where it was: the window for a legacy page, the
+      // preview body for a moved one (its frame is fixed; at 380 the preview pane is shown first).
+      if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+      await page.evaluate(() => {
+        window.scrollTo(0, Math.min(400, document.documentElement.scrollHeight - window.innerHeight));
+        const b = document.querySelector('[data-p3="preview-body"]');
+        if (b) b.scrollTop = Math.min(400, b.scrollHeight - b.clientHeight);
+      });
       const before = await inspectState(page);
       await hooks.click(page.locator('[data-p3="verdict"]'));
       // Wait for Inspect, not for Health: a verdict that opened another view must fail by name below.
       await hooks.need(page, '[data-p3="inspect-body"] > *');
       const s1 = await inspectState(page);
-      ok(s1.open && !s1.legacy, `the verdict opens Inspect over the legacy frame (${where}: Inspect ${s1.open ? 'shown' : 'hidden'}, legacy page ${s1.legacy ? 'shown' : 'hidden'})`);
+      ok(s1.open && !s1.page, `the verdict opens Inspect over the page (${where}: Inspect ${s1.open ? 'shown' : 'hidden'}, page ${s1.page ? 'shown' : 'hidden'})`);
       ok(s1.tab === 'Contrast', `the verdict opens Inspect › Contrast (${where}: selected "${s1.tab}")`);
       ok(JSON.stringify(s1.tabs) === JSON.stringify(INSPECT_TABS), `${where}: Inspect's views are ${INSPECT_TABS.join(', ')} — read ${s1.tabs.join(', ')}`);
       ok(s1.first === 'health', `${where}: Health is at the top of Inspect › Contrast (first is "${s1.first}")`);
@@ -908,8 +1023,9 @@ for (const host of ['web', 'figma']) {
       // Back: the legacy page, where it was, with focus on the verdict that opened Inspect.
       await hooks.click(page.locator('[data-p3="inspect-close"]'));
       const s2 = await inspectState(page);
-      ok(!s2.open && s2.legacy && s2.legacyPage === before.legacyPage, `Inspect closes back to the legacy page (${where}: Inspect ${s2.open ? 'shown' : 'hidden'}, page "${s2.legacyPage}", was "${before.legacyPage}")`);
-      ok(Math.abs(s2.y - before.y) <= 1, `${where}: Inspect closes back to where the page was scrolled (y ${s2.y}, was ${before.y})`);
+      ok(!s2.open && s2.page && s2.legacyPage === before.legacyPage && s2.view === before.view, `Inspect closes back to the page (${where}: Inspect ${s2.open ? 'shown' : 'hidden'}, page ${s2.page ? 'shown' : 'hidden'}, legacy page "${s2.legacyPage}", was "${before.legacyPage}")`);
+      ok(Math.abs(s2.y - before.y) <= 1 && Math.abs(s2.py - before.py) <= 1, `${where}: Inspect closes back to where the page was scrolled (y ${s2.y}, was ${before.y}; preview ${s2.py}, was ${before.py})`);
+      if (NEW_PAGES.includes(before.place)) ok(before.py > 0, `${where}: the preview was scrolled before Inspect opened (${before.py}px), so the check above is not vacuous`);
       ok(s2.focus === 'verdict', `${where}: closing Inspect returns focus to the verdict that opened it (on "${s2.focus}")`);
       ok(s2.view === before.view, `${where}: Inspect never moves the preview's home (${s2.view}, was ${before.view})`);
       // Escape closes it too.
@@ -917,7 +1033,7 @@ for (const host of ['web', 'figma']) {
       await hooks.need(page, '[data-p3="health"]');
       await page.keyboard.press('Escape');
       const s3 = await inspectState(page);
-      ok(!s3.open && s3.legacy && s3.focus === 'verdict', `${where}: Escape closes Inspect back to the page (${JSON.stringify({ open: s3.open, focus: s3.focus })})`);
+      ok(!s3.open && s3.page && s3.focus === 'verdict', `${where}: Escape closes Inspect back to the page (${JSON.stringify({ open: s3.open, focus: s3.focus })})`);
       ok(errors.length === 0, `${where} Inspect: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       await ctx.close();
     }
@@ -930,19 +1046,17 @@ for (const host of ['web', 'figma']) {
   await hooks.need(page, '[data-p3="health"]');
   await goPlace(page, 'type');
   const s = await inspectState(page);
-  ok(!s.open && s.legacy && s.legacyPage === 'typography' && s.view === 'type', `a tab change closes Inspect and shows the new page (${JSON.stringify({ open: s.open, page: s.legacyPage, view: s.view })})`);
+  ok(!s.open && s.page && s.legacyPage === 'typography' && s.view === 'type', `a tab change closes Inspect and shows the new page (${JSON.stringify({ open: s.open, page: s.legacyPage, view: s.view })})`);
   await ctx.close();
 }
 
 // =============================================================================================
-// 9. The preview header in the two-pane layout (FORCED, see the header): the mode control and Inspect
+// 9. The preview header in the two-pane layout, on Color › Palettes (S2: for real, nothing forced)
 // =============================================================================================
-console.log(`\nThe preview header — the mode control and Inspect (two panes, forced)\n${'='.repeat(78)}`);
+console.log(`\nThe preview header — the mode control and Inspect (Color › Palettes)\n${'='.repeat(78)}`);
 /** The default theme's modes, as the mode control must show them, and which are derived (hatched): the
  *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. */
 const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true]];
-const force = (page) => page.evaluate(() => { document.querySelector('[data-p3="frame"]').dataset.layout = 'panes'; });
-const unforce = (page) => page.evaluate(() => { document.querySelector('[data-p3="frame"]').dataset.layout = 'legacy'; });
 const modeState = (page) => page.evaluate(() => ({
   radios: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => ({
     mode: b.dataset.mode, label: b.querySelector('.p3-mode-name')?.textContent, checked: b.getAttribute('aria-checked'), role: b.getAttribute('role'),
@@ -951,11 +1065,8 @@ const modeState = (page) => page.evaluate(() => ({
   legacy: document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent ?? null,
 }));
 for (const theme of ['light', 'dark']) {
-  const where = `web ${theme} 1280 (forced panes)`;
+  const where = `web ${theme} 1280 / color-palettes`;
   const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
-  // Surfaces & fills: a legacy page with a mode strip (Palettes has none; palettes are primitives).
-  await goPlace(page, 'color-fills');
-  await force(page);
   const st = await modeState(page);
   ok(st.group === 'radiogroup', `${where}: the mode control is a radiogroup (role "${st.group}")`);
   ok(JSON.stringify(st.radios.map((r) => [r.mode, r.label])) === JSON.stringify(EXPECT_MODES.map(([m, l]) => [m, l])), `${where}: the mode control offers ${EXPECT_MODES.map(([, l]) => l).join(', ')} — read ${st.radios.map((r) => r.label).join(', ')}`);
@@ -965,21 +1076,21 @@ for (const theme of ['light', 'dark']) {
   }
   ok(st.radios.filter((r) => r.checked === 'true').map((r) => r.mode).join() === 'light' && st.radios.every((r) => r.role === 'radio'), `${where}: Light is the one checked radio at boot (${st.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   const mp = await measure(page, `${where} / preview header`, 'web', 1280);
-  check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR, { state: 'forced', extra: ['[data-p3="mode-option"]', '[data-p3="inspect-open"]'] });
+  check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-mode-control.png`) });
-  // The mode control writes the mode, and the legacy page agrees.
+  // The mode control writes the mode the legacy pages draw in, and the legacy strip writes the same one back.
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
-  await unforce(page);
-  await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
-  ok(a.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a.legacy}")`);
-  // The other way: the legacy strip writes the same mode, and the control follows.
+  await goPlace(page, 'color-fills');
+  await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
+  const a2 = await modeState(page);
+  ok(a2.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a2.legacy}")`);
   await hooks.click(page.locator('[data-p3="legacy-page"] [data-p3="mode-tab"]').filter({ hasText: 'HC light' }));
+  await goPlace(page, 'color-palettes');
   const b = await modeState(page);
-  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true' && b.legacy === 'HC light', `${where}: the legacy strip's HC light checks HC light in the mode control (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)}, strip "${b.legacy}")`);
+  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: the legacy strip's HC light checks HC light in the mode control (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   // Arrow keys move along the radios and choose as they go.
-  await force(page);
   await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
   await page.keyboard.press('ArrowRight');
   const c = await modeState(page);
@@ -1008,16 +1119,11 @@ for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
       const { ctx, page } = await open({ host, theme, w, h });
-      await force(page);
       if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-      const where = `${host} ${theme} ${w} (forced panes)`;
-      const mp = await measure(page, `${where} / preview header`, host, w);
-      // Narrow, on the Preview pane: the bar, the pane toggle and the preview header; the tab row is hidden (Q7).
-      const narrowPreview = w <= 560 ? [...BAR.filter((x) => x !== '[data-p3="search-open"]'),
-        ...(host === 'web' ? ['[data-p3="theme-toggle"]'] : FIGMA_BAR),
-        '[data-p3="pane-toggle-settings"]', '[data-p3="pane-toggle-preview"]'] : null;
-      check(mp, `${where} / preview header`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'forced', extra: ['[data-p3="mode-option"]', '[data-p3="inspect-open"]'], only: narrowPreview });
-      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-mode-control.png`) });
+      const where = `${host} ${theme} ${w} / color-palettes`;
+      const mp = await measure(page, `${where} / preview`, host, w);
+      check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: w <= 560 ? 'preview' : 'page' });
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s2-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-preview.png`) });
       await ctx.close();
     }
   }
@@ -1261,7 +1367,7 @@ for (const host of ['web', 'figma']) {
       if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
       const mf = await measure(page, `${where} / a ${kind} open`, host, w);
       check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
-        { state: narrow ? 'sheet' : 'legacy', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] });
+        { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] });
       if (narrow) await shot('drawer-open');
       await hooks.click(page.locator('[data-p3="activity-toggle"]'));
       const c = await drawerState(page);
@@ -1284,6 +1390,302 @@ for (const host of ['web', 'figma']) {
       await ctx.close();
     }
   }
+}
+
+// =============================================================================================
+// 11. S2: specimens sit on the brand's page color for the previewed mode, never on the chrome's card
+// =============================================================================================
+console.log(`\nSpecimen grounds — Color › Palettes (plan §6.1, §9.1)\n${'='.repeat(78)}`);
+/** THE ORACLE, resolved in Node from the engine's committed emission, never from the page: each mode's
+ *  `color.background.primary`, its alias chain followed through the base tree with that mode's overlay. */
+const EMITTED = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const withOverlay = (mode) => {
+    if (mode === 'light') return base;
+    const t = structuredClone(base);
+    const ov = JSON.parse(readFileSync(join(out, `prism3.${mode}.overlay.tokens.json`), 'utf8'));
+    const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+    put(ov, t);
+    return t;
+  };
+  const resolveHex = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? resolveHex(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => [m, resolveHex(withOverlay(m), `${root}.color.background.primary`)]));
+})();
+ok(Object.values(EMITTED).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')), `the oracle resolved background.primary for every mode from the emission (${JSON.stringify(EMITTED)})`);
+ok(EMITTED.light !== EMITTED.dark, `the oracle's light and dark page colors differ (${EMITTED.light}, ${EMITTED.dark}), so a specimen on the wrong ground can fail`);
+const SPECIMEN_FLOOR = 14;   // primary and the accent (2 strips each), neutral (2), 4 status ramps (8) and opacity (2), less slack
+const groundsOf = (page) => page.evaluate(() => {
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  const roots = [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="specimen"]')];
+  const card = roots[0]?.closest('.p3-card');
+  return { card: card ? hex(groundOf(card)) : null, roots: roots.map((n) => ({ ground: hex(groundOf(n)), palette: n.closest('[data-palette]')?.dataset.palette ?? (n.closest('[data-p3="opacity-scale"]') ? 'opacity' : '?') })) };
+});
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    for (const [mode] of EXPECT_MODES) {
+      if (host === 'figma' && mode.startsWith('hc')) continue;
+      await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+      await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+      const where = `${host} ${theme} 1280, previewing ${mode}`;
+      const g = await groundsOf(page);
+      const want = EMITTED[mode];
+      ok(g.roots.length >= SPECIMEN_FLOOR, `specimen ground: palettes ${where}: measured ${g.roots.length} specimen roots (floor ${SPECIMEN_FLOOR})`);
+      const bad = g.roots.filter((r) => r.ground !== want);
+      ok(bad.length === 0, `specimen ground: palettes ${where}: every specimen root sits on background.primary ${want}${bad.length ? ` — ${bad.slice(0, 3).map((r) => `${r.palette} ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}`).join(' | ')}` : ''}`);
+    }
+    await ctx.close();
+  }
+}
+
+// =============================================================================================
+// 12. S2: the Palettes levers, represented and not counted (plan §6.1)
+// =============================================================================================
+console.log(`\nControls represented — the Palettes levers\n${'='.repeat(78)}`);
+/** The manifest keys v6 homes on Color › Palettes, and the tier each sits in (R2: the manifest flag decides
+ *  on Palettes), with the hook each must render. Literal: the decision, never read from `pages.ts`. */
+const PALETTES_LEVERS = [
+  ['primary', '[data-p3="lever-primary"]', false], ['brandColors', '[data-p3="lever-brand-colors"]', false],
+  ['neutral.hue', '[data-p3="lever-neutral-hue"]', false], ['neutral.chroma', '[data-p3="lever-neutral-chroma"]', false],
+  ['neutral.anchor', '[data-p3="lever-neutral-anchor"]', true],
+  ['status.success', '[data-p3="lever-status-success"]', true], ['status.warning', '[data-p3="lever-status-warning"]', true],
+  ['status.danger', '[data-p3="lever-status-danger"]', true], ['status.info', '[data-p3="lever-status-info"]', true],
+];
+/** The hook rule, written here (the `leverHook` contract: dots to dashes, camel case to kebab case). */
+const kebabHook = (k) => `lever-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+for (const [key, hook, adv] of PALETTES_LEVERS) {
+  const lev = manifest.levers.find((l) => l.key === key);
+  ok(!!lev, `the manifest has the Palettes lever ${key}`);
+  ok(hooks.role(hook) === kebabHook(key), `${key}'s hook is ${kebabHook(key)} (listed ${hooks.role(hook)})`);
+  ok(!!lev?.advanced === adv, `${key} is ${adv ? '' : 'not '}advanced in the manifest (R2: the flag decides on Palettes)`);
+}
+for (const host of ['web', 'figma']) {
+  const { ctx, page } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  const count = () => page.evaluate((hs) => Object.fromEntries(hs.map((hk) => [hk, document.querySelectorAll(`[data-p3="levers-pane"] ${hk}`).length])), PALETTES_LEVERS.map(([, hk]) => hk));
+  const strays = () => page.evaluate((hs) => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !hs.includes(`[data-p3="${r}"]`)), PALETTES_LEVERS.map(([, hk]) => hk));
+  const c0 = await count();
+  for (const [key, hook, adv] of PALETTES_LEVERS) {
+    if (adv) hooks.absent(ok, { seen: c0['[data-p3="lever-primary"]'] === 1, state: 'the everyday Palettes levers' }, c0[hook] === 0, `${host}: Palettes lever ${key} waits behind Show advanced (${c0[hook]} rendered)`);
+    else ok(c0[hook] === 1, `${host}: Palettes lever ${key} renders its hook ${hooks.role(hook)} once — rendered ${c0[hook]}`);
+  }
+  await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+  await hooks.need(page, '[data-p3="lever-status-info"]');
+  const c1 = await count();
+  for (const [key, hook] of PALETTES_LEVERS) ok(c1[hook] === 1, `${host}: Palettes lever ${key} renders its hook ${hooks.role(hook)} once with Show advanced open — rendered ${c1[hook]}`);
+  const st = await strays();
+  ok(st.length === 0, `${host}: every lever block on Palettes is one of its ${PALETTES_LEVERS.length} keys${st.length ? ` — unclassified lever ${st.join(', ')}` : ''}`);
+  const label = await page.evaluate(() => document.querySelector('[data-p3="palettes-advanced"]')?.textContent);
+  ok(label === 'Hide 5 advanced', `${host}: the disclosure reads "Hide 5 advanced" when open (reads "${label}")`);
+  // The advanced levers are chrome too: measured with Show advanced open.
+  const ma = await measure(page, `${host} light 1280 / Palettes, Show advanced open`, host, 1280);
+  check(ma, `${host} light 1280 / Palettes, Show advanced open`, columnOf(host, 1280), PLACE_FLOOR, { extra: ['[data-p3="neutral-pin-switch"]', '[data-p3="status-success-source"]'] });
+  if (SHOTS) await page.screenshot({ path: join(SHOTS, `s2-${host === 'web' ? 'studio' : 'plugin'}-light-1280-advanced.png`), fullPage: false });
+  await ctx.close();
+}
+
+// =============================================================================================
+// 13. S2: an edit repaints the preview by subscription, and moves nothing (V1)
+// =============================================================================================
+console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const view0 = await previewView(page);
+  const hero = () => page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="palette"][data-palette="primary"] .p3-hero')).backgroundColor);
+  const field = page.locator('[data-p3="primary-hex"]');
+  await field.fill('#00aa55');
+  await field.press('Enter');
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-p3="palette"][data-palette="primary"] .p3-hero')).backgroundColor === 'rgb(0, 170, 85)', null, { timeout: 5000 }).catch(() => {});
+  ok(await hero() === 'rgb(0, 170, 85)', `edit: a primary of #00aa55 typed in the hex field repaints the preview's primary hero to it (${await hero()})`);
+  const after = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3'), value: document.querySelector('[data-p3="primary-hex"]').value }));
+  ok(after.focus === 'primary-hex' && after.value === '#00aa55', `edit: the hex field keeps its focus and its value through the repaint (${JSON.stringify(after)})`);
+  const view1 = await previewView(page);
+  ok(view1.view === view0.view, `V1 edit: a lever edit never moves the preview's home (${view1.view}, was ${view0.view})`);
+  // A brand color: add one, and it gets its own ramp in the preview; remove it, and the ramp goes.
+  const ramps = () => page.locator('[data-p3="preview-body"] [data-p3="palette"]').count();
+  const n0 = await ramps();
+  await hooks.click(page.locator('[data-p3="brand-color-add"]'));
+  await page.waitForFunction((n) => document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]').length === n + 1, n0, { timeout: 5000 }).catch(() => {});
+  const added = await page.evaluate(() => ({ n: document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]').length, focus: document.activeElement?.getAttribute('data-p3'), names: [...document.querySelectorAll('[data-p3="brand-color-name"]')].map((i) => i.value) }));
+  ok(added.n === n0 + 1 && added.focus === 'brand-color-name', `edit: Add brand color adds a ramp to the preview and focuses the new color's name (${JSON.stringify(added)}, was ${n0})`);
+  const rm = page.locator('[data-p3="brand-color-remove"]').last();
+  await hooks.click(rm);
+  await page.waitForFunction((n) => document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]').length === n, n0, { timeout: 5000 }).catch(() => {});
+  ok(await ramps() === n0, `edit: removing that color takes its ramp out of the preview (${await ramps()}, want ${n0})`);
+  // A rename onto another palette's name is refused, and the field puts the old name back.
+  const nameField = page.locator('[data-p3="brand-color-name"]').first();
+  const was = await nameField.inputValue();
+  await nameField.fill('primary');
+  await nameField.press('Enter');
+  await nameField.press('Tab');
+  ok(await page.locator('[data-p3="brand-color-name"]').first().inputValue() === was, `edit: renaming a brand color to "primary" is refused and the name stays "${was}"`);
+  ok(errors.length === 0, `edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 14. S2: the step picker (V9), on a test-only fixture page (it ships unmounted until S4's fill rows)
+// =============================================================================================
+console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
+{
+  const esbuild = await import('esbuild');
+  const { chromeCss } = await import('./chrome/esbuild-plugin.mjs');
+  // THE ORACLE'S ARITHMETIC: the engine's own contrast function, bundled for Node from its source, applied
+  // to the hex values the fixture hands the picker. The component's ratios are compared against it.
+  const engineColor = await esbuild.build({ entryPoints: [join(REPO, 'packages/engine/color.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  const { contrast, hexToRgb } = await import(`data:text/javascript;base64,${Buffer.from(engineColor.outputFiles[0].text).toString('base64')}`);
+  // The fixture: a page that mounts the shipped `src/ui/step-picker.ts` beside an opener and records what it
+  // writes. Built here, served by this suite, never shipped.
+  const FIXTURE = `
+    import { stepPicker } from './ui/step-picker';
+    import CSS from 'p3:chrome-css';
+    import { brandTheme } from '@prism3/engine/theme';
+    import { resolveAllModes } from '@prism3/engine/modes';
+    import brands from '@prism3/engine/schema/example-brands.json';
+    const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
+    document.documentElement.dataset.theme = new URLSearchParams(location.search).get('theme') || 'light';
+    const t = brandTheme(brands.prism3);
+    const light = resolveAllModes(t).find((x) => x.mode === 'light');
+    const role = 'foreground.brand';
+    const r = light.roles[role];
+    const [pal, step] = r.path.split('.palette.')[1].split('.');
+    const palettes = t.palettes.map((p) => ({ palette: p.palette, steps: p.steps.map((s) => ({ key: s.key, hex: s.hex })) }));
+    // A role is measured against another role, or against a palette step ("neutral.050").
+    const hexOfRef = (ref) => light.roles[ref]?.hex ?? t.palettes.find((x) => x.palette === ref.split('.')[0])?.steps.find((x) => x.key === ref.split('.')[1])?.hex;
+    const against = { hex: hexOfRef(r.against), name: r.against, floor: r.min };
+    window.__fixture = { role, palettes, against, current: { palette: pal, step } };
+    window.__writes = [];
+    const card = document.createElement('div'); card.className = 'p3-card';
+    const open = document.createElement('button'); open.type = 'button'; open.className = 'p3-btn p3-btn-page'; open.textContent = 'Pick a step';
+    open.dataset.p3 = 'fixture-open';
+    card.append(open); document.body.append(card);
+    document.body.style.background = 'var(--p3-bg-page)';
+    let picker = null;
+    open.onclick = () => {
+      picker?.el.remove();
+      picker = stepPicker({ role, modeLabel: 'Light (base)', palettes, current: { palette: pal, step }, against, overridden: true,
+        onPick: (p, s) => window.__writes.push(p + ' ' + s), onAuto: () => window.__writes.push('auto'),
+        onClose: () => { picker?.el.remove(); picker = null; open.focus(); } });
+      card.append(picker.el); picker.focusCurrent();
+    };`;
+  const built = await esbuild.build({ stdin: { contents: FIXTURE, resolveDir: join(HERE, 'src'), loader: 'ts' }, bundle: true, format: 'esm', write: false,
+    loader: { '.css': 'text' }, define: { PRISM3_HOST: "'web'", PRISM3_BUILD: "'local'" }, plugins: [chromeCss()], logLevel: 'silent' });
+  const fixtureJs = built.outputFiles[0].text;
+  const fx = createServer((req, res) => {
+    if (req.url.startsWith('/fixture.js')) { res.writeHead(200, { 'content-type': 'text/javascript' }); res.end(fixtureJs); return; }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end('<!doctype html><html><head><meta charset="utf-8"><title>Step picker fixture</title></head><body><script type="module" src="/fixture.js"></script></body></html>');
+  });
+  await new Promise((r) => fx.listen(0, '127.0.0.1', r));
+  const FX = `http://127.0.0.1:${fx.address().port}`;
+  const readSteps = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="step-picker-step"]')].map((b) => ({
+    palette: b.dataset.palette, key: b.dataset.step, below: b.dataset.below === 'true', pressed: b.getAttribute('aria-pressed'),
+    ratio: b.querySelector('.p3-step-ratio')?.textContent ?? '', mark: !!b.querySelector('.p3-step-ratio svg'), label: b.getAttribute('aria-label'), tab: b.tabIndex,
+    chip: getComputedStyle(b.querySelector('.p3-step-chip')).backgroundColor })));
+  const fmt = (r) => `${(Math.floor(r * 100) / 100).toFixed(2)}:1`;
+  const rgbOf = (hx) => { const c = hexToRgb(hx); return `rgb(${c.r}, ${c.g}, ${c.b})`; };
+  for (const theme of ['light', 'dark']) {
+    const ctx = await browser.newContext({ viewport: { width: 760, height: 900 } });
+    const page = await ctx.newPage();
+    await hooks.watch(page);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`${FX}/?theme=${theme}`, { waitUntil: 'load' });
+    const where = `step picker ${theme}`;
+    const F = await page.evaluate(() => window.__fixture);
+    ok(F.against && F.against.floor > 0, `${where}: the fixture's role (${F.role}) has a floor to mark against (${JSON.stringify(F.against)})`);
+    await hooks.click(page.locator('[data-p3="fixture-open"]'));
+    await hooks.need(page, '[data-p3="step-picker"]');
+    const shownPal = F.palettes.find((p) => p.palette === F.current.palette);
+    const st = await readSteps(page);
+    // The swatch grid: one step per palette step, in order, each its own color.
+    ok(st.length === shownPal.steps.length && st.every((x, i) => x.key === shownPal.steps[i].key && x.chip === rgbOf(shownPal.steps[i].hex)),
+      `${where}: the grid shows ${F.current.palette}'s ${shownPal.steps.length} steps, in order, each in its color (showed ${st.length})`);
+    // Each ratio, against the engine's contrast of the same two hex values.
+    const wrongRatio = st.filter((x, i) => x.ratio !== fmt(contrast(hexToRgb(shownPal.steps[i].hex), hexToRgb(F.against.hex))));
+    ok(wrongRatio.length === 0, `${where}: every step's ratio is the engine's contrast against ${F.against.name}${wrongRatio.length ? ` — ${wrongRatio.slice(0, 3).map((x) => `${x.key} shows ${x.ratio}`).join(' | ')}` : ''}`);
+    const wrongMark = st.filter((x, i) => x.below !== (contrast(hexToRgb(shownPal.steps[i].hex), hexToRgb(F.against.hex)) + 1e-9 < F.against.floor) || x.below !== x.mark || x.below !== /below floor/.test(x.label));
+    ok(wrongMark.length === 0 && st.some((x) => x.below) && st.some((x) => !x.below), `${where}: a step below the ${F.against.floor}:1 floor, and only one, carries the below-floor mark, in its glyph and its name${wrongMark.length ? ` — ${wrongMark.slice(0, 3).map((x) => x.key).join(', ')}` : ''}`);
+    const cur = st.filter((x) => x.pressed === 'true').map((x) => x.key);
+    ok(JSON.stringify(cur) === JSON.stringify([F.current.step]), `${where}: the current step (${F.current.step}) is the one marked current (${cur.join(', ')})`);
+    // The picker's own chrome: text, step edges, targets.
+    const chrome = await page.evaluate(() => {
+      const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+      const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+      const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+      const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      const ground = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
+      const pk = document.querySelector('[data-p3="step-picker"]');
+      const text = [...pk.querySelectorAll('*')].filter((e) => !e.closest('[data-content]') && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+        .map((e) => ({ t: e.textContent.trim().slice(0, 20), r: Math.floor(ratio(over(parse(getComputedStyle(e).color), ground(e)), ground(e)) * 100) / 100 }));
+      const edges = [...pk.querySelectorAll('.p3-step')].map((b) => Math.floor(ratio(parse(getComputedStyle(b).borderTopColor), ground(b.parentElement)) * 100) / 100);
+      const small = [...pk.querySelectorAll('button, select')].map((b) => b.getBoundingClientRect()).filter((r) => r.width < 24 || r.height < 24).length;
+      return { text, edges, small };
+    });
+    const dim = chrome.text.filter((x) => x.r < TEXT_MIN);
+    ok(chrome.text.length >= 10 && dim.length === 0, `${where}: the picker's ${chrome.text.length} text nodes clear ${TEXT_MIN}:1${dim.length ? ` — ${dim.slice(0, 3).map((x) => `"${x.t}" ${x.r}:1`).join(' | ')}` : ''}`);
+    ok(chrome.edges.length > 0 && chrome.edges.every((r) => r >= NONTEXT_MIN), `${where}: every step's edge clears ${NONTEXT_MIN}:1 (lowest ${Math.min(...chrome.edges)}:1)`);
+    ok(chrome.small === 0, `${where}: every picker control is at least ${TARGET_MIN} × ${TARGET_MIN} (${chrome.small} smaller)`);
+    if (SHOTS) await page.screenshot({ path: join(SHOTS, `s2-step-picker-${theme}.png`) });
+    // Keyboard: focus starts on the current step; arrows, Home and End move; Up and Down move a row.
+    const focus = () => page.evaluate(() => document.activeElement?.dataset.step ?? document.activeElement?.getAttribute('data-p3'));
+    const keys = shownPal.steps.map((x) => x.key);
+    const i0 = keys.indexOf(F.current.step);
+    ok(await focus() === F.current.step, `${where}: opening puts focus on the current step (${await focus()})`);
+    await page.keyboard.press('ArrowRight');
+    ok(await focus() === keys[i0 + 1], `${where}: ArrowRight moves to the next step (${await focus()}, want ${keys[i0 + 1]})`);
+    await page.keyboard.press('Home');
+    ok(await focus() === keys[0], `${where}: Home moves to the first step (${await focus()})`);
+    const cols = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-p3="step-picker-step"]')]; return b.filter((x) => x.offsetTop === b[0].offsetTop).length; });
+    await page.keyboard.press('ArrowDown');
+    ok(await focus() === keys[Math.min(cols, keys.length - 1)], `${where}: ArrowDown moves one row (${cols} columns) down (${await focus()})`);
+    await page.keyboard.press('End');
+    ok(await focus() === keys[keys.length - 1], `${where}: End moves to the last step (${await focus()})`);
+    // Focus ring on a step: 2px at 3:1 against the picker it sits on.
+    const ring = await page.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); return { w: parseFloat(cs.outlineWidth), style: cs.outlineStyle }; });
+    ok(ring.style !== 'none' && ring.w >= FOCUS_WIDTH_MIN, `${where}: a focused step draws a ring at least ${FOCUS_WIDTH_MIN}px wide (${JSON.stringify(ring)})`);
+    // What it writes: the step chosen, by click and by Enter, through the callback the fixture records.
+    await page.evaluate(() => { window.__writes.length = 0; });
+    const target = keys[Math.max(0, i0 - 2)];
+    await hooks.click(page.locator(`[data-p3="step-picker-step"][data-step="${target}"]`));
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    let w = await page.evaluate(() => window.__writes.slice());
+    ok(JSON.stringify(w) === JSON.stringify([`${F.current.palette} ${target}`, `${F.current.palette} ${keys[keys.length - 1]}`]),
+      `step picker: choosing ${F.current.palette} ${target}, then ${keys[keys.length - 1]} by Enter, writes those steps — wrote ${JSON.stringify(w)} (${theme})`);
+    // Another palette: the grid follows the select, and a choice writes that palette's step.
+    await page.locator('[data-p3="step-picker-palette"]').selectOption('neutral');
+    const ns = await readSteps(page);
+    const nPal = F.palettes.find((p) => p.palette === 'neutral');
+    ok(ns.length === nPal.steps.length && ns.every((x) => x.palette === 'neutral') && ns.every((x) => x.pressed === 'false'), `${where}: choosing the neutral palette shows its ${nPal.steps.length} steps, none current (${ns.length})`);
+    await hooks.click(page.locator('[data-p3="step-picker-step"][data-step="300"]'));
+    // Return to Auto.
+    await hooks.click(page.locator('[data-p3="step-picker-auto"]'));
+    w = await page.evaluate(() => window.__writes.slice(2));
+    ok(JSON.stringify(w) === JSON.stringify(['neutral 300', 'auto']), `${where}: a neutral step writes "neutral 300", and Return to Auto writes "auto" — wrote ${JSON.stringify(w)}`);
+    // Escape closes and returns focus to the opener; Close does the same.
+    await page.locator('[data-p3="step-picker-step"]').first().focus();
+    await page.keyboard.press('Escape');
+    const e1 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="step-picker"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+    ok(!e1.open && e1.focus === 'fixture-open', `${where}: Escape closes the picker and returns focus to what opened it (${JSON.stringify(e1)})`);
+    await hooks.click(page.locator('[data-p3="fixture-open"]'));
+    await hooks.click(page.locator('[data-p3="step-picker-close"]'));
+    const e2 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="step-picker"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+    ok(!e2.open && e2.focus === 'fixture-open', `${where}: Close closes the picker and returns focus to what opened it (${JSON.stringify(e2)})`);
+    ok(errors.length === 0, `${where}: 0 page errors${errors.length ? ` — ${errors[0]}` : ''}`);
+    await ctx.close();
+  }
+  fx.close();
 }
 
 hooks.report(ok);

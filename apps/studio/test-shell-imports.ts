@@ -6,8 +6,8 @@
  *
  * New shell code repaints by store subscription: a writer calls a setter, and every surface that reads
  * the topic repaints itself (plan §5). It never calls the legacy repaint tiers, which S13 deletes. So
- * every file under `src/shell/`, `src/domains/` and `src/preview/` must not name `apply`, `applyFull`,
- * `build`, `renderBar` or `setVolatile`, and a file that does fails here, naming the file, the line and
+ * every file under `src/shell/`, `src/domains/`, `src/preview/` and (from S2) `src/ui/` must not name `apply`,
+ * `applyFull`, `build`, `renderBar`, `setVolatile` or (from S2) `renderWorkspace`, and a file that does fails here, naming the file, the line and
  * the name.
  *
  * WHY IT IS INDEPENDENT OF WHAT IT CHECKS (docs/34). The subject is the new source, read from disk. The
@@ -54,14 +54,20 @@ const ok = (cond: boolean, label: string): void => {
   else { failed++; console.error(`  ✗ ${label}`); }
 };
 
-/** The legacy repaint tiers, literally (plan §3.10). */
-const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'setVolatile'] as const;
-/** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices. */
-const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview'];
+/** The legacy repaint tiers, literally (plan §3.10). S2 adds `renderWorkspace`, the legacy page's own
+ *  re-render, which the S2 brief names beside the five: a moved page that called it would redraw a legacy
+ *  page that is no longer there. */
+const LEGACY_TIERS = ['apply', 'applyFull', 'build', 'renderBar', 'setVolatile', 'renderWorkspace'] as const;
+/** The directories new shell code lives in. `domains/` and `preview/` arrive with the domain slices; S2
+ *  adds `ui/`, the shared controls a domain composes from (the lever kit, the step picker), which is new
+ *  code with the same rule. */
+const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview', 'src/ui'];
 /** Files the scan must read, so an empty or misdirected scan cannot pass. */
 const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts', 'src/shell/preview.ts',
   // S1.4: the Activity drawer and the Figma menu, which run writes `main.ts` lends and must not reach a tier.
-  'src/shell/activity.ts', 'src/shell/figma.ts'];
+  'src/shell/activity.ts', 'src/shell/figma.ts',
+  // S2: Color › Palettes (its levers and its preview) and the shared controls.
+  'src/domains/color-palettes.ts', 'src/preview/palettes.ts', 'src/ui/lever-kit.ts', 'src/ui/step-picker.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -111,6 +117,7 @@ const FIXTURE = [
   'export const go = (apply: () => void) => { apply(); build(); };',
   'const host = { renderBar: () => {} }; host.renderBar(); applyFull();',
   'declare const setVolatile: (h: unknown[], p: () => void) => void; setVolatile([], () => {});',
+  'declare const renderWorkspace: () => void; renderWorkspace();',
 ].join('\n');
 const ACCESS_FIXTURE = [
   "declare const m: Record<string, () => void>;",
