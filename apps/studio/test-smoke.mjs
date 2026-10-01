@@ -704,7 +704,8 @@ for (const brand of BRANDS) {
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
   const pages = await railLabels(page);
-  ok(pages.length >= 7, `${brand}: the Pages menu offers ${pages.length} destinations (S3 took Preview out: its Style guide is Brand's preview)`);
+  // Floor 6: Palettes (S2), Preview (S3: its Style guide is Brand's preview) and Surfaces & fills (S4a) left the menu.
+  ok(pages.length >= 6, `${brand}: the Pages menu offers ${pages.length} destinations`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
   //
@@ -1158,6 +1159,148 @@ ok(recolored > 0, `the brand switches recolored ${recolored} ramp(s) in place, s
 ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesStates} brand × mode states (floor ${BRANDS.length * 2})`);
 
 // =============================================================================================
+// 1c. Color › Surfaces & fills — moved to the two panes (UI redesign S4a), on its own hooks
+// =============================================================================================
+// Its preview draws the legacy Style guide's five color sections (owner decision Q5, 2026-10-01) from the
+// SAME modules the Style guide draws them with, plus the brand's gradients. Per corpus brand and per mode,
+// against the brand's COMMITTED EMISSION, never the page:
+//   · every section ground is a specimen root on the emission's `background.primary` (listed by name);
+//   · every painted swatch (a card's fill, a border, an ink, an icon) is the emission's hex for its role;
+//   · every ratio badge prints the ratio THIS FILE computes, with its own WCAG function, from the two
+//     emitted hexes (the role and what the emission says it is measured against), and marks below-floor
+//     exactly when that ratio is under the emission's `min`; a graded role's chip with no badge fails;
+//   · the five sections draw, in order, the token chips the Style guide has always drawn (literal), on
+//     Surfaces & fills AND on the Style guide itself, so a change to a shared section shows on both.
+console.log(`\nColor › Surfaces & fills — the moved page, against each brand's emission\n${'='.repeat(78)}`);
+/** The token chips each shared section draws, in order. Literal: the Style guide's sections as `main.ts` drew
+ *  them before the lift (UI redesign S4a), which both pages must keep drawing. */
+const SEM5 = ['brand', 'danger', 'success', 'warning', 'info'];
+const EXPECT_SECTION_CHIPS = {
+  Background: ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary', 'inverse.text.primary',
+    'inverse.background.secondary', 'inverse.background.tertiary', 'scrim.default'],
+  Foreground: ['foreground.primary', 'foreground.secondary', 'foreground.tertiary', 'inverse.foreground.primary', 'inverse.foreground.secondary',
+    'inverse.foreground.tertiary', ...SEM5.flatMap((s) => [`foreground.${s}`, `text.on-${s}`]), ...SEM5.flatMap((s) => [`foreground.${s}-subtle`, `text.${s}`])],
+  'Text color': ['text.primary', 'text.secondary', 'text.tertiary', ...SEM5.map((s) => `text.${s}`), ...SEM5.map((s) => `text.${s}-subtle`),
+    'text.link.default', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused'],
+  Border: ['border.primary', 'border.secondary', 'border.tertiary', 'inverse.border.primary', 'border.focus', 'inverse.border.focus',
+    ...SEM5.map((s) => `border.${s}`)],
+  Icon: ['icon.primary', 'icon.secondary', 'icon.tertiary', ...SEM5.map((s) => `icon.${s}`), ...SEM5.map((s) => `icon.on-${s}`)],
+};
+/** The specimen roots each corpus brand's Surfaces & fills preview draws: the five sections, and Gradients
+ *  where the brand ships gradients (harbor ships none). Literal, per brand. */
+const FIVE = Object.keys(EXPECT_SECTION_CHIPS);
+const EXPECT_FILLS_ROOTS = { prism3: [...FIVE, 'Gradients'], aurora: [...FIVE, 'Gradients'], harbor: FIVE };
+/** Roles whose swatch must be among those checked, one or more per section, so an empty read fails by name. */
+const MUST_PAINT = ['background.primary', 'inverse.background.primary', 'foreground.brand', 'text.on-brand', 'text.primary', 'border.secondary', 'icon.primary', 'icon.on-brand'];
+/** A palette step's emitted hex (`neutral.050` → `core.palette.neutral.050`), for an `against` that names one. */
+const emittedPalette = async (brand) => {
+  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const pal = tree[Object.keys(tree)[0]].core.palette;
+  return (ref) => { const [p, s] = [ref.slice(0, ref.lastIndexOf('.')), ref.slice(ref.lastIndexOf('.') + 1)]; const v = pal?.[p]?.[s]?.$value; return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null; };
+};
+const hexRgb = (hx) => ({ r: parseInt(hx.slice(1, 3), 16), g: parseInt(hx.slice(3, 5), 16), b: parseInt(hx.slice(5, 7), 16), a: 1 });
+const rgbHex = (s) => { const c = parseRgb(s); return c && c.a > 0.999 ? hexOf(c) : null; };
+const readSections = (page, hostSel) => page.evaluate((sel) => {
+  const host = document.querySelector(sel);
+  const hex = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s ?? ''); return m ? `#${m[1].split(/[,\s/]+/).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : s; };
+  const sections = [...(host?.querySelectorAll('.psec') ?? [])].map((s) => ({
+    name: s.querySelector('.psec-t')?.textContent ?? '?',
+    root: s.querySelector('.sg-ground')?.getAttribute('data-p3') === 'specimen',
+    ground: hex(getComputedStyle(s.querySelector('.sg-ground') ?? s).backgroundColor),
+    chips: [...s.querySelectorAll('.sg-ground [data-p3="token-pill"]')].map((p) => p.textContent.replace(/^color\./, '').replace(/!$/, '')),
+  }));
+  const paint = [...(host?.querySelectorAll('[data-sg-role]') ?? [])].map((n) => {
+    const cs = getComputedStyle(n);
+    return { role: n.dataset.sgRole, prop: n.dataset.sgPaint, mode: n.dataset.sgMode ?? null,
+      css: n.dataset.sgPaint === 'background' ? cs.backgroundColor : n.dataset.sgPaint === 'border' ? cs.borderTopColor : cs.color };
+  });
+  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '' }));
+  const chipsWithBadge = [...(host?.querySelectorAll('.sg-pills') ?? [])].flatMap((w) => [...w.querySelectorAll('[data-p3="token-pill"]')].map((p) => {
+    const role = p.textContent.replace(/^color\./, '').replace(/!$/, '');
+    let n = p.closest('[data-p3="token-pill-wrap"]') ?? p; n = n.nextElementSibling;
+    return { role, badge: n?.getAttribute('data-p3') === 'ratio-badge' && n.dataset.role === role };
+  }));
+  return { sections, paint, badges, chipsWithBadge };
+}, hostSel);
+const SG_FILLS = '[data-p3="preview-body"] [data-p3="surfaces-style-guide"]';
+const floor2 = (r) => Math.floor(r * 100) / 100;
+let fillsStates = 0, fillsBadges = 0, fillsPaint = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const emission = await loadEmission(brand);
+  const palOf = await emittedPalette(brand);
+  const expectRoots = EXPECT_FILLS_ROOTS[brand.toLowerCase()];
+  ok(!!expectRoots, `${brand} / Surfaces & fills: the suite lists the specimen roots this brand's preview draws (EXPECT_FILLS_ROOTS)`);
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
+  await hooks.need(page, SG_FILLS);
+  const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
+  for (const mode of modes) {
+    await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+    await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+    const where = `${brand} / Surfaces & fills / ${mode}`;
+    fillsStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    const got = await readSections(page, SG_FILLS);
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    for (const name of expectRoots ?? []) {
+      const s = got.sections.find((x) => x.name === name);
+      ok(!!s && s.root && s.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== page0 ? ` — on ${s.ground}` : ''}`);
+    }
+    const unlisted = got.sections.filter((x) => !(expectRoots ?? []).includes(x.name)).map((x) => x.name);
+    ok(unlisted.length === 0, `${where}: every section drawn is a listed specimen root${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+    for (const [name, chips] of Object.entries(EXPECT_SECTION_CHIPS)) {
+      const s = got.sections.find((x) => x.name === name);
+      ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
+    }
+    // Swatches: each painted node's computed color against the emission's hex for its role, in its mode.
+    const offPaint = [], checked = new Set();
+    for (const n of got.paint) {
+      const want = emission?.role(n.role, n.mode ?? mode)?.hex;
+      if (!want) continue;   // a translucent role (an alpha) has no opaque hex to hold it to
+      const drawn = rgbHex(n.css);
+      checked.add(n.role);
+      fillsPaint++;
+      if (drawn !== want) offPaint.push(`${n.role} ${n.prop}${n.mode ? ` (${n.mode})` : ''} is painted ${drawn ?? n.css} (emitted ${want})`);
+    }
+    ok(offPaint.length === 0, `${where}: every swatch is painted its emitted hex${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
+    const unpainted = MUST_PAINT.filter((r) => !checked.has(r));
+    ok(unpainted.length === 0, `${where}: the swatch check read the listed roles${unpainted.length ? ` — not read: ${unpainted.join(', ')}` : ''}`);
+    // Ratio badges: computed HERE from the emitted pair.
+    const offBadge = [];
+    for (const b of got.badges) {
+      const r = emission?.role(b.role, mode);
+      const ag = r?.against;
+      const agHex = ag ? (emission.role(ag, mode)?.hex ?? palOf(ag)) : null;
+      if (!r || !agHex) { offBadge.push(`${b.role}: the emission gives no pair to measure (against ${ag})`); continue; }
+      const want = wcag(hexRgb(r.hex), hexRgb(agHex));
+      const printed = parseFloat(b.text);
+      const wantBelow = typeof r.min === 'number' && r.min > 0 && want + 1e-9 < r.min;
+      fillsBadges++;
+      if (!(Math.abs(printed - floor2(want)) <= 0.011)) offBadge.push(`${b.role} prints ${b.text}, the emitted pair ${r.hex} on ${agHex} measures ${want.toFixed(3)}:1`);
+      else if (b.below !== wantBelow) offBadge.push(`${b.role} is ${b.below ? '' : 'not '}marked below floor at ${want.toFixed(2)}:1 against min ${r.min}`);
+    }
+    ok(offBadge.length === 0, `${where}: every ratio badge prints the emitted pair's ratio and marks its floor${offBadge.length ? ` — ${offBadge.slice(0, 3).join(' | ')}` : ''}`);
+    const noBadge = got.chipsWithBadge.filter((c) => { const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
+    ok(noBadge.length === 0, `${where}: every chip of a role measured against another carries its ratio badge${noBadge.length ? ` — no badge: ${[...new Set(noBadge)].slice(0, 5).join(', ')}` : ''}`);
+  }
+  // The Style guide itself (Brand's preview, lent by `main.ts`, S3) draws the same five sections.
+  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  await hooks.need(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"] .psec');
+  const sg = await readSections(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"]');
+  for (const [name, chips] of Object.entries(EXPECT_SECTION_CHIPS)) {
+    const s = sg.sections.find((x) => x.name === name);
+    ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${brand} / Style guide: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
+  }
+  hooks.absent(ok, { seen: sg.sections.length >= 5, state: 'the Style guide\'s sections' }, sg.badges.length === 0, `${brand} / Style guide: draws no ratio badge (owner decision Q5: badges on Surfaces & fills only)`);
+  await ctx.close();
+}
+ok(fillsStates >= BRANDS.length * 2, `the Surfaces & fills sweep visited ${fillsStates} brand × mode states (floor ${BRANDS.length * 2})`);
+console.log(`  ${fillsStates} states, ${fillsPaint} swatches and ${fillsBadges} ratio badges checked against the emissions.`);
+
+// =============================================================================================
 // 2. The controls — driven, not merely rendered
 // =============================================================================================
 // A page that loads clean proves the renderer runs. It proves nothing about what the controls DO,
@@ -1445,22 +1588,26 @@ for (const brand of BRANDS) {
   // `applyFull()` → `renderWorkspace()` does `workspace.innerHTML = ''`, which resets scroll as a side
   // effect; #485 fixed it once for every current AND future caller by saving/restoring around the
   // teardown. Driven on Surfaces, which is where it was reported.
-  await gotoRail(page, '[data-p3="rail-page-surfaces"]');
-  const surfSel = page.locator('[data-p3="section-backgrounds"] select').first();
+  // Surfaces & fills moved to the two panes in UI redesign S4a, so the jump is driven on Interactive, the
+  // first legacy Color page, by its first select that offers a choice (a step select in its matrix).
+  await gotoRail(page, '[data-p3="rail-page-interactive"]');
+  const selIdx = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-page"] select')].findIndex((s) => s.options.length >= 3));
+  ok(selIdx >= 0, `${brand}: the Interactive page has a select with a choice to drive (#485)`);
+  const surfSel = page.locator('[data-p3="legacy-page"] select').nth(selIdx);
   const opts = await surfSel.evaluate((s) => [...s.options].map((o) => o.value));
   const cur = await surfSel.inputValue();
   const target = opts.find((o) => o !== cur);
   const height = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
-  ok(height > 400, `${brand}: the Surfaces page is scrollable (${height}px of travel) — the jump is observable`);
+  ok(height > 400, `${brand}: the Interactive page is scrollable (${height}px of travel) — the jump is observable`);
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.waitForFunction(() => window.scrollY === 400);
   await surfSel.selectOption(target);
   // Wait on the EDIT having landed IN THE REBUILT SECTION — `applyFull()` replaces the whole
   // workspace, so this condition is only true once the new DOM exists. Not a timer, and not a read of
   // the pre-rebuild element, which would already hold the new value and prove nothing.
-  await page.waitForFunction((t) => document.querySelector('[data-p3="section-backgrounds"] select')?.value === t, target);
+  await page.waitForFunction(([t, i]) => document.querySelectorAll('[data-p3="legacy-page"] select')[i]?.value === t, [target, selIdx]);
   const scrollY = await page.evaluate(() => window.scrollY);
-  ok(Math.abs(scrollY - 400) <= 2, `${brand}: changing a surface select holds the scroll position (400 → ${scrollY}) (#485)`);
+  ok(Math.abs(scrollY - 400) <= 2, `${brand}: changing a select holds the scroll position (400 → ${scrollY}) (#485)`);
 
   // --- 2c. the export actually writes a file ----------------------------------------------------
   // The dialog rendering is #723's suite; what only a browser can check is that clicking Download

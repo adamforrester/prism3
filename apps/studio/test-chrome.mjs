@@ -126,6 +126,21 @@
  *   · the preview following focus → `V1 focus: … color-palettes control … the preview stayed palettes (now …)`.
  *   · the step picker writing the next step → `step picker: choosing … writes those steps — wrote …`.
  *
+ * S4a ADDS (section 16; Color › Surfaces & fills moved to the two panes, so it left LEGACY_PAGES):
+ *   · SPECIMEN GROUND: each section of its preview (the Style guide's Background, Foreground, Text color, Border
+ *     and Icon, owner decision Q5, and Gradients) is a specimen root on the emission's `background.primary`,
+ *     named literally in `EXPECT_FILLS_SPECIMENS`, both hosts, both chrome themes, every mode.
+ *   · CONTROLS REPRESENTED: `surfaces` and `gradients` once each, and every fill and text row by its literal
+ *     role; a stray lever or row fails. The preview's light-pinned legacy host joins `INSPECT_LEGACY`.
+ *   · THE STEP PICKER, MOUNTED (V9): under its row, on the current step, a pick writes and keeps focus, the
+ *     preview repaints to the emission's step, Return to Auto, Escape to the button, V1.
+ *   · A GRADIENT STOP edit writes that stop and no other, and the preview draws both stops from the emission.
+ *   · The chrome probe on Surfaces & fills: both hosts, both themes, 1280, 640 and 380.
+ *   S4a mutations: a fill row not rendered or rendered twice (`… renders the foreground.info row once — rendered
+ *   0 / 2`); the preview following focus (`V1 focus: … color-fills control …`); a section's ground on the
+ *   chrome card (`specimen ground: surfaces & fills … is the chrome card`); a stop edit writing the first stop
+ *   (`gradient: setting the second stop of "brand" to step 300 writes that stop and no other …`).
+ *
  * THE Q4 TRIAL (section 15, its own commit, for the owner's decision): an edit to a Palettes lever scrolls the
  * preview to the palette it changes; focusing a lever, scrolling the levers and changing the mode do not.
  * Mutation: the trigger moved from the edit to focus → `Q4: focusing a lever does not move the preview (…)`.
@@ -260,16 +275,16 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
-/** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand). A slice that moves a place
- *  adds it here in the same change; a place in both lists, or in neither, fails by name. */
-const NEW_PAGES = ['brand', 'color-palettes'];
+const LEGACY_PAGES = ['color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+/** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills).
+ *  A slice that moves a place adds it here in the same change; a place in both lists, or in neither, fails by name. */
+const NEW_PAGES = ['brand', 'color-palettes', 'color-fills'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
-  web: { 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
+  web: { 'color-interactive': ['interactive'],
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
-  figma: { 'color-fills': ['surfaces'], 'color-interactive': ['interactive'],
+  figma: { 'color-interactive': ['interactive'],
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
@@ -306,13 +321,20 @@ const DEPTH_SWITCH = ['[data-p3="legacy-switch-elevation"]', '[data-p3="legacy-s
 const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-hex"]', '[data-p3="brand-color-name"]', '[data-p3="brand-color-remove"]',
   '[data-p3="brand-color-add"]', '[data-p3="neutral-source-follow"]', '[data-p3="neutral-source-custom"]', '[data-p3="neutral-chroma-slider"]',
   '[data-p3="palettes-advanced"]', '[data-p3="palettes-continue"]'];
+/** Color › Surfaces & fills in the two panes (S4a): the controls its levers must render, by hook. The page draws
+ *  the default theme's two gradients, so their editors' controls are here too. */
+const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-light"]', '[data-p3="surface-floor-light"]',
+  '[data-p3="surface-band-palette-light"]', '[data-p3="surface-band-step-light"]', '[data-p3="surface-base-dark"]', '[data-p3="fill-pick"]',
+  '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
+  '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
+  '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
 /** Brand in the two panes (S3): the levers it must render, by hook (v6's Identity, Personality and Modes, and
  *  the way on to Color). */
 const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]', '[data-p3="lever-info"]', '[data-p3="personality-word"]',
   '[data-p3="mode-on-dark"]', '[data-p3="mode-on-hc-light"]', '[data-p3="mode-on-hc-dark"]', '[data-p3="mode-on-wireframe"]',
   '[data-p3="custom-mode-add"]', '[data-p3="brand-continue"]'];
 /** Each moved place's levers, by place. */
-const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS };
+const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS };
 /** The preview header: the mode choice and Inspect. The mode choice is the radios, or, where they do not all fit
  *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
  *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
@@ -359,7 +381,10 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
   // S3: the Style guide, lent to Brand's preview the same way (pinned light, `styles.css`). Its specimens are
   // section 11's; its legibility is `test:smoke`'s Brand section.
-  '[data-p3="brand-style-guide"]'];
+  '[data-p3="brand-style-guide"]',
+  // S4a: Color › Surfaces & fills' preview draws the Style guide's legacy sections (owner decision Q5), in a host
+  // pinned light the same way. Its specimens are held to the brand's page color in section 16.
+  '[data-p3="surfaces-style-guide"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -865,8 +890,9 @@ for (const theme of ['light', 'dark']) {
 console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  // A legacy page: the opening page moved to the two panes in S2. Surfaces & fills is the first legacy Color page.
-  await goPlace(page, 'color-fills');
+  // A legacy page: Palettes moved to the two panes in S2 and Surfaces & fills in S4a. Interactive is the first
+  // legacy Color page.
+  await goPlace(page, 'color-interactive');
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
@@ -1257,7 +1283,7 @@ for (const theme of ['light', 'dark']) {
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
-  await goPlace(page, 'color-fills');
+  await goPlace(page, 'color-interactive');
   await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
   const a2 = await modeState(page);
   ok(a2.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a2.legacy}")`);
@@ -2302,6 +2328,157 @@ for (const { w, h } of WIDTHS) {
   } catch (e) {
     ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 18. S4a: Color › Surfaces & fills — specimens on the page color, levers represented, the step picker
+//     mounted, edits and the gradient stops, and the chrome on both hosts, both themes, at every width
+// =============================================================================================
+console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
+/** EXPECTED, by name (represented, not counted; docs/34): the specimen roots the default theme's Surfaces &
+ *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
+ *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
+const EXPECT_FILLS_SPECIMENS = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Gradients'];
+/** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
+const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]']];
+/** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
+ *  tiers, the field fill and the text inks). Literal; each must render its row once. */
+const FILL_ROW_ROLES = ['foreground.brand', 'foreground.success', 'foreground.warning', 'foreground.info', 'foreground.danger',
+  'foreground.primary', 'foreground.secondary', 'foreground.tertiary', 'field.fill'];
+const TEXT_ROW_ROLES = ['text.primary', 'text.secondary', 'text.tertiary', 'text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
+  'text.brand-subtle', 'text.success-subtle', 'text.warning-subtle', 'text.danger-subtle', 'text.info-subtle', 'text.link.default'];
+/** The emission's own palette steps, the oracle for a pick (an override repoints a role to a step, so the
+ *  step's hex is what the role must paint). */
+const PALETTE = OUT[OUT_ROOT].core.palette;
+const palHex = (p, st) => String(PALETTE?.[p]?.[st]?.$value ?? '').toLowerCase();
+const rgbOf = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
+const fillsGrounds = (page) => page.evaluate(() => {
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  const host = document.querySelector('[data-p3="preview-body"] [data-p3="surfaces-style-guide"]');
+  const grounds = [...(host?.querySelectorAll('.sg-ground') ?? [])];
+  return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })) };
+});
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    await goPlace(page, 'color-fills');
+    for (const [mode] of EXPECT_MODES) {
+      if (host === 'figma' && mode.startsWith('hc')) continue;
+      await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+      await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+      const where = `${host} ${theme} 1280, previewing ${mode}`;
+      const g = await fillsGrounds(page);
+      const want = EMITTED[mode];
+      for (const name of EXPECT_FILLS_SPECIMENS) {
+        const r = g.roots.find((x) => x.name === name);
+        ok(!!r && r.root && r.ground === want, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on background.primary ${want}${
+          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+      }
+      const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
+      ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+    }
+    await ctx.close();
+  }
+}
+for (const [key, hk] of FILLS_LEVERS) {
+  ok(!!manifest.levers.find((l) => l.key === key), `the manifest has the Surfaces & fills lever ${key}`);
+  ok(hooks.role(hk) === kebabHook(key), `${key}'s hook is ${kebabHook(key)} (listed ${hooks.role(hk)})`);
+}
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const c = await page.evaluate(([lh, roles]) => ({
+    levers: Object.fromEntries(lh.map((hk) => [hk, document.querySelectorAll(`[data-p3="levers-pane"] ${hk}`).length])),
+    rows: Object.fromEntries(roles.map((r) => [r, document.querySelectorAll(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`).length])),
+    strayLevers: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
+    strayRows: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES]]);
+  for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
+  for (const r of [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
+  ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
+  ok(errors.length === 0, `${host} Surfaces & fills levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
+// the picker's focus, the preview repaints to the emission's own step, Return to Auto reverts, Escape closes it
+// to its button; and nothing of this moves the preview's home (V1).
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const view0 = (await previewView(page)).view;
+  const pick = page.locator('[data-p3="levers-pane"] [data-p3="fill-row-foreground-brand"] [data-p3="fill-pick"]');
+  const label0 = (await pick.textContent()).trim();
+  await hooks.click(pick);
+  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+  const opened = await page.evaluate(() => {
+    const pk = document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]');
+    return { underRow: pk?.closest('.p3-fillrow-wrap')?.querySelector('.p3-fillrow')?.getAttribute('data-p3'), focus: document.activeElement?.dataset.step ?? null, pressed: pk?.querySelector('[aria-pressed="true"]')?.dataset.step ?? null };
+  });
+  ok(opened.underRow === 'fill-row-foreground-brand' && opened.pressed === '600' && opened.focus === '600',
+    `fills: the brand row's picker opens under the row on its current step, primary 600, focused (${JSON.stringify(opened)}; button read "${label0}")`);
+  const card = () => page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="surfaces-style-guide"] .sg-card[data-sg-role="foreground.brand"]')).backgroundColor);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="700"]'));
+  await page.waitForFunction(() => /Override/.test(document.querySelector('[data-p3="fill-row-foreground-brand"] [data-p3="fill-pick"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+  const after = await page.evaluate(() => ({ label: document.querySelector('[data-p3="fill-row-foreground-brand"] [data-p3="fill-pick"]')?.textContent.trim(), focus: document.activeElement?.dataset.step ?? null, open: !!document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]') }));
+  ok(/^Override · primary 700/.test(after.label ?? '') && after.focus === '700' && after.open,
+    `fills: choosing primary 700 writes the override, keeps the picker open and its focus on 700 (${JSON.stringify(after)})`);
+  ok(await card() === rgbOf(palHex('primary', '700')), `fills: the preview's brand fill repaints to the emission's primary 700 ${palHex('primary', '700')} (${await card()})`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]'));
+  await page.waitForFunction(() => /^Auto/.test(document.querySelector('[data-p3="fill-row-foreground-brand"] [data-p3="fill-pick"]')?.textContent?.trim() ?? ''), null, { timeout: 5000 }).catch(() => {});
+  ok(await card() === rgbOf(palHex('primary', '600')), `fills: Return to Auto puts the brand fill back on the emission's primary 600 (${await card()})`);
+  await page.keyboard.press('Escape');
+  const closed = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]'), focus: document.activeElement?.getAttribute('data-p3'), role: document.activeElement?.dataset.role }));
+  ok(!closed.open && closed.focus === 'fill-pick' && closed.role === 'foreground.brand', `fills: Escape closes the picker to its button (${JSON.stringify(closed)})`);
+  ok((await previewView(page)).view === view0, `V1 edit: a fill pick never moves the preview's home (${view0})`);
+  // A gradient stop: the second stop of "brand" moved to step 300 writes THAT stop, and the bar and the preview
+  // draw both stops from the emission's palette (the first is untouched).
+  const stops = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="gradient-editor"][data-gradient="brand"] [data-p3="gradient-stop"]')]
+    .map((r) => ({ palette: r.querySelector('[data-p3="gradient-stop-palette"]').value, step: r.querySelector('[data-p3="gradient-stop-step"]').value })));
+  const s0 = await stops();
+  await page.locator('[data-p3="gradient-editor"][data-gradient="brand"] [data-p3="gradient-stop"]').nth(1).locator('[data-p3="gradient-stop-step"]').selectOption('300');
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="gradient-editor"][data-gradient="brand"] [data-p3="gradient-stop-step"]')[1]?.value === '300', null, { timeout: 5000 }).catch(() => {});
+  const s1 = await stops();
+  const want = [s0[0], { palette: s0[1]?.palette, step: '300' }];
+  ok(JSON.stringify(s1) === JSON.stringify(want), `gradient: setting the second stop of "brand" to step 300 writes that stop and no other — wrote ${JSON.stringify(s1)} (want ${JSON.stringify(want)})`);
+  const pad3 = (n) => String(n).padStart(3, '0');
+  const img = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="gradient-specimen"][data-gradient="brand"]')).backgroundImage);
+  const c0 = rgbOf(palHex(s0[0].palette, pad3(s0[0].step))), c1 = rgbOf(palHex(s0[1].palette, '300'));
+  ok(img.includes(c0) && img.includes(c1), `gradient: the preview draws "brand" from ${s0[0].palette} ${s0[0].step} (${c0}) to ${s0[1].palette} 300 (${c1}) — drew ${img}`);
+  ok(errors.length === 0, `fills edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// The chrome on Surfaces & fills: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the
+// Preview pane when narrow), and once with a picker open.
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w, h });
+      await goPlace(page, 'color-fills');
+      const where = `${host} ${theme} ${w} / color-fills`;
+      const narrow = w <= 560;
+      const m = await measure(page, where, host, w);
+      check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+      if (SHOTS) await page.screenshot({ path: join(SHOTS, `s4-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
+      if (narrow) {
+        await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        const mp = await measure(page, `${where} / preview`, host, w);
+        check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s4-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-preview.png`) });
+      } else {
+        await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="fill-pick"]').first());
+        await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+        const mk = await measure(page, `${where}, a picker open`, host, w);
+        check(mk, `${where}, a picker open`, columnOf(host, w), PLACE_FLOOR, { extra: ['[data-p3="step-picker-step"]', '[data-p3="step-picker-close"]', '[data-p3="step-picker-palette"]'] });
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s4-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-picker.png`) });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      await ctx.close();
+    }
+  }
 }
 
 hooks.report(ok);
