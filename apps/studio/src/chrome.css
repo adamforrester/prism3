@@ -281,6 +281,9 @@
   padding: 0 var(--p3-space-400); background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
 .p3-preview-body { grid-area: pbody; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-bg-page); }
+/* QA-B9, QA-B17: the two panes' eased scroll (an edit's reveal, a jump link) glides on the default transition's
+   duration and curve. A scroll takes no CSS curve, so `preview/follow-edit.ts` reads these and steps it. */
+:is(.p3-levers, .p3-preview-body) { --p3-scroll-dur: var(--p3-dur-normal); --p3-scroll-ease: var(--p3-ease); }
 /* The two panes scroll, so a keyboard can focus them; their ring sits inside their edge (S2). */
 :is(.p3-levers, .p3-preview-body):focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: calc(-1 * var(--p3-focus-width)); }
 
@@ -751,6 +754,7 @@
 .p3-icon-pair-note { margin: 0; line-height: var(--p3-lh-cozy); }
 .p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-jump[hidden] { display: none; }
+.p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */
 .p3-jump-link { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); text-decoration: underline; text-underline-offset: var(--p3-space-025); }
 .p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-lsec:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }

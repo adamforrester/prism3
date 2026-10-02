@@ -2321,8 +2321,8 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
-  // An edit does, and smoothly (owner, 2026-10-01). A recorder on the preview body's `scrollTo` notes the
-  // behavior each reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
+  // An edit does, and smoothly (owner, 2026-10-01; eased on the chrome's motion tokens since QA-B9). A recorder
+  // on the preview body's `scrollTo` notes the behavior each step of a reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
   // it has held still for ten frames: a smooth reveal passes through positions between start and end.
   await page.evaluate(() => {
     window.__reveals = [];
@@ -2354,7 +2354,9 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   const e1 = await state('neutral');
   ok(e1.inView && e1.top < bottom, `Q4: editing the neutral chroma scrolls the preview to the neutral ramp (in view ${e1.inView}, scrollTop ${e1.top}, was ${bottom})`);
   const r1 = await reveals();
-  ok(r1.length >= 1 && r1.every((x) => x === 'smooth'), `Q4: without reduced motion the reveal asks for a smooth scroll — asked ${JSON.stringify(r1)}`);
+  // QA-B9: the glide is stepped, one \`instant\` position per frame on the chrome's motion tokens, never the
+  // browser's \`smooth\` (which takes no duration or curve).
+  ok(r1.length >= 2 && r1.every((x) => x === 'instant'), `Q4: without reduced motion the reveal steps its own eased glide, one instant position per frame — asked ${JSON.stringify(r1)}`);
   ok(between(t1, bottom) >= 2, `Q4: without reduced motion the preview passes through positions on its way (${between(t1, bottom)} in-between positions over ${t1.length} frames, ${t1[0]} → ${t1[t1.length - 1]})`);
   // And the primary hex, from the bottom again, reveals the primary ramp.
   await toBottom();
@@ -2375,7 +2377,7 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   const t3 = await frames();
   const r3 = await reveals();
   ok(e3.inView && e3.top < bottom2, `Q4: under reduced motion the neutral ramp is in view right after the edit (in view ${e3.inView}, scrollTop ${e3.top}, was ${bottom2})`);
-  ok(r3.length >= 1 && r3.every((x) => x === 'instant'), `Q4: under reduced motion the reveal asks for an instant scroll — asked ${JSON.stringify(r3)}`);
+  ok(r3.length === 1 && r3[0] === 'instant', `Q4: under reduced motion the reveal asks for one instant scroll — asked ${JSON.stringify(r3)}`);
   ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   // The mode does not move it.
@@ -2663,6 +2665,29 @@ const FILL_ROW_ROLES = [...SEM_FILL.map((s) => `foreground.${s}`), ...SEM_FILL.m
   ...SEM_FILL.map((s) => `inverse.foreground.${s}`), ...SEM_FILL.map((s) => `inverse.foreground.${s}-subtle`)];
 const inks = (p) => [...TIERS3.map((t) => `${p}.${t}`), ...SEM_INK.map((s) => `${p}.${s}`), ...SEM_INK.map((s) => `${p}.${s}-subtle`)];
 const TEXT_ROW_ROLES = [...inks('text'), ...inks('inverse.text')];
+// =============================================================================================
+// WHAT COUNTS AS A CONTROL in a read-only check (#1991): a derived mode's, or a read-only row's. `button, select, input` alone missed any
+// non-native control: a `[role=switch]`, a `[contenteditable]`, any `[tabindex]` element with a click handler
+// could stay live in a derived mode and the check would still pass. So: every native control, every ARIA
+// widget role, every editable region, and every element in the tab order. OFF means `:disabled` (which also
+// covers a control inside a disabled fieldset) or `aria-disabled="true"`. Shared by every derived-mode check
+// below, passed into the page as data, so the checks cannot drift apart on what a control is.
+const DERIVED_CONTROL_QUERY = [
+  'button', 'select', 'textarea', 'input:not([type="hidden"])', 'a[href]',
+  ...['button', 'switch', 'checkbox', 'radio', 'slider', 'spinbutton', 'tab', 'menuitem', 'menuitemradio', 'menuitemcheckbox', 'option', 'combobox', 'textbox']
+    .map((r) => `[role="${r}"]`),
+  '[contenteditable]:not([contenteditable="false"])', '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+/** The controls under `scope`, less the info toggletips (they open help and edit nothing), each with whether it
+ *  is off. Runs in the page; `q` is `DERIVED_CONTROL_QUERY`. */
+const DERIVED_CONTROLS = ([scope, q]) => [...document.querySelectorAll(scope)].flatMap((root) => [...root.querySelectorAll(q)])
+  .filter((c, i, all) => all.indexOf(c) === i && c.getAttribute('data-p3') !== 'lever-info')
+  .map((c) => ({
+    hook: c.getAttribute('data-p3') ?? (c.id || `${c.tagName.toLowerCase()}${c.getAttribute('role') ? `[role=${c.getAttribute('role')}]` : ''}`),
+    role: c.dataset.role ?? null,
+    disabled: c.matches(':disabled') || c.getAttribute('aria-disabled') === 'true',
+  }));
+
 /** S4d (Q49): the borders, page and inverse; the focus rings are read-only rows (#1966), below. */
 const BORDER_ROW_ROLES = [...[...TIERS3, ...SEM_FILL].map((s) => `border.${s}`), ...[...TIERS3, ...SEM_FILL].map((s) => `inverse.border.${s}`)];
 /** S4d (Q50): every icon role, page and inverse, each with the text twin it follows while paired. */
@@ -2737,21 +2762,21 @@ for (const [key, hk] of FILLS_LEVERS) {
 for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   await goPlace(page, 'color-fills');
-  const c = await page.evaluate(([lh, roles]) => ({
+  const c = await page.evaluate(([lh, roles, q]) => ({
     levers: Object.fromEntries(lh.map((hk) => [hk, document.querySelectorAll(`[data-p3="levers-pane"] ${hk}`).length])),
     rows: Object.fromEntries(roles.map((r) => [r, document.querySelectorAll(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`).length])),
     strayLevers: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
     strayRows: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
     fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
     scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
-      controls: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"] :is(button, select, input)').length },
+      controls: document.querySelectorAll(`[data-p3="levers-pane"] [data-p3="scrim-row"] :is(${q})`).length },
     // Q50: the icon rows, as drawn while the default theme's icons match text.
     icons: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')].map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })),
     pairNote: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"] p')?.textContent ?? null,
     unpair: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]')?.textContent ?? null,
-    focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll('button, select, input').length })),
+    focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll(q).length })),
     jumps: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="fills-jump-link"]')].map((a) => ({ text: a.textContent, to: document.querySelector(a.getAttribute('href'))?.querySelector('.p3-lsec-title')?.textContent ?? null })),
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES], DERIVED_CONTROL_QUERY]);
   // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
   // alias and that primitive's alpha.
   const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
@@ -2846,8 +2871,8 @@ for (const host of ['web', 'figma']) {
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
 // =============================================================================================
-// THE ORACLE for "every control" is the DOM itself: every button, select and input inside the page's sections,
-// enumerated as rendered, with a floor on the count so an empty read fails, less only the info buttons (they open
+// THE ORACLE for "every control" is the DOM itself: every control inside the page's sections, as
+// `DERIVED_CONTROL_QUERY` defines one (#1991), enumerated as rendered, with a floor on the count so an empty read fails, less only the info buttons (they open
 // help and edit nothing). The words are literals typed here. The derived modes are the engine's three, by name.
 const VISIBLE_WORDS = () => {
   const root = document.querySelector('[data-p3="frame"]');
@@ -2866,9 +2891,8 @@ const showMode = async (page, mode) => {
     && [...document.querySelectorAll('[data-p3="mode-option"]')].some((b) => b.dataset.mode === m && b.getAttribute('aria-checked') === 'true')
     || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 }).catch(() => {});
 };
-const FILLS_CONTROLS = () => [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec :is(button, select, input)')]
-  .filter((c) => c.getAttribute('data-p3') !== 'lever-info')
-  .map((c) => ({ hook: c.getAttribute('data-p3') ?? c.id ?? c.tagName, role: c.dataset.role ?? null, disabled: c.disabled }));
+const FILLS_SCOPE = '[data-p3="fills-levers"] .p3-lsec';
+const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DERIVED_CONTROL_QUERY]);
 /** At least this many controls on the page in a derived mode: the override rows' pick buttons, the surface
  *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
@@ -2902,14 +2926,14 @@ for (const host of ['web', 'figma']) {
   ok(/^Inverse fill step, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
     `${host}: the inverse.background.primary controls' accessible names say "Inverse fill" (Q58) — read ${JSON.stringify(fillNames)}`);
   // Light, the proof the read below sees controls that CAN be enabled: the Unpair button is, and most controls are.
-  const light = await page.evaluate(FILLS_CONTROLS);
+  const light = await fillsControls(page);
   const lightUnpair = light.find((c) => c.hook === 'icons-unpair');
   ok(lightUnpair && !lightUnpair.disabled && light.length >= DERIVED_CONTROLS_FLOOR && light.filter((c) => !c.disabled).length >= LIGHT_ENABLED_FLOOR,
     `${host}: in Light the page's controls edit, Unpair included (${light.filter((c) => !c.disabled).length} of ${light.length} enabled; Unpair ${JSON.stringify(lightUnpair)})`);
   for (const mode of ['hc-light', 'hc-dark', 'wireframe']) {
     await showMode(page, mode);
     await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
-    const cs = await page.evaluate(FILLS_CONTROLS);
+    const cs = await fillsControls(page);
     const live = cs.filter((c) => !c.disabled);
     const unpair = cs.find((c) => c.hook === 'icons-unpair');
     console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
@@ -2965,13 +2989,14 @@ for (const host of ['web', 'figma']) {
   hooks.absent(ok, { seen: d0.checked !== null, state: 'the icon contrast lever' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
   ok(s0?.iconContrast === 'text' && s0?.overrides === undefined, `Q52: re-pairing with no icon overrides writes iconContrast "text" (${JSON.stringify(s0?.iconContrast)}, overrides ${JSON.stringify(s0?.overrides)})`);
   // Two icon overrides, one page and one inverse, and a text override that must survive.
+  // inverse.icon.secondary, not inverse.icon.primary: under "3:1" the primary row stays locked to its text (#1982).
   await unpair();
   await pickStep('[data-p3="fill-row-icon-brand"]', '700');
-  await pickStep('[data-p3="fill-row-inverse-icon-primary"]', '200');
+  await pickStep('[data-p3="fill-row-inverse-icon-secondary"]', '200');
   await pickStep('[data-p3="fill-row-text-brand"]', '300');
   const before = await stored();
   const b0 = JSON.parse(before ?? 'null')?.input;
-  const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.primary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
+  const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.secondary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
   ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: ICON_OV }),
     `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
   await askPair();
@@ -2992,7 +3017,7 @@ for (const host of ['web', 'figma']) {
     await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
     const a = JSON.parse(await stored() ?? 'null')?.input;
     ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
-      `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+      `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.secondary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
   }
   // One icon override: the singular body (Q60), then Pair clears it, the text override still kept.
   await unpair();
@@ -3556,7 +3581,7 @@ const chooseAnyMode = async (page, mode) => {
     await chooseAnyMode(page, 'light');
 
     // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
-    // line. Enumerated from the DOM: every button, select and input in a lever section but the info toggletips.
+    // line. Enumerated from the DOM: every control in a lever section (`DERIVED_CONTROL_QUERY`, #1991) but the info toggletips.
     await goPlace(page, 'brand');
     await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
@@ -3567,16 +3592,13 @@ const chooseAnyMode = async (page, mode) => {
     for (const [mode, label] of DERIVED) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="interactive-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
-      const d = await page.evaluate(() => {
-        const pane = document.querySelector('[data-p3="levers-pane"]');
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
-        return {
-          n: ctls.length,
-          enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName),
-          hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
-          line: document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null,
-        };
-      });
+      const ctls = await page.evaluate(DERIVED_CONTROLS, ['[data-p3="levers-pane"] [data-p3="lever-section"]', DERIVED_CONTROL_QUERY]);
+      const d = {
+        n: ctls.length,
+        enabled: ctls.filter((c) => !c.disabled).map((c) => c.hook),
+        hooks: [...new Set(ctls.map((c) => c.hook))],
+        line: await page.evaluate(() => document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null),
+      };
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Interactive is disabled (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
@@ -3882,6 +3904,176 @@ for (const { w, h } of WIDTHS) {
       } finally { await ctx.close(); }
     }
   }
+}
+
+// =============================================================================================
+// 21. QA-B9, QA-B17, QA-I11 (owner decisions, 2026-10-02): an edit on Surfaces & fills and Interactive eases the
+//     preview to its section, on the chrome's motion tokens, and jumps under reduced motion; nothing but an edit
+//     moves it, and no edit changes its page; the jump links ease the same way under "Jump to:"; each page keeps
+//     both panes' scroll positions for the session.
+//
+//     Independence (docs/34): which preview section a lever section pairs with is typed here as the owner's
+//     decisions state it (Q23 headings, Q26 and Q44 for the two renamed ones), never read from
+//     `follow-edit.ts`'s table; the motion values are the default theme's `motion.transition.default` as
+//     literals; every position is read from the rendered layout.
+//
+//     Mutations this fails by name: drop the reveal on Surfaces & fills → `QA-B9: editing a Border step on
+//     Surfaces & fills brings the preview's Border section into view …`; ignore reduced motion →
+//     `QA-B9: under reduced motion the reveal lands at once …`; reveal on focus → `QA-B9: focusing a lever …
+//     does not move the preview …`; no restore → `QA-I11: back on Surfaces & fills, both panes are where they
+//     were …`; a wrong label → `QA-B17: … the jump links' visible label reads "Jump to:" …`.
+// =============================================================================================
+console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembered scroll\n${'='.repeat(78)}`);
+{
+  /** The lever section → the preview section it reveals, as the owner decided them (typed, not imported). */
+  const PAIRS_FILLS = { 'Background fills': 'Background', Foreground: 'Foreground', 'Foreground fills': 'Foreground', 'Text color': 'Text color', Border: 'Border', Icon: 'Icon', Gradients: 'Gradients' };
+  /** `motion.transition.default` of the default theme: `motion.duration.normal` and `motion.easing.standard`. */
+  const MOTION = { dur: '200ms', ease: 'cubic-bezier(0.2, 0, 0, 1)' };
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    /** The preview section headed `title`: its box against the body's, and where the body is. */
+    const sec = (title) => page.evaluate((t) => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const head = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === t);
+      const el = head?.closest('.psec');
+      const b = body.getBoundingClientRect(), r = el?.getBoundingClientRect();
+      const pad = parseFloat(getComputedStyle(body.firstElementChild).paddingTop || '0');
+      return { found: !!el, top: Math.round(body.scrollTop), max: body.scrollHeight - body.clientHeight, rel: r ? Math.round(r.top - b.top) : null, pad,
+        inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, view: body.dataset.view, place: document.querySelector('[data-p3="frame"]')?.dataset.place };
+    }, title);
+    const setTop = (hook, y) => page.evaluate(([h, v]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.scrollTop = v; return Math.round(n.scrollTop); }, [hook, y]);
+    /** Every animation frame's scrollTop of a pane, and the time it took, until it has held still for ten frames. */
+    const frames = (which) => page.evaluate((w) => new Promise((res) => {
+      const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
+      const tops = [Math.round(b.scrollTop)];
+      const t0 = performance.now();
+      let still = 0, moved = null, settled = null;
+      const tick = (now) => {
+        const t = Math.round(b.scrollTop);
+        if (t !== tops[tops.length - 1]) { still = 0; moved ??= now; settled = now; } else still++;
+        tops.push(t);
+        if (still >= 10 || tops.length > 400) res({ tops, ms: moved === null ? 0 : Math.round(settled - moved + 16), t0 }); else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }), which);
+    const between = (tops) => new Set(tops.filter((t) => t !== tops[0] && t !== tops[tops.length - 1])).size;
+    const lands = (s) => s.inView && (Math.abs(s.rel - s.pad) <= 2 || s.top >= s.max - 1);
+
+    await goPlace(page, 'color-fills');
+    // The panes read the chrome's default transition.
+    const tok = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')]
+      .map((n) => [getComputedStyle(n).getPropertyValue('--p3-scroll-dur').trim(), getComputedStyle(n).getPropertyValue('--p3-scroll-ease').trim()]));
+    ok(tok.length === 2 && tok.every(([d, e]) => d === MOTION.dur && e === MOTION.ease),
+      `QA-B9: both panes scroll on the chrome's default transition, ${MOTION.dur} and ${MOTION.ease} — read ${JSON.stringify(tok)}`);
+
+    // (a) Surfaces & fills: a Border step picked with the preview at its top eases the Border section into view.
+    await setTop('preview-body', 0);
+    const a0 = await sec(PAIRS_FILLS.Border);
+    ok(a0.found && !a0.inView, `QA-B9: on Surfaces & fills the preview's Border section starts below the fold, so the reveal can move (${JSON.stringify(a0)})`);
+    await hooks.click(page.locator('#p3-lsec-fills-4 [data-p3="fill-pick"]').first());
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const opened = await sec(PAIRS_FILLS.Border);
+    ok(opened.top === 0, `QA-B9: opening a step picker is not an edit, and does not move the preview (scrollTop ${opened.top}, was 0)`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
+    const fa = await frames('preview');
+    const a1 = await sec(PAIRS_FILLS.Border);
+    ok(lands(a1), `QA-B9: editing a Border step on Surfaces & fills brings the preview's Border section into view, its top ${a1.pad}px under the body's (top at ${a1.rel}px, scrollTop ${a1.top}, in view ${a1.inView})`);
+    ok(between(fa.tops) >= 2, `QA-B9: without reduced motion the Surfaces & fills reveal glides through positions on its way (${between(fa.tops)} in-between over ${fa.tops.length} frames, ${fa.tops[0]} → ${fa.tops[fa.tops.length - 1]})`);
+    ok(fa.ms >= 120 && fa.ms <= 800, `QA-B9: the glide lasts about the default transition's ${MOTION.dur} (${fa.ms}ms from first move to settled)`);
+    ok(a1.view === 'surfaces' && a1.place === 'color-fills', `QA-B9: an edit on Surfaces & fills never changes the preview's page or view (V1) — ${a1.place} / ${a1.view}`);
+
+    // (c) Under reduced motion it lands at once: in place when the edit returns, and no frame between.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setTop('preview-body', 0);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
+    const c1 = await sec(PAIRS_FILLS.Border);
+    const fc = await frames('preview');
+    ok(lands(c1) && between(fc.tops) === 0 && fc.tops.every((t) => t === c1.top),
+      `QA-B9: under reduced motion the reveal lands at once, with no frame between (at ${c1.rel}px, frames ${JSON.stringify([...new Set(fc.tops)])})`);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.keyboard.press('Escape');
+
+    // (d) Focusing a lever (by Tab and by focus()), and changing the mode, never move the preview.
+    await setTop('preview-body', 0);
+    await page.locator('#p3-lsec-fills-5 [data-p3="icons-unpair"], #p3-lsec-fills-5 [data-p3="icons-pair"]').first().focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    const d1 = await frames('preview');
+    ok(d1.tops.every((t) => t === 0), `QA-B9: focusing a lever on Surfaces & fills does not move the preview (scrollTops ${JSON.stringify([...new Set(d1.tops)])})`);
+    await chooseAnyMode(page, 'dark');
+    const d2 = await frames('preview');
+    ok(d2.tops.every((t) => t === 0), `QA-B9: changing the mode on Surfaces & fills does not move the preview (scrollTops ${JSON.stringify([...new Set(d2.tops)])})`);
+    await chooseAnyMode(page, 'light');
+
+    // (f) A jump link eases its section to the top of the levers pane, under the visible "Jump to:".
+    const lab = await page.evaluate(() => ({
+      text: document.querySelector('[data-p3="fills-jump"] [data-p3="jump-label"]')?.textContent ?? null,
+      first: document.querySelector('[data-p3="fills-jump"]')?.firstElementChild?.getAttribute('data-p3') ?? null,
+      name: document.querySelector('[data-p3="fills-jump"]')?.getAttribute('aria-label') ?? null,
+    }));
+    ok(lab.text === 'Jump to:' && lab.first === 'jump-label', `QA-B17: on Surfaces & fills the jump links' visible label reads "Jump to:", first in the links (${JSON.stringify(lab)})`);
+    ok(lab.name === 'Sections on this page', `QA-B17: the jump links' landmark keeps its accessible name "Sections on this page" ("${lab.name}")`);
+    const jumpTo = async (i) => {
+      await setTop('levers-pane', 0);
+      await hooks.click(page.locator('[data-p3="fills-jump-link"]').nth(i));
+      const f = await frames('levers');
+      const j = await page.evaluate((k) => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const s = document.querySelector(`#p3-lsec-fills-${k}`);
+        return { rel: Math.round(s.getBoundingClientRect().top - pane.getBoundingClientRect().top), top: Math.round(pane.scrollTop),
+          focus: document.activeElement?.id ?? null, view: document.querySelector('[data-p3="preview-body"]')?.dataset.view };
+      }, i);
+      return { f, j };
+    };
+    const ja = await jumpTo(4);
+    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-4', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
+    ok(between(ja.f.tops) >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${between(ja.f.tops)} in-between over ${ja.f.tops.length} frames)`);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const jb = await jumpTo(3);
+    ok(Math.abs(jb.j.rel) <= 2 && between(jb.f.tops) === 0, `QA-B17: under reduced motion a jump link lands at once (top at ${jb.j.rel}px, frames ${JSON.stringify([...new Set(jb.f.tops)])})`);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+    // (e) Both panes keep their place per page, for the session: Surfaces & fills → Palettes → back.
+    const L = await setTop('levers-pane', 700), P = await setTop('preview-body', 900);
+    ok(L > 0 && P > 0, `QA-I11: both panes on Surfaces & fills scroll (levers ${L}, preview ${P}), so the restore is observable`);
+    await goPlace(page, 'color-palettes');
+    const pal = await page.evaluate(() => [document.querySelector('[data-p3="levers-pane"]').scrollTop, document.querySelector('[data-p3="preview-body"]').scrollTop].map(Math.round));
+    ok(pal[0] === 0 && pal[1] === 0, `QA-I11: Palettes opens where it was left, at its top, not at Surfaces & fills' place (${JSON.stringify(pal)})`);
+    await setTop('preview-body', 300);
+    await goPlace(page, 'color-fills');
+    const e1 = await page.evaluate(() => [document.querySelector('[data-p3="levers-pane"]').scrollTop, document.querySelector('[data-p3="preview-body"]').scrollTop].map(Math.round));
+    const fe = await frames('preview');
+    ok(Math.abs(e1[0] - L) <= 2 && Math.abs(e1[1] - P) <= 2, `QA-I11: back on Surfaces & fills, both panes are where they were (levers ${e1[0]}, was ${L}; preview ${e1[1]}, was ${P})`);
+    ok(between(fe.tops) === 0 && fe.tops.every((t) => Math.abs(t - P) <= 2), `QA-I11: the restore does not glide, and no reveal follows it (frames ${JSON.stringify([...new Set(fe.tops)])})`);
+    await goPlace(page, 'color-palettes');
+    const e2 = await page.evaluate(() => Math.round(document.querySelector('[data-p3="preview-body"]').scrollTop));
+    ok(Math.abs(e2 - 300) <= 2, `QA-I11: each page keeps its own place: Palettes' preview is back at 300 (${e2})`);
+
+    // (b) Interactive: the icon contrast floor, with the preview at its top, eases the Icons section into view.
+    await goPlace(page, 'color-interactive');
+    await setTop('preview-body', 0);
+    const b0 = await sec('Icons');
+    ok(b0.found && !b0.inView, `QA-B9: on Interactive the preview's Icons section starts below the fold, so the reveal can move (${JSON.stringify(b0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="false"]').first());
+    const fb = await frames('preview');
+    const b1 = await sec('Icons');
+    ok(lands(b1), `QA-B9: editing the icon contrast on Interactive brings the preview's Icons section into view, its top ${b1.pad}px under the body's or the preview at its end (top at ${b1.rel}px, scrollTop ${b1.top} of ${b1.max})`);
+    ok(between(fb.tops) >= 2, `QA-B9: without reduced motion the Interactive reveal glides through positions on its way (${between(fb.tops)} in-between over ${fb.tops.length} frames)`);
+    ok(b1.view === 'interactive' && b1.place === 'color-interactive', `QA-B9: an edit on Interactive never changes the preview's page or view (V1) — ${b1.place} / ${b1.view}`);
+    const ilab = await page.evaluate(() => ({ text: document.querySelector('[data-p3="interactive-jump"] [data-p3="jump-label"]')?.textContent ?? null, name: document.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label') ?? null }));
+    ok(ilab.text === 'Jump to:' && ilab.name === 'Button sets', `QA-B17: on Interactive the jump links' visible label reads "Jump to:", and the landmark keeps "Button sets" (${JSON.stringify(ilab)})`);
+    // A Links edit from the top of the preview: the Links section, on Interactive's own preview.
+    await setTop('preview-body', 0);
+    const lk = page.locator('[data-p3="levers-pane"] [data-p3="link-palette-select"]');
+    const opts = await lk.evaluate((s) => [...s.options].filter((o) => !o.selected && !o.disabled).map((o) => o.value));
+    await lk.selectOption(opts[0]);
+    await frames('preview');
+    const b2 = await sec('Links');
+    ok(lands(b2) && b2.view === 'interactive', `QA-B9: editing the link palette on Interactive brings the preview's Links section into view, on the same page (top at ${b2.rel}px, ${b2.view})`);
+    ok(errors.length === 0, `QA-B9/B17/I11: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
 }
 
 hooks.report(ok);
