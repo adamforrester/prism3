@@ -1096,13 +1096,14 @@ for (const how of ['pointer', 'focus']) {
 // attention and does not open the drawer; the plugin's error bar already says the saved brand did not
 // load. Only "Not restored", "Failed" and mismatches are bad rows. Each verdict is driven in both orders
 // the two host messages can land in. Controls prove the probe can see a bad row: a failing check, and a
-// read-back that threw, after the same refusal still count and open the drawer. EXPECTED is each value
-// written here.
+// read-back that threw, after the same refusal still count and open the drawer, and so does the refusal
+// on its own ("Not restored"). EXPECTED is each value written here.
 //
 // MUTATIONS: the row's state back to `ok && !err` → `#2008 … is a normal row …`, `#2008 … is not
 // counted …` and `#2008 … does not open the drawer …`, for "Clean" and "No theme" in both orders; back to
 // #2008's first cut, `ok && (!err || o.state === 'present')` → the same three for "No theme" only; the
-// state pinned to `'ok'` → `#2008 control: …` (and S11's own failing read-back arms).
+// state pinned to `'ok'` → `#2008 control: …` (and S11's own failing read-back arms); the early return
+// for a refusal with nothing checked set to `state: 'ok'` → `#2008 control: a failed restore on its own …`.
 {
   const REFUSAL = 'saved brand data is from an older shape';
   const CLEAN = { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 };
@@ -1171,6 +1172,20 @@ for (const how of ['pointer', 'focus']) {
     ok(r.verdict === want && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
       `#2008 control: ${what} after a failed restore is still a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
     ok(errors.length === 0, `#2008 control, ${what}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  // Control: a refusal on its own, with no read-back after it, is "Not restored": a bad row, counted, and
+  // it opens the drawer.
+  {
+    const { page, errors } = await openPanel();
+    await closeDrawer(page);
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'Not restored');
+    await page.waitForTimeout(200);
+    const r = await read(page);
+    ok(r.verdict === 'Not restored' && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
+      `#2008 control: a failed restore on its own is "Not restored", a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
+    ok(errors.length === 0, `#2008 control, a failed restore on its own: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
 }
