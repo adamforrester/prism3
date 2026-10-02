@@ -1532,6 +1532,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-ratio-no{border-style:dashed}
 .sg-ratio-mk{font-weight:700}
 .sg-tc .sg-ratio{margin-left:auto}
+/* Color › Interactive (UI redesign S5.2): a badge on a painted inverse band reads the band's own label ink. */
+.sg-btns.sg-inv .sg-ratio{color:var(--sg-invp-ink);border-color:var(--sg-invp-ink)}
 .sg-grads{display:grid;gap:16px}
 .sg-gcard{display:flex;flex-direction:column;gap:8px;min-width:0}
 .sg-gbar{height:160px;border-radius:var(--r);border:1px solid var(--line)}

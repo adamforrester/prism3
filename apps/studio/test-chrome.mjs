@@ -151,6 +151,35 @@
  *   chrome card (`specimen ground: surfaces & fills … is the chrome card`); a stop edit writing the first stop
  *   (`gradient: setting the second stop of "brand" to step 300 writes that stop and no other …`).
  *
+ * S5.2 ADDS (section 19; Color › Interactive moved to the two panes, so it left LEGACY_PAGES, and sections 4 and
+ * 9, which used it as "the first legacy Color page", read Type and Shape):
+ *   · SPECIMEN GROUND: the preview's Interactive, Disabled, Links and Icons sections are specimen roots on the
+ *     emission's `background.primary`, by name (`EXPECT_INTERACTIVE_SPECIMENS`), both hosts, both themes, every mode.
+ *   · CONTROLS REPRESENTED: each of the 10 keys once and shown, every row by its literal role (3 columns × 22, and
+ *     the 4 link families), strays fail; no Show advanced; the columns Primary, Neutral, Destructive in that order in
+ *     the levers, the jump links and the preview; each jump link resolves to, and focuses, its own group.
+ *   · THE TEXT ROW (Q32), on Interactive and on Brand's Style guide: per column and state, the ink is the emission's
+ *     `interactive.‹c›.text.‹s›`, no edge, and the ground over the page is the emitted wash (the page at rest).
+ *   · RATIO BADGES: each prints the emission's measured contrast for its role, every mode.
+ *   · EDITS: the picker under its row, a pick, Return to Auto, Escape; previewing Dark a row writes `modeAnchors`
+ *     and not Light's field (Q34); the link palette's Auto unsets the key (Q36); the
+ *     strict switch's off unsets it; an accent is the last column everywhere (Q33, Q39).
+ *   · The chrome probe on Interactive: both hosts, both themes, 1280, 640 and 380.
+ *   · OWNER COPY (2026-10-02, APPROVED, literal): the lever sections are the preview's, Interactive, Disabled,
+ *     Links, Icons, with their descriptions, each lever in its section (Q51); the button-set strings (Q53); no
+ *     "column", "band" or "muted" in the page's copy (Q53, Q57, Q58); a button set added and removed previewing
+ *     Dark persists the same JSON as from Light (Q54); in HC light, HC dark and wireframe every control in a lever
+ *     section is disabled, enumerated from the DOM with a floor, under the derived line (Q59).
+ *   Owner-copy mutations: "Promote to a column" back → `Q53: the add row reads "Add button set" …`; a section
+ *   titled "Actions" → `Q51: Interactive's lever sections are the preview's …`; Add hidden in Dark → `Q54:
+ *   previewing Dark, Add button set is shown and enabled`; the action palette select left enabled in a derived
+ *   mode → `Q59: previewing HC light, every control on Interactive is disabled … — enabled action-palette-select`.
+ *   S5.2 mutations (each after a `wip:` commit): a row writing the light key while previewing Dark → `interactive:
+ *   previewing Dark, primary 400 writes modeAnchors.dark.primary and not the light anchor (Q34)`; the Text row
+ *   dropped → `text buttons: color-interactive primary has no Text row` and `text buttons: brand primary has no Text
+ *   row`; the columns reordered → `… the levers draw the columns in the owner's order …`; a jump link aimed at the
+ *   wrong group → `… the jump link "Neutral" resolves to its own column group (neutral) …`.
+ *
  * THE Q4 TRIAL (section 15, its own commit, for the owner's decision): an edit to a Palettes lever scrolls the
  * preview to the palette it changes; focusing a lever, scrolling the levers and changing the mode do not.
  * Mutation: the trigger moved from the edit to focus → `Q4: focusing a lever does not move the preview (…)`.
@@ -278,16 +307,17 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
-/** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills).
- *  A slice that moves a place adds it here in the same change; a place in both lists, or in neither, fails by name. */
-const NEW_PAGES = ['brand', 'color-palettes', 'color-fills'];
+const LEGACY_PAGES = ['type', 'shape', 'depth', 'layout', 'components'];
+/** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills;
+ *  S5.2: Color › Interactive). A slice that moves a place adds it here in the same change; a place in both lists, or
+ *  in neither, fails by name. */
+const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
-  web: { 'color-interactive': ['interactive'],
+  web: {
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
-  figma: { 'color-interactive': ['interactive'],
+  figma: {
     type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
@@ -332,13 +362,18 @@ const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
+/** Color › Interactive in the two panes (S5.2): the controls its levers must render, by hook, at the top of the
+ *  levers (the jump links, then Actions; the rest of the page is section 19's). */
+const INTERACTIVE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="interactive-jump-link"]', '[data-p3="action-palette-select"]',
+  '[data-p3="int-pick"]'];
 /** Brand in the two panes (S3): the levers it must render, by hook (v6's Identity, Personality and Modes, and
  *  the way on to Color). */
 const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]', '[data-p3="lever-info"]', '[data-p3="personality-word"]',
   '[data-p3="mode-on-dark"]', '[data-p3="mode-on-hc-light"]', '[data-p3="mode-on-hc-dark"]', '[data-p3="mode-on-wireframe"]',
   '[data-p3="custom-mode-add"]', '[data-p3="brand-continue"]'];
 /** Each moved place's levers, by place. */
-const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS };
+const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
+  'color-interactive': INTERACTIVE_LEVERS_CONTROLS };
 /** The preview header: the mode choice and Inspect. The mode choice is the radios, or, where they do not all fit
  *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
  *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
@@ -379,7 +414,9 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   // S2: the levers panel's text fields and sliders, and the step picker's steps.
   ['p3-hex-input', 'text field'], ['p3-range', 'slider'], ['p3-step', 'picker step'],
   // S3: Brand's name, namespace and custom-mode name fields.
-  ['p3-text-input', 'text field']];
+  ['p3-text-input', 'text field'],
+  // S5.2: Color › Interactive's jump links to its column groups.
+  ['p3-jump-link', 'jump link']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -388,7 +425,9 @@ const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect
   '[data-p3="brand-style-guide"]',
   // S4a: Color › Surfaces & fills' preview draws the Style guide's legacy sections (owner decision Q5), in a host
   // pinned light the same way. Its specimens are held to the brand's page color in section 16.
-  '[data-p3="surfaces-style-guide"]'];
+  '[data-p3="surfaces-style-guide"]',
+  // S5.2: Color › Interactive's preview, the same way. Its specimens are held to the brand's page color in section 19.
+  '[data-p3="interactive-style-guide"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -894,9 +933,9 @@ for (const theme of ['light', 'dark']) {
 console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  // A legacy page: Palettes moved to the two panes in S2 and Surfaces & fills in S4a. Interactive is the first
-  // legacy Color page.
-  await goPlace(page, 'color-interactive');
+  // A legacy page: Color moved to the two panes in S2, S4a and S5.2, so this reads Type, the first legacy page,
+  // whose families and scale are selects.
+  await goPlace(page, 'type');
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
@@ -909,7 +948,7 @@ for (const host of ['web', 'figma']) {
       return { name: n.getAttribute('data-p3') ?? n.className, value: n.value, scheme: cs.colorScheme, r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100 };
     }) };
   });
-  const where = `${host} dark / Color › Surfaces & fills`;
+  const where = `${host} dark / Type`;
   ok(/\bdark\b/.test(f.doc), `${where}: the document resolves a dark color-scheme ("${f.doc}") — the premise this check is about`);
   ok(f.fields.length >= 1, `${where}: measured ${f.fields.length} legacy field(s) (floor 1)`);
   const bad = f.fields.filter((x) => /\bdark\b/.test(x.scheme) || x.r < TEXT_MIN);
@@ -1287,7 +1326,8 @@ for (const theme of ['light', 'dark']) {
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
-  await goPlace(page, 'color-interactive');
+  // Shape, the first legacy page with a mode strip (Type edits every mode as columns and draws none, #416).
+  await goPlace(page, 'shape');
   await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
   const a2 = await modeState(page);
   ok(a2.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a2.legacy}")`);
@@ -3068,6 +3108,454 @@ for (const { w, h } of WIDTHS) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       await ctx.close();
+    }
+  }
+}
+
+// =============================================================================================
+// 19. S5.2: Color › Interactive — specimens on the page color, levers and rows represented, every column in
+//     order, jump links, the Text row against the emission, ratio badges, the previewed mode, the chrome
+// =============================================================================================
+console.log(`\nColor › Interactive (S5.2)\n${'='.repeat(78)}`);
+/** EXPECTED, by name (represented, not counted; docs/34): the preview's specimen roots, each a section on the
+ *  brand's page color. Literal: the shared Interactive and Disabled sections (Q32), Links and Icons. */
+const EXPECT_INTERACTIVE_SPECIMENS = ['Interactive', 'Disabled', 'Links', 'Icons'];
+/** The manifest keys v6 homes on Interactive, with their hooks. R2: every lever on this page is shown. */
+const INTERACTIVE_LEVERS = ['actionPalette', 'outlineInteraction', 'neutralEmphasis', 'interactivePalettes', 'strictInteractiveContrast',
+  'linkPalette', 'linkStateRungs', 'iconContrast', 'disabledStrategy', 'disabledMin'].map((k) => [k, `[data-p3="${kebabHook(k)}"]`]);
+/** The columns the default theme ships, in the owner's order (Q33): Primary, Neutral, Destructive. */
+const INTERACTIVE_COLUMNS = [['primary', 'Primary'], ['neutral', 'Neutral'], ['destructive', 'Destructive']];
+/** Every row a column draws under the default theme's outline hover (overlay-neutral: the overlay wash, no
+ *  subtle tint), typed out per family and state; then the four link families' resting link. Literal (Q33). */
+const COLUMN_ROWS = (c) => [
+  ...['fill', 'text', 'border'].flatMap((f) => [`interactive.${c}.${f}`, `inverse.interactive.${c}.${f}`]).flatMap((p) => [`${p}.rest`, `${p}.hover`, `${p}.pressed`]),
+  `interactive.${c}.overlay.hover`, `interactive.${c}.overlay.pressed`, `interactive.${c}.on-fill`, `inverse.interactive.${c}.on-fill`,
+];
+const INTERACTIVE_ROW_ROLES = [...INTERACTIVE_COLUMNS.flatMap(([c]) => COLUMN_ROWS(c)),
+  'text.link.default', 'inverse.text.link.default', 'icon.link.default', 'inverse.icon.link.default'];
+ok(INTERACTIVE_ROW_ROLES.length === 3 * 22 + 4, `the literal row list names ${INTERACTIVE_ROW_ROLES.length} rows (3 columns × 22, and 4 link families)`);
+/** THE ORACLE for a role in a mode, from the committed emission, never from the page: its hex (an 8-digit hex
+ *  for a wash), the contrast the engine measured, and what it measured it against. */
+const EMIT = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (path) => path.split('.').reduce((n, k) => n?.[k], base);
+  const hexOf = (path, seen = 0) => {
+    const v = leafAt(path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? hexOf(m[1], seen + 1) : v.toLowerCase();
+  };
+  return (mode, role) => {
+    const leaf = leafAt(`${root}.color.${role}`);
+    const x = leaf?.$extensions?.prism3;
+    const at = mode === 'light' ? x : x?.modes?.[mode];
+    if (!at) return null;
+    return { hex: at.aliasOf ? hexOf(at.aliasOf) : (leaf.$value ?? '').toLowerCase(), contrast: at.contrast, against: at.against, min: at.min };
+  };
+})();
+ok(/^#[0-9a-f]{6}$/.test(EMIT('dark', 'interactive.primary.text.hover')?.hex ?? '') && /^#[0-9a-f]{8}$/.test(EMIT('light', 'interactive.primary.overlay.hover')?.hex ?? ''),
+  `the oracle resolves a role and a wash per mode from the emission (${EMIT('dark', 'interactive.primary.text.hover')?.hex}, ${EMIT('light', 'interactive.primary.overlay.hover')?.hex})`);
+/** Composite an `#rrggbb[aa]` over an opaque `#rrggbb`, as a hex. */
+const overHex = (fg, bg) => {
+  const p = (h, i) => parseInt(h.slice(i, i + 2), 16);
+  const a = fg.length === 9 ? p(fg, 7) / 255 : 1;
+  return `#${[1, 3, 5].map((i) => Math.round(p(fg, i) * a + p(bg, i) * (1 - a)).toString(16).padStart(2, '0')).join('')}`;
+};
+/** A computed CSS color as `#rrggbb[aa]`. */
+const cssHex = (s) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
+  if (!m) return null;
+  const v = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  const h = v.slice(0, 3).map((x) => Math.round(x).toString(16).padStart(2, '0')).join('');
+  return `#${h}${v.length > 3 && v[3] < 1 ? Math.round(v[3] * 255).toString(16).padStart(2, '0') : ''}`;
+};
+const groundsIn = (page, hostHook) => page.evaluate((hk) => {
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  const host = document.querySelector(`[data-p3="preview-body"] [data-p3="${hk}"]`);
+  const grounds = [...(host?.querySelectorAll('.sg-ground') ?? [])];
+  return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })) };
+}, hostHook);
+const chooseMode = async (page, mode) => {
+  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+};
+// Specimen grounds: both hosts, both chrome themes, every mode.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'color-interactive');
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await chooseMode(page, mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await groundsIn(page, 'interactive-style-guide');
+        const want = EMITTED[mode];
+        for (const name of EXPECT_INTERACTIVE_SPECIMENS) {
+          const r = g.roots.find((x) => x.name === name);
+          ok(!!r && r.root && r.ground === want, `specimen ground: interactive ${where}: ${name} is a specimen root on background.primary ${want}${
+            !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        }
+        const unlisted = g.roots.filter((x) => !EXPECT_INTERACTIVE_SPECIMENS.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: interactive ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+      }
+    } catch (e) {
+      ok(false, `S5.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+for (const [key, hk] of INTERACTIVE_LEVERS) ok(!!manifest.levers.find((l) => l.key === key), `the manifest has the Interactive lever ${key} (${hooks.role(hk)})`);
+// Represented: each lever once, every row by its literal role once, nothing else; no Show advanced; the columns
+// in order in the levers, the jump links and the preview; each jump link lands on its own group.
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    const c = await page.evaluate(([lh, roles]) => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const shown = (n) => !!n && n.getClientRects().length > 0;
+      return {
+        levers: Object.fromEntries(lh.map((hk) => [hk, pane.querySelectorAll(hk).length])),
+        visible: Object.fromEntries(lh.map((hk) => [hk, shown(pane.querySelector(hk))])),
+        rows: Object.fromEntries(roles.map((r) => [r, pane.querySelectorAll(`.p3-fillrow[data-role="${r}"]`).length])),
+        strayLevers: [...pane.querySelectorAll('.p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
+        strayRows: [...pane.querySelectorAll('.p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
+        advanced: [...pane.querySelectorAll('button, a, [role="button"]')].filter((b) => /advanced/i.test(`${b.textContent} ${b.getAttribute('data-p3') ?? ''} ${b.getAttribute('aria-label') ?? ''}`)).map((b) => b.textContent.trim()),
+        columns: [...pane.querySelectorAll('[data-p3="interactive-column"]')].map((n) => [n.dataset.column, n.querySelector('.p3-icol-title')?.textContent]),
+        jumps: [...pane.querySelectorAll('[data-p3="interactive-jump-link"]')].map((a) => {
+          const to = a.hash ? document.getElementById(a.hash.slice(1)) : null;
+          return { col: a.dataset.column, text: a.textContent, target: to ? [to.getAttribute('data-p3'), to.dataset.column, to.querySelector('.p3-icol-title')?.textContent] : null };
+        }),
+        preview: [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"] .sg-rn')].map((n) => n.textContent).filter((t) => t !== 'Disabled'),
+      };
+    }, [INTERACTIVE_LEVERS.map(([, hk]) => hk), INTERACTIVE_ROW_ROLES]);
+    for (const [key, hk] of INTERACTIVE_LEVERS) ok(c.levers[hk] === 1 && c.visible[hk], `${host}: Interactive lever ${key} renders its hook ${hooks.role(hk)} once, shown — rendered ${c.levers[hk]}, shown ${c.visible[hk]}`);
+    const missing = INTERACTIVE_ROW_ROLES.filter((r) => c.rows[r] !== 1);
+    ok(missing.length === 0, `${host}: Interactive renders each of its ${INTERACTIVE_ROW_ROLES.length} rows once${missing.length ? ` — levers rows lack ${missing.map((r) => `${r} (${c.rows[r]})`).join(', ')}` : ''}`);
+    ok(c.strayLevers.length === 0, `${host}: every lever block on Interactive is one of its ${INTERACTIVE_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
+    ok(c.strayRows.length === 0, `${host}: every row on Interactive is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
+    ok(c.advanced.length === 0, `${host}: Color › Interactive shows every lever: it offers no Show advanced${c.advanced.length ? ` — offers Show advanced (${c.advanced.join(', ')})` : ''}`);
+    const wantCols = INTERACTIVE_COLUMNS.map(([col, name]) => [col, name]);
+    ok(JSON.stringify(c.columns) === JSON.stringify(wantCols), `${host}: the levers draw the columns in the owner's order, Primary, Neutral, Destructive (Q33) — drew ${JSON.stringify(c.columns)}`);
+    ok(JSON.stringify(c.preview) === JSON.stringify(INTERACTIVE_COLUMNS.map(([, n]) => n)), `${host}: the preview draws the columns in the same order — drew ${JSON.stringify(c.preview)}`);
+    ok(JSON.stringify(c.jumps.map((j) => j.col)) === JSON.stringify(INTERACTIVE_COLUMNS.map(([col]) => col)), `${host}: a jump link per column, in order — ${JSON.stringify(c.jumps.map((j) => j.col))}`);
+    for (const j of c.jumps) ok(!!j.target && j.target[0] === 'interactive-column' && j.target[1] === j.col && j.target[2] === j.text,
+      `${host}: the jump link "${j.text}" resolves to its own column group (${j.col}) — targets ${JSON.stringify(j.target)}`);
+    // Following a link moves focus to the group it names, and leaves the preview where it was (V1).
+    const view0 = (await previewView(page)).view;
+    for (const [col] of INTERACTIVE_COLUMNS.slice().reverse()) {
+      await hooks.click(page.locator(`[data-p3="interactive-jump-link"][data-column="${col}"]`));
+      const f = await page.evaluate(() => ({ hook: document.activeElement?.getAttribute('data-p3'), col: document.activeElement?.dataset.column }));
+      ok(f.hook === 'interactive-column' && f.col === col, `${host}: following the ${col} jump link focuses its group (${JSON.stringify(f)})`);
+    }
+    ok((await previewView(page)).view === view0, `V1: ${host} following a jump link never moves the preview's home (${view0})`);
+    ok(errors.length === 0, `${host} Interactive levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The Text row (Q32), on Interactive and on Brand's Style guide, against the emission: per column and state the
+// ink is `interactive.‹c›.text.‹s›`, there is no edge, and the ground is the outline hover wash (none at rest).
+// Then every ratio badge on the page against the engine's own measured contrast.
+const readTextRows = (page, hostHook) => page.evaluate((hk) => [...document.querySelectorAll(`[data-p3="${hk}"] [data-p3="style-guide-palette"]`)].map((b) => {
+  const row = b.querySelector('[data-p3="style-guide-text"]');
+  return { name: b.querySelector('.sg-rn')?.textContent, buttons: row ? [...row.querySelectorAll('[data-p3="style-guide-button"]')].map((x) => { const cs = getComputedStyle(x); return { ink: cs.color, bg: cs.backgroundColor, bw: cs.borderTopWidth, bc: cs.borderTopColor }; }) : null };
+}).filter((x) => x.name !== 'Disabled'), hostHook);
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    for (const [place, hk, label] of [['color-interactive', 'interactive-style-guide', 'color-interactive'], ['brand', 'brand-style-guide', 'brand']]) {
+      await goPlace(page, place);
+      for (const mode of host === 'web' ? ['light', 'dark', 'hc-light', 'hc-dark'] : ['light', 'dark']) {
+        await chooseMode(page, mode);
+        const rows = await readTextRows(page, hk);
+        const page0 = EMITTED[mode];
+        for (const [col, name] of INTERACTIVE_COLUMNS) {
+          const r = rows.find((x) => x.name === name);
+          if (!r?.buttons) { ok(false, `text buttons: ${label} ${col} has no Text row (${host}, ${mode})`); continue; }
+          ok(r.buttons.length === 3, `text buttons: ${label} ${col} draws rest, hover and pressed (${r.buttons.length}, ${host}, ${mode})`);
+          ['rest', 'hover', 'pressed'].forEach((st, i) => {
+            const b = r.buttons[i];
+            if (!b) return;
+            const ink = EMIT(mode, `interactive.${col}.text.${st}`)?.hex;
+            ok(cssHex(b.ink) === ink, `text button ${label} ${col}/${st} (${host}, ${mode}): ink ${cssHex(b.ink)}, emitted interactive.${col}.text.${st} ${ink}`);
+            const edge = cssHex(b.bc);
+            ok(parseFloat(b.bw) === 0 || (edge?.length === 9 && edge.endsWith('00')), `text button ${label} ${col}/${st} (${host}, ${mode}): draws no edge${parseFloat(b.bw) === 0 || edge?.endsWith('00') ? '' : ` — text button ${col}/${st} draws an edge (${b.bw} ${edge})`}`);
+            const wash = st === 'rest' ? null : EMIT(mode, `interactive.${col}.overlay.${st}`)?.hex;
+            const got = cssHex(b.bg);
+            const drawn = got ? overHex(got.length === 7 ? `${got}ff` : got, page0) : null;
+            const want = wash ? overHex(wash, page0) : page0;
+            ok(drawn === want, `text button ${label} ${col}/${st} (${host}, ${mode}): its ground over the page is ${drawn}; the emitted ${wash ? `interactive.${col}.overlay.${st} ${wash}` : 'page (no wash at rest)'} over ${page0} is ${want}`);
+          });
+        }
+        if (place !== 'color-interactive') continue;
+        // Ratio badges: each one's number is the engine's own measured contrast for its role in this mode.
+        const badges = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="ratio-badge"]')].map((n) => [n.dataset.role, n.querySelector('.sg-ratio-n')?.textContent]));
+        const off = badges.filter(([role, txt]) => { const e = EMIT(mode, role); return !e || typeof e.contrast !== 'number' || Math.abs(parseFloat(txt) - e.contrast) > 0.011; });
+        ok(badges.length >= 60 && off.length === 0, `ratio badges (${host}, ${mode}): ${badges.length} badges each print the emission's measured contrast for their role (floor 60)${off.length ? ` — ${off.slice(0, 4).map(([r, t]) => `${r} ${t} vs ${EMIT(mode, r)?.contrast}`).join(' | ')}` : ''}`);
+      }
+    }
+    ok(errors.length === 0, `${host} text buttons: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S5.2 text buttons ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Edits: a row edits the previewed mode (Q34): Light writes the column's own field, Dark writes modeAnchors and
+// leaves Light's alone; the picker opens under its row on its step, a pick writes and keeps focus, the preview
+// repaints to the emission's step, Return to Auto reverts, Escape closes to its button. A derived mode is
+// read-only. The link palette's Auto unsets the key; an accent column appears last, in the levers and the preview.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    const view0 = (await previewView(page)).view;
+    const pick = (role) => page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`);
+    const filledRest = () => page.evaluate(() => { const b = [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"]')].find((x) => x.querySelector('.sg-rn')?.textContent === 'Primary')?.querySelector('[data-p3="style-guide-button"]'); return b ? getComputedStyle(b).backgroundColor : null; });
+    await hooks.click(pick('interactive.primary.fill.rest'));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const o = await page.evaluate(() => { const pk = document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]'); return { under: pk?.closest('.p3-fillrow-wrap')?.querySelector('.p3-fillrow')?.dataset.role, focus: document.activeElement?.dataset.step ?? null, pressed: pk?.querySelector('[aria-pressed="true"]')?.dataset.step ?? null }; });
+    ok(o.under === 'interactive.primary.fill.rest' && o.pressed === '600' && o.focus === '600', `interactive: the primary fill's picker opens under its row on its step, primary 600, focused (${JSON.stringify(o)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="700"]'));
+    await page.waitForFunction(() => /Override/.test(document.querySelector('[data-p3="int-pick"][data-role="interactive.primary.fill.rest"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const p1 = await persisted(page);
+    const f1 = await page.evaluate(() => ({ focus: document.activeElement?.dataset.step ?? null, open: !!document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]') }));
+    ok(p1?.actionAnchorStep === 700 && p1?.modeAnchors === undefined && f1.focus === '700' && f1.open, `interactive: in Light, primary 700 writes actionAnchorStep 700 and no modeAnchors, the picker kept open on 700 (${JSON.stringify({ a: p1?.actionAnchorStep, m: p1?.modeAnchors, ...f1 })})`);
+    ok(await filledRest() === rgbOf(palHex('primary', '700')), `interactive: the preview's primary Filled rest repaints to the emission's primary 700 ${palHex('primary', '700')} (${await filledRest()})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]'));
+    await page.waitForFunction(() => /^Auto/.test(document.querySelector('[data-p3="int-pick"][data-role="interactive.primary.fill.rest"]')?.textContent?.trim() ?? ''), null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.actionAnchorStep === undefined && await filledRest() === rgbOf(palHex('primary', '600')), `interactive: Return to Auto clears the anchor and the fill is the emission's primary 600 again (${await filledRest()})`);
+    await page.keyboard.press('Escape');
+    const closed = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"]'), focus: document.activeElement?.getAttribute('data-p3'), role: document.activeElement?.dataset.role }));
+    ok(!closed.open && closed.focus === 'int-pick' && closed.role === 'interactive.primary.fill.rest', `interactive: Escape closes the picker to its button (${JSON.stringify(closed)})`);
+    // Q34: previewing Dark, the same row writes Dark's anchor and leaves Light's field alone.
+    await chooseMode(page, 'dark');
+    const line = await page.evaluate(() => document.querySelector('[data-p3="interactive-columns"] .p3-sub')?.textContent);
+    ok(line === 'Editing Dark, the mode the preview shows.', `interactive: the columns say which mode they edit ("${line}")`);
+    await hooks.click(pick('interactive.primary.fill.rest'));
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="400"]'));
+    await page.waitForFunction(() => /Override/.test(document.querySelector('[data-p3="int-pick"][data-role="interactive.primary.fill.rest"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const p2 = await persisted(page);
+    ok(JSON.stringify(p2?.modeAnchors) === '{"dark":{"primary":400}}' && p2?.actionAnchorStep === undefined,
+      `interactive: previewing Dark, primary 400 writes modeAnchors.dark.primary and not the light anchor (Q34) — wrote modeAnchors ${JSON.stringify(p2?.modeAnchors)}, actionAnchorStep ${p2?.actionAnchorStep}`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]'));
+    await page.waitForFunction(() => /^Auto/.test(document.querySelector('[data-p3="int-pick"][data-role="interactive.primary.fill.rest"]')?.textContent?.trim() ?? ''), null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.modeAnchors === undefined, `interactive: Auto in Dark prunes modeAnchors (${JSON.stringify((await persisted(page))?.modeAnchors)})`);
+    await page.keyboard.press('Escape');
+    // A derived mode is read-only, every lever (Q59): held in its own case below, every derived mode.
+    await chooseMode(page, 'light');
+    // The link palette: neutral writes it; Auto unsets it (Q36); the WCAG 1.4.1 warning follows the engine's note.
+    const lp = page.locator('[data-p3="link-palette-select"]');
+    ok((await lp.inputValue()) === '' && (await lp.locator('option').first().textContent()) === 'Auto: follows action palette', `interactive: the link palette starts on "Auto: follows action palette" (${await lp.inputValue()})`);
+    await lp.selectOption('neutral');
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="link-palette-warning"]'), null, { timeout: 5000 }).catch(() => {});
+    const warn = await page.evaluate(() => document.querySelector('[data-p3="link-palette-warning"]')?.textContent ?? null);
+    ok((await persisted(page))?.linkPalette === 'neutral' && /WCAG 1\.4\.1/.test(warn ?? ''), `interactive: a neutral link palette is written and warns for WCAG 1.4.1 ("${warn}")`);
+    await lp.selectOption('');
+    await page.waitForFunction(() => !document.querySelector('[data-p3="link-palette-warning"]'), null, { timeout: 5000 }).catch(() => {});
+    const p3 = await persisted(page);
+    ok(p3 && !('linkPalette' in p3), `interactive: Auto unsets linkPalette rather than writing a palette's name (Q36) — persisted linkPalette ${JSON.stringify(p3?.linkPalette)}`);
+    // The strict switch: on writes true, off unsets the key.
+    await hooks.click(page.locator('[data-p3="strict-contrast-switch"]'));
+    const s1 = (await persisted(page))?.strictInteractiveContrast;
+    await hooks.click(page.locator('[data-p3="strict-contrast-switch"]'));
+    const s2 = await persisted(page);
+    ok(s1 === true && s2 && !('strictInteractiveContrast' in s2), `interactive: the strict switch writes true, and off unsets the key (${s1}, then ${JSON.stringify(s2?.strictInteractiveContrast)})`);
+    // An accent column: promoted, it is last in the levers, the jump links and the preview; removed, it is gone.
+    await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+    await hooks.click(page.locator('[data-p3="column-promote"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+    const acc = await page.evaluate(() => ({
+      levers: [...document.querySelectorAll('[data-p3="interactive-column"]')].map((n) => n.dataset.column),
+      jumps: [...document.querySelectorAll('[data-p3="interactive-jump-link"]')].map((n) => n.dataset.column),
+      preview: [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"] .sg-rn')].map((n) => n.textContent).filter((t) => t !== 'Disabled'),
+    }));
+    ok(JSON.stringify(acc) === JSON.stringify({ levers: ['primary', 'neutral', 'destructive', 'accent'], jumps: ['primary', 'neutral', 'destructive', 'accent'], preview: ['Primary', 'Neutral', 'Destructive', 'Accent'] }),
+      `interactive: a promoted accent is the last column in the levers, the jump links and the preview (Q33, Q39) — ${JSON.stringify(acc)}`);
+    await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.interactivePalettes === undefined, `interactive: Remove button set takes the accent out (${JSON.stringify((await persisted(page))?.interactivePalettes)})`);
+    ok((await previewView(page)).view === view0, `V1 edit: Interactive's edits never move the preview's home (${view0})`);
+    ok(errors.length === 0, `interactive edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Owner copy (Q51, Q53, Q58, Q57, APPROVED, literal): the lever sections are the preview's, in its order; the
+// button-set strings; the Links and Icons descriptions, the same in the levers and the preview.
+const EXPECT_INTERACTIVE_SECTIONS = [
+  ['Interactive', 'Each button set is a full set of fill, text, border and state colors.'],
+  ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
+  ['Links', 'The link color in each state, on the page and on the inverse fill.'],
+  ['Icons', 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.'],
+];
+/** Which section each lever sits in (Q51), by hook. */
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Interactive'], ['outlineInteraction', 'Interactive'], ['neutralEmphasis', 'Interactive'],
+  ['interactivePalettes', 'Interactive'], ['strictInteractiveContrast', 'Interactive'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+  ['linkPalette', 'Links'], ['linkStateRungs', 'Links'], ['iconContrast', 'Icons']];
+const EVERY_SET = 'Every button set is shown, including ones you added.';
+const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
+/** Every mode on the page by its picker: a radio where they fit, else the select of the same modes. */
+const chooseAnyMode = async (page, mode) => {
+  const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
+  if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
+  else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
+    || document.querySelector('[data-p3="mode-select"]')?.value === m, mode);
+};
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    const copy = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')];
+      const prev = (t) => [...document.querySelectorAll('[data-p3="interactive-style-guide"] .psec')].find((s) => s.querySelector('.psec-t')?.textContent === t)?.querySelector('.psec-d')?.textContent ?? null;
+      return {
+        sections: secs.map((s) => [s.querySelector('.p3-lsec-title')?.textContent, s.querySelector('.p3-lsec-desc')?.textContent ?? null]),
+        leverIn: Object.fromEntries([...pane.querySelectorAll('.p3-lever')].map((n) => [n.getAttribute('data-p3'), n.closest('[data-p3="lever-section"]')?.querySelector('.p3-lsec-title')?.textContent])),
+        preview: { Links: prev('Links'), Icons: prev('Icons'), Disabled: prev('Disabled'), Interactive: prev('Interactive') },
+        landmark: pane.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label'),
+        add: pane.querySelector('[data-p3="column-promote"]')?.textContent?.trim() ?? null,
+        select: pane.querySelector('[data-p3="column-promote-select"]')?.getAttribute('aria-label') ?? null,
+        // The button sets lever's info toggletip, the text its own info button controls (`aria-controls`).
+        setsTip: (() => {
+          const info = pane.querySelector('[data-p3="lever-interactive-palettes"] [data-p3="lever-info"]');
+          const id = info?.getAttribute('aria-controls');
+          return id ? document.getElementById(id)?.textContent ?? null : null;
+        })(),
+        // The page's own copy and the preview's, with the manifest's descriptions (`.p3-tip`, engine prose) left out.
+        visible: [...pane.querySelectorAll('.p3-lsec, .p3-intro, .p3-jump'), document.querySelector('[data-p3="interactive-style-guide"]')].map((n) => {
+          const c = n.cloneNode(true); for (const t of c.querySelectorAll('.p3-tip')) t.remove();
+          return `${c.textContent} ${[...c.querySelectorAll('[aria-label], [title]')].map((x) => `${x.getAttribute('aria-label') ?? ''} ${x.getAttribute('title') ?? ''}`).join(' ')}`;
+        }).join(' ') + ` ${pane.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label') ?? ''}`,
+      };
+    });
+    ok(JSON.stringify(copy.sections) === JSON.stringify(EXPECT_INTERACTIVE_SECTIONS),
+      `Q51: Interactive's lever sections are the preview's, Interactive, Disabled, Links, Icons, with their approved copy — drew ${JSON.stringify(copy.sections)}`);
+    for (const [key, sec] of EXPECT_LEVER_SECTION) ok(copy.leverIn[kebabHook(key)] === sec, `Q51: the ${key} lever sits in ${sec} (sits in ${copy.leverIn[kebabHook(key)]})`);
+    for (const t of ['Links', 'Icons', 'Disabled']) {
+      const want = EXPECT_INTERACTIVE_SECTIONS.find(([n]) => n === t)[1];
+      ok(copy.preview[t] === want, `Q23: the preview's ${t} description is the levers' ("${copy.preview[t]}")`);
+    }
+    ok((copy.preview.Interactive ?? '').endsWith(` ${EVERY_SET}`), `Q53: the preview's Interactive description ends "${EVERY_SET}" ("${copy.preview.Interactive}")`);
+    ok(copy.landmark === 'Button sets', `Q53: the jump links' landmark is "Button sets" ("${copy.landmark}")`);
+    // The button sets lever's info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this
+    // page; the engine's description (which says "columns") stays as MCP and the emission read it. Literal.
+    ok(copy.setsTip === 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.', `Q53: the button sets lever's info text is the owner's — read ${JSON.stringify(copy.setsTip)}`);
+    ok(copy.add === 'Add button set' && copy.select === 'Color for the new button set', `Q53: the add row reads "Add button set" on a select named "Color for the new button set" (${JSON.stringify([copy.add, copy.select])})`);
+    const stray = ['column', 'band', 'muted'].filter((w) => new RegExp(`\\b${w}`, 'i').test(copy.visible.replace(/\b(?:interactive|inverse)\.[\w.-]+/g, '')));
+    ok(stray.length === 0, `Q53, Q57, Q58: no "column", "band" or "muted" in the page's visible copy, labels and titles (the manifest's lever descriptions aside)${stray.length ? ` — found ${stray.join(', ')}` : ''}`);
+
+    // Q54: a button set is added and removed in every editable mode, and the write is mode-independent: added while
+    // previewing Dark, the persisted brand is byte-identical to the same add from Light.
+    const addSet = async () => {
+      await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+      return JSON.stringify(await persisted(page));
+    };
+    const removeSet = async () => {
+      await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
+      await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+      return JSON.stringify(await persisted(page));
+    };
+    const before = JSON.stringify(await persisted(page));
+    const fromLight = await addSet();
+    const rm = await page.evaluate(() => { const b = document.querySelector('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'); return { text: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label') ?? null }; });
+    ok(rm.text === 'Remove button set' && rm.label === 'Remove the Accent button set', `Q53: remove reads "Remove button set", named "Remove the Accent button set" (${JSON.stringify(rm)})`);
+    const hint = await page.evaluate(() => ({ select: !!document.querySelector('[data-p3="column-promote-select"]'), hint: document.querySelector('[data-p3="column-promote-hint"]')?.textContent ?? null }));
+    ok(!hint.select && hint.hint === ADD_SET_HINT, `Q53: with nothing left to add, the hint reads "${ADD_SET_HINT}" (${JSON.stringify(hint)})`);
+    const lightRemoved = await removeSet();
+    await chooseAnyMode(page, 'dark');
+    const darkCtl = await page.evaluate(() => { const b = document.querySelector('[data-p3="column-promote"]'); return { add: !!b && b.getClientRects().length > 0 && !b.disabled }; });
+    ok(darkCtl.add, `Q54: previewing Dark, Add button set is shown and enabled (${JSON.stringify(darkCtl)})`);
+    const fromDark = await addSet();
+    ok(fromDark === fromLight, `Q54: a button set added previewing Dark persists the same JSON as the same add from Light — Light ${fromLight}, Dark ${fromDark}`);
+    const darkRm = await page.evaluate(() => { const b = document.querySelector('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'); return !!b && b.getClientRects().length > 0 && !b.disabled; });
+    ok(darkRm, `Q54: previewing Dark, the added set offers Remove button set, enabled (${darkRm})`);
+    const darkRemoved = await removeSet();
+    ok(darkRemoved === lightRemoved && darkRemoved === before, `Q54: removed previewing Dark, the brand is the one removed from Light, and the one before the add (${darkRemoved})`);
+    await chooseAnyMode(page, 'light');
+
+    // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
+    // line. Enumerated from the DOM: every button, select and input in a lever section but the info toggletips.
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
+    await goPlace(page, 'color-interactive');
+    const DERIVED = [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']];
+    /** The floor on the controls a derived mode must hold disabled: the 3 built-in sets' pickers alone are 3 × 18. */
+    const DERIVED_CONTROLS_FLOOR = 60;
+    for (const [mode, label] of DERIVED) {
+      await chooseAnyMode(page, mode);
+      await page.waitForFunction((l) => document.querySelector('[data-p3="interactive-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      const d = await page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
+        return {
+          n: ctls.length,
+          enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName),
+          hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null,
+        };
+      });
+      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows ("${d.line}")`);
+      ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
+        `Q59: previewing ${label}, every control on Interactive is disabled (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['action-palette-select', 'link-palette-select', 'strict-contrast-switch', 'disabled-min-chips-3', 'link-rung-hover', 'column-promote', 'int-pick'])
+        ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among those held disabled`);
+    }
+    await chooseAnyMode(page, 'light');
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="interactive-derived"]'), sel: document.querySelector('[data-p3="action-palette-select"]')?.disabled }));
+    ok(!back.line && back.sel === false, `Q59: back in Light, the derived line is gone and the levers are editable (${JSON.stringify(back)})`);
+    ok(errors.length === 0, `interactive owner copy: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The chrome on Interactive: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane
+// when narrow), and once with a picker open.
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w, h });
+      try {
+        if (w === 640) {
+          // At 640 the sub-nav runs past the levers pane and the preview covers its last tab, so a pointer
+          // cannot reach Interactive (reported with S5.2); the keyboard can, and that is the path driven.
+          await hooks.click(page.locator('[data-p3="tab-color"]'));
+          await page.locator('[data-p3="color-sub-interactive"]').focus();
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
+          await page.evaluate(() => document.fonts.ready);
+        } else await goPlace(page, 'color-interactive');
+        const where = `${host} ${theme} ${w} / color-interactive`;
+        const narrow = w <= 560;
+        const m = await measure(page, where, host, w);
+        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s5-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
+        if (narrow) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          const mp = await measure(page, `${where} / preview`, host, w);
+          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+        } else {
+          // By keyboard: at 640 the levers pane scrolls sideways, and a pointer click can land on the preview.
+          await page.locator('[data-p3="levers-pane"] [data-p3="int-pick"]').first().focus();
+          await page.keyboard.press('Enter');
+          await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+          const mk = await measure(page, `${where}, a picker open`, host, w);
+          check(mk, `${where}, a picker open`, columnOf(host, w), PLACE_FLOOR, { extra: ['[data-p3="step-picker-step"]', '[data-p3="step-picker-close"]', '[data-p3="step-picker-palette"]'] });
+          if (SHOTS) await page.screenshot({ path: join(SHOTS, `s5-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-picker.png`) });
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `S5.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
     }
   }
 }

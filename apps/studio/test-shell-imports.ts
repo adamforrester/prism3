@@ -113,7 +113,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/preview/sections/border.ts', 'src/preview/sections/icon.ts',
   // S5.1: the Style guide's Disabled and Interactive sections, shared, and Color › Interactive's writes.
   'src/preview/sections/disabled.ts', 'src/preview/sections/interactive.ts', 'src/state/interactive-input.ts',
-  // S4c: the Focus ring section, shared by the legacy Interactive page and Surfaces & fills' preview (Q30).
+  // S5.2: Color › Interactive (its levers, its preview) and the Links section it draws.
+  'src/domains/color-interactive.ts', 'src/preview/interactive.ts', 'src/preview/sections/links.ts',
+  // S4c: the Focus ring section, drawn by Surfaces & fills' preview (Q30).
   'src/preview/sections/focus-ring.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
@@ -430,17 +432,21 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   for (const f of SECTION_FILES) ok(idx.includes(`from './${f}'`), `preview/sections/index.ts draws the ${f} section from ./${f}`);
 
   // S5.1: the Style guide's Disabled and Interactive sections moved to `preview/sections/` too, so Color ›
-  // Interactive (S5.2) can draw the same code. Until then `main.ts` is their only drawer, and the arm holds
-  // that it draws them through the shared renderers (by name, in code rather than comments) and keeps no
-  // copy. The oracle is literal: the two renderer names, their files, and the copy each section's head
-  // draws. Interactive is matched by its title. Disabled is matched by the shared section's description,
-  // not its title: the legacy Interactive page keeps a lever section of its own titled "Disabled" (the
-  // disabled-strategy controls) until S5.2 retires that page, and it is not the Style guide's.
+  // Interactive (S5.2) draws the same code. The arm holds that `main.ts` (the Style guide) and
+  // `preview/interactive.ts` (Color › Interactive) both draw them through the shared renderers (by name, in
+  // code rather than comments) and that `main.ts` keeps no copy. The oracle is literal: the renderer names,
+  // their files, and the copy each section's head draws. Since S5.2 retired the legacy Interactive page and
+  // its own lever section titled "Disabled", Disabled is matched by its title as well as its description.
   const code = mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '');
+  const intSrc = readFileSync(join(SRC, 'preview/interactive.ts'), 'utf8').replace(/^\s*(\/\/|\*).*$/gm, '');
   for (const [fn, file] of [['disabledSection', 'disabled'], ['interactiveSection', 'interactive']] as const) {
     ok(new RegExp(`\\b${fn}\\(`).test(code), `src/main.ts draws the Style guide's ${file} section through the shared ${fn}()`);
+    ok(new RegExp(`\\b${fn}\\(`).test(intSrc), `src/preview/interactive.ts draws Color › Interactive's ${file} section through the shared ${fn}()`);
     ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports the ${file} section from ./${file}`);
   }
+  ok(/\blinksSection\(/.test(intSrc) && idx.includes(`from './links'`), 'src/preview/interactive.ts draws the Links section through the shared linksSection() (preview/sections/links)');
+  const ownDisabledTitle = /palSection\(\s*'Disabled'/.test(mainSrc);
+  ok(!ownDisabledTitle, `src/main.ts draws no "Disabled" section of its own${ownDisabledTitle ? " — main.ts defines its own \"Disabled\" section (palSection('Disabled', …)): the Style guide would drift from Color › Interactive" : ''}`);
   const ownInteractive = /palSection\(\s*'Interactive'/.test(mainSrc);
   ok(!ownInteractive, `src/main.ts draws no "Interactive" section of its own${ownInteractive ? " — main.ts defines its own \"Interactive\" section (palSection('Interactive', …)): the Style guide would drift from Color › Interactive" : ''}`);
   const ownDisabled = mainSrc.includes('One shared, stateless inert set');
@@ -481,22 +487,21 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'focus-ring']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
 }
 
 // ── the Focus ring, shared (UI redesign S4c, owner decision Q30) ─────────────────────────────────────
-// The legacy Interactive page in `main.ts` and Color › Surfaces & fills' preview draw the Focus ring section
-// from one module, `preview/sections/focus-ring.ts`. Subject: `main.ts` and `preview/surfaces.ts`, read from
+// Color › Surfaces & fills' preview draws the Focus ring section from one module, `preview/sections/focus-ring.ts`
+// (S5.2 retired the legacy Interactive page, its other caller). Subject: `main.ts` and `preview/surfaces.ts`, read from
 // disk, comments stripped. Oracle: the literal renderer name and the section's title. A copy pasted back into
 // `main.ts` fails by the title it draws; the smoke suite holds the drawn section to its marker.
 {
   const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
   const mainCode = strip(readFileSync(MAIN, 'utf8'));
   const surfCode = strip(readFileSync(join(SRC, 'preview/surfaces.ts'), 'utf8'));
-  ok(/\bfocusRingSection\(/.test(mainCode), 'src/main.ts draws the Focus ring section through the shared focusRingSection()');
   ok(/\bfocusRingSection\(/.test(surfCode), 'src/preview/surfaces.ts draws the Focus ring section through the shared focusRingSection()');
   const own = /palSection\(\s*'Focus ring'/.test(mainCode) || /'fr-wrap'/.test(mainCode);
   ok(!own, `src/main.ts draws no "Focus ring" section of its own${own ? " — main.ts carries its own Focus ring (palSection('Focus ring', …) or the fr-wrap markup): Surfaces & fills would drift from the Interactive page" : ''}`);

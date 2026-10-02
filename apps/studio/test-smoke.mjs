@@ -525,7 +525,7 @@ const SWEEP_STATE_FLOOR = 28;
  *  by name. No measured corpus size is written in here: that literal drifts as the studio grows or
  *  retires controls — this is the site #1232 fixed, the count belongs in the live output, not frozen in
  *  a comment beside a passing assertion. */
-const SWEEP_FIELD_FLOOR = 250;
+const SWEEP_FIELD_FLOOR = 200;   // 250 until UI redesign S5.2 moved the Interactive page's selects out of the legacy sweep
 /** The brand menu's own minimum, asserted per open (#1031). The popover carried Name and Namespace until UI
  *  redesign S3 moved them to Brand › Identity (chrome, measured by `test:chrome` in both themes, and by the
  *  Brand section below); what it still carries is `.bm-ta` once the import box is open, so one control is
@@ -704,8 +704,9 @@ for (const brand of BRANDS) {
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
   const pages = await railLabels(page);
-  // Floor 6: Palettes (S2), Preview (S3: its Style guide is Brand's preview) and Surfaces & fills (S4a) left the menu.
-  ok(pages.length >= 6, `${brand}: the Pages menu offers ${pages.length} destinations`);
+  // Floor 5: Palettes (S2), Preview (S3: its Style guide is Brand's preview), Surfaces & fills (S4a) and Interactive
+  // (S5.2) left the menu.
+  ok(pages.length >= 5, `${brand}: the Pages menu offers ${pages.length} destinations`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
   //
@@ -1251,8 +1252,7 @@ const SG_FILLS = '[data-p3="preview-body"] [data-p3="surfaces-style-guide"]';
  *  aliased `palSection`, say) carries none, and fails here by name on whichever page drew it. */
 const EXPECT_SHARED_MARKER = { Background: 'background', Foreground: 'foreground', 'Text color': 'text-color', Border: 'border', Icon: 'icon' };
 /** The Style guide's last two sections, shared since S5.1 (`sections/disabled.ts`, `sections/interactive.ts`).
- *  Only the Style guide draws them until Color › Interactive (S5.2), so they are held there and not on
- *  Surfaces & fills. Literal. */
+ *  The Style guide and Color › Interactive (S5.2, section 1d) draw them; Surfaces & fills does not. Literal. */
 const EXPECT_SG_ONLY_MARKER = { Disabled: 'disabled', Interactive: 'interactive' };
 /** The Focus ring, shared since S4c (`sections/focus-ring.ts`): Surfaces & fills draws it after Border (owner
  *  decision Q30); the Style guide does not. Literal. */
@@ -1384,7 +1384,108 @@ ok(fillsStates >= BRANDS.length * 2, `the Surfaces & fills sweep visited ${fills
 ok(sgStates >= BRANDS.length * 2, `the Style guide sweep visited ${sgStates} brand × mode states (floor ${BRANDS.length * 2})`);
 console.log(`  ${fillsStates} + ${sgStates} states, ${fillsPaint} swatches and ${fillsBadges} ratio badges checked against the emissions.`);
 
-// 1d. S4c: the surface controls edit the previewed mode (owner decision Q22), and a Fields edit reaches the
+/** Open Color › Interactive through the tab row (UI redesign S5.2: it left the Pages menu for the two panes). */
+const gotoInteractive = async (page) => {
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-interactive"]'));
+  await hooks.need(page, '[data-p3="interactive-levers"]');
+  await page.evaluate(() => document.fonts.ready);
+};
+/** Choose a mode in the preview header's mode control, and wait for it to be the checked one. */
+const chooseMode = async (page, mode) => {
+  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+};
+// =============================================================================================
+// 1d. Color › Interactive — moved to the two panes (UI redesign S5.2), on its own hooks
+// =============================================================================================
+// Its preview draws the Style guide's Interactive section (with the Text row, Q32, and every column, Q39) and
+// Disabled section from the SAME modules the Style guide draws them with, then Links and Icons. Per corpus
+// brand and per mode, against the brand's COMMITTED EMISSION, never the page:
+//   · every section ground is a specimen root on the emission's `background.primary` (listed by name);
+//   · the shared sections' roots carry the marker only their modules stamp (Interactive, Disabled, Links);
+//   · every Text-row button inks `interactive.<c>.text.<state>`, and every painted link and icon is its emitted hex;
+//   · every paired specimen renders exactly the engine role pair it claims and meets that pair's contract (#1652);
+//   · every ratio badge prints the ratio THIS FILE computes from the two emitted hexes, and marks its floor.
+console.log(`\nColor › Interactive — the moved page, against each brand's emission\n${'='.repeat(78)}`);
+const SG_INTERACTIVE = '[data-p3="preview-body"] [data-p3="interactive-style-guide"]';
+/** The preview's specimen roots, by title, in order. Literal (S5.2). */
+const EXPECT_INTERACTIVE_ROOTS = ['Interactive', 'Disabled', 'Links', 'Icons'];
+/** The shared sections Color › Interactive draws, by title, with the marker each module stamps. Literal. */
+const EXPECT_INTERACTIVE_MARKER = { Interactive: 'interactive', Disabled: 'disabled', Links: 'links' };
+/** The Text row's ink per column, as drawn: [column name, [rest, hover, pressed] computed colors]. */
+const READ_TEXT_ROWS = (sel) => [...document.querySelectorAll(`${sel} [data-p3="style-guide-palette"]`)]
+  .map((b) => [b.querySelector('.sg-rn')?.textContent, [...(b.querySelector('[data-p3="style-guide-text"]')?.querySelectorAll('[data-p3="style-guide-button"]') ?? [])].map((x) => getComputedStyle(x).color)])
+  .filter(([n]) => n !== 'Disabled');
+let intStates = 0, intBadges = 0, intPaired = 0, intText = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const emission = await loadEmission(brand);
+  const palOf = await emittedPalette(brand);
+  await gotoInteractive(page);
+  await hooks.need(page, SG_INTERACTIVE);
+  const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
+  for (const mode of modes) {
+    await chooseMode(page, mode);
+    const where = `${brand} / Interactive / ${mode}`;
+    intStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    const got = await readSections(page, SG_INTERACTIVE);
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    for (const name of EXPECT_INTERACTIVE_ROOTS) {
+      const s = got.sections.find((x) => x.name === name);
+      ok(!!s && s.root && s.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== page0 ? ` — on ${s.ground}` : ''}`);
+    }
+    ok(JSON.stringify(got.sections.map((x) => x.name)) === JSON.stringify(EXPECT_INTERACTIVE_ROOTS), `${where}: the preview draws exactly ${EXPECT_INTERACTIVE_ROOTS.join(', ')}, in order — drew ${got.sections.map((x) => x.name).join(', ')}`);
+    checkSharedMarkers(where, got, EXPECT_INTERACTIVE_MARKER);
+    // The Text row, per column and state, against the emitted ink.
+    const text = await page.evaluate(READ_TEXT_ROWS, SG_INTERACTIVE);
+    const offText = [];
+    for (const [name, inks] of text) {
+      const col = name.toLowerCase();
+      if (inks.length !== 3) { offText.push(`${col} draws ${inks.length} text buttons`); continue; }
+      ['rest', 'hover', 'pressed'].forEach((st, i) => { intText++; const want = emission?.role(`interactive.${col}.text.${st}`, mode)?.hex; if (rgbHex(inks[i]) !== want) offText.push(`${col}/${st} Text hover ink ${rgbHex(inks[i])}, emitted interactive.${col}.text.${st} ${want}`); });
+    }
+    ok(text.length >= 3 && offText.length === 0, `${where}: every column's Text row inks its emitted interactive.<c>.text.<state> (${text.length} columns)${offText.length ? ` — ${offText.slice(0, 3).join(' | ')}` : ''}`);
+    // Painted links, icons and disabled cards against the emission.
+    const offPaint = [];
+    for (const n of got.paint) {
+      const want = emission?.role(n.role, mode)?.hex;
+      if (!want) continue;
+      if (rgbHex(n.css) !== want) offPaint.push(`${n.role} ${n.prop} is ${rgbHex(n.css) ?? n.css} (emitted ${want})`);
+    }
+    ok(got.paint.length >= 25 && offPaint.length === 0, `${where}: every painted link, icon and card is its emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
+    // Paired specimens (#1652), as the sweep holds them on the Style guide.
+    const probe = await page.evaluate(LEGIBILITY_PROBE, SG_INTERACTIVE);
+    assertParsed(where, probe.unparsed);
+    const paired = probe.text.filter((r) => r.pair);
+    const judged = paired.map((r) => ({ r, c: classifyPair(r.pair, emission, mode) }));
+    const bad = judged.filter(({ c }) => c.problem);
+    intPaired += paired.length;
+    ok(paired.length >= 20 && bad.length === 0, `${where}: every one of ${paired.length} paired specimens renders exactly the engine role pair it claims${bad.length ? ` — ${bad.slice(0, 3).map(({ r, c }) => `"${r.pair.state}" ${c.problem}`).join(' | ')}` : ''}`);
+    const pairUnder = judged.filter(({ r, c }) => !c.problem && r.ratio < c.bar);
+    ok(pairUnder.length === 0, `${where}: every paired specimen meets the contract of the pair it previews${pairUnder.length ? ` — ${pairUnder.slice(0, 3).map(({ r, c }) => `${r.pair.claim} at ${r.ratio}:1 (${c.contract}, needs ${c.bar}:1)`).join(' | ')}` : ''}`);
+    // Ratio badges: computed HERE from the emitted pair.
+    const offBadge = [];
+    for (const b of got.badges) {
+      const r = emission?.role(b.role, mode);
+      const ag = r?.against;
+      const agHex = ag ? (emission.role(ag, mode)?.hex ?? palOf(ag)) : null;
+      if (!r || !agHex) { offBadge.push(`${b.role}: the emission gives no pair to measure (against ${ag})`); continue; }
+      const want = wcag(hexRgb(r.hex), hexRgb(agHex));
+      const wantBelow = typeof r.min === 'number' && r.min > 0 && want + 1e-9 < r.min;
+      intBadges++;
+      if (!(Math.abs(parseFloat(b.text) - floor2(want)) <= 0.011)) offBadge.push(`${b.role} prints ${b.text}, the emitted pair ${r.hex} on ${agHex} measures ${want.toFixed(3)}:1`);
+      else if (b.below !== wantBelow) offBadge.push(`${b.role} is ${b.below ? '' : 'not '}marked below floor at ${want.toFixed(2)}:1 against min ${r.min}`);
+    }
+    ok(got.badges.length >= 60 && offBadge.length === 0, `${where}: every one of ${got.badges.length} ratio badges prints the emitted pair's ratio and marks its floor${offBadge.length ? ` — ${offBadge.slice(0, 3).join(' | ')}` : ''}`);
+  }
+  await ctx.close();
+}
+ok(intStates >= BRANDS.length * 2, `the Interactive sweep visited ${intStates} brand × mode states (floor ${BRANDS.length * 2})`);
+console.log(`  ${intStates} states, ${intText} Text-row inks, ${intPaired} paired specimens and ${intBadges} ratio badges checked against the emissions.`);
+// 1e. S4c: the surface controls edit the previewed mode (owner decision Q22), and a Fields edit reaches the
 //     exported tokens (Q29). Per corpus brand. EXPECTED: the persisted brand's `surfaces.<mode>` key, worked out
 //     HERE from the option chosen (white and black as words, a step as a number), and the other mode's key
 //     held to what was persisted before the edit; the exported DTCG tree's alias for the field role, the
@@ -1631,11 +1732,10 @@ ok(Object.keys(OVERLAY_STEPS).length >= 2,
   `the oracle read ${Object.keys(OVERLAY_STEPS).length} wash steps from packages/engine/modes.ts (${Object.entries(OVERLAY_STEPS).map(([k, v]) => `${k} ${v}`).join(', ')})`);
 
 /**
- * Every overlay-wash row as it RENDERS: its Source read-out, its swatch, and its two state cells.
- *
- * Found by the token pill the row already prints, like #330's row above — an index would silently
- * start measuring a different row the day one is inserted, and a class would not distinguish the wash
- * row from the opaque `subtle-fill` row beside it.
+ * Every overlay-wash row as it RENDERS on Color › Interactive (UI redesign S5.2): its read-out, its swatch, and
+ * its Pressed row nested under it. Found by the role each row names (`data-role`), never by index — an index
+ * would silently start measuring a different row the day one is inserted, and a class would not tell the wash
+ * row from the `subtle-fill` row beside it.
  *
  * The compositing math runs in the page, not in Node, so the ONE copy of it in this file (inside
  * `LEGIBILITY_PROBE`) does not become three. What comes back are the judgements: is there a wash layer
@@ -1672,37 +1772,33 @@ const READ_OVERLAY_ROWS = () => {
       deltaLum: comp && under ? Math.abs(lum(comp) - lum(under)) : null,
     };
   };
-  const readout = (host) => {
-    const n = host?.querySelector('[data-p3="source-readout"]');
-    return { text: n?.textContent?.trim() ?? null, selects: host?.querySelectorAll('select').length ?? 0 };
-  };
-  const out = [];
-  for (const row of document.querySelectorAll('[data-p3="role-row"]')) {
-    const pill = [...row.querySelectorAll('[data-p3="token-pill"]')]
-      .map((p) => p.textContent.trim())
-      .find((t) => /^color\.interactive\.[a-z0-9-]+\.overlay\.hover$/.test(t));
-    if (!pill) continue;
-    out.push({
-      pill,
-      source: readout(row.querySelector('[data-p3="role-source"]')),
-      swatch: readSwatch(row.querySelector('[data-p3="role-swatch"]')),
-      // The example box's ground is computed by `exGround`, a different expression from the one the
-      // swatch's underlay comes from — so agreeing is a real check, not one value read twice.
-      exboxBg: getComputedStyle(row.querySelector('[data-p3="example-ground"]')).backgroundColor,
-      // The specimen AS DRAWN (#812): the button's ink, the wash it sits on, and the receipt beside it.
-      example: (() => {
-        const b = row.querySelector('[data-p3="example-ground"] [data-p3="example-button"]');
-        const cs = b ? getComputedStyle(b) : null;
-        return { ink: cs?.color ?? null, wash: cs?.backgroundColor ?? null, badge: row.querySelector('[data-p3="role-example"] [data-p3="contrast-ratio"]')?.textContent ?? null };
-      })(),
-      states: [...row.querySelectorAll('[data-p3="role-state"]')].map((c) => ({
-        name: c.querySelector('[data-p3="role-state-name"]')?.textContent?.trim() ?? '',
-        swatch: readSwatch(c.querySelector('[data-p3="role-state-swatch"]')),
-        ...readout(c),
-      })),
-    });
-  }
-  return out;
+  const readRow = (row) => ({
+    role: row?.dataset.role ?? null,
+    text: row?.querySelector('[data-p3="int-readout"]')?.textContent?.trim() ?? null,
+    pickers: row?.querySelectorAll('[data-p3="int-pick"], select').length ?? 0,
+    swatch: readSwatch(row?.querySelector('.p3-fill-sw')),
+  });
+  return [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow[data-role$=".overlay.hover"]')].map((row) => {
+    const group = row.closest('[data-p3="int-row-group"]');
+    return { ...readRow(row), states: [...(group?.querySelectorAll('[data-p3="int-row-states"] .p3-fillrow') ?? [])].map(readRow) };
+  });
+};
+/** The preview's Outline row in one column, as drawn: per state, the ink and the ground of its button. */
+const READ_OUTLINE = (name) => {
+  const block = [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="style-guide-palette"]')].find((b) => b.querySelector('.sg-rn')?.textContent === name);
+  return [...(block?.querySelectorAll('[data-p3="style-guide-outline"] [data-p3="style-guide-button"]') ?? [])].map((b) => { const cs = getComputedStyle(b); return { ink: cs.color, bg: cs.backgroundColor, edge: cs.borderTopColor }; });
+};
+/** A row's picker button, its swatch and its label, by role. */
+const readIRow = (page, role) => page.evaluate((r) => {
+  const row = document.querySelector(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`);
+  return row ? { label: row.querySelector('[data-p3="int-pick"] .p3-btn-label')?.textContent?.trim() ?? null, swatch: getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor } : null;
+}, role);
+/** Open `role`'s step picker, run `act` on it, and close it again with Escape. */
+const withPicker = async (page, role, act) => {
+  await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`));
+  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+  await act(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"]'));
+  await page.keyboard.press('Escape');
 };
 
 /** The wash rows this suite actually judged, and in how many polarities. Floored after the loop: the
@@ -1714,179 +1810,119 @@ let washPolarities = new Set();
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
 
-  // --- 2a. the override picker: does its "Auto" label tell the truth? (#330) --------------------
+  // --- 2a. the override picker: does its "Auto" tell the truth? (#330) --------------------------
   //
-  // #330's repro, exactly: pick a step, re-read the Auto option, pick Auto again. The defect was that
-  // `autoStep` came from the LIVE resolved role — which already reflects the override — so the Auto
-  // label mirrored your own manual pick back at you and then reverted to a different value when
-  // clicked. A control whose label lies about its own behavior.
+  // #330's repro: pick a step, then Auto again. The defect was that the Auto baseline came from the LIVE
+  // resolved role — which already reflects the override — so Auto named the user's own pick and then landed
+  // on a different value when chosen. On Color › Interactive (UI redesign S5.2) a row names its Auto only
+  // while it is on Auto (an override reads "Override · …"), so the claim is the round trip: Auto names a
+  // step, a pick moves the color and says Override, and Return to Auto lands on exactly the color and the
+  // words the row showed before.
   //
-  // The row is found by its TOKEN PILL, not by index: `color.interactive.primary.text.rest` is the
-  // role, and an index would silently start testing a different row the day one is inserted above it.
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
-  const ROLE = 'color.interactive.primary.text.rest';
-  const row = page.locator('[data-p3="role-row"]').filter({ hasText: ROLE }).first();
-  ok(await row.count() > 0, `${brand}: the ${ROLE} row is present`);
-
-  const readRow = () => row.evaluate((el) => {
-    const sel = el.querySelector('[data-p3="role-source"] select');
-    return {
-      auto: sel?.options[0]?.text ?? null,
-      value: sel?.value ?? null,
-      steps: [...(sel?.options ?? [])].slice(1).map((o) => o.value),
-      swatch: getComputedStyle(el.querySelector('[data-p3="role-swatch"]')).backgroundColor,
-    };
-  });
-
-  const before = await readRow();
-  ok(/^Auto · /.test(before.auto ?? ''), `${brand}: the picker's first option is the Auto option ("${before.auto}")`);
-  ok(before.value === '', `${brand}: the row starts on Auto (no override)`);
-
-  // The step to pick has to be one that MOVES the resolved color — an override that happens to land
-  // on the baseline would leave every reading below identical and pass this whole section on a defect.
-  // Found by driving, not by parsing the Auto label for its step name: that parse would silently pick
-  // the wrong step the day the label's punctuation changes, and this section would go quietly weak.
-  let pick = null;
-  let during = null;
-  for (const step of before.steps) {
-    await row.locator('[data-p3="role-source"] select').selectOption(step);
-    await page.waitForFunction(
-      ([r, p]) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
-        ?.querySelector('[data-p3="role-source"] select')?.value === p, [ROLE, step]);
-    during = await readRow();
-    if (during.swatch !== before.swatch) { pick = step; break; }
+  // The row is found by its ROLE, not by index: `interactive.primary.text.rest`.
+  await gotoInteractive(page);
+  const ROLE = 'interactive.primary.text.rest';
+  const before = await readIRow(page, ROLE);
+  ok(before !== null, `${brand}: the ${ROLE} row is present`);
+  ok(/^Auto · \S+ \S+/.test(before?.label ?? ''), `${brand}: the row starts on Auto and names its step ("${before?.label}")`);
+  // The step to pick has to be one that MOVES the resolved color — an override that happens to land on the
+  // baseline would leave every reading below identical and pass this whole section on a defect.
+  const stepsOffered = await (async () => {
+    let s = [];
+    await withPicker(page, ROLE, async (pk) => { s = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
+    return s;
+  })();
+  let pick = null, during = null;
+  for (const step of stepsOffered) {
+    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`)));
+    during = await readIRow(page, ROLE);
+    if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
   ok(pick !== null, `${brand}: some step in the picker moves the resolved color (picked '${pick}')`);
-  ok(during?.value === pick, `${brand}: picking '${pick}' sets the override`);
-  // THE #330 ASSERTION. The Auto option names the engine's baseline; an override must not move it.
-  ok(during?.auto === before.auto,
-    `${brand}: the Auto label still names the true baseline with an override active `
-    + `— was "${before.auto}", now "${during.auto}" (#330)`);
-
-  // And the other half of #330, which is the half that made it a lie rather than a cosmetic slip:
-  // selecting Auto must produce the value its own label promised.
-  await row.locator('[data-p3="role-source"] select').selectOption('');
-  await page.waitForFunction(
-    (r) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
-      ?.querySelector('[data-p3="role-source"] select')?.value === '', ROLE);
-  const after = await readRow();
-  ok(after.swatch === before.swatch,
-    `${brand}: selecting Auto returns the color the Auto label named (was ${before.swatch}, now ${after.swatch}) (#330)`);
-  ok(after.auto === before.auto, `${brand}: the Auto label is unchanged after the round trip (#330)`);
+  ok(new RegExp(`^Override · \\S+ ${pick}\\b`).test(during?.label ?? ''), `${brand}: picking '${pick}' sets the override and says so ("${during?.label}")`);
+  // THE #330 ASSERTION: Auto produces the value its own words promised.
+  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]')));
+  const after = await readIRow(page, ROLE);
+  ok(after?.swatch === before?.swatch, `${brand}: Return to Auto returns the color the Auto label named (was ${before?.swatch}, now ${after?.swatch}) (#330)`);
+  ok(after?.label === before?.label, `${brand}: the Auto label is unchanged after the round trip ("${before?.label}" → "${after?.label}") (#330)`);
 
   // --- 2a-ii. the overlay wash is presented as a wash, not as a ramp step (#1210) ---------------
   //
-  // #1210 part 2 was two untruths in the same row, and both came from the row treating a TRANSLUCENT
-  // role as an opaque one:
+  // #1210 part 2 was two untruths in the same row, both from treating a TRANSLUCENT role as an opaque one:
+  //   (a) the row offered a step of the NEUTRAL RAMP and labelled it "Auto · neutral 10". The primitive is
+  //       `<ns>.black-alpha.10` — the neutral ramp has no step 10 to be — and a pick wrote an opaque ramp step
+  //       that still rendered at 10%;
+  //   (b) the swatch painted the `rgba()` with no underlay, over whatever chrome sat behind it.
+  // BOTH MODES ARE DRIVEN, and that is the assertion: the wash flips polarity with the page (`black-alpha` on
+  // a light page, `white-alpha` on a dark one), so an underlay pinned to one colour is wrong in one of the
+  // two. The derived modes are read-only (their rows are disabled), so the customizable pair is the population.
   //
-  //   (a) the Source picker bound the wash to the NEUTRAL RAMP and labelled it "Auto · neutral 10".
-  //       The primitive is `<ns>.black-alpha.10` — the neutral ramp has no step 10 to be. Worse than
-  //       cosmetic: picking from that list wrote `{palette: neutral, step}`, which `modes.ts` applies
-  //       by spreading over the existing role, so `alpha` survived and the role came out naming an
-  //       opaque ramp step while still rendering at 10%.
-  //   (b) the swatch painted the `rgba()` with no underlay, so it composited over whatever studio
-  //       chrome sat behind it and a 10% black wash read near-opaque; the two state cells were worse
-  //       still, painting `r.hex` — the wash's OPAQUE BASE — as solid black.
-  //
-  // BOTH MODES ARE DRIVEN, and that is the assertion, not thoroughness. The wash flips polarity with
-  // the page: `black-alpha` on a light page, `white-alpha` on a dark one. So the underlay CANNOT be a
-  // pinned light colour — a white underlay would render Dark's white wash on white, invisible, which
-  // is #555 in this file exactly (`.exbox.dark` pinned `#0d0d10`, wrong in a Dark mode, where
-  // "inverse" resolves LIGHT). The fix derives the underlay from the role's own declared `against`;
-  // `deltaLum` in both polarities is what holds it to that.
-  //
-  // The derived modes are skipped because they have no editor at all — their whole workspace is the
-  // read-only note — so the customizable pair is the population, not a sample of it.
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
-  const washModes = (await page.locator('[data-p3="mode-tab"] [data-p3="mode-tab-name"]').allTextContents())
-    .map((m) => m.trim()).filter((m) => /^(light|dark)$/i.test(m));
+  // (c), #812, moved with the specimen (UI redesign S5.2: the levers edit, the preview shows): the preview's
+  // Outline row draws each column's HOVER pair, `interactive.<c>.text.hover` over the hover wash, the pair a
+  // Button binds as `outline.label.hover` over `outline.overlay.hover`, and that pair must clear the ink's
+  // own contract. The ratio is computed here from what is drawn.
+  const washModes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode))).filter((m) => /^(light|dark)$/.test(m));
   ok(washModes.length === 2, `${brand}: the Interactive page offers both customizable modes (${washModes.join(', ')})`);
   const washEmission = await loadEmission(brand);
   for (const mode of washModes) {
-    await selectMode(page, mode);
-    const dark = /dark/i.test(mode);
+    await chooseMode(page, mode);
+    const dark = mode === 'dark';
     const expectPal = dark ? OVERLAY_PAL.dark : OVERLAY_PAL.light;
+    const ground = washEmission?.role('background.primary', mode)?.hex;
     const rows = await page.evaluate(READ_OVERLAY_ROWS);
-    // Named, not counted: three built-in action palettes each carry an overlay row under
-    // `overlay-neutral`. A brand on another `outlineInteraction` renders none, and this would then be
-    // asserting nothing — so the floor fails by name rather than passing on an empty list.
-    ok(rows.length >= 3,
-      `${brand} / ${mode}: the Interactive page renders ${rows.length} overlay-wash row(s) to judge (floor 3)`);
+    // Named, not counted: three built-in action palettes each carry an overlay row under `overlay-neutral`.
+    ok(rows.length >= 3, `${brand} / ${mode}: the Interactive page renders ${rows.length} overlay-wash row(s) to judge (floor 3)`);
     for (const row of rows) {
-      const where = `${brand} / ${mode} / ${row.pill}`;
-      // (a) — the Source slot names the primitive and offers no ramp.
-      // Two ABSENCE checks, so each needs the Source slot itself found by this probe first (#1831): a slot
-      // that did not render reads as zero pickers and no ramp step, and would pass both.
-      const sourceSeen = { seen: row.source.text !== null, state: "this row's Source readout" };
-      hooks.absent(ok, sourceSeen, row.source.selects === 0,
-        `${where}: the Source slot offers no ramp-step picker — a step of the neutral ramp is opaque and would replace the wash, not retint it (#1210a)`);
-      ok(row.source.text === `${expectPal} ${OVERLAY_STEPS.hover}`,
-        `${where}: the Source reads "${expectPal} ${OVERLAY_STEPS.hover}", the primitive the engine minted — got "${row.source.text}" (#1210a)`);
-      hooks.absent(ok, sourceSeen, !/\bneutral\s+\d+\b/.test(row.source.text ?? ''),
-        `${where}: the Source does not present the wash as a step of the neutral ramp — got "${row.source.text}" (#1210a)`);
-      // (b) — the swatch composites over an opaque ground, and the result is a visible tint.
-      ok(row.swatch?.hasWashLayer === true,
-        `${where}: the swatch paints the wash as a translucent LAYER (alpha ${row.swatch?.washAlpha}) rather than as its opaque base (#1210b)`);
-      ok(row.swatch?.underOpaque === true,
-        `${where}: the swatch layer sits on an opaque underlay (${row.swatch?.underColor}) instead of on whatever chrome is behind it (#1210b)`);
-      ok(row.swatch?.underColor === row.exboxBg,
-        `${where}: the swatch's underlay is the same ground the example composites the wash over — swatch ${row.swatch?.underColor}, example ${row.exboxBg}`);
-      ok((row.swatch?.deltaLum ?? 0) > 0.005,
-        `${where}: the composited wash is visible against that ground (Δluminance ${row.swatch?.deltaLum?.toFixed(4)}) — a wash pinned to the wrong polarity's ground would read 0`);
-      // The states strip: same two claims, at three times the count. Fixing only the row's own swatch
-      // would have left the identical untruth two rows down.
-      ok(row.states.length === 2, `${where}: the states strip carries Hover and Pressed (${row.states.map((s) => s.name).join(', ')})`);
+      const where = `${brand} / ${mode} / ${row.role}`;
+      const readSeen = { seen: row.text !== null, state: "this row's read-out" };
+      hooks.absent(ok, readSeen, row.pickers === 0,
+        `${where}: the row offers no ramp-step picker — a step of the neutral ramp is opaque and would replace the wash, not retint it (#1210a)`);
+      ok(row.text === `${expectPal} ${OVERLAY_STEPS.hover}`, `${where}: the read-out says "${expectPal} ${OVERLAY_STEPS.hover}", the primitive the engine minted — got "${row.text}" (#1210a)`);
+      hooks.absent(ok, readSeen, !/\bneutral\s+\d+\b/.test(row.text ?? ''), `${where}: the read-out does not present the wash as a step of the neutral ramp — got "${row.text}" (#1210a)`);
+      ok(row.swatch?.hasWashLayer === true, `${where}: the swatch paints the wash as a translucent LAYER (alpha ${row.swatch?.washAlpha}) rather than as its opaque base (#1210b)`);
+      ok(row.swatch?.underOpaque === true, `${where}: the swatch layer sits on an opaque underlay (${row.swatch?.underColor}) instead of on whatever chrome is behind it (#1210b)`);
+      ok(rgbHex(row.swatch?.underColor) === ground, `${where}: the swatch's underlay is the ground the wash is measured on, the emitted background.primary ${ground} (drew ${row.swatch?.underColor})`);
+      ok((row.swatch?.deltaLum ?? 0) > 0.005, `${where}: the composited wash is visible against that ground (Δluminance ${row.swatch?.deltaLum?.toFixed(4)}) — a wash pinned to the wrong polarity's ground would read 0`);
+      ok(row.states.length === 1 && row.states[0].role === row.role.replace(/\.hover$/, '.pressed'), `${where}: its Pressed row sits under it (${row.states.map((s) => s.role).join(', ')})`);
       for (const st of row.states) {
-        const stepKey = st.name.toLowerCase();
-        hooks.absent(ok, { seen: st.text !== null, state: `the ${st.name} state's Source readout` },
-          st.selects === 0, `${where} / ${st.name}: the state's Source offers no ramp-step picker (#1210a)`);
-        ok(st.text === `${expectPal} ${OVERLAY_STEPS[stepKey] ?? '?'}`,
-          `${where} / ${st.name}: the state reads "${expectPal} ${OVERLAY_STEPS[stepKey]}" — got "${st.text}" (#1210a)`);
-        ok(st.swatch?.hasWashLayer === true,
-          `${where} / ${st.name}: the state swatch paints the wash as a layer, not as its opaque base (#1210b)`);
-        ok(st.swatch?.underOpaque === true,
-          `${where} / ${st.name}: the state swatch layer sits on an opaque underlay (${st.swatch?.underColor}) (#1210b)`);
-        ok((st.swatch?.deltaLum ?? 0) > 0.005,
-          `${where} / ${st.name}: the composited state wash is visible against that ground (Δluminance ${st.swatch?.deltaLum?.toFixed(4)})`);
+        hooks.absent(ok, { seen: st.text !== null, state: 'the Pressed row\'s read-out' }, st.pickers === 0, `${where} / Pressed: offers no ramp-step picker (#1210a)`);
+        ok(st.text === `${expectPal} ${OVERLAY_STEPS.pressed ?? '?'}`, `${where} / Pressed: reads "${expectPal} ${OVERLAY_STEPS.pressed}" — got "${st.text}" (#1210a)`);
+        ok(st.swatch?.hasWashLayer === true && st.swatch?.underOpaque === true, `${where} / Pressed: the swatch paints the wash as a layer on an opaque underlay (#1210b)`);
+        ok((st.swatch?.deltaLum ?? 0) > 0.005, `${where} / Pressed: the composited wash is visible against that ground (Δluminance ${st.swatch?.deltaLum?.toFixed(4)})`);
       }
-      // (c) — the specimen previews the pair a component DRAWS on this wash, and carries a receipt for it
-      // (#812). ORACLE: the committed emission's `interactive.<c>.text.hover` — the ink the Button binds as
-      // `outline.label.hover` over `outline.overlay.hover` — and that role's own `min`; never the studio's
-      // resolution. ACTUAL: the ink and the wash the specimen renders, composited in Node over the example's
-      // ground, and the ratio the badge prints. The row painted `text.rest` here until #812, a pair no
-      // component renders (aurora Dark primary 3.83:1), with no receipt at all.
-      const fam = /^color\.interactive\.([a-z0-9-]+)\.overlay\.hover$/.exec(row.pill)?.[1];
-      const want = fam && washEmission ? washEmission.role(`interactive.${fam}.text.hover`, mode.toLowerCase()) : null;
-      const ink = parseRgb(row.example.ink), wash = parseRgb(row.example.wash), ground = parseRgb(row.exboxBg);
-      const drawn = ink && wash && ground ? wcag(ink, over(wash, ground)) : null;
-      const printed = row.example.badge ? parseFloat(row.example.badge) : null;
-      ok(want !== null && hexOf(ink) === want.hex,
-        `${where}: the specimen inks the Button's hover pair — ${hexOf(ink)}, emitted interactive.${fam}.text.hover ${want?.hex ?? 'unresolved'} (#812)`);
-      ok(drawn !== null && printed !== null && Math.abs(drawn - printed) < 0.011,
-        `${where}: the specimen carries a contrast receipt for the pair on screen — badge ${printed ?? 'ABSENT'}:1, rendered ${drawn?.toFixed(2)}:1 (#812)`);
-      ok(drawn !== null && typeof want?.min === 'number' && drawn >= want.min,
-        `${where}: the hover pair clears text.hover's own contract — ${drawn?.toFixed(2)}:1 against ${want?.min}:1 (#812)`);
+      // (c) — the preview's Outline row inks the Button's hover pair, and that pair clears its contract (#812).
+      const fam = /^interactive\.([a-z0-9-]+)\.overlay\.hover$/.exec(row.role)?.[1];
+      const name = fam ? fam.charAt(0).toUpperCase() + fam.slice(1) : '?';
+      const drawnRow = await page.evaluate(READ_OUTLINE, name);
+      const hov = drawnRow[1];
+      const want = fam && washEmission ? washEmission.role(`interactive.${fam}.text.hover`, mode) : null;
+      const ink = parseRgb(hov?.ink), wash = parseRgb(hov?.bg);
+      const drawn = ink && wash && ground ? wcag(ink, over(wash, hexRgb(ground))) : null;
+      ok(want !== null && hexOf(ink) === want.hex, `${where}: the preview's Outline hover inks the Button's hover pair — ${hexOf(ink)}, emitted interactive.${fam}.text.hover ${want?.hex ?? 'unresolved'} (#812)`);
+      ok(drawn !== null && typeof want?.min === 'number' && drawn >= want.min, `${where}: the hover pair as drawn clears text.hover's own contract — ${drawn?.toFixed(2)}:1 against ${want?.min}:1 (#812)`);
       washRowsSeen++;
       washPolarities.add(expectPal);
     }
   }
+  await chooseMode(page, 'light');
 
   // --- 2b. a select must not jump the page while scrolled (#485) --------------------------------
   //
   // `applyFull()` → `renderWorkspace()` does `workspace.innerHTML = ''`, which resets scroll as a side
   // effect; #485 fixed it once for every current AND future caller by saving/restoring around the
-  // teardown. Driven on Surfaces, which is where it was reported.
-  // Surfaces & fills moved to the two panes in UI redesign S4a, so the jump is driven on Interactive, the
-  // first legacy Color page, by its first select that offers a choice (a step select in its matrix).
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
+  // teardown. Color moved to the two panes (S2, S4a, S5.2), so the jump is driven on Layout, the first legacy
+  // page that draws a select (Type and Size & radius draw chips and fields), by its first select with a choice.
+  await gotoRail(page, '[data-p3="rail-page-layout"]');
   const selIdx = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-page"] select')].findIndex((s) => s.options.length >= 3));
-  ok(selIdx >= 0, `${brand}: the Interactive page has a select with a choice to drive (#485)`);
+  ok(selIdx >= 0, `${brand}: the Layout page has a select with a choice to drive (#485)`);
+  // A missing select fails above by name; it must not then take the run down as a locator timeout.
+  if (selIdx >= 0) {
   const surfSel = page.locator('[data-p3="legacy-page"] select').nth(selIdx);
   const opts = await surfSel.evaluate((s) => [...s.options].map((o) => o.value));
   const cur = await surfSel.inputValue();
   const target = opts.find((o) => o !== cur);
   const height = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
-  ok(height > 400, `${brand}: the Interactive page is scrollable (${height}px of travel) — the jump is observable`);
+  ok(height > 400, `${brand}: the Layout page is scrollable (${height}px of travel) — the jump is observable`);
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.waitForFunction(() => window.scrollY === 400);
   await surfSel.selectOption(target);
@@ -1896,6 +1932,7 @@ for (const brand of BRANDS) {
   await page.waitForFunction(([t, i]) => document.querySelectorAll('[data-p3="legacy-page"] select')[i]?.value === t, [target, selIdx]);
   const scrollY = await page.evaluate(() => window.scrollY);
   ok(Math.abs(scrollY - 400) <= 2, `${brand}: changing a select holds the scroll position (400 → ${scrollY}) (#485)`);
+  }
 
   // --- 2c. the export actually writes a file ----------------------------------------------------
   // The dialog rendering is #723's suite; what only a browser can check is that clicking Download
@@ -2266,10 +2303,6 @@ const CHIP_LEVERS = [
   { key: 'buttonContentSize', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-content-size"]' },
   { key: 'buttonLabelWeight', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-label-weight"]' },
   { key: 'motionPersonality.tempo', rail: '[data-p3="rail-page-motion"]', group: '[data-p3="lever-motion-personality-tempo"]' },
-  { key: 'iconContrast', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-icon-contrast"]' },
-  { key: 'disabledStrategy', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-disabled-strategy"]' },
-  { key: 'outlineInteraction', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-outline-interaction"]' },
-  { key: 'neutralEmphasis', rail: '[data-p3="rail-page-interactive"]', group: '[data-p3="lever-neutral-emphasis"]' },
 ];
 ok(CHIP_LEVERS.every((c) => leverOf(c.key)?.options?.length >= 2), `every converted lever is an enum in schema/lever-manifest.json (${CHIP_LEVERS.length} levers)`);
 
@@ -2405,18 +2438,113 @@ for (const brand of BRANDS) {
 ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip groups checked (floor ${CHIP_LEVERS.length * 2}: every converted lever on at least two brands)`);
 
 // Narrow panels: the chips wrap instead of overflowing (#1675). Measured at 380px, the plugin's narrow width.
+// Color › Interactive moved to the two panes (UI redesign S5.2), so the legacy radio chips are measured on
+// Size & radius, and the new page's chips below.
 {
   const { ctx, page } = await openBrand(BRANDS[0]);
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
+  await gotoRail(page, '[data-p3="rail-page-size-radius"]');
   await page.setViewportSize({ width: 380, height: 900 });
   const wrap = await page.evaluate(() => {
-    const g = document.querySelector('[data-p3="lever-outline-interaction"]');
+    const g = document.querySelector('[data-p3="lever-button-content-size"]');
     const row = g?.querySelector('input')?.closest('label')?.parentElement;
     if (!row) return null;
     const tops = [...row.children].map((l) => Math.round(l.getBoundingClientRect().top));
     return { rows: new Set(tops).size, over: row.scrollWidth - row.clientWidth, doc: document.documentElement.scrollWidth - window.innerWidth };
   });
-  ok(wrap && wrap.rows >= 2 && wrap.over <= 1, `at 380px the Outline hover chips wrap onto ${wrap?.rows} rows with no overflow (${wrap?.over}px)`);
+  ok(wrap && wrap.over <= 1, `at 380px the Button content size chips fit or wrap with no overflow (${wrap?.rows} row(s), ${wrap?.over}px over)`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 3c. Lever chips on Color › Interactive — the new markup (UI redesign S5.2)
+// =============================================================================================
+// The page's enum levers draw as the levers kit's chips: a `fieldset` whose `legend` names the lever, holding
+// a radio group of `button[role="radio"]` (not radios in labels). Held here as #1675 held the legacy chips: the
+// manifest's options and labels (oracle: the committed `schema/lever-manifest.json`), exactly one checked and
+// it is the brand's stored value (read from the persisted brand, a store the chip does not paint), a click
+// writes, ArrowRight writes the next, each chip a >= 24px target, and at 380 the chips stay inside the panel.
+// The reduced disabled floor is four chips, 3, 3.5, 4 and 4.5 (owner decision Q37), disabled under Full.
+console.log(`\nLever chips on Color › Interactive (S5.2)\n${'='.repeat(78)}`);
+const INTERACTIVE_CHIPS = [
+  { key: 'outlineInteraction', group: '[data-p3="lever-outline-interaction"]' },
+  { key: 'neutralEmphasis', group: '[data-p3="lever-neutral-emphasis"]' },
+  { key: 'iconContrast', group: '[data-p3="lever-icon-contrast"]' },
+  { key: 'disabledStrategy', group: '[data-p3="lever-disabled-strategy"]' },
+];
+const DISABLED_MIN_CHIPS = [['3', '3:1'], ['3.5', '3.5:1'], ['4', '4:1'], ['4.5', '4.5:1']];
+const readNewChips = (sel) => {
+  const all = document.querySelectorAll(sel);
+  const fs = all[0];
+  if (!fs) return { found: 0 };
+  const radios = [...fs.querySelectorAll('button[role="radio"]')];
+  return {
+    found: all.length, tag: fs.tagName, legend: fs.querySelector(':scope > legend .p3-lever-name')?.textContent?.trim() ?? null,
+    group: fs.querySelector('[role="radiogroup"]')?.getAttribute('aria-label') ?? null,
+    values: radios.map((r) => r.dataset.value), labels: radios.map((r) => r.textContent.trim()),
+    checked: radios.filter((r) => r.getAttribute('aria-checked') === 'true').map((r) => r.dataset.value),
+    disabled: radios.map((r) => r.disabled),
+    small: radios.map((r) => r.getBoundingClientRect()).filter((b) => b.width < 24 || b.height < 24).length,
+  };
+};
+{
+  const brand = BRANDS[0];
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoInteractive(page);
+  for (const c of INTERACTIVE_CHIPS) {
+    const lever = leverOf(c.key);
+    const where = `${brand} / Interactive / ${c.key}`;
+    const g = await page.evaluate(readNewChips, c.group);
+    if (!g.found) { ok(false, `${where}: renders a chip group`); continue; }
+    ok(g.found === 1 && g.tag === 'FIELDSET' && g.legend === lever.label && g.group === lever.label, `${where}: one fieldset whose legend and radio group name the lever ("${g.legend}", "${g.group}", want "${lever.label}")`);
+    ok(JSON.stringify(g.values) === JSON.stringify(lever.options.map((o) => String(o.value))) && JSON.stringify(g.labels) === JSON.stringify(lever.options.map((o) => o.label)),
+      `${where}: offers the manifest's ${lever.options.length} options with its labels (${g.labels.join(', ')})`);
+    const stored = (await persistedAt(page, c.key)) ?? lever.default;
+    ok(g.checked.length === 1 && g.checked[0] === String(stored), `${where}: exactly one chip is checked, the brand's value (${g.checked.join(', ') || 'none'}, stored ${stored})`);
+    ok(g.small === 0, `${where}: every chip is a >= 24px hit target (${g.small} smaller)`);
+    for (const o of lever.options) {
+      const v = String(o.value);
+      if ((await page.evaluate(readNewChips, c.group)).checked[0] === v) continue;
+      await hooks.click(page.locator(`${c.group} button[role="radio"]`).filter({ hasText: o.label }).first());
+      await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, v], { timeout: 5000 }).catch(() => {});
+      ok(String(await persistedAt(page, c.key)) === v, `${where}: choosing "${o.label}" writes ${v} to the brand (wrote ${await persistedAt(page, c.key)})`);
+    }
+    const before = await page.evaluate(readNewChips, c.group);
+    const next = before.values[(before.values.indexOf(before.checked[0]) + 1) % before.values.length];
+    await page.locator(`${c.group} button[aria-checked="true"]`).focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, next], { timeout: 5000 }).catch(() => {});
+    ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight writes ${next} to the brand, and focus stays in the group (${await page.evaluate((s) => !!document.activeElement?.closest(s), c.group)})`);
+  }
+  // The reduced floor (Q37): four chips, written as numbers; disabled, none checked, and said so under Full.
+  const dm = '[data-p3="lever-disabled-min"]';
+  await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="reduced"]'));
+  await page.waitForFunction((s) => !document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
+  const r0 = await page.evaluate(readNewChips, dm);
+  ok(JSON.stringify(r0.values) === JSON.stringify(DISABLED_MIN_CHIPS.map(([v]) => v)) && JSON.stringify(r0.labels) === JSON.stringify(DISABLED_MIN_CHIPS.map(([, l]) => l)) && r0.disabled.every((d) => !d),
+    `${brand} / Interactive / disabledMin: under Reduced, four chips ${r0.labels.join(', ')}, all enabled (Q37)`);
+  // Every chip, by value: the expectation is this literal list, never the subject's own chip set (docs/34),
+  // so a chip that writes its neighbor's number fails here by name. Visited starting after the checked chip,
+  // so every click is a change and must write.
+  const FLOORS = [3, 3.5, 4, 4.5];
+  const at = FLOORS.findIndex((f) => String(f) === r0.checked[0]);
+  for (const f of [...FLOORS.slice(at + 1), ...FLOORS.slice(0, at + 1)]) {
+    await hooks.click(page.locator(`${dm} button[role="radio"][data-value="${f}"]`));
+    await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [dm, String(f)], { timeout: 5000 }).catch(() => {});
+    const wrote = await persistedAt(page, 'disabledMin');
+    ok(wrote === f, `${brand} / Interactive / disabledMin: ${f}:1 writes the number ${f} (wrote ${JSON.stringify(wrote)})`);
+  }
+  await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="full"]'));
+  await page.waitForFunction((s) => !!document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
+  const r1 = await page.evaluate(readNewChips, dm);
+  const note = await page.evaluate((s) => document.querySelector(`${s} .p3-lever-state`)?.textContent ?? '', dm);
+  ok(r1.disabled.every(Boolean) && r1.checked.length === 0 && note === 'Full fixes the disabled floor at 4.5:1, so this has no effect.',
+    `${brand} / Interactive / disabledMin: under Full, every chip is disabled, none is checked, and the lever says why ("${note}")`);
+  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row).
+  await page.setViewportSize({ width: 380, height: 900 });
+  const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);
+  ok(over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow)`);
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: driving the Interactive chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 
@@ -2962,6 +3090,11 @@ for (const brand of BRANDS) {
   await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="token-pill"]');
   await walkPills();
   pages.push('Brand');
+  // Color › Interactive (UI redesign S5.2): its Links section draws each family's twin on the inverse band.
+  await gotoInteractive(page);
+  await hooks.need(page, '[data-p3="interactive-style-guide"] [data-p3="token-pill"]');
+  await walkPills();
+  pages.push('Interactive');
 
   const where = `#1147 / ${brand}`;
   const sample = (rows, fmt) => rows.slice(0, 3).map(fmt).join(' | ');
@@ -3025,9 +3158,17 @@ for (const brand of BRANDS) {
     const hazard = twinPairings(rows).filter(([a, b]) => a.visible === b.visible);
     // Asserted BEFORE the collision check and separately from it: at a cap where nothing elides far
     // enough to be ambiguous, the check below passes on a badge that was never rendered.
-    ok(hazard.length >= TWIN_HAZARD_FLOOR,
-      `${where} @ ${w}px cap: ${hazard.length} twin pairing(s) elide to identical text, so the badge is the only thing telling them apart (floor ${TWIN_HAZARD_FLOOR})${
-        hazard.length ? ` — e.g. "${hazard[0][0].visible}" for both ${hazard[0][0].path} and ${hazard[0][1].path}` : ''}`);
+    // UI redesign S5.2 retired the legacy Interactive page, whose one-line `tokenPill`s were the pills that
+    // elided. The pills on screen now (the shared Style guide sections') break at their dots instead, so at a
+    // cap they wrap and show the whole path. That is the other way the premise holds: either enough twins
+    // elide to identical text for the check below to bite, or no capped pill in a twin pairing hides any of
+    // its path (legacy pills elsewhere still elide, but none of them has an inverse twin).
+    const capPairs = twinPairings(rows);
+    const twinPills = capPairs.flat();
+    const elided = twinPills.filter((r) => r.visible !== r.text);
+    ok(capPairs.length >= TWIN_PAIRING_FLOOR && (hazard.length >= TWIN_HAZARD_FLOOR || elided.length === 0),
+      `${where} @ ${w}px cap: ${hazard.length} twin pairing(s) elide to identical text, so the badge is the only thing telling them apart (floor ${TWIN_HAZARD_FLOOR}), or no pill of the ${twinPills.length} in a twin pairing elides (${elided.length} do)${
+        hazard.length ? ` — e.g. "${hazard[0][0].visible}" for both ${hazard[0][0].path} and ${hazard[0][1].path}` : elided.length ? ` — e.g. ${elided[0].path} shows "${elided[0].visible}"` : ''}`);
     const hits = labelCollisions(rows);
     ok(hits.length === 0,
       `${where} @ ${w}px cap: every rendered label still names one token (${hits.length} collision(s)${hits.length ? `: ${hits.slice(0, 3).join(' | ')}` : ''})`);
@@ -3047,98 +3188,60 @@ for (const brand of BRANDS) {
 // 7. The outline EDGE is authorable, and it can leave the ink behind (#576)
 // =============================================================================================
 // #576's engine half landed in #1231: `interactive.<c>.border.{rest,hover,pressed}` and the inverse twin,
-// derived from the text ink's own candidates so the edge follows the label by default. Nothing in the
-// studio could author it — `renderPaletteSection` had a Source row for fill, text, overlay, subtle-fill
-// and on-fill, and none for the border — so the one role added for a designer to tune was the one role
-// they could not reach.
+// derived from the text ink's own candidates so the edge follows the label by default. Color › Interactive
+// (UI redesign S5.2) edits each as a row, its Hover and Pressed under it, and the preview's Outline row draws
+// the edge per state.
 //
-// WHY THE PRESENCE OF THE ROWS IS NOT THE LOAD-BEARING ARM. A row that renders, carries a pill and offers
-// a step list can still be inert in the way that matters here: `exOutline` painted the border AND the ink
-// from a single `edge` argument, read off `text.rest`. Add the row on top of that and the specimen keeps
-// showing the ink no matter what the picker says — the swatch moves, the example does not, and the control
-// reads as broken while every presence check passes. So the arm that carries the fix is the DIVERGENCE:
-// override the border and the specimen's edge must move while its ink holds still.
-//
-// AND THE STATES ARE DRIVEN, NOT INFERRED FROM A CUSTOM PROPERTY. The edge used to be an inline `border`
-// shorthand, which beats `.ibtn:hover` — so a stateful edge was unreachable no matter what the engine
-// resolved. Reading `--ibtn-hbd` back would assert only that the value was written down. Hovering the
-// specimen and re-reading the RENDERED border color is what fails if that CSS refactor is reverted.
+// WHY THE PRESENCE OF THE ROWS IS NOT THE LOAD-BEARING ARM. A row that renders and offers steps can still be
+// inert in the way that matters here: a specimen that paints the border AND the ink from one color keeps
+// showing the ink whatever the row says. So the arm that carries the fix is the DIVERGENCE: override the
+// border and the preview's edge must move while its ink holds still.
 //
 // THE PER-FAMILY EXPECTATION IS MEASURED FROM THE ENGINE, NOT FROM THE DOM (docs/34 shape 1). Across all
 // six corpus themes, `primary` and `destructive` walk three distinct border steps while `neutral`'s three
 // states land on ONE — its ink is already the far end of its ramp with nowhere further to walk, which is
-// #576's decided outcome, not a regression. That split is asserted in both directions: a walking family
-// whose hover edge stops moving fails, and so does a neutral whose states start diverging.
+// #576's decided outcome, not a regression. That split is asserted in both directions.
 //
-// ONE MODE, one page. The role set and the wiring do not vary by mode; the colors do, and section 1
-// already sweeps those. Light is the mode with editors rather than the read-only `.genview` note.
+// ONE MODE, one page. Light is a mode with editors.
 console.log(`\nThe outline edge (#576)\n${'='.repeat(78)}`);
 
 // 3 families × 2 contexts, and no corpus brand ships an accent column — so this is the whole set (asserted
-// against the rendered page after the loop, #1245), and
-// asserting each by name beats a count that a brand with an extra palette would inflate into a pass.
+// against the rendered page after the loop, #1245).
 const EDGE_FAMILIES = ['primary', 'neutral', 'destructive'];
 // Which families' border states WALK. Read from the engine's behavior, restated here on purpose: this is
 // the duplication that makes the assertion a comparison instead of a tautology.
 const EDGE_WALKS = new Set(['primary', 'destructive']);
 
-/** One Border row, read as a whole: the row's own swatch, and what the specimen actually paints. */
-const readEdgeRow = (row) => row.evaluate((el) => {
-  const btn = el.querySelector('[data-p3="role-example"] [data-p3="example-button"]');
-  const cs = btn && getComputedStyle(btn);
-  const sel = el.querySelector('[data-p3="role-source"] select');
+/** One Border row, read as a whole: its swatch, its label, and its nested Hover and Pressed rows. */
+const readEdgeRow = (page, role) => page.evaluate((r) => {
+  const row = document.querySelector(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`);
+  if (!row) return null;
+  const group = row.closest('[data-p3="int-row-group"]');
   return {
-    swatch: getComputedStyle(el.querySelector('[data-p3="role-swatch"]')).backgroundColor,
-    edge: cs ? cs.borderTopColor : null,
-    width: cs ? cs.borderTopWidth : null,
-    ink: cs ? cs.color : null,
-    auto: sel?.options[0]?.text ?? null,
-    value: sel?.value ?? null,
-    steps: [...(sel?.options ?? [])].slice(1).map((o) => o.value),
-    // The two state cells, in order — each its own swatch and its own override select.
-    states: [...el.querySelectorAll('[data-p3="role-states"] [data-p3="role-state"]')].map((c) => ({
-      name: c.querySelector('[data-p3="role-state-name"]')?.textContent ?? '',
-      swatch: getComputedStyle(c.querySelector('[data-p3="role-state-swatch"]')).backgroundColor,
-      options: c.querySelector('select')?.options.length ?? 0,
+    swatch: getComputedStyle(row.querySelector('.p3-fill-sw')).backgroundColor,
+    label: row.querySelector('[data-p3="int-pick"] .p3-btn-label')?.textContent?.trim() ?? null,
+    states: [...(group?.querySelectorAll('[data-p3="int-row-states"] .p3-fillrow') ?? [])].map((c) => ({
+      role: c.dataset.role, name: c.querySelector('.p3-fill-label')?.textContent ?? '',
+      swatch: getComputedStyle(c.querySelector('.p3-fill-sw')).backgroundColor, pick: !!c.querySelector('[data-p3="int-pick"]'),
     })),
   };
-});
+}, role);
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
+  await gotoInteractive(page);
   const notes = [];
 
   for (const fam of EDGE_FAMILIES) {
     for (const inverse of [false, true]) {
-      // The `color.` head is what disambiguates the two: `color.inverse.interactive.…` does not contain
-      // `color.interactive.…`, so each pill matches exactly one row.
-      const ROLE = `color.${inverse ? 'inverse.' : ''}interactive.${fam}.border.rest`;
+      const ROLE = `${inverse ? 'inverse.' : ''}interactive.${fam}.border.rest`;
       const where = `${brand} ${fam}${inverse ? ' · inverse' : ''}`;
-      const row = page.locator('[data-p3="role-row"]').filter({ hasText: ROLE }).first();
-      ok(await row.count() > 0, `${where}: the ${ROLE} row is present — the border is authorable (#576)`);
-      if (!(await row.count())) continue;
-
-      const r = await readEdgeRow(row);
-      ok(/^Auto · /.test(r.auto ?? '') && r.value === '' && r.steps.length > 0,
-        `${where}: its Source select starts on Auto and offers ${r.steps.length} step(s) of this family's own ramp`);
-
-      // The specimen paints the BORDER role, not the ink. Two independently written paint sites — the
-      // row's swatch comes from the resolved role, the example from `exOutline` — so they agreeing is a
-      // real comparison, and the version of this row that painted the edge from `text.rest` fails it the
-      // moment an override lands below.
-      // A VISIBLE edge, not the authored figure. `exOutline` asks for 1.5px and Chromium rounds a
-      // fractional border to a device pixel, so the used value reads 1px at DPR 1 — asserting 1.5 would
-      // be asserting the string this file's subject wrote down. That the edge comes from the STYLESHEET
-      // rather than an inline shorthand is proven below, by hovering it.
-      ok(r.edge !== null && parseFloat(r.width) > 0,
-        `${where}: the example draws a visible edge (border-top-width ${r.width})`);
-      ok(r.edge === r.swatch,
-        `${where}: the example's edge is the color the row's swatch names (swatch ${r.swatch}, edge ${r.edge})`);
-
-      // Both states, per family, with their own pickers.
-      ok(r.states.length === 2 && r.states[0].name === 'Hover' && r.states[1].name === 'Pressed',
-        `${where}: Hover and Pressed each get their own Source select (${r.states.map((s) => `${s.name}:${s.options}`).join(', ') || 'none'})`);
+      const r = await readEdgeRow(page, ROLE);
+      ok(r !== null, `${where}: the ${ROLE} row is present — the border is authorable (#576)`);
+      if (!r) continue;
+      ok(/^Auto · /.test(r.label ?? ''), `${where}: its row starts on Auto ("${r.label}")`);
+      ok(r.states.length === 2 && r.states[0].name === 'Hover' && r.states[1].name === 'Pressed' && r.states.every((s) => s.pick),
+        `${where}: Hover and Pressed each get their own row under it, each with its picker (${r.states.map((s) => `${s.name}:${s.pick}`).join(', ') || 'none'})`);
       const walks = r.states.every((s) => s.swatch !== r.swatch);
       const holds = r.states.every((s) => s.swatch === r.swatch);
       ok(EDGE_WALKS.has(fam) ? walks : holds,
@@ -3148,14 +3251,10 @@ for (const brand of BRANDS) {
     }
   }
 
-  // THE SET IS CLOSED, asserted rather than assumed (#1245). The loop above visits only the families it
-  // was handed, so a fourth interactive column would render two Border rows this section never reads —
-  // zero coverage and a green run. Enumerate every Border row the PAGE renders, from its token pill, and
-  // require the families found to be exactly EDGE_FAMILIES, each in both contexts. The page and the
-  // authored list are the two sides; deriving the list from the page would compare it with itself.
-  const rendered = await page.evaluate(() => [...document.querySelectorAll('[data-p3="role-row"] [data-p3="token-pill"]')]
-    .map((t) => /(?:^|\.)color\.(inverse\.)?interactive\.([a-z0-9-]+)\.border\.rest$/.exec(t.getAttribute('title') ?? t.textContent ?? ''))
-    .filter(Boolean).map((m) => `${m[2]}${m[1] ? ' · inverse' : ''}`));
+  // THE SET IS CLOSED, asserted rather than assumed (#1245): every Border row the page renders, by its role,
+  // must be exactly EDGE_FAMILIES in both contexts.
+  const rendered = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow[data-role]')]
+    .map((n) => /^(inverse\.)?interactive\.([a-z0-9-]+)\.border\.rest$/.exec(n.dataset.role)).filter(Boolean).map((m) => `${m[2]}${m[1] ? ' · inverse' : ''}`));
   const expectedEdges = EDGE_FAMILIES.flatMap((f) => [f, `${f} · inverse`]);
   const unvisited = [...new Set(rendered)].filter((k) => !expectedEdges.includes(k));
   const unrendered = expectedEdges.filter((k) => !rendered.includes(k));
@@ -3164,143 +3263,63 @@ for (const brand of BRANDS) {
     + `(rendered ${rendered.length}${unvisited.length ? `; NOT VISITED by this section: ${unvisited.join(', ')} — add the family to EDGE_FAMILIES` : ''}`
     + `${unrendered.length ? `; missing: ${unrendered.join(', ')}` : ''})`);
 
-  // The other direction of the CSS change, which none of the assertions above can see: `--ibtn-bw` is set
   // --- THE DIVERGENCE, driven on primary --------------------------------------------------------
-  const ROLE = 'color.interactive.primary.border.rest';
-  const INK = 'color.interactive.primary.text.rest';
-  const FILL = 'color.interactive.primary.fill.rest';
-  const bRow = page.locator('[data-p3="role-row"]').filter({ hasText: ROLE }).first();
-  const tRow = page.locator('[data-p3="role-row"]').filter({ hasText: INK }).first();
-  const fRow = page.locator('[data-p3="role-row"]').filter({ hasText: FILL }).first();
-  const inkSwatch = () => tRow.evaluate((el) => getComputedStyle(el.querySelector('[data-p3="role-swatch"]')).backgroundColor);
-
-  // A missing row has to report as a FAILED ASSERTION, not as an uncaught locator timeout. Measured while
-  // mutation-testing this section: with the border rows removed, the six presence checks above failed by
-  // name and then the first `evaluate` below threw after 30s and took the process down — before the tally
-  // and before the `GITHUB_STEP_SUMMARY` write, which makes a red run read on the run page exactly like a
-  // step that never executed. The exit code was still 1, so it gated; the evidence is what was lost.
-  const driveable = (await bRow.count()) > 0 && (await tRow.count()) > 0 && (await fRow.count()) > 0;
-  ok(driveable, `${brand}: the border, ink and fill rows are all on the page to drive against`);
-  if (!driveable) {
-    const missing = drain();
-    ok(missing.length === 0, `${brand}: 0 console errors before the skipped edge drive${missing.length ? ` — ${missing.slice(0, 3).join(' | ')}` : ''}`);
-    await ctx.close();
-    continue;
-  }
-
-  // The other direction of the CSS change, which none of the assertions above can see: `--ibtn-bw` is set
-  // by `exOutline` alone, so every other specimen falls back to 0 and stays borderless. A `border:1.5px`
-  // that landed on `.ibtn` itself would satisfy this whole section and quietly add 3px to every filled
-  // button specimen in the studio.
-  const fillEdge = await fRow.locator('[data-p3="role-example"] [data-p3="example-button"]').first().evaluate((el) => getComputedStyle(el).borderTopWidth);
-  ok(parseFloat(fillEdge) === 0,
-    `${brand}: a FILLED specimen still has no border (border-top-width ${fillEdge}) — the outline example is the only one that sets \`--ibtn-bw\``);
-
-  const before = await readEdgeRow(bRow);
-  const inkBefore = await inkSwatch();
-  ok(before.edge === before.ink,
-    `${brand}: with no override the edge and the ink are the same color (${before.edge}) — the border follows the ink by default (#1231)`);
-
-  // The step has to be one that MOVES the resolved color; an override landing on the baseline would leave
-  // every reading below identical and pass this whole drive on a defect.
-  let pick = null;
-  let during = null;
-  for (const step of before.steps) {
-    await bRow.locator('[data-p3="role-source"] select').selectOption(step);
-    await page.waitForFunction(
-      ([r, p]) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
-        ?.querySelector('[data-p3="role-source"] select')?.value === p, [ROLE, step]);
-    during = await readEdgeRow(bRow);
-    if (during.swatch !== before.swatch) { pick = step; break; }
+  const ROLE = 'interactive.primary.border.rest';
+  const INK = 'interactive.primary.text.rest';
+  const outline = () => page.evaluate(READ_OUTLINE, 'Primary');
+  const before = await readEdgeRow(page, ROLE);
+  const inkBefore = (await readIRow(page, INK))?.swatch;
+  const o0 = await outline();
+  ok(o0.length === 3 && o0[0].edge === before?.swatch && o0[0].edge === o0[0].ink,
+    `${brand}: with no override the preview's Outline edge is the Border row's color and the same as its ink (${o0[0]?.edge}, ink ${o0[0]?.ink}) — the border follows the ink by default (#1231)`);
+  ok(o0[1]?.edge === before?.states[0]?.swatch && o0[2]?.edge === before?.states[1]?.swatch,
+    `${brand}: the preview's Outline hover and pressed edges are the Hover and Pressed rows' colors (${o0[1]?.edge}, ${o0[2]?.edge})`);
+  // The step has to be one that MOVES the resolved color.
+  let steps = [];
+  await withPicker(page, ROLE, async (pk) => { steps = await pk.locator('[data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step)); });
+  let pick = null, during = null;
+  for (const step of steps) {
+    await withPicker(page, ROLE, (pk) => hooks.click(pk.locator(`[data-p3="step-picker-step"][data-step="${step}"]`)));
+    during = await readEdgeRow(page, ROLE);
+    if (during?.swatch !== before?.swatch) { pick = step; break; }
   }
   ok(pick !== null, `${brand}: some step in the border picker moves the resolved color (picked '${pick}')`);
-
+  const o1 = await outline();
   // THE LOAD-BEARING ASSERTION. Both halves matter: the edge followed the override, and the ink did not.
-  ok(during?.edge === during?.swatch && during?.edge !== before.edge,
-    `${brand}: pinning the border moves the example's EDGE (${before.edge} → ${during?.edge}, swatch ${during?.swatch}) (#576)`);
-  ok(during?.ink === before.ink,
-    `${brand}: and leaves the example's INK where it was (${before.ink}) — the edge can now differ from the label it surrounds`);
-  ok((await inkSwatch()) === inkBefore,
-    `${brand}: the Text · rest row is untouched by a border override (${inkBefore}) — the override is scoped to the one role`);
-  ok(/^Auto · /.test(during?.auto ?? '') && during?.auto === before.auto,
-    `${brand}: the border row's Auto label still names the engine's baseline with an override active `
-    + `— was "${before.auto}", now "${during?.auto}" (#330)`);
-
-  // --- THE RENDERED STATES, which the inline shorthand made unreachable -------------------------
-  await bRow.locator('[data-p3="role-source"] select').selectOption('');
-  await page.waitForFunction(
-    (r) => [...document.querySelectorAll('[data-p3="role-row"]')].find((el) => el.textContent.includes(r))
-      ?.querySelector('[data-p3="role-source"] select')?.value === '', ROLE);
-  const back = await readEdgeRow(bRow);
-  ok(back.edge === before.edge && back.swatch === before.swatch,
-    `${brand}: selecting Auto returns the edge the Auto label named (${back.edge})`);
-
-  const btn = bRow.locator('[data-p3="role-example"] [data-p3="example-button"]');
-  const edgeNow = () => btn.evaluate((el) => getComputedStyle(el).borderTopColor);
-  await btn.hover();
-  // Waits on the CONDITION, not a timer, and reads it through `:hover` so a mouse that landed on the
-  // wrong element reports as "the edge never moved" rather than passing on a stale read. A timeout is a
-  // failed assertion below, not a thrown wait.
-  const hoverLanded = await page.waitForFunction((rest) => {
-    const el = document.querySelector('[data-p3="role-row"] [data-p3="role-example"] [data-p3="example-button"]:hover');
-    return !!el && getComputedStyle(el).borderTopColor !== rest;
-  }, back.edge, { timeout: 3000 }).then(() => true, () => false);
-  const hovered = await edgeNow();
-  ok(hoverLanded && hovered === back.states[0].swatch,
-    `${brand}: hovering the specimen paints the HOVER edge (rest ${back.edge} → ${hovered}, Hover swatch ${back.states[0].swatch}) `
-    + `— an inline \`border\` shorthand could not be overridden by \`:hover\` at all`);
-
-  // Pressed is click-to-pin (#291), and the border row is pinnable BECAUSE its edge has a pressed value —
-  // its wash never changes, so an affordance keyed off the wash alone would have left this unreachable.
-  await hooks.click(btn);
-  // Same reason the hover wait is guarded: a specimen that is not pinnable at all never gets the class, and
-  // an unguarded wait would take the process down instead of reporting which assertion noticed.
-  const pinned = await page.waitForFunction(
-    () => !!document.querySelector('[data-p3="role-row"] [data-p3="role-example"] [data-p3="example-button"].is-pressed'), null, { timeout: 3000 },
-  ).then(() => true, () => false);
-  const pressed = await edgeNow();
-  ok(pinned && pressed === back.states[1].swatch && pressed !== hovered,
-    `${brand}: pinning the specimen paints the PRESSED edge (pinnable=${pinned}, ${pressed}, Pressed swatch ${back.states[1].swatch})`);
-  await hooks.click(btn);
+  ok(o1[0]?.edge === during?.swatch && o1[0]?.edge !== o0[0]?.edge,
+    `${brand}: pinning the border moves the preview's Outline EDGE (${o0[0]?.edge} → ${o1[0]?.edge}, row ${during?.swatch}) (#576)`);
+  ok(o1[0]?.ink === o0[0]?.ink, `${brand}: and leaves the Outline INK where it was (${o0[0]?.ink}) — the edge can now differ from the label it surrounds`);
+  ok((await readIRow(page, INK))?.swatch === inkBefore, `${brand}: the Text · rest row is untouched by a border override (${inkBefore}) — the override is scoped to the one role`);
+  await withPicker(page, ROLE, (pk) => hooks.click(pk.locator('[data-p3="step-picker-auto"]')));
+  const back = await readEdgeRow(page, ROLE);
+  ok(back?.swatch === before?.swatch && back?.label === before?.label && (await outline())[0]?.edge === o0[0]?.edge,
+    `${brand}: Return to Auto returns the edge the Auto label named (${back?.swatch}, "${back?.label}")`);
 
   const errs = drain();
   ok(errs.length === 0, `${brand}: 0 console errors across the edge drive${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`  ${brand}: ${notes.length} border rows (${notes.join(', ')}); pinned primary to '${pick}' `
-    + `— edge ${before.edge} → ${during?.edge}, ink held at ${before.ink}.`);
+    + `— edge ${o0[0]?.edge} → ${o1[0]?.edge}, ink held at ${o0[0]?.ink}.`);
   await ctx.close();
 }
 
 // =============================================================================================
 // 8. The Links section surfaces the global link role + its states (#1487)
 // =============================================================================================
-// #1487's studio-surface work: the single global link role (#1486) — `text.link.*` / `icon.link.*`
-// with their inverse twins — is now surfaced read-only on the Interactive page, in the same role-block
-// vocabulary the palette sections use. The gap it closes is that a designer had no way to SEE the link
-// role or its states in the studio at all; the role has no lever, so this is a preview, not an editor.
+// The single global link role (#1486) — `text.link.*` / `icon.link.*` with their inverse twins — is drawn in
+// Color › Interactive's preview (UI redesign S5.2: its Links section), every state of every family, and each
+// family's resting link is a row in the levers.
 //
 // THE ORACLE IS THE ENGINE'S EMITTED TOKEN TREE, NOT THE STUDIO'S RENDER (docs/34 shape 1). Which link
-// families exist, and which states each carries, is read from `packages/engine/out/aurora.tokens.json`
-// — the engine's own committed emission — and the studio DOM is then required to surface exactly that
-// set. Reading the expected set from the thing being checked (the Links section itself) would pass on a
-// section that dropped `pressed` or misspelled a role, which is the whole class of defect here. The link
-// role SET is brand-independent (only the values differ per brand), so one emitted file is a valid
-// oracle for whichever corpus brand the DOM happens to show.
+// families exist, and which states each carries, is read from `packages/engine/out/aurora.tokens.json`, and
+// the preview is then required to draw exactly that set. The link role SET is brand-independent (only the
+// values differ per brand), so one emitted file is a valid oracle for whichever corpus brand is shown.
 //
 // TWO restated constants, each a deliberate duplication that turns an assertion into a comparison:
-// FAMILY_ORDER (the studio's row order) and PRESENTATION_ORDER (default → hover → pressed → visited →
-// focused, the studio's chosen state order — distinct from the engine's emit order). Both are the
-// studio's OWN promise, not an engine fact, so they live here; a mutation that reorders or drops a row
-// or a state cell fails BY NAME against them. FAMILY_ORDER is tied back to the oracle by a set-equality
-// check, so the engine growing a link family fails the test until the studio (and this list) grow too.
-//
-// AND THE VALUES ARE CHECKED BEHAVIORALLY, not by hardcoded hex: #1486's decided contract — the engaged
-// states (hover, pressed, visited) are each distinct from default and from each other, while `focused`
-// is a color no-op equal to default — is asserted on the rendered swatches. That holds across the whole
-// corpus in light mode (verified on all four emitted brands), so it is a real promise, not a sample.
+// FAMILY_ORDER (the preview's row order: the page, then the inverse band) and PRESENTATION_ORDER (default →
+// hover → pressed → visited → focused). Both are the studio's OWN promise. And the values are checked
+// behaviorally: the engaged states are four distinct colors, and `focused` equals `default` (#1486).
 console.log(`\nThe Links section (#1487)\n${'='.repeat(78)}`);
 
-// The engine's emitted link surface, read from its own committed output. Throws if it parses to nothing
-// — an oracle that quietly finds no link roles would assert nothing and pass on a blanked section.
 const LINK_ORACLE_FILE = join(ROOT, '..', '..', 'packages', 'engine', 'out', 'aurora.tokens.json');
 const emittedLinks = await (async () => {
   const tree = JSON.parse(await readFile(LINK_ORACLE_FILE, 'utf8'));
@@ -3322,157 +3341,99 @@ ok(ORACLE_FAMILIES.length === 4,
   `the oracle read ${ORACLE_FAMILIES.length} link families from the engine's emission (${ORACLE_FAMILIES.join(', ') || 'NONE'})`);
 ok(ORACLE_FAMILIES.every((f) => emittedLinks[f].size >= 5),
   `every emitted link family carries at least 5 states (${ORACLE_FAMILIES.map((f) => `${f}:${emittedLinks[f].size}`).join(', ')})`);
-
-// The studio's own promises: the four rows in order, and the five states in depth order. Restated here
-// so a reorder or a dropped row/state fails by name; FAMILY_ORDER is set-checked against the oracle below.
-const FAMILY_ORDER = ['text', 'inverse.text', 'icon', 'inverse.icon'];
+const FAMILY_ORDER = ['text', 'icon', 'inverse.text', 'inverse.icon'];
 const PRESENTATION_ORDER = ['default', 'hover', 'pressed', 'visited', 'focused'];
-const STATE_LABEL = { default: 'Default', hover: 'Hover', pressed: 'Pressed', visited: 'Visited', focused: 'Focused' };
-ok(new Set(FAMILY_ORDER).size === new Set(ORACLE_FAMILIES).size
-  && FAMILY_ORDER.every((f) => emittedLinks[f]),
-  `the four surfaced families are exactly the ones the engine emits (surfaced ${FAMILY_ORDER.join(', ')}; emitted ${ORACLE_FAMILIES.join(', ')})`);
-
-/** ACTUAL — the Links section as a reader sees it. Rows keyed by the `default` token pill the renderer
- *  already prints, so nothing is added to the DOM to identify them. */
+ok(new Set(FAMILY_ORDER).size === new Set(ORACLE_FAMILIES).size && FAMILY_ORDER.every((f) => emittedLinks[f]),
+  `the four drawn families are exactly the ones the engine emits (drawn ${FAMILY_ORDER.join(', ')}; emitted ${ORACLE_FAMILIES.join(', ')})`);
+/** ACTUAL — the preview's Links section as drawn: each row's family and, per state, the role its specimen
+ *  paints, the state's name and the ink. */
 const READ_LINKS = () => {
-  const sec = document.querySelector('[data-p3="section-links"]');
+  const sec = document.querySelector('[data-p3="interactive-style-guide"] .psec[data-sg-section="links"]');
   if (!sec) return null;
   return {
-    // Family rows only. The lead control row (#1496 Link-palette picker) carries its own hook, not
-    // `role-row` — it has no swatch and is not a link family.
-    rows: [...sec.querySelectorAll('[data-p3="role-row"]')].map((row) => ({
-      pill: row.querySelector('[data-p3="role-body"] [data-p3="token-pill"]')?.textContent?.trim() ?? null,
-      swatch: getComputedStyle(row.querySelector('[data-p3="role-swatch"]')).backgroundColor,
-      states: [...row.querySelectorAll('[data-p3="role-states"] [data-p3="role-state"]')].map((c) => ({
-        name: c.querySelector('[data-p3="role-state-name"]')?.textContent?.trim() ?? '',
-        pill: c.querySelector('[data-p3="token-pill"]')?.textContent?.trim() ?? null,
-        swatch: getComputedStyle(c.querySelector('[data-p3="role-state-swatch"]')).backgroundColor,
-      })),
+    rows: [...sec.querySelectorAll('[data-p3="style-guide-link-row"]')].map((row) => ({
+      family: row.dataset.family,
+      states: [...row.querySelectorAll('[data-p3="style-guide-state"]')].map((c) => {
+        const spec = c.querySelector('[data-sg-role]');
+        return { role: spec?.dataset.sgRole ?? null, name: c.querySelector('[data-p3="style-guide-state-name"]')?.textContent?.trim() ?? '', ink: spec ? getComputedStyle(spec).color : null };
+      }),
     })),
+    levers: [...document.querySelectorAll('[data-p3="link-rows"] .p3-fillrow')].map((n) => n.dataset.role),
   };
 };
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
-
+  await gotoInteractive(page);
+  const emission = await loadEmission(brand);
   const shown = await page.evaluate(READ_LINKS);
-  ok(shown !== null, `${brand}: the Interactive page carries a Links section`);
+  ok(shown !== null, `${brand}: Color › Interactive's preview carries a Links section`);
   if (!shown) { await ctx.close(); continue; }
-
-  ok(shown.rows.length === FAMILY_ORDER.length,
-    `${brand}: the Links section shows ${shown.rows.length} rows (expected ${FAMILY_ORDER.length}: one per emitted link family)`);
-
-  for (let i = 0; i < FAMILY_ORDER.length; i++) {
-    const fam = FAMILY_ORDER[i];
-    const row = shown.rows[i];
+  ok(JSON.stringify(shown.rows.map((r) => r.family)) === JSON.stringify(FAMILY_ORDER), `${brand}: the Links section draws the families in order (${shown.rows.map((r) => r.family).join(', ')})`);
+  ok(JSON.stringify(shown.levers) === JSON.stringify(['text.link.default', 'inverse.text.link.default', 'icon.link.default', 'inverse.icon.link.default']),
+    `${brand}: the levers carry each family's resting link as a row (${shown.levers.join(', ')})`);
+  for (const fam of FAMILY_ORDER) {
+    const row = shown.rows.find((r) => r.family === fam);
     const where = `${brand} ${fam}`;
     if (!row) { ok(false, `${where}: the ${fam} link row is present`); continue; }
-
-    // Row identity: the default pill names this exact family — a mislabeled or reordered row fails here.
-    ok(row.pill === `color.${fam}.link.default`,
-      `${where}: the row is identified by its default token pill (got "${row.pill}")`);
-
-    // Every state the ENGINE emits for this family is surfaced, by name — the oracle drives this, so a
-    // dropped `pressed` cell (or any missing state) fails naming the role the studio failed to show.
-    const surfaced = new Set(row.states.map((s) => s.pill));
-    for (const st of [...emittedLinks[fam]].sort()) {
-      ok(surfaced.has(`color.${fam}.link.${st}`),
-        `${where}: surfaces color.${fam}.link.${st} (an emitted state must appear in the section)`);
-    }
-    // ...and no extra state the engine does NOT emit (a stray cell is as wrong as a missing one).
-    ok(row.states.length === emittedLinks[fam].size,
-      `${where}: surfaces exactly the ${emittedLinks[fam].size} emitted states, no more (${row.states.length} cells)`);
-
-    // The studio's OWN order promise, restated: depth order, default → hover → pressed → visited → focused.
-    const order = row.states.map((s) => s.pill?.split('.').pop());
-    ok(order.join(',') === PRESENTATION_ORDER.join(','),
-      `${where}: states are shown in depth order (${order.join(' → ')})`);
-    ok(row.states.map((s) => s.name).join(',') === PRESENTATION_ORDER.map((st) => STATE_LABEL[st]).join(','),
-      `${where}: each cell's label matches its state (${row.states.map((s) => s.name).join(', ')})`);
-
-    // The big swatch is the default state's color — the row's headline agrees with its own default cell.
-    const cell = Object.fromEntries(row.states.map((s) => [s.pill?.split('.').pop(), s.swatch]));
-    ok(row.swatch === cell.default,
-      `${where}: the row swatch is the default state's color (row ${row.swatch}, default cell ${cell.default})`);
-
-    // #1486's decided contract, on the RENDERED swatches (not hardcoded hex): the engaged states are
-    // each distinct from default and from one another, and focused is a color no-op equal to default.
+    const drawn = new Set(row.states.map((s) => s.role));
+    for (const st of [...emittedLinks[fam]].sort()) ok(drawn.has(`${fam}.link.${st}`), `${where}: draws ${fam}.link.${st} (an emitted state must appear in the section)`);
+    ok(row.states.length === emittedLinks[fam].size, `${where}: draws exactly the ${emittedLinks[fam].size} emitted states, no more (${row.states.length} cells)`);
+    const order = row.states.map((s) => s.role?.split('.').pop());
+    ok(order.join(',') === PRESENTATION_ORDER.join(','), `${where}: states are shown in depth order (${order.join(' → ')})`);
+    ok(row.states.map((s) => s.name).join(',') === PRESENTATION_ORDER.join(','), `${where}: each cell's label names its state (${row.states.map((s) => s.name).join(', ')})`);
+    const cell = Object.fromEntries(row.states.map((s) => [s.role?.split('.').pop(), s.ink]));
+    for (const s of row.states) ok(rgbHex(s.ink) === emission?.role(s.role, 'light')?.hex, `${where}: ${s.role} is drawn in its emitted color (${rgbHex(s.ink)}, emitted ${emission?.role(s.role, 'light')?.hex})`);
     const engaged = ['default', 'hover', 'pressed', 'visited'].map((k) => cell[k]);
-    ok(new Set(engaged).size === 4,
-      `${where}: default/hover/pressed/visited are four distinct colors (${engaged.join(', ')}) (#1486)`);
-    ok(cell.focused === cell.default,
-      `${where}: focused resolves to the same color as default — the ring carries focus, not the ink (${cell.focused}) (#1486)`);
+    ok(new Set(engaged).size === 4, `${where}: default/hover/pressed/visited are four distinct colors (${engaged.join(', ')}) (#1486)`);
+    ok(cell.focused === cell.default, `${where}: focused resolves to the same color as default — the ring carries focus, not the ink (${cell.focused}) (#1486)`);
   }
-
   const errs = drain();
   ok(errs.length === 0, `${brand}: reading the Links section raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
-  console.log(`  ${brand}: ${shown.rows.length} link rows, ${shown.rows.reduce((n, r) => n + r.states.length, 0)} state cells surfaced.`);
+  console.log(`  ${brand}: ${shown.rows.length} link rows, ${shown.rows.reduce((n, r) => n + r.states.length, 0)} state cells drawn.`);
   await ctx.close();
 }
 
 // =============================================================================================
 // 8b. The link palette lever (#1496) — decouple links + the WCAG 1.4.1 warning
 // =============================================================================================
-// #1496 gives links their OWN palette, independent of the action palette. This drives the studio's
-// Link-palette lead select: choosing `neutral` (a target the actionPalette picker never offered) must
-// (a) MOVE the emitted link swatches onto a different ramp, and (b) surface the WCAG 1.4.1 (Use of
-// Color) underline warning inline — warn, never force, never block. A colour-distinct palette (primary)
-// shows NO warning. The studio reads the engine's OWN decision (theme.notes) to fire the warning, so
-// this asserts the studio SURFACES the engine's flag rather than inventing its own copy of the rule.
+// #1496 gives links their OWN palette, independent of the action palette. This drives Color › Interactive's
+// Link palette: choosing `neutral` (a target the action palette never offers, #1811) must (a) MOVE the link
+// ink the preview draws onto a different ramp, and (b) surface the WCAG 1.4.1 (Use of Color) underline
+// warning on the lever — warn, never force, never block. A colour-distinct palette (primary) shows NO
+// warning, and Auto (owner decision Q36) follows the action palette again. The studio reads the engine's OWN
+// decision (theme.notes) to fire the warning, so this asserts the studio SURFACES the engine's flag.
 console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
 {
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoRail(page, '[data-p3="rail-page-interactive"]');
-
-  const lead = page.locator('[data-p3="link-palette"]');
-  ok((await lead.count()) > 0, `${brand}: the Links section carries a Link palette lead control`);
-  const sel = lead.locator('[data-p3="role-source"] select');
+  await gotoInteractive(page);
+  const sel = page.locator('[data-p3="link-palette-select"]');
+  ok((await sel.count()) === 1, `${brand}: Color › Interactive carries a Link palette select`);
   const options = await sel.evaluate((s) => [...s.options].map((o) => o.value));
-  ok(options.includes('neutral'), `${brand}: the Link palette picker offers 'neutral' as a target (${options.join(', ')})`);
-  ok(options.includes('primary'), `${brand}: the Link palette picker offers 'primary'`);
-
-  // ACTUAL — the Links section's warning presence + the resting text-link swatch, as a reader sees them.
-  const readLinks = () => page.evaluate(() => {
-    const sec = document.querySelector('[data-p3="section-links"]');
-    const warn = [...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
-    const textRow = [...sec.querySelectorAll('[data-p3="role-row"]')].find((r) => r.querySelector('[data-p3="role-body"] [data-p3="token-pill"]')?.textContent?.trim() === 'color.text.link.default');
-    return { warn, swatch: textRow ? getComputedStyle(textRow.querySelector('[data-p3="role-swatch"]')).backgroundColor : null };
-  });
-  const warnFires = () => page.evaluate(() => {
-    const sec = document.querySelector('[data-p3="section-links"]');
-    return [...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
-  });
-
-  const before = await readLinks();
-
-  // Drive → neutral: links move to the neutral ramp AND the underline warning fires inline.
+  ok(options[0] === '' && options.includes('neutral') && options.includes('primary'), `${brand}: the Link palette offers Auto first, then 'neutral' and 'primary' (${options.join(', ')})`);
+  const read = () => page.evaluate(() => ({
+    warn: /1\.4\.1/.test(document.querySelector('[data-p3="link-palette-warning"]')?.textContent ?? ''),
+    ink: (() => { const n = document.querySelector('[data-p3="interactive-style-guide"] [data-sg-role="text.link.default"]'); return n ? getComputedStyle(n).color : null; })(),
+  }));
+  const before = await read();
   await sel.selectOption('neutral');
-  await page.waitForFunction(() => {
-    const sec = document.querySelector('[data-p3="section-links"]');
-    return [...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
-  });
-  const neu = await readLinks();
-  ok(neu.warn === true, `${brand}: selecting a neutral link palette surfaces the WCAG 1.4.1 underline warning inline (warn, not force)`);
-  // The two "no warning" checks are ABSENCE checks, so both are judged against the warning this same probe
-  // has now been shown in the Links section (#1831) — not against a lookup that could simply find nothing.
-  const warnSeen = { seen: neu.warn === true, state: 'the WCAG 1.4.1 warning in the Links section, after selecting neutral' };
+  await page.waitForFunction(() => /1\.4\.1/.test(document.querySelector('[data-p3="link-palette-warning"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+  const neu = await read();
+  ok(neu.warn === true, `${brand}: selecting a neutral link palette surfaces the WCAG 1.4.1 underline warning on the lever (warn, not force)`);
+  const warnSeen = { seen: neu.warn === true, state: 'the WCAG 1.4.1 warning on the Link palette lever, after selecting neutral' };
   hooks.absent(ok, warnSeen, before.warn === false, `${brand}: no WCAG 1.4.1 warning before a non-distinct link palette is chosen`);
-  ok(neu.swatch && neu.swatch !== before.swatch,
-    `${brand}: the resting link swatch moves when links are repointed to neutral (${before.swatch} → ${neu.swatch})`);
-
-  // Drive → primary (colour-distinct): the warning clears — the flag tracks the palette choice.
+  ok(neu.ink && neu.ink !== before.ink, `${brand}: the resting link the preview draws moves when links are repointed to neutral (${before.ink} → ${neu.ink})`);
   await sel.selectOption('primary');
-  await page.waitForFunction(() => {
-    const sec = document.querySelector('[data-p3="section-links"]');
-    return ![...sec.querySelectorAll('[data-p3="order-warning"]')].some((p) => /1\.4\.1/.test(p.textContent || ''));
-  });
-  hooks.absent(ok, warnSeen, (await warnFires()) === false, `${brand}: a colour-distinct (primary) link palette shows no warning`);
-
+  await page.waitForFunction(() => !document.querySelector('[data-p3="link-palette-warning"]'), null, { timeout: 5000 }).catch(() => {});
+  hooks.absent(ok, warnSeen, (await read()).warn === false, `${brand}: a colour-distinct (primary) link palette shows no warning`);
+  await sel.selectOption('');
+  await page.waitForFunction(() => document.querySelector('[data-p3="link-palette-select"]')?.value === '', null, { timeout: 5000 }).catch(() => {});
+  const auto = await read();
+  ok(auto.ink === before.ink && (await persistedAt(page, 'linkPalette')) === null, `${brand}: Auto follows the action palette again and unsets the key (ink ${auto.ink}, persisted ${JSON.stringify(await persistedAt(page, 'linkPalette'))})`);
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Link palette lever raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
-  console.log(`  ${brand}: link palette lever drives neutral→warn, primary→clear.`);
+  console.log(`  ${brand}: link palette lever drives neutral→warn, primary→clear, Auto→follows.`);
   await ctx.close();
 }
 

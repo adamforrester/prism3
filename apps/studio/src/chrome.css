@@ -705,3 +705,25 @@
 
 /* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }
+
+/* ── Color › Interactive (S5.2): jump links, the column groups, rows grouped under their rest row ──── */
+.p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
+.p3-jump[hidden] { display: none; }
+.p3-jump-link { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); text-decoration: underline; text-underline-offset: var(--p3-space-025); }
+.p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+.p3-icols { display: grid; gap: var(--p3-space-300); }
+.p3-icol { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-icol[hidden], .p3-irow-group[hidden], .p3-icol-add[hidden] { display: none; }
+.p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+.p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
+.p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-irow-group { display: grid; gap: var(--p3-space-100); }
+.p3-irow-states { display: grid; gap: var(--p3-space-100); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-irow-states:empty { display: none; }
+.p3-pick-read { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-icol-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; }
+/* Q24: a Color preview's section container on the levers panel's gray. The section keeps `styles.css`'s
+   edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. */
+.p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
+/* Long option labels (Disabled contrast) wrap onto a second row rather than run past the panel. */
+.p3-ilevers .p3-choice { flex-wrap: wrap; }

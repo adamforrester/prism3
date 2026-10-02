@@ -2,13 +2,15 @@
  *  so Color › Interactive can draw the same section, as S4a did for the five color sections). The one shared,
  *  stateless inert set: the fill, its ink on the fill, the ink on the panel, the border and the icon. Moved
  *  unchanged in output: no painted-role attributes added, so the Style guide's HTML is identical but for the
- *  shared-section marker on its root. */
+ *  shared-section marker on its root. Its description is `DISABLED_DESC`, shared with the levers' Disabled
+ *  section on Color › Interactive (owner decisions Q23, Q51). */
+import { DISABLED_DESC } from '../../shell/pages';
 import { el, palSection, specimen, type SgCtx } from './kit';
 import { borderCard, iconCard } from './cards';
 
 export const disabledSection = (c: SgCtx): HTMLElement => {
   const { cur, paint, pills, grid } = c;
-  const secDis = palSection('Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.');
+  const secDis = palSection('Disabled', DISABLED_DESC);
   secDis.dataset.sgSection = 'disabled';   // the shared-section marker (`kit.ts`'s header)
   const disCards: HTMLElement[] = [];
   { const cw = el('div', 'sg-cw'); const card = el('div', 'sg-card'); card.style.background = paint(cur, 'disabled.fill'); cw.append(card, pills(...c.chip('disabled.fill'))); disCards.push(cw); }
