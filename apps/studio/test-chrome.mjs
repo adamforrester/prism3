@@ -138,6 +138,14 @@
  *     preview repaints to the emission's step, Return to Auto, Escape to the button, V1.
  *   · A GRADIENT STOP edit writes that stop and no other, and the preview draws both stops from the emission.
  *   · The chrome probe on Surfaces & fills: both hosts, both themes, 1280, 640 and 380.
+ *
+ * S4c ADDS (the owner's decisions of 2026-10-02):
+ *   · The Focus ring section is a listed specimen root after Border (Q30).
+ *   · Q24: every section container in the preview is the levers panel's gray, EXPECTED from the emission's
+ *     `core.palette.neutral.025` (IA-2's light levers ground; the preview's host is pinned light), in both
+ *     chrome themes and every mode, and the light levers panel itself renders that value.
+ *   · One set of surface controls (Q22); no link row (Q28: a `text.link.default` row is an unlisted row);
+ *     the Fields rows, one per field role the EMISSION names, page and inverse (Q29).
  *   S4a mutations: a fill row not rendered or rendered twice (`… renders the foreground.info row once — rendered
  *   0 / 2`); the preview following focus (`V1 focus: … color-fills control …`); a section's ground on the
  *   chrome card (`specimen ground: surfaces & fills … is the chrome card`); a stop edit writing the first stop
@@ -317,9 +325,10 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
   '[data-p3="brand-color-add"]', '[data-p3="neutral-source-follow"]', '[data-p3="neutral-source-custom"]', '[data-p3="neutral-chroma-slider"]',
   '[data-p3="palettes-advanced"]', '[data-p3="palettes-continue"]'];
 /** Color › Surfaces & fills in the two panes (S4a): the controls its levers must render, by hook. The page draws
- *  the default theme's two gradients, so their editors' controls are here too. */
-const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-light"]', '[data-p3="surface-floor-light"]',
-  '[data-p3="surface-band-palette-light"]', '[data-p3="surface-band-step-light"]', '[data-p3="surface-base-dark"]', '[data-p3="fill-pick"]',
+ *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
+ *  controls, for the previewed mode (owner decision Q22). */
+const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base"]', '[data-p3="surface-floor"]',
+  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step"]', '[data-p3="fill-pick"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
@@ -2549,15 +2558,30 @@ console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the specimen roots the default theme's Surfaces &
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
-const EXPECT_FILLS_SPECIMENS = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Gradients'];
+const EXPECT_FILLS_SPECIMENS = ['Background', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Gradients'];
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
 const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]']];
 /** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
- *  tiers, the field fill and the text inks). Literal; each must render its row once. */
+ *  tiers and the text inks). Literal; each must render its row once. No link row (S4c, owner decision Q28:
+ *  links are edited on Interactive only), so a `text.link.default` row fails below as an unlisted row. */
 const FILL_ROW_ROLES = ['foreground.brand', 'foreground.success', 'foreground.warning', 'foreground.info', 'foreground.danger',
-  'foreground.primary', 'foreground.secondary', 'foreground.tertiary', 'field.fill'];
+  'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
 const TEXT_ROW_ROLES = ['text.primary', 'text.secondary', 'text.tertiary', 'text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
-  'text.brand-subtle', 'text.success-subtle', 'text.warning-subtle', 'text.danger-subtle', 'text.info-subtle', 'text.link.default'];
+  'text.brand-subtle', 'text.success-subtle', 'text.warning-subtle', 'text.danger-subtle', 'text.info-subtle'];
+/** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
+ *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
+ *  count is held to the eight Q29 names, so an empty read fails. */
+/** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
+const READONLY_ROW_ROLES = ['scrim.default'];
+const FIELD_ROW_ROLES = (() => {
+  const out = [];
+  const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
+  walk(OUT[OUT_ROOT]?.color?.field, ['field']);
+  walk(OUT[OUT_ROOT]?.color?.inverse?.field, ['inverse', 'field']);
+  return out;
+})();
+ok(FIELD_ROW_ROLES.length === 8 && FIELD_ROW_ROLES.includes('field.fill') && FIELD_ROW_ROLES.includes('inverse.field.placeholder'),
+  `the emission names the eight field roles the Fields section must carry (read ${FIELD_ROW_ROLES.join(', ')})`);
 /** The emission's own palette steps, the oracle for a pick (an override repoints a role to a step, so the
  *  step's hex is what the role must paint). */
 const PALETTE = OUT[OUT_ROOT].core.palette;
@@ -2570,8 +2594,17 @@ const fillsGrounds = (page) => page.evaluate(() => {
   const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
   const host = document.querySelector('[data-p3="preview-body"] [data-p3="surfaces-style-guide"]');
   const grounds = [...(host?.querySelectorAll('.sg-ground') ?? [])];
-  return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })) };
+  return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
+    sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })),
+    levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
 });
+/** Q24 (S4c): each section container in the preview takes the levers panel's gray. EXPECTED from the TOKEN, not
+ *  from the page or `chrome/spec.mjs`: IA-2 puts the levers panel on neutral 025 in the light theme, and the
+ *  preview's sections sit in a host pinned light, so in either chrome theme their containers composite to
+ *  the emission's own `core.palette.neutral.025`. In the light theme the rendered levers panel is held to the
+ *  same value, so the expectation is also the panel the owner compared against. */
+const LEVERS_GRAY = String(OUT[OUT_ROOT]?.core?.palette?.neutral?.['025']?.$value ?? '').toLowerCase();
+ok(/^#[0-9a-f]{6}$/.test(LEVERS_GRAY) && LEVERS_GRAY !== '#ffffff', `the oracle read the levers panel's light gray from the emission's neutral 025 (${LEVERS_GRAY})`);
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
@@ -2590,6 +2623,10 @@ for (const host of ['web', 'figma']) {
       }
       const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
       ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+      const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
+      ok(g.sections.length >= EXPECT_FILLS_SPECIMENS.length && offGray.length === 0,
+        `Q24 section containers: surfaces & fills ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
+      if (theme === 'light') ok(g.levers === LEVERS_GRAY, `Q24 section containers: ${where}: the levers panel itself is ${LEVERS_GRAY} in the light theme (rendered ${g.levers})`);
     }
     await ctx.close();
   }
@@ -2606,9 +2643,50 @@ for (const host of ['web', 'figma']) {
     rows: Object.fromEntries(roles.map((r) => [r, document.querySelectorAll(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`).length])),
     strayLevers: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
     strayRows: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES]]);
+    fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
+    scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
+      controls: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"] :is(button, select, input)').length },
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
+  // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
+  // alias and that primitive's alpha.
+  const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
+  const [scrimPal, scrimStep] = scrimAlias.slice(-2);
+  const scrimAlpha = OUT[OUT_ROOT]?.core?.palette?.[scrimPal]?.[scrimStep]?.$extensions?.prism3?.alpha;
+  const wantScrim = `${scrimPal} ${scrimStep} · ${Math.round(scrimAlpha * 100)}%`;
+  ok(c.scrim.rows === 1 && c.scrim.controls === 0 && c.scrim.read === wantScrim,
+    `${host}: Background fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
-  for (const r of [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  for (const r of [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...FIELD_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
+  // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
+  const copy = await page.evaluate(() => ({
+    intro: document.querySelector('[data-p3="fills-levers"] .p3-intro')?.textContent ?? null,
+    titles: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec-title')].map((n) => n.textContent),
+    descs: Object.fromEntries([...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].map((n) => [n.querySelector('.p3-lsec-title')?.textContent, n.querySelector('.p3-lsec-desc')?.textContent ?? null])),
+    surfacesName: document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"] .p3-lever-name')?.textContent ?? null,
+    modeHeads: document.querySelectorAll('[data-p3="fills-levers"] .p3-modegroup-title').length,
+    // The token a surface control names, read off the label its select is named by (`for`), so it is the
+    // control's own label and not text elsewhere in the block.
+    tokens: Object.fromEntries(['surface-base', 'surface-band-palette', 'surface-floor'].map((hk) => {
+      const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
+      const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
+      return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
+    })),
+  }));
+  // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
+  // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
+  const WANT_TOKENS = { 'surface-base': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
+  ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
+  const FILLS_COPY = {
+    intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
+    titles: ['Background fills', 'Foreground fills', 'Text color', 'Fields', 'Gradients'],
+    'Background fills': 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.',
+    Fields: 'Form field fills, borders and text, in every state.',
+  };
+  ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
+  ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
+  for (const t of ['Background fills', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
   ok(errors.length === 0, `${host} Surfaces & fills levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);

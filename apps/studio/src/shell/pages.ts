@@ -23,7 +23,8 @@
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
  * `PageKey` both ways) fails `typecheck` until its row goes too.
  *
- * The prose here (`intro`, `desc`, section titles) is concept v6's, verbatim. It ships in the bundle.
+ * The prose here (`intro`, `desc`, section titles) is concept v6's, verbatim, except where an owner decision
+ * replaced it (marked where it does). It ships in the bundle.
  */
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
@@ -49,7 +50,9 @@ type LegacyList = readonly string[] | { readonly web: readonly string[]; readonl
 export type PageData = {
   readonly id: string; readonly label: string; readonly home: ViewId; readonly intro: string;
   readonly sections: readonly Section[];
-  /** The Roles matrix's families (V2): role-path prefixes. Color's Surfaces & fills and Interactive only. */
+  /** The page's color-role families (V2): role-path prefixes, so every emitted color role has one page.
+   *  Color's Surfaces & fills and Interactive only. The Roles matrix that was to draw them is not built (owner
+   *  decision Q31, folded into #1969); `test-pages.ts` still holds the coverage. */
   readonly roles?: readonly string[];
   /** `legacy` until the page's slice moves it, then `new` (S2 moved Color › Palettes first). A `new` page
    *  draws the two panes from its own modules (`NEW_PAGES` in `frame.ts`) and names no legacy page. */
@@ -92,15 +95,21 @@ export const DOMAINS = [
         legacy: [],
       },
       {
-        id: 'fills', label: 'Surfaces & fills', home: 'surfaces', intro: 'The page and its tiers, the inverse band, the bold fills and the gradients.',
-        roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse'],
+        // The intro and the Background fills and Fields copy are the owner's (Q26, Q27, Q29). Background fills'
+        // description and "Text color" are the preview sections' own (Q23: a lever heading and description match
+        // the preview section); Background fills took the preview's full sentence once the scrim had a row.
+        id: 'fills', label: 'Surfaces & fills', home: 'surfaces', intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
+        // `field` and `inverse.field` moved here from Interactive with the Fields section (owner decision Q29).
+        roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse', 'field', 'inverse.field'],
         sections: [
-          { title: 'Surfaces', desc: 'Set for light; dark and the derived modes follow unless set per mode.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
+          { title: 'Background fills', desc: 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
-          // permanent, primary text editor; the Roles matrix (S4b) is a secondary view and never the only
-          // editor of a token (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's R3).
-          { title: 'Text', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
+          // permanent, primary text editor (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's
+          // R3). The Roles matrix that was to sit beside them is not built (Q31).
+          { title: 'Text color', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
+          // NOT CONCEPT V6'S (S4c): every field role, page and inverse, as rows (owner decision Q29, #1962).
+          { title: 'Fields', desc: 'Form field fills, borders and text, in every state.', rows: [{ ctl: 'fields', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
         ],
         // S4a: moved. Its levers are `domains/color-fills.ts`, its preview `preview/surfaces.ts`.
@@ -109,7 +118,7 @@ export const DOMAINS = [
       },
       {
         id: 'interactive', label: 'Interactive', home: 'interactive', intro: 'How actions, links and disabled states draw from the palettes, and the floors they meet.',
-        roles: ['interactive', 'inverse.interactive', 'text.link', 'icon.link', 'inverse.text.link', 'inverse.icon.link', 'disabled', 'inverse.disabled', 'field', 'inverse.field'],
+        roles: ['interactive', 'inverse.interactive', 'text.link', 'icon.link', 'inverse.text.link', 'inverse.icon.link', 'disabled', 'inverse.disabled'],
         sections: [
           {
             title: 'Actions', rows: [

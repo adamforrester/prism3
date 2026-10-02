@@ -29,6 +29,8 @@
  *   · `radiusHairline` removed from the data → `manifest keys with no home: radiusHairline`;
  *   · a `home` given to the Motion section → `section declares a home view: Depth & motion › Motion`;
  *   · `veil` dropped from Surfaces & fills' roles → `color roles in no Color sub-page's Roles matrix: veil…`;
+ *   · `field` put back on Interactive (S4c, owner decision Q29) → `every emitted field.* role (4) belongs to
+ *     Surfaces & fills — on another page: field.border.hover → Interactive, …`;
  *   · `strictInteractiveContrast` put behind Show advanced →
  *     `strictInteractiveContrast: … placed advanced in Color › Interactive › … (every lever on this page is shown)`.
  */
@@ -55,7 +57,8 @@ const IA_TABS = ['brand', 'color', 'type', 'shape', 'depth', 'layout', 'componen
 const IA_COLOR = ['palettes', 'fills', 'interactive'];
 /** Pages where the manifest flag does not decide the tier: every lever is shown (Q4, V10, v6 review #2). */
 const FIRST_CLASS = ['layout', 'color/fills', 'color/interactive'];
-/** Which Color sub-pages carry a Roles toggle, and which must not (v6 review #3: palettes are primitives). */
+/** Which Color sub-pages carry role families, and which must not (v6 review #3: palettes are primitives). No
+ *  Roles toggle is drawn from them (owner decision Q31); they hold the one-page-per-role coverage below. */
 const ROLES_PAGES = ['fills', 'interactive'];
 const NO_ROLES = ['palettes'];
 
@@ -164,6 +167,19 @@ const orphans = emitted.filter((r) => !roleOwner(r));
 ok(orphans.length === 0, `every emitted color role is in exactly one Color sub-page's Roles matrix${orphans.length ? ` — color roles in no Color sub-page's Roles matrix: ${orphans.slice(0, 8).join(', ')}${orphans.length > 8 ? ` …and ${orphans.length - 8} more` : ''}` : ''}`);
 const dead = [...owner.keys()].filter((pre) => !emitted.some((r) => r === pre || r.startsWith(`${pre}.`)));
 ok(dead.length === 0, `every Roles prefix matches an emitted role${dead.length ? ` — Roles prefix that matches no emitted role: ${dead.join(', ')}` : ''}`);
+/** Where a family lives, by the owner's decisions, literally: every field role, page and inverse, on Surfaces &
+ *  fills (Q29, #1962: its Fields section edits them); the links and the interactive columns on Interactive
+ *  (Q28: links are edited there only). Each family is checked on every emitted role it has, through the
+ *  longest-prefix rule above, so a role the engine adds to a family is held too. */
+const EXPECT_HOME: ReadonlyArray<readonly [string, string]> = [
+  ['field', 'Surfaces & fills'], ['inverse.field', 'Surfaces & fills'],
+  ['text.link', 'Interactive'], ['inverse.text.link', 'Interactive'], ['interactive', 'Interactive'],
+];
+for (const [fam, page] of EXPECT_HOME) {
+  const members = emitted.filter((r) => r.startsWith(`${fam}.`));
+  const wrong = members.filter((r) => roleOwner(r) !== page).map((r) => `${r} → ${roleOwner(r) ?? 'no page'}`);
+  ok(members.length > 0 && wrong.length === 0, `every emitted ${fam}.* role (${members.length}) belongs to ${page}${!members.length ? ' — the emission has none, so this read nothing' : wrong.length ? ` — on another page: ${wrong.join(', ')}` : ''}`);
+}
 const perSub: Record<string, number> = {};
 for (const r of emitted) { const o = roleOwner(r); if (o) perSub[o] = (perSub[o] ?? 0) + 1; }
 console.log(`  ${Object.entries(perSub).map(([s, n]) => `${s} ${n}`).join(', ')}`);
