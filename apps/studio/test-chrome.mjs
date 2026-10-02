@@ -2978,13 +2978,14 @@ for (const host of ['web', 'figma']) {
   hooks.absent(ok, { seen: d0.checked !== null, state: 'the icon contrast lever' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
   ok(s0?.iconContrast === 'text' && s0?.overrides === undefined, `Q52: re-pairing with no icon overrides writes iconContrast "text" (${JSON.stringify(s0?.iconContrast)}, overrides ${JSON.stringify(s0?.overrides)})`);
   // Two icon overrides, one page and one inverse, and a text override that must survive.
+  // inverse.icon.secondary, not inverse.icon.primary: under "3:1" the primary row stays locked to its text (#1982).
   await unpair();
   await pickStep('[data-p3="fill-row-icon-brand"]', '700');
-  await pickStep('[data-p3="fill-row-inverse-icon-primary"]', '200');
+  await pickStep('[data-p3="fill-row-inverse-icon-secondary"]', '200');
   await pickStep('[data-p3="fill-row-text-brand"]', '300');
   const before = await stored();
   const b0 = JSON.parse(before ?? 'null')?.input;
-  const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.primary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
+  const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.secondary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
   ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: ICON_OV }),
     `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
   await askPair();
@@ -3005,7 +3006,7 @@ for (const host of ['web', 'figma']) {
     await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
     const a = JSON.parse(await stored() ?? 'null')?.input;
     ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
-      `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+      `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.secondary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
   }
   // One icon override: the singular body (Q60), then Pair clears it, the text override still kept.
   await unpair();
