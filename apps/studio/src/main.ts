@@ -45,7 +45,7 @@ import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
-import { glyph } from './shell/dom';
+import { glyph, pendingLabel, setBusy } from './shell/dom';
 // The Style guide's shared color sections and the helpers they draw with (UI redesign S4a, owner decision Q5):
 // Color › Surfaces & fills draws the same five sections from the same modules.
 import {
@@ -7693,33 +7693,55 @@ const activityReading = (): ActivityReading => {
 // One function per write, called by its control and by its Figma menu item, so the two cannot drift.
 // Each sets its own pending state and says so through `hostChanged`; the bar, the detail row and the
 // Activity drawer repaint from that.
+//
+// WHILE A WRITE RUNS, PANEL OR AGENT, ITS CONTROLS ARE BUSY (owner decision #4 on #1956, which also fixes
+// #1957): the engine Button's `isPending` (`shell/dom.ts`'s `pendingLabel`). Each run function refuses
+// while its own write is out, whoever started it. That refusal is the one re-fire guard: the bar's
+// control and the menu's item both call it, and neither carries a second guard a test could not tell apart.
+// Before this, an agent's run left the panel's Apply ready to post a second write over the same variables.
+
+/** True while a write of this kind runs: the panel's own slot is pending, or an agent's command runs it. */
+const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
+const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
+const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
 
 /** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
  *  the state. */
-const runApply = (): void => { setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput); };
+const runApply = (): void => {
+  if (applyBusy()) return;
+  setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput);
+};
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
-const runPrune = (): void => { setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false); };
+const runPrune = (): void => {
+  if (pruneBlocked()) return;
+  setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
+};
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
  *  detail is stale the instant a new one starts. */
 const runFileSetup = (): void => {
+  if (fileSetupBusy()) return;
   setHost({ fileSetupState: 'pending', openDetail: null });
   hostChanged(); syncFileSetupRow();
   commit.postFileSetup();
 };
-/** Prune is unavailable while a prune runs AND while a theme apply is pending: a prune reads the same
- *  variables an apply writes, so overlapping the two would race a delete against a create. */
-const pruneBlocked = (): boolean => !!host.pruneBusy || host.applyState === 'pending';
+/** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
+ *  same variables an apply writes, so overlapping the two would race a delete against a create. */
+const pruneBlocked = (): boolean => pruneBusy() || applyBusy();
 const PRUNE_HINT = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
 
 /** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, the
  *  file-setup button, and the two pages whose writes need options first (concept v6's "Build set…" and
  *  "Style guide…"), which open those pages. */
+/** The busy labels are the pending labels the panel already used (#1948), without their leading "…",
+ *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
+ *  so its busy label is the item's own. */
 const figmaActions = (): FigmaAction[] => [
-  { id: 'apply', label: 'Apply Theme', disabled: host.applyState === 'pending', run: runApply },
-  { id: 'prune', label: host.pruneBusy === 'preview' ? '… Checking…' : host.pruneBusy === 'delete' ? '… Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
-  { id: 'file-setup', label: FILE_SETUP_LABEL, disabled: host.fileSetupState === 'pending', run: runFileSetup },
-  { id: 'build', label: 'Build set…', disabled: false, run: () => setPage('components') },
-  { id: 'style-guide', label: 'Style guide…', disabled: false, run: () => setPage('styleGuide') },
+  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: false, run: runApply },
+  { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
+    disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
+  { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
+  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage('components') },
+  { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
 ];
 
 /** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
@@ -7781,14 +7803,15 @@ function renderBar(): void {
   // drawer's since S11 (`activityReading`): each operation's row holds its latest result and the earlier ones.
   let applyBtn: HTMLButtonElement | null = null;
   if (commit.isFigma) {
-    const pending = host.applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
-    // enough that a button which neither moves nor disables reads as broken — and a second click posts a
-    // second concurrent write over the same variables. Disabled while in flight is both the signal and
-    // the guard. Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
-    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? '… Applying…' : 'Apply Theme') as HTMLButtonElement, 'apply-to-figma');
+    // enough that a button which neither moves nor says so reads as broken — and a second click posts a
+    // second concurrent write over the same variables. Busy while any Apply runs, the panel's or an
+    // agent's (owner decision #4 on #1956): the signal is `pendingLabel`'s, the guard is `runApply`'s.
+    // Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
+    applyBtn = hook(el('button', 'p3-btn p3-btn-primary') as HTMLButtonElement, 'apply-to-figma');
     applyBtn.type = 'button';
-    applyBtn.disabled = pending;
+    applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
+    setBusy(applyBtn, applyBusy());
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
     applyBtn.onclick = runApply;
 

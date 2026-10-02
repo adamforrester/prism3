@@ -287,7 +287,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
-  root.append(head, legacy, panes, inspect, activity.drawer);
+  root.append(head, legacy, panes, inspect, activity.drawer, activity.live);
   app.append(root);
 
   // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).

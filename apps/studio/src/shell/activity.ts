@@ -75,6 +75,9 @@ export type Activity = {
   readonly button: HTMLButtonElement;
   /** The drawer, at the bottom of the frame. */
   readonly drawer: HTMLElement;
+  /** The status line a write's start is announced on, outside the drawer, which is not drawn until
+   *  something has run, so it is in the document before its first announcement. */
+  readonly live: HTMLElement;
 };
 
 /** The words the Activity button's name adds, as concept v6 has them. */
@@ -130,6 +133,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     : 'Nothing has run in this session.'), 'activity-note');
   body.append(close, rows, note);
   drawer.append(toggle, body);
+  // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
+  // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note). One
+  // line for every write, here, because the drawer is what hears an agent's run start. The words are the
+  // row's: its title and its phase line.
+  const live = hook(h('p', 'p3-sr p3-live'), 'activity-status');
+  live.setAttribute('role', 'status');
 
   // ── state ──────────────────────────────────────────────────────────────────────────────────────
   let open = false;     // the body shows
@@ -323,6 +332,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           rec.t = clock(now());
           expanded.add(k);
           started = true;
+          live.textContent = `${OP_TITLE[k]}, ${n.phase ?? 'Running'}`;
         }
         continue;
       }
@@ -353,6 +363,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const reveal = cur.detail !== null && cur.detail !== last.detail ? cur.detail : null;
     last = cur;
     const stillRunning = counts(cur).running > 0;
+    // Emptied once nothing runs, so the next start is a change even when its words are the same.
+    if (!stillRunning) live.textContent = '';
     if (settledBad) {
       // A failure or a warning stays open until it is closed, and at 380 it opens the sheet.
       open = true; auto = false; unread = false; clear();
@@ -396,5 +408,5 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   close.onclick = () => { show(false, true); button.focus(); };
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
   paint();
-  return { button, drawer };
+  return { button, drawer, live };
 };

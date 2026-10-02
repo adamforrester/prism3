@@ -134,6 +134,33 @@
 .p3-menu-item[aria-checked="true"] { font-weight: var(--p3-fw-emphasis); }
 .p3-menu-item[aria-checked="true"] > .p3-ico:last-child { visibility: visible; }
 
+/* A write's control while that write runs, panel or agent (owner decision #4 on #1956): the engine
+   Button's isPending. Busy is aria-busy, never native disabled, so focus stays and nothing here dims it.
+   Both labels sit in one cell, so the control keeps the wider one's width; the one not showing is held
+   invisible, which also keeps it out of the accessible name. */
+.p3-pend { display: inline-grid; }
+.p3-pend > * { grid-area: 1 / 1; }
+.p3-pend-busy { display: inline-flex; align-items: center; gap: var(--p3-space-050); }
+:is(.p3-btn, .p3-menu-item)[aria-busy="true"] { cursor: progress; }
+:is(.p3-btn, .p3-menu-item)[aria-busy="true"] .p3-pend-idle,
+:is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-pend-busy { visibility: hidden; }
+/* The busy label's "…" is the spinner's cell. After a short delay, three of the fast duration (about
+   300 ms, inside the engine spinner's 200 to 500 ms anti-flash wait), the "…" gives way to the arc, so
+   a quick write never flashes a spinner. The arc takes the label's ink. Under reduced motion it turns at
+   the slower reduced period: the spinner is functional, and aria-busy carries the state either way. */
+.p3-spin { position: relative; display: inline-grid; place-items: center; flex: none; width: var(--p3-icon-xs); height: var(--p3-icon-xs);
+  animation: p3-spin-hide var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both; }
+.p3-spin::before {
+  content: ""; position: absolute; inset: 0; opacity: 0; border-radius: var(--p3-radius-pill);
+  border: var(--p3-bw-thick) solid transparent; border-top-color: var(--p3-text);
+  animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
+}
+.p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+@media (prefers-reduced-motion: reduce) { .p3-spin::before { animation-duration: var(--p3-dur-fast), var(--p3-dur-spin-reduced); } }
+@keyframes p3-spin-hide { to { color: transparent; } }
+@keyframes p3-spin-show { to { opacity: 1; } }
+@keyframes p3-spin { to { transform: rotate(1turn); } }
+
 /* ── the tab row (IA-1): the levers header ───────────────────────────────────────────────── */
 /* ONE HEADER HEIGHT (the owner's QA note Q2): the tab row and the preview's title row are both
    `bar-h` tall and share one grid row in the two-pane layout, so their dividers meet at one y. */
@@ -646,6 +673,9 @@
 [data-per="5"] .p3-palh-anchor { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; }
 .p3-checker { background: repeating-conic-gradient(var(--p3-fill-2) 0% 25%, var(--p3-bg-page) 0% 50%) 0 0 / var(--p3-space-150) var(--p3-space-150); }
 .p3-sr { position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The Activity status line sits outside the drawer (so it is in the document before the drawer is drawn),
+   so it takes the chrome face itself rather than inheriting it (S11). */
+.p3-live { margin: 0; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }
 
 /* ── the step picker (V9, ui/step-picker.ts; first mounted in S4) ───────────────────────────── */
 .p3-picker {

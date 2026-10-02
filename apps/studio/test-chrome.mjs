@@ -1429,15 +1429,20 @@ const drawerState = (page) => page.evaluate(() => {
   };
 });
 const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if (left > 0) await page.waitForTimeout(left); };
-const menuState = (page) => page.evaluate(() => ({
+/** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
+ *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
+const SHOWN = `(n) => n ? ([...n.querySelectorAll('[data-p3="label-idle"], [data-p3="label-busy"]')].filter((x) => getComputedStyle(x).visibility === 'visible').map((x) => x.textContent).join('') || (n.querySelector('[data-p3^="label-"]') ? '' : n.textContent)) : null`;
+const menuState = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc); return {
   open: !!document.querySelector('[data-p3="figma-menu"]'), expanded: document.querySelector('[data-p3="figma-open"]')?.getAttribute('aria-expanded'),
-  items: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), n.textContent, n.disabled]),
+  items: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), shown(n), n.disabled, n.getAttribute('aria-busy') === 'true' && n.getAttribute('aria-disabled') === 'true']),
   focus: document.activeElement?.getAttribute('data-p3') ?? null,
   page: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
-}));
-/** The bar's Apply control: its text, any aria-label overriding that text, and whether it can run. */
-const applyBar = (page) => page.evaluate(() => { const b = document.querySelector('[data-p3="apply-to-figma"]');
-  return { text: b?.textContent ?? null, name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null }; });
+}; }, SHOWN);
+/** The bar's Apply control: its label as drawn, any aria-label overriding it, whether it is natively disabled,
+ *  whether it says it is busy (`aria-busy` and `aria-disabled`, owner decision #4), and its width. */
+const applyBar = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc); const b = document.querySelector('[data-p3="apply-to-figma"]');
+  return { text: shown(b), name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null,
+    busy: !!b && b.getAttribute('aria-busy') === 'true' && b.getAttribute('aria-disabled') === 'true', width: b ? Math.round(b.getBoundingClientRect().width * 10) / 10 : null }; }, SHOWN);
 const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
 
 for (const host of ['web', 'figma']) {
@@ -1563,7 +1568,7 @@ for (const host of ['web', 'figma']) {
 
         // The bar's Apply, idle: its label and its accessible name are the literal label.
         const applyIdle = await applyBar(page);
-        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled,
+        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled && !applyIdle.busy,
           `${where}: the bar's Apply reads "${APPLY_LABEL}", named by its text, and can run (read ${JSON.stringify(applyIdle)})`);
         // Apply Theme, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
         await takePosts(page);
@@ -1590,14 +1595,17 @@ for (const host of ['web', 'figma']) {
         check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
         await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
         const applyBusy = await applyBar(page);
-        ok(applyBusy.text === APPLY_RUNNING && applyBusy.disabled,
-          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", disabled (read ${JSON.stringify(applyBusy)})`);
-        // While it runs, the menu offers neither Apply nor Prune (today's rule: a prune reads what an apply writes).
+        ok(applyBusy.text === APPLY_RUNNING && applyBusy.busy && applyBusy.disabled === false,
+          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", busy and aria-disabled, not natively disabled (owner decision #4; read ${JSON.stringify(applyBusy)})`);
+        ok(applyBusy.width === applyIdle.width, `${where}: the bar's Apply keeps its width while busy (${applyIdle.width} idle, ${applyBusy.width} busy)`);
+        // While it runs, the menu's Apply is busy (focusable, aria-disabled) and Prune stale is unavailable
+        // (today's rule: a prune reads what an apply writes); Set up file is neither.
         await openFigma(page);
         const busy = await menuState(page);
-        const dis = Object.fromEntries(busy.items.map(([hk, , d]) => [hk, d]));
-        ok(dis['figma-option-apply'] === true && dis['figma-option-prune'] === true && dis['figma-option-file-setup'] === false,
-          `Figma menu ${where}: while Apply runs, Apply and Prune stale are unavailable and Set up file is not (${JSON.stringify(dis)})`);
+        const dis = Object.fromEntries(busy.items.map(([hk, , d, b]) => [hk, b ? 'busy' : d ? 'disabled' : 'ready']));
+        ok(dis['figma-option-apply'] === 'busy' && dis['figma-option-prune'] === 'disabled' && dis['figma-option-file-setup'] === 'ready',
+          `Figma menu ${where}: while Apply runs, Apply is busy, Prune stale is unavailable and Set up file can run (${JSON.stringify(dis)})`);
+        ok(busy.items.find(([hk]) => hk === 'figma-option-apply')?.[1] === APPLY_RUNNING, `Figma menu ${where}: while Apply runs, the menu's Apply reads "${APPLY_RUNNING}" (read "${busy.items.find(([hk]) => hk === 'figma-option-apply')?.[1]}")`);
         await page.keyboard.press('Escape');
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
@@ -1624,7 +1632,7 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `Figma menu ${where}: Prune stale posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
         ok(isWire(wp, FIGMA_WIRE.prune), `Figma menu ${where}: Prune stale posts the brand the page loaded with confirm false, whole — ${wireDiff(wp[0], FIGMA_WIRE.prune)}`);
         // While the dry run is out, the menu's Prune item says so (#1954). The expected text is the literal label.
-        const pruneLabel = async () => { await openFigma(page); const t = await page.evaluate(() => document.querySelector('[data-p3="figma-option-prune"]')?.textContent ?? null); await page.keyboard.press('Escape'); return t; };
+        const pruneLabel = async () => { await openFigma(page); const t = await page.evaluate((shownSrc) => eval(shownSrc)(document.querySelector('[data-p3="figma-option-prune"]')), SHOWN); await page.keyboard.press('Escape'); return t; };
         const checking = await pruneLabel();
         ok(checking === PRUNE_LABEL.preview, `Figma menu ${where}: while the dry run is out, Prune stale reads "${PRUNE_LABEL.preview}" (read "${checking}")`);
         // The dry run finds something, the confirm dialog opens, and its Delete posts the real prune; while that

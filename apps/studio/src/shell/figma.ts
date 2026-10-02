@@ -13,16 +13,23 @@
  * plain item.
  *
  * KEYBOARD, as the theme menu: the button opens it on a click, Enter, Space or Arrow Down, with focus on
- * the first item that can run; Arrow keys, Home and End move between the items that can run; Escape
- * closes it back to the button; Tab closes it and moves on.
+ * the first item that is not disabled; Arrow keys, Home and End move between those items; Escape closes it
+ * back to the button; Tab closes it and moves on. An item whose write is running is busy, not disabled
+ * (owner decision #4 on #1956, the engine Button's `isPending`), so focus still reaches it and its
+ * busy state can be found; its `run` does nothing while the write is out.
  */
 import { subscribe } from '../state/store';
-import { glyph, h, hook } from './dom';
+import { glyph, h, hook, pendingLabel, setBusy } from './dom';
 
 /** One write the menu offers. `run` is the function the old control ran. */
 export type FigmaAction = {
   readonly id: string;
   readonly label: string;
+  /** The label while this write runs, panel or agent, without its leading "…"; `null` while it does not.
+   *  A running item is busy, not disabled (`pendingLabel`): it keeps focus, and its `run` refuses a second
+   *  run while the first is out, which is the one guard the bar's control and this item share. */
+  readonly busy: string | null;
+  /** Unavailable for another reason (Prune stale while Apply Theme runs). */
   readonly disabled: boolean;
   /** The old control's tooltip, kept as the item's. */
   readonly hint?: string;
@@ -45,6 +52,7 @@ export const figmaMenu = (read: FigmaSource, cleanups: (() => void)[]): HTMLElem
 
   let items: HTMLButtonElement[] = [];
   let actions: readonly FigmaAction[] = [];
+  let drawn: string[] = [];
   const enabled = (): HTMLButtonElement[] => items.filter((i) => !i.disabled);
 
   /** Draw the items from a fresh reading. Kept in place when the list is the same, so a host change while
@@ -68,11 +76,20 @@ export const figmaMenu = (read: FigmaSource, cleanups: (() => void)[]): HTMLElem
         return it;
       });
       menu.replaceChildren(...items);
+      drawn = [];
     }
     for (const [i, a] of actions.entries()) {
       const it = items[i];
-      it.replaceChildren(h('span', 'p3-menu-label', a.label));
-      it.disabled = a.disabled;
+      // Redrawn only when the words change, so a host change mid-run does not restart the spinner's delay.
+      const words = `${a.label}\n${a.busy ?? ''}`;
+      if (drawn[i] !== words) {
+        drawn[i] = words;
+        const label = h('span', 'p3-menu-label');
+        label.append(pendingLabel(a.label, a.busy ?? a.label));
+        it.replaceChildren(label);
+      }
+      setBusy(it, a.busy !== null);
+      it.disabled = a.disabled && a.busy === null;
       if (a.hint) it.title = a.hint; else it.removeAttribute('title');
     }
   };

@@ -734,10 +734,15 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //
 // The plugin brackets every agent command that has an operation with `agent-started` and
 // `agent-finished` (`agent-dispatch.ts`, asserted in `test-agent-link.ts`). Between the two the panel's
-// Activity drawer shows the run on its operation's row, tagged Agent, while the panel's own buttons keep
-// their idle labels and stay enabled: the agent's write is not the designer's click, and
-// the write stays behavior-neutral. EXPECTED is each row state written here as a literal; ACTUAL is the built
-// panel's DOM after each host message.
+// Activity drawer shows the run on its operation's row, tagged Agent. While any run of an operation is in
+// progress, panel or agent, that operation's controls are busy (owner decision #4 on #1956, fixing #1957):
+// aria-disabled and aria-busy, never natively disabled, announced once through the drawer's polite status
+// line, and a click on them posts nothing, so a second write cannot start under the first. EXPECTED is each
+// row state written here as a literal; ACTUAL is the built panel's DOM, and the UI → plugin messages caught
+// on this window, after each host message.
+//
+// The no-post check has a positive control at the end of the arm: the same click, once nothing is running
+// Apply, does post `apply-theme`. Without it a listener that caught nothing would read as "posts nothing".
 //
 // MUTATIONS, each run against the built bundle and each failing here by name:
 //   · `reduce` ignoring `agent-started` → `S11 an agent's Apply Theme run opens the Activity drawer …`.
@@ -747,8 +752,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · `opReading` tagging no run as the agent's → `S11 the running row is tagged Agent …` and the build arm.
 //   · the reveal branch removed, or the pill's click without `hostChanged()` → `S11 clicking it opens the drawer …`.
 //   · the success collapse never scheduled → `clean build: a clean verdict does not pin the drawer open …`.
+//   · `applyBusy` ignoring the agent's run → `S11 during an agent's Apply the panel's Apply Theme is busy …`.
+//   · `runApply`'s busy guard removed → `S11 clicking the busy Apply Theme posts nothing …`.
+//   · the status line's start announcement removed → `S11 the start is announced once …`.
 {
   const { page, errors } = await openPanel();
+  await page.evaluate(() => {
+    window.__sent = [];
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'apply-theme') window.__sent.push(m.type); });
+  });
+  const sentApply = () => page.evaluate(() => window.__sent.length);
   const readOp = (k) => page.evaluate((key) => {
     const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
     const drawer = document.querySelector('[data-p3="activity-drawer"]');
@@ -761,8 +774,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       phase: [...(row?.querySelectorAll('[data-p3="op-progress"]') ?? [])].map((n) => n.textContent),
       history: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null,
       drawerOpen: drawer?.dataset.open === 'true',
-      apply: apply?.textContent ?? null,
       applyDisabled: apply ? apply.disabled : null,
+      applyBusy: apply ? apply.getAttribute('aria-busy') === 'true' && apply.getAttribute('aria-disabled') === 'true' : null,
+      status: document.querySelector('[data-p3="activity-status"]')?.textContent ?? null,
+      statusRole: document.querySelector('[data-p3="activity-status"]')?.getAttribute('role') ?? null,
     };
   }, k);
   const settle = (k, want) => page.waitForFunction(([key, w]) => document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`)?.dataset.state === w, [k, want], { timeout: 5000 }).catch(() => {});
@@ -774,8 +789,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `S11 an agent's Apply Theme run opens the Activity drawer on the Apply Theme row — state ${running.state}, drawer open ${running.drawerOpen}`);
   ok(running.agent && running.verdict === 'Running' && running.phase.some((t) => (t ?? '').includes('Writing to Figma…')),
     `S11 the running row is tagged Agent, reads "Running", phase "Writing to Figma…" — agent ${running.agent}, verdict ${JSON.stringify(running.verdict)}, phase ${JSON.stringify(running.phase)}`);
-  ok(running.apply === 'Apply Theme' && running.applyDisabled === false,
-    `S11 the panel's own Apply Theme button keeps its idle label and stays enabled during an agent run — read ${JSON.stringify(running.apply)}, disabled ${running.applyDisabled}`);
+  ok(running.applyBusy === true && running.applyDisabled === false,
+    `S11 during an agent's Apply the panel's Apply Theme is busy (aria-busy + aria-disabled), not natively disabled — busy ${running.applyBusy}, disabled ${running.applyDisabled}`);
+  ok(running.statusRole === 'status' && running.status === 'Apply Theme, Writing to Figma…',
+    `S11 the start is announced once through the drawer's polite status line — role ${running.statusRole}, read ${JSON.stringify(running.status)}`);
+  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(200);
+  const firedBusy = await sentApply();
+  ok(firedBusy === 0, `S11 clicking the busy Apply Theme posts nothing to the plugin — apply-theme messages ${firedBusy}`);
 
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
   await settle('apply', 'ok');
@@ -783,7 +804,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(landed.state === 'ok' && (landed.verdict ?? '').includes('✓ 42 roles written') && landed.agent,
     `S11 the agent's verdict lands on the row, still tagged Agent — state ${landed.state}, verdict ${JSON.stringify(landed.verdict)}, agent ${landed.agent}`);
 
-  await post(page, { type: 'agent-finished', id: 'a1' });
+  await post(page, { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' });
   await page.waitForTimeout(100);
   const finished = await readOp('apply');
   ok(finished.state === 'ok' && (finished.verdict ?? '').includes('✓ 42 roles written'),
@@ -796,7 +817,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 
   // A run that ends with no verdict (the command threw) leaves nothing running: the row goes back to the
   // result it had, rather than spinning forever.
-  await post(page, { type: 'agent-finished', id: 'a2' });
+  await post(page, { type: 'agent-finished', id: 'a2', cmd: 'apply-theme' });
   await settle('apply', 'ok');
   const reverted = await readOp('apply');
   ok(reverted.state === 'ok' && (reverted.verdict ?? '').includes('✓ 42 roles written') && reverted.history === null,
@@ -808,6 +829,11 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const build = await readOp('components');
   ok(build.state === 'running' && build.agent && build.phase.some((t) => /Building members… 24 of 648/.test(t ?? '')),
     `S11 an agent's build shows its live progress on the Build set row — state ${build.state}, agent ${build.agent}, phase ${JSON.stringify(build.phase)}`);
+  // Positive control for the no-post check: nothing runs Apply now, so the same click does post.
+  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const firedIdle = await sentApply();
+  ok(firedIdle === 1, `S11 control: with no Apply running, the same click posts one apply-theme — messages ${firedIdle}`);
   ok(errors.length === 0, `S11 agent run: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
