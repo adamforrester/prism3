@@ -5,7 +5,7 @@
  * Surfaces & fills): the Style guide's **Interactive** section, drawn by the SAME code the Style guide draws
  * it with (`preview/sections/interactive.ts`), with every column the brand ships, accents included (owner
  * decision Q39), and the Text row (Q32); the shared **Disabled** section; **Links**, the link role in each
- * state on the page and on the inverse band; and **Icons**, the icon inks the icon contrast floor moves. Every
+ * state on the page and on the inverse fill; and **Icons**, the icon inks the icon contrast floor moves. Every
  * token chip carries its ratio badge (owner decision Q5).
  *
  * LEGACY MARKUP IN A LIGHT-PINNED HOST, SPECIMENS ON THE BRAND'S PAGE (plan §9.1), as `preview/surfaces.ts`:
@@ -18,14 +18,14 @@
 import { brandState, currentMode, rp, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { h, hook } from '../shell/dom';
-import { LINKS_DESC } from '../shell/pages';
+import { ICONS_DESC, LINKS_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { BUILT_IN_SECTION_COLUMNS, disabledSection, interactiveSection, linksSection } from './sections/index';
 import { iconCard } from './sections/cards';
 import { SG_SURFACES, ground, oppositeOf, palSection, sgContext, type SgRole } from './sections/kit';
 
-/** The Icons section's copy (S5.2, new). */
-export const ICONS_DESC = 'The icon inks the icon contrast floor sets: matched to text at 4.5:1, or held to the 3:1 non-text floor.';
+/** The Icons section's copy (S5.2, APPROVED): `ICONS_DESC` in `shell/pages.ts`, shared with the levers (Q23). */
+export { ICONS_DESC };
 
 /** Every column the brand ships, in the levers' order: Primary, Neutral, Destructive, then each accent by
  *  its column name, named as the levers name it. */

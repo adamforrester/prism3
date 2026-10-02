@@ -1,5 +1,5 @@
-/** The Focus ring section (UI redesign S4c: shared by the legacy Interactive page in `main.ts` and Color ›
- *  Surfaces & fills' preview, where it sits after Border, owner decision Q30). The ring geometry every
+/** The Focus ring section (UI redesign S4c: drawn by Color › Surfaces & fills' preview, where it sits after
+ *  Border, owner decision Q30; its other caller, the legacy Interactive page, was retired by S5.2). The ring geometry every
  *  focusable control shares, read-only, with a live specimen in the ring's color. Moved from `main.ts`
  *  unchanged in output, apart from the shared-section marker and the ring's role attributes.
  *

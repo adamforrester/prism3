@@ -714,7 +714,7 @@ const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => 
   // THREE states, not two (#437). "Shared · All modes" was covering two situations that are not the
   // same offer to a reader: five sections whose controls edit ONE value every mode then uses
   // (Outline button hover, Disabled, Icon colors, Easing, Motion) and six with no control at all
-  // (Focus ring, Spacing grid, Primitive scales, Elevation ramp, Duration ramp, Springs). Measured,
+  // (Focus ring, since moved to Surfaces & fills; Spacing grid, Primitive scales, Elevation ramp, Duration ramp, Springs). Measured,
   // not assumed — the six have zero inputs between them. Saying "Shared" over a control you can turn
   // understates it; saying it over a specimen you cannot touch overstates it.
   //

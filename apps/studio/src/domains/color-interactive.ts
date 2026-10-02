@@ -1,13 +1,13 @@
 /**
  * Color › Interactive, the levers panel (UI redesign S5.2; concept v6's Interactive page).
  *
- * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`, in v6's order: the intro, then jump links to
- * each column group (owner decision Q33); **Actions** (the action palette, the outline hover and the neutral
- * emphasis); **Interactive palettes** (a group per column, Primary, Neutral, Destructive, then each accent,
- * every color the column carries as a row, its hover and pressed under it, then the add row; and the strict
- * contrast switch); **Links** (the link palette, the three state rungs, and the four link families' resting
- * link); **Legibility** (the icon contrast floor, the disabled contrast and its floor). Every lever is shown
- * (R2). Last, the way on to Type.
+ * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`, titled as the preview's sections (owner decision
+ * Q51): the intro, then jump links to each button set (Q33; "column" in code, never in copy, Q53);
+ * **Interactive** (the action palette, the outline hover, the neutral emphasis, a group per button set,
+ * Primary, Neutral, Destructive, then each accent, every color it carries as a row, its hover and pressed under
+ * it, then the add row; and the strict contrast switch); **Disabled** (the disabled contrast and its floor);
+ * **Links** (the link palette, the three state rungs, and the four link families' resting link); **Icons**
+ * (the icon contrast floor). Every lever is shown (R2). Last, the way on to Type.
  *
  * EVERY PER-COLUMN COLOR IS A ROW (owner decision Q33, replacing v6's "per-role in the Roles matrix only",
  * which Q31 deferred): `INTERACTIVE_ROWS` / `interactiveRowsFor` in `state/interactive-input.ts`, in the
@@ -17,8 +17,9 @@
  *
  * WHICH MODE A ROW EDITS (owner decisions Q22, Q34): the mode the preview shows, as the legacy page edited the
  * mode its strip showed. A column anchor in Light is the column's global field; in any other mode it is
- * `modeAnchors` (`setAnchor`). A derived mode is read-only: its rows are disabled under S4a's approved line.
- * The global levers are global, so they stay editable in every mode.
+ * `modeAnchors` (`setAnchor`). A button set exists across every mode, so it is added and removed from any
+ * editable mode (Q54). A derived mode is read-only, EVERY lever on the page, brand-wide ones included (Q59),
+ * under S4a's approved line, once at the top.
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/interactive-input.ts`, which writes what the
  * legacy page wrote, byte for byte on the persisted brand. The option sets are the legacy page's (owner
@@ -46,14 +47,25 @@ import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
+/** The button sets lever's info text (owner-approved, 2026-10-02). */
+export const BUTTON_SET_TOOLTIP = 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.';
+
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'interactive')!;
 /** The page the Continue button opens: the next tab, Type, by the store's page key (its legacy page until S6). */
 const NEXT = { label: 'Type', page: 'typography' } as const;
 
 /** Owner decision Q38, verbatim (APPROVED). */
 export const STRICT_CAPTION = 'Off: inverse button labels clear 4.5:1 at rest and may dip on hover and pressed. On: they clear 4.5:1 in every state.';
-/** Owner decision Q40, verbatim (APPROVED). */
-export const ADD_COLUMN_HINT = 'Add a brand color on Palettes to create another interactive color.';
+/** Owner decisions Q40 and Q53, verbatim (APPROVED). */
+export const ADD_COLUMN_HINT = 'Add a brand color on Palettes to use it for another button set.';
+/** Owner decision Q53, verbatim (APPROVED): no "column" in visible copy; a column is a button set. */
+export const BUTTON_SET_COPY = {
+  add: 'Add button set',
+  select: 'Color for the new button set',
+  remove: 'Remove button set',
+  removeLabel: (name: string): string => `Remove the ${name} button set`,
+  landmark: 'Button sets',
+} as const;
 /** The link palette's Auto (owner decision Q36). */
 export const LINK_AUTO = 'Auto: follows action palette';
 /** The legacy page's promotable list never offered these: they are the built-in columns' names. */
@@ -93,9 +105,11 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     rebuild();
   };
 
+  /** A derived mode's one line, at the top of the levers: every lever on the page is read-only there (Q59). */
   const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`) : null;
-  const editingLine = (): HTMLElement => derivedLine() ?? subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
+    isDerived(currentMode) ? hook(stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`), 'interactive-derived') : null;
+  /** Which mode the rows edit; nothing in a derived mode, which says so once at the top. */
+  const editingLine = (): HTMLElement | null => isDerived(currentMode) ? null : subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
 
   // ── an enum lever as chips (#1675's rule: two to four options) ──────────────────────────────────
   const enumLever = (key: string): Item => {
@@ -272,11 +286,13 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
 
   // ── Interactive palettes: the column groups, the add row, and the strict switch ────────────────────
   const columns = (): Item[] => {
-    const b = leverBlock('interactivePalettes');
+    // The engine's description speaks of "columns"; the owner's word is "button set" (Q53), so this page
+    // hands in its own, approved 2026-10-02. The manifest's stays as MCP and the emission read it.
+    const b = leverBlock('interactivePalettes', { desc: BUTTON_SET_TOOLTIP });
     const out: Item[] = [];
     const box = hook(h('div', 'p3-icols'), 'interactive-columns');
-    box.append(editingLine());
-    const light = currentMode === 'light';
+    const line = editingLine();
+    if (line) box.append(line);
     (columnsInOrder()).forEach(([col, pk, name]) => {
       const rows = interactiveRowsFor(col, pk);
       const roles = rolesIn(currentMode);
@@ -292,12 +308,12 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       const pal = interactivePaletteOf(rows[0]);
       head.append(t, h('span', 'p3-sub', `palette ${pal}`), h('span', 'p3-spacer'));
       const i = (brandState.interactivePalettes ?? []).findIndex((e) => (e.name ?? e.palette) === col);
-      // Removing a column is structural, so it is offered in Light only, as on the legacy page.
-      if (i >= 0 && light) {
+      // A button set exists across every mode, so it is removed from any editable mode (owner decision Q54).
+      if (i >= 0) {
         const rm = hook(h('button', 'p3-btn p3-btn-page'), 'column-remove');
         rm.type = 'button';
-        rm.append(h('span', 'p3-btn-label', 'Remove column'));
-        rm.setAttribute('aria-label', `Remove column ${name}`);
+        rm.append(h('span', 'p3-btn-label', BUTTON_SET_COPY.remove));
+        rm.setAttribute('aria-label', BUTTON_SET_COPY.removeLabel(name));
         rm.onclick = () => edit('interactivePalettes', () => removeAccent(i));
         head.append(rm);
       }
@@ -307,19 +323,19 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       grp.append(list);
       box.append(grp);
     });
-    // The add row: Light only, as on the legacy page. The promotable list is the legacy page's (Q35).
-    if (light) {
+    // The add row, in every mode (Q54): the list is mode-independent. The promotable list is the legacy page's (Q35).
+    {
       const add = hook(h('div', 'p3-icol-add'), 'column-add');
       const already = new Set((brandState.interactivePalettes ?? []).map((e) => e.palette));
       const actionPal = theme.roleToPalette.action;
       const promotable = ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_COLUMNS.has(p));
       if (!promotable.length) add.append(hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint'));
       else {
-        const s = selectField('p3-promote', 'Palette to promote', 'column-promote-select', () => {});
+        const s = selectField('p3-promote', BUTTON_SET_COPY.select, 'column-promote-select', () => {});
         s.set(promotable.map((p) => ({ v: p, l: capWord(p) })), promotable[0]);
         const go = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote');
         go.type = 'button';
-        go.append(glyph('plus'), h('span', 'p3-btn-label', 'Promote to a column'));
+        go.append(glyph('plus'), h('span', 'p3-btn-label', BUTTON_SET_COPY.add));
         go.onclick = () => edit('interactivePalettes', () => addAccent(s.select.value));
         add.append(s.el, go);
       }
@@ -358,7 +374,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   };
   const linkFamilies = (): Item[] => {
     const box = hook(h('div', 'p3-fillrows'), 'link-rows');
-    box.append(editingLine());
+    const line = editingLine();
+    if (line) box.append(line);
     const out: Item[] = [];
     for (const r of LINK_ROWS) { const it = rowOf(r, false); if (it) { box.append(it.el); out.push(it); } }
     return [{ el: box, said: '', key: 'linkFamilies' }, ...out];
@@ -411,7 +428,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   /** Jump links to each column group (Q33), at the top of the levers. */
   const jumps = (): HTMLElement => {
     const nav = hook(h('nav', 'p3-jump'), 'interactive-jump');
-    nav.setAttribute('aria-label', 'Interactive columns');
+    nav.setAttribute('aria-label', BUTTON_SET_COPY.landmark);
     for (const [col, , name] of columnsInOrder()) {
       if (!rolesIn(currentMode)[`interactive.${col}.fill.rest`]) continue;
       const a = hook(h('a', 'p3-jump-link', name), 'interactive-jump-link');
@@ -436,8 +453,10 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const scrollTop = host.scrollTop;
     items = [];
     pickers.clear();
-    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), jumps()];
+    const derived = derivedLine();
+    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : []), jumps()];
     PAGE.sections.forEach((s, i) => { const x = section(s, i); parts.push(x.el); items.push(...x.items); });
+
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'interactive-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', `Continue to ${NEXT.label}`), glyph('chevr'));
@@ -446,6 +465,9 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     nr.append(next);
     parts.push(nr);
     root.replaceChildren(...parts);
+    // A derived mode is read-only, every lever on the page, brand-wide ones included (owner decision Q59): every
+    // control in a section is disabled. The info buttons only show a description, so they stay.
+    if (derived) for (const n of root.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('.p3-lsec :is(button, select, input):not(.p3-info)')) n.disabled = true;
     markRefused();
     filter();
     if (focusKey) {

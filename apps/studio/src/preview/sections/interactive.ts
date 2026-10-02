@@ -29,6 +29,8 @@ export type InteractiveSectionOptions = {
 
 /** The Style guide's three columns, in order. */
 export const BUILT_IN_SECTION_COLUMNS: ReadonlyArray<readonly [string, string]> = [['Primary', 'primary'], ['Neutral', 'neutral'], ['Destructive', 'destructive']];
+/** The last sentence on Color › Interactive (owner decision Q53, APPROVED). */
+export const EVERY_SET = 'Every button set is shown, including ones you added.';
 const DESC_HEAD = 'Each interactive palette in four treatments — filled, outline, text, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set.';
 
 export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HTMLElement => {
@@ -38,7 +40,7 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
   const columns = o.columns ?? BUILT_IN_SECTION_COLUMNS;
   // The last sentence is true only where the accents are left out (the Style guide).
   const secInt = palSection('Interactive', o.columns
-    ? `${DESC_HEAD} Every column is shown, accents included.`
+    ? `${DESC_HEAD} ${EVERY_SET}`
     : `${DESC_HEAD} This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.`);
   secInt.dataset.sgSection = 'interactive';   // the shared-section marker (`kit.ts`'s header)
   const STATES = ['rest', 'hover', 'pressed'];

@@ -162,9 +162,18 @@
  *     `interactive.‹c›.text.‹s›`, no edge, and the ground over the page is the emitted wash (the page at rest).
  *   · RATIO BADGES: each prints the emission's measured contrast for its role, every mode.
  *   · EDITS: the picker under its row, a pick, Return to Auto, Escape; previewing Dark a row writes `modeAnchors`
- *     and not Light's field (Q34); a derived mode is read-only; the link palette's Auto unsets the key (Q36); the
+ *     and not Light's field (Q34); the link palette's Auto unsets the key (Q36); the
  *     strict switch's off unsets it; an accent is the last column everywhere (Q33, Q39).
  *   · The chrome probe on Interactive: both hosts, both themes, 1280, 640 and 380.
+ *   · OWNER COPY (2026-10-02, APPROVED, literal): the lever sections are the preview's, Interactive, Disabled,
+ *     Links, Icons, with their descriptions, each lever in its section (Q51); the button-set strings (Q53); no
+ *     "column", "band" or "muted" in the page's copy (Q53, Q57, Q58); a button set added and removed previewing
+ *     Dark persists the same JSON as from Light (Q54); in HC light, HC dark and wireframe every control in a lever
+ *     section is disabled, enumerated from the DOM with a floor, under the derived line (Q59).
+ *   Owner-copy mutations: "Promote to a column" back → `Q53: the add row reads "Add button set" …`; a section
+ *   titled "Actions" → `Q51: Interactive's lever sections are the preview's …`; Add hidden in Dark → `Q54:
+ *   previewing Dark, Add button set is shown and enabled`; the action palette select left enabled in a derived
+ *   mode → `Q59: previewing HC light, every control on Interactive is disabled … — enabled action-palette-select`.
  *   S5.2 mutations (each after a `wip:` commit): a row writing the light key while previewing Dark → `interactive:
  *   previewing Dark, primary 400 writes modeAnchors.dark.primary and not the light anchor (Q34)`; the Text row
  *   dropped → `text buttons: color-interactive primary has no Text row` and `text buttons: brand primary has no Text
@@ -3060,11 +3069,7 @@ for (const host of ['web', 'figma']) {
     await page.waitForFunction(() => /^Auto/.test(document.querySelector('[data-p3="int-pick"][data-role="interactive.primary.fill.rest"]')?.textContent?.trim() ?? ''), null, { timeout: 5000 }).catch(() => {});
     ok((await persisted(page))?.modeAnchors === undefined, `interactive: Auto in Dark prunes modeAnchors (${JSON.stringify((await persisted(page))?.modeAnchors)})`);
     await page.keyboard.press('Escape');
-    // A derived mode: every row is read-only, under the approved line; the global levers stay.
-    await chooseMode(page, 'hc-light');
-    const d = await page.evaluate(() => ({ picks: [...document.querySelectorAll('[data-p3="int-pick"]')].map((b) => b.disabled), line: document.querySelector('[data-p3="interactive-columns"] .p3-state')?.textContent, chip: document.querySelector('[data-p3="lever-outline-interaction"] button[role="radio"]')?.disabled }));
-    ok(d.picks.length > 0 && d.picks.every(Boolean) && d.line === 'HC light is auto-derived — read-only. Edit Light or Dark and it follows.' && d.chip === false,
-      `interactive: previewing HC light, every row is disabled under the derived line and the global levers stay editable (${d.picks.filter(Boolean).length}/${d.picks.length} disabled, "${d.line}", chip disabled ${d.chip})`);
+    // A derived mode is read-only, every lever (Q59): held in its own case below, every derived mode.
     await chooseMode(page, 'light');
     // The link palette: neutral writes it; Auto unsets it (Q36); the WCAG 1.4.1 warning follows the engine's note.
     const lp = page.locator('[data-p3="link-palette-select"]');
@@ -3096,11 +3101,144 @@ for (const host of ['web', 'figma']) {
       `interactive: a promoted accent is the last column in the levers, the jump links and the preview (Q33, Q39) — ${JSON.stringify(acc)}`);
     await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
     await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
-    ok((await persisted(page))?.interactivePalettes === undefined, `interactive: Remove column takes the accent out (${JSON.stringify((await persisted(page))?.interactivePalettes)})`);
+    ok((await persisted(page))?.interactivePalettes === undefined, `interactive: Remove button set takes the accent out (${JSON.stringify((await persisted(page))?.interactivePalettes)})`);
     ok((await previewView(page)).view === view0, `V1 edit: Interactive's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `interactive edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Owner copy (Q51, Q53, Q58, Q57, APPROVED, literal): the lever sections are the preview's, in its order; the
+// button-set strings; the Links and Icons descriptions, the same in the levers and the preview.
+const EXPECT_INTERACTIVE_SECTIONS = [
+  ['Interactive', 'Each button set is a full set of fill, text, border and state colors.'],
+  ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
+  ['Links', 'The link color in each state, on the page and on the inverse fill.'],
+  ['Icons', 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.'],
+];
+/** Which section each lever sits in (Q51), by hook. */
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Interactive'], ['outlineInteraction', 'Interactive'], ['neutralEmphasis', 'Interactive'],
+  ['interactivePalettes', 'Interactive'], ['strictInteractiveContrast', 'Interactive'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+  ['linkPalette', 'Links'], ['linkStateRungs', 'Links'], ['iconContrast', 'Icons']];
+const EVERY_SET = 'Every button set is shown, including ones you added.';
+const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
+/** Every mode on the page by its picker: a radio where they fit, else the select of the same modes. */
+const chooseAnyMode = async (page, mode) => {
+  const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
+  if (await radio.count() && await radio.isVisible()) await hooks.click(radio);
+  else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
+    || document.querySelector('[data-p3="mode-select"]')?.value === m, mode);
+};
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    const copy = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')];
+      const prev = (t) => [...document.querySelectorAll('[data-p3="interactive-style-guide"] .psec')].find((s) => s.querySelector('.psec-t')?.textContent === t)?.querySelector('.psec-d')?.textContent ?? null;
+      return {
+        sections: secs.map((s) => [s.querySelector('.p3-lsec-title')?.textContent, s.querySelector('.p3-lsec-desc')?.textContent ?? null]),
+        leverIn: Object.fromEntries([...pane.querySelectorAll('.p3-lever')].map((n) => [n.getAttribute('data-p3'), n.closest('[data-p3="lever-section"]')?.querySelector('.p3-lsec-title')?.textContent])),
+        preview: { Links: prev('Links'), Icons: prev('Icons'), Disabled: prev('Disabled'), Interactive: prev('Interactive') },
+        landmark: pane.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label'),
+        add: pane.querySelector('[data-p3="column-promote"]')?.textContent?.trim() ?? null,
+        select: pane.querySelector('[data-p3="column-promote-select"]')?.getAttribute('aria-label') ?? null,
+        // The button sets lever's info toggletip, the text its own info button controls (`aria-controls`).
+        setsTip: (() => {
+          const info = pane.querySelector('[data-p3="lever-interactive-palettes"] [data-p3="lever-info"]');
+          const id = info?.getAttribute('aria-controls');
+          return id ? document.getElementById(id)?.textContent ?? null : null;
+        })(),
+        // The page's own copy and the preview's, with the manifest's descriptions (`.p3-tip`, engine prose) left out.
+        visible: [...pane.querySelectorAll('.p3-lsec, .p3-intro, .p3-jump'), document.querySelector('[data-p3="interactive-style-guide"]')].map((n) => {
+          const c = n.cloneNode(true); for (const t of c.querySelectorAll('.p3-tip')) t.remove();
+          return `${c.textContent} ${[...c.querySelectorAll('[aria-label], [title]')].map((x) => `${x.getAttribute('aria-label') ?? ''} ${x.getAttribute('title') ?? ''}`).join(' ')}`;
+        }).join(' ') + ` ${pane.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label') ?? ''}`,
+      };
+    });
+    ok(JSON.stringify(copy.sections) === JSON.stringify(EXPECT_INTERACTIVE_SECTIONS),
+      `Q51: Interactive's lever sections are the preview's, Interactive, Disabled, Links, Icons, with their approved copy — drew ${JSON.stringify(copy.sections)}`);
+    for (const [key, sec] of EXPECT_LEVER_SECTION) ok(copy.leverIn[kebabHook(key)] === sec, `Q51: the ${key} lever sits in ${sec} (sits in ${copy.leverIn[kebabHook(key)]})`);
+    for (const t of ['Links', 'Icons', 'Disabled']) {
+      const want = EXPECT_INTERACTIVE_SECTIONS.find(([n]) => n === t)[1];
+      ok(copy.preview[t] === want, `Q23: the preview's ${t} description is the levers' ("${copy.preview[t]}")`);
+    }
+    ok((copy.preview.Interactive ?? '').endsWith(` ${EVERY_SET}`), `Q53: the preview's Interactive description ends "${EVERY_SET}" ("${copy.preview.Interactive}")`);
+    ok(copy.landmark === 'Button sets', `Q53: the jump links' landmark is "Button sets" ("${copy.landmark}")`);
+    // The button sets lever's info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this
+    // page; the engine's description (which says "columns") stays as MCP and the emission read it. Literal.
+    ok(copy.setsTip === 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.', `Q53: the button sets lever's info text is the owner's — read ${JSON.stringify(copy.setsTip)}`);
+    ok(copy.add === 'Add button set' && copy.select === 'Color for the new button set', `Q53: the add row reads "Add button set" on a select named "Color for the new button set" (${JSON.stringify([copy.add, copy.select])})`);
+    const stray = ['column', 'band', 'muted'].filter((w) => new RegExp(`\\b${w}`, 'i').test(copy.visible.replace(/\b(?:interactive|inverse)\.[\w.-]+/g, '')));
+    ok(stray.length === 0, `Q53, Q57, Q58: no "column", "band" or "muted" in the page's visible copy, labels and titles (the manifest's lever descriptions aside)${stray.length ? ` — found ${stray.join(', ')}` : ''}`);
+
+    // Q54: a button set is added and removed in every editable mode, and the write is mode-independent: added while
+    // previewing Dark, the persisted brand is byte-identical to the same add from Light.
+    const addSet = async () => {
+      await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+      return JSON.stringify(await persisted(page));
+    };
+    const removeSet = async () => {
+      await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
+      await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+      return JSON.stringify(await persisted(page));
+    };
+    const before = JSON.stringify(await persisted(page));
+    const fromLight = await addSet();
+    const rm = await page.evaluate(() => { const b = document.querySelector('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'); return { text: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label') ?? null }; });
+    ok(rm.text === 'Remove button set' && rm.label === 'Remove the Accent button set', `Q53: remove reads "Remove button set", named "Remove the Accent button set" (${JSON.stringify(rm)})`);
+    const hint = await page.evaluate(() => ({ select: !!document.querySelector('[data-p3="column-promote-select"]'), hint: document.querySelector('[data-p3="column-promote-hint"]')?.textContent ?? null }));
+    ok(!hint.select && hint.hint === ADD_SET_HINT, `Q53: with nothing left to add, the hint reads "${ADD_SET_HINT}" (${JSON.stringify(hint)})`);
+    const lightRemoved = await removeSet();
+    await chooseAnyMode(page, 'dark');
+    const darkCtl = await page.evaluate(() => { const b = document.querySelector('[data-p3="column-promote"]'); return { add: !!b && b.getClientRects().length > 0 && !b.disabled }; });
+    ok(darkCtl.add, `Q54: previewing Dark, Add button set is shown and enabled (${JSON.stringify(darkCtl)})`);
+    const fromDark = await addSet();
+    ok(fromDark === fromLight, `Q54: a button set added previewing Dark persists the same JSON as the same add from Light — Light ${fromLight}, Dark ${fromDark}`);
+    const darkRm = await page.evaluate(() => { const b = document.querySelector('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'); return !!b && b.getClientRects().length > 0 && !b.disabled; });
+    ok(darkRm, `Q54: previewing Dark, the added set offers Remove button set, enabled (${darkRm})`);
+    const darkRemoved = await removeSet();
+    ok(darkRemoved === lightRemoved && darkRemoved === before, `Q54: removed previewing Dark, the brand is the one removed from Light, and the one before the add (${darkRemoved})`);
+    await chooseAnyMode(page, 'light');
+
+    // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
+    // line. Enumerated from the DOM: every button, select and input in a lever section but the info toggletips.
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
+    await goPlace(page, 'color-interactive');
+    const DERIVED = [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']];
+    /** The floor on the controls a derived mode must hold disabled: the 3 built-in sets' pickers alone are 3 × 18. */
+    const DERIVED_CONTROLS_FLOOR = 60;
+    for (const [mode, label] of DERIVED) {
+      await chooseAnyMode(page, mode);
+      await page.waitForFunction((l) => document.querySelector('[data-p3="interactive-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      const d = await page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
+        return {
+          n: ctls.length,
+          enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName),
+          hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null,
+        };
+      });
+      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows ("${d.line}")`);
+      ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
+        `Q59: previewing ${label}, every control on Interactive is disabled (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['action-palette-select', 'link-palette-select', 'strict-contrast-switch', 'disabled-min-chips-3', 'link-rung-hover', 'column-promote', 'int-pick'])
+        ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among those held disabled`);
+    }
+    await chooseAnyMode(page, 'light');
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="interactive-derived"]'), sel: document.querySelector('[data-p3="action-palette-select"]')?.disabled }));
+    ok(!back.line && back.sel === false, `Q59: back in Light, the derived line is gone and the levers are editable (${JSON.stringify(back)})`);
+    ok(errors.length === 0, `interactive owner copy: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Interactive: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane
