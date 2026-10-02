@@ -209,12 +209,13 @@ export const FILL_ROWS: readonly FillRow[] = [
     ...SEM.map(([k, l]) => ({ role: `inverse.foreground.${k}-subtle`, label: `${l}, subtle`, paletteKey: k })),
   ]),
 ];
-/** The ink rows under `prefix` (`text`, `inverse.text`): the neutral ladder, the semantic inks, then their muted
- *  forms, each keyed to its own palette, with the labels the legacy page's Text section used. */
+/** The ink rows under `prefix` (`text`, `inverse.text`): the neutral ladder, the semantic inks, then their subtle
+ *  forms, each keyed to its own palette, with the labels the legacy page's Text section used, except that the
+ *  subtle forms say "subtle", the token's own word, where the legacy page said "muted" (owner decision Q57). */
 const inkRows = (prefix: string): FillRow[] => [
   ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} text`, paletteKey: 'neutral' })),
   ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} ink`, paletteKey: k })),
-  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l} ink, muted`, paletteKey: k })),
+  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l} ink, subtle`, paletteKey: k })),
 ];
 /** The text rows the legacy page's Text section carried, then the inverse band's inks under "Inverse" (Q49).
  *  The link ink is not here: links are edited on Color › Interactive only (owner decision Q28, #1961). */
@@ -234,7 +235,7 @@ export const FOCUS_ROLES = ['border.focus', 'inverse.border.focus'] as const;
 const iconRows = (prefix: string, textPrefix: string, on: boolean): FillRow[] => [
   ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: 'neutral', follows: `${textPrefix}.${k}` })),
   ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: k, follows: `${textPrefix}.${k}` })),
-  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l}, muted`, paletteKey: k, follows: `${textPrefix}.${k}-subtle` })),
+  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l}, subtle`, paletteKey: k, follows: `${textPrefix}.${k}-subtle` })),
   ...(on ? SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.on-${k}`, label: `On ${l.toLowerCase()}`, paletteKey: 'neutral', follows: `${textPrefix}.on-${k}` })) : []),
 ];
 export const ICON_ROWS: readonly FillRow[] = [...iconRows('icon', 'text', true), ...grouped(INVERSE_SUB, iconRows('inverse.icon', 'inverse.text', false))];
@@ -244,6 +245,34 @@ export const iconsPaired = (): boolean => theme.iconContrast === 'text';
 /** "Unpair icons from text" (Q50): the lever's other value, written as the lever's own control writes it
  *  (`setLever` in `interactive-input.ts`, `setPath(brandState, key, v)`). */
 export const unpairIcons = (): void => { setPath(brandState, 'iconContrast', '3:1'); };
+/** True for an icon role, page or inverse (`icon.*`, `inverse.icon.*`): the roles the Icon section edits. */
+const isIconRole = (role: string): boolean => role.startsWith('icon.') || role.startsWith('inverse.icon.');
+/** How many icon overrides the brand carries, every mode counted (Q52): what re-pairing would remove. */
+export const iconOverrideCount = (): number =>
+  Object.values(brandState.overrides ?? {}).reduce((n, forMode) => n + Object.keys(forMode ?? {}).filter(isIconRole).length, 0);
+/** Re-pair icons with text (owner decision Q52): `iconContrast` back to `'text'`, written as the lever's own control
+ *  writes it, and every icon override cleared, page and inverse, in every mode, pruning an emptied mode and an
+ *  emptied map as `setRoleOverride` does. Every other override stays. EVERY control that sets `iconContrast` to
+ *  `'text'` calls this, not `setLever`: the legacy Interactive page's lever here, and Color › Interactive's (#1974).
+ *  The caller asks first when `iconOverrideCount()` is above zero, in `PAIR_ICONS_CONFIRM`'s words. */
+export const pairIcons = (): void => {
+  setPath(brandState, 'iconContrast', 'text');
+  const ov = brandState.overrides;
+  if (!ov) return;
+  for (const [mode, forMode] of Object.entries(ov)) {
+    if (!forMode) continue;
+    for (const role of Object.keys(forMode)) if (isIconRole(role)) delete forMode[role];
+    if (!Object.keys(forMode).length) delete ov[mode];
+  }
+  if (!Object.keys(ov).length) brandState.overrides = undefined;
+};
+/** The re-pair confirm's words (owner decision Q52, APPROVED 2026-10-02, verbatim), `n` the override count. One
+ *  place, so each control that re-pairs asks in the same words. */
+export const PAIR_ICONS_CONFIRM = {
+  title: 'Pair icons with text?',
+  body: (n: number): string => `This removes ${n} custom icon colors. Icons will follow their text color again.`,
+  action: 'Pair icons',
+} as const;
 /** The text role an icon row is locked to in `mode`, or null when the row is editable. Locked while paired,
  *  unless the icon carries its own override in that mode: the engine applies an explicit icon override over the
  *  carried text one (#1968), so that row shows the override it has, with Return to Auto, rather than claim a

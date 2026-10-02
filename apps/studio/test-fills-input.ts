@@ -359,6 +359,43 @@ reset(aurora);
 ok(aurora.iconContrast === '3:1' && !F.iconsPaired() && F.ICON_ROWS.every((r) => F.lockedTo('light', r) === null),
   `aurora loads unpaired (iconContrast ${JSON.stringify(aurora.iconContrast)}): every icon row edits`);
 
+// Re-pair (owner decision Q52): iconContrast back to "text", and every icon override gone, page and inverse, in
+// every mode; every other override kept. The expected brands are literals typed here, never `pairIcons`' own output.
+reset();
+F.pairIcons();
+ok(F.iconOverrideCount() === 0 && JSON.stringify(store.brandState) === JSON.stringify(prism3),
+  `re-pair with no icon overrides: iconContrast "text", nothing else written (${JSON.stringify(store.brandState.iconContrast)}, ${JSON.stringify(store.brandState.overrides)})`);
+reset();
+F.unpairIcons();
+const invIconPrimary = F.ICON_ROWS.find((r) => r.role === 'inverse.icon.primary')!;
+const iconOnBrand = F.ICON_ROWS.find((r) => r.role === 'icon.on-brand')!;
+F.setRowOverride('light', iconBrand, '700');
+F.setRowOverride('dark', invIconPrimary, '200');
+F.setRowOverride('dark', iconOnBrand, '100');
+F.setRowOverride('light', F.TEXT_ROWS.find((r) => r.role === 'text.brand')!, '300');
+F.setRowOverride('dark', F.FILL_ROWS.find((r) => r.role === 'foreground.brand')!, '500');
+ok(F.iconOverrideCount() === 3, `iconOverrideCount counts the icon overrides in every mode, page and inverse, and nothing else: 3 (read ${F.iconOverrideCount()})`);
+F.pairIcons();
+const KEPT = { light: { 'text.brand': { palette: 'primary', step: '300' } }, dark: { 'foreground.brand': { palette: 'primary', step: '500' } } };
+ok(store.brandState.iconContrast === 'text' && JSON.stringify(store.brandState.overrides) === JSON.stringify(KEPT),
+  `re-pair: iconContrast "text", icon.brand (light), inverse.icon.primary and icon.on-brand (dark) cleared, the text and fill overrides kept (iconContrast ${JSON.stringify(store.brandState.iconContrast)}, overrides ${JSON.stringify(store.brandState.overrides)})`);
+// Only icon overrides: the emptied modes and the emptied map are pruned, so the brand is byte-identical to the one loaded.
+reset();
+F.unpairIcons();
+F.setRowOverride('light', iconBrand, '700');
+F.setRowOverride('dark', invIconPrimary, '200');
+F.pairIcons();
+ok(JSON.stringify(store.brandState) === JSON.stringify(prism3), `re-pair clearing the only overrides leaves the brand byte-identical to the one loaded (overrides ${JSON.stringify(store.brandState.overrides)})`);
+// The confirm's words, APPROVED verbatim (owner decision Q52, 2026-10-02). Literal.
+ok(F.PAIR_ICONS_CONFIRM.title === 'Pair icons with text?' && F.PAIR_ICONS_CONFIRM.body(3) === 'This removes 3 custom icon colors. Icons will follow their text color again.'
+  && F.PAIR_ICONS_CONFIRM.action === 'Pair icons', `the re-pair confirm's title, body and action are the approved copy (${JSON.stringify([F.PAIR_ICONS_CONFIRM.title, F.PAIR_ICONS_CONFIRM.body(3), F.PAIR_ICONS_CONFIRM.action])})`);
+// "subtle", the token's own word, never "muted" (owner decision Q57): every row label, and two by name. Literal.
+const mutedLabels = ALL_ROWS.filter((r) => /muted/i.test(r.label)).map((r) => `${r.role} "${r.label}"`);
+ok(mutedLabels.length === 0, `no Surfaces & fills row says "muted" (Q57)${mutedLabels.length ? ` — ${mutedLabels.slice(0, 4).join(', ')}` : ''}`);
+const labelOf = (role: string): string | undefined => ALL_ROWS.find((r) => r.role === role)?.label;
+ok(labelOf('icon.brand-subtle') === 'Brand, subtle' && labelOf('text.brand-subtle') === 'Brand ink, subtle' && labelOf('inverse.icon.danger-subtle') === 'Danger, subtle',
+  `the subtle rows say "subtle" (Q57): ${JSON.stringify([labelOf('icon.brand-subtle'), labelOf('text.brand-subtle'), labelOf('inverse.icon.danger-subtle')])}`);
+
 // ── 7. S4d: the Page step picker's choices are the select's (owner decision Q45) ─────────────────────
 console.log('\n7. The Page and band step pickers write what the selects wrote');
 reset();

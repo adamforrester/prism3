@@ -53,7 +53,8 @@ import {
   tokenPillSpan, withInverseBadge, type SgRole,
 } from './preview/sections/kit';
 import { COLOR_SECTIONS, disabledSection, focusRingSection, interactiveSection } from './preview/sections/index';
-import { setRoleOverride } from './state/fills-input';
+import { PAIR_ICONS_CONFIRM, iconOverrideCount, pairIcons, setRoleOverride } from './state/fills-input';
+import { inlineConfirm } from './ui/lever-kit';
 // The Interactive page's writes and its "Auto" baselines (UI redesign S5.1): DOM-free, so Color › Interactive
 // (S5.2) can make the same edits without importing this file. This page calls them, then repaints.
 import {
@@ -2115,14 +2116,43 @@ const renderLinksSection = (): HTMLElement | null => {
  *  descriptor says (#1675). It writes the input and rebuilds (a lever change re-derives roles the
  *  matrix reads, so applyFull, not apply). `cur` defaults to the working input's value; the Neutral
  *  lead passes the last good one, which is what it has always shown. */
-const iEnumControl = (key: string, cur: unknown = getPath(brandState, key) ?? leverByKey(key)!.default): HTMLElement => {
+const iEnumControl = (key: string, cur: unknown = getPath(brandState, key) ?? leverByKey(key)!.default,
+  pick: (v: string | number) => void = (v) => { setLever(key, v); applyFull(); }): HTMLElement => {
   const lever = leverByKey(key)!;
   const d = describeControl(lever);
-  if (d.kind === 'chips') return chipGroup(key, lever.label, d.options, cur, (v) => { setLever(key, v); applyFull(); });
+  if (d.kind === 'chips') return chipGroup(key, lever.label, d.options, cur, pick);
   const sel = selectEl('cap');
   for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
-  sel.onchange = () => { setLever(key, sel.value); applyFull(); };
+  sel.onchange = () => pick(sel.value);
   return sel;
+};
+
+/** The icon contrast lever (owner decision Q52). Re-pairing icons with text (`'text'`) clears every icon override,
+ *  so it goes through `pairIcons`, never `setLever`; with overrides to lose it asks first, in place under the
+ *  lever, in the approved words (`PAIR_ICONS_CONFIRM`), and the control shows the brand's value until it is
+ *  confirmed. Cancel writes nothing. Color › Interactive's lever (#1974) must do the same. */
+const iconContrastControl = (): HTMLElement => {
+  const cur = getPath(brandState, 'iconContrast') ?? leverByKey('iconContrast')!.default;
+  const wrap = el('div', 'ic-pair');
+  let confirm: HTMLElement | null = null;
+  const ctl = iEnumControl('iconContrast', cur, (v) => {
+    if (v !== 'text') { setLever('iconContrast', v); applyFull(); return; }
+    const n = iconOverrideCount();
+    if (!n) { pairIcons(); applyFull(); return; }
+    // Asked, not done: put the control back on the brand's value while the confirm is open.
+    for (const i of ctl.querySelectorAll<HTMLInputElement>('input[type="radio"]')) i.checked = i.value === String(cur);
+    if (ctl instanceof HTMLSelectElement) ctl.value = String(cur);
+    confirm?.remove();
+    confirm = inlineConfirm('icons-pair-confirm', {
+      title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
+      onConfirm: () => { pairIcons(); applyFull(); },
+      onCancel: () => { confirm?.remove(); confirm = null; },
+      back: () => document.querySelector<HTMLElement>(`[data-p3="${leverHook('iconContrast')}"] input:checked, select[data-p3="${leverHook('iconContrast')}"]`),
+    });
+    wrap.append(confirm);
+  });
+  wrap.append(ctl);
+  return wrap;
 };
 
 /** The Primary section's lead: the Action-palette choice (which palette drives primary actions). */
@@ -2278,7 +2308,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
 
   const ic = palSection('Icon colors', 'Should icons match your text color, or take a distinct (lighter) color? The example shows both.');
   const txt = roles['text.primary']?.hex ?? '#191920', lighter = roles['text.tertiary']?.hex ?? '#9a9aa6';
-  ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iEnumControl('iconContrast'),
+  ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iconContrastControl(),
     desc: 'Match text keeps icons at full text legibility; Distinct lets them sit lighter (WCAG non-text 3:1).',
     example: twoUp(['Match text', exIconLabel(txt, txt)], ['Distinct', exIconLabel(lighter, txt)]) }));
   host.append(ic);

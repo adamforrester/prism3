@@ -185,7 +185,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     b.ctl.append(grp);
     const sc = scrimRow();
     if (sc) b.ctl.append(sc);
-    return [{ el: b.el, said: `${b.said} page contrast floor inverse band ${SURFACE_TOKENS.base} ${SURFACE_TOKENS.inverseBase} scrim ${SCRIM_ROLE}`, key: 'surfaces', block: b }];
+    return [{ el: b.el, said: `${b.said} page contrast floor inverse fill ${SURFACE_TOKENS.base} ${SURFACE_TOKENS.inverseBase} scrim ${SCRIM_ROLE}`, key: 'surfaces', block: b }];
   };
 
   /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the
@@ -356,6 +356,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       const unpair = hook(h('button', 'p3-btn p3-btn-page'), 'icons-unpair');
       unpair.type = 'button';
       unpair.append(h('span', 'p3-btn-label', 'Unpair icons from text'));
+      // Disabled in a derived mode, as every control on this page is (owner decisions Q56, Q59): HC and wireframe
+      // follow Light and Dark, so the pairing is edited there.
+      unpair.disabled = isDerived(currentMode);
       unpair.onclick = () => edit('icons', () => unpairIcons());
       note.append(h('p', 'p3-icon-pair-note', 'Icons follow their text color. Unpair them to set icons on their own.'), unpair);
       lead.push(note);
@@ -371,6 +374,10 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const sw = switchButton('p3-gradients-switch', 'Gradients', 'gradients-switch', { on: 'On', off: 'Off: no gradients emitted' },
       (v) => edit('gradients', () => setGradientsOn(v)));
     sw.set(on);
+    // Read-only in a derived mode (owner decision Q59): every lever on the page is, brand-wide ones included, under
+    // the line the rows use. Gradients are brand-wide, so the line says where they are edited.
+    const d = derivedLine();
+    if (d) b.ctl.append(d);
     b.ctl.append(sw.el);
     if (on) {
       const list = h('div', 'p3-list');
@@ -495,6 +502,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       list.append(add);
       b.ctl.append(list);
     }
+    if (d) for (const c of b.ctl.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>('button, input, select')) c.disabled = true;
     return [{ el: b.el, said: `${b.said} stops`, key: 'gradients', block: b }];
   };
 

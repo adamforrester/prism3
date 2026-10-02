@@ -2753,6 +2753,152 @@ for (const host of ['web', 'figma']) {
   ok(errors.length === 0, `${host} Surfaces & fills levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// =============================================================================================
+// S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
+// fills read-only in a derived mode, the Unpair button included (Q56, Q59)
+// =============================================================================================
+// THE ORACLE for "every control" is the DOM itself: every button, select and input inside the page's sections,
+// enumerated as rendered, with a floor on the count so an empty read fails, less only the info buttons (they open
+// help and edit nothing). The words are literals typed here. The derived modes are the engine's three, by name.
+const VISIBLE_WORDS = () => {
+  const root = document.querySelector('[data-p3="frame"]');
+  const out = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.parentElement && !n.parentElement.closest('script, style')) out.push(n.textContent);
+  for (const e of root.querySelectorAll('[aria-label], [title], [placeholder]')) out.push(e.getAttribute('aria-label') ?? '', e.getAttribute('title') ?? '', e.getAttribute('placeholder') ?? '');
+  return out.join('\n');
+};
+/** Show `mode` in the preview: its radio, or the select when the radios do not all fit. */
+const showMode = async (page, mode) => {
+  const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
+  if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
+  else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode !== undefined
+    && [...document.querySelectorAll('[data-p3="mode-option"]')].some((b) => b.dataset.mode === m && b.getAttribute('aria-checked') === 'true')
+    || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 }).catch(() => {});
+};
+const FILLS_CONTROLS = () => [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec :is(button, select, input)')]
+  .filter((c) => c.getAttribute('data-p3') !== 'lever-info')
+  .map((c) => ({ hook: c.getAttribute('data-p3') ?? c.id ?? c.tagName, role: c.dataset.role ?? null, disabled: c.disabled }));
+/** At least this many controls on the page in a derived mode: the override rows' pick buttons, the surface
+ *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
+ *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
+const DERIVED_CONTROLS_FLOOR = 140;
+/** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
+const LIGHT_ENABLED_FLOOR = 110;
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  // Wireframe is off in the default theme: turn it on, on Brand, so all three derived modes are checked.
+  await goPlace(page, 'brand');
+  await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="mode-option"]'), ...document.querySelectorAll('[data-p3="mode-select"] option')]
+    .some((b) => (b.dataset?.mode ?? b.value) === 'wireframe'), null, { timeout: 5000 }).catch(() => {});
+  await goPlace(page, 'color-fills');
+  // Q57 and Q58: the words, as rendered across the page, the levers and the preview.
+  const words = await page.evaluate(VISIBLE_WORDS);
+  const muted = words.split('\n').filter((l) => /\bmuted\b/i.test(l));
+  const band = words.split('\n').filter((l) => /\bband\b/i.test(l));
+  ok(words.length > 1000 && muted.length === 0, `${host}: nothing visible on Surfaces & fills says "muted" (Q57: "subtle", the token's word)${muted.length ? ` — ${JSON.stringify(muted.slice(0, 4))}` : ''}`);
+  ok(words.length > 1000 && band.length === 0, `${host}: nothing visible on Surfaces & fills says "band" (Q58: "fill")${band.length ? ` — ${JSON.stringify(band.slice(0, 4))}` : ''}`);
+  const labels = await page.evaluate(() => Object.fromEntries([
+    ['icon-brand-subtle', '[data-p3="fill-row-icon-brand-subtle"]'], ['text-brand-subtle', '[data-p3="fill-row-text-brand-subtle"]'],
+    ['inverse-icon-danger-subtle', '[data-p3="fill-row-inverse-icon-danger-subtle"]'],
+  ].map(([r, sel]) => [r, document.querySelector(`[data-p3="levers-pane"] ${sel} .p3-fill-label`)?.textContent ?? null])));
+  ok(JSON.stringify(labels) === JSON.stringify({ 'icon-brand-subtle': 'Brand, subtle', 'text-brand-subtle': 'Brand ink, subtle', 'inverse-icon-danger-subtle': 'Danger, subtle' }),
+    `${host}: the subtle rows are labeled "Brand, subtle", "Brand ink, subtle", "Danger, subtle" (Q57) — read ${JSON.stringify(labels)}`);
+  const fillNames = await page.evaluate(() => ({
+    step: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]')?.getAttribute('aria-label') ?? null,
+    palette: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-palette"]')?.getAttribute('aria-label') ?? null,
+  }));
+  ok(/^Inverse fill step, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
+    `${host}: the inverse.background.primary controls' accessible names say "Inverse fill" (Q58) — read ${JSON.stringify(fillNames)}`);
+  // Light, the proof the read below sees controls that CAN be enabled: the Unpair button is, and most controls are.
+  const light = await page.evaluate(FILLS_CONTROLS);
+  const lightUnpair = light.find((c) => c.hook === 'icons-unpair');
+  ok(lightUnpair && !lightUnpair.disabled && light.length >= DERIVED_CONTROLS_FLOOR && light.filter((c) => !c.disabled).length >= LIGHT_ENABLED_FLOOR,
+    `${host}: in Light the page's controls edit, Unpair included (${light.filter((c) => !c.disabled).length} of ${light.length} enabled; Unpair ${JSON.stringify(lightUnpair)})`);
+  for (const mode of ['hc-light', 'hc-dark', 'wireframe']) {
+    await showMode(page, mode);
+    await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
+    const cs = await page.evaluate(FILLS_CONTROLS);
+    const live = cs.filter((c) => !c.disabled);
+    const unpair = cs.find((c) => c.hook === 'icons-unpair');
+    console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
+    ok(cs.length >= DERIVED_CONTROLS_FLOOR && live.length === 0,
+      `${host} ${mode}: every control on Surfaces & fills is disabled (Q59) — ${cs.length} controls (floor ${DERIVED_CONTROLS_FLOOR}), ${live.length} enabled${live.length ? `: ${live.slice(0, 6).map((c) => `${c.hook}${c.role ? ` ${c.role}` : ''}`).join(', ')}` : ''}`);
+    ok(unpair?.disabled === true, `${host} ${mode}: the Unpair button is drawn and disabled (Q56) — read ${JSON.stringify(unpair)}`);
+  }
+  ok(errors.length === 0, `${host} S4d owner copy and derived modes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// Q52: re-pairing icons with text clears every icon override, page and inverse, in every mode, asking first when
+// there are any. THE ORACLE is the brand the web host persists after every edit (`prism3:brandInput`), read
+// before and after; what Pair leaves is a literal typed here. The dialog's words are the APPROVED copy, literal.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const pickStep = async (rowSel, step) => {
+    const row = `[data-p3="levers-pane"] ${rowSel}`;
+    await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    await page.waitForFunction((r) => /^Override/.test(document.querySelector(`${r} [data-p3="fill-pick"]`)?.textContent?.trim() ?? ''), row, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+  };
+  const unpair = async () => {
+    await goPlace(page, 'color-fills');
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
+  };
+  const pairRadio = () => page.locator('[data-p3="lever-icon-contrast"] input[value="text"]');
+  const dialog = () => page.evaluate(() => {
+    const d = document.querySelectorAll('[data-p3="icons-pair-confirm"]');
+    const el = d[0];
+    return { n: d.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, body: [...(el?.querySelectorAll('.p3-confirm-line') ?? [])].map((x) => x.textContent),
+      go: el?.querySelector('[data-p3="icons-pair-confirm-go"]')?.textContent ?? null, cancel: el?.querySelector('[data-p3="icons-pair-confirm-cancel"]')?.textContent ?? null,
+      checked: document.querySelector('[data-p3="lever-icon-contrast"] input:checked')?.value ?? null };
+  });
+  // No icon overrides: no dialog, and iconContrast is "text" again.
+  await unpair();
+  ok(JSON.parse(await stored() ?? 'null')?.input?.iconContrast === '3:1', 'Q52 setup: Unpair persisted iconContrast "3:1"');
+  await goPlace(page, 'color-interactive');
+  await hooks.click(pairRadio());
+  await page.waitForFunction(() => document.querySelector('[data-p3="lever-icon-contrast"] input:checked')?.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  const d0 = await dialog();
+  const s0 = JSON.parse(await stored() ?? 'null')?.input;
+  hooks.absent(ok, { seen: d0.checked !== null, state: 'the icon contrast lever' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
+  ok(s0?.iconContrast === 'text' && s0?.overrides === undefined, `Q52: re-pairing with no icon overrides writes iconContrast "text" (${JSON.stringify(s0?.iconContrast)}, overrides ${JSON.stringify(s0?.overrides)})`);
+  // Two icon overrides, one page and one inverse, and a text override that must survive.
+  await unpair();
+  await pickStep('[data-p3="fill-row-icon-brand"]', '700');
+  await pickStep('[data-p3="fill-row-inverse-icon-primary"]', '200');
+  await pickStep('[data-p3="fill-row-text-brand"]', '300');
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.primary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
+  ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: ICON_OV }),
+    `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
+  await goPlace(page, 'color-interactive');
+  await hooks.click(pairRadio());
+  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  const d1 = await dialog();
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
+  ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, the lever still on "3:1" — read ${JSON.stringify(d1)}`);
+  ok(await stored() === before, 'Q52: the dialog open, nothing is written yet');
+  // Cancel: nothing changes, byte for byte.
+  await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
+  const d2 = await dialog();
+  ok(d2.n === 0 && d2.checked === '3:1' && await stored() === before, `Q52: Cancel closes the dialog and changes nothing (${d2.n} dialog(s), lever on ${JSON.stringify(d2.checked)}, brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
+  // Pair: iconContrast "text", every icon override gone, the text override kept.
+  await hooks.click(pairRadio());
+  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="lever-icon-contrast"] input:checked')?.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  const a = JSON.parse(await stored() ?? 'null')?.input;
+  ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
+    `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+  ok(errors.length === 0, `Q52 re-pair: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
 // the picker's focus, the preview repaints to the emission's own step, Return to Auto reverts, Escape closes it
 // to its button; and nothing of this moves the preview's home (V1).
