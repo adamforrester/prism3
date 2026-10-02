@@ -61,6 +61,16 @@ export const baselineAnchorStepOf = (roleKey: string, mode: string, name: string
 /** A global lever: written to the input as is, in every mode. */
 export const setLever = (key: string, v: unknown): void => { setPath(brandState, key, v); };
 
+// ── the two writes the legacy page had no control for (S5.2) ────────────────────────────────────────
+
+/** The link palette (#1496), or `undefined` for Auto: links follow the action palette (owner decision Q36).
+ *  Auto UNSETS the key; it never writes the action palette's name, which would pin links to today's action
+ *  palette and stop them following it. */
+export const setLinkPalette = (v: string | undefined): void => setLever('linkPalette', v);
+/** Strict interactive contrast: on writes `true`; off UNSETS the key (the engine's default is off), so a
+ *  brand switched on and off again is byte-identical to one never touched. */
+export const setStrictInteractiveContrast = (on: boolean): void => setLever('strictInteractiveContrast', on ? true : undefined);
+
 // ── fill anchors (legacy `renderInteractiveMatrix`'s `anchor()`) ────────────────────────────────────
 
 /** The accent entry a column name names (`name ?? palette`), by index. */

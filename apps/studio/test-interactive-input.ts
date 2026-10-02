@@ -181,5 +181,21 @@ ok(kind('inverse.interactive.neutral.fill.rest') === 'inverse-fill' && kind('int
   'the inverse fill takes the two-ramp source; the washes are read-outs');
 ok(same(I.interactiveRowsFor('accent', 'accent').map((r) => r.role), PRIMARY.map((r) => r.replace('.primary.', '.accent.'))), 'an accent column carries the same roles');
 
+console.log('\n7. The two writes the legacy page had no control for (S5.2): the link palette\'s Auto, the strict switch');
+reset();
+I.setLinkPalette('neutral');
+ok(store.brandState.linkPalette === 'neutral' && takes(), `setLinkPalette(neutral) writes linkPalette "neutral" (${store.brandState.linkPalette})`);
+I.setLinkPalette(undefined);
+// Auto UNSETS the key: the persisted brand is the one loaded, byte for byte. Writing the action palette's
+// name here would pin links to today's action palette (they would stop following it) and fail this by name.
+ok(pristine(), `setLinkPalette(Auto) unsets linkPalette, leaving the brand byte-identical to the one loaded (linkPalette ${JSON.stringify(store.brandState.linkPalette)})`);
+store.rebuild();
+ok(store.theme.linkPalette === store.theme.roleToPalette.action, `with Auto the engine's link palette follows the action palette (${store.theme.linkPalette} = ${store.theme.roleToPalette.action})`);
+reset();
+I.setStrictInteractiveContrast(true);
+ok(store.brandState.strictInteractiveContrast === true && takes(), 'setStrictInteractiveContrast(on) writes true');
+I.setStrictInteractiveContrast(false);
+ok(pristine(), `setStrictInteractiveContrast(off) unsets the key, leaving the brand byte-identical to the one loaded (${JSON.stringify(store.brandState.strictInteractiveContrast)})`);
+
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);
