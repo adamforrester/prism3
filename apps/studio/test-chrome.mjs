@@ -2871,8 +2871,9 @@ for (const host of ['web', 'figma']) {
   ok(errors.length === 0, `${host} S4d owner copy and derived modes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
-// Q52: re-pairing icons with text clears every icon override, page and inverse, in every mode, asking first when
-// there are any. THE ORACLE is the brand the web host persists after every edit (`prism3:brandInput`), read
+// Q52: re-pairing icons with text from Color › Interactive's icon contrast lever (#1974, its Icons section) clears
+// every icon override, page and inverse, in every mode, asking first when there are any, in the plural for two and
+// the singular for one (Q60); the lever stays on "3:1" until Pair icons. THE ORACLE is the brand the web host persists after every edit (`prism3:brandInput`), read
 // before and after; what Pair leaves is a literal typed here. The dialog's words are the APPROVED copy, literal.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -2889,20 +2890,27 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
     await page.waitForFunction(() => !document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
   };
-  const pairRadio = () => page.locator('[data-p3="lever-icon-contrast"] input[value="text"]');
+  const pairRadio = () => page.locator('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][data-value="text"]');
   const dialog = () => page.evaluate(() => {
     const d = document.querySelectorAll('[data-p3="icons-pair-confirm"]');
     const el = d[0];
     return { n: d.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, body: [...(el?.querySelectorAll('.p3-confirm-line') ?? [])].map((x) => x.textContent),
       go: el?.querySelector('[data-p3="icons-pair-confirm-go"]')?.textContent ?? null, cancel: el?.querySelector('[data-p3="icons-pair-confirm-cancel"]')?.textContent ?? null,
-      checked: document.querySelector('[data-p3="lever-icon-contrast"] input:checked')?.value ?? null };
+      checked: document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value ?? null };
   });
+  // Ask to re-pair on the lever, waiting for the dialog without requiring it, so a re-pair that asks nothing fails
+  // below by name rather than at a hook wait.
+  const askPair = async () => {
+    await goPlace(page, 'color-interactive');
+    await hooks.click(pairRadio());
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
+  };
   // No icon overrides: no dialog, and iconContrast is "text" again.
   await unpair();
   ok(JSON.parse(await stored() ?? 'null')?.input?.iconContrast === '3:1', 'Q52 setup: Unpair persisted iconContrast "3:1"');
   await goPlace(page, 'color-interactive');
   await hooks.click(pairRadio());
-  await page.waitForFunction(() => document.querySelector('[data-p3="lever-icon-contrast"] input:checked')?.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
   const d0 = await dialog();
   const s0 = JSON.parse(await stored() ?? 'null')?.input;
   hooks.absent(ok, { seen: d0.checked !== null, state: 'the icon contrast lever' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
@@ -2917,25 +2925,41 @@ for (const host of ['web', 'figma']) {
   const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.primary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
   ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: ICON_OV }),
     `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
-  await goPlace(page, 'color-interactive');
-  await hooks.click(pairRadio());
-  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  await askPair();
   const d1 = await dialog();
   const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
   ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, the lever still on "3:1" — read ${JSON.stringify(d1)}`);
   ok(await stored() === before, 'Q52: the dialog open, nothing is written yet');
-  // Cancel: nothing changes, byte for byte.
-  await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
-  const d2 = await dialog();
-  ok(d2.n === 0 && d2.checked === '3:1' && await stored() === before, `Q52: Cancel closes the dialog and changes nothing (${d2.n} dialog(s), lever on ${JSON.stringify(d2.checked)}, brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
-  // Pair: iconContrast "text", every icon override gone, the text override kept.
-  await hooks.click(pairRadio());
-  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
-  await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
-  await page.waitForFunction(() => document.querySelector('[data-p3="lever-icon-contrast"] input:checked')?.value === 'text', null, { timeout: 5000 }).catch(() => {});
-  const a = JSON.parse(await stored() ?? 'null')?.input;
-  ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
-    `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+  if (d1.n !== 1) ok(false, 'Q52: Cancel and Pair icons NOT REACHED: re-pairing with 2 icon overrides drew no dialog');
+  else {
+    // Cancel: nothing changes, byte for byte.
+    await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
+    const d2 = await dialog();
+    ok(d2.n === 0 && d2.checked === '3:1' && await stored() === before, `Q52: Cancel closes the dialog and changes nothing (${d2.n} dialog(s), lever on ${JSON.stringify(d2.checked)}, brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
+    // Pair: iconContrast "text", every icon override gone, the text override kept.
+    await hooks.click(pairRadio());
+    await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+    await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+    const a = JSON.parse(await stored() ?? 'null')?.input;
+    ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
+      `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+  }
+  // One icon override: the singular body (Q60), then Pair clears it, the text override still kept.
+  await unpair();
+  await pickStep('[data-p3="fill-row-icon-brand"]', '700');
+  const b1 = JSON.parse(await stored() ?? 'null')?.input;
+  ok(b1?.iconContrast === '3:1' && JSON.stringify(b1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' }, 'icon.brand': { palette: 'primary', step: '700' } } }),
+    `Q60 setup: one icon override and the text override persisted (${JSON.stringify(b1?.overrides)})`);
+  await askPair();
+  const d3 = await dialog();
+  const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
+  ok(JSON.stringify(d3) === JSON.stringify(WANT1), `Q60: re-pairing with 1 icon override asks first, the body singular, the lever still on "3:1" — read ${JSON.stringify(d3)}`);
+  if (d3.n === 1) await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  const a1 = JSON.parse(await stored() ?? 'null')?.input;
+  ok(a1?.iconContrast === 'text' && JSON.stringify(a1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
+    `Q60: Pair icons with 1 icon override writes iconContrast "text" and clears icon.brand, keeping text.brand (iconContrast ${JSON.stringify(a1?.iconContrast)}, overrides ${JSON.stringify(a1?.overrides)})`);
   ok(errors.length === 0, `Q52 re-pair: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }

@@ -253,7 +253,7 @@ export const iconOverrideCount = (): number =>
 /** Re-pair icons with text (owner decision Q52): `iconContrast` back to `'text'`, written as the lever's own control
  *  writes it, and every icon override cleared, page and inverse, in every mode, pruning an emptied mode and an
  *  emptied map as `setRoleOverride` does. Every other override stays. EVERY control that sets `iconContrast` to
- *  `'text'` calls this, not `setLever`: the legacy Interactive page's lever here, and Color › Interactive's (#1974).
+ *  `'text'` calls this, not `setLever`: Color › Interactive's icon contrast lever (#1974) and Surfaces & fills' Pair button (Q61).
  *  The caller asks first when `iconOverrideCount()` is above zero, in `PAIR_ICONS_CONFIRM`'s words. */
 export const pairIcons = (): void => {
   setPath(brandState, 'iconContrast', 'text');
