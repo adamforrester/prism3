@@ -98,6 +98,9 @@ export const DOMAINS = [
         // The intro and the Background fills and Fields copy are the owner's (Q26, Q27, Q29). Background fills'
         // description and "Text color" are the preview sections' own (Q23: a lever heading and description match
         // the preview section); Background fills took the preview's full sentence once the scrim had a row.
+        // Foreground and Text color take the preview's heading and description verbatim too (Q23, the owner's
+        // approval of 2026-10-02): `preview/sections/foreground.ts` and `text-color.ts`. `test:chrome` reads
+        // each against the rendered preview section, so an edit to one side alone fails.
         id: 'fills', label: 'Surfaces & fills', home: 'surfaces', intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
         // `field` and `inverse.field` moved here from Interactive with the Fields section (owner decision Q29).
         roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse', 'field', 'inverse.field'],
@@ -110,7 +113,7 @@ export const DOMAINS = [
           // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
           // permanent, primary text editor (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's
           // R3). The Roles matrix that was to sit beside them is not built (Q31).
-          { title: 'Text color', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
+          { title: 'Text color', desc: 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
           // S4d (Q49, Q50): the borders and the icons, page and inverse, as rows, headed and described as the preview's
           // Border and Icon sections are (Q23). The Icon section's rows are locked while icons match text.
           { title: 'Border', desc: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.', rows: [{ ctl: 'border', schemaOnly: ['overrides'] }] },

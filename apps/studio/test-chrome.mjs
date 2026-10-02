@@ -2689,7 +2689,15 @@ for (const host of ['web', 'figma']) {
     intro: document.querySelector('[data-p3="fills-levers"] .p3-intro')?.textContent ?? null,
     titles: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec-title')].map((n) => n.textContent),
     descs: Object.fromEntries([...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].map((n) => [n.querySelector('.p3-lsec-title')?.textContent, n.querySelector('.p3-lsec-desc')?.textContent ?? null])),
+    // The preview's own section descriptions, by title, as rendered (Q23: the levers side copies them).
+    previewDescs: Object.fromEntries([...document.querySelectorAll('[data-p3="section-head"]')].map((n) => [n.querySelector('[data-p3="section-title"]')?.textContent, n.querySelector('[data-p3="section-description"]')?.textContent ?? null])),
     surfacesName: document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"] .p3-lever-name')?.textContent ?? null,
+    // The info toggletip the block's own button controls (`aria-controls`), so it is that button's text.
+    surfacesTip: (() => {
+      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"] [data-p3="lever-info"]');
+      const id = info?.getAttribute('aria-controls');
+      return id ? document.getElementById(id)?.textContent ?? null : null;
+    })(),
     modeHeads: document.querySelectorAll('[data-p3="fills-levers"] .p3-modegroup-title').length,
     fgLabels: [...document.querySelectorAll('[data-p3="fills-levers"] [data-p3="foreground-rows"] .p3-fillrow')].map((n) => [n.dataset.role, n.querySelector('.p3-fill-label')?.textContent]),
     subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
@@ -2700,11 +2708,18 @@ for (const host of ['web', 'figma']) {
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
     })),
+    // The Inverse fill control's own name, under its token (the owner's rename of "band" to "fill", 2026-10-02).
+    inverseName: (() => {
+      const sel = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-band-palette"]');
+      const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
+      return lab?.querySelector('.p3-field-label')?.textContent ?? null;
+    })(),
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
   const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
+  ok(copy.inverseName === 'Inverse fill', `${host}: the inverse.background.primary control is named "Inverse fill" (the owner's rename, 2026-10-02) — read ${JSON.stringify(copy.inverseName)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
     titles: ['Background fills', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
@@ -2712,6 +2727,7 @@ for (const host of ['web', 'figma']) {
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
     Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
+    'Text color': 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.',
     Icon: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.',
     Fields: 'Form field fills, borders and text, in every state.',
   };
@@ -2723,8 +2739,15 @@ for (const host of ['web', 'figma']) {
   ok(JSON.stringify(copy.subs) === JSON.stringify(['Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']), `${host}: Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Foreground', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  for (const t of ['Background fills', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  // Q23: the levers' Foreground and Text color descriptions are the preview sections' own, read off both sides
+  // as rendered, so an edit to one side alone fails here as well as against the literal above.
+  for (const t of ['Foreground', 'Text color']) ok(copy.previewDescs[t] === FILLS_COPY[t], `${host}: the preview's ${t} description is the one the levers copy (Q23) — read ${JSON.stringify(copy.previewDescs[t])}`);
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
+  // The Background fills info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this page
+  // and not the engine manifest's description, which stays as it is for MCP and the emission. Literal.
+  const SURFACES_TIP = 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.';
+  ok(copy.surfacesTip === SURFACES_TIP, `${host}: the Background fills info text is the owner's — read ${JSON.stringify(copy.surfacesTip)}`);
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
   ok(errors.length === 0, `${host} Surfaces & fills levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);

@@ -79,8 +79,12 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   // derived or a custom mode) shows the ones it is drawn from, disabled, with the line the rows use.
   const surfaces = (): Item[] => {
     // The lever's name is the section's (owner decision Q26), not the manifest's "Page surfaces": the block
-    // heads the section, as Gradients' does. Its info text is still the manifest's description.
-    const b = leverBlock('surfaces', { label: 'Background fills' });
+    // heads the section, as Gradients' does. Its info text is the owner's (approved 2026-10-02), for this page
+    // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
+    const b = leverBlock('surfaces', {
+      label: 'Background fills',
+      desc: 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.',
+    });
     const opts = neutralStepOptions();
     const { source: m, editable } = surfaceSourceOf(currentMode);
     const sel = (id: string, label: string, role: string, options: { v: string; l: string }[], cur: string, on: (v: string) => void, token?: string): HTMLElement => {
@@ -156,9 +160,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // step picker on the band's palette (Q45), writing what the step select wrote, Auto included.
     const band = bandOf(m);
     const bf = h('div', 'p3-field p3-field-wide');
-    const bl = tokenField('p3-surf-band', SURFACE_TOKENS.inverseBase, 'Inverse band');
+    const bl = tokenField('p3-surf-band', SURFACE_TOKENS.inverseBase, 'Inverse fill');
     const pair = h('div', 'p3-fieldpair');
-    const ps = selectField('p3-surf-band', `Inverse band palette, ${modeLabel(currentMode)}`, 'surface-band-palette', (v) => edit('surfaces', () => setBandPalette(m, v)));
+    const ps = selectField('p3-surf-band', `Inverse fill palette, ${modeLabel(currentMode)}`, 'surface-band-palette', (v) => edit('surfaces', () => setBandPalette(m, v)));
     ps.set(bandPalettes().map((p) => ({ v: p, l: p === nPal ? 'Neutral' : p })), band.palette);
     ps.select.disabled = !editable;
     const curSteps = stepsOf(band.palette);
@@ -166,7 +170,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // The stored step is a number (`50`); the ramp's key is padded (`050`).
     const bandKey = band.step == null ? null : curSteps.find((s) => Number(s) === Number(band.step)) ?? band.step;
     const bandNow = bandKey == null ? `Auto · ${band.palette} ${bandAuto}` : `${band.palette} ${bandKey}`;
-    pair.append(ps.el, pickButton('p3-surf-bandstep', 'surface-band-step-pick', 'surface:band', 'Inverse band step', bandNow));
+    pair.append(ps.el, pickButton('p3-surf-bandstep', 'surface-band-step-pick', 'surface:band', 'Inverse fill step', bandNow));
     bf.append(bl, pair);
     grid.append(bf);
     openPicker('surface:band', 'p3-surf-bandstep', {

@@ -43,4 +43,12 @@
 ### Open with the owner
 
 - The color of the area the specimens sit in (today the brand's `background.primary`), left as on `main`.
-- The wording of the new labels: the field rows' seven new names, the surface controls' token-plus-name layout, and the scrim read-out (listed in the PR).
+
+**Copy, APPROVED by the owner (2026-10-02).** Each item below was listed in the PR and is now approved as shipped:
+- the field rows' labels — **APPROVED (2026-10-02)**;
+- the surface controls' token-plus-name layout — **APPROVED (2026-10-02)**;
+- the scrim row and its read-out — **APPROVED (2026-10-02)**;
+- the lever name "Background fills" — **APPROVED (2026-10-02)**;
+- the Background fills info text, in the owner's words: "The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page." — **APPROVED (2026-10-02)**. It is the Studio's text for this page only: `color-fills.ts` hands it to `leverBlock` as `desc`, which now wins over the manifest's description (`lever-kit.ts`). The engine's `surfaces` description in `levers.ts` ("Non-default page surface per mode…") is unchanged, because MCP, the manifest and the emitted artifacts read it. `test:chrome` holds the rendered toggletip to the literal; mutation: one word changed in `color-fills.ts` → `✗ web: the Background fills info text is the owner's — read …`.
+- Q23 applied to Foreground and Text color — **APPROVED (2026-10-02)**: the levers' "Foreground fills" heading is the preview's "Foreground", and both sections' descriptions ("Auto follows the contrast-gated/placed default…") are the preview sections' own sentences, copied verbatim from `preview/sections/foreground.ts` and `text-color.ts` into `pages.ts`. `test:chrome` holds each to its literal and to the rendered preview section, so an edit to one side alone fails.
+- "band" is "fill" in visible copy — **APPROVED (2026-10-02)**: the `inverse.background.primary` control is "Inverse fill", and its two select names are "Inverse fill palette" and "Inverse fill step". Identifiers (`surface-band-palette`, `setBandPalette`) and comments keep "band". `test:chrome` holds the label to the literal "Inverse fill".
