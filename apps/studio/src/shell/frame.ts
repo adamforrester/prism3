@@ -15,8 +15,8 @@
  *
  * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
  * full-width legacy frame under the tab row, pinned light (D1, D2); Depth & motion carries a local switch
- * between its two legacy pages (D8). A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3)
- * shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * between its two legacy pages (D8). A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
+ * from S4a) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
  * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
@@ -50,6 +50,8 @@ import { mountPalettesLevers } from '../domains/color-palettes';
 import { mountPalettesPreview } from '../preview/palettes';
 import { mountBrandLevers } from '../domains/brand';
 import { mountBrandPreview, type PageLends } from '../preview/brand';
+import { mountFillsLevers } from '../domains/color-fills';
+import { mountSurfacesPreview } from '../preview/surfaces';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
  *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
@@ -62,6 +64,7 @@ const NEW_PAGES: Record<NewPageKey, {
 }> = {
   brand: { levers: mountBrandLevers, preview: mountBrandPreview },
   palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
+  fills: { levers: mountFillsLevers, preview: mountSurfacesPreview },
 };
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */

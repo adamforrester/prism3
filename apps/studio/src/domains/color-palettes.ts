@@ -32,9 +32,8 @@ const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly Page
 const pad = (n: number): string => String(n).padStart(3, '0');
 const oklchMeta = (o: { l: number; c: number; h: number }): string => `OKLCH ${o.l.toFixed(3)} ${o.c.toFixed(3)} ${Math.round(o.h * 10) / 10}°`;
 
-/** The page the Continue button opens: the next Color sub-page, by the store's page key (its legacy page
- *  until S4 moves it). */
-const NEXT = { label: 'Surfaces & fills', page: 'surfaces' } as const;
+/** The page the Continue button opens: the next Color sub-page, by the store's page key (S4a moved it). */
+const NEXT = { label: 'Surfaces & fills', page: 'fills' } as const;
 
 type Drawn = { block: LeverBlock; keys: readonly string[]; sync: () => void };
 

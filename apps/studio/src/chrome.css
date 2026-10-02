@@ -628,7 +628,8 @@
 .p3-ancmark { display: inline-block; flex: none; width: var(--p3-dot); height: var(--p3-dot); margin-right: var(--p3-space-075); background: var(--p3-text); transform: rotate(45deg); }
 .p3-sqk-step .p3-ancmark { margin-right: var(--p3-space-050); }
 .p3-sqrow { display: grid; gap: var(--p3-space-100); }
-/* A strip: a specimen root, painted with the brand's page color (see preview/palettes.ts). */
+/* A strip: a specimen root. Its inline paint is the brand's page color, seen only where the squares leave it
+   uncovered (a short last strip, the translucent opacity squares); why it stays: `specimenRoot` in preview/palettes.ts. */
 .p3-sqs {
   display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); border-radius: var(--p3-radius-lg); overflow: hidden;
   outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
@@ -651,6 +652,9 @@
   display: grid; gap: var(--p3-space-150); padding: var(--p3-space-200); border-radius: var(--p3-radius-xl); background: var(--p3-fill-1);
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
 }
+/* The picker is an inset (fill-1): its controls take the inset's edge, which clears 3:1 there (B1, PAIRS). */
+.p3-picker :is(.p3-btn, .p3-select) { border-color: var(--p3-field-edge); }
+.p3-picker :is(.p3-btn, .p3-select):hover { border-color: var(--p3-field-edge-hover); }
 .p3-picker-head, .p3-picker-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--p3-space-100); }
 .p3-picker-mode { color: var(--p3-text); }
 .p3-picker-hint { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
@@ -669,6 +673,38 @@
 .p3-step-ratio { color: var(--p3-text-2); }
 .p3-step[data-below="true"] .p3-step-ratio { color: var(--p3-bad-text); }
 .p3-step[data-below="true"] .p3-step-ratio .p3-ico { color: var(--p3-bad-icon); }
+
+/* ── Color › Surfaces & fills (S4a): labeled fields, the fill rows, the gradient editor ──────────── */
+.p3-modegroup { display: grid; gap: var(--p3-space-150); }
+.p3-modegroup + .p3-modegroup { padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-modegroup-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--p3-step-w) * 2), 1fr)); gap: var(--p3-space-150) var(--p3-space-200); }
+.p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
+.p3-field-wide { grid-column: 1 / -1; }
+.p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+.p3-fieldpair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p3-space-100); }
+.p3-fillrows { display: grid; gap: var(--p3-space-100); }
+.p3-fillrows[hidden], .p3-fillrow-wrap[hidden] { display: none; }
+.p3-fillrow-wrap { display: grid; gap: var(--p3-space-100); }
+.p3-fillrow-wrap[data-refused="true"] { outline: var(--p3-bw-thick) solid var(--p3-bad-icon); outline-offset: var(--p3-space-075); border-radius: var(--p3-radius-lg); }
+.p3-fillrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3-space-150); align-items: center; }
+.p3-fill-sw {
+  display: block; flex: none; width: var(--p3-hit-min); height: var(--p3-hit-min); border-radius: var(--p3-radius-md);
+  outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
+}
+.p3-fill-name { display: grid; gap: var(--p3-space-025); min-width: 0; }
+.p3-fill-label { font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+.p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); }
+.p3-pick-ratio { display: inline-flex; align-items: center; gap: var(--p3-space-025); color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-pick-ratio[data-below="true"] { color: var(--p3-bad-text); }
+.p3-pick-ratio[data-below="true"] .p3-ico { color: var(--p3-bad-icon); }
+.p3-btn.p3-pick[aria-expanded="true"] { border-color: var(--p3-ctl-edge); }
+.p3-gedit { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-gbar { height: var(--p3-gbar-h); border-radius: var(--p3-radius-lg); outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
+.p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
+.p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
+.p3-num-input { min-width: 0; }
 
 /* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }

@@ -16,7 +16,8 @@
  *
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
- * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand);
+ * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
+ * S4a: Color › Surfaces & fills);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -96,10 +97,15 @@ export const DOMAINS = [
         sections: [
           { title: 'Surfaces', desc: 'Set for light; dark and the derived modes follow unless set per mode.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
+          // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
+          // permanent, primary text editor; the Roles matrix (S4b) is a secondary view and never the only
+          // editor of a token (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's R3).
+          { title: 'Text', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
         ],
-        status: 'legacy',
-        legacy: ['surfaces'],
+        // S4a: moved. Its levers are `domains/color-fills.ts`, its preview `preview/surfaces.ts`.
+        status: 'new',
+        legacy: [],
       },
       {
         id: 'interactive', label: 'Interactive', home: 'interactive', intro: 'How actions, links and disabled states draw from the palettes, and the floors they meet.',

@@ -19,8 +19,8 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
+import { brandTheme, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
+import type { BrandInput, Theme, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
@@ -30,7 +30,6 @@ import { resolveAllModes, outlineFillFamily, outlineFillRole } from '@prism3/eng
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { isInverseRole } from '@prism3/engine/inverse-roles';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
@@ -40,7 +39,6 @@ import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
-import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import { describeControl, paletteRefOptions, leverHook, type ControlOption } from './levers/controls';
 import { mountFrame, type Frame } from './shell/frame';
@@ -48,6 +46,20 @@ import { isNewPage, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import { glyph } from './shell/dom';
+// The Style guide's shared color sections and the helpers they draw with (UI redesign S4a, owner decision Q5):
+// Color › Surfaces & fills draws the same five sections from the same modules.
+import {
+  SG_SURFACES, colorPath, ground as sharedGround, oppositeOf, palSection, sgContext, specimen, subHead,
+  tokenPillSpan, withInverseBadge, type SgRole,
+} from './preview/sections/kit';
+import { COLOR_SECTIONS, disabledSection, interactiveSection } from './preview/sections/index';
+import { setRoleOverride } from './state/fills-input';
+// The Interactive page's writes and its "Auto" baselines (UI redesign S5.1): DOM-free, so Color › Interactive
+// (S5.2) can make the same edits without importing this file. This page calls them, then repaints.
+import {
+  addAccent, anchorOf, baselineAnchorStepOf, baselineStepOf as baselineStepIn, removeAccent, setAnchor,
+  setInverseFillSource, setLever, setLinkFamilyOverride as setLinkFamilyIn, setLinkRung as setLinkRungIn, stepKeyOf,
+} from './state/interactive-input';
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin,
@@ -98,7 +110,6 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'surfaces', label: 'Surfaces & fills', sub: 'Backgrounds, text, gradients' },
   { key: 'interactive', label: 'Interactive', sub: 'Action colors, states, a11y' },
   { key: 'typography', label: 'Typography', sub: 'Families, weights → type scale' },
   { key: 'elevation', label: 'Elevation', sub: 'Shadows' },
@@ -159,7 +170,7 @@ const pageOfLever = (l: Lever): PageKey => {
   if (l.group === 'elevation') return 'elevation';
   if (l.group === 'layout') return 'layout';
   if (l.group === 'form') return 'sizeRadius';   // radiusScale, density, + advanced grid/space dims
-  if (l.key === 'gradients' || l.key === 'surfaces') return 'surfaces';
+  if (l.key === 'gradients' || l.key === 'surfaces') return 'fills';   // Color › Surfaces & fills, moved (S4a)
   return 'interactive';   // remaining colour/advanced: action palette, interactive treatment, disabled, icon, inverse, neutralEmphasis, interactivePalettes
 };
 const leversFor = (key: PageKey): Lever[] => leverManifest.filter((l) => !l.advanced && !PRIMITIVE_KEYS.has(l.key) && pageOfLever(l) === key);
@@ -168,19 +179,6 @@ const leverByKey = (k: string): Lever | undefined => leverManifest.find((l) => l
 // ---- engine read-model -----------------------------------------------------
 // `theme`, `rp`, `lastGoodInput` and `lastError`, with `rebuild()` and its last-good rule, live in
 // `state/store.ts`; what follows is how this file repaints from them.
-
-// #555 — a legible ink for a background whose lightness isn't known statically (a resolved fill that
-// can land on either side of the light/dark line depending on mode, e.g. a neutral surface tier or an
-// "inverse of the current mode" band). Picks whichever of a fixed dark/light ink pair actually clears
-// against the given background, rather than assuming the background's lightness — the assumption that
-// produced #555's specimens (a hardcoded dark ink on a surface that turned out dark in Dark mode, and a
-// hardcoded light ink on an "inverse" band that turned out light because dark's inverse is light).
-// Falls back to the dark ink for a background this can't parse as hex (e.g. 'transparent').
-const legibleInkOn = (bgHex: string, dark = '#191920', light = '#f7f7f7'): string => {
-  if (!bgHex.startsWith('#')) return dark;
-  const bg = hexToRgb(bgHex);
-  return contrast(hexToRgb(dark), bg) >= contrast(hexToRgb(light), bg) ? dark : light;
-};
 
 // paint() repaints only the current stage's volatile region (ramps or preview) so
 // input focus is never lost; applyFull() re-renders the workspace REGION BY REGION (structural
@@ -466,7 +464,7 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
  *  #1148 collapsed the two tiers into one `color`, which gives every role the short name and leaves no
  *  membership question to ask. The lookup is gone rather than kept returning true for everything: a
  *  predicate that cannot say no is not a check (`docs/34` shape 9). */
-const colorPath = (role: string): string => `color.${role}`;
+// `colorPath` lives in `preview/sections/kit.ts` (UI redesign S4a), shared with the Style guide's sections.
 
 /** A token-path chip (doc 24 C4) — the small mono pill that shows a DTCG/role path.
  *
@@ -495,14 +493,10 @@ const colorPath = (role: string): string => `color.${role}`;
  *  This mints the pill ALONE. `tokenPill` is what callers want: it pairs the pill with the `inverse`
  *  badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
  *  pill's children — `tokenPillWrapping` and `sgPill` — must hold the pill itself, not a wrapper. */
-const tokenPillSpan = (path: string): HTMLElement => {
-  const p = hook(el('span', 'tpill mono', path), 'token-pill');
-  p.title = path;
-  return p;
-};
+// `tokenPillSpan` lives in `preview/sections/kit.ts` (UI redesign S4a).
 /** True when a path's discriminator is the `inverse` group (#1141) — matched as a whole SEGMENT, so a
  *  role that merely contains the letters (`brand-inverse-subtle`, were one ever minted) is not one. */
-const isInversePath = (path: string): boolean => path.split('.').includes('inverse');
+// `isInversePath` lives in `preview/sections/kit.ts` (UI redesign S4a).
 /** Pair a pill with an `inverse` badge when its path carries that group, and return it unchanged when
  *  it does not (#1147).
  *
@@ -519,14 +513,7 @@ const isInversePath = (path: string): boolean => path.split('.').includes('inver
  *  `tokenPill` documents at length: the pill is ONE text node, two earlier attempts to split it
  *  regressed copy/paste, and a path copied out of a pill still has to be the path. `.tpill`'s own text
  *  node is untouched here. */
-const withInverseBadge = (path: string, pill: HTMLElement): HTMLElement => {
-  if (!isInversePath(path)) return pill;
-  const wrap = hook(el('span', 'tpill-wrap'), 'token-pill-wrap');
-  const badge = hook(el('span', 'tpill-inv', 'inverse'), 'token-pill-inverse');
-  badge.title = 'The inverse band. Shown beside the path because a narrow pill hides its leading part.';
-  wrap.append(badge, pill);
-  return wrap;
-};
+// `withInverseBadge` lives in `preview/sections/kit.ts` (UI redesign S4a).
 const tokenPill = (path: string): HTMLElement => withInverseBadge(path, tokenPillSpan(path));
 /** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
  *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.expressive`).
@@ -680,8 +667,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
  *  audit's output, and a badge nobody measured is the thing this map exists to avoid. */
 type ModeScope = 'per-mode' | 'shared';
 const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
-  // Surfaces & fills
-  'Backgrounds': 'per-mode', 'Foreground fills': 'per-mode', 'Text': 'per-mode',
+  // (Surfaces & fills left the mode bar's pages in UI redesign S4a: it draws the two panes, where the rows say
+  // which mode they edit, and its Backgrounds, Foreground fills and Text sections went with the legacy page.)
   // Interactive — the three action palettes edit; the global behaviors only re-resolve
   'Primary actions': 'per-mode', 'Neutral actions': 'per-mode', 'Destructive actions': 'per-mode',
   'Outline button hover': 'shared', 'Icon colors': 'shared', 'Focus ring': 'shared',
@@ -726,16 +713,9 @@ const viewOnly = <T extends HTMLElement>(c: T): T => { c.setAttribute(VIEW_ONLY,
  *  specimen and `sg-rn` beside it is chrome. The render site knows, so the render site says — the same
  *  reasoning, and the same shape, as `viewOnly` above. Every site that paints ink from a brand token calls
  *  this; `test-smoke.mjs` fails on inline ink it finds unmarked, so a new specimen cannot land as chrome. */
-const SPECIMEN = 'data-specimen';
-const specimen = <T extends HTMLElement>(e: T): T => { e.setAttribute(SPECIMEN, ''); return e; };
-/** A specimen that previews one ENGINE ROLE PAIR — an ink role on a fill role, both mode-relative keys as
- *  `paint()` takes them (#1652). The smoke suite reads the pair, resolves both roles from the committed
- *  emission rather than from this file's `paint()`, and holds the node to the contract THAT PAIR carries:
- *  the ink's own `min` where the fill is the ink's `against`, the #1281 exemption where it is a pressed /
- *  selected state of the ink's own fill. So the claim is written beside the paint call, not derived from
- *  it: a call site that paints one pair and claims another fails there by name. */
-const SPECIMEN_PAIR = 'data-specimen-pair';
-const specimenPair = <T extends HTMLElement>(e: T, ink: string, fill: string): T => { specimen(e).setAttribute(SPECIMEN_PAIR, `${ink} on ${fill}`); return e; };
+// `SPECIMEN` and `specimen()` live in `preview/sections/kit.ts` (UI redesign S4a), so the shared Style guide
+// sections mark their specimens with the same attribute this file does. `specimenPair` (#1652) and
+// `legibleInkOn` (#555) moved there in UI redesign S5.1 with the Interactive section, their only reader.
 /** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
  *  `button` is excluded because the buttons in these sections play a motion preview or expand a
  *  disclosure; `[data-view-only]` because a playback speed is not a token. */
@@ -798,17 +778,7 @@ const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => 
   return b;
 };
 
-const palSection = (title: string, sub: string): HTMLElement => {
-  const sec = el('div', 'psec');
-  // `section-head` rather than a hook on `sec`: several sections carry their own role (`section-backgrounds`,
-  // `section-duration-ramp`), and a hook is one value. `mode-audit.mjs` finds every section as its head's parent.
-  const head = hook(el('div', 'psec-head'), 'section-head');
-  const txt = el('div', 'psec-txt');
-  txt.append(hook(el('h3', 'psec-t', title), 'section-title'), hook(el('p', 'psec-d', sub), 'section-description'));
-  head.append(txt);
-  sec.append(head);
-  return sec;
-};
+// `palSection` lives in `preview/sections/kit.ts` (UI redesign S4a), shared with the Style guide's sections.
 
 // A labeled control column (Source / Hue / Chroma / Anchor). `right` aligns it to the row's end.
 const pfield = (label: string, control: HTMLElement, right = false): HTMLElement => {
@@ -1318,176 +1288,32 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void = paintVolat
  *  context, on light and inverse surfaces, driven by the global mode picker. The semantic token path is
  *  the label (a `.tpill`); the resolved primitive + hex + contrast reveal on hover. Reuses the doc-26
  *  shell (`palSection`/`subHead`/`tokenPill`); only the specimen layout is new (`sg-*`). */
-const SG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9l7 .5-5.3 4.6L18.2 21 12 17l-6.2 4 1.5-6.9L2 9.5 9 9z"/></svg>';
 const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void => {
-  type SGRole = { path: string; hex: string; ratio: number; min: number; alpha?: number };
-  const rolesByMode = new Map<string, Record<string, SGRole | undefined>>(
-    resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, SGRole | undefined>]));
+  // The five color sections (Background, Foreground, Text color, Border, Icon), their cards, the ground and
+  // the surface list are SHARED with Color › Surfaces & fills (UI redesign S4a, owner decision Q5): they live
+  // in `preview/sections/`, and this page draws them from there. What stays here is the Style guide's own:
+  // the ground picker. The Disabled and Interactive sections are shared too since S5.1.
+  const rolesByMode = new Map<string, Record<string, SgRole | undefined>>(
+    resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, SgRole | undefined>]));
   const cur: string = currentMode;
-  const OPP: Record<string, string> = { light: 'dark', dark: 'light', 'hc-light': 'hc-dark', 'hc-dark': 'hc-light' };
-  const opp: string = OPP[cur] && rolesByMode.has(OPP[cur]) ? OPP[cur] : (rp.modes.find((m) => m !== cur) ?? cur);
-  const ns = theme.namespace + '.';
-  const role = (m: string, k: string): SGRole | undefined => rolesByMode.get(m)?.[k];
-  const rgba = (hx: string, a: number): string => { const n = parseInt(hx.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
-  const paint = (m: string, k: string): string => { const r = role(m, k); return r ? (r.alpha != null ? rgba(r.hex, r.alpha) : r.hex) : 'transparent'; };
-  const stepOf = (r: SGRole): string => (r.path.startsWith(ns) ? r.path.slice(ns.length) : r.path);
-  const fails = (m: string, k: string): boolean => { const r = role(m, k); return !!(r && r.min > 0 && r.ratio < r.min); };
-  const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${r.ratio.toFixed(2)}:1 (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
-  // token pill with hover-reveal of the resolved primitive (semantic lead, primitive on hover). The
-  // visible label is the real, resolvable path — a bare role key is prefixed by `colorPath`, which is
-  // also what picks the right TIER now that #1013 split them; a short contextual label (e.g.
-  // `fill.rest`) is shown verbatim.
-  const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
-    const path = label ?? colorPath(k);
-    const p = tokenPillSpan(path);
-    // Gallery pills wrap (see .sg-pills), and a bare wrap breaks mid-segment — "color.foreground.bran /
-    // d". `<wbr>` after each dot moves the break onto the path boundaries. It is the right element
-    // rather than a zero-width space because it contributes nothing to textContent, so a path someone
-    // copies out of the pill is still the path.
-    p.textContent = '';
-    path.split('.').forEach((seg, i, all) => { p.append(i < all.length - 1 ? `${seg}.` : seg); if (i < all.length - 1) p.append(el('wbr')); });
-    // Two tooltips carrying two different things, deliberately: the custom `data-sgtip` bubble reveals
-    // what the role RESOLVES to (primitive step · hex · ratio), while `title` — set by tokenPill and
-    // preserved here — is the full PATH, which matters now that a long path can be elided (#289).
-    // Previously `title` was overwritten with the resolution too, making it redundant.
-    p.setAttribute('data-sgtip', tipOf(m, k));
-    // a shared token pill flagged by the style guide's own contrast verdict
-    if (fails(m, k)) { addClass(p, mix('sg-failpill')); p.append(el('b', 'sg-fx', '!')); }
-    // The badge goes on LAST, so `.sg-failpill`'s marker and `data-sgtip`'s bubble both stay on the
-    // pill itself. Gallery pills wrap rather than elide (`.sg-pills .tpill`), so the badge is not
-    // load-bearing here — it is applied anyway, because one rule for every pill is what keeps it true
-    // the day this container is narrowed (#1147).
-    return withInverseBadge(path, p);
-  };
-  const pills = (...nodes: HTMLElement[]): HTMLElement => { const w = el('div', 'sg-pills'); nodes.forEach((n) => w.append(n)); return w; };
-  const grid = (cols: number, cards: HTMLElement[]): HTMLElement => { const g = el('div', `sg-grid sg-g${cols}`); cards.forEach((c) => g.append(c)); return g; };
+  const opp = oppositeOf(cur, rp.modes, (m) => rolesByMode.has(m));
+  const c = sgContext({
+    rolesByMode, cur, opp, namespace: theme.namespace, modeLabel: (m) => MODE_LABEL[m] ?? m, badges: false,
+    paletteHex: (p, s) => theme.palettes.find((x) => x.palette === p)?.steps.find((x) => x.key === s)?.hex ?? null,
+  });
+  const { paint } = c;
+  // With `badges: false` a chip is the pill alone, exactly the node this page drew before the lift.
+  const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => c.chip(k, label, m)[0];
 
-  // color plane + optional in-card label(s) + token pill(s) underneath
-  const surfaceCard = (k: string, label: string, inkRole: string, sub?: string, extra: HTMLElement[] = []): HTMLElement => {
-    const cw = el('div', 'sg-cw');
-    const card = el('div', 'sg-card'); card.style.background = paint(cur, k);
-    if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
-    const lab = el('div', 'sg-lab', label); specimen(lab).style.color = paint(cur, inkRole); card.append(lab);
-    if (sub) { const sb = el('div', 'sg-sub', sub); specimen(sb).style.color = paint(cur, inkRole); card.append(sb); }
-    cw.append(card, pills(sgPill(k), ...extra));
-    return cw;
-  };
-  // A scrim only means anything OVER something, so the card composites it on the page surface rather
-  // than painting the alpha alone (which would read as a flat gray card and say nothing about dimming).
-  // It is drawn doing its actual job — dimming the page BEHIND a panel — rather than dimming a text
-  // label. At 40% over a light surface the scrim is a mid-gray and white text on it clears about
-  // 2.3:1: a pairing the scrim genuinely does not support, so the first cut read as a broken specimen
-  // while being perfectly accurate. Panel-over-scrim is what the token is for, and it shows the dim as
-  // a step against the undimmed panel at the same time.
-  const scrimCard = (k: string): HTMLElement => {
-    const cw = el('div', 'sg-cw');
-    const card = el('div', 'sg-card sg-scrimcard');
-    card.style.background = paint(cur, 'background.primary');
-    const dim = el('div', 'sg-scrimdim'); dim.style.background = paint(cur, k);
-    const panel = el('div', 'sg-scrimpanel'); panel.style.background = paint(cur, 'foreground.primary');
-    const lab = el('div', 'sg-lab', 'Modal'); specimen(lab).style.color = paint(cur, 'text.primary');
-    panel.append(lab); dim.append(panel); card.append(dim);
-    cw.append(card, pills(sgPill(k)));
-    return cw;
-  };
-  const borderCard = (k: string): HTMLElement => {
-    const cw = el('div', 'sg-cw');
-    const card = el('div', 'sg-card sg-bcard'); card.style.border = `2px solid ${paint(cur, k)}`;
-    if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
-    cw.append(card, pills(sgPill(k)));
-    return cw;
-  };
-  const iconCard = (k: string, bgRole?: string): HTMLElement => {
-    const cw = el('div', 'sg-cw');
-    const card = el('div', 'sg-card sg-icard');
-    if (bgRole) { card.style.background = paint(cur, bgRole); card.style.border = 'none'; }
-    const ico = el('span', 'sg-ico'); specimen(ico).style.color = paint(cur, k); ico.innerHTML = SG_ICON; card.append(ico);
-    cw.append(card, pills(sgPill(k)));
-    return cw;
-  };
-
-  /** Re-home a built section's SPECIMENS onto the mode's own canvas.
-   *
-   *  The specimens already rendered the mode's colors; the surface behind them stayed studio-white, so
-   *  Dark showed dark tokens on a white page — and the Inverse row (light cards) blended into that page,
-   *  making the one row that means "a light band inside a dark UI" read as the page itself. The mismatch
-   *  did not just look wrong, it inverted the meaning.
-   *
-   *  Implemented by re-scoping the CSS custom properties on the ground rather than restyling each
-   *  component: `--panel`/`--paper`/`--line`/`--ink`/`--muted`/`--faint` are exactly the four surfaces
-   *  and three ink tiers this system already names, so every pill, subhead and callout inside follows
-   *  with no per-component rule. The inks are the mode's OWN contrast-gated text roles, so legibility
-   *  on the new ground is the engine's guarantee rather than a hand-picked colour.
-   *
-   *  The `.psec` shell, its title and its description stay STUDIO. That boundary is deliberate: inside
-   *  the frame is your system, outside it is the tool. Theming the section copy too would leave no way
-   *  to tell which is which — and would put brand ink on studio prose for every brand. */
-  /** Which surface the specimens are previewed ON. Every option is a real background role, so this is
-   *  "show me this system on our panel / on our card / on our dark hero band" — not a brightness
-   *  switch. A manual light/dark toggle was considered and rejected: the mode already determines
-   *  brightness (including for custom modes), so such a control's only correct setting is the one
-   *  already derivable, and a wrong one reproduces the bug the themed ground exists to fix.
-   *
-   *  Each ground carries its OWN ink and border set. That pairing is the whole correctness of this
-   *  feature — `text.primary` is gated against the page planes and would be the wrong ink on the
-   *  inverse band, where the system defines exactly one on-color role. Getting this wrong would
-   *  re-create, per surface, the contrast regression the ground fix just removed. */
-  type SgSurface = { key: string; label: string; ink: string; line: string; line2: string; tiered: boolean };
-  //  Options are named for the ROLE each one is, not for a piece of furniture: "Card" described a
-  //  component while its three neighbors described grounds, and a reader had to know that a card is
-  //  drawn with `foreground.primary` to place it among them. It is also the ground the specimens are
-  //  least often checked against — every section already renders its own cards on whichever ground is
-  //  selected — so it was dropped rather than renamed (#485). An `sgSurface` still holding the retired
-  //  key falls through the `?? SG_SURFACES[0]` below — defensive only: `sgSurface` is a module-level
-  //  `let` that is serialized nowhere in `web/`, so there is no persisted value to rescue today.
-  //  The labels name the ground; they do not spell the path. `Page Background (Primary)` was
-  //  `color.background.primary` transcribed into prose, and the `sgPill` below the select already prints
-  //  that path verbatim — the same fact stated twice in two notations, breaking the rule immediately
-  //  above and leaving `Inverse`, the one option that followed it, reading as the odd one out for being
-  //  short. Moving the path into the pill is what frees the labels to be plain (#504 review).
-  const SG_SURFACES: SgSurface[] = [
-    { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
-    { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
-    // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
-    // borrowing a page-gated role that was never measured against this ground.
-    { key: 'inverse.background.primary', label: 'Inverse', ink: 'inverse.text.primary', line: 'inverse.border.primary', line2: 'inverse.border.primary', tiered: false },
-  ];
+  // Which surface the specimens are previewed ON (`SG_SURFACES`, shared): "show me this system on our page /
+  // on our second tier / on our dark hero band", not a brightness switch. A manual light/dark toggle was
+  // considered and rejected: the mode already determines brightness. Each ground carries its OWN ink and
+  // border set, which is the whole correctness of the feature (`text.primary` is gated against the page
+  // planes and is the wrong ink on the inverse band). The options are named for the ROLE each one is (#485,
+  // #504); an `sgSurface` holding a retired key falls through to the first, defensively.
   const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
+  const ground = (sec: HTMLElement): HTMLElement => sharedGround(c, sec, surf);
 
-  const ground = (sec: HTMLElement): HTMLElement => {
-    // A specimen root (UI redesign S3, plan §9.1): the brand's content on the ground chosen above, which on
-    // the default Page ground is the brand's own `background.primary` for the previewed mode, never the
-    // chrome's card. `test:chrome` and `test:smoke` find it by this hook and measure what it composites to.
-    const g = hook(el('div', 'sg-ground'), 'specimen');
-    const head = sec.querySelector('.psec-head');
-    while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
-    const bg = paint(cur, surf.key);
-    // A tiered ground keeps the secondary ink for supporting text; the inverse band has only its one
-    // on-color role, so everything inside uses that.
-    const support = surf.tiered ? paint(cur, 'text.secondary') : paint(cur, surf.ink);
-    g.style.background = bg;
-    g.style.setProperty('--panel', bg);
-    g.style.setProperty('--paper', paint(cur, surf.tiered ? 'background.secondary' : surf.key));
-    g.style.setProperty('--line', paint(cur, surf.line));
-    g.style.setProperty('--line2', paint(cur, surf.line2));
-    g.style.setProperty('--ink', paint(cur, surf.ink));
-    g.style.setProperty('--ink2', support);
-    // BOTH supporting inks map to the AA-gated tier, not one each to secondary and tertiary. The
-    // engine gates text.tertiary at 3:1 — correct for large or non-essential text — while studio
-    // --faint is 10.5px token pills that need 4.5:1, and #355 moved --faint DOWN precisely to clear
-    // that bar. Mapping it onto tertiary transplanted a 3:1 role into a 4.5:1 slot: 3.52:1 in Dark.
-    g.style.setProperty('--muted', support);
-    g.style.setProperty('--faint', support);
-    sec.append(g);
-    return sec;
-  };
-
-  // One picker for the view, not one per section — seven copies of the same control would be noise,
-  // and the sections are read together as one system.
-  // Label ABOVE the control, matching every other labeled field in the app (`pfield`), and named for
-  // what it does rather than where it sits: "Preview on / Page" left a reader guessing whether it
-  // changed the mode, the page, or the specimens. It changes the ground the specimens are drawn on,
-  // so it says that.
   const bar = el('div', 'sg-surfbar');
   const sel = hook(selectEl('cap'), 'style-guide-ground');
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
@@ -1515,212 +1341,16 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   bar.append(pfield('View style guide on', stack));
   host.append(bar);
 
-  const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
+  // The five shared color sections, in the Style guide's order, each on the chosen ground.
+  for (const [, section] of COLOR_SECTIONS) host.append(ground(section(c)));
 
-  // Background
-  const secBg = palSection('Background', 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.');
-  secBg.append(subHead('Base'), grid(3, ([['Primary', 'background.primary'], ['Secondary', 'background.secondary'], ['Tertiary', 'background.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
-  // The Inverse Primary card carries `inverse.text.primary` as an extra pill, the same pairing the Bold and
-  // Subtle rows use. That ink was painting every inverse card here AND the Surfaces page's Inverse
-  // example, and was named in neither — the one role the gallery used without ever showing.
-  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'inverse.background.primary'], ['Secondary', 'inverse.background.secondary'], ['Tertiary', 'inverse.background.tertiary']] as Array<[string, string]>)
-    .map(([n, k], i) => surfaceCard(k, n, 'inverse.text.primary', i === 0 ? 'Inverse text' : undefined, i === 0 ? [sgPill('inverse.text.primary')] : []))));
-  secBg.append(subHead('Scrim'), grid(3, [scrimCard('scrim.default')]));
-  host.append(ground(secBg));
-
-  // Foreground
-  const secFg = palSection('Foreground', 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
-  secFg.append(subHead('Neutral'), grid(3, ([['Primary', 'foreground.primary'], ['Secondary', 'foreground.secondary'], ['Tertiary', 'foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
-  // Inverse — bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page
-  // BAND above. Background already split Base / Inverse; Foreground had only Base, so this whole tier
-  // resolved for every mode and appeared nowhere.
-  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'inverse.foreground.primary'], ['Secondary', 'inverse.foreground.secondary'], ['Tertiary', 'inverse.foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'inverse.text.primary'))));
-  secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
-  secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
-  host.append(ground(secFg));
-
-  // Text color — Light | Inverse | Token
-  const secText = palSection('Text color', 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.');
-  const curLabel = MODE_LABEL[cur] ?? cur, oppLabel = MODE_LABEL[opp] ?? opp;
-  const lbg = paint(cur, 'background.primary'), dbg = paint(opp, 'background.primary');
-  const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); specimen(d).style.color = color; return d; };
-  const tcCell = (nm: string, k: string, m: string, cls: string, ul: boolean): HTMLElement => {
-    const d = el('div', `sg-tc ${cls} sg-tcrow`); specimen(d).style.color = paint(m, k);
-    const sp = el('span', 'sg-samp', nm); if (ul) sp.style.textDecoration = 'underline'; d.append(sp);
-    if (fails(m, k)) d.append(el('b', 'sg-fx', '!'));
-    return d;
-  };
-  const tcGroups: Array<[string, Array<[string, string]>, boolean]> = [
-    ['Neutral', [['Primary', 'text.primary'], ['Secondary', 'text.secondary'], ['Tertiary', 'text.tertiary']], false],
-    ['Semantic', SEM.map(([n, s]) => [n, `text.${s}`] as [string, string]), false],
-    ['Semantic — subtle', SEM.map(([n, s]) => [n, `text.${s}-subtle`] as [string, string]), false],
-    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Pressed', 'text.link.pressed'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
-  ];
-  for (const [glab, items, ul] of tcGroups) {
-    secText.append(subHead(glab));
-    const g = el('div', 'sg-tcg'); g.style.setProperty('--lbg', lbg); g.style.setProperty('--dbg', dbg);
-    g.append(tcHead(`On ${curLabel} surface`, 'sg-l', paint(cur, 'text.tertiary')), tcHead(`On ${oppLabel} surface`, 'sg-r', paint(opp, 'text.tertiary')), tcHead('Token', 'sg-t', 'var(--faint)'));
-    for (const [nm, k] of items) {
-      g.append(tcCell(nm, k, cur, 'sg-l', ul), tcCell(nm, k, opp, 'sg-r', ul));
-      const tc = el('div', 'sg-tc sg-t sg-tcrow'); tc.append(sgPill(k)); g.append(tc);
-    }
-    secText.append(g);
-  }
-  const callout = el('div', 'sg-callout');
-  // The old copy enumerated three link roles; `LINK_STATES` has five (#1486 added `pressed`). Focused
-  // resolves to the same color as default BY DESIGN (the focus ring carries the state, not a color
-  // shift), which is why the row reads as a duplicate — and exactly why it needs saying rather than omitting.
-  callout.append(document.createTextNode('Links draw only from the action ramp — the engine defines '));
-  callout.append(el('span', 'mono', 'text.link.default / hover / pressed / visited / focused'));
-  callout.append(document.createTextNode(' and no neutral or accent link roles. The engaged states step by a perceptual interval, so hover, pressed, and visited stay clearly distinct even where the link color sits deep in the ramp. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
-  secText.append(callout);
-  host.append(ground(secText));
-
-  // Border
-  const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
-  // `inverse.border.focus` sits beside `border.focus` rather than with the other inverse borders: the pair a
-  // reader needs to compare is the two focus rings, and the inverse GROUND is already selectable for
-  // the whole section (the `sgSurface` picker), which is the honest way to view an inverse role — its
-  // own ink and border set come with it, rather than one card faking a ground the rest of the row lacks.
-  //
-  // `border.tertiary` is new in #1140 — border was the only surface/ink category stopping at secondary,
-  // and the row it belongs in is this one. The inverse column still shows only its PRIMARY rung, as it
-  // did when that rung was spelled `border.inverse.default`: the other inverse borders have never had
-  // cards here, and the ground picker is how this section shows an inverse role honestly.
-  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.tertiary', 'inverse.border.primary'].map((k) => borderCard(k))));
-  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'inverse.border.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
-  host.append(ground(secBorder));
-
-  // Icon
-  const secIcon = palSection('Icon', 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.');
-  secIcon.append(subHead('Neutral'), grid(3, ['icon.primary', 'icon.secondary', 'icon.tertiary'].map((k) => iconCard(k))));
-  secIcon.append(subHead('Semantic'), grid(5, ['icon.brand', 'icon.danger', 'icon.success', 'icon.warning', 'icon.info'].map((k) => iconCard(k))));
-  secIcon.append(subHead('On color'), grid(5, SEM.map(([, s]) => iconCard(`icon.on-${s}`, `foreground.${s}`))));
-  host.append(ground(secIcon));
-
-  // Disabled
-  const secDis = palSection('Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.');
-  const disCards: HTMLElement[] = [];
-  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card'); c.style.background = paint(cur, 'disabled.fill'); cw.append(c, pills(sgPill('disabled.fill'))); disCards.push(cw); }
-  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = paint(cur, 'disabled.fill'); const l = el('div', 'sg-lab', 'Disabled'); specimen(l).style.color = paint(cur, 'disabled.on-fill'); c.append(l); cw.append(c, pills(sgPill('disabled.on-fill'))); disCards.push(cw); }
-  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = 'var(--panel)'; const l = el('div', 'sg-lab', 'Disabled'); specimen(l).style.color = paint(cur, 'disabled.text'); c.append(l); cw.append(c, pills(sgPill('disabled.text'))); disCards.push(cw); }
-  disCards.push(borderCard('disabled.border'), iconCard('disabled.icon'));
-  secDis.append(grid(5, disCards));
-  host.append(ground(secDis));
-
-  // Interactive — button sets in rows
-  const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.');
-  const STATES = ['rest', 'hover', 'pressed'];
-  // `pair` names the engine roles an OPAQUE fill specimen previews (#1652) — see `specimenPair`. The
-  // outline row passes none: its fill is a translucent wash and its ink is contracted against the page, so
-  // it has no single ink-on-fill pair to claim and stays on the smoke floor.
-  const btn = (bg: string, fg: string, bd: string | null, pair?: [string, string]): HTMLElement => { const b = hook(el('button', 'sg-btn', 'Button'), 'style-guide-button'); b.style.background = bg; (pair ? specimenPair(b, ...pair) : specimen(b)).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
-  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string, pair?: [string, string]): HTMLElement => { const c = hook(el('div', 'sg-bcol'), 'style-guide-state'); c.append(btn(bg, fg, bd, pair), hook(el('span', 'sg-st', st), 'style-guide-state-name'), sgPill(fullkey, subpath)); return c; };
-  const footLine = (lbl: string, p: HTMLElement): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), p); return s; };
-  const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
-    const row = el('div', 'sg-trow');
-    const lab = el('div', 'sg-tlab', label);
-    if (foot.length) { const f = el('div', 'sg-tlfoot'); foot.forEach((n) => f.append(n)); lab.append(f); }
-    const bs = hook(el('div', 'sg-btns' + (inv ? ' sg-inv' : '')), 'style-guide-buttons');
-    if (inv) {
-      // #555 — the strip's own ground is `inverse.background.primary` for the CURRENT mode, and that
-      // is not always dark: in a Dark mode, the inverse of dark is light, so a state label ink fixed
-      // to a light gray (correct for the light-in-Light-mode case) went invisible on it. Pick the ink
-      // from the resolved strip color instead of assuming which side of light/dark it lands on.
-      const invBg = paint(cur, 'inverse.background.primary');
-      bs.style.setProperty('--sg-invp', invBg);
-      bs.style.setProperty('--sg-invp-ink', legibleInkOn(invBg, '#191920', '#c9ccce'));
-    }
-    cols.forEach((c) => bs.append(c));
-    row.append(lab, bs);
-    return row;
-  };
-  // Is the chosen preview ground itself an inverse band? Both the background and foreground inverse
-  // tiers qualify — what matters is that the ground is the dark one the `inverse` column was
-  // measured against, not which collection it came from.
-  //
-  // `isInverseRole`, the engine's own predicate, not a local `.includes('inverse')`. That substring
-  // test was the only spelling available while the marker sat mid-path in three different positions;
-  // #1140 makes it a single leading segment, so the question has one answer and one place to ask it.
-  const onInverseGround = isInverseRole(surf.key);
-  const paletteBlock = (nm: string, c: string): HTMLElement => {
-    const block = hook(el('div', 'sg-pblock'), 'style-guide-palette');
-    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
-    const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`,
-      [`interactive.${c}.on-fill`, `interactive.${c}.fill.${s}`]));
-    // Each state's hover fill comes from whichever family the METHOD emits — `outlineFillRole`, the
-    // same helper the emitter branches on, not a second copy of the mapping. Reading `overlay.*`
-    // unconditionally is #288, and it was still here: under `solid-tint` the overlay role does not
-    // exist, `paint()` returns 'transparent' for a missing role, and the row rendered the `none`
-    // treatment. Two of three methods therefore looked identical on the surface a designer hands a
-    // developer as the reference — and `none` was only "right" by accident.
-    //
-    // The GROUND is part of that choice too (#1629): on an inverse preview ground the fill reads the
-    // `inverse.` twin of that role, as the ink and edge below do. All three keys come from one pure
-    // helper, `outlineStateRoles`, so the three cannot take the ground switch separately again — the
-    // fill was the one that did not, and painted the page wash on the band.
-    const rolesFor = (s: string) => outlineStateRoles(theme.outlineInteraction, c, s, onInverseGround);
-    const bgFor: Record<string, string> = Object.fromEntries(
-      STATES.map((s) => { const k = rolesFor(s).fill; return [s, k ? paint(cur, k) : 'transparent']; }));
-    // The OUTLINE ink is the one role here measured against the PAGE rather than against its own
-    // fill, so it is the one that breaks when the preview ground stops being the page. On the
-    // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
-    // colour, text that is not merely low-contrast but literally invisible. The engine already
-    // resolves `inverse.interactive.<c>.text.*` for exactly this ground, so the row asks for the ink that matches
-    // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
-    // measured against the button's own fill, which the ground behind it cannot change.
-    // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
-    // could only move the ink: the engine emitted one border, measured against the page, so the
-    // outline row kept a page-ground edge on the dark band. #467 added `inverse.border`.
-    //
-    // The switch is PER STATE, not per row, and fixing the fill above is what forced that. The wash
-    // is translucent, so a hovered control on the inverse band is still on the band and the
-    // `inverse` ink is right for all three states. Since #1614 the `solid-tint` fill is translucent
-    // too (the fill at an opacity step), so `opaque` is false and the switch (now in `outlineStateRoles`)
-    // no longer fires for it. Until then it was an OPAQUE palette step: it covered the band, so from `hover` onward the ground is a page-tuned tint and the
-    // band's ink is measured against something that is no longer there. Probed across the corpus —
-    // 5 brands × 4 modes × {primary, destructive} × {hover, pressed} — the inverse ink on that tint
-    // fails 3:1 in **79 of 80** combinations, worst 1.32:1. The engine gates the tint against the
-    // control's own PAGE ink for that state (worst 4.51:1 across 120 rows), so the page ink is not a
-    // fallback here, it is the measured-correct answer. Reading the right role and keeping the
-    // row-wide ink switch would have traded a visible bug for an invisible one — the exact
-    // gated-ground/painted-ground family as #63, #570 and #573.
-    // The marker is a PREFIX since #1140, so the conditional moved to the front of the key rather
-    // than into the middle of it. Same two candidate roles, one segment position.
-    const otxt = (s: string) => rolesFor(s).text;
-    // The edge is now stateful too (#576), so this appends the state exactly as `otxt` does. #575
-    // had already made this function per-state — it took `s` only to choose the GROUND, and returned
-    // the same single border for all three. The state key is the half that was missing.
-    const obdFor = (s: string) => rolesFor(s).border;
-    // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
-    // reader is looking at when they read the label.
-    const obd = obdFor('rest');
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
-    const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`,
-      [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`]));
-    block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
-    block.append(hook(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false), 'style-guide-outline'));
-    // The Inverse row paints its own inverse band so the inverse-column variants have the ground they
-    // were measured against. When the PREVIEW ground is already that band, painting it again is a
-    // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
-    // dark" rather than as a distinct treatment. On that ground the row simply uses the page's.
-    block.append(trow('Inverse', [footLine('text', sgPill(`inverse.interactive.${c}.on-fill`, 'on-fill'))], inv, !onInverseGround));
-    return block;
-  };
-  secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
-  {
-    const block = hook(el('div', 'sg-pblock'), 'style-guide-palette');
-    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'color.disabled')); block.append(hd);
-    block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill', ['disabled.on-fill', 'disabled.fill'])], false));
-    block.append(hook(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false), 'style-guide-outline'));
-    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill', ['disabled.on-fill', 'disabled.fill'])], !onInverseGround));
-    secInt.append(block);
-  }
-  host.append(ground(secInt));
+  // The Disabled and Interactive sections, shared since UI redesign S5.1 (`preview/sections/`), each on the
+  // chosen ground. Interactive reads the brand's outline method and whether that ground is the inverse band.
+  host.append(ground(disabledSection(c)));
+  host.append(ground(interactiveSection(c, { method: theme.outlineInteraction, surface: surf.key })));
 };
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  surfaces: ['Surfaces & fills.', 'The page backgrounds every role sits on, the text colors derived to stay readable on them, and an optional brand gradient. Text is contrast-placed — override to a specific neutral step and the badge tells you whether it still clears. (Status hues are edited per-ramp on Palettes.)'],
   interactive: ['Interactive color & states.', 'Point actions at the palette that reads best, tune the interactive treatment (hover, inverse, neutral emphasis), and set the accessibility policy — icon contrast + the disabled strategy.'],
   typography: ['Set the type system.', 'Families, weights, and the type scale that shifts the semantic→primitive size mapping. The rem ladder is brand-invariant; the scale is the dial.'],
   elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
@@ -1741,11 +1371,10 @@ type StatusRole = typeof STATUS_ROLES[number];
 
 // The Interactive page groups its controls into intent sub-sections. (Gradients — formerly a "Features"
 // group here — now lives on the Surfaces page; page surfaces + text/ink are bespoke editors there.)
-const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h3', 'sub-t', title)); return s; };
+// `subHead` lives in `preview/sections/kit.ts` (UI redesign S4a).
 
-/** The last dot-segment of a token path — the palette step key (e.g. `…primary.650` → `650`). Shared by
- *  the interactive matrix + the Surfaces fill editors to label an "Auto · <palette> <step>" source. */
-const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
+// `stepKeyOf` (the last dot-segment of a token path: the palette step key) lives in
+// `state/interactive-input.ts` since UI redesign S5.1.
 
 // ---- shared colour atoms (audit §8) ---------------------------------------
 // contrastBadge + swatch are the shared atoms every colour editor composes from (the interactive matrix,
@@ -1810,29 +1439,9 @@ const capWord = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 //                           Fill · rest row for columns that anchor a family (primary/destructive/
 //                           accents) — Neutral has no anchor and uses `baselineStepOf` like everything
 //                           else.
-const baselineOf = (roleKey: string, mode: Mode, without: (t: Theme) => Theme): string => {
-  const roles = resolveAllModes(without(theme)).find((x) => x.mode === mode)?.roles as RoleMap | undefined;
-  return stepKeyOf(roles?.[roleKey]?.path);
-};
-const baselineStepOf = (roleKey: string, mode: Mode = currentMode): string =>
-  baselineOf(roleKey, mode, (t) => {
-    const modeOv = { ...(t.overrides?.[mode] ?? {}) };
-    delete modeOv[roleKey];
-    return { ...t, overrides: { ...t.overrides, [mode]: modeOv } };
-  });
-/** `name` is the interactive column (`primary` / `destructive` / an `interactivePalettes` entry's
- *  name) — mirrors exactly what `anchor().setStep(undefined)` clears for that same (name, mode):
- *  the per-mode pin outside Light, or Light's own global pin (whichever of the three fields applies
- *  to this column) on Light itself. */
-const baselineAnchorStepOf = (roleKey: string, mode: Mode, name: string): string =>
-  baselineOf(roleKey, mode, (t) => (mode === 'light'
-    ? {
-        ...t,
-        actionAnchorStep: name === 'primary' ? undefined : t.actionAnchorStep,
-        destructiveAnchorStep: name === 'destructive' ? undefined : t.destructiveAnchorStep,
-        interactivePalettes: t.interactivePalettes.map((p) => (p.name === name ? { ...p, anchorStep: undefined } : p)),
-      }
-    : { ...t, modeAnchors: { ...t.modeAnchors, [mode]: { ...(t.modeAnchors?.[mode] ?? {}), [name]: undefined } } }));
+// The three moved to `state/interactive-input.ts` in UI redesign S5.1 (`baselineOf`, `baselineStepOf`,
+// `baselineAnchorStepOf`), unchanged; this page's callers read the mode in view.
+const baselineStepOf = (roleKey: string, mode: Mode = currentMode): string => baselineStepIn(roleKey, mode);
 
 /** `#rrggbb`(+alpha) → an `rgba()` string, so a translucent overlay wash paints honestly (a faint swatch). */
 const rgbaOf = (r: RoleRes): string => {
@@ -1933,11 +1542,7 @@ const invFillSourceSelect = (roleKey: string, assignedPalette: string, neutralPa
   };
   addPalette(assignedPalette);
   if (neutralPalette !== assignedPalette) addPalette(neutralPalette);
-  sel.onchange = () => {
-    if (sel.value === '') { setFillOverride(roleKey, assignedPalette, undefined); return; }
-    const [pal, step] = sel.value.split('::');
-    setFillOverride(roleKey, pal, step);
-  };
+  sel.onchange = () => { setInverseFillSource(currentMode, roleKey, assignedPalette, sel.value); applyFull(); };
   return sel;
 };
 
@@ -2387,9 +1992,7 @@ const LINK_RUNG_MAX = 8;
  *  undefined ("Auto") clears that state back to the tuned walk. The lever is mode- and family-invariant —
  *  one control moves every `link.*` family in both modes — so no per-mode bookkeeping here. */
 const setLinkRung = (state: 'hover' | 'pressed' | 'visited', rung: number | undefined): void => {
-  const m = brandState.linkStateRungs ?? (brandState.linkStateRungs = {});
-  if (rung === undefined) delete m[state]; else m[state] = rung;
-  if (!Object.keys(m).length) brandState.linkStateRungs = undefined;
+  setLinkRungIn(state, rung);   // `state/interactive-input.ts` (UI redesign S5.1)
   applyFull();
 };
 /** The rung picker for one engaged link state — the Links section's role-editor control (#1510). "Auto"
@@ -2415,19 +2018,8 @@ const linkRungPicker = (state: 'hover' | 'pressed' | 'visited'): HTMLSelectEleme
  *  to the link's contrast floor (a sub-floor pick is clamped), so an absolute pin can never render a link
  *  below contract. "Auto" (undefined) clears all five states for this family/mode, back to the default. */
 const setLinkFamilyOverride = (prefix: string, step: string | undefined): void => {
-  const pal = theme.linkPalette;   // #1496: the per-mode absolute pin picks from the LINK ramp (= action ramp when links follow it)
-  const steps = (theme.palettes.find((p) => p.palette === pal)?.steps ?? []).map((s) => s.key);
-  const states = ['default', 'hover', 'pressed', 'visited', 'focused'] as const;
-  if (step === undefined) { for (const st of states) setFillOverride(`${prefix}.link.${st}`, pal, undefined); return; }
-  const idx = (k: string): number => steps.indexOf(k);
-  const clamp = (i: number): number => Math.max(0, Math.min(steps.length - 1, i));
-  const defBase = idx(baselineStepOf(`${prefix}.link.default`));   // derived resting link, override-cleared
-  const i0 = idx(step);
-  for (const st of states) {
-    if (st === 'default' || st === 'focused') { setFillOverride(`${prefix}.link.${st}`, pal, step); continue; }
-    const dist = idx(baselineStepOf(`${prefix}.link.${st}`)) - defBase;   // signed walk, captures direction
-    setFillOverride(`${prefix}.link.${st}`, pal, steps[clamp(i0 + dist)]);
-  }
+  setLinkFamilyIn(currentMode, prefix, step);   // `state/interactive-input.ts` (UI redesign S5.1)
+  applyFull();
 };
 /** The resting-link absolute picker for one family — the per-mode override control (#1510). "Auto" follows
  *  the rung/derived default; a step pins this family's exact color for the current mode (the engaged states
@@ -2526,10 +2118,10 @@ const renderLinksSection = (): HTMLElement | null => {
 const iEnumControl = (key: string, cur: unknown = getPath(brandState, key) ?? leverByKey(key)!.default): HTMLElement => {
   const lever = leverByKey(key)!;
   const d = describeControl(lever);
-  if (d.kind === 'chips') return chipGroup(key, lever.label, d.options, cur, (v) => { setPath(brandState, key, v); applyFull(); });
+  if (d.kind === 'chips') return chipGroup(key, lever.label, d.options, cur, (v) => { setLever(key, v); applyFull(); });
   const sel = selectEl('cap');
   for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
-  sel.onchange = () => { setPath(brandState, key, sel.value); applyFull(); };
+  sel.onchange = () => { setLever(key, sel.value); applyFull(); };
   return sel;
 };
 
@@ -2539,7 +2131,7 @@ const actionPaletteLead = (): HTMLElement => {
   const palettes = paletteRefOptions('actionPalette', (brandState.brandColors ?? []).map((b) => b.name));
   const cur = String(brandState.actionPalette ?? 'primary');
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
-  sel.onchange = () => { setPath(brandState, 'actionPalette', sel.value); applyFull(); };
+  sel.onchange = () => { setLever('actionPalette', sel.value); applyFull(); };
   const roles = iRoles();
   return iRow({ lead: true, label: 'Action palette', srcLabel: 'Source', select: sel,
     desc: 'Which palette drives your primary actions — a brand color, or point it at your neutral for a restrained, monochrome look. The contrast floor is accessible either way.',
@@ -2555,7 +2147,7 @@ const linkPaletteLead = (): HTMLElement => {
   const palettes = paletteRefOptions('linkPalette', (brandState.brandColors ?? []).map((b) => b.name));
   const cur = String(theme.linkPalette);
   for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
-  sel.onchange = () => { setPath(brandState, 'linkPalette', sel.value); applyFull(); };
+  sel.onchange = () => { setLever('linkPalette', sel.value); applyFull(); };
   const roles = iRoles();
   return hook(iRow({ lead: true, label: 'Link palette', srcLabel: 'Source', select: sel,
     desc: 'Which palette drives your links — follows your action palette by default, or point it at your neutral or an accent to give links their own color. The contrast floor holds either way.',
@@ -2673,11 +2265,11 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
       if (slider) {
         slider.oninput = () => {
           if (label) label.textContent = `${slider.value}${min.unit ?? ''}`;
-          setPath(brandState, min.key, Number(slider.value));
+          setLever(min.key, Number(slider.value));
           rebuild();
           const next = dsExample(); dsEx.replaceWith(next); dsEx = next;
         };
-        slider.onchange = () => { setPath(brandState, min.key, Number(slider.value)); applyFull(); };
+        slider.onchange = () => { setLever(min.key, Number(slider.value)); applyFull(); };
       }
       ds.append(c);
     }
@@ -2740,11 +2332,7 @@ const renderAddAccentRow = (): HTMLElement => {
   }
   const sel = selectEl('cap');
   for (const p of promotable) sel.append(optionEl(p, capWord(p)));
-  const btn = addButton('+ Add action palette', () => {
-    const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
-    arr.push({ palette: sel.value });
-    applyFull();
-  }, 'ic-addbtn');
+  const btn = addButton('+ Add action palette', () => { addAccent(sel.value); applyFull(); }, 'ic-addbtn');
   row.append(sel, btn);
   return row;
 };
@@ -2756,30 +2344,23 @@ const renderInteractiveMatrix = (host: HTMLElement): void => {
   renderGlobalBehavior(host);
   const perMode = currentMode !== 'light';
   if (perMode) host.append(el('p', 'ic-modenote', `Editing ${MODE_LABEL[currentMode] ?? currentMode}’s interactive colors — “Auto” follows the generated baseline; pick a step to override this mode.`));
-  const anchor = (name: string, get: () => number | undefined, set: (v: number | undefined) => void): Pick<ICol, 'stepValue' | 'setStep'> => {
-    if (!perMode) return { stepValue: get(), setStep: (v) => { set(v); applyFull(); } };
-    return {
-      stepValue: brandState.modeAnchors?.[currentMode]?.[name],
-      setStep: (v) => {
-        const ma = brandState.modeAnchors ?? (brandState.modeAnchors = {});
-        const forMode = ma[currentMode] ?? (ma[currentMode] = {});
-        if (v === undefined) { delete forMode[name]; if (!Object.keys(forMode).length) delete ma[currentMode]; if (!Object.keys(ma).length) brandState.modeAnchors = undefined; }
-        else forMode[name] = v;
-        applyFull();
-      },
-    };
-  };
+  // The anchor write is `setAnchor` (`state/interactive-input.ts`, UI redesign S5.1): Light's global field
+  // per column, `modeAnchors` with pruning in any other mode.
+  const anchor = (name: string): Pick<ICol, 'stepValue' | 'setStep'> => ({
+    stepValue: anchorOf(currentMode, name),
+    setStep: (v) => { setAnchor(currentMode, name, v); applyFull(); },
+  });
   const add = (node: HTMLElement | null): void => { if (node) host.append(node); };
 
-  add(renderPaletteSection({ name: 'primary', title: 'Primary actions', desc: 'The default interactive colors. State colors are calculated from your selections unless you override them.', palette: theme.roleToPalette.action, lead: actionPaletteLead(), ...anchor('primary', () => brandState.actionAnchorStep, (v) => setPath(brandState, 'actionAnchorStep', v)) }));
+  add(renderPaletteSection({ name: 'primary', title: 'Primary actions', desc: 'The default interactive colors. State colors are calculated from your selections unless you override them.', palette: theme.roleToPalette.action, lead: actionPaletteLead(), ...anchor('primary') }));
   add(renderPaletteSection({ name: 'neutral', title: 'Neutral actions', desc: 'The secondary / low-emphasis action set — for “Cancel”, toolbar buttons, and quiet controls.', palette: theme.roleToPalette.neutral, lead: neutralEmphasisLead() }));
-  add(renderPaletteSection({ name: 'destructive', title: 'Destructive actions', desc: 'Delete / remove and other irreversible actions.', palette: theme.roleToPalette.danger, ...anchor('destructive', () => brandState.destructiveAnchorStep, (v) => setPath(brandState, 'destructiveAnchorStep', v)) }));
+  add(renderPaletteSection({ name: 'destructive', title: 'Destructive actions', desc: 'Delete / remove and other irreversible actions.', palette: theme.roleToPalette.danger, ...anchor('destructive') }));
   (brandState.interactivePalettes ?? []).forEach((entry, i) => {
     const nm = entry.name ?? entry.palette;
     add(renderPaletteSection({
       name: nm, title: `${capWord(nm)} actions`, desc: 'Optional secondary interactive set.', palette: entry.palette,
-      ...anchor(nm, () => entry.anchorStep, (v) => setPath(brandState, `interactivePalettes.${i}.anchorStep`, v)),
-      ...(perMode ? {} : { onRemove: () => { brandState.interactivePalettes!.splice(i, 1); if (!brandState.interactivePalettes!.length) brandState.interactivePalettes = undefined; applyFull(); } }),
+      ...anchor(nm),
+      ...(perMode ? {} : { onRemove: () => { removeAccent(i); applyFull(); } }),
     }));
   });
   if (!perMode) host.append(renderAddAccentRow());
@@ -3465,8 +3046,10 @@ const renderScreen = (
 // vanish from the local tables — it lands on Interactive automatically. (Review nit on #201.)
 const SURFACE_CONTRACT_COMPONENTS = new Set(['typography', 'card']);
 const renderSectionContrast = (key: PageKey): HTMLElement | null => {
-  if (key !== 'surfaces' && key !== 'interactive') return null;
-  const cts = rp.contracts.filter((ct) => SURFACE_CONTRACT_COMPONENTS.has(ct.component) === (key === 'surfaces'));
+  // Surfaces & fills moved to the two panes (UI redesign S4a), and its page drew no table (Inspect › Contrast
+  // has every pair); Interactive keeps its catch-all slice.
+  if (key !== 'interactive') return null;
+  const cts = rp.contracts.filter((ct) => !SURFACE_CONTRACT_COMPONENTS.has(ct.component));
   if (!cts.length) return null;
   const det = el('details', 'contracts') as HTMLDetailsElement;
   const sum = el('summary', 'contracts-sum');
@@ -3476,17 +3059,6 @@ const renderSectionContrast = (key: PageKey): HTMLElement | null => {
   det.append(contractTableEl(cts, true));   // token paths — the component context is obvious next to the controls
   return det;
 };
-
-// Surfaces / fills — backgrounds, derived text/ink, an optional gradient.
-const renderSurfacesPage = (host: PageHost): void => renderScreen(host, 'surfaces', (h) => {
-  h.append(renderSurfacesEditor());     // self-heads "Backgrounds"
-  h.append(renderForegroundsEditor());  // self-heads "Foreground fills" — the bold/surface fills (docs/23 §2)
-  h.append(renderForegroundEditor());   // self-heads "Text"
-  h.append(subHead('Gradients'));
-  renderGradientsSection(h);
-  // Per-section contrast tables now live inside each editor (doc 26 contrast-in-context); the gradient
-  // read-only specimen was a duplicate of the live editor preview — both retired here.
-}, () => []);
 
 // Interactive & action colors — the per-palette matrix (#69). Global behaviors at the top, then one
 // section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows binding
@@ -5760,412 +5332,11 @@ const renderFacePins = (): HTMLElement => {
   }
   return sec;
 };
-// ---- object-value editors (#97) --------------------------------------------
-// Two BrandInput levers are objects (`surfaces`, `shadow.tint`) that renderControl can only
-// show read-only as "configured". These bespoke sub-forms make them editable — reading the
-// current value from brandState (falling back to the engine default), writing the object
-// fields via setPath, and re-resolving so the specimen repaints. (The third object lever,
-// typography.families, is covered by the typography editor above.)
-
-/** The neutral ramp steps a page surface / contrast floor can name (base can also be white/black).
- *
- *  Read off the brand's own neutral palette rather than hardcoded. The hardcoded list this replaces was
- *  the same twenty steps written WITHOUT their zero padding — so the Backgrounds selects offered
- *  "Neutral 50" while the fill selects three rows below, reading the palette directly, offered
- *  "neutral 050" for the identical step. `050` is the one that matches the token (palette.neutral.050).
- *  The stored value stays numeric (`SurfacesConfig.base` is a number, and Number('050') is 50); only the
- *  label and the list's provenance change, so a brand whose ramp differs now gets its own steps. */
-const neutralStepOptions = (): Array<{ value: number; label: string }> => {
-  const pal = theme.palettes.find((p) => p.palette === theme.roleToPalette.neutral);
-  return (pal?.steps ?? []).map((s) => ({ value: Number(s.key), label: `${theme.roleToPalette.neutral} ${s.key}` }));
-};
-
-// ---- Surfaces & fills: full-width ROW layout (Layout A, #68) ----------------
-// One row per role: [56×56 swatch] [name + token pill (+desc)] [controls] [whitespace] [example, badge below].
-// Controls left / static content right; the example is locked to the right edge at a single fixed size for
-// every role (backgrounds/fills/text), with its contrast badge directly beneath. Replaces the old fill-grid
-// cards. Rows live in the stable head (rebuilt on applyFull — every surfaces edit calls applyFull).
-type SfRowOpts = { swatchHex: string; name: string; tokenPath: string; desc?: string; controls: HTMLElement; example: HTMLElement; badge?: HTMLElement; railNote?: string };
-const sfRow = (o: SfRowOpts): HTMLElement => {
-  const row = el('div', 'sf-row');
-  const sw = el('div', 'sf-sw'); sw.style.background = o.swatchHex;
-  const id = el('div', 'sf-id');
-  id.append(el('div', 'sf-name', o.name), tokenPill(o.tokenPath));
-  if (o.desc) id.append(el('p', 'sf-desc', o.desc));
-  const right = el('div', 'sf-right');
-  right.append(o.example);
-  if (o.badge) right.append(o.badge);
-  if (o.railNote) right.append(el('span', 'sf-railnote', o.railNote));
-  row.append(sw, id, o.controls, el('div'), right);   // col 4 (empty div) is the whitespace spacer
-  return row;
-};
-const sfCtl = (...blocks: HTMLElement[]): HTMLElement => { const c = el('div', 'sf-ctl'); c.append(...blocks); return c; };
-const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const b = el('div', 'sf-ctlblock'); b.append(el('span', 'pfk', label), control); return b; };
-// The text color is the resolved role for THIS surface, not a hardcoded invert flag — a custom
-// mode's Primary can be either light or dark, and a hardcoded dark ink went invisible on a dark
-// custom-mode surface (near-black on near-black). `textHex` is `text.primary` (against
-// background.primary) or `inverse.text.primary` (against inverse.background.primary) — whichever the
-// caller's surface actually is.
-//
-// No accent dot any more (owner request). It painted `foreground.brand` on the Primary specimen and
-// `inverse.foreground.primary` on the Inverse one, so the two swatches were showing DIFFERENT roles
-// under identical treatment — and neither is what this section edits. On the inverse band the dot was
-// near-invisible besides (a dark neutral on a near-black band), which is how it read as an unidentifiable
-// smudge. The specimen's job here is to show the SURFACE and that its ink is legible on it; a swatch for
-// a role edited on another page was borrowing this one's evidence to say something else.
-const sfExSurface = (bg: string, label: string, textHex: string): HTMLElement => {
-  const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; specimen(ex).style.color = textHex;
-  ex.append(el('span', undefined, label)); return ex;
-};
-const sfExFill = (bg: string, label: string, fg?: string): HTMLElement => {
-  const ex = specimen(el('div', 'sf-ex sf-ex-fill')); ex.style.background = bg; if (fg) ex.style.color = fg; ex.textContent = label; return ex;
-};
-const sfExText = (inkHex: string, sample: string, surfaceHex: string): HTMLElement => {
-  const ex = el('div', 'sf-ex sf-ex-text'); ex.style.background = surfaceHex; specimen(ex).style.color = inkHex; ex.textContent = sample; return ex;
-};
-
-// A per-section contrast table (doc 26: contrast in context) built from the resolved roles across every
-// mode — the same numbers the per-row badges show for the active mode, sliced to this section's roles.
-// The consolidated cross-system table stays in Preview. Returns null when the section governs no pairs
-// (e.g. Backgrounds, whose surfaces are grounds — judged by the text/fills that sit on them).
-const sectionContrastRoles = (intro: string, roleLabels: Array<[string, string]>): HTMLElement | null => {
-  const all = resolveAllModes(theme) as Array<{ mode: Mode; roles: Record<string, { hex: string; ratio?: number; min?: number } | undefined> }>;
-  const graded = ([role]: [string, string]): boolean => all.some((m) => { const r = m.roles[role]; return !!r && r.min != null && r.min > 0 && r.ratio != null; });
-  const rows = roleLabels.filter(graded);
-  if (!rows.length) return null;
-  const det = el('details', 'contracts') as HTMLDetailsElement;
-  const sum = el('summary', 'contracts-sum');
-  sum.append(el('span', 'contracts-t', 'Contrast in this section'), el('span', 'contracts-hint', `${rows.length} pairs · all modes · the full system table lives in Preview`));
-  det.append(sum, el('p', 'np-note', intro));
-  const table = el('table', 'ctable');
-  const thead = el('tr'); thead.append(el('th', undefined, 'Role'));
-  for (const m of rp.modes) thead.append(el('th', 'mcol', MODE_LABEL[m] ?? m));
-  table.append(thead);
-  for (const [role, label] of rows) {
-    const tr = el('tr');
-    const td = el('td', 'pair'); td.append(el('span', 'pair-path mono', colorPath(role)), el('span', 'pair-sub', label)); tr.append(td);
-    for (const m of rp.modes) {
-      const cell = el('td', 'mcol');
-      const r = all.find((x) => x.mode === m)?.roles[role];
-      if (r && r.min != null && r.min > 0 && r.ratio != null) { const pass = r.ratio >= r.min; cell.append(el('span', `dot ${pass ? 'ok' : 'no'}`), el('span', 'ratio', r.ratio.toFixed(2))); }
-      else cell.textContent = '—';
-      tr.append(cell);
-    }
-    table.append(tr);
-  }
-  det.append(table);
-  return det;
-};
-/** #97 — page-surfaces editor. `surfaces.<mode>.{base,floorStep}` sets the primary surface the
- *  preview paints on (and the worst-case neutral the saturated foregrounds validate against).
- *  base = white / black / a tinted neutral step; floorStep is auto (engine-derived) unless pinned. */
-// Backgrounds (docs/24 #61) — mode-SCOPED like the rest of the Surfaces page (Text below is too): the
-// ACTIVE mode's primary surface (editable) + its inverse (derived, read-only), not both modes at once.
-// Switch modes on the header strip to set each mode's surface. Only renders on customizable modes
-// (renderScreen shows the generated note on a derived mode), so `currentMode` is light/dark/custom here.
-const renderSurfacesEditor = (): HTMLElement => {
-  const mode = currentMode;
-  const label = MODE_LABEL[mode] ?? mode;
-  const sec = hook(palSection('Backgrounds', `The surface ${label} paints on (Primary) and its contrasting Inverse band — both set per mode. Switch modes above to set each mode’s surface.`), 'section-backgrounds');
-  const opt = (sel: HTMLSelectElement, v: string, t: string, on: boolean): void => { sel.append(optionEl(v, t, on)); };
-  const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string; path?: string } | undefined>;
-  const primHex = roles['background.primary']?.hex ?? (mode === 'dark' ? '#000000' : '#ffffff');
-  // The resolved ink for THIS surface — `text.primary` is measured against `background.primary`
-  // exactly, so it's always legible here regardless of whether the mode's Primary is light or
-  // dark. Previously a hardcoded near-black went invisible on a dark custom mode.
-  const primText = roles['text.primary']?.hex ?? (mode === 'dark' ? '#f2f2f6' : '#191920');
-  // Primary — the base surface is only configurable for light/dark (`SurfacesConfig`); custom modes seed
-  // their surface from a base mode, so their Primary is shown read-only. (Inline check so TS narrows `mode`.)
-  if (mode === 'light' || mode === 'dark') {
-    const cur = brandState.surfaces?.[mode as 'light' | 'dark'];
-    const dflt: 'white' | 'black' = mode === 'dark' ? 'black' : 'white';
-    const baseVal = cur?.base ?? dflt;
-    const nOpts = neutralStepOptions();
-    const base = selectEl('cap');
-    opt(base, 'white', 'White', baseVal === 'white');
-    opt(base, 'black', 'Black', baseVal === 'black');
-    for (const s of nOpts) opt(base, String(s.value), s.label, baseVal === s.value);
-    base.onchange = () => { setPath(brandState, `surfaces.${mode}.base`, base.value === 'white' || base.value === 'black' ? base.value : Number(base.value)); applyFull(); };
-    // Contrast floor — the worst-case neutral bold fills validate against (auto unless pinned).
-    const floorHint = 'The worst-case neutral the engine validates bold fills against on this surface — the mode’s contrast baseline. Auto derives it from the base surface; pin a step to force a specific reference.';
-    const floor = selectEl('cap'); floor.title = floorHint;
-    // "Auto" names the floor it derived, like every other Auto on the page. The floor is not on the
-    // theme directly, but every contrast-gated role records it as the surface it was measured `against`
-    // — so a bold fill, whose whole definition is "clears its ratio on the floor", is the source.
-    const autoFloor = (roles['foreground.brand'] as { against?: string } | undefined)?.against;
-    opt(floor, '', autoFloor ? `Auto · ${autoFloor.replace('.', ' ')}` : 'Auto', cur?.floorStep == null);
-    for (const s of nOpts) opt(floor, String(s.value), s.label, cur?.floorStep === s.value);
-    floor.onchange = () => { setPath(brandState, `surfaces.${mode}.floorStep`, floor.value === '' ? undefined : Number(floor.value)); applyFull(); };
-    const floorBlock = sfCtlBlock('Contrast floor', floor); (floorBlock.firstChild as HTMLElement).title = floorHint;
-    sec.append(sfRow({
-      swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
-      // The section head already says "the surface <mode> paints on"; the row says what it can be SET to
-      // rather than repeating the definition three lines later.
-      desc: 'White, black, or a tinted neutral step.',
-      controls: sfCtl(sfCtlBlock('Base surface', base), floorBlock),
-      example: sfExSurface(primHex, 'Primary background', primText),
-    }));
-  } else {
-    sec.append(sfRow({
-      swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
-      desc: 'Seeded from this custom mode’s base.',
-      controls: sfCtl(sfCtlBlock('Base surface', el('span', 'sf-derived', 'Seeds from its base mode'))),
-      example: sfExSurface(primHex, 'Primary background', primText),
-    }));
-  }
-
-  // Inverse — the contrasting band (dark heroes / inverse sections). Writes
-  // `surfaces.<mode>.inverseBase`, NOT an `overrides` entry, and that is the whole of #956 on this
-  // side of the wire. The band is a GROUND: ~60 roles are contrast-measured against it. `surfaces` is
-  // read during derivation, so moving it re-derives all of them and every reported ratio stays true.
-  // The override layer runs after derivation and rewrites one role, so routing the band through it
-  // left those roles carrying ratios for a surface that was gone — measured at neutral 300, 53 of 53
-  // gated roles claimed contrast they did not have, with no warning, because the warning was computed
-  // from the same stale number. The engine now refuses that route by name; this control does not take
-  // it. `inverse.background.primary` is generated for every mode, so the `if` is a defensive guard.
-  const invHex = roles['inverse.background.primary']?.hex;
-  if (invHex) {
-    // `inverse.text.primary` is measured against `inverse.background.primary` exactly — the correct ink
-    // for this band regardless of which mode's inverse this is.
-    const invText = roles['inverse.text.primary']?.hex ?? '#f2f2f6';
-    const invRow = (controls: HTMLElement, desc: string): void => {
-      sec.append(sfRow({
-        // `colorPath`, not a hand-spelled path: an inverse role lives ONLY in the value tier, so the
-        // literal `color.background.inverse.primary` this row carried has not resolved since #1013 —
-        // the one pill on this page that was not asking the derivation the rest of them ask.
-        swatchHex: invHex, name: 'Inverse', tokenPath: colorPath('inverse.background.primary'), desc, controls,
-        example: sfExSurface(invHex, 'Primary Inverse Background', invText),
-      }));
-    };
-    // Configurable only for light/dark, exactly like Primary above and for the same reason: `surfaces`
-    // is keyed by those two, and a custom mode seeds its band from the base mode it inherits.
-    if (mode === 'light' || mode === 'dark') {
-      // `mode as 'light' | 'dark'` for the same reason the Primary row above does it: `ModeName`
-      // widens to `string & {}` for custom modes, so the `if` narrows the VALUE without narrowing the
-      // type enough to index `SurfacesConfig`.
-      const m2 = mode as 'light' | 'dark';
-      const nPal = theme.roleToPalette.neutral;
-      const cur = brandState.surfaces?.[m2]?.inverseBase;
-      // #898: the band may be neutral, the brand, or a CUSTOM palette — status excluded. Two controls:
-      // a palette select + a step picker for that palette. The neutral case writes a bare number (the
-      // historical form, byte-identical); a non-neutral palette writes `{ palette, step }`.
-      const curPal = (cur != null && typeof cur === 'object') ? cur.palette : nPal;
-      const curStep = cur == null ? undefined : String(typeof cur === 'object' ? cur.step : cur);
-      // Neutral first, then every DECLARED non-status palette (the brand + any custom brandColor). Status
-      // (success/warning/danger/info) and the alpha/pure palettes are excluded — a page band in a semantic
-      // colour would use it decoratively (#898), and white/black are the extreme keywords, not palettes.
-      const bandPalettes = [nPal, ...theme.palettes
-        .filter((p) => p.palette !== nPal && !(STATUS_ROLES as readonly string[]).includes(p.role)
-          && !/alpha/.test(p.palette) && p.palette !== 'white' && p.palette !== 'black')
-        .map((p) => p.palette)];
-      const writeBand = (v: number | { palette: string; step: number } | undefined): void => {
-        setPath(brandState, `surfaces.${m2}.inverseBase`, v); applyFull();
-      };
-      // Palette select. Switching to a non-neutral palette seeds the band at that palette's DARKEST step
-      // (a dark hero starts dark); switching back to Neutral clears to the generated default (Auto).
-      const palSel = selectEl('cap');
-      for (const p of bandPalettes) palSel.append(optionEl(p, p === nPal ? 'Neutral' : p, p === curPal));
-      palSel.onchange = () => {
-        const pal = palSel.value;
-        if (pal === nPal) return writeBand(undefined);
-        const st = stepsOf(pal);
-        writeBand(st.length ? { palette: pal, step: Number(st[st.length - 1]) } : undefined);
-      };
-      // Step select, bound to the CURRENT palette. Its "Auto" clears back to the generated neutral
-      // default (`baselineStepOf`, #330); on a non-neutral palette that Auto means "drop the brand band",
-      // which the palette select then reflects by falling back to Neutral on the next render.
-      const curSteps = stepsOf(curPal);
-      const autoStep = curPal === nPal ? baselineStepOf('inverse.background.primary', mode) : String(curSteps[curSteps.length - 1] ?? '');
-      const stepSel = stepPicker(curPal, curSteps, autoStep, curStep,
-        (step) => writeBand(step == null ? undefined : curPal === nPal ? Number(step) : { palette: curPal, step: Number(step) }));
-      invRow(sfCtl(sfCtlBlock('Palette', palSel), sfCtlBlock('Step', stepSel)),
-        'The contrasting band for dark heroes / inverse sections. Auto follows the generated pairing (a neutral near-extreme); pick Neutral, the brand, or a custom palette + a step to set a brand-colored band. Status palettes are excluded. Everything measured against the band re-derives, so a pick the ramp cannot serve is reported rather than silently absorbed.');
-    } else {
-      invRow(sfCtl(sfCtlBlock('Step', el('span', 'sf-derived', 'Seeds from its base mode'))),
-        'The contrasting band for dark heroes / inverse sections. Seeded from this custom mode’s base.');
-    }
-  }
-  return sec;
-};
-
-/** A2c — per-mode foreground/text override. The text-color ladder (text.primary/secondary/tertiary) is
- *  engine-derived and contrast-placed; this repoints a role to a specific NEUTRAL step for the current
- *  mode via the A1 override layer. Symmetric across customizable modes (light + dark both write their
- *  own override); "Auto" = the generated default; a pick below the text floor warns (never blocks). */
-const FG_ROLES: [string, string][] = [['text.primary', 'Primary text'], ['text.secondary', 'Secondary text'], ['text.tertiary', 'Tertiary text']];
-
-/* The other TWENTY `color.text.*` roles, which this section governs and did not show. The neutral ladder
-   above is three of twenty-three; the section titled "Text" was silently a section about neutral ink.
-   Split by what a control could mean, because "editable vs derived" turns out to be the wrong axis —
-   NOTHING here is authored. Even the ladder's picker sets no color: it repoints the role to a palette
-   STEP and the engine re-gates from there. So every row is derived, and the real question is which ones
-   have a step worth repointing.
-
-   PALETTE-ANCHORED — the role sits on its own palette at a contrast-gated step, so the same repoint the
-   ladder already offers applies, just keyed to that role's palette instead of neutral (exactly what the
-   Foreground fills editor does). `link.default` is here and its states are not: `modes.ts` walks hover
-   +1 and visited +2 off this base, so repointing the base moves the set coherently and repointing the
-   states individually would let them cross. */
-const TEXT_PALETTE_ROLES: Array<{ role: string; label: string; paletteKey: string; desc: string; sample: string }> = [
-  { role: 'text.brand', label: 'Brand ink', paletteKey: 'brand', desc: 'Brand-colored text — the ink form of the brand color, not the fill.', sample: 'Brand emphasis' },
-  { role: 'text.success', label: 'Success ink', paletteKey: 'success', desc: 'Success message text.', sample: 'Saved successfully' },
-  { role: 'text.warning', label: 'Warning ink', paletteKey: 'warning', desc: 'Warning message text.', sample: 'Check this before continuing' },
-  { role: 'text.danger', label: 'Danger ink', paletteKey: 'danger', desc: 'Error message text.', sample: 'Something went wrong' },
-  { role: 'text.info', label: 'Info ink', paletteKey: 'info', desc: 'Informational message text.', sample: 'For your reference' },
-  { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand', desc: 'The quiet variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Brand, quietly' },
-  // All five muted rows state the SAME contract, because the engine gives them the same one: they come
-  // off one `T(\`${r}-subtle\`, …, p.tertiaryMin)` loop in `modes.ts`, so the bar is identical per role.
-  // Four of them used to read "The quiet success variant." and so on (#578 nit 1) — never false, since
-  // they claimed nothing about gating, but the brand row explained the large-text bar and its four
-  // siblings didn't, so reading down the list you got the rule once and then four rows that looked like
-  // a different kind of token. Stated per row rather than hoisted into the section blurb: the badge is
-  // per row, and a reader checking one role should not have to scroll to learn what its bar is.
-  { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success', desc: 'The quiet success variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Success, quietly' },
-  { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning', desc: 'The quiet warning variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Warning, quietly' },
-  { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger', desc: 'The quiet danger variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Danger, quietly' },
-  { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info', desc: 'The quiet info variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Info, quietly' },
-  { role: 'text.link.default', label: 'Link', paletteKey: 'action', desc: 'Link ink at rest. Hover and visited walk one and two steps from here, so this row moves all four.', sample: 'A link in running text' },
-];
-
-/* DERIVED — shown, never editable, and the reason is per-role rather than a blanket policy. Each carries
-   the derivation in `why`, because a read-only row that does not say what decides it just looks broken.
-
-   `on-*` is the sharp case: it is `onColor(fill)`, a binary black/white pick whose whole job is clearing
-   AA against the fill beneath it. A step picker there would offer a list on which every entry except the
-   computed one fails the contract the role exists to satisfy — a control that can only be used wrongly is
-   worse than no control. The link states follow `link.default` by construction (see above). */
-const TEXT_DERIVED_ROLES: Array<{ role: string; label: string; from: string; why: string; onRole?: string; sample: string }> = [
-  { role: 'text.on-brand', label: 'On brand fill', from: 'Follows the brand fill', why: 'A near-black or near-white pick, whichever clears AA on the brand fill — repoint Foreground fills › Brand to move it.', onRole: 'foreground.brand', sample: 'On brand' },
-  { role: 'text.on-success', label: 'On success fill', from: 'Follows the success fill', why: 'A near-black or near-white pick, whichever clears AA on the success fill.', onRole: 'foreground.success', sample: 'On success' },
-  { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'A near-black or near-white pick, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
-  { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'A near-black or near-white pick, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
-  { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'A near-black or near-white pick, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
-  { role: 'inverse.text.primary', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'inverse.background.primary', sample: 'On inverse' },
-  { role: 'text.link.hover', label: 'Link — hover', from: 'Link, one step on', why: 'Link walked one palette step. Repoint Link above to move it.', sample: 'Hovered link' },
-  { role: 'text.link.visited', label: 'Link — visited', from: 'Link, two steps on', why: 'Link walked two palette steps. Repoint Link above to move it.', sample: 'Visited link' },
-  { role: 'text.link.focused', label: 'Link — focused', from: 'Link, unchanged', why: 'Identical to Link at rest by design — focus is carried by the ring, not a color shift.', sample: 'Focused link' },
-];
-/* These are COLOR specimens, not type specimens, so each string names the role's USE rather than
-   being filler. Two of the three used to be halves of a pangram ("The quick brown fox" / "Jumps over
-   the lazy dog") while the third already named its use — so one section taught the reader three
-   different things about what the sample text is for. A pangram is right where letterforms are the
-   subject (see RAMP_SAMPLE, which is deliberately long enough that the big rows clip); it is wrong
-   where the subject is a colour and the words are the only label the row has. */
-const TEXT_SAMPLE: Record<string, string> = { 'text.primary': 'Default body copy', 'text.secondary': 'Supporting detail', 'text.tertiary': 'Least-emphasis caption' };
-/** Repoint the whole link set from the one Link control, preserving the relationship the ENGINE builds.
- *
- *  Measured before writing this, and the measurement changed the design. `modes.ts` derives hover and
- *  visited by walking one and two palette steps off `link.default` — but it does that while BUILDING the
- *  baseline, and the override layer runs afterwards, per role. So a lone `text.link.default` override
- *  does not propagate. It does something worse than nothing: repointing rest to `primary.750` leaves
- *  hover at `600`, so hovering makes the link LIGHTER and focused stops matching rest. The generated
- *  relationship is not merely lost, it is inverted, and every value involved still looks individually
- *  reasonable — nothing in the resolved output says the set stopped being a set.
- *
- *  **A per-role override layer cannot preserve a between-role relationship; whoever offers the control
- *  owns re-establishing it.** So this writes all four entries from one pick — the same +1/+2 walk, index
- *  clamped at the ramp end — which is what lets the derived rows honestly say they follow Link.
- *
- *  "Auto" clears all four, so reverting is symmetric with every other picker in the section. */
-const LINK_ROLES = ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused'] as const;
-const setLinkOverride = (palette: string, steps: string[], step: string | undefined): void => {
-  if (step === undefined) {                                   // Auto — revert the whole set together
-    for (const r of LINK_ROLES) setFillOverride(r, palette, undefined);
-    return;
-  }
-  const i = steps.indexOf(step);
-  const at = (n: number): string => steps[Math.min(i + n, steps.length - 1)];
-  setFillOverride('text.link.default', palette, step);
-  setFillOverride('text.link.hover', palette, at(1));
-  setFillOverride('text.link.visited', palette, at(2));
-  setFillOverride('text.link.focused', palette, step);         // focus is carried by the ring, not a shift
-};
-
-const renderForegroundEditor = (): HTMLElement => {
-  const sec = palSection('Text', `Every text color for ${MODE_LABEL[currentMode] ?? currentMode} — the neutral ladder, the semantic and link inks, and the derived inks that follow other decisions. “Auto” follows the generated, contrast-placed default; pick a step to override this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the surface it is rated against.`);
-  const nPal = theme.roleToPalette.neutral;
-  const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
-  const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
-  const surfaceHex = roles['background.primary']?.hex ?? (currentMode === 'dark' ? '#000000' : '#ffffff');
-  sec.append(subHead('Neutral ladder'));
-  for (const [role, label] of FG_ROLES) {
-    const r = roles[role]; if (!r) continue;
-    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-    // The shared `stepPicker` + `setFillOverride` — same control, same revert-prune, and "Auto" now
-    // names the step it landed on (`Auto · neutral 900`) as the fill rows already did. The hand-rolled
-    // copy this replaces differed from them in exactly one way: it withheld that.
-    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — `r` is the LIVE resolved role, so once `cur`
-    // is set it already reflects the override; naming Auto off it would have Auto echo `cur` back.
-    const sel = stepPicker(nPal, nSteps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
-      (step) => setFillOverride(role, nPal, step));
-    sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: colorPath(role),
-      controls: sfCtl(sfCtlBlock('Step', sel)),
-      example: sfExText(r.hex, TEXT_SAMPLE[role] ?? 'Sample text', surfaceHex),
-      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
-    }));
-  }
-  // The palette-anchored inks — same control as the ladder above, keyed to each role's own palette.
-  sec.append(subHead('Semantic & link ink'));
-  for (const { role, label, paletteKey, desc, sample } of TEXT_PALETTE_ROLES) {
-    const r = roles[role]; if (!r) continue;
-    const palette = (theme.roleToPalette as Record<string, string>)[paletteKey] ?? paletteKey;
-    const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
-    if (!steps.length) continue;
-    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the ladder above.
-    const sel = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
-      role === 'text.link.default' ? (step) => setLinkOverride(palette, steps, step) : (step) => setFillOverride(role, palette, step));
-    sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: colorPath(role), desc,
-      controls: sfCtl(sfCtlBlock('Step', sel)),
-      example: sfExText(r.hex, sample, surfaceHex),
-      // The muted variants are gated too now (#570), at the LARGE-TEXT bar rather than the 4.5:1 the
-      // bold ink clears — so their badge carries that label. Without it the receipt is misleading in a
-      // way a bare number cannot fix: muted's 3.20 ✓ sits directly beneath bold's 5.59 ✓, and a reader
-      // comparing two green ticks has no way to tell they were measured against different bars. Naming
-      // the bar is the whole point of the change; the badge is where the promise is actually read.
-      badge: r.min != null && r.min > 0 && r.ratio != null
-        ? contrastBadge(r.ratio, r.min, role.endsWith('-subtle') ? `large text ${r.min}:1` : undefined)
-        : undefined,
-    }));
-  }
-
-  // Derived rows. Same row shape as everything above — swatch, name, token path, example, badge — so the
-  // value is as legible here as anywhere else; only the control slot differs. Showing these read-only
-  // rather than hiding them is the point: a role absent from the editor reads as a role that does not
-  // exist, which is how twenty of twenty-three went unnoticed in the first place.
-  sec.append(subHead('Derived — not editable'));
-  for (const { role, label, from, why, onRole, sample } of TEXT_DERIVED_ROLES) {
-    const r = roles[role]; if (!r) continue;
-    // Paint the sample on the surface this ink is actually rated against, not the page ground — white
-    // on-brand ink previewed on a white page is invisible, and would look like a bug in the value.
-    const on = onRole ? roles[onRole]?.hex : undefined;
-    sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: colorPath(role), desc: why,
-      controls: sfCtl(sfCtlBlock('Source', el('span', 'sf-derived', from))),
-      example: sfExText(r.hex, sample, on ?? surfaceHex),
-      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
-    }));
-  }
-
-  // Every graded pair the section governs, not just the ladder's three — the table claimed to cover
-  // "this section" while listing a fifth of it. `sectionContrastRoles` already filters to roles that
-  // carry a floor, so the ungated muted variants drop out on their own.
-  const ct = sectionContrastRoles('The text-on-surface legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', [
-    ...FG_ROLES,
-    ...TEXT_PALETTE_ROLES.map((t) => [t.role, t.label] as [string, string]),
-    ...TEXT_DERIVED_ROLES.map((t) => [t.role, t.label] as [string, string]),
-  ]);
-  if (ct) sec.append(ct);
-  return sec;
-};
-
-// ---- Foreground fills editor (docs/23 §2 "Foregrounds") -------------------
-// The bold semantic fills + the neutral surface tiers as cards, each repointable per mode via the A1
-// override layer (`theme.overrides`), same mechanism as Text & ink above but keyed to each role's own
-// palette. Distinct from Text & ink (the neutral INK ladder). Customizable modes only — on a derived
-// mode the whole page is the read-only note (renderScreen), so this never renders there.
+// ---- the override pickers the Interactive matrix composes from ---------------------------------
+// The legacy Surfaces page's editors (Backgrounds, Foreground fills, Text) went with that page in UI redesign
+// S4a: Color › Surfaces & fills draws them from `domains/color-fills.ts`, writing through
+// `state/fills-input.ts`. What the Interactive matrix still uses stays here: the Auto-first step select, and
+// the per-mode override write, which is now the shared one (`setRoleOverride`) plus this page's repaint.
 /** A palette step select with an "Auto" (the generated baseline) option — audit §8 candidate #3. `''` is
  *  Auto; other values are step keys. */
 const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void, mark?: (step: string) => string): HTMLSelectElement => {
@@ -6177,89 +5348,11 @@ const stepPicker = (paletteName: string, steps: string[], autoStep: string, curr
   sel.onchange = () => onPick(sel.value === '' ? undefined : sel.value);
   return sel;
 };
-const FILL_ROLES: Array<{ role: string; label: string; paletteKey: string; desc: string }> = [
-  { role: 'foreground.brand', label: 'Brand', paletteKey: 'brand', desc: 'The bold brand fill — filled badges, nav indicators, brand accents.' },
-  { role: 'foreground.success', label: 'Success', paletteKey: 'success', desc: 'The bold success fill.' },
-  { role: 'foreground.warning', label: 'Warning', paletteKey: 'warning', desc: 'The bold warning fill.' },
-  { role: 'foreground.info', label: 'Info', paletteKey: 'info', desc: 'The bold info fill.' },
-  { role: 'foreground.danger', label: 'Danger', paletteKey: 'danger', desc: 'The bold danger fill.' },
-  { role: 'foreground.primary', label: 'Surface — card', paletteKey: 'neutral', desc: 'The default raised surface — a card.' },
-  { role: 'foreground.secondary', label: 'Surface — panel', paletteKey: 'neutral', desc: 'The second surface tier — a panel.' },
-  { role: 'foreground.tertiary', label: 'Surface — nested', paletteKey: 'neutral', desc: 'The third surface tier — a nested container.' },
-];
+/** Point `role` at `palette` `step` in the mode in view, or revert it (`undefined`): the shared write, so the
+ *  Interactive matrix and Color › Surfaces & fills prune an emptied override map the same way. */
 const setFillOverride = (role: string, palette: string, step: string | undefined): void => {
-  const ov = brandState.overrides ?? (brandState.overrides = {});
-  const forMode = ov[currentMode] ?? (ov[currentMode] = {});
-  if (step === undefined) {                                   // revert to the generated baseline
-    delete forMode[role];
-    if (!Object.keys(forMode).length) delete ov[currentMode];
-    if (!Object.keys(ov).length) brandState.overrides = undefined;
-  } else forMode[role] = { palette, step };
+  setRoleOverride(currentMode, role, palette, step);
   applyFull();
-};
-const renderForegroundsEditor = (): HTMLElement => {
-  const sec = palSection('Foreground fills', `Bold semantic fills + neutral surface tiers for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-gated default; pick a step to override this mode (a pick below the fill's floor is warned, not blocked).`);
-  const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
-  for (const { role, label, paletteKey, desc } of FILL_ROLES) {
-    const r = roles[role]; if (!r) continue;
-    const palette = (theme.roleToPalette as Record<string, string>)[paletteKey] ?? paletteKey;
-    const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
-    if (!steps.length) continue;
-    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the interactive matrix.
-    const picker = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined, (step) => setFillOverride(role, palette, step));
-    // Neutral surface tiers are pale in Light modes but flip dark in Dark modes (#555 — a fixed dark
-    // ink went invisible on a dark-resolved tier), so the label ink is picked FROM the resolved fill
-    // rather than assumed; other fills keep white on-fill.
-    const isSurface = paletteKey === 'neutral';
-    const tier = label.split('—')[1]?.trim();                 // "Surface — card" → "card"
-    const exLabel = isSurface ? (tier ? tier[0].toUpperCase() + tier.slice(1) : 'Surface') : `${label} fill`;
-    sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: colorPath(role), desc,
-      controls: sfCtl(sfCtlBlock('Step', picker)),
-      example: sfExFill(r.hex, exLabel, isSurface ? legibleInkOn(r.hex) : undefined),
-      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
-      railNote: isSurface ? 'non-text · surface' : undefined,
-    }));
-  }
-  // #1341 — the FIELD FILL Source control (the missing-control gap the issue opened on). Unlike the fills
-  // above, its default is TRANSPARENT (no paint): a field frames by its border on whatever ground it sits,
-  // so "Auto" reads "Transparent" and picking a neutral step gives the field a solid surface (kept
-  // themable). Contrast-marked on the VALUE INK — a step is flagged when `text.primary` stays legible
-  // (≥4.5) on it — so a filled field keeps its value readable, the field analog of the on-fill gate above.
-  {
-    const role = 'field.fill';
-    const fr = roles[role];
-    if (fr) {
-      const palette = theme.roleToPalette.neutral;
-      const nSteps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
-      const inkHex = roles['text.primary']?.hex;
-      const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-      const transparent = cur == null;
-      const mark = (step: string): string => {
-        const s = nSteps.find((x) => x.key === step);
-        return inkHex && s && contrast(hexToRgb(s.hex), hexToRgb(inkHex)) >= 4.5 ? ' · ✓ 4.5:1' : '';
-      };
-      const sel = selectEl('cap');
-      sel.append(optionEl('', 'Transparent (no paint)', transparent));
-      for (const s of nSteps.map((x) => x.key)) sel.append(optionEl(s, `${palette} ${s}${mark(s)}`, cur === s));
-      sel.onchange = () => setFillOverride(role, palette, sel.value === '' ? undefined : sel.value);
-      // A transparent field reads as the page it sits on, so the swatch + example show `background.primary`
-      // (the resolved role hex is the alpha-0 primitive's opaque base — black — which would misrepresent it).
-      const pageHex = roles['background.primary']?.hex ?? '#ffffff';
-      const shown = transparent ? pageHex : fr.hex;
-      sec.append(sfRow({
-        swatchHex: shown, name: 'Field fill', tokenPath: colorPath(role),
-        desc: 'Transparent by default — the border frames the field on any ground. Pick a neutral step for a solid, filled field.',
-        controls: sfCtl(sfCtlBlock('Step', sel)),
-        example: sfExFill(shown, 'Field', legibleInkOn(shown)),
-        railNote: transparent ? 'transparent · no paint' : 'non-text · surface',
-      }));
-    }
-  }
-  const ct = sectionContrastRoles('The on-fill legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', FILL_ROLES.map((f) => [f.role, f.label] as [string, string]));
-  if (ct) sec.append(ct);
-  return sec;
 };
 
 /** #97 + #114 tidy — the Shadow group. Gathers every shadow control under one heading: the
@@ -7091,165 +6184,9 @@ const renderMotionSpecimen = (): HTMLElement => {
 // preview needed.
 
 
-// ---- Gradient editor (docs/23 §2 "Gradients") -----------------------------
-// The gradient axis was on/off only; this edits the DEFINITION — kind (linear/radial), angle or
-// center+shape, interpolation, and the ramp-aliased stops — writing an explicit `GradientInput[]`
-// to `brandState.gradients` (the engine's opt-in axis, `boolean | GradientInput[]`). `true` (the
-// toggle default) materialises to the engine's default single brand gradient for display; the first
-// edit writes it out explicitly. Stops alias the ramp (palette + step), never raw hex.
-const DEFAULT_GRADIENT = (): GradientInput => ({
-  name: 'brand', kind: 'linear', angle: 135, interpolation: 'oklch',
-  stops: [{ palette: 'primary', step: 600, position: 0 }, { palette: 'primary', step: 350, position: 1 }],
-});
-/** The editable gradient array — materialising the `true` default and treating `false`/absent as empty. */
-const readGradients = (): GradientInput[] => {
-  const g = brandState.gradients;
-  if (Array.isArray(g)) return g;
-  if (g === true) return [DEFAULT_GRADIENT()];
-  return [];
-};
-/** Write the array back; an empty array collapses to `false` (off) so the toggle + specimen agree. */
-const writeGradients = (arr: GradientInput[]): void => { brandState.gradients = arr.length ? arr : false; applyFull(); };
-/** Resolve a stop's `{palette, step}` alias to its ramp hex (for the live preview). */
-const gradStopHex = (palette: string, step: number): string =>
-  theme.palettes.find((p) => p.palette === palette)?.steps.find((s) => s.num === step)?.hex ?? '#888888';
-/** Build the CSS gradient from an INPUT gradient (stops resolved through the ramp) — reads palette/step
- *  aliases rather than pre-resolved hexes; interpolates `in <g.interpolation>` (Chromium-native), matching
- *  whatever the Interpolation select is set to, the same value the engine honors — not hardcoded. */
-const inputGradientCss = (g: GradientInput): string => {
-  const stops = g.stops.slice().sort((a, b) => a.position - b.position)
-    .map((s) => `${gradStopHex(s.palette, s.step)} ${Math.round(s.position * 100)}%`).join(', ');
-  const interp = g.interpolation ?? 'oklch';
-  return (g.kind ?? 'linear') === 'radial'
-    ? `radial-gradient(${g.shape ?? 'ellipse'} at ${Math.round((g.center?.[0] ?? 0.5) * 100)}% ${Math.round((g.center?.[1] ?? 0.5) * 100)}% in ${interp}, ${stops})`
-    : `linear-gradient(${g.angle ?? 135}deg in ${interp}, ${stops})`;
-};
+// The gradient editor went with the legacy Surfaces page (UI redesign S4a): Color › Surfaces & fills edits the
+// gradients (`domains/color-fills.ts`), through the same writes (`state/fills-input.ts`).
 
-/** The Gradients section — a bespoke on/off toggle (own `applyFull` so the editor mounts/unmounts) plus,
- *  when on, one editor card per gradient. */
-const renderGradientsSection = (host: HTMLElement): void => {
-  const on = !!brandState.gradients;
-  // On/off toggle — the shared toggleField, but its callback rebuilds the workspace (applyFull) so the
-  // editor mounts/unmounts (it lives in the sections layer, not the volatile specimens).
-  const desc = leverByKey('gradients')?.description ?? 'Ship one or more decorative brand gradients (opt-in). Stop colors alias the ramp and interpolate in OKLCH.';
-  host.append(knob('Gradients', toggleField(on, (checked) => { brandState.gradients = checked; applyFull(); }), desc));
-  if (!on) return;
-
-  const grads = readGradients();
-  const palNames = theme.palettes.map((p) => p.palette);
-  const grid = el('div', 'gr-ed-list');
-  grads.forEach((g, gi) => grid.append(renderGradientCard(g, gi, grads, palNames)));
-  host.append(grid);
-  // Add gradient — a fresh linear gradient with a unique slug name (name is a token path segment).
-  const add = addButton('+ Add gradient', () => {
-    const arr = readGradients();
-    const used = new Set(arr.map((x) => x.name));
-    let n = arr.length + 1, name = `gradient-${n}`;
-    while (used.has(name)) name = `gradient-${++n}`;
-    arr.push({ ...DEFAULT_GRADIENT(), name });
-    writeGradients(arr);
-  }, 'gr-ed-add');
-  host.append(add);
-};
-
-/** One gradient's editor card — preview · kind/geometry/interpolation · ramp-aliased stops. */
-const renderGradientCard = (g: GradientInput, gi: number, all: GradientInput[], palNames: string[]): HTMLElement => {
-  const kind = g.kind ?? 'linear';
-  const card = el('div', 'gr-ed-card');
-  // Header — the gradient's editable name (a token-path segment, so it's slugified on commit and kept
-  // unique against the other gradients) + its live token pill + remove.
-  const head = el('div', 'gr-ed-head');
-  const nameInput = el('input', 'gr-ed-nameinput') as HTMLInputElement;
-  nameInput.value = g.name; nameInput.setAttribute('aria-label', 'Gradient name');
-  nameInput.onchange = () => {
-    let v = nameInput.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    if (!v) { nameInput.value = g.name; return; }              // empty → revert, name is a required path segment
-    const used = new Set(all.filter((_, i) => i !== gi).map((x) => x.name));
-    while (used.has(v)) v = `${v}-2`;
-    const arr = readGradients(); arr[gi] = { ...arr[gi], name: v }; writeGradients(arr);   // applyFull re-renders with the new pill
-  };
-  head.append(nameInput, tokenPill(`gradient.${g.name}`));
-  head.append(removeButton(() => { const arr = readGradients(); arr.splice(gi, 1); writeGradients(arr); }, 'Remove gradient'));
-  card.append(head);
-  // Live preview.
-  const sw = el('div', 'gr-ed-sw'); sw.style.background = inputGradientCss(g);
-  card.append(sw);
-
-  // Geometry controls — kind, then angle (linear) or shape + center (radial), then interpolation.
-  const ctrls = el('div', 'gr-ed-ctrls');
-  const mut = (fn: (gg: GradientInput) => void): void => { const arr = readGradients(); fn(arr[gi]); writeGradients(arr); };
-  const labeledSelect = (label: string, opts: [string, string][], cur: string, onPick: (v: string) => void): HTMLElement => {
-    const wrap = el('div', 'gr-ed-field');
-    wrap.append(el('label', 'gr-ed-lab', label));
-    const sel = selectEl('cap');
-    for (const [v, t] of opts) sel.append(optionEl(v, t, v === cur));
-    sel.onchange = () => onPick(sel.value);
-    wrap.append(sel);
-    return wrap;
-  };
-  ctrls.append(labeledSelect('Kind', [['linear', 'Linear'], ['radial', 'Radial']], kind, (v) => mut((gg) => { gg.kind = v as 'linear' | 'radial'; })));
-  if (kind === 'linear') {
-    const f = el('div', 'gr-ed-field');
-    f.append(el('label', 'gr-ed-lab', `Angle · ${g.angle ?? 135}°`));
-    const range = rangeInput({ className: 'gr-ed-range', min: 0, max: 360, step: 5, value: g.angle ?? 135 });
-    range.oninput = () => { (f.firstChild as HTMLElement).textContent = `Angle · ${range.value}°`; sw.style.background = inputGradientCss({ ...g, angle: Number(range.value) }); };
-    range.onchange = () => mut((gg) => { gg.angle = Number(range.value); });
-    f.append(range);
-    ctrls.append(f);
-  } else {
-    ctrls.append(labeledSelect('Shape', [['ellipse', 'Ellipse'], ['circle', 'Circle']], g.shape ?? 'ellipse', (v) => mut((gg) => { gg.shape = v as 'circle' | 'ellipse'; })));
-    const center = g.center ?? [0.5, 0.5];
-    const centerField = (label: string, idx: 0 | 1): HTMLElement => {
-      const f = el('div', 'gr-ed-field');
-      f.append(el('label', 'gr-ed-lab', label));
-      const num = numberField({ className: 'gr-ed-num', min: 0, max: 100, step: 5, value: Math.round(center[idx] * 100) });
-      num.onchange = () => mut((gg) => { const c: [number, number] = [...(gg.center ?? [0.5, 0.5])] as [number, number]; c[idx] = clampUnit(Number(num.value) / 100); gg.center = c; });
-      f.append(num);
-      return f;
-    };
-    ctrls.append(centerField('Center X %', 0), centerField('Center Y %', 1));
-  }
-  ctrls.append(labeledSelect('Interpolation', [['oklch', 'OKLCH'], ['srgb', 'sRGB']], g.interpolation ?? 'oklch', (v) => mut((gg) => { gg.interpolation = v as 'oklch' | 'srgb'; })));
-  card.append(ctrls);
-
-  // Stops — each aliases the ramp (palette + step) with a position; add/remove.
-  card.append(el('h5', 'gr-ed-stopsh', 'Stops'));
-  const stopsWrap = el('div', 'gr-ed-stops');
-  g.stops.forEach((st, si) => stopsWrap.append(renderGradientStop(g, gi, st, si, palNames, mut)));
-  card.append(stopsWrap);
-  const addStop = addButton('+ Add stop', () => mut((gg) => {
-    const last = gg.stops[gg.stops.length - 1];
-    gg.stops = [...gg.stops, { palette: last?.palette ?? palNames[0], step: last?.step ?? 500, position: 1 }];
-  }), 'gr-ed-addstop');
-  card.append(addStop);
-  return card;
-};
-
-/** A single gradient stop row — swatch · palette · step · position % · remove (kept ≥2 stops). */
-const renderGradientStop = (g: GradientInput, gi: number, st: { palette: string; step: number; position: number }, si: number, palNames: string[], mut: (fn: (gg: GradientInput) => void) => void): HTMLElement => {
-  const row = el('div', 'gr-ed-stop');
-  row.append(swatch(gradStopHex(st.palette, st.step), 'gr-ed-stopsw'));
-  const palSel = selectEl('fill');
-  for (const p of palNames) palSel.append(optionEl(p, p, p === st.palette));
-  // Changing palette re-homes the step to the nearest valid step in the new palette.
-  palSel.onchange = () => mut((gg) => {
-    const steps = theme.palettes.find((p) => p.palette === palSel.value)?.steps ?? [];
-    const keep = steps.find((s) => s.num === gg.stops[si].step)?.num ?? steps.find((s) => s.num === 500)?.num ?? steps[Math.floor(steps.length / 2)]?.num ?? gg.stops[si].step;
-    gg.stops[si] = { ...gg.stops[si], palette: palSel.value, step: keep };
-  });
-  const stepSel = selectEl('fill');
-  const steps = theme.palettes.find((p) => p.palette === st.palette)?.steps ?? [];
-  for (const s of steps) stepSel.append(optionEl(String(s.num), s.key, s.num === st.step));
-  stepSel.onchange = () => mut((gg) => { gg.stops[si] = { ...gg.stops[si], step: Number(stepSel.value) }; });
-  const pos = numberField({ className: 'gr-ed-num', min: 0, max: 100, step: 5, value: Math.round(st.position * 100), title: 'Position %' });
-  pos.onchange = () => mut((gg) => { gg.stops[si] = { ...gg.stops[si], position: clampUnit(Number(pos.value) / 100) }; });
-  row.append(palSel, stepSel, pos);
-  if (g.stops.length > 2) {
-    row.append(removeButton(() => mut((gg) => { gg.stops = gg.stops.filter((_, i) => i !== si); }), 'Remove stop', 'gr-ed-stoprm'));
-  }
-  return row;
-};
-const clampUnit = (n: number): number => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
 /** Inline-SVG icon glyphs (stroke, `currentColor` via the `stroke` attr) — dependency-free line icons,
  *  authored here so the specimen stays buildless. 24×24 viewBox, rounded caps/joins. */
@@ -7640,7 +6577,6 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
  *  host the chrome mounter produced. */
 const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
-  surfaces: renderSurfacesPage,
   interactive: renderInteractivePage,
   typography: renderTypographyPage,
   elevation: renderElevationPage,
