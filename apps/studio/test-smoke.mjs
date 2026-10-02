@@ -2286,9 +2286,17 @@ const readNewChips = (sel) => {
   const r0 = await page.evaluate(readNewChips, dm);
   ok(JSON.stringify(r0.values) === JSON.stringify(DISABLED_MIN_CHIPS.map(([v]) => v)) && JSON.stringify(r0.labels) === JSON.stringify(DISABLED_MIN_CHIPS.map(([, l]) => l)) && r0.disabled.every((d) => !d),
     `${brand} / Interactive / disabledMin: under Reduced, four chips ${r0.labels.join(', ')}, all enabled (Q37)`);
-  await hooks.click(page.locator(`${dm} button[role="radio"][data-value="3.5"]`));
-  await page.waitForFunction((s) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === '3.5', dm, { timeout: 5000 }).catch(() => {});
-  ok(await persistedAt(page, 'disabledMin') === 3.5, `${brand} / Interactive / disabledMin: 3.5:1 writes the number 3.5 (wrote ${JSON.stringify(await persistedAt(page, 'disabledMin'))})`);
+  // Every chip, by value: the expectation is this literal list, never the subject's own chip set (docs/34),
+  // so a chip that writes its neighbor's number fails here by name. Visited starting after the checked chip,
+  // so every click is a change and must write.
+  const FLOORS = [3, 3.5, 4, 4.5];
+  const at = FLOORS.findIndex((f) => String(f) === r0.checked[0]);
+  for (const f of [...FLOORS.slice(at + 1), ...FLOORS.slice(0, at + 1)]) {
+    await hooks.click(page.locator(`${dm} button[role="radio"][data-value="${f}"]`));
+    await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [dm, String(f)], { timeout: 5000 }).catch(() => {});
+    const wrote = await persistedAt(page, 'disabledMin');
+    ok(wrote === f, `${brand} / Interactive / disabledMin: ${f}:1 writes the number ${f} (wrote ${JSON.stringify(wrote)})`);
+  }
   await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="full"]'));
   await page.waitForFunction((s) => !!document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
   const r1 = await page.evaluate(readNewChips, dm);
