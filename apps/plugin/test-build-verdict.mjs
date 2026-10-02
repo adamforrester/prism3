@@ -1121,6 +1121,99 @@ for (const how of ['pointer', 'focus']) {
   await page.close();
 }
 
+// ── #1989: a restored brand the engine refuses in resolution turns Apply Theme and Prune stale off ──────
+//
+// The host's restore check only asks `brandTheme` to accept the blob, so a brand with a ground override
+// (refused in resolution since #956) still loads: the rebuild fails and `lastGoodInput` stays on the boot
+// demo, which is what both writes post. Before #1989 Apply stayed live and wrote the demo over the file's
+// brand. EXPECTED is written here: the refused role, the words on screen, and the two brand ids. ACTUAL is
+// the built panel's DOM and the UI → plugin messages caught on this window.
+//
+// The positive control at the end restores a brand that resolves and clicks Apply again: it must post once,
+// and post THAT brand. Without it, a listener that caught nothing would read as "posts nothing".
+//
+// MUTATIONS, each run against the built bundle and each failing here by name:
+//   · the restore dispatch never setting `restoreRefusal` → `#1989 after a refused restore, Apply Theme and
+//     Prune stale post nothing …` (and the disabled and bar arms).
+//   · the disabled state dropped (bar button and both menu items) → `#1989 after a refused restore, Apply Theme
+//     (bar and Figma menu) and Prune stale are disabled …`.
+//   · the confirm dialog's Delete left enabled → `#1989 a host prune preview … its Delete is disabled` and
+//     `#1989 … post nothing to the plugin, the confirm dialog's Delete included`.
+//   There is no guard in `runApply`/`runPrune` to mutate: their only callers are the disabled controls, so a
+//   guard there could never fire (measured: removing one left this arm green), and it was not kept.
+//   · the bar's restore copy reverted to "That change didn't apply" → `#1989 the error bar says the file's brand …`.
+{
+  const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
+  const REFUSED = { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+  const GOOD = { ...base, id: 'good-brand' };
+  const { page, errors } = await openPanel();
+  await page.evaluate(() => {
+    window.__writes = [];
+    window.addEventListener('message', (e) => {
+      const m = e.data && e.data.pluginMessage;
+      if (m && (m.type === 'apply-theme' || m.type === 'prune')) window.__writes.push({ type: m.type, id: m.input?.id ?? null });
+    });
+  });
+  const writes = () => page.evaluate(() => window.__writes.slice());
+  const read = () => page.evaluate(() => {
+    const bar = document.querySelector('[data-p3="error-bar"]');
+    return {
+      brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? null,
+      bar: bar && !bar.hidden ? bar.textContent : null,
+      applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
+      menuApply: document.querySelector('[data-p3="figma-option-apply"]')?.disabled ?? null,
+      menuPrune: document.querySelector('[data-p3="figma-option-prune"]')?.disabled ?? null,
+    };
+  });
+
+  await post(page, { type: 'restore-input', input: REFUSED });
+  await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
+  const off = await read();
+  ok((off.brand ?? '').includes('refused-brand'),
+    `#1989 the refused brand is the one loaded (the restore was not dropped) — brand switcher reads ${JSON.stringify(off.brand)}`);
+  ok((off.bar ?? '').includes("This file's saved brand didn't resolve") && (off.bar ?? '').includes("'background.secondary'")
+    && (off.bar ?? '').includes('Apply Theme and Prune stale are off'),
+    `#1989 the error bar says the file's brand did not resolve, names the refused role, and says why the writes are off — read ${JSON.stringify((off.bar ?? '').slice(0, 160))}`);
+  ok(off.applyDisabled === true && off.menuApply === true && off.menuPrune === true,
+    `#1989 after a refused restore, Apply Theme (bar and Figma menu) and Prune stale are disabled — bar ${off.applyDisabled}, menu apply ${off.menuApply}, menu prune ${off.menuPrune}`);
+
+  // Every way a designer reaches the two writes, forced past the disabled state, so the guard behind it is measured too.
+  await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="figma-option-apply"]'), { force: true, timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { force: true, timeout: 4000 }).catch(() => {});
+  // The prune dialog is the one route the disabled state does not cover: a preview from the host opens it
+  // whatever the Prune button's state. So one is sent, and its Delete is clicked.
+  await post(page, { type: 'prune-result', ok: true, applied: false, count: 3, summary: 'Would remove 3 items: 3 variables.' });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]'), null, { timeout: 5000 }).catch(() => {});
+  const dlg = await page.evaluate(() => ({
+    open: !!document.querySelector('[data-p3="prune-dialog"]'),
+    deleteDisabled: document.querySelector('[data-p3="dialog-confirm"]')?.disabled ?? null,
+  }));
+  ok(dlg.open && dlg.deleteDisabled === true,
+    `#1989 a host prune preview still opens the confirm dialog after a refused restore, and its Delete is disabled — open ${dlg.open}, delete disabled ${dlg.deleteDisabled}`);
+  await hooks.click(page.locator('[data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  const none = await writes();
+  ok(none.length === 0, `#1989 after a refused restore, Apply Theme and Prune stale post nothing to the plugin, the confirm dialog's Delete included — posted ${JSON.stringify(none)}`);
+  // Closed by its own Cancel, so the control below clicks Apply rather than an open modal.
+  await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 }).catch(() => {});
+
+  // CONTROL: a brand that resolves turns both back on, and Apply posts that brand, once.
+  await post(page, { type: 'restore-input', input: GOOD });
+  await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+  const on = await read();
+  ok(on.bar === null && on.applyDisabled === false,
+    `#1989 control: a restore that resolves clears the bar and turns Apply Theme back on — bar ${JSON.stringify(on.bar)}, disabled ${on.applyDisabled}`);
+  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const posted = await writes();
+  ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === 'good-brand',
+    `#1989 control: Apply Theme then posts once, and posts the restored brand rather than the demo — posted ${JSON.stringify(posted)}`);
+  ok(errors.length === 0, `#1989 refused restore: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 await browser.close();
 server.close();
 

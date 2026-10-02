@@ -13,14 +13,18 @@
  *   4. check the stylesheet arrived as text, and install it with the shell's (the class-scope law runs here);
  *   5. mount the plugin's resize grip (Figma only);
  *   6. `build()` — the first render. Everything above must precede it.
+ *   7. on web, if step 1 refused the saved brand, the notice offering to export or clear it (#1989).
  * The font probe's canvas used to be made at import too; it is now made on first use, in `main.ts`.
  */
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
+import { resolvePreview } from '@prism3/engine/resolve-preview';
+import { toDesignMd } from '@prism3/engine/design-md';
 import type { Origin } from './provenance';
-import { persistInput, restoreInput, type LocalStore } from './persist-local';
+import { clearInput, persistInput, restoreInput, type LocalStore } from './persist-local';
+import { hook } from './shell/dom';
 import { initTheme } from './shell/theme';
-import { BRANDS, BOOT_BRAND, initSession, setPersist } from './state/store';
+import { BRANDS, BOOT_BRAND, initSession, setPersist, subscribe } from './state/store';
 import { commit, handleHostMessage, mountApp, installStyles, mountResizeGrip, build } from './main';
 // The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769) — see step 4 below for
 // what that buys and what it costs.
@@ -41,16 +45,22 @@ import CHROME from 'p3:chrome-css';
 // `restore-input-empty` when the file holds no brand, #1197.)
 //
 // #722: boot also decides the ORIGIN, and `firstRun` is derived from it rather than tracked beside it.
+//
+// #1989: the stored brand is validated by RESOLVING it, the same two calls `initSession` makes. Checking
+// only `brandTheme` let through a brand the engine refuses later, in `resolvePreview` (a ground override,
+// refused since #956, four more roles since #1972): `initSession` threw with nothing to catch it, `#app`
+// stayed empty, and the brand stayed stored, so every reload was blank. A refusal now boots the empty
+// state and keeps what was refused, so `showRefusedBrand` below can offer to export or clear it.
+type RefusedBrand = { input: BrandInput; message: string };
+let refusedBrand: RefusedBrand | null = null;
 const bootBrand = (): { input: BrandInput; origin: Origin } => {
   if (PRISM3_HOST !== 'figma') {
     const restored = restoreInput(localStorage);
-    // Validate the SHAPE (brandTheme must accept it) before booting on it — a stale blob from an older
-    // build could deserialize past the version guard yet fail to resolve; on reject, fall back to the demo.
     if (restored) {
       // The persisted web brand is the state as the user last left it — its own origin, not an
       // example. Which example it once descended from is not recoverable and not what reset means.
-      try { brandTheme(restored); return { input: restored, origin: { kind: 'file' } }; }
-      catch { /* stale/incompatible — fall through */ }
+      try { resolvePreview(brandTheme(restored)); return { input: restored, origin: { kind: 'file' } }; }
+      catch (e) { refusedBrand = { input: restored, message: (e as Error).message }; }
     }
     // Web, nothing valid stored → the EMPTY STATE. brandState still holds the demo so the app is in a
     // valid state behind the start screen, but the origin is `none`: nothing has been chosen yet, so
@@ -108,3 +118,52 @@ if (PRISM3_HOST === 'figma') mountResizeGrip();
 
 // ---- 6. first render ---------------------------------------------------------------------------------
 build();
+
+// ---- 7. a saved brand the engine refused (#1989) -----------------------------------------------------
+// Web only (`refusedBrand` is never set in the plugin). Mounted on `body`, ahead of `#app`, for the reason
+// the resize grip is: `#app` is re-rendered wholesale on every state change, and this has to outlive that.
+// It wears the existing error card and button classes, pinned light like the frame's notices, because this
+// fix adds no stylesheet rules.
+//
+// The refused brand is still in storage, and stays there until the next successful rebuild persists over
+// it, which is the first brand chosen. So the notice says that, and offers the two things worth doing
+// before then: export it (as design.md, the format Import reads back, override and all) or clear it.
+// Read through a cast: assigned inside `bootBrand`, so TypeScript's flow analysis narrows the `let` to `null` here.
+const refused = refusedBrand as RefusedBrand | null;
+if (refused) {
+  const card = hook(document.createElement('div'), 'refused-brand');
+  card.className = 'errbar';
+  card.dataset.theme = 'light';
+  card.setAttribute('role', 'alert');
+  const line = (text: string): HTMLParagraphElement => { const p = document.createElement('p'); p.textContent = text; return p; };
+  const btn = (text: string, role: string, run: () => void): HTMLButtonElement => {
+    const b = hook(document.createElement('button'), role);
+    b.type = 'button'; b.className = 'barbtn'; b.textContent = text; b.onclick = run;
+    return b;
+  };
+  const exportIt = (): void => {
+    const name = `${String(refused.input.id || 'saved-brand').trim().replace(/\s+/g, '-') || 'saved-brand'}.design.md`;
+    const url = URL.createObjectURL(new Blob([toDesignMd(refused.input)], { type: 'text/markdown' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+  // Unsubscribed with the card, so a second load does not reach a notice that is already gone.
+  let offOrigin: (() => void) | null = null;
+  const dismiss = (): void => { card.remove(); offOrigin?.(); offOrigin = null; };
+  const clearIt = (): void => { clearInput(localStorage); dismiss(); };
+  card.append(
+    line("The saved brand didn't open, so the studio started without it."),
+    line(refused.message),
+    line('Choosing a brand replaces the saved one. Export it first to keep a copy as design.md.'),
+    btn('Export saved brand', 'refused-brand-export', exportIt),
+    btn('Clear saved brand', 'refused-brand-clear', clearIt),
+  );
+  document.body.insertBefore(card, document.getElementById('app'));
+  // GONE THE MOMENT A BRAND LOADS (review of #1997). Left mounted, the card outlived the choice: it sat under
+  // the frame, first in tab order, and its Clear would have deleted the brand just chosen, whose rebuild
+  // had already persisted over the refused one. Every load assigns a new provenance (`loadInput`), which
+  // invalidates `origin`, so this hears each one whichever control made it.
+  offOrigin = subscribe('origin', dismiss);
+}

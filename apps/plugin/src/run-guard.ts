@@ -16,8 +16,9 @@
 /** The operations that write, by the agent command's name (the wire's names for them). */
 export type WriteCmd = 'apply-theme' | 'build-components' | 'file-setup' | 'style-guide' | 'prune';
 
-/** Each operation's title, as the Activity drawer shows it (`apps/studio/src/shell/activity.ts` `OP_TITLE`). */
-const TITLE: Readonly<Record<WriteCmd, string>> = {
+/** Each operation's title, as the Activity drawer shows it (`apps/studio/src/shell/activity.ts` `OP_TITLE`). Two copies, because the
+ *  plugin's main thread does not bundle the shell; `test-agent-link.ts`'s `busy/titles` keeps them equal (#1995). */
+export const TITLE: Readonly<Record<WriteCmd, string>> = {
   'apply-theme': 'Apply Theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guide', prune: 'Prune stale',
 };
 
