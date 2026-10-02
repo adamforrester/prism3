@@ -43,7 +43,8 @@ import {
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { inlineConfirm, leverBlock, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'fills')!;
@@ -73,6 +74,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   const edit = (key: string, write: () => void): void => {
     lastEdited = key;
     write();
+    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
     rebuild();
   };
 
@@ -425,6 +427,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         name.addEventListener('change', () => {
           lastEdited = 'gradients';
           if (!renameGradient(gi, name.value)) { name.value = g.name; return; }
+          noteSectionEdit();   // QA-B9, as `edit` does
           rebuild();
         });
         nf.append(name);
@@ -564,13 +567,14 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   const jumps = (): HTMLElement => {
     const nav = hook(h('nav', 'p3-jump'), 'fills-jump');
     nav.setAttribute('aria-label', 'Sections on this page');
+    nav.append(jumpLabel());
     PAGE.sections.forEach((s, i) => {
       const a = hook(h('a', 'p3-jump-link', s.title), 'fills-jump-link');
       a.href = `#p3-lsec-fills-${i}`;
       a.onclick = (e) => {
         e.preventDefault();
         const to = root.querySelector<HTMLElement>(`#p3-lsec-fills-${i}`);
-        to?.scrollIntoView({ block: 'start' });
+        if (to) scrollToStart(to);   // QA-B17: eased, and at once under reduced motion
         to?.focus({ preventScroll: true });
       };
       nav.append(a);

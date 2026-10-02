@@ -54,6 +54,7 @@ import { mountFillsLevers } from '../domains/color-fills';
 import { mountSurfacesPreview } from '../preview/surfaces';
 import { mountInteractiveLevers } from '../domains/color-interactive';
 import { mountInteractivePreview } from '../preview/interactive';
+import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
  *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
@@ -422,7 +423,25 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── the moved page in the two panes (S2 on) ─────────────────────────────────────────────────────
   let mounted: NewPageKey | null = null;
   let paneCleanups: (() => void)[] = [];
+  /** QA-I11: each page's two scroll positions, for this session, keyed by page. Saved as a page is released
+   *  and put back, without animating, as it is mounted again. A pane not drawn when its page is released (the
+   *  hidden one at narrow widths reads 0) keeps what it had. Nothing persists it: a reload starts afresh. */
+  const scrollMemo = new Map<NewPageKey, { levers: number; preview: number }>();
+  const drawn = (n: HTMLElement): boolean => n.getClientRects().length > 0;
   const unmountPanes = (): void => {
+    if (mounted) {
+      const was = scrollMemo.get(mounted);
+      // While Inspect covers the preview (or did until this render), its position is the one Inspect saved.
+      const covered = !!inspecting || !!root.dataset.inspect;
+      scrollMemo.set(mounted, {
+        levers: drawn(levers) ? levers.scrollTop : was?.levers ?? 0,
+        preview: covered ? previewBack : drawn(previewBody) ? previewBody.scrollTop : was?.preview ?? 0,
+      });
+    }
+    // A glide in flight belongs to the page being released, and so does any edit note.
+    cancelEasedScroll(levers);
+    cancelEasedScroll(previewBody);
+    dropEdits();
     for (const c of paneCleanups) c();
     paneCleanups = [];
     levers.replaceChildren();
@@ -430,6 +449,9 @@ export const mountFrame = (app: HTMLElement, opts: {
     mounted = null;
   };
   cleanups.push(unmountPanes);
+  // QA-B9: record which lever section each interaction is in. Records only; an edit handler turns a record
+  // into a note, and nothing else moves the preview (V1).
+  cleanups.push(trackLeverSections(levers));
 
   let lastLayout: string | null = null;
   const render = (): void => {
@@ -450,7 +472,20 @@ export const mountFrame = (app: HTMLElement, opts: {
     const moved = place ? newPageOf(place) : null;
     if (moved !== mounted) {
       unmountPanes();
-      if (moved) { NEW_PAGES[moved].levers(levers, paneCleanups); NEW_PAGES[moved].preview(previewBody, paneCleanups, opts.lend); }
+      if (moved) {
+        const row = NEW_PAGES[moved];
+        row.levers(levers, paneCleanups);
+        row.preview(previewBody, paneCleanups, opts.lend);
+        // QA-B9: an edit the levers noted (`noteSectionEdit`, called by Surfaces & fills' and Interactive's edit
+        // handlers) reveals the preview section its lever section pairs with. A page whose levers never note one
+        // (Palettes reveals its palette itself; Brand has no pairs) is never moved by this. Subscribed after the
+        // preview, so the reveal measures the preview this edit repainted.
+        paneCleanups.push(subscribe('brand', () => { const s = takeSectionEdit(); if (s) revealSection(previewBody, s); }));
+        // QA-I11: back where this page was, at once (a restore is not an edit, and does not glide).
+        const at = scrollMemo.get(moved);
+        levers.scrollTo({ top: at?.levers ?? 0, behavior: 'instant' });
+        previewBody.scrollTo({ top: at?.preview ?? 0, behavior: 'instant' });
+      }
       mounted = moved;
     }
     select(switchTabs, switchTabs.find((b) => b.id === `p3-switch-${kebab(page)}`) ?? null);

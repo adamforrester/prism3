@@ -339,8 +339,25 @@ reset();
 F.unpairIcons();
 ok(JSON.stringify(store.brandState) === JSON.stringify({ ...prism3, iconContrast: '3:1' }), `Unpair writes iconContrast "3:1" and nothing else (iconContrast ${JSON.stringify(store.brandState.iconContrast)})`);
 store.rebuild();
-const stillLocked = F.ICON_ROWS.filter((r) => F.lockedTo('light', r) !== null || F.lockedTo('dark', r) !== null).map((r) => r.role);
-ok(!F.iconsPaired() && stillLocked.length === 0, `unpaired, every icon row edits${stillLocked.length ? ` — still locked: ${stillLocked.join(', ')}` : ''}`);
+// The seven icon roles that keep their text's 4.5:1 floor under "3:1" follow their text under both lever values
+// (#1982), so their rows stay locked while unpaired. A literal typed here, never the module's own set.
+const FOLLOW_ALWAYS = ['icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info'];
+const stillLocked = F.ICON_ROWS.filter((r) => !FOLLOW_ALWAYS.includes(r.role) && (F.lockedTo('light', r) !== null || F.lockedTo('dark', r) !== null)).map((r) => r.role);
+ok(!F.iconsPaired() && F.ICON_ROWS.length - FOLLOW_ALWAYS.length === 24 && stillLocked.length === 0, `unpaired, every icon row but the seven edits${stillLocked.length ? ` — still locked: ${stillLocked.join(', ')}` : ''}`);
+for (const role of FOLLOW_ALWAYS) {
+  const r = F.ICON_ROWS.find((x) => x.role === role);
+  const twin = role.replace(/(^|\.)icon\./, '$1text.');
+  ok(!!r && F.lockedTo('light', r) === twin && F.lockedTo('dark', r) === twin,
+    `#1982 unpaired, ${role} stays locked as "Follows ${twin}" in Light and Dark (${r && F.lockedTo('light', r)}, ${r && F.lockedTo('dark', r)})`);
+}
+F.setRowOverride('light', F.TEXT_ROWS.find((r) => r.role === 'text.primary')!, '250');
+{
+  const all = allModes(), ic = roleIn(all, 'icon.primary', 'light'), tx = roleIn(all, 'text.primary', 'light');
+  ok(!!tx?.path?.endsWith('.250') && ic?.path === tx.path, `#1982 unpaired, a text.primary edit still moves icon.primary (icon ${ic?.path}, text ${tx?.path})`);
+}
+reset();
+F.unpairIcons();
+store.rebuild();
 const iconBrand = F.ICON_ROWS.find((r) => r.role === 'icon.brand')!;
 F.setRowOverride('light', iconBrand, '700');
 ok(JSON.stringify(store.brandState.overrides) === JSON.stringify({ light: { 'icon.brand': { palette: 'primary', step: '700' } } }),
@@ -354,11 +371,11 @@ ok(F.lockedTo('light', iconBrand) === null && F.lockedTo('dark', iconBrand) === 
   `paired, an icon row with its own override in Light edits there and stays locked in Dark (${F.lockedTo('light', iconBrand)}, ${F.lockedTo('dark', iconBrand)})`);
 F.setRowOverride('light', F.TEXT_ROWS.find((r) => r.role === 'text.brand')!, '300');
 ok(roleIn(allModes(), 'icon.brand', 'light')?.path === `${ROOT}.core.palette.primary.700`, 'and the engine keeps the explicit icon override over the carried text one');
-// A brand that loads unpaired (aurora, iconContrast "3:1"): no row is locked.
+// A brand that loads unpaired (aurora, iconContrast "3:1"): only the seven are locked.
 const aurora = (exampleBrands as Record<string, BrandInput>).aurora;
 reset(aurora);
-ok(aurora.iconContrast === '3:1' && !F.iconsPaired() && F.ICON_ROWS.every((r) => F.lockedTo('light', r) === null),
-  `aurora loads unpaired (iconContrast ${JSON.stringify(aurora.iconContrast)}): every icon row edits`);
+ok(aurora.iconContrast === '3:1' && !F.iconsPaired() && F.ICON_ROWS.every((r) => FOLLOW_ALWAYS.includes(r.role) ? F.lockedTo('light', r) !== null : F.lockedTo('light', r) === null),
+  `aurora loads unpaired (iconContrast ${JSON.stringify(aurora.iconContrast)}): every icon row but the seven edits, and the seven stay locked`);
 
 // Re-pair (owner decision Q52): iconContrast back to "text", and every icon override gone, page and inverse, in
 // every mode; every other override kept. The expected brands are literals typed here, never `pairIcons`' own output.

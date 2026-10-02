@@ -90,6 +90,11 @@ export const stateLine = (text: string, kind: 'hint' | 'warn' = 'hint'): HTMLEle
 };
 export const subLine = (text: string): HTMLElement => h('p', 'p3-sub', text);
 
+/** The jump links' visible label (QA-B17, APPROVED copy). The links' landmark keeps its own accessible name. */
+export const JUMP_TO = 'Jump to:';
+/** The label, drawn first in a page's jump links. */
+export const jumpLabel = (): HTMLElement => hook(h('span', 'p3-jump-label', JUMP_TO), 'jump-label');
+
 const focused = (n: Element): boolean => document.activeElement === n;
 /** Write text only when it changed: a same-value write still replaces the text node and costs a layout. */
 export const setText = (n: Node, t: string): void => { if (n.textContent !== t) n.textContent = t; };
