@@ -221,6 +221,8 @@
  *   · the success collapse never scheduled → `F2 … a success collapses the drawer by 5 s (COLLAPSE_MS is 4 s), its result still on the drawer's bar row`.
  *   · the drawer's reveal branch removed, or the page pill's click without `hostChanged()` →
  *     `F2 … clicking the failure's verdict on the page row opens the drawer on its Set up file row, expanded`.
+ *   · the busy label's hidden layer taken out of layout (`display: none` for `visibility: hidden`, owner
+ *     decision #4 on #1956) → `… the bar's Apply keeps its width while busy (123.1 idle, 126.3 busy)`.
  *   S1.3 review (orchestrator's review of #1923):
  *   · the token list's rows removed → `… Inspect › Tokens opens on Primitives, with palette.neutral.950 at #0d0d0e — row null`.
  *   · Inspect lending a no-op repaint, or `(h) => renderPreviewTokens(h)` (the `paintVolatile` fallback) →
