@@ -24,6 +24,8 @@
  *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted
  *   · brackets/<cmd>: the panel is told the agent's command started and finished, around its verdict (S11)
  *     (mutation: the dispatcher's `onStart` call removed → every `brackets/<cmd>` fails, by name)
+ *   · brackets/throw: a handler that throws still sends agent-finished, so the panel's row cannot stick
+ *     (mutation: `onFinish` moved out of the `finally`, after the try → `brackets/throw` fails, by name)
  *   · envelope: every field of the result envelope, for every command
  *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
  *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
@@ -317,6 +319,24 @@ section('claim-before-run');
   await tick();
   duringCall = null;
   ok(claimedDuring, 'the id is in `claimed` while its handler runs');
+}
+
+/* ── brackets/throw ─────────────────────────────────────────────────────────────────────────────────── */
+section('brackets/throw — a handler that throws still tells the panel the run finished');
+{
+  // The spy's `duringCall` runs inside the ACTIONS entry the dispatcher calls, so throwing from it is the
+  // handler throwing. Without `agent-finished` the panel's Activity row stays on "Running", tagged Agent.
+  posted.length = 0;
+  const { id } = await send('apply-theme', { input: brand });
+  duringCall = () => { throw new Error('test host: the handler threw'); };
+  await tick();
+  duringCall = null;
+  const r = (await read(id)) as AgentResult;
+  ok(r.ok === false && r.error?.code === 'handler-threw', `brackets/throw: the command fails as handler-threw (${r.error?.code})`);
+  const at = (type: string): number => posted.findIndex((m) => m.type === type && m.id === id && m.cmd === 'apply-theme');
+  ok(at('agent-started') >= 0 && at('agent-started') < at('agent-finished'),
+    'brackets/throw: the panel still gets agent-started, then agent-finished, naming the command');
+  ok(!posted.some((m) => m.type === 'apply-result'), 'brackets/throw: and no verdict, so the drawer restores the row\'s previous result');
 }
 
 /* ── order ──────────────────────────────────────────────────────────────────────────────────────────── */
