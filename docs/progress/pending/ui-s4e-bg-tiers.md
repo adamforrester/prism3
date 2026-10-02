@@ -40,10 +40,13 @@
 - **Return to Auto is disabled when nothing was written.** The S4e smoke checks it is enabled before clicking (through the hook guard, which refuses a bare `.click`), so a pick that wrote no input fails by name instead of timing out.
 - **The equivalence bundles** were built from this worktree with `origin/main`'s two changed files swapped in at load time (`fills-input.ts`, `color-fills.ts`); the engine is the same at both refs, so nothing else differs.
 
-### Open with the owner (DRAFT copy, pending approval)
+### Owner copy (APPROVED 2026-10-02)
 
 - **The four controls' names:** "Secondary", "Tertiary", "Inverse secondary", "Inverse tertiary", under the tokens `background.secondary`, `background.tertiary`, `inverse.background.secondary`, `inverse.background.tertiary`.
 - **The floor's Auto label:** "Auto · follows background.secondary (‹step›)", e.g. "Auto · follows background.secondary (neutral 050)".
-- **The Background fills info text** (APPROVED 2026-10-02, unchanged here) says "The contrast floor moves with the page." Under option A that is true only while Secondary is Auto; with Secondary set, the floor follows Secondary. A proposal, if the owner wants it: "The page, its tiers and the inverse fill for the mode the preview shows. The contrast floor follows background.secondary."
+- **The Background fills info text** is now "The page, its tiers and the inverse fill for the mode the preview shows. The contrast floor follows background.secondary." It replaces S4c's "The contrast floor moves with the page.", which stopped being true once Secondary could be set: under option A the floor follows Secondary. `test:chrome` holds the rendered toggletip to the literal.
+
+### Design calls, for owner review
+
 - **The inverse tiers' palette** is chosen in the picker (a pick on another palette writes `{ palette, step }`), with no outer palette select. If the owner wants the Inverse fill's outer select for each tier, it needs a seed rule (the band seeds its darkest step).
 - **Layout:** the floor full width; the two inverse tiers on one row.

@@ -2839,7 +2839,7 @@ for (const host of ['web', 'figma']) {
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   // The Background fills info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this page
   // and not the engine manifest's description, which stays as it is for MCP and the emission. Literal.
-  const SURFACES_TIP = 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.';
+  const SURFACES_TIP = 'The page, its tiers and the inverse fill for the mode the preview shows. The contrast floor follows background.secondary.';
   ok(copy.surfacesTip === SURFACES_TIP, `${host}: the Background fills info text is the owner's — read ${JSON.stringify(copy.surfacesTip)}`);
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);

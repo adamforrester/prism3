@@ -88,7 +88,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
     const b = leverBlock('surfaces', {
       label: 'Background fills',
-      desc: 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.',
+      desc: 'The page, its tiers and the inverse fill for the mode the preview shows. The contrast floor follows background.secondary.',
     });
     const opts = neutralStepOptions();
     const { source: m, editable } = surfaceSourceOf(currentMode);
