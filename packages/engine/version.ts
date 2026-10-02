@@ -2744,6 +2744,18 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.221.0 — folded 2026-10-02 from 1 change note, newest merge first.
+ *
+ * [engine-icon-follows-text · minor · 2b413d28] A text override carries to its icon twin wherever the tree has one, when icons match text (#1968).
+ * Before, only the interactive label inks did (#1617): an override on text.brand left icon.brand at its
+ * derived value even under iconContrast 'text', the default, and the icon has no editor of its own.
+ * withIconTwins now reads the twin map off the mode's tree (the path with its text segment swapped for
+ * icon), so text.*, inverse.text.* and both link families carry. Under iconContrast '3:1' only the
+ * interactive pairs carry, because a non-interactive icon then has its own floor and derives its own
+ * value; the interactive glyph is the label's value twin under both lever values (owner, 2026-10-02).
+ * An explicit icon override still wins. No path is added or removed, so CONTRACT_VERSION is unchanged,
+ * and no committed artifact moves: no corpus brand carries a per-mode override.
+ *
  * 0.220.0 — folded 2026-10-01 from 3 change notes, newest merge first.
  *
  * [lane-links-follow-action · minor · 8b793d96] #1895: an unset `linkPalette` follows the palette the action role resolves to, `roleColors.action`
@@ -4444,7 +4456,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.220.0';
+export const ENGINE_VERSION = '0.221.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
