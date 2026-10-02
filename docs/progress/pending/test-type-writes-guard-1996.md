@@ -27,6 +27,16 @@ own declaration, and states the rule about the write's target, three ways:
 The Type mode fields are literals, and every member of the engine's `ModeLevers` type must be classified as
 Type or not, so a new per-mode field fails until someone decides.
 
+### Review fixes (orchestrator, at `e0cf60a4`)
+
+- **`csSlider` and `csPicker` are in rule 3's set.** Their `UNRESOLVED_OK` entries said "every caller passes a
+  literal spacing or radius key", and nothing checked it: `csSlider('typography.baseSize', …)` in `main.ts`
+  passed 152/152, although it ends in `setPath(brandState, key, …)`. The entries now rest on rule 3, and the
+  mutation fails by name.
+- **An alias of `brandState` itself is followed** (`const bs = brandState; bs.typography.x = v`, and
+  `setPath(bs, 'typography.…')`). Only aliases of `brandState.typography` were. One helper now splices an
+  alias's initializer onto the chain, and the keyed and `Object.assign` checks use it too.
+
 ### What was checked, not assumed
 
 `main.ts` names three Type lever keys today (`typography.typeScale`, `.displayCeiling`, `.titleFloor`). All
@@ -42,6 +52,8 @@ three are reads, for the current value and the options; their writes go through 
 | an alias write, `const tt = brandState.typography; tt.titleFloor = 16` | rule 1, `… tt.titleFloor = 16` |
 | `setPath(brandState, 'typography.typeScale', …)` | rule 2 |
 | `renderControl(ceil)`, a Type lever to the generic renderer | rule 3 |
+| `csSlider('typography.baseSize', …)` / `csPicker('typography.typeScale', …)` (review) | rule 3, each by name |
+| `const bs = brandState; bs.typography.titleFloor = 16` / `setPath(bs, 'typography.typeScale', …)` (review) | rule 1 / rule 2 |
 
 The first two pass `main`'s guard, 149/149: the control.
 

@@ -549,15 +549,15 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   // (`(brandState.typography ??= {}).sizes…`) and the generic per-mode swap (`setModeLever(m, `${modeField}.…`)`).
   // So the rule is stated about what is written, three ways:
   //   1. DIRECT: no write anywhere in `main.ts` lands on `brandState.typography`, by any operator, `delete`,
-  //      `++`/`--`, `Object.assign`, a mutating method, or through a one-level alias of it.
+  //      `++`/`--`, `Object.assign`, a mutating method, or through a one-level alias of it or of `brandState`.
   //   2. KEYED: every `setPath(brandState, K, …)` and `setModeLever(M, K, …)` key is resolved statically (a
   //      literal, a template's literal head, or a head narrowed by an enclosing `if (X === 'lit')`) and must
   //      not be a Type key. A key that does not resolve must be on `UNRESOLVED_OK`, by function and key text,
   //      with the reason it cannot carry a Type key.
-  //   3. FED: the generic lever renderer (`renderControl` and its wrappers) writes whatever lever it is
-  //      handed, so it is never handed a Type one: no `typography.*` key literal, `leversFor('typography')`, or
-  //      variable built from either, reaches it. This is what makes rule 2's `lever.key` entry true rather
-  //      than asserted.
+  //   3. FED: the generic lever renderer (`renderControl` and its wrappers) and the Size & radius `csSlider`/
+  //      `csPicker` write whatever key they are handed, so none is handed a Type one: no `typography.*` key
+  //      literal, `leversFor('typography')`, or variable built from either, reaches them. This is what makes
+  //      rule 2's `UNRESOLVED_OK` entries true rather than asserted.
   // ORACLE: the Type mode fields are literals here, and every member of the engine's `ModeLevers` type must be
   // classified one way or the other, so a new per-mode field fails until someone decides which it is.
   {
@@ -577,8 +577,8 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     const UNRESOLVED_OK: Record<string, string> = {
       'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
       'renderPerModeSelect:key': 'its callers are PER_MODE_SELECTS, the radius, density and tempo selects',
-      'csSlider:key': 'Size & radius sliders; every caller passes a literal spacing or radius key',
-      'csPicker:key': 'Size & radius pickers; every caller passes a literal spacing or radius key',
+      'csSlider:key': 'Size & radius sliders; rule 3 holds that no caller passes a Type key',
+      'csPicker:key': 'Size & radius pickers; rule 3 holds that no caller passes a Type key',
       'renderShadowEditor:path': 'the shadow editor; `path` is built from `shadow.`',
     };
     // A one-file program, so an identifier resolves to ITS declaration through the checker. Matching variables by
@@ -622,14 +622,19 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
       if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return rootId(e.left);
       return null;
     };
-    /** Rooted at `brandState.typography`, directly or through ONE alias (`const t = brandState.typography`). */
-    const isTypeTarget = (e: ts.Expression, depth = 0): boolean => {
+    /** The member chain under `e` with ONE alias spliced in at its root: through `const t = brandState.typography`
+     *  `t.x` is `brandState.typography.x`, and through `const bs = brandState` `bs.typography.x` is too (review of
+     *  #2017: an alias of `brandState` itself escaped when only aliases of `brandState.typography` were followed). */
+    const brandRooted = (e: ts.Expression): string[] => {
       const c = chain(e);
-      if (c[0] === 'brandState' && c[1] === 'typography') return true;
+      if (c[0] === 'brandState') return c;
       const r = rootId(e);
-      const init = r && depth === 0 ? initOf(r) : null;
-      return !!init && isTypeTarget(init, 1);
+      const init = r ? initOf(r) : null;
+      return init ? [...chain(init), ...c.slice(1)] : c;
     };
+    const isTypeTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && c[1] === 'typography'; };
+    /** `brandState` itself, directly or through one alias. */
+    const isBrandState = (e: ts.Expression): boolean => brandRooted(e).join('.') === 'brandState';
     const ASSIGN = new Set([ts.SyntaxKind.EqualsToken, ts.SyntaxKind.PlusEqualsToken, ts.SyntaxKind.MinusEqualsToken,
       ts.SyntaxKind.AsteriskEqualsToken, ts.SyntaxKind.SlashEqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken,
       ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken]);
@@ -677,9 +682,9 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
         const callee = n.expression.getText();
         const [a0, a1] = n.arguments;
         if (callee === 'Object.assign' && a0 && (isTypeTarget(a0)
-          || (chain(a0).join('.') === 'brandState' && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => pr.name?.getText() === 'typography'))))) direct.push(at(n));
+          || (isBrandState(a0) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => pr.name?.getText() === 'typography'))))) direct.push(at(n));
         if (ts.isPropertyAccessExpression(n.expression) && MUTATORS.has(n.expression.name.text) && isTypeTarget(n.expression.expression)) direct.push(at(n));
-        const keyedCall = (callee === 'setPath' && a0 && chain(a0).join('.') === 'brandState') ? 'path' : callee === 'setModeLever' ? 'mode' : null;
+        const keyedCall = (callee === 'setPath' && a0 && isBrandState(a0)) ? 'path' : callee === 'setModeLever' ? 'mode' : null;
         if (callee === 'setPath' && a0 && isTypeTarget(a0)) direct.push(at(n));
         if (keyedCall && a1) {
           const pre = keyPrefix(a1, n);
@@ -703,7 +708,9 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
     // Rule 3: what the generic renderer is fed.
-    const FEEDS = new Set(['renderControl', 'leverControl', 'leverSection', 'csLeverStack', 'renderPerModeSelect']);
+    // `csSlider`/`csPicker` too (review of #2017): each ends in `setPath(brandState, key, …)`, so a Type key handed
+    // to either is a Type write, and their `UNRESOLVED_OK` entries rest on this check rather than on a claim.
+    const FEEDS = new Set(['renderControl', 'leverControl', 'leverSection', 'csLeverStack', 'renderPerModeSelect', 'csSlider', 'csPicker']);
     /** Does `e` name a Type lever: a `typography.*` key literal, `leversFor('typography')`, or a variable whose
      *  own initializer does (one level, resolved by the checker)? */
     const typeLever = (e: ts.Node, depth = 0): boolean => {
@@ -724,7 +731,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
       ts.forEachChild(n, visitFeeds);
     };
     visitFeeds(sf);
-    ok(fed.length === 0, `src/main.ts hands no Type lever to the generic lever renderer, which would write it${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
+    ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer, csSlider, csPicker)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
   }
   ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports its Type writes from ./state/type-input');
 }
