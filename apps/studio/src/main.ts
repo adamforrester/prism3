@@ -242,7 +242,10 @@ const syncErrorBar = (): void => {
   // `hidden`, not an inline `display`: the bar sits in the frame's notices row, which is chrome, and the
   // chrome carries no runtime inline values (`test:chrome`).
   globalErrHost.hidden = !lastError;
-  if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
+  // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
+  // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
+  if (lastError && restoreRefusal) globalErrHost.textContent = `This file's saved brand didn't resolve: ${restoreRefusal} Apply Theme and Prune stale are off until a brand resolves, so the demo brand on screen can't be written over the file's brand. Load an example or import a design.md to continue.`;
+  else if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
 // `syncChrome()` refreshes EVERY declared chrome surface (see CHROME_SURFACES) rather than naming
@@ -617,7 +620,13 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   const effect = brandEffectFor(m, prev, host);
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
-  if (effect === 'loadBrand' && m.kind === 'restore-input') loadBrand(m.input as BrandInput, { kind: 'file' });
+  // #1989: a restore the engine refuses in RESOLUTION leaves `lastGoodInput` on the boot demo, so Apply and
+  // Prune go off until a brand resolves (`restoreRefusal`). `loadBrand` renders once, before this can know
+  // the outcome, so a refusal renders again with the writes off and the bar saying why.
+  if (effect === 'loadBrand' && m.kind === 'restore-input') {
+    loadBrand(m.input as BrandInput, { kind: 'file' });
+    if (lastError) { restoreRefusal = lastError; build(); }
+  }
   // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
   // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
   // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
@@ -5855,6 +5864,8 @@ const renderPruneDialog = (): HTMLElement => {
   const cancel = el('button', 'barbtn', 'Cancel') as HTMLButtonElement;
   cancel.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
   const del = hook(el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement, 'dialog-confirm');
+  // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
+  if (restoreRefusal) { del.disabled = true; del.title = RESTORE_OFF_HINT; }
   del.onclick = () => { setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true); };
   foot.append(cancel, del);
   dlg.append(foot);
@@ -6092,6 +6103,25 @@ const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
 
+/**
+ * THE FILE'S BRAND DID NOT RESOLVE (#1989), so Apply Theme and Prune stale are off until a brand does.
+ *
+ * The host's restore check (`reduce`) only asks `brandTheme` to accept the blob, so a brand the engine
+ * refuses later, in resolution (a ground override), still loads: `brandState` holds the file's brand, the
+ * rebuild fails, and `theme` and `lastGoodInput` stay on the boot demo. Both writes post `lastGoodInput`,
+ * so either one would have written the DEMO over the file's brand, under a bar saying only that a change
+ * had not applied. Set from the restore dispatch in `handleHostMessage`; cleared by the first rebuild that
+ * resolves, whatever brought it (an example, an import). A later failing edit does not set it again: that
+ * `lastGoodInput` is the designer's own brand, one edit back, which is what Apply has always posted.
+ *
+ * The bar's Apply and the Figma menu's two items are DISABLED rather than guarded in `runApply`/`runPrune`:
+ * those are their only callers, so a guard there could never fire and no test could tell it was gone. The
+ * prune dialog's Delete is disabled the same way, because a host preview can open that dialog at any time.
+ */
+let restoreRefusal: string | null = null;
+subscribe('brand', () => { if (!lastError) restoreRefusal = null; });
+const RESTORE_OFF_HINT = "Off until a brand resolves. This file's saved brand did not, and writing now would put the demo brand over it.";
+
 /** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
  *  the state. */
 const runApply = (): void => {
@@ -6123,9 +6153,10 @@ const PRUNE_HINT = 'Removes the styles, modes and variables this config no longe
  *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
  *  so its busy label is the item's own. */
 const figmaActions = (): FigmaAction[] => [
-  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: false, run: runApply },
+  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: !!restoreRefusal,
+    ...(restoreRefusal ? { hint: RESTORE_OFF_HINT } : {}), run: runApply },
   { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
-    disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
+    disabled: pruneBlocked() || !!restoreRefusal, hint: restoreRefusal ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
   { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage('components') },
   { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
@@ -6199,6 +6230,9 @@ function renderBar(): void {
     applyBtn.type = 'button';
     applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
     setBusy(applyBtn, applyBusy());
+    // Off, natively, while the file's brand does not resolve (#1989): unlike busy, nothing is running that
+    // focus should wait on. The reason is the error bar's, and the tooltip's.
+    if (restoreRefusal) { applyBtn.disabled = true; applyBtn.title = RESTORE_OFF_HINT; }
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
     applyBtn.onclick = runApply;
 
