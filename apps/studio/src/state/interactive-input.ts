@@ -15,8 +15,8 @@
  * WHAT IS NOT A WRITE HERE. A lever chip or select (`outlineInteraction`, `neutralEmphasis`, `actionPalette`,
  * `linkPalette`, `iconContrast`, `disabledStrategy`, `disabledMin`) writes `setPath(brandState, key, v)`,
  * which `setLever` below is, named so the page has one door. The link-family pin (`setLinkFamilyOverride`)
- * keeps the legacy semantics exactly, including the palette it reads (`theme.linkPalette`); #1961 is open on
- * how it and Surfaces & fills' link row should agree, and this module does not decide it.
+ * keeps the legacy semantics exactly, including the palette it reads (`theme.linkPalette`). It is the studio's
+ * only link write: Surfaces & fills' link row is gone (#1961, owner decision Q28).
  */
 import { resolveAllModes } from '@prism3/engine/modes';
 import type { Theme } from '@prism3/engine/theme';

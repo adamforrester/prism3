@@ -4,7 +4,8 @@
  *
  * ONE BLOCK PER KEY. `leverBlock(key)` carries the key's `data-p3` hook (`leverHook`, `levers/controls.ts`),
  * so `test:chrome` can check that each manifest key homed on a page renders exactly once. The label and
- * the description are the manifest's own (`@prism3/engine/levers`); nothing here restates one.
+ * the description are the manifest's own (`@prism3/engine/levers`) unless the page hands its own in
+ * (`label`, `desc`): the page's words then win for this surface only, and the manifest's stay as they are.
  *
  * NO REPAINT OF ITS OWN. Each control calls the handler its page hands it, and that handler writes the
  * brand and calls `rebuild()`. A control's `set` updates it in place from the store, and never touches a
@@ -37,8 +38,10 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   const L = leverOf(key);
   const label = opts.label ?? L?.label ?? key;
   // A schema input that is not a manifest lever (Brand's name, namespace, personality and modes, S3) has no
-  // manifest description, so its page hands one in (concept v6's words) or shows no info button.
-  const desc = L?.description ?? opts.desc ?? '';
+  // manifest description, so its page hands one in (concept v6's words) or shows no info button. A page may
+  // also hand one in over a manifest lever's (Surfaces & fills' Background fills, S4c): the Studio's words
+  // for that page, while the engine's description stays what MCP, the manifest and the emission read.
+  const desc = opts.desc ?? L?.description ?? '';
   const el = hook(h(opts.group ? 'fieldset' : 'div', 'p3-lever'), leverHook(key));
   el.id = `p3-lv-${slug(key)}`;
   const head = h(opts.group ? 'legend' : 'div', 'p3-lever-head');

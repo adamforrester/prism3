@@ -332,6 +332,10 @@
 /* A legacy view inside Inspect: pinned light (D2), on its own page-colored container, inset like the
    chrome's own cards (Health, the Decisions log) so its toolbar does not sit on the container's edge. */
 .p3-legacy-card { min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+/* Q24: a Color preview's section container on the levers panel's gray. The section keeps `styles.css`'s
+   edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
+   pinned light, so this reads the light value in either chrome theme. */
+.p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
 
 /* ── narrow (Q7): one column, one sticky top row, the tabs as a select ───────────────────── */
 .p3-frame[data-w="narrow"] .p3-head { display: contents; }
@@ -653,9 +657,10 @@
 .p3-step[data-below="true"] .p3-step-ratio .p3-ico { color: var(--p3-bad-icon); }
 
 /* ── Color › Surfaces & fills (S4a): labeled fields, the fill rows, the gradient editor ──────────── */
+/* One set of surface controls, for the previewed mode (S4c, owner decision Q22: no Light and Dark groups). */
 .p3-modegroup { display: grid; gap: var(--p3-space-150); }
-.p3-modegroup + .p3-modegroup { padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-modegroup-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+/* A field that names its token has a two-line label, so the fields share their bottom edge, not their top. */
+.p3-modegroup .p3-fieldgrid { align-items: end; }
 .p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--p3-step-w) * 2), 1fr)); gap: var(--p3-space-150) var(--p3-space-200); }
 .p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
 .p3-field-wide { grid-column: 1 / -1; }
@@ -674,6 +679,8 @@
 .p3-fill-label { font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
 .p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); }
+/* A read-only row's value in place of the picker: the scrim's primitive and opacity (S4c). */
+.p3-fill-read { color: var(--p3-text-2); font-size: var(--p3-fs-14); white-space: nowrap; }
 .p3-pick-ratio { display: inline-flex; align-items: center; gap: var(--p3-space-025); color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
 .p3-pick-ratio[data-below="true"] { color: var(--p3-bad-text); }
 .p3-pick-ratio[data-below="true"] .p3-ico { color: var(--p3-bad-icon); }
