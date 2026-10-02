@@ -758,7 +758,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · `applyBusy` ignoring the agent's run → `S11 during an agent's Apply the panel's Apply Theme is busy …`.
 //   · `runApply`'s busy guard removed → `S11 clicking the busy Apply Theme posts nothing …`.
 //   · the status line's start announcement removed → `S11 the start is announced once …`.
-//   · a clean result leaving its row expanded → `S11 a clean result collapses its row …`.
+//   · a clean result after a run leaving its row expanded → `S11 a clean result collapses its row …`; one that
+//     lands with no run (a later read-back) → `S11 a clean read-back reads "Clean" and collapses the row …`.
 //   · `HISTORY_MAX` set to 6 → `S11 the history keeps exactly five earlier results …`.
 //   · the hover hold, or the focus hold, removed from the collapse → `S11 the collapse waits while the pointer …` / `… while focus …`.
 //   · the reveal expanding the first row, not the asked one → `S11 clicking it opens the drawer with the Set up file row expanded …`.
