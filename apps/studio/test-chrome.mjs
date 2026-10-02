@@ -3640,11 +3640,11 @@ console.log(`\nType (S6.2)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the Type preview's specimen roots, each a section on the
  *  brand's page color. Literal: the shared type sample (#1942), Faces, the two lifted Preview-tab sections, and the
  *  fluid read-out under the owner's plain words (Q70). */
-const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Faces', 'Weight roles by face', 'The full type ramp', 'Headings scale between mobile and desktop'];
+const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Font families', 'Weight roles by font family', 'The full type ramp', 'Headings scale between mobile and desktop'];
 /** The text types, in order, each with the plain name its token carries under it (owner decision Q68, its example
- *  "Body face"). Literal. */
-const TYPE_FACES = [['display', 'Display face'], ['title', 'Title face'], ['body', 'Body face'], ['label', 'Label face'],
-  ['caption', 'Caption face'], ['eyebrow', 'Eyebrow face'], ['code', 'Code face']];
+ *  "Body face", with the owner's rule of 2026-10-02 applied: never "face" in visible copy). Literal. */
+const TYPE_FACES = [['display', 'Display family'], ['title', 'Title family'], ['body', 'Body family'], ['label', 'Label family'],
+  ['caption', 'Caption family'], ['eyebrow', 'Eyebrow family'], ['code', 'Code family']];
 /** The default theme's faces, from the emission, the oracle for what each select shows in Light. */
 const TYPE_FACE_OF = (g) => {
   let v = OUT[OUT_ROOT]?.core?.font?.family?.[g]?.$value;
@@ -3653,7 +3653,7 @@ const TYPE_FACE_OF = (g) => {
 };
 ok(TYPE_FACE_OF('body') === 'Inter' && TYPE_FACE_OF('display') === 'Playfair Display', `the oracle resolves the default theme's faces from the emission (body ${TYPE_FACE_OF('body')}, display ${TYPE_FACE_OF('display')})`);
 /** The Faces copy (Q23: the lever section and the preview section say the same thing). DRAFT, typed here. */
-const FACES_COPY = ['Faces', 'The faces in the brand, and the face each text type uses.'];
+const FACES_COPY = ['Font families', 'The font families in the brand, and the family each text type uses.'];
 const sectionGrounds = (page, hk) => page.evaluate((hostHook) => {
   const parse = (x) => { const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
   const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
@@ -3713,7 +3713,7 @@ for (const host of ['web', 'figma']) {
       });
       const lib = [...pane.querySelectorAll('[data-p3="face-row"]')].map((row) => ({ slug: row.dataset.slug, first: row.querySelector('.p3-fill-name')?.firstElementChild?.textContent ?? null }));
       const lsec = pane.querySelector('[data-p3="lever-section"]');
-      const prev = [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].find((x) => x.querySelector('.psec-t')?.textContent === 'Faces');
+      const prev = [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].find((x) => x.querySelector('.psec-t')?.textContent === 'Font families');
       return {
         blocks: ['lever-typography-typeface-library', 'lever-typography-families'].map((hk) => pane.querySelectorAll(`[data-p3="${hk}"]`).length),
         fams, lib, tabs: pane.querySelectorAll('.pvseg').length + document.querySelectorAll('[data-p3="legacy-page"] .pvseg').length,
@@ -3746,6 +3746,23 @@ for (const host of ['web', 'figma']) {
     const after = await page.evaluate(() => ({ all: !!document.querySelector('[data-p3="family-all-apply"]'), label: document.querySelector('[data-p3="type-advanced"]')?.textContent?.trim(), expanded: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-expanded') }));
     ok(!before.all && before.label === 'Show 2 advanced' && after.all && after.expanded === 'true' && after.label === 'Hide 2 advanced',
       `Q64: ${host}: Apply to all sits behind "Show 2 advanced" (${JSON.stringify({ before, after })})`);
+    // The owner's rule (2026-10-02): never "face" as a word in visible copy, on the levers (the lent region, the
+    // info toggletips and Show advanced's controls included) or the preview. Read off the rendered DOM: every text
+    // node, option and aria-label, title and placeholder, with the token pills taken out (`font.typeface.*` is a
+    // token, and fine). Code, hooks and classes are not copy and are not read.
+    for (const tip of await page.locator('[data-p3="levers-pane"] [data-p3="lever-info"]').all()) await tip.click();
+    const faceWords = await page.evaluate(() => {
+      const out = [];
+      for (const root of [document.querySelector('[data-p3="levers-pane"]'), document.querySelector('[data-p3="preview-body"]')]) {
+        const c = root.cloneNode(true);
+        for (const t of c.querySelectorAll('[data-p3="token-pill"], .p3-fill-tok')) t.remove();
+        const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) if (/\bfaces?\b/i.test(n.textContent)) out.push(n.textContent.trim().slice(0, 80));
+        for (const e of c.querySelectorAll('[aria-label], [title], [placeholder]')) for (const a of ['aria-label', 'title', 'placeholder']) { const v = e.getAttribute(a); if (v && /\bfaces?\b/i.test(v)) out.push(`${a} "${v.slice(0, 80)}"`); }
+      }
+      return out;
+    });
+    ok(faceWords.length === 0, `owner rule: ${host}: no "face" or "faces" in the Type page's visible copy, levers and preview, token pills aside${faceWords.length ? ` — found ${faceWords.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
     ok(errors.length === 0, `${host} Type levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

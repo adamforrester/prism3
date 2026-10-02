@@ -542,7 +542,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   }
   const OWN: Array<[RegExp, string]> = [
     [/palSection\(\s*'The full type ramp'/, "its own type ramp (palSection('The full type ramp', …))"],
-    [/palSection\(\s*'Weight roles by face'/, "its own Weight roles by face section (palSection('Weight roles by face', …))"],
+    [/palSection\(\s*'Weight roles by (face|font family)'/, "its own Weight roles by font family section (palSection('Weight roles by font family', …))"],
     [/The quick brown fox jumps over the lazy dog|'tsm-list'/, 'the shared type sample\'s text ("The quick brown fox jumps over the lazy dog") or its tsm-list markup'],
     [/'fz-list'|What fluid does — /, "its own fluid read-out (the fz-list markup or \"What fluid does — \")"],
   ];

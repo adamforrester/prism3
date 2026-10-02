@@ -3100,7 +3100,7 @@ const renderRepoints = (): HTMLElement | null => {
 const renderCategorySetup = (): HTMLElement => {
   const ty = theme.typography;
   const roleOrder = ty.weightRoles.map((w) => w.role);
-  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants, or sets italic as its only cut. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
+  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants, or sets italic as its only cut. Each ticked weight multiplies out into a real style at every size in that category. The font family is shown for context and set on Semantics.');
   // #416 — everything in this table is MODE-INVARIANT by contract (#296): which weights a category
   // ships and whether it gets italic/link decide which styles EXIST, and a mode never adds or removes
   // a token. The nudges are brand-level too. It used to disable every control outside Light, which
@@ -3108,7 +3108,7 @@ const renderCategorySetup = (): HTMLElement => {
   // rule is now stated positively and the controls are always live, which is also what stops them
   // being stranded now that the mode bar has left this page (`currentMode` is global and can still be
   // Dark from another page, which would have left this table permanently dead).
-  sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (face, weight numerics, sizes, rungs), which is done on Semantics and above.'));
+  sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (font family, weight numerics, sizes, rungs), which is done on Semantics and above.'));
   const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
   // #1296 — categories whose default cut is italic. Read from the composites like `italicG`, so the box
   // reports what the engine built rather than what the input asked for.
@@ -3117,7 +3117,7 @@ const renderCategorySetup = (): HTMLElement => {
   const wrap = el('div', 'cs-wrap');
   const table = hook(el('table', 'cs-table'), 'category-table');
   const head = el('tr');
-  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Face'));
+  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Family'));
   // Header casing is SOURCE-ONLY tidying: every table header is `text-transform:uppercase`, so the
   // rendered page was already consistent and none of this is visible. Measured before assuming —
   // an earlier pass here added a `mono` class on the strength of "these are token identifiers", which
@@ -3286,7 +3286,7 @@ const renderCategorySetup = (): HTMLElement => {
  *  family here, and a pin left STALE by a later face change is surfaced inline — never silent. */
 const renderFacePins = (): HTMLElement => {
   const ty = theme.typography;
-  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The face is fixed to the category’s bound family; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight. Italic is set with the Italic columns above, not with a pin.');
+  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The font family is fixed to the one the category binds; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight. Italic is set with the Italic columns above, not with a pin.');
   // The BOUND family for a category — `stack[0]`, the value `font.family.<cat>` carries and the value
   // the engine's pin validation compares against (`buildComposites` `familyPrimary`). This is the same
   // source the row's Face column reads, so the family the control WRITES cannot disagree with the one
@@ -3299,7 +3299,7 @@ const renderFacePins = (): HTMLElement => {
   const wrap = el('div', 'cs-wrap');
   const table = hook(el('table', mix('cs-table', 'pincut')), 'pin-cut-table');
   const head = el('tr');
-  head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Face'), el('th', 'cs-c', 'Style pin'));
+  head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Family'), el('th', 'cs-c', 'Style pin'));
   table.append(head);
   let slots = 0;
   // #1296 — an italic-default category takes no pin: the engine refuses any pin there, since a verbatim
@@ -3346,7 +3346,7 @@ const renderFacePins = (): HTMLElement => {
   }
   wrap.append(table);
   sec.append(wrap);
-  if (!slots) sec.append(el('p', 'sl-note', 'No pinnable slots yet — bind a face to a category on Semantics first.'));
+  if (!slots) sec.append(el('p', 'sl-note', 'No pinnable slots yet — bind a font family to a category on Semantics first.'));
   if (italicDefault.size) {
     const cats = TYPE_GROUP_ORDER.filter((g) => italicDefault.has(g)).join(' and ');
     sec.append(el('p', 'sl-note', `Not listed: ${cats}, which ${italicDefault.size === 1 ? 'is' : 'are'} italic by default. A pin binds its style verbatim, so it would override the italic. Clear Italic default above to pin a cut there.`));

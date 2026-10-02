@@ -13,7 +13,7 @@ import type { FaceStatus } from '../../ui/fonts';
 import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 
 /** The two tables' sub-headings: the levers' own names for the two controls (Q23). DRAFT, as the levers' are. */
-export const FACES_BY_TYPE = 'Face for each text type';
+export const FACES_BY_TYPE = 'Font family for each text type';
 export const FACES_LIBRARY = 'Typeface library';
 
 export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, copy: { title: string; desc: string },
@@ -42,7 +42,7 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
 
   // Each text type, its token, its face in this mode, whether the face is there, and a specimen in it.
   sec.append(subHead(FACES_BY_TYPE));
-  const byType = table(['Token', 'Face', 'Availability', 'Specimen']);
+  const byType = table(['Token', 'Family', 'Availability', 'Specimen']);
   for (const f of fams) {
     const tr = hook(el('tr'), 'faces-type-row');
     tr.dataset.group = f.group;
@@ -61,7 +61,7 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
 
   // The library: every face, its token, what uses it in this mode, and whether it is there.
   sec.append(subHead(FACES_LIBRARY));
-  const lib = table(['Token', 'Face', 'Availability', 'Used by']);
+  const lib = table(['Token', 'Family', 'Availability', 'Used by']);
   for (const tf of ty.typefaces) {
     const tr = hook(el('tr'), 'faces-library-row');
     tr.dataset.slug = tf.slug;

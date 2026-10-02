@@ -48,23 +48,23 @@ export const familyAuto = (face: string): string => `Auto: follows Light (${face
 /** The page's own copy. Every string here is DRAFT, pending the owner, unless marked otherwise. */
 export const TYPE_COPY = {
   libraryLabel: 'Typeface library',
-  libraryTip: 'The faces this brand can use. A face is in the library while a text type uses it, or once you add it.',
-  familiesLabel: 'Face for each text type',
-  familiesTip: 'Each text type’s font.family token names one face from the library. Swapping the face keeps every reference to the token.',
-  faceHead: 'Face',
-  addPlaceholder: 'Face name',
-  addLabel: 'Add a face to the library',
-  add: 'Add face',
+  libraryTip: 'The font families this brand can use. A family is in the library while a text type uses it, or once you add it.',
+  familiesLabel: 'Font family for each text type',
+  familiesTip: 'Each text type’s font.family token names one family from the library. Swapping the family keeps every reference to the token.',
+  faceHead: 'Family',
+  addPlaceholder: 'Font family name',
+  addLabel: 'Add a font family to the library',
+  add: 'Add font family',
   remove: (face: string): string => `Remove ${face} from the library`,
   spellWeb: 'Type the name exactly as the font names itself. A name this device lacks still saves, and the preview shows a fallback.',
   spellFigma: (n: number): string => `Pick one of the ${n.toLocaleString('en-US')} fonts this Figma can load, or type any name. A name not on the list still saves, but its text styles can’t apply here.`,
   missingWeb: (faces: readonly string[]): string => `Not installed on this device: ${faces.join(', ')}. The preview shows a fallback.`,
   missingFigma: (faces: readonly string[]): string => `Not in this Figma: ${faces.join(', ')}. Text styles using it can’t apply.`,
   allLabel: 'Set every text type to',
-  allChoose: 'Choose a face…',
+  allChoose: 'Choose a font family…',
   allApply: 'Apply to all',
-  allNote: 'Code keeps its own face.',
-  allLightOnly: 'Apply to all sets the Light faces. Preview Light to use it.',
+  allNote: 'Code keeps its own font family.',
+  allLightOnly: 'Apply to all sets the Light font families. Preview Light to use it.',
   usedBy: (types: readonly string[]): string => `Used by ${types.join(', ')}`,
   unused: 'Not used',
   lentTitle: 'Scale and weights',
@@ -73,8 +73,8 @@ export const TYPE_COPY = {
 } as const;
 /** The plain name under each `font.family.<type>` token (owner decision Q68's example, "Body face"). DRAFT. */
 const FACE_NAME: Record<string, string> = {
-  display: 'Display face', title: 'Title face', body: 'Body face', label: 'Label face',
-  caption: 'Caption face', eyebrow: 'Eyebrow face', code: 'Code face',
+  display: 'Display family', title: 'Title family', body: 'Body family', label: 'Label family',
+  caption: 'Caption family', eyebrow: 'Eyebrow family', code: 'Code family',
 };
 /** How many controls Show advanced holds (Q64): Apply to all, and the remove button on an unused face. */
 const ADVANCED_COUNT = 2;
@@ -426,7 +426,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     items = [];
     const derived = derivedLine();
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : [])];
-    const fx = faces(PAGE.sections.find((s) => s.title === 'Faces')!);
+    const fx = faces(PAGE.sections[0]);
     parts.push(fx.el, lent());
     items.push(...fx.items);
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'type-continue');

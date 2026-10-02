@@ -55,7 +55,7 @@ export const mountTypePreview = (host: HTMLElement, cleanups: (() => void)[], le
     fluid.append(read);
     const secs = [
       typeSampleSection(c, ty, cur, { ink: page.ink }),
-      facesSection(c, ty, cur, { title: 'Faces', desc: FACES_DESC }, (f) => faceStatus(f, fonts)),
+      facesSection(c, ty, cur, { title: 'Font families', desc: FACES_DESC }, (f) => faceStatus(f, fonts)),
       weightsByFaceSection(ty, rp.modes),
       typeRampSection(ty, [cur]),
       fluid,

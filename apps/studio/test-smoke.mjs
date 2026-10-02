@@ -1772,9 +1772,9 @@ for (const brand of BRANDS) {
 console.log(`\nType — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 const SG_TYPE = '[data-p3="preview-body"] [data-p3="type-style-guide"]';
 /** The Type preview's sections, by title, in order. Literal (S6.2). */
-const EXPECT_TYPE_SECTIONS = ['Type sample', 'Faces', 'Weight roles by face', 'The full type ramp', 'Headings scale between mobile and desktop'];
+const EXPECT_TYPE_SECTIONS = ['Type sample', 'Font families', 'Weight roles by font family', 'The full type ramp', 'Headings scale between mobile and desktop'];
 /** The shared sections it draws, by title, with the marker each module stamps on its root. Literal. */
-const EXPECT_TYPE_PREVIEW_MARKER = { 'Type sample': 'type-sample', Faces: 'faces', 'Weight roles by face': 'weights-by-face', 'The full type ramp': 'type-ramp' };
+const EXPECT_TYPE_PREVIEW_MARKER = { 'Type sample': 'type-sample', 'Font families': 'faces', 'Weight roles by font family': 'weights-by-face', 'The full type ramp': 'type-ramp' };
 let typePreviewStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);

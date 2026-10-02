@@ -3,7 +3,7 @@
 **STATUS: branch `ui/s62-type-faces`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The second of S6's three PRs (S6.1, #1992, moved Type's writes into `state/type-input.ts` and shared the Typography Preview tab's sections). The spec is the S6 scoping report (§3, §4, §6 "S6.2", option (b), and its traps) and the owner's decisions of 2026-10-02 (Q62–Q75, with Q22–Q24, Q41, Q45, Q53, Q57–Q59). Copy marked APPROVED there is used verbatim; every other new string is DRAFT and listed below for the owner.
 
 **What the user sees.** Type is the fifth page in the two panes; the legacy Typography page and its four-tab bar (Primitives · Semantics · Text styles · Preview) are gone, and with them the Typography row of the Pages menu. Interactive's Continue to Type opens it.
-- **The levers panel.** The intro (v6's, "category" → "text type", Q70). **Faces** ("The faces in the brand, and the face each text type uses.", shared with the preview's Faces section, Q23): the **Typeface library**, each face by its token first in mono (`font.typeface.<slug>`) and its name under it (Q68), what uses it, and whether it is available (the legacy `faceStatus` words: on this device on the web, in this Figma once the plugin's host has sent its fonts); **Add face** (in the plugin, the type-ahead over the host's families, #113, now chrome rather than legacy markup) with the refusals `addLibraryFace` returns; a spelling note; then **Face for each text type**, one select per text type, `font.family.<type>` first and "Body face" under it (Q68), code's "None — no code styles" (Q75), and a line naming any bound face that is not available. **Show 2 advanced** (Q64, Q69) holds Apply to all and the remove button on a face nothing uses.
+- **The levers panel.** The intro (v6's, "category" → "text type", Q70). **Font families** ("The font families in the brand, and the family each text type uses.", shared with the preview's Faces section, Q23): the **Typeface library**, each face by its token first in mono (`font.typeface.<slug>`) and its name under it (Q68), what uses it, and whether it is available (the legacy `faceStatus` words: on this device on the web, in this Figma once the plugin's host has sent its fonts); **Add face** (in the plugin, the type-ahead over the host's families, #113, now chrome rather than legacy markup) with the refusals `addLibraryFace` returns; a spelling note; then **Face for each text type**, one select per text type, `font.family.<type>` first and "Body face" under it (Q68), code's "None — no code styles" (Q75), and a line naming any bound face that is not available. **Show 2 advanced** (Q64, Q69) holds Apply to all and the remove button on a face nothing uses.
 - **The face selects edit the mode the preview shows** (Q22, Q62 option A): Light writes `typography.families.<type>`; Dark writes `modeLevers.dark.families.<type>`, shown as "Auto: follows Light (‹face›)" until set, with Return to Auto. A derived mode (HC light, HC dark, wireframe) is read-only, every control on the page, the lent region included (Q59, Q74), under S4a's derived line. The library is brand-wide, so a face is added and removed from any editable mode. Apply to all wrote the Light faces on the legacy page and still does, so it is offered while previewing Light.
 - **Scale and weights (temporary, lent).** Below Faces, the legacy page's other controls, drawn by `main.ts` and lent to the levers (`PageLends.typeStyles`, S3's `lend` pattern), pinned light: the Text styles tab (heading sizes and shapes, the ceiling and title floor, individual sizes, what each text type is made of, the font-style pins), the Semantics tab's weights, line heights and letter spacings with their per-mode tables, and the Primitives tab's fixed ladders. Nothing stops working until S6.3 replaces them.
 - **The preview**, in the Style guide's markup, each section on the brand's page color in a container on the levers panel's gray (Q24), the previewed mode only (Q66): the **Type sample** (#1942), **Faces** (each text type's token, face, availability and specimen; the library with what uses each face), then the lifted **Weight roles by face**, **The full type ramp** (one mode's column) and the fluid read-out under "Headings scale between mobile and desktop" (Q70's words).
@@ -22,34 +22,39 @@
 
 **Behavior-neutral, measured.** An equivalence driver (scratch, not committed) drove every kept legacy Faces control, Light and Dark, on each corpus brand (prism3, aurora, harbor), on `origin/main`'s legacy page (`375fabdb`) and on the new page: each text type's face moved and moved back in Light and in Dark, code to None and back, a Dark override kept while its Light face moved, Apply to all, Add face (a new face, a duplicate refused, a trimmed name) and Remove. **92/92 persisted brands byte-identical after each edit**, the select option values identical on both sides, 0 page errors.
 
-### Open with the owner (DRAFT copy)
+### Owner copy and design answers (2026-10-02), applied
 
-Every string below is new or reworded here and not yet approved:
-- Page intro: "Faces per text type, then the heading scale they sit on." (v6's, "category" → "text type" per Q70).
-- Faces description (levers and preview, Q23): "The faces in the brand, and the face each text type uses."
-- Library lever: "Typeface library"; its info text "The faces this brand can use. A face is in the library while a text type uses it, or once you add it."; column label "Face"; "Used by ‹types›"; "Not used".
-- Add face: placeholder "Face name"; field name "Add a face to the library"; button "Add face"; remove "Remove ‹face› from the library".
+**Approved: all six design calls below, and all the copy, with the owner's rule: never "face" as a word in visible copy.** Use "font family", or "family" for short where it reads naturally, and "typeface" where more precision is needed. Code, identifiers, hooks, CSS classes and the `data-sg-section="faces"` marker are unchanged. The sample's display size, `display.md.strong`, is approved too (Q76).
+
+**Copy APPROVED, used verbatim:**
+- Section (levers and preview, Q23): "Font families", described "The font families in the brand, and the family each text type uses."
+- Page intro: "Font families per text type, then the heading scale they sit on."
+- Library lever: "Typeface library"; info text "The font families this brand can use. A family is in the library while a text type uses it, or once you add it."; column label "Family"; "Used by ‹types›"; "Not used".
+- Add: placeholder "Font family name"; field name "Add a font family to the library"; button "Add font family"; remove "Remove ‹family› from the library"; the empty refusal "Give the font family a name." (`state/type-input.ts`).
 - Spelling note, web: "Type the name exactly as the font names itself. A name this device lacks still saves, and the preview shows a fallback." Plugin: "Pick one of the ‹n› fonts this Figma can load, or type any name. A name not on the list still saves, but its text styles can’t apply here."
-- Families lever: "Face for each text type"; its info text "Each text type’s font.family token names one face from the library. Swapping the face keeps every reference to the token."; the plain names "Display face", "Title face", "Body face" (Q68's example), "Label face", "Caption face", "Eyebrow face", "Code face".
-- Dark's Auto: "Auto: follows Light (‹face›)" (Q62's shape; the wording is the scoping report's proposal).
-- Availability lines: web "Not installed on this device: ‹faces›. The preview shows a fallback."; plugin "Not in this Figma: ‹faces›. Text styles using it can’t apply."
-- Show advanced: "Set every text type to", "Choose a face…", "Apply to all", "Code keeps its own face.", and, outside Light, "Apply to all sets the Light faces. Preview Light to use it."
+- Families lever: "Font family for each text type"; info text "Each text type’s font.family token names one family from the library. Swapping the family keeps every reference to the token."; the plain names "Display family", "Title family", "Body family", "Label family", "Caption family", "Eyebrow family", "Code family".
+- Dark's Auto: "Auto: follows Light (‹family›)".
+- Availability lines: web "Not installed on this device: ‹families›. The preview shows a fallback."; plugin "Not in this Figma: ‹families›. Text styles using it can’t apply."
+- Show advanced: "Set every text type to", "Choose a font family…", "Apply to all", "Code keeps its own font family.", and, outside Light, "Apply to all sets the Light font families. Preview Light to use it."
 - The lent section: "Scale and weights" and "The heading scale, weights, line height and letter spacing, as the earlier Type page drew them."
-- "Continue to Shape" (the approved "Continue to ‹page›" pattern, new target).
-- Type sample: heading "Type sample", description "A few of the brand’s text styles, set in its faces. Each line is named by its token."
-- Faces preview: sub-headings "Face for each text type" and "Typeface library"; column heads "Token", "Face", "Availability", "Specimen", "Used by".
-- Fluid read-out description: "Each heading that scales, from its mobile size to its desktop size." (its heading is Q70's approved phrase).
-- Reused, not new: the derived line (S4a), "Editing ‹mode›, the mode the preview shows." (S5.2), "Return to Auto" (the step picker), "Show/Hide 2 advanced" (Palettes' pattern), the `faceStatus` availability words ("✓ Installed", "⚠ Not installed", "✓ ‹n› styles", "⚠ Figma lacks it"), and the refusals `addLibraryFace` returns.
+- "Continue to Shape".
+- Type sample: heading "Type sample", description "A few of the brand’s text styles, set in its font families. Each line is named by its token."
+- Font families preview: sub-headings "Font family for each text type" and "Typeface library"; column heads "Token", "Family", "Availability", "Specimen", "Used by".
+- Fluid read-out description: "Each heading that scales, from its mobile size to its desktop size."
 
-### Design calls for owner review
+**The rule applied beyond those strings** (visible on the Type page; the lent legacy region and a lifted preview section):
+- Preview section "Weight roles by face" → "Weight roles by font family"; its description "…whether each face actually ships that weight…" → "…whether each font family actually ships that weight…".
+- Lent "What each category is made of": "The face is shown for context and set on Semantics." → "The font family is shown for context and set on Semantics."; "…it only overrides values (face, weight numerics, sizes, rungs)…" → "…(font family, weight numerics, sizes, rungs)…"; its column head "Face" → "Family".
+- Lent "Pin a font cut": "The face is fixed to the category’s bound family;" → "The font family is fixed to the one the category binds;"; its column head "Face" → "Family"; "No pinnable slots yet — bind a face to a category on Semantics first." → "No pinnable slots yet — bind a font family to a category on Semantics first."
 
-- **The lent region holds more than the Text styles tab.** Retiring the four-tab bar would otherwise drop the Semantics tab's weights, line heights and letter spacings and the Primitives tab's read-only ladders, so all of them are lent, in build order: Text styles, then Semantics, then Primitives. They keep the legacy page's one-column-per-mode tables (#416), so until S6.3 they edit every mode at once while Faces edits the previewed mode.
-- **In a derived mode the lent region is disabled, not replaced.** The legacy page replaced its controls with the generated note there; under Q59 every control on the page is disabled in place instead, under the derived line.
-- **Show advanced sits at the end of Faces**, not at the foot of the page as on Palettes: both controls it holds are Faces', and the lent region would separate them from it.
-- **Apply to all is offered previewing Light only.** It wrote the Light faces on the legacy page; writing Dark's from Dark would be a new behavior.
-- **"Return to Auto" button beside an overridden Dark select**, as well as the select's Auto option (the brief asked for a reset). Its words are the step picker's.
-- **The fluid read-out is in the Type preview now** (scope §3) while the Responsive controls stay on Layout until S6.3; Layout still draws the same read-out.
-- **The Faces preview's Weight roles by face and ramp copy is the legacy page's** (it still names "the Semantics tab" and "rungs"); it moves with S6.3's copy pass.
+**Design calls, approved:**
+- **The lent region holds more than the Text styles tab:** the Semantics tab's weights, line heights and letter spacings and the Primitives tab's read-only ladders too, in build order. They keep the legacy one-column-per-mode tables (#416) until S6.3, so they edit every mode at once while Font families edits the previewed mode.
+- **In a derived mode the lent region is disabled in place,** not replaced by the generated note (Q59).
+- **Show advanced sits at the end of Font families,** not at the foot of the page.
+- **Apply to all is offered previewing Light only;** it writes the Light families, as the legacy page did.
+- **A "Return to Auto" button beside an overridden Dark select,** as well as the select's Auto option.
+- **The fluid read-out is in the Type preview** while the Responsive controls stay on Layout until S6.3.
+- Still open for S6.3's copy pass: the lifted preview copy names "the Semantics tab" and "rungs".
 
 ### Tests
 
@@ -58,6 +63,8 @@ Every string below is new or reworded here and not yet approved:
 - **`test:chrome`**: Type in `NEW_PAGES`; section 20: specimen roots by name on `background.primary` in every mode, both hosts and both themes; Q24's gray containers; the two Faces levers once; each text type's select named by its token first, in mono, with its plain name (Q68), on the emission's face; code's "None — no code styles" (Q75); library faces by token first; the four-tab bar gone; the lent region drawn; Show 2 advanced; Q23's Faces heading and description read off both sides; Light and Dark writes read back from the persisted brand (Q22); Add face, the duplicate refusal, Remove; Q59 in HC light, HC dark and wireframe, every control disabled, lent ones included, on a floor of 40; the chrome probe at 1280, 640 and 380. Sections 4 (#1031, now on the lent region's fields) and 8 move to the new page.
 - **`test:smoke`**: section 1f rewritten for the moved page, per brand × mode against the emission: the five sections in order, each a specimen root on the emission's `background.primary`, their markers; the type sample's five lines, the display line `type.display.md.strong` (or the largest display style), each line's first computed face equal to the emission's `core.font.family.<type>` (alias followed to the typeface), at its emitted size; the Faces section's faces; the ramp in Light. The Style guide carries the `type-sample` marker FIRST, before Background, with the same sample check per mode. #388, #1639/#1681, #1296 and #1467 move to the lent region on the new page (`gotoType`). The Pages menu floor is 4, and it no longer offers Typography.
 - **`test:verdict` P2** moves to the Type page's `typeface-source`, and adds the type-ahead over the host's families. **`audit:modes`**: the menu offers Size & radius and no Typography.
+
+- **The owner's "face" rule, held:** `test:chrome` section 20 scans the Type page's rendered levers (lent region and toggletips included) and preview, on both hosts, for `\bfaces?\b` in every text node, option, aria-label, title and placeholder, with token pills taken out.
 
 **Mutations, each after a `wip:` commit, restored with `git checkout -- <file>`, each failing by name:**
 - The type sample's display line set in the body face (`type-sample.ts`, `font.family.body` for the display line): smoke `type sample: prism3 / Type / light: display line is set in Playfair Display (core.font.family.display) — drew Inter`, the same on the Style guide (`prism3 / Style guide / light`), in every mode, and aurora's with Clash Display (16 brand × mode × page states; harbor's display face is its body face, so it cannot tell).

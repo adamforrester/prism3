@@ -37,7 +37,7 @@ export const DISABLED_DESC = 'One shared, stateless inert set — reused by ever
 export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, border and state colors.';
 /** The Faces copy (S6.2), shared by the Type levers' Faces section and the preview's Faces section (Q23). DRAFT:
  *  pending the owner's approval. */
-export const FACES_DESC = 'The faces in the brand, and the face each text type uses.';
+export const FACES_DESC = 'The font families in the brand, and the family each text type uses.';
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -183,9 +183,9 @@ export const DOMAINS = [
   {
     // The intro is v6's with "category" swapped for "text type" (owner decision Q70's plain words); the Faces
     // description is the preview's Faces section's (Q23). Both DRAFT, pending the owner.
-    id: 'type', label: 'Type', home: 'type', intro: 'Faces per text type, then the heading scale they sit on.',
+    id: 'type', label: 'Type', home: 'type', intro: 'Font families per text type, then the heading scale they sit on.',
     sections: [
-      { title: 'Faces', desc: FACES_DESC, rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }, { ctl: 'families', keys: ['typography.families'] }] },
+      { title: 'Font families', desc: FACES_DESC, rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }, { ctl: 'families', keys: ['typography.families'] }] },
       { title: 'Scale', rows: [{ ctl: 'typeScale', keys: ['typography.typeScale'] }] },
       {
         title: 'Scale limits', advanced: true, rows: [

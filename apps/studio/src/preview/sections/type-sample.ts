@@ -27,7 +27,7 @@ export const TYPE_SAMPLE_REST: ReadonlyArray<readonly [string, string, string]> 
 export const TYPE_SAMPLE_TEXT = 'The quick brown fox jumps over the lazy dog';
 /** The section's heading and description. DRAFT: pending the owner's approval. */
 export const TYPE_SAMPLE_TITLE = 'Type sample';
-export const TYPE_SAMPLE_DESC = 'A few of the brand’s text styles, set in its faces. Each line is named by its token.';
+export const TYPE_SAMPLE_DESC = 'A few of the brand’s text styles, set in its font families. Each line is named by its token.';
 
 type Typography = Theme['typography'];
 /** A style with no italic or link modifier in its name. */

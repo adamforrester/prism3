@@ -76,7 +76,7 @@ ok(pristine(), 'setAllFamilies("") writes nothing');
 
 console.log('\n2. The library: add (with its refusals), remove');
 reset();
-ok(T.addLibraryFace('   ') === 'Give the face a name.' && pristine(), 'addLibraryFace("   ") refuses: "Give the face a name.", nothing written');
+ok(T.addLibraryFace('   ') === 'Give the font family a name.' && pristine(), 'addLibraryFace("   ") refuses: "Give the font family a name.", nothing written');
 ok(T.addLibraryFace('inter') === 'Inter is already here — a category binds it, so it is in the library list already.' && pristine(),
   'addLibraryFace("inter") refuses: a category binds Inter, nothing written');
 ok(T.addLibraryFace('  Roboto ') === null && ty() === with3({ typefaceLibrary: ['Roboto'] }) && takes(),
