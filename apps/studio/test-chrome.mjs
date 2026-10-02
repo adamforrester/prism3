@@ -365,8 +365,8 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
 /** Color › Surfaces & fills in the two panes (S4a): the controls its levers must render, by hook. The page draws
  *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
  *  controls, for the previewed mode (owner decision Q22). */
-const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base"]', '[data-p3="surface-floor"]',
-  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step"]', '[data-p3="fill-pick"]',
+const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor"]',
+  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
@@ -2644,15 +2644,25 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
 /** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
  *  tiers and the text inks). Literal; each must render its row once. No link row (S4c, owner decision Q28:
  *  links are edited on Interactive only), so a `text.link.default` row fails below as an unlisted row. */
-const FILL_ROW_ROLES = ['foreground.brand', 'foreground.success', 'foreground.warning', 'foreground.info', 'foreground.danger',
-  'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
-const TEXT_ROW_ROLES = ['text.primary', 'text.secondary', 'text.tertiary', 'text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
-  'text.brand-subtle', 'text.success-subtle', 'text.warning-subtle', 'text.danger-subtle', 'text.info-subtle'];
+const SEM_FILL = ['brand', 'success', 'warning', 'info', 'danger'];
+const SEM_INK = ['brand', 'success', 'warning', 'danger', 'info'];
+const TIERS3 = ['primary', 'secondary', 'tertiary'];
+/** S4d (owner decision Q44): the neutral ladder, page and inverse, in its own Foreground section. */
+const FOREGROUND_ROW_ROLES = [...TIERS3.map((t) => `foreground.${t}`), ...TIERS3.map((t) => `inverse.foreground.${t}`)];
+/** S4d (Q49): the bold fills, then their subtle tints and the on-color inks, then the inverse band's fills. */
+const FILL_ROW_ROLES = [...SEM_FILL.map((s) => `foreground.${s}`), ...SEM_FILL.map((s) => `foreground.${s}-subtle`), ...SEM_FILL.map((s) => `text.on-${s}`),
+  ...SEM_FILL.map((s) => `inverse.foreground.${s}`), ...SEM_FILL.map((s) => `inverse.foreground.${s}-subtle`)];
+const inks = (p) => [...TIERS3.map((t) => `${p}.${t}`), ...SEM_INK.map((s) => `${p}.${s}`), ...SEM_INK.map((s) => `${p}.${s}-subtle`)];
+const TEXT_ROW_ROLES = [...inks('text'), ...inks('inverse.text')];
+/** S4d (Q49): the borders, page and inverse; the focus rings are read-only rows (#1966), below. */
+const BORDER_ROW_ROLES = [...[...TIERS3, ...SEM_FILL].map((s) => `border.${s}`), ...[...TIERS3, ...SEM_FILL].map((s) => `inverse.border.${s}`)];
+/** S4d (Q50): every icon role, page and inverse, each with the text twin it follows while paired. */
+const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), ...inks('inverse.icon')];
 /** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
 /** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default'];
+const READONLY_ROW_ROLES = ['scrim.default', 'border.focus', 'inverse.border.focus'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -2726,7 +2736,13 @@ for (const host of ['web', 'figma']) {
     fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
     scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
       controls: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"] :is(button, select, input)').length },
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
+    // Q50: the icon rows, as drawn while the default theme's icons match text.
+    icons: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')].map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })),
+    pairNote: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"] p')?.textContent ?? null,
+    unpair: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]')?.textContent ?? null,
+    focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll('button, select, input').length })),
+    jumps: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="fills-jump-link"]')].map((a) => ({ text: a.textContent, to: document.querySelector(a.getAttribute('href'))?.querySelector('.p3-lsec-title')?.textContent ?? null })),
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
   // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
   // alias and that primitive's alpha.
   const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
@@ -2736,7 +2752,17 @@ for (const host of ['web', 'figma']) {
   ok(c.scrim.rows === 1 && c.scrim.controls === 0 && c.scrim.read === wantScrim,
     `${host}: Background fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
-  for (const r of [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...FIELD_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  for (const r of [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  // The focus rings (S4d, #1966): read-only rows, no control.
+  ok(JSON.stringify(c.focus) === JSON.stringify([{ role: 'border.focus', controls: 0 }, { role: 'inverse.border.focus', controls: 0 }]), `${host}: Border shows border.focus and inverse.border.focus read-only — read ${JSON.stringify(c.focus)}`);
+  // Q50, paired (the default theme's iconContrast is "text"): every icon row is disabled and says which text role it
+  // follows, the twin named by the engine's rule (\`text\` for \`icon\`), restated here; the note and the button, APPROVED copy.
+  const twin = (r) => r.replace(/(^|\.)icon\./, '$1text.');
+  const badLock = ICON_ROW_ROLES.filter((r) => { const b = c.icons.find((x) => x.role === r); return !b || !b.disabled || b.text !== `Follows ${twin(r)}`; });
+  ok(c.icons.length === ICON_ROW_ROLES.length && badLock.length === 0, `${host}: paired, each of the ${ICON_ROW_ROLES.length} icon rows is locked and reads "Follows text.X"${badLock.length ? ` — not: ${badLock.slice(0, 4).map((r) => `${r} ${JSON.stringify(c.icons.find((x) => x.role === r))}`).join(', ')}` : ''}`);
+  ok(c.pairNote === 'Icons follow their text color. Unpair them to set icons on their own.' && c.unpair === 'Unpair icons from text', `${host}: the Icon section's note and button are the approved copy — read ${JSON.stringify([c.pairNote, c.unpair])}`);
+  // Jump links (Q49): one per section, each to its own section, in order.
+  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 8, `${host}: a jump link to each of the 8 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
   ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
   // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
   const copy = await page.evaluate(() => ({
@@ -2753,9 +2779,11 @@ for (const host of ['web', 'figma']) {
       return id ? document.getElementById(id)?.textContent ?? null : null;
     })(),
     modeHeads: document.querySelectorAll('[data-p3="fills-levers"] .p3-modegroup-title').length,
+    fgLabels: [...document.querySelectorAll('[data-p3="fills-levers"] [data-p3="foreground-rows"] .p3-fillrow')].map((n) => [n.dataset.role, n.querySelector('.p3-fill-label')?.textContent]),
+    subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
     // The token a surface control names, read off the label its select is named by (`for`), so it is the
     // control's own label and not text elsewhere in the block.
-    tokens: Object.fromEntries(['surface-base', 'surface-band-palette', 'surface-floor'].map((hk) => {
+    tokens: Object.fromEntries(['surface-base-pick', 'surface-band-palette', 'surface-floor'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
@@ -2769,21 +2797,29 @@ for (const host of ['web', 'figma']) {
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
-  const WANT_TOKENS = { 'surface-base': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
+  const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
   ok(copy.inverseName === 'Inverse fill', `${host}: the inverse.background.primary control is named "Inverse fill" (the owner's rename, 2026-10-02) — read ${JSON.stringify(copy.inverseName)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
-    titles: ['Background fills', 'Foreground', 'Text color', 'Fields', 'Gradients'],
+    titles: ['Background fills', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
     'Background fills': 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.',
-    // Q23, approved by the owner 2026-10-02: the preview sections' own heading and description, verbatim.
+    // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
+    Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
     'Text color': 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.',
+    Icon: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.',
     Fields: 'Form field fills, borders and text, in every state.',
   };
+  // Q44: the neutral ladder labeled Primary, Secondary, Tertiary (no "Surface — card / panel / nested"), then its inverse
+  // under the preview's "Inverse" sub-heading, which also heads the inverse group of every other section that has one.
+  const FG_LABELS = [['foreground.primary', 'Primary'], ['foreground.secondary', 'Secondary'], ['foreground.tertiary', 'Tertiary'],
+    ['inverse.foreground.primary', 'Primary'], ['inverse.foreground.secondary', 'Secondary'], ['inverse.foreground.tertiary', 'Tertiary']];
+  ok(JSON.stringify(copy.fgLabels) === JSON.stringify(FG_LABELS), `${host}: the Foreground section's rows are labeled Primary, Secondary, Tertiary (Q44) — read ${JSON.stringify(copy.fgLabels)}`);
+  ok(JSON.stringify(copy.subs) === JSON.stringify(['Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']), `${host}: Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Foreground', 'Text color', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  for (const t of ['Background fills', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
   // Q23: the levers' Foreground and Text color descriptions are the preview sections' own, read off both sides
   // as rendered, so an edit to one side alone fails here as well as against the literal above.
   for (const t of ['Foreground', 'Text color']) ok(copy.previewDescs[t] === FILLS_COPY[t], `${host}: the preview's ${t} description is the one the levers copy (Q23) — read ${JSON.stringify(copy.previewDescs[t])}`);
@@ -2795,6 +2831,271 @@ for (const host of ['web', 'figma']) {
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
   ok(errors.length === 0, `${host} Surfaces & fills levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// =============================================================================================
+// S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
+// fills read-only in a derived mode, the Unpair button included (Q56, Q59)
+// =============================================================================================
+// THE ORACLE for "every control" is the DOM itself: every button, select and input inside the page's sections,
+// enumerated as rendered, with a floor on the count so an empty read fails, less only the info buttons (they open
+// help and edit nothing). The words are literals typed here. The derived modes are the engine's three, by name.
+const VISIBLE_WORDS = () => {
+  const root = document.querySelector('[data-p3="frame"]');
+  const out = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.parentElement && !n.parentElement.closest('script, style')) out.push(n.textContent);
+  for (const e of root.querySelectorAll('[aria-label], [title], [placeholder]')) out.push(e.getAttribute('aria-label') ?? '', e.getAttribute('title') ?? '', e.getAttribute('placeholder') ?? '');
+  return out.join('\n');
+};
+/** Show `mode` in the preview: its radio, or the select when the radios do not all fit. */
+const showMode = async (page, mode) => {
+  const radio = page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`);
+  if (await radio.count() && await radio.first().isVisible()) await hooks.click(radio.first());
+  else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode !== undefined
+    && [...document.querySelectorAll('[data-p3="mode-option"]')].some((b) => b.dataset.mode === m && b.getAttribute('aria-checked') === 'true')
+    || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 }).catch(() => {});
+};
+const FILLS_CONTROLS = () => [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec :is(button, select, input)')]
+  .filter((c) => c.getAttribute('data-p3') !== 'lever-info')
+  .map((c) => ({ hook: c.getAttribute('data-p3') ?? c.id ?? c.tagName, role: c.dataset.role ?? null, disabled: c.disabled }));
+/** At least this many controls on the page in a derived mode: the override rows' pick buttons, the surface
+ *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
+ *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
+const DERIVED_CONTROLS_FLOOR = 140;
+/** At least this many of them enabled in Light: all but the 31 icon rows locked while paired. 114 measured. */
+const LIGHT_ENABLED_FLOOR = 110;
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  // Wireframe is off in the default theme: turn it on, on Brand, so all three derived modes are checked.
+  await goPlace(page, 'brand');
+  await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="mode-option"]'), ...document.querySelectorAll('[data-p3="mode-select"] option')]
+    .some((b) => (b.dataset?.mode ?? b.value) === 'wireframe'), null, { timeout: 5000 }).catch(() => {});
+  await goPlace(page, 'color-fills');
+  // Q57 and Q58: the words, as rendered across the page, the levers and the preview.
+  const words = await page.evaluate(VISIBLE_WORDS);
+  const muted = words.split('\n').filter((l) => /\bmuted\b/i.test(l));
+  const band = words.split('\n').filter((l) => /\bband\b/i.test(l));
+  ok(words.length > 1000 && muted.length === 0, `${host}: nothing visible on Surfaces & fills says "muted" (Q57: "subtle", the token's word)${muted.length ? ` — ${JSON.stringify(muted.slice(0, 4))}` : ''}`);
+  ok(words.length > 1000 && band.length === 0, `${host}: nothing visible on Surfaces & fills says "band" (Q58: "fill")${band.length ? ` — ${JSON.stringify(band.slice(0, 4))}` : ''}`);
+  const labels = await page.evaluate(() => Object.fromEntries([
+    ['icon-brand-subtle', '[data-p3="fill-row-icon-brand-subtle"]'], ['text-brand-subtle', '[data-p3="fill-row-text-brand-subtle"]'],
+    ['inverse-icon-danger-subtle', '[data-p3="fill-row-inverse-icon-danger-subtle"]'],
+  ].map(([r, sel]) => [r, document.querySelector(`[data-p3="levers-pane"] ${sel} .p3-fill-label`)?.textContent ?? null])));
+  ok(JSON.stringify(labels) === JSON.stringify({ 'icon-brand-subtle': 'Brand, subtle', 'text-brand-subtle': 'Brand ink, subtle', 'inverse-icon-danger-subtle': 'Danger, subtle' }),
+    `${host}: the subtle rows are labeled "Brand, subtle", "Brand ink, subtle", "Danger, subtle" (Q57) — read ${JSON.stringify(labels)}`);
+  const fillNames = await page.evaluate(() => ({
+    step: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]')?.getAttribute('aria-label') ?? null,
+    palette: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-palette"]')?.getAttribute('aria-label') ?? null,
+  }));
+  ok(/^Inverse fill step, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
+    `${host}: the inverse.background.primary controls' accessible names say "Inverse fill" (Q58) — read ${JSON.stringify(fillNames)}`);
+  // Light, the proof the read below sees controls that CAN be enabled: the Unpair button is, and most controls are.
+  const light = await page.evaluate(FILLS_CONTROLS);
+  const lightUnpair = light.find((c) => c.hook === 'icons-unpair');
+  ok(lightUnpair && !lightUnpair.disabled && light.length >= DERIVED_CONTROLS_FLOOR && light.filter((c) => !c.disabled).length >= LIGHT_ENABLED_FLOOR,
+    `${host}: in Light the page's controls edit, Unpair included (${light.filter((c) => !c.disabled).length} of ${light.length} enabled; Unpair ${JSON.stringify(lightUnpair)})`);
+  for (const mode of ['hc-light', 'hc-dark', 'wireframe']) {
+    await showMode(page, mode);
+    await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
+    const cs = await page.evaluate(FILLS_CONTROLS);
+    const live = cs.filter((c) => !c.disabled);
+    const unpair = cs.find((c) => c.hook === 'icons-unpair');
+    console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
+    ok(cs.length >= DERIVED_CONTROLS_FLOOR && live.length === 0,
+      `${host} ${mode}: every control on Surfaces & fills is disabled (Q59) — ${cs.length} controls (floor ${DERIVED_CONTROLS_FLOOR}), ${live.length} enabled${live.length ? `: ${live.slice(0, 6).map((c) => `${c.hook}${c.role ? ` ${c.role}` : ''}`).join(', ')}` : ''}`);
+    ok(unpair?.disabled === true, `${host} ${mode}: the Unpair button is drawn and disabled (Q56) — read ${JSON.stringify(unpair)}`);
+  }
+  ok(errors.length === 0, `${host} S4d owner copy and derived modes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// Q52: re-pairing icons with text from Color › Interactive's icon contrast lever (#1974, its Icons section) clears
+// every icon override, page and inverse, in every mode, asking first when there are any, in the plural for two and
+// the singular for one (Q60); the lever stays on "3:1" until Pair icons. THE ORACLE is the brand the web host persists after every edit (`prism3:brandInput`), read
+// before and after; what Pair leaves is a literal typed here. The dialog's words are the APPROVED copy, literal.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const pickStep = async (rowSel, step) => {
+    const row = `[data-p3="levers-pane"] ${rowSel}`;
+    await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    await page.waitForFunction((r) => /^Override/.test(document.querySelector(`${r} [data-p3="fill-pick"]`)?.textContent?.trim() ?? ''), row, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+  };
+  const unpair = async () => {
+    await goPlace(page, 'color-fills');
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
+  };
+  const pairRadio = () => page.locator('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][data-value="text"]');
+  const dialog = () => page.evaluate(() => {
+    const d = document.querySelectorAll('[data-p3="icons-pair-confirm"]');
+    const el = d[0];
+    return { n: d.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, body: [...(el?.querySelectorAll('.p3-confirm-line') ?? [])].map((x) => x.textContent),
+      go: el?.querySelector('[data-p3="icons-pair-confirm-go"]')?.textContent ?? null, cancel: el?.querySelector('[data-p3="icons-pair-confirm-cancel"]')?.textContent ?? null,
+      checked: document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value ?? null };
+  });
+  // Ask to re-pair on the lever, waiting for the dialog without requiring it, so a re-pair that asks nothing fails
+  // below by name rather than at a hook wait.
+  const askPair = async () => {
+    await goPlace(page, 'color-interactive');
+    await hooks.click(pairRadio());
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
+  };
+  // No icon overrides: no dialog, and iconContrast is "text" again.
+  await unpair();
+  ok(JSON.parse(await stored() ?? 'null')?.input?.iconContrast === '3:1', 'Q52 setup: Unpair persisted iconContrast "3:1"');
+  await goPlace(page, 'color-interactive');
+  await hooks.click(pairRadio());
+  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  const d0 = await dialog();
+  const s0 = JSON.parse(await stored() ?? 'null')?.input;
+  hooks.absent(ok, { seen: d0.checked !== null, state: 'the icon contrast lever' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
+  ok(s0?.iconContrast === 'text' && s0?.overrides === undefined, `Q52: re-pairing with no icon overrides writes iconContrast "text" (${JSON.stringify(s0?.iconContrast)}, overrides ${JSON.stringify(s0?.overrides)})`);
+  // Two icon overrides, one page and one inverse, and a text override that must survive.
+  await unpair();
+  await pickStep('[data-p3="fill-row-icon-brand"]', '700');
+  await pickStep('[data-p3="fill-row-inverse-icon-primary"]', '200');
+  await pickStep('[data-p3="fill-row-text-brand"]', '300');
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.primary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
+  ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: ICON_OV }),
+    `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
+  await askPair();
+  const d1 = await dialog();
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
+  ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, the lever still on "3:1" — read ${JSON.stringify(d1)}`);
+  ok(await stored() === before, 'Q52: the dialog open, nothing is written yet');
+  if (d1.n !== 1) ok(false, 'Q52: Cancel and Pair icons NOT REACHED: re-pairing with 2 icon overrides drew no dialog');
+  else {
+    // Cancel: nothing changes, byte for byte.
+    await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
+    const d2 = await dialog();
+    ok(d2.n === 0 && d2.checked === '3:1' && await stored() === before, `Q52: Cancel closes the dialog and changes nothing (${d2.n} dialog(s), lever on ${JSON.stringify(d2.checked)}, brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
+    // Pair: iconContrast "text", every icon override gone, the text override kept.
+    await hooks.click(pairRadio());
+    await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+    await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+    const a = JSON.parse(await stored() ?? 'null')?.input;
+    ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
+      `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+  }
+  // One icon override: the singular body (Q60), then Pair clears it, the text override still kept.
+  await unpair();
+  await pickStep('[data-p3="fill-row-icon-brand"]', '700');
+  const b1 = JSON.parse(await stored() ?? 'null')?.input;
+  ok(b1?.iconContrast === '3:1' && JSON.stringify(b1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' }, 'icon.brand': { palette: 'primary', step: '700' } } }),
+    `Q60 setup: one icon override and the text override persisted (${JSON.stringify(b1?.overrides)})`);
+  await askPair();
+  const d3 = await dialog();
+  const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
+  ok(JSON.stringify(d3) === JSON.stringify(WANT1), `Q60: re-pairing with 1 icon override asks first, the body singular, the lever still on "3:1" — read ${JSON.stringify(d3)}`);
+  if (d3.n === 1) await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  const a1 = JSON.parse(await stored() ?? 'null')?.input;
+  ok(a1?.iconContrast === 'text' && JSON.stringify(a1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
+    `Q60: Pair icons with 1 icon override writes iconContrast "text" and clears icon.brand, keeping text.brand (iconContrast ${JSON.stringify(a1?.iconContrast)}, overrides ${JSON.stringify(a1?.overrides)})`);
+  ok(errors.length === 0, `Q52 re-pair: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// Q61: re-pair from Surfaces & fills. While icons are unpaired, the Icon section shows the APPROVED note and the
+// "Pair icons with text" button in place of the paired note and Unpair; the button writes `iconContrast: "text"` at
+// once with no icon override to lose, and otherwise asks first in Q52's words, singular for one (Q60). Disabled in
+// every derived mode (Q59). THE ORACLE: the copy is literal, typed here; a write is the brand the web host persists
+// (`prism3:brandInput`), read before and after; the figma host's write is read off what it draws (the paired note
+// back). The derived modes are the engine's three, by name.
+const ICON_SECTION = () => {
+  const q = (s) => document.querySelector(`[data-p3="levers-pane"] ${s}`);
+  return {
+    pairedNote: q('[data-p3="icons-paired"] p')?.textContent ?? null, unpair: q('[data-p3="icons-unpair"]')?.textContent ?? null,
+    unpairedNote: q('[data-p3="icons-unpaired"] p')?.textContent ?? null, pair: q('[data-p3="icons-pair"]')?.textContent ?? null,
+    pairDisabled: q('[data-p3="icons-pair"]')?.disabled ?? null, dialogs: document.querySelectorAll('[data-p3="icons-pair-confirm"]').length,
+  };
+};
+const PAIRED_NOTE = 'Icons follow their text color. Unpair them to set icons on their own.';
+const UNPAIRED_NOTE = 'Icons are set on their own. Pair them to follow their text color again.';
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'brand');
+  await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="mode-option"]'), ...document.querySelectorAll('[data-p3="mode-select"] option')]
+    .some((b) => (b.dataset?.mode ?? b.value) === 'wireframe'), null, { timeout: 5000 }).catch(() => {});
+  await goPlace(page, 'color-fills');
+  const s0 = await page.evaluate(ICON_SECTION);
+  ok(s0.pairedNote === PAIRED_NOTE && s0.unpair === 'Unpair icons from text' && s0.unpairedNote === null && s0.pair === null,
+    `${host} Q61: paired, the Icon section shows its note and "Unpair icons from text", and no Pair button — read ${JSON.stringify(s0)}`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]'), null, { timeout: 5000 }).catch(() => {});
+  const s1 = await page.evaluate(ICON_SECTION);
+  ok(s1.unpairedNote === UNPAIRED_NOTE && s1.pair === 'Pair icons with text' && s1.pairDisabled === false && s1.pairedNote === null && s1.unpair === null,
+    `${host} Q61: unpaired, the Icon section shows the approved note and an enabled "Pair icons with text" in place of the paired note and Unpair — read ${JSON.stringify(s1)}`);
+  for (const mode of ['hc-light', 'hc-dark', 'wireframe']) {
+    await showMode(page, mode);
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), null, { timeout: 5000 }).catch(() => {});
+    const s = await page.evaluate(ICON_SECTION);
+    ok(s.pair === 'Pair icons with text' && s.pairDisabled === true, `${host} ${mode} Q61: the Pair button is drawn and disabled (Q59) — read ${JSON.stringify(s)}`);
+  }
+  await showMode(page, 'light');
+  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+  // No icon overrides: Pair writes at once, no dialog.
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
+  const s2 = await page.evaluate(ICON_SECTION);
+  hooks.absent(ok, { seen: s2.pairedNote !== null || s2.pair !== null, state: 'the Icon section' }, s2.dialogs === 0, `${host} Q61: Pair with no icon overrides asks nothing (${s2.dialogs} dialog(s))`);
+  ok(s2.pairedNote === PAIRED_NOTE && s2.unpair === 'Unpair icons from text' && s2.pair === null,
+    `${host} Q61: Pair with no icon overrides pairs icons again, the paired note and Unpair back — read ${JSON.stringify(s2)}`);
+  if (host === 'web') {
+    const st = JSON.parse(await page.evaluate(() => localStorage.getItem('prism3:brandInput')) ?? 'null')?.input;
+    ok(st?.iconContrast === 'text' && st?.overrides === undefined, `web Q61: Pair with no icon overrides persists iconContrast "text" (${JSON.stringify(st?.iconContrast)}, overrides ${JSON.stringify(st?.overrides)})`);
+  }
+  ok(errors.length === 0, `${host} Q61 Pair on Surfaces & fills: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// Q61 with one icon override: the dialog in Q52's words with the singular body (Q60); Cancel writes nothing, byte
+// for byte; Pair icons clears the override and writes iconContrast "text".
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const dialog = () => page.evaluate(() => {
+    const d = document.querySelectorAll('[data-p3="icons-pair-confirm"]');
+    const el = d[0];
+    return { n: d.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, body: [...(el?.querySelectorAll('.p3-confirm-line') ?? [])].map((x) => x.textContent),
+      go: el?.querySelector('[data-p3="icons-pair-confirm-go"]')?.textContent ?? null, cancel: el?.querySelector('[data-p3="icons-pair-confirm-cancel"]')?.textContent ?? null };
+  });
+  await goPlace(page, 'color-fills');
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]'), null, { timeout: 5000 }).catch(() => {});
+  const row = '[data-p3="levers-pane"] [data-p3="fill-row-icon-brand"]';
+  await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="700"]'));
+  await page.waitForFunction((r) => /^Override/.test(document.querySelector(`${r} [data-p3="fill-pick"]`)?.textContent?.trim() ?? ''), row, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: { 'icon.brand': { palette: 'primary', step: '700' } } }),
+    `Q61 setup: unpaired, one icon override persisted (${JSON.stringify(b0?.iconContrast)}, ${JSON.stringify(b0?.overrides)})`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
+  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  const d1 = await dialog();
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel' };
+  ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q61: Pair on Surfaces & fills with 1 icon override asks first, the body singular (Q60) — read ${JSON.stringify(d1)}`);
+  ok(await stored() === before, 'Q61: the dialog open, nothing is written yet');
+  await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
+  const d2 = await dialog();
+  ok(d2.n === 0 && await stored() === before, `Q61: Cancel closes the dialog and the stored brand is byte-identical (${d2.n} dialog(s), brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
+  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
+  const a = JSON.parse(await stored() ?? 'null')?.input;
+  ok(a?.iconContrast === 'text' && a?.overrides === undefined,
+    `Q61: Pair icons on Surfaces & fills writes iconContrast "text" and clears the icon override (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+  ok(errors.length === 0, `Q61 re-pair with an override: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps

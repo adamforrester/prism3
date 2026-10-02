@@ -742,6 +742,18 @@
 .p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
 .p3-num-input { min-width: 0; }
+/* S4d: a group's sub-heading inside a section's rows (the preview's "Inverse"), the Icon section's pairing note,
+   and the jump links to each section (Q49). The jump rules are Color › Interactive's (S5.2), the same lines, so
+   the two pages draw one control. */
+.p3-rows-sub { margin: var(--p3-space-150) 0 0; padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-rows-sub[hidden], .p3-icon-pair[hidden] { display: none; }
+.p3-icon-pair { display: grid; gap: var(--p3-space-100); justify-items: start; }
+.p3-icon-pair-note { margin: 0; line-height: var(--p3-lh-cozy); }
+.p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
+.p3-jump[hidden] { display: none; }
+.p3-jump-link { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); text-decoration: underline; text-underline-offset: var(--p3-space-025); }
+.p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+.p3-lsec:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 
 /* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }

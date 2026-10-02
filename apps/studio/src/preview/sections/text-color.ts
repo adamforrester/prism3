@@ -10,10 +10,14 @@ export const textColorSection = (c: SgCtx): HTMLElement => {
   const curLabel = c.modeLabel(cur), oppLabel = c.modeLabel(opp);
   const lbg = paint(cur, 'background.primary'), dbg = paint(opp, 'background.primary');
   const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); specimen(d).style.color = color; return d; };
+  // Each cell carries its own mode's ratio badge (owner decision Q46, Surfaces & fills only: `c.badge` is null on
+  // the Style guide), in that column's own page ink and border, which `.sg-ratio` reads as `--ink` and `--line2`.
   const tcCell = (nm: string, k: string, m: string, cls: string, ul: boolean): HTMLElement => {
     const d = c.painted(el('div', `sg-tc ${cls} sg-tcrow`), k, 'color', m); specimen(d).style.color = paint(m, k);
     const sp = el('span', 'sg-samp', nm); if (ul) sp.style.textDecoration = 'underline'; d.append(sp);
     if (fails(m, k)) d.append(el('b', 'sg-fx', '!'));
+    const b = c.badge(k, m);
+    if (b) { d.style.setProperty('--ink', paint(m, 'text.primary')); d.style.setProperty('--line2', paint(m, 'border.secondary')); d.append(b); }
     return d;
   };
   const tcGroups: Array<[string, Array<[string, string]>, boolean]> = [
@@ -28,7 +32,7 @@ export const textColorSection = (c: SgCtx): HTMLElement => {
     g.append(tcHead(`On ${curLabel} surface`, 'sg-l', paint(cur, 'text.tertiary')), tcHead(`On ${oppLabel} surface`, 'sg-r', paint(opp, 'text.tertiary')), tcHead('Token', 'sg-t', 'var(--faint)'));
     for (const [nm, k] of items) {
       g.append(tcCell(nm, k, cur, 'sg-l', ul), tcCell(nm, k, opp, 'sg-r', ul));
-      const tc = el('div', 'sg-tc sg-t sg-tcrow'); tc.append(...c.chip(k)); g.append(tc);
+      const tc = el('div', 'sg-tc sg-t sg-tcrow'); tc.append(c.pill(k)); g.append(tc);
     }
     secText.append(g);
   }

@@ -13,6 +13,17 @@
  *      `surfaces` key its single set of controls reads and writes, and whether it may write at all; and the
  *      token each control names, against the engine's own `GROUND_INPUT`.
  *   3. THE SCRIM'S READ-OUT: the primitive and opacity its read-only row prints, per mode.
+ * S4d (owner decisions Q44 to Q50) adds:
+ *   4. A HOME FOR EVERY ROLE (Q20, Q49): every Surfaces & fills role the emission carries is a row, one of the
+ *      two grounds the Background fills controls set, or read-only by a reason this test declares literally
+ *      (the washes, the tier grounds waiting on #1972, the focus rings waiting on #1966). Q49's list is written
+ *      out by family, so a dropped row fails by its role.
+ *   5. THE NEW ROWS' PALETTES AND WRITES: as (1), for each of them, in light and dark.
+ *   6. THE ICON LOCK (Q50): paired, each icon row is locked to its text twin, by the engine's own rule restated
+ *      here, and the engine is shown to carry an edit on that twin to the icon (#1968), so "Follows" is true;
+ *      Unpair writes `iconContrast: '3:1'` and nothing else, and unlocks every row; re-pairing clears every
+ *      icon override (Q52), and the confirm's body is singular for one override, plural otherwise (Q60).
+ *   7. THE PAGE PICKER (Q45): each of its choices writes byte for byte what the select's option wrote.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). The role list is read from the COMMITTED EMISSION
  * (`packages/engine/out/prism3.tokens.json`), never from the module, and is also written out here as a
@@ -128,7 +139,7 @@ ok(JSON.stringify(store.brandState.overrides) === JSON.stringify({ dark: { 'inve
   `clearing the Light one prunes Light and keeps Dark's (${JSON.stringify(store.brandState.overrides)})`);
 
 // No link row (owner decision Q28, #1961): links are edited on Interactive only.
-const linkRows = [...F.FILL_ROWS, ...F.TEXT_ROWS, ...F.FIELD_ROWS].filter((r) => r.role.split('.').includes('link')).map((r) => r.role);
+const linkRows = [...F.FOREGROUND_ROWS, ...F.FILL_ROWS, ...F.TEXT_ROWS, ...F.BORDER_ROWS, ...F.ICON_ROWS, ...F.FIELD_ROWS].filter((r) => r.role.split('.').includes('link')).map((r) => r.role);
 ok(linkRows.length === 0, `no Surfaces & fills row edits a link role${linkRows.length ? ` — link rows: ${linkRows.join(', ')}` : ''}`);
 
 // ── 2. which surfaces the previewed mode shows (Q22) ─────────────────────────────────────────────────
@@ -187,6 +198,228 @@ for (const mode of ['light', 'dark', 'hc-light', 'hc-dark']) {
   const got = r ? F.washReadOf(r) : null;
   ok(typeof alpha === 'number' && JSON.stringify(got) === JSON.stringify(want), `${mode}: the scrim reads out ${want.primitive} at ${want.opacity}%, the emission's ${alias} (read ${JSON.stringify(got)})`);
 }
+
+
+// ── 4. S4d: every Surfaces & fills role has a home (owner decisions Q20, Q49, Q50) ─────────────────────
+console.log('\n4. Every Surfaces & fills role is a row, a lever, or read-only by a declared reason (oracle: the emission)');
+/** Every row the page draws, as the module lists them. */
+const ALL_ROWS = [...F.FOREGROUND_ROWS, ...F.FILL_ROWS, ...F.TEXT_ROWS, ...F.BORDER_ROWS, ...F.ICON_ROWS, ...F.FIELD_ROWS];
+/** The page's families, literally (Surfaces & fills' share of the emitted color tree), and the link families
+ *  that are Interactive's, not this page's (Q28). */
+const FILLS_FAMILIES = ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'field'];
+const INTERACTIVES = /^(inverse\.)?(text|icon)\.link\./;
+const emittedFills: Array<{ role: string; light: string; dark: string }> = [];
+for (const fam of FILLS_FAMILIES) {
+  leaves(tokens[ROOT].color[fam], [fam], emittedFills);
+  leaves(tokens[ROOT].color.inverse?.[fam], ['inverse', fam], emittedFills);
+}
+const fillsRoles = emittedFills.filter((e) => !INTERACTIVES.test(e.role));
+/** The two grounds, set by the Background fills controls, not by an override (the engine refuses one). */
+const LEVER_ROLES: Record<string, string> = {
+  'background.primary': 'Page, surfaces.<mode>.base',
+  'inverse.background.primary': 'Inverse band, surfaces.<mode>.inverseBase',
+};
+/** Read-only, each with its declared reason. Literal. */
+const VEILS = ['dark.subtle', 'dark.medium', 'dark.strong', 'dark.clear', 'light.subtle', 'light.medium', 'light.strong', 'light.clear'].map((v) => `veil.${v}`);
+const READ_ONLY: Record<string, string> = {
+  'scrim.default': 'a wash: no ramp step to swap in (a read-only row)',
+  ...Object.fromEntries(VEILS.map((v) => [v, 'a wash: no ramp step to swap in'])),
+  'background.secondary': 'a tier ground, waiting on its engine input (#1972)',
+  'background.tertiary': 'a tier ground, waiting on its engine input (#1972)',
+  'inverse.background.secondary': 'a tier ground, waiting on its engine input (#1972)',
+  'inverse.background.tertiary': 'a tier ground, waiting on its engine input (#1972)',
+  'border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
+  'inverse.border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
+};
+ok(fillsRoles.length > 100 && fillsRoles.some((e) => e.role === 'icon.on-brand') && fillsRoles.some((e) => e.role === 'inverse.border.info'),
+  `the emission gives Surfaces & fills' roles to classify (read ${fillsRoles.length})`);
+const rowCount = (role: string): number => ALL_ROWS.filter((r) => r.role === role).length;
+const homes = (role: string): number => rowCount(role) + (role in LEVER_ROLES ? 1 : 0) + (role in READ_ONLY ? 1 : 0);
+const homeless = fillsRoles.filter((e) => homes(e.role) === 0).map((e) => e.role);
+const twoHomes = fillsRoles.filter((e) => homes(e.role) > 1).map((e) => e.role);
+ok(homeless.length === 0, `every Surfaces & fills role the engine emits is a row, a lever or read-only by a declared reason${homeless.length ? ` — no home: ${homeless.join(', ')}` : ''}`);
+ok(twoHomes.length === 0, `no Surfaces & fills role has two homes (a row and a lever, two rows, a row and a read-only reason)${twoHomes.length ? ` — two homes: ${twoHomes.join(', ')}` : ''}`);
+const unemitted = ALL_ROWS.filter((r) => !fillsRoles.some((e) => e.role === r.role)).map((r) => r.role);
+ok(unemitted.length === 0, `every row names an emitted Surfaces & fills role${unemitted.length ? ` — not emitted: ${unemitted.join(', ')}` : ''}`);
+const declaredGone = [...Object.keys(LEVER_ROLES), ...Object.keys(READ_ONLY)].filter((r) => !fillsRoles.some((e) => e.role === r));
+ok(declaredGone.length === 0, `every declared lever and read-only role is still emitted${declaredGone.length ? ` — gone: ${declaredGone.join(', ')}` : ''}`);
+ok(JSON.stringify([...F.FOCUS_ROLES]) === JSON.stringify(['border.focus', 'inverse.border.focus']), `the read-only focus rows are border.focus and inverse.border.focus (${JSON.stringify(F.FOCUS_ROLES)})`);
+/** Q49's list, literally: the roles S4d gives rows (the focus rings read-only), by family. */
+const SEM5 = ['brand', 'success', 'warning', 'danger', 'info'];
+const T3 = ['primary', 'secondary', 'tertiary'];
+const Q49: Record<string, string[]> = {
+  'foreground.*-subtle': SEM5.map((s) => `foreground.${s}-subtle`),
+  'text.on-*': SEM5.map((s) => `text.on-${s}`),
+  'border.*': [...T3, ...SEM5].map((s) => `border.${s}`),
+  'inverse.foreground.*': [...T3, ...SEM5, ...SEM5.map((s) => `${s}-subtle`)].map((s) => `inverse.foreground.${s}`),
+  'inverse.text.*': [...T3, ...SEM5, ...SEM5.map((s) => `${s}-subtle`)].map((s) => `inverse.text.${s}`),
+  'inverse.border.*': [...T3, ...SEM5].map((s) => `inverse.border.${s}`),
+  'icon.*': [...T3, ...SEM5, ...SEM5.map((s) => `${s}-subtle`), ...SEM5.map((s) => `on-${s}`)].map((s) => `icon.${s}`),
+  'inverse.icon.*': [...T3, ...SEM5, ...SEM5.map((s) => `${s}-subtle`)].map((s) => `inverse.icon.${s}`),
+};
+const COUNTS: Record<string, number> = { 'foreground.*-subtle': 5, 'text.on-*': 5, 'border.*': 8, 'inverse.foreground.*': 13, 'inverse.text.*': 13, 'inverse.border.*': 8, 'icon.*': 18, 'inverse.icon.*': 13 };
+for (const [fam, roles] of Object.entries(Q49)) {
+  const missing = roles.filter((r) => rowCount(r) !== 1);
+  ok(roles.length === COUNTS[fam] && missing.length === 0, `${fam}: each of its ${COUNTS[fam]} roles has exactly one row${missing.length ? ` — no row, or more than one: ${missing.join(', ')}` : ''}`);
+}
+
+// ── 5. S4d: each new row picks the palette the engine derives its role from, and writes a plain override ──
+console.log('\n5. The new rows: their palette (the emission\'s alias) and their writes (literal), in light and dark');
+reset();
+/** The rows S4d adds or moves (the Foreground section, Q44, and the Q49 roles). */
+const S4D_ROLES = new Set([...Object.values(Q49).flat(), 'foreground.primary', 'foreground.secondary', 'foreground.tertiary']);
+const s4dRows = ALL_ROWS.filter((r) => S4D_ROLES.has(r.role));
+ok(s4dRows.length === S4D_ROLES.size, `every S4d role has its row (${s4dRows.length} of ${S4D_ROLES.size})`);
+/** A role on a fixed primitive: the on-color inks resolve to white or black where the engine finds them
+ *  legible, so the palette their steps come from is declared: neutral (literal). */
+const FIXED_PALETTE = 'neutral';
+const aliasPalette = (alias: string): string | null => {
+  const m = new RegExp(`^\\{${ROOT}\\.core\\.palette\\.([a-z-]+)\\.[0-9]+\\}$`).exec(alias);
+  return m ? m[1] : null;
+};
+const allModes = (): ReturnType<typeof resolveAllModes> => resolveAllModes(brandTheme(structuredClone(store.brandState)));
+const roleIn = (all: ReturnType<typeof resolveAllModes>, role: string, mode: string): { path?: string; hex?: string } | undefined =>
+  (all.find((m) => m.mode === mode)?.roles as Record<string, { path?: string; hex?: string } | undefined>)?.[role];
+const base = allModes();
+for (const row of s4dRows) {
+  const e = fillsRoles.find((x) => x.role === row.role)!;
+  const pals = [aliasPalette(e.light), aliasPalette(e.dark)];
+  const onColor = /\.on-/.test(row.role);
+  const want = onColor ? FIXED_PALETTE : pals[0];
+  const consistent = onColor ? pals.every((p) => p === null || p === FIXED_PALETTE) : pals[0] !== null && pals[0] === pals[1];
+  ok(consistent && F.paletteOf(row) === want,
+    `${row.role}: the engine derives it from ${want}${onColor ? ' (or a fixed white or black)' : ''} (light ${e.light}, dark ${e.dark}), and its row picks ${F.paletteOf(row)} steps`);
+  for (const mode of ['light', 'dark'] as const) {
+    const other = mode === 'light' ? 'dark' : 'light';
+    reset();
+    F.setRowOverride(mode, row, '300');
+    const wantOv = { [mode]: { [row.role]: { palette: want, step: '300' } } };
+    ok(JSON.stringify(store.brandState.overrides) === JSON.stringify(wantOv), `${row.role} in ${mode}: the row writes overrides ${JSON.stringify(wantOv)} (wrote ${JSON.stringify(store.brandState.overrides)})`);
+    const hex = String(tokens[ROOT].core.palette[want!]?.['300']?.$value ?? '').toLowerCase();
+    let all: ReturnType<typeof resolveAllModes> | null = null;
+    try { all = allModes(); } catch { /* reported below */ }
+    const got = all ? roleIn(all, row.role, mode) : undefined;
+    ok(!!got && got.path === `${ROOT}.core.palette.${want}.300` && got.hex?.toLowerCase() === hex,
+      `${row.role} in ${mode}: the engine takes it and resolves the role to ${want} 300, the emitted ${hex} (resolved ${got?.path} ${got?.hex})`);
+    const b0 = roleIn(base, row.role, other), b1 = all ? roleIn(all, row.role, other) : undefined;
+    ok(JSON.stringify(b0) === JSON.stringify(b1), `${row.role} in ${mode}: ${other} resolves as before (${b0?.path} → ${b1?.path})`);
+    F.setRowOverride(mode, row, undefined);
+    ok(pristine(), `${row.role} in ${mode}: Auto leaves the brand byte-identical to the one loaded`);
+  }
+}
+
+// ── 6. S4d: the icon rows' lock (owner decision Q50; the engine's #1968) ─────────────────────────────────
+console.log('\n6. Icon rows: locked to their text role while icons match text, unlocked by Unpair (oracle: the engine)');
+/** The engine's twin rule, restated here: `text` swapped for `icon` in the role path (`withIconTwins`). */
+const twinOf = (iconRole: string): string => iconRole.replace(/(^|\.)icon\./, '$1text.');
+const ICON_ROLES = [...Q49['icon.*'], ...Q49['inverse.icon.*']];
+ok(JSON.stringify(F.ICON_ROWS.map((r) => r.role).sort()) === JSON.stringify([...ICON_ROLES].sort()), `the Icon section's rows are the 31 icon roles, page and inverse (${F.ICON_ROWS.length})`);
+reset();
+ok(prism3.iconContrast === 'text' && F.iconsPaired(), `prism3 loads with icons matching text, so the rows are paired (iconContrast ${JSON.stringify(prism3.iconContrast)})`);
+for (const mode of ['light', 'dark']) {
+  const wrong = F.ICON_ROWS.filter((r) => F.lockedTo(mode, r) !== twinOf(r.role)).map((r) => `${r.role} → ${F.lockedTo(mode, r)}`);
+  ok(wrong.length === 0, `paired, in ${mode}: every icon row is locked and names its text twin ("Follows text.X")${wrong.length ? ` — ${wrong.slice(0, 4).join(', ')}` : ''}`);
+}
+const nonIcon = ALL_ROWS.filter((r) => !ICON_ROLES.includes(r.role) && F.lockedTo('light', r) !== null).map((r) => r.role);
+ok(nonIcon.length === 0, `no other row is ever locked${nonIcon.length ? ` — locked: ${nonIcon.join(', ')}` : ''}`);
+// "Follows" is the engine's behavior, not the page's word for it: paired, an override on the text twin moves the icon to it.
+const notFollowing: string[] = [];
+for (const r of F.ICON_ROWS) {
+  reset();
+  const textRow = F.TEXT_ROWS.find((x) => x.role === twinOf(r.role)) ?? F.FILL_ROWS.find((x) => x.role === twinOf(r.role));
+  if (!textRow) { notFollowing.push(`${r.role}: no row for ${twinOf(r.role)}`); continue; }
+  F.setRowOverride('light', textRow, '250');
+  const all = allModes();
+  const ic = roleIn(all, r.role, 'light'), tx = roleIn(all, textRow.role, 'light');
+  if (!ic || !tx || ic.path !== tx.path || !tx.path?.endsWith('.250')) notFollowing.push(`${r.role} at ${ic?.path} while ${textRow.role} is at ${tx?.path}`);
+}
+ok(notFollowing.length === 0, `paired, an edit on each icon row's text twin moves the icon with it (31 checked)${notFollowing.length ? ` — ${notFollowing.slice(0, 3).join(' | ')}` : ''}`);
+// Unpair: the lever's other value, nothing else.
+reset();
+F.unpairIcons();
+ok(JSON.stringify(store.brandState) === JSON.stringify({ ...prism3, iconContrast: '3:1' }), `Unpair writes iconContrast "3:1" and nothing else (iconContrast ${JSON.stringify(store.brandState.iconContrast)})`);
+store.rebuild();
+const stillLocked = F.ICON_ROWS.filter((r) => F.lockedTo('light', r) !== null || F.lockedTo('dark', r) !== null).map((r) => r.role);
+ok(!F.iconsPaired() && stillLocked.length === 0, `unpaired, every icon row edits${stillLocked.length ? ` — still locked: ${stillLocked.join(', ')}` : ''}`);
+const iconBrand = F.ICON_ROWS.find((r) => r.role === 'icon.brand')!;
+F.setRowOverride('light', iconBrand, '700');
+ok(JSON.stringify(store.brandState.overrides) === JSON.stringify({ light: { 'icon.brand': { palette: 'primary', step: '700' } } }),
+  `unpaired, an icon edit writes its own override (${JSON.stringify(store.brandState.overrides)})`);
+ok(roleIn(allModes(), 'icon.brand', 'light')?.path === `${ROOT}.core.palette.primary.700`, 'and the engine resolves icon.brand to primary 700');
+// An explicit icon override while paired (left from before a re-pair): the engine applies it over the carried text
+// (#1968), so that row shows its override, and only in that mode.
+reset();
+F.setRowOverride('light', iconBrand, '700');
+ok(F.lockedTo('light', iconBrand) === null && F.lockedTo('dark', iconBrand) === 'text.brand',
+  `paired, an icon row with its own override in Light edits there and stays locked in Dark (${F.lockedTo('light', iconBrand)}, ${F.lockedTo('dark', iconBrand)})`);
+F.setRowOverride('light', F.TEXT_ROWS.find((r) => r.role === 'text.brand')!, '300');
+ok(roleIn(allModes(), 'icon.brand', 'light')?.path === `${ROOT}.core.palette.primary.700`, 'and the engine keeps the explicit icon override over the carried text one');
+// A brand that loads unpaired (aurora, iconContrast "3:1"): no row is locked.
+const aurora = (exampleBrands as Record<string, BrandInput>).aurora;
+reset(aurora);
+ok(aurora.iconContrast === '3:1' && !F.iconsPaired() && F.ICON_ROWS.every((r) => F.lockedTo('light', r) === null),
+  `aurora loads unpaired (iconContrast ${JSON.stringify(aurora.iconContrast)}): every icon row edits`);
+
+// Re-pair (owner decision Q52): iconContrast back to "text", and every icon override gone, page and inverse, in
+// every mode; every other override kept. The expected brands are literals typed here, never `pairIcons`' own output.
+reset();
+F.pairIcons();
+ok(F.iconOverrideCount() === 0 && JSON.stringify(store.brandState) === JSON.stringify(prism3),
+  `re-pair with no icon overrides: iconContrast "text", nothing else written (${JSON.stringify(store.brandState.iconContrast)}, ${JSON.stringify(store.brandState.overrides)})`);
+reset();
+F.unpairIcons();
+const invIconPrimary = F.ICON_ROWS.find((r) => r.role === 'inverse.icon.primary')!;
+const iconOnBrand = F.ICON_ROWS.find((r) => r.role === 'icon.on-brand')!;
+F.setRowOverride('light', iconBrand, '700');
+F.setRowOverride('dark', invIconPrimary, '200');
+F.setRowOverride('dark', iconOnBrand, '100');
+F.setRowOverride('light', F.TEXT_ROWS.find((r) => r.role === 'text.brand')!, '300');
+F.setRowOverride('dark', F.FILL_ROWS.find((r) => r.role === 'foreground.brand')!, '500');
+ok(F.iconOverrideCount() === 3, `iconOverrideCount counts the icon overrides in every mode, page and inverse, and nothing else: 3 (read ${F.iconOverrideCount()})`);
+F.pairIcons();
+const KEPT = { light: { 'text.brand': { palette: 'primary', step: '300' } }, dark: { 'foreground.brand': { palette: 'primary', step: '500' } } };
+ok(store.brandState.iconContrast === 'text' && JSON.stringify(store.brandState.overrides) === JSON.stringify(KEPT),
+  `re-pair: iconContrast "text", icon.brand (light), inverse.icon.primary and icon.on-brand (dark) cleared, the text and fill overrides kept (iconContrast ${JSON.stringify(store.brandState.iconContrast)}, overrides ${JSON.stringify(store.brandState.overrides)})`);
+// Only icon overrides: the emptied modes and the emptied map are pruned, so the brand is byte-identical to the one loaded.
+reset();
+F.unpairIcons();
+F.setRowOverride('light', iconBrand, '700');
+F.setRowOverride('dark', invIconPrimary, '200');
+F.pairIcons();
+ok(JSON.stringify(store.brandState) === JSON.stringify(prism3), `re-pair clearing the only overrides leaves the brand byte-identical to the one loaded (overrides ${JSON.stringify(store.brandState.overrides)})`);
+// The confirm's words, APPROVED verbatim (owner decision Q52, 2026-10-02). Literal.
+ok(F.PAIR_ICONS_CONFIRM.title === 'Pair icons with text?' && F.PAIR_ICONS_CONFIRM.body(3) === 'This removes 3 custom icon colors. Icons will follow their text color again.'
+  && F.PAIR_ICONS_CONFIRM.action === 'Pair icons', `the re-pair confirm's title, body and action are the approved copy (${JSON.stringify([F.PAIR_ICONS_CONFIRM.title, F.PAIR_ICONS_CONFIRM.body(3), F.PAIR_ICONS_CONFIRM.action])})`);
+// The singular for one override (owner decision Q60, APPROVED 2026-10-02), the plural for two. Literal.
+ok(F.PAIR_ICONS_CONFIRM.body(1) === 'This removes 1 custom icon color. Icons will follow their text color again.',
+  `the re-pair confirm's body for 1 override is the approved singular (Q60) — read ${JSON.stringify(F.PAIR_ICONS_CONFIRM.body(1))}`);
+ok(F.PAIR_ICONS_CONFIRM.body(2) === 'This removes 2 custom icon colors. Icons will follow their text color again.',
+  `the re-pair confirm's body for 2 overrides is the approved plural (Q52) — read ${JSON.stringify(F.PAIR_ICONS_CONFIRM.body(2))}`);
+// "subtle", the token's own word, never "muted" (owner decision Q57): every row label, and two by name. Literal.
+const mutedLabels = ALL_ROWS.filter((r) => /muted/i.test(r.label)).map((r) => `${r.role} "${r.label}"`);
+ok(mutedLabels.length === 0, `no Surfaces & fills row says "muted" (Q57)${mutedLabels.length ? ` — ${mutedLabels.slice(0, 4).join(', ')}` : ''}`);
+const labelOf = (role: string): string | undefined => ALL_ROWS.find((r) => r.role === role)?.label;
+ok(labelOf('icon.brand-subtle') === 'Brand, subtle' && labelOf('text.brand-subtle') === 'Brand ink, subtle' && labelOf('inverse.icon.danger-subtle') === 'Danger, subtle',
+  `the subtle rows say "subtle" (Q57): ${JSON.stringify([labelOf('icon.brand-subtle'), labelOf('text.brand-subtle'), labelOf('inverse.icon.danger-subtle')])}`);
+
+// ── 7. S4d: the Page step picker's choices are the select's (owner decision Q45) ─────────────────────
+console.log('\n7. The Page and band step pickers write what the selects wrote');
+reset();
+const selectValues = ['white', 'black', ...F.neutralStepOptions().map((o) => String(o.value))];
+const keys = F.pageSteps().map((s) => s.key);
+ok(keys[0] === 'white' && keys[keys.length - 1] === 'black' && keys.length === selectValues.length,
+  `the Page picker lists White, every neutral step, then Black: ${keys.length} choices, the select's ${selectValues.length}`);
+const viaSelect: string[] = [], viaPicker: string[] = [];
+for (const v of selectValues) { reset(); F.setSurfaceBase('light', v); viaSelect.push(JSON.stringify(store.brandState)); }
+for (const v of selectValues) {
+  reset();
+  const key = v === 'white' || v === 'black' ? v : keys.find((k) => k !== 'white' && k !== 'black' && Number(k) === Number(v))!;
+  F.setSurfaceBase('light', key);
+  viaPicker.push(JSON.stringify(store.brandState));
+  ok(F.pageKeyOf(store.brandState.surfaces!.light!.base as string | number) === key, `the Page picker reads ${v} back as its key ${key}`);
+}
+const differs = selectValues.filter((_, i) => viaSelect[i] !== viaPicker[i]);
+ok(differs.length === 0, `every Page choice writes byte for byte what its select option wrote (${selectValues.length}/${selectValues.length})${differs.length ? ` — differs: ${differs.join(', ')}` : ''}`);
 
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);

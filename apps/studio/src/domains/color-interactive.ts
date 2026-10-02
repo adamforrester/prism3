@@ -7,7 +7,8 @@
  * Primary, Neutral, Destructive, then each accent, every color it carries as a row, its hover and pressed under
  * it, then the add row; and the strict contrast switch); **Disabled** (the disabled contrast and its floor);
  * **Links** (the link palette, the three state rungs, and the four link families' resting link); **Icons**
- * (the icon contrast floor). Every lever is shown (R2). Last, the way on to Type.
+ * (the icon contrast floor; moving it back to match text re-pairs through `pairIcons`, asking first when icon
+ * overrides would be cleared, Q52, Q60). Every lever is shown (R2). Last, the way on to Type.
  *
  * EVERY PER-COLUMN COLOR IS A ROW (owner decision Q33, replacing v6's "per-role in the Roles matrix only",
  * which Q31 deferred): `INTERACTIVE_ROWS` / `interactiveRowsFor` in `state/interactive-input.ts`, in the
@@ -34,7 +35,7 @@
 import { normalizeDisabledStrategy } from '@prism3/engine/theme';
 import { brandState, currentMode, getPath, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { overrideOf, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
+import { PAIR_ICONS_CONFIRM, iconOverrideCount, overrideOf, pairIcons, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
   BUILT_IN_COLUMNS, LINK_ROWS, addAccent, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
   removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
@@ -44,7 +45,7 @@ import { paletteRefOptions } from '../levers/controls';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { choice, inlineConfirm, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
 /** The button sets lever's info text (owner-approved, 2026-10-02). */
@@ -98,6 +99,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   let lastEdited: string | null = null;
   let items: Item[] = [];
   const pickers = new Map<string, () => void>();
+  /** True while the re-pair confirm is open under the icon contrast lever (owner decisions Q52, Q60). */
+  let confirmPair = false;
 
   const edit = (key: string, write: () => void): void => {
     lastEdited = key;
@@ -111,14 +114,37 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   /** Which mode the rows edit; nothing in a derived mode, which says so once at the top. */
   const editingLine = (): HTMLElement | null => isDerived(currentMode) ? null : subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
 
+  /** The icon contrast lever's pick (owner decisions Q52, Q60). Re-pairing icons with text (`'text'`) clears every
+   *  icon override, so it goes through `pairIcons`, never `setLever`: at once with no icon override to lose,
+   *  otherwise after the confirm in `PAIR_ICONS_CONFIRM`'s words, the lever staying on the brand's value until
+   *  Pair icons. Cancel writes nothing. The other value is a plain lever write. */
+  const pickIconContrast = (v: string): void => {
+    if (v !== 'text') { edit('iconContrast', () => setLever('iconContrast', v)); return; }
+    if (!iconOverrideCount()) { edit('iconContrast', () => pairIcons()); return; }
+    confirmPair = true;
+    render();
+  };
+
   // ── an enum lever as chips (#1675's rule: two to four options) ──────────────────────────────────
   const enumLever = (key: string): Item => {
     const L = leverOf(key)!;
     const b = leverBlock(key, { group: true });
     const role = `${b.el.getAttribute('data-p3')!.slice('lever-'.length)}-chips`;
-    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })), (v) => edit(key, () => setLever(key, v)));
+    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })),
+      (v) => (key === 'iconContrast' ? pickIconContrast(v) : edit(key, () => setLever(key, v))));
     c.set(String(getPath(brandState, key) ?? L.default));
     b.ctl.append(c.el);
+    if (key === 'iconContrast') {
+      const n = iconOverrideCount();
+      if (confirmPair && n && !isDerived(currentMode)) {
+        b.ctl.append(inlineConfirm('icons-pair-confirm', {
+          title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
+          onConfirm: () => { confirmPair = false; edit('iconContrast', () => pairIcons()); },
+          onCancel: () => { confirmPair = false; render(); },
+          back: () => root.querySelector<HTMLElement>(`[data-p3="${role}"] [aria-checked="true"]`),
+        }));
+      } else confirmPair = false;
+    }
     if (key === 'disabledStrategy' && normalizeDisabledStrategy(getPath(brandState, key) as string | undefined) === 'full') {
       b.setState(stateLine('At 4.5:1 a disabled label reads like body text. The disabled cue rests on fill, border and cursor.'));
     }
@@ -504,7 +530,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
   };
 
-  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; render(); }), subscribe('search', filter));
+  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; confirmPair = false; render(); }), subscribe('search', filter));
   cleanups.push(() => { if (searchQuery.trim()) setSearchHits(null); });
   render();
 };
