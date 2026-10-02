@@ -242,6 +242,16 @@ export const createDispatcher = (deps: Deps) => {
       try { deps.onFinish?.(c.id, c.cmd); } catch { /* a reader; see `forward` */ }
     }
     if (logsDropped) logs.push(`… ${logsDropped} more lines not kept`);
+    // A refusal that reached this sink (#1995) is the command's outcome, not a verdict: it carries no `ok`,
+    // so the check below would read it as a success. `refuse` above declines first today; this is the
+    // backstop if a guarded call is ever reached without it.
+    const refusal = verdicts.find((v): v is Extract<MainToUi, { type: 'refused' }> => v.type === 'refused');
+    if (refusal) {
+      return {
+        ...failedResult({ id: c.id, cmd: c.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, { code: refusal.code, message: refusal.message }),
+        finishedAt: now().toISOString(),
+      };
+    }
     // One terminal verdict per action is the handlers' own invariant (#908); if more than one arrived,
     // the LAST is what the panel would be showing, and every one of them must be ok for the command to be.
     const verdict = verdicts.length ? verdicts[verdicts.length - 1] : null;
