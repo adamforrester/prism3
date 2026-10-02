@@ -592,6 +592,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     dialog: !!document.querySelector('[data-p3="prune-dialog"]'),
     deleteCta: [...document.querySelectorAll('[data-p3="dialog-confirm"]')].map((n) => n.textContent),
     pills: [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-verdict"]')].map((n) => n.textContent),
+    // The row's details carry the host's sentence under the short verdict (owner decision #3 on #1956).
+    // Read whether or not the row is expanded: a clean result's row is collapsed (#483).
+    summaries: [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].map((n) => n.textContent),
   }));
   // #1830 — the dialog used to be FOUND by its role and accessible name, which asserted both for free.
   // F1 moved the lookup to its hook, so they are asserted here instead, by what the accessibility tree
@@ -600,7 +603,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     .evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
   const settle = (page) => page
     .waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]')
-      || [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-verdict"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
+      || [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
     .catch(() => {});
 
   // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog. Its readings are kept, because they
@@ -628,13 +631,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await post(page, { ...preview, pillOnly: true });
     await settle(page);
     const s = await readPrune(page);
-    const landed = s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`);
+    const landed = s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`);
     hooks.absent(ok, { seen: control.dialog && landed, state: 'the dialog in the control arm, and the agent preview landing in this one' },
       !s.dialog, '#1663 an agent prune preview (pillOnly) opens NO confirm dialog on the owner\'s screen');
     hooks.absent(ok, { seen: control.deleteCta.includes('Delete 4 items') && landed, state: 'the Delete CTA in the control arm, and the agent preview landing in this one' },
       s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete CTA — found ${JSON.stringify(s.deleteCta)}`);
-    ok(s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`),
-      `#1663 an agent prune preview reads "Agent preview: ${PRUNE_SUMMARY}" in the Activity drawer — read ${JSON.stringify(s.pills)}`);
+    ok(s.pills.includes('4 stale') && s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`),
+      `#1663 an agent prune preview reads "4 stale" in the Activity drawer, "Agent preview: ${PRUNE_SUMMARY}" in its details — read ${JSON.stringify(s.pills)}, ${JSON.stringify(s.summaries)}`);
     ok(errors.length === 0, `#1663 agent preview: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }

@@ -110,20 +110,20 @@ for (const c of verdictCases) {
 
 // ---- prune-result: the four branches ---------------------------------------------------------------------
 {
-  const busy: HostSession = { ...init, pruneBusy: 'preview', pruneVerdict: { ok: true, count: 1, summary: 'old' } };
+  const busy: HostSession = { ...init, pruneBusy: 'preview', pruneVerdict: { ok: true, applied: false, count: 1, summary: 'old' } };
   const preview = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale' });
   ok(preview.next.pruneBusy === false && same(preview.next.prunePreview, { count: 3, summary: '3 stale' }) && preview.next.pruneVerdict === null,
     'prune-result: a preview with something stale opens the confirm (prunePreview) and clears the verdict');
   ok(same(preview.topics, ['host']), 'prune-result: invalidates host (the bar)');
   const none = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 0, summary: 'nothing stale' });
-  ok(none.next.prunePreview === null && same(none.next.pruneVerdict, { ok: true, count: 0, summary: 'nothing stale' }),
+  ok(none.next.prunePreview === null && same(none.next.pruneVerdict, { ok: true, applied: false, count: 0, summary: 'nothing stale' }),
     'prune-result: a preview with nothing stale is a pill, never a dialog');
   const agent = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 2, summary: '2 stale', pillOnly: true });
-  ok(agent.next.prunePreview === null && same(agent.next.pruneVerdict, { ok: true, count: 2, summary: 'Agent preview: 2 stale' }),
+  ok(agent.next.prunePreview === null && same(agent.next.pruneVerdict, { ok: true, applied: false, count: 2, summary: 'Agent preview: 2 stale' }),
     'prune-result: an agent preview (pillOnly) is a pill, never the dialog');
   const done = step({ ...busy, pruneBusy: 'delete', prunePreview: { count: 3, summary: '3 stale' } },
     { kind: 'prune-result', ok: true, applied: true, count: 3, summary: 'removed 3' });
-  ok(done.next.pruneBusy === false && done.next.prunePreview === null && same(done.next.pruneVerdict, { ok: true, count: 3, summary: 'removed 3' }),
+  ok(done.next.pruneBusy === false && done.next.prunePreview === null && same(done.next.pruneVerdict, { ok: true, applied: true, count: 3, summary: 'removed 3' }),
     'prune-result: an applied delete is the verdict and closes the dialog');
 }
 
@@ -133,20 +133,24 @@ let refuses = false;
 try { brandTheme({} as BrandInput); } catch { refuses = true; }
 ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 {
-  const seedFirst = step(init, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true });
-  ok(same(seedFirst.next.seedOutcome, { state: 'present', recovered: false, contractOk: true, detail: 'contract holds' }),
+  const seedFirst = step(init, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true, failed: 0 });
+  ok(same(seedFirst.next.seedOutcome, { state: 'present', recovered: false, contractOk: true, detail: 'contract holds', failed: 0 }),
     'seed-info: before restore-input, a present file reads as not recovered');
   ok(same(seedFirst.topics, ['host']), 'seed-info: invalidates host (the bar)');
   const thenRestore = step(seedFirst.next, { kind: 'restore-input', input: harbor });
-  ok(thenRestore.next.inputRecovered === true && same(thenRestore.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds' }),
+  ok(thenRestore.next.inputRecovered === true && same(thenRestore.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds', failed: 0 }),
     'restore-input: repairs a seed outcome already joined without it');
   ok(thenRestore.effect === 'loadBrand' && thenRestore.topics.length === 0, 'restore-input: an accepted blob loads the brand, and invalidates no host topic');
 
   const restoreFirst = step(init, { kind: 'restore-input', input: harbor });
   ok(restoreFirst.next.inputRecovered === true && restoreFirst.next.seedOutcome === null, 'restore-input: before seed-info, records the recovery only');
-  const thenSeed = step(restoreFirst.next, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true });
-  ok(same(thenSeed.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds' }),
+  const thenSeed = step(restoreFirst.next, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true, failed: 0 });
+  ok(same(thenSeed.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds', failed: 0 }),
     'seed-info: after restore-input, a present file reads as recovered');
+  // The failed-check count travels into the outcome (S11, the Activity drawer's "2 mismatches").
+  const failing = step(init, { kind: 'seed-info', ok: false, summary: 'FAILED: a, b', present: true, failed: 2 });
+  ok(same(failing.next.seedOutcome, { state: 'present', recovered: false, contractOk: false, detail: 'FAILED: a, b', failed: 2 }),
+    'seed-info: a failing contract carries its failed-check count');
 
   const absent = step(init, { kind: 'seed-info', ok: true, summary: 'no variables', present: false });
   ok(same(absent.next.seedOutcome, { state: 'absent' }), 'seed-info: no Prism3 variables reads as absent');

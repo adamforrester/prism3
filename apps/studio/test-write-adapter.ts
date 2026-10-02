@@ -99,10 +99,12 @@ accepts('prune-result (preview)', { type: 'prune-result', ok: true, applied: fal
   { kind: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' });
 accepts('prune-result (agent preview, pillOnly)', { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true },
   { kind: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true });
-accepts('seed-info', { type: 'seed-info', ok: true, present: true, summary: 'ours' },
-  { kind: 'seed-info', ok: true, summary: 'ours', present: true });
-accepts('seed-info without present (older host)', { type: 'seed-info', ok: true, summary: 'ours' },
-  { kind: 'seed-info', ok: true, summary: 'ours', present: false });
+accepts('seed-info', { type: 'seed-info', ok: false, present: true, summary: 'ours', failed: 2 },
+  { kind: 'seed-info', ok: false, summary: 'ours', present: true, failed: 2 });
+accepts('seed-info without present or failed (older host)', { type: 'seed-info', ok: true, summary: 'ours' },
+  { kind: 'seed-info', ok: true, summary: 'ours', present: false, failed: 0 });
+accepts('seed-info with a malformed failed count', { type: 'seed-info', ok: false, present: true, summary: 'ours', failed: '2' },
+  { kind: 'seed-info', ok: false, summary: 'ours', present: true, failed: 0 });
 accepts('restore-input', { type: 'restore-input', input: { name: 'b' } },
   { kind: 'restore-input', input: { name: 'b' } });
 accepts('restore-input-empty', { type: 'restore-input-empty' }, { kind: 'restore-input-empty' });
