@@ -1032,6 +1032,88 @@ for (const b of brands) {
     'IT-01: a border override leaves the icon at its derived value (border is not coupled)');
 }
 
+// IT-02 (#1968) — EVERY text role's override carries to its icon twin WHEN ICONS MATCH TEXT. IT-01 holds the
+// interactive families; this arm holds the rest of the tree: `text.*` → `icon.*`, `inverse.text.*` →
+// `inverse.icon.*`, and the link family. EXPECTED is authored HERE: the pin's hex read off the brand's own
+// ramp, and the no-carry value read off the un-overridden tree at the same lever value. Nothing is read
+// from `withIconTwins`, and the pair list is written out rather than derived, so the gate does not share
+// the carry's own path swap (docs/34). Promises, under the default `iconContrast: 'text'` unless named:
+//   (1) `text.brand` override → `icon.brand` equals it (a non-interactive pair);
+//   (2) `inverse.text.success` override → `inverse.icon.success` equals it (an inverse pair);
+//   (3) `text.link.hover` override → `icon.link.hover` equals the emitted label (the link family);
+//   (4) under `iconContrast: '3:1'`, a `text.brand` override leaves `icon.brand` at its own derived value;
+//   (5) under `iconContrast: '3:1'`, an `interactive.primary.text.rest` override STILL moves its icon twin
+//       (owner, 2026-10-02 — the control's glyph is a value twin under both lever values, #1617);
+//   (6) an explicit `icon.brand` override beats the carried value, in either key order.
+// BY-NAME MUTATIONS: (a) drop the `'text'` gate on the new pairs → arm (4) fails; (b) restrict the twin
+// map back to interactive only → arms (1), (2) and (3) fail; (c) let the carry overwrite an explicit icon
+// override → arm (6) fails, and IT-01 (3) with it; (d) gate the interactive pairs on `'text'` too → arm (5)
+// fails.
+{
+  const inp = { id: 'it02', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  type IRole = { hex: string; path?: string; ratio: number; min: number; against: string };
+  const lightOf = (t: ReturnType<typeof brandTheme>) =>
+    resolveAllModes(t).find((x) => x.mode === 'light')!.roles as Record<string, IRole>;
+  const base = brandTheme(inp as any);
+  const base31 = brandTheme({ ...inp, iconContrast: '3:1' } as any);
+  const baseL = lightOf(base), base31L = lightOf(base31);
+  const neutralPal = base.roleToPalette.neutral;
+  const nSteps = (base.palettes.find((p) => p.palette === neutralPal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
+  const read = ['icon.brand', 'text.brand', 'inverse.icon.success', 'inverse.text.success', 'icon.link.hover',
+    'text.link.hover', 'interactive.primary.icon.rest', 'interactive.primary.text.rest'];
+  // Pins distinct from every derived value this arm reads, at both lever values — so a pass can never be a
+  // coincidence of a derived colour already matching the pin.
+  const derivedHexes = new Set(read.flatMap((k) => [baseL[k]?.hex?.toLowerCase(), base31L[k]?.hex?.toLowerCase()]));
+  const pins = nSteps.filter((s) => !derivedHexes.has(hex(s.rgb).toLowerCase()));
+  // A deep pin for the link arm, so the #1510 floor clamp leaves it where it is: the deepest neutral step.
+  const deep = [...pins].sort((a, b) => contrast(b.rgb, hexToRgb(baseL['background.primary'].hex)) - contrast(a.rgb, hexToRgb(baseL['background.primary'].hex)))[0];
+  const [pinA, pinB] = [pins[Math.floor(pins.length / 2)], pins[1]];
+  ok(!!pinA && !!pinB && !!deep && pinA.key !== pinB.key && read.every((k) => !!baseL[k] && !!base31L[k])
+     && base31L['icon.brand'].hex !== base31L['text.brand'].hex,
+    'IT-02: the brand emits every pair this arm reads, icon.brand derives its own value under 3:1, and the neutral ramp offers distinct non-derived pins (precondition)');
+  const ref = (s: { key: string }) => ({ palette: neutralPal, step: s.key });
+  const pinned = (s: { rgb: RGB }) => hex(s.rgb).toLowerCase();
+  const withOv = (o: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
+    lightOf(brandTheme({ ...inp, ...extra, overrides: { light: o } } as any));
+
+  // (1) a non-interactive pair
+  const b = withOv({ 'text.brand': ref(pinA) });
+  ok(b['icon.brand'].hex.toLowerCase() === pinned(pinA),
+    `IT-02: a text.brand override carries to icon.brand when icons match text (icon ${b['icon.brand'].hex}, pinned ${hex(pinA.rgb)})`);
+  ok(b['icon.success'].hex === baseL['icon.success'].hex,
+    'IT-02: only the matching twin is coupled (icon.success keeps its derived value)');
+
+  // (2) an inverse pair
+  const s = withOv({ 'inverse.text.success': ref(pinA) });
+  ok(s['inverse.icon.success'].hex.toLowerCase() === pinned(pinA),
+    `IT-02: an inverse.text.success override carries to inverse.icon.success (icon ${s['inverse.icon.success'].hex}, pinned ${hex(pinA.rgb)})`);
+
+  // (3) the link family — equal to the emitted label, which may have been floor-clamped
+  const l = withOv({ 'text.link.hover': ref(deep) });
+  ok(l['text.link.hover'].hex !== baseL['text.link.hover'].hex && l['icon.link.hover'].hex === l['text.link.hover'].hex,
+    `IT-02: a text.link.hover override carries to icon.link.hover (icon ${l['icon.link.hover'].hex}, label ${l['text.link.hover'].hex}, base ${baseL['text.link.hover'].hex})`);
+
+  // (4) iconContrast '3:1' — the non-interactive icon keeps its own floor's value
+  const n = withOv({ 'text.brand': ref(pinA) }, { iconContrast: '3:1' });
+  ok(n['text.brand'].hex.toLowerCase() === pinned(pinA) && n['icon.brand'].hex === base31L['icon.brand'].hex,
+    `IT-02: under iconContrast '3:1' a text.brand override does not carry (icon ${n['icon.brand'].hex}, its own derived ${base31L['icon.brand'].hex})`);
+
+  // (5) iconContrast '3:1' — the interactive glyph still follows its label
+  const i = withOv({ 'interactive.primary.text.rest': ref(pinA) }, { iconContrast: '3:1' });
+  ok(i['interactive.primary.icon.rest'].hex.toLowerCase() === pinned(pinA),
+    `IT-02: under iconContrast '3:1' an interactive text.rest override still carries to its icon twin (icon ${i['interactive.primary.icon.rest'].hex}, pinned ${hex(pinA.rgb)})`);
+
+  // (6) an explicit icon override wins — in either key order
+  for (const order of ['text-first', 'icon-first'] as const) {
+    const o = order === 'text-first'
+      ? { 'text.brand': ref(pinA), 'icon.brand': ref(pinB) }
+      : { 'icon.brand': ref(pinB), 'text.brand': ref(pinA) };
+    const e = withOv(o);
+    ok(e['icon.brand'].hex.toLowerCase() === pinned(pinB) && e['text.brand'].hex.toLowerCase() === pinned(pinA),
+      `IT-02: an explicit icon.brand override beats the carried text.brand value (${order}; icon ${e['icon.brand'].hex}, want ${hex(pinB.rgb)})`);
+  }
+}
+
 // L-07 (#1496) — the `linkPalette` LEVER. Links may point at a palette INDEPENDENTLY of the action
 // palette. Four promises, each with EXPECTED authored HERE from the palette the lever names — never
 // re-derived from modes.ts's link math (docs/34):

@@ -114,7 +114,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S5.1: the Style guide's Disabled and Interactive sections, shared, and Color › Interactive's writes.
   'src/preview/sections/disabled.ts', 'src/preview/sections/interactive.ts', 'src/state/interactive-input.ts',
   // S5.2: Color › Interactive (its levers, its preview) and the Links section it draws.
-  'src/domains/color-interactive.ts', 'src/preview/interactive.ts', 'src/preview/sections/links.ts'];
+  'src/domains/color-interactive.ts', 'src/preview/interactive.ts', 'src/preview/sections/links.ts',
+  // S4c: the Focus ring section, drawn by Surfaces & fills' preview (Q30).
+  'src/preview/sections/focus-ring.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -485,10 +487,26 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
+}
+
+// ── the Focus ring, shared (UI redesign S4c, owner decision Q30) ─────────────────────────────────────
+// Color › Surfaces & fills' preview draws the Focus ring section from one module, `preview/sections/focus-ring.ts`
+// (S5.2 retired the legacy Interactive page, its other caller). Subject: `main.ts` and `preview/surfaces.ts`, read from
+// disk, comments stripped. Oracle: the literal renderer name and the section's title. A copy pasted back into
+// `main.ts` fails by the title it draws; the smoke suite holds the drawn section to its marker.
+{
+  const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
+  const mainCode = strip(readFileSync(MAIN, 'utf8'));
+  const surfCode = strip(readFileSync(join(SRC, 'preview/surfaces.ts'), 'utf8'));
+  ok(/\bfocusRingSection\(/.test(surfCode), 'src/preview/surfaces.ts draws the Focus ring section through the shared focusRingSection()');
+  const own = /palSection\(\s*'Focus ring'/.test(mainCode) || /'fr-wrap'/.test(mainCode);
+  ok(!own, `src/main.ts draws no "Focus ring" section of its own${own ? " — main.ts carries its own Focus ring (palSection('Focus ring', …) or the fr-wrap markup): Surfaces & fills would drift from the Interactive page" : ''}`);
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  ok(idx.includes("from './focus-ring'"), "preview/sections/index.ts exports the focus-ring section from ./focus-ring");
 }
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);

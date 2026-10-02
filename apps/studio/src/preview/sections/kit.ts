@@ -21,13 +21,13 @@
  * the rest of the legacy pages cannot disagree on a pill or a section head. S5.1 moved `specimenPair`,
  * `SPECIMEN_PAIR` and `legibleInkOn` here with the Disabled and Interactive sections, their only readers.
  *
- * THE SHARED-SECTION MARKER (`data-sg-section`, follow-up to #1951). Each section module (the five, and from
- * S5.1 Disabled and Interactive) stamps
+ * THE SHARED-SECTION MARKER (`data-sg-section`, follow-up to #1951). Each section module (the five, from
+ * S5.1 Disabled and Interactive, and from S4c the Focus ring) stamps
  * its own root with `data-sg-section="<its file name>"`, as a literal IN THAT MODULE, never through `palSection`
  * or anything else here: `main.ts` imports `palSection`, so a marker set there would also mark a section
  * `main.ts` drew for itself, which is exactly what the marker exists to tell apart. `test-smoke.mjs` holds that
- * every one of the five on the Style guide and on Surfaces & fills, and Disabled and Interactive on the Style
- * guide, carries its marker, so a section `main.ts`
+ * every one of the five on the Style guide and on Surfaces & fills, Disabled and Interactive on the Style
+ * guide, and the Focus ring on Surfaces & fills, carries its marker, so a section `main.ts`
  * draws on its own (by any spelling, an aliased `palSection` included) fails there by name;
  * `test-shell-imports.ts` holds that no file outside `sections/` writes the marker. Invisible: an attribute.
  *

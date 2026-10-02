@@ -1169,7 +1169,9 @@ ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesSt
 //   · every painted swatch (a card's fill, a border, an ink, an icon) is the emission's hex for its role, in
 //     the page's mode, except the Text color section's second column, held by its POSITION to the opposite
 //     mode — on Surfaces & fills and on the Style guide, in every mode;
-//   · each of the five sections' roots carries the marker only its shared module stamps (`data-sg-section`);
+//   · each of the five sections' roots carries the marker only its shared module stamps (`data-sg-section`),
+//     and so does the Focus ring after Border (S4c, owner decision Q30), whose two rings are held, as
+//     painted swatches, to the emission's `border.focus`;
 //   · every ratio badge prints the ratio THIS FILE computes, with its own WCAG function, from the two
 //     emitted hexes (the role and what the emission says it is measured against), and marks below-floor
 //     exactly when that ratio is under the emission's `min`; a graded role's chip with no badge fails;
@@ -1193,7 +1195,7 @@ const EXPECT_SECTION_CHIPS = {
 /** The specimen roots each corpus brand's Surfaces & fills preview draws: the five sections, and Gradients
  *  where the brand ships gradients (harbor ships none). Literal, per brand. */
 const FIVE = Object.keys(EXPECT_SECTION_CHIPS);
-const EXPECT_FILLS_ROOTS = { prism3: [...FIVE, 'Gradients'], aurora: [...FIVE, 'Gradients'], harbor: FIVE };
+const EXPECT_FILLS_ROOTS = { prism3: [...FIVE, 'Focus ring', 'Gradients'], aurora: [...FIVE, 'Focus ring', 'Gradients'], harbor: [...FIVE, 'Focus ring'] };
 /** Roles whose swatch must be among those checked, one or more per section, so an empty read fails by name. */
 const MUST_PAINT = ['background.primary', 'inverse.background.primary', 'foreground.brand', 'text.on-brand', 'text.primary', 'border.secondary', 'icon.primary', 'icon.on-brand'];
 /** A palette step's emitted hex (`neutral.050` → `core.palette.neutral.050`), for an `against` that names one. */
@@ -1223,7 +1225,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
     const grid = n.parentElement?.classList.contains('sg-tcg') ? n.parentElement : null;
     return { role: n.dataset.sgRole, prop: n.dataset.sgPaint, claims: n.dataset.sgMode ?? null,
       col: grid ? [...grid.children].indexOf(n) % 3 : null,
-      css: n.dataset.sgPaint === 'background' ? cs.backgroundColor : n.dataset.sgPaint === 'border' ? cs.borderTopColor : cs.color };
+      css: n.dataset.sgPaint === 'background' ? cs.backgroundColor : n.dataset.sgPaint === 'border' ? cs.borderTopColor : n.dataset.sgPaint === 'outline' ? cs.outlineColor : cs.color };
   });
   const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '' }));
   const chipsWithBadge = [...(host?.querySelectorAll('.sg-pills') ?? [])].flatMap((w) => [...w.querySelectorAll('[data-p3="token-pill"]')].map((p) => {
@@ -1241,6 +1243,9 @@ const EXPECT_SHARED_MARKER = { Background: 'background', Foreground: 'foreground
 /** The Style guide's last two sections, shared since S5.1 (`sections/disabled.ts`, `sections/interactive.ts`).
  *  The Style guide and Color › Interactive (S5.2, section 1d) draw them; Surfaces & fills does not. Literal. */
 const EXPECT_SG_ONLY_MARKER = { Disabled: 'disabled', Interactive: 'interactive' };
+/** The Focus ring, shared since S4c (`sections/focus-ring.ts`): Surfaces & fills draws it after Border (owner
+ *  decision Q30); the Style guide does not. Literal. */
+const EXPECT_FILLS_ONLY_MARKER = { 'Focus ring': 'focus-ring' };
 const checkSharedMarkers = (where, got, expect = EXPECT_SHARED_MARKER) => {
   for (const [name, key] of Object.entries(expect)) {
     const s = got.sections.find((x) => x.name === name);
@@ -1308,7 +1313,11 @@ for (const brand of BRANDS) {
     // Swatches: each painted node's computed color against the emission's hex for its role, in the mode its
     // position says it shows.
     checkSwatches(where, got, emission, mode, modes);
-    checkSharedMarkers(where, got);
+    checkSharedMarkers(where, got, { ...EXPECT_SHARED_MARKER, ...EXPECT_FILLS_ONLY_MARKER });
+    // The Focus ring (S4c, owner decision Q30): its two rings were read by the swatch check above, which held
+    // each outline to the emission's border.focus in this mode.
+    const rings = got.paint.filter((n) => n.prop === 'outline' && n.role === 'border.focus').length;
+    ok(rings === 2, `${where}: the Focus ring section draws its two rings in border.focus, and the swatch check read them (read ${rings})`);
     // Ratio badges: computed HERE from the emitted pair.
     const offBadge = [];
     for (const b of got.badges) {
@@ -1452,6 +1461,116 @@ for (const brand of BRANDS) {
 }
 ok(intStates >= BRANDS.length * 2, `the Interactive sweep visited ${intStates} brand × mode states (floor ${BRANDS.length * 2})`);
 console.log(`  ${intStates} states, ${intText} Text-row inks, ${intPaired} paired specimens and ${intBadges} ratio badges checked against the emissions.`);
+// 1e. S4c: the surface controls edit the previewed mode (owner decision Q22), and a Fields edit reaches the
+//     exported tokens (Q29). Per corpus brand. EXPECTED: the persisted brand's `surfaces.<mode>` key, worked out
+//     HERE from the option chosen (white and black as words, a step as a number), and the other mode's key
+//     held to what was persisted before the edit; the exported DTCG tree's alias for the field role, the
+//     literal `{<root>.core.palette.neutral.<step>}`, against the committed emission, which must alias
+//     something else so the edit is seen to move it.
+console.log(`\nColor › Surfaces & fills — the previewed mode's surfaces, and the Fields rows reaching the export (S4c)\n${'='.repeat(78)}`);
+const inputAt = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
+const toSurface = (v) => (v === 'white' || v === 'black' ? v : Number(v));
+const previewMode = async (page, m) => {
+  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${m}"]`));
+  await page.waitForFunction((mm) => document.querySelector(`[data-p3="mode-option"][data-mode="${mm}"]`)?.getAttribute('aria-checked') === 'true', m);
+};
+const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
+  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step"]' };
+const SURF = (k) => SURF_HOOKS[k];
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
+  const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
+  // One set of controls, whichever mode is previewed (Q22: Light and Dark are no longer side by side).
+  const sets = await page.locator('[data-p3="levers-pane"] [data-p3="surfaces-group"]').count();
+  ok(sets === 1, `S4c ${brand}: Surfaces & fills draws one set of surface controls (${sets})`);
+  for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
+    if (!modes.includes(m)) continue;
+    await previewMode(page, m);
+    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4]]) {
+      const before = (await inputAt(page))?.surfaces ?? {};
+      const values = await page.locator(SURF(k)).evaluate((x) => [...x.options].map((o) => o.value));
+      const v = values[Math.min(pick, values.length - 1)];
+      await page.locator(SURF(k)).selectOption(v);
+      // Bounded: a control that wrote the wrong key redraws on its old value, and the check below says so.
+      await page.waitForFunction(([sel, vv]) => document.querySelector(sel)?.value === vv, [SURF(k), v], { timeout: 5000 }).catch(() => {});
+      const after = (await inputAt(page))?.surfaces ?? {};
+      const want = toSurface(v);
+      ok(JSON.stringify(after?.[m]?.[field]) === JSON.stringify(want) && JSON.stringify(after?.[other]) === JSON.stringify(before?.[other]),
+        `S4c ${brand}: previewing ${m}, the ${k} control writes surfaces.${m}.${field} = ${JSON.stringify(want)} and leaves surfaces.${other} as it was — wrote surfaces ${JSON.stringify(after)} (before ${JSON.stringify(before)})`);
+    }
+  }
+  // A derived mode: the controls show its family's surfaces and are disabled, as the rows are.
+  const derived = modes.find((m) => m.startsWith('hc-'));
+  if (derived) {
+    await previewMode(page, derived);
+    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), ['base', 'floor', 'band-palette', 'band-step'].map(SURF));
+    ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
+  }
+  // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
+  // wired to its sibling's role went green while only three rows were edited). EXPECTED: the role is the
+  // literal below, never the row's own `data-role`, which the row selector only uses to find the row; the
+  // step is a literal per row; the persisted brand's `overrides.<mode>` must equal what it was before the
+  // edit with exactly that one role set to `{ palette: 'neutral', step }`, and the other mode's untouched.
+  const ALL_FIELD_ROLES = ['field.fill', 'field.border.rest', 'field.border.hover', 'field.placeholder',
+    'inverse.field.fill', 'inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.field.placeholder'];
+  const FIELD_STEPS = { dark: ['150', '250', '350', '450', '550', '650', '750', '850'], light: ['200', '300', '400', '500', '600', '700', '800', '900'] };
+  const brandRaw = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+  const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => a.localeCompare(b))));
+  let fieldEdits = 0;
+  for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
+    if (!modes.includes(m)) continue;
+    await previewMode(page, m);
+    for (const [i, role] of ALL_FIELD_ROLES.entries()) {
+      fieldEdits++;
+      const step = FIELD_STEPS[m][i];
+      const before = (await inputAt(page))?.overrides ?? {};
+      const rawBefore = await brandRaw(page);
+      const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
+      await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+      // Bounded: an edit that writes nothing leaves the brand as it was, and the check below says so.
+      await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawBefore, { timeout: 5000 }).catch(() => {});
+      await page.keyboard.press('Escape');
+      const after = (await inputAt(page))?.overrides ?? {};
+      const want = { ...(before[m] ?? {}), [role]: { palette: 'neutral', step } };
+      const held = JSON.stringify(after[other]) === JSON.stringify(before[other]);
+      ok(sorted(after[m]) === sorted(want) && held,
+        `S4c ${brand}: previewing ${m}, the Fields row ${role} writes overrides.${m}["${role}"] = neutral ${step} and nothing else — wrote ${sorted(after[m])} (before ${sorted(before[m])}; ${other} ${held ? 'unchanged' : 'CHANGED'})`);
+    }
+  }
+  ok(fieldEdits === ALL_FIELD_ROLES.length * 2, `S4c ${brand}: every Fields row was edited in Dark and in Light (${fieldEdits} edits, want ${ALL_FIELD_ROLES.length * 2})`);
+  // A Fields edit, in Dark and in Light, reaches the exported token tree.
+  const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const root = Object.keys(emission)[0];
+  const leaf = (tree, role) => role.split('.').reduce((n, x) => n?.[x], tree[root]?.color);
+  const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
+  const EDITS = [['dark', 'field.border.rest', '300'], ['light', 'inverse.field.placeholder', '200'], ['dark', 'field.fill', '100']];
+  for (const [m, role, step] of EDITS) {
+    await previewMode(page, m);
+    const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
+    await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    await page.waitForFunction((sel) => /Override/.test(document.querySelector(sel)?.textContent ?? ''), `${row} [data-p3="fill-pick"]`, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+  }
+  await hooks.click(page.locator('[data-p3="export-open"]'));
+  await hooks.need(page, '[data-p3="export-dialog"]');
+  const pending = page.waitForEvent('download');
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  let exported = null;
+  try { exported = JSON.parse(await readFile(await (await pending).path(), 'utf8')); } catch { /* reported below */ }
+  for (const [m, role, step] of EDITS) {
+    const want = `{${root}.core.palette.neutral.${step}}`;
+    const was = aliasIn(emission, role, m), got = exported ? aliasIn(exported, role, m) : null;
+    ok(got === want && was !== want, `S4c ${brand}: a Fields edit of ${role} in ${m} to neutral ${step} reaches the exported tokens as ${want} (exported ${got}; the committed emission has ${was})`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `S4c ${brand}: 0 console errors across the surface and Fields edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered

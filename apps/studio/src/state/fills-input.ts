@@ -11,14 +11,23 @@
  *
  * THE MODE A WRITE TARGETS IS AN ARGUMENT. The legacy editors wrote `currentMode` from inside; the new page
  * passes the mode the preview shows, which is the same store value (`setCurrentMode`), so the two agree.
+ * Since S4c the surface writes take it too (owner decision Q22): the page draws one set of surface controls,
+ * for the previewed mode, where it drew a Light group and a Dark group, and each writes what that mode's group
+ * wrote.
+ *
+ * WHAT S4c CHANGED IN WHAT IS WRITTEN. The link row and its set write (`setLinkOverride`) are gone: links are
+ * edited on Color › Interactive only (owner decision Q28, #1961). The Fields rows (Q29, #1962) are new: seven
+ * roles that had no editor, each a plain `setRoleOverride`, the write `field.fill` always had.
  */
 import type { GradientInput } from '@prism3/engine/theme';
+import { BUILTIN_MODES } from '@prism3/engine/modes';
 import { brandState, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
 
-/** A resolved role, the slice the levers read. */
-export type FillRole = { hex: string; path?: string; ratio?: number; min?: number; against?: string };
+/** A resolved role, the slice the levers read. `alpha` is set on a translucent role (a wash: the scrim, the
+ *  veils), whose `hex` is its opaque base, never the color anyone sees. */
+export type FillRole = { hex: string; path?: string; ratio?: number; min?: number; against?: string; alpha?: number };
 /** Every role in `mode`, resolved from the current theme (one `resolveAllModes` per theme, shared). */
 export const rolesIn = (mode: string): Record<string, FillRole | undefined> =>
   (resolvedModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, FillRole | undefined>;
@@ -44,7 +53,31 @@ export const stepOfPath = (path: string | undefined): { palette: string; step: s
  *  its surface from its base mode. */
 export const SURFACE_MODES = ['light', 'dark'] as const;
 export type SurfaceMode = typeof SURFACE_MODES[number];
+/** Which surfaces the controls show while the preview shows `mode` (owner decision Q22: every semantic page
+ *  edits the mode the preview shows). Light and Dark are their own, and editable. Any other mode has no
+ *  surfaces of its own, so its controls show the ones it is drawn from, read-only: a derived mode its
+ *  family's (the engine's `BUILTIN_MODES`), a custom mode its base mode's. */
+export const surfaceSourceOf = (mode: string): { source: SurfaceMode; editable: boolean } => {
+  if ((SURFACE_MODES as readonly string[]).includes(mode)) return { source: mode as SurfaceMode, editable: true };
+  const base = BUILTIN_MODES.find((d) => d.name === mode)?.family ?? brandState.customModes?.find((c) => c.name === mode)?.base;
+  return { source: base === 'dark' ? 'dark' : 'light', editable: false };
+};
 
+/** The token each surface control sets, by the `surfaces.<mode>` field it writes: the page writes `base`,
+ *  which the engine paints as `background.primary`; the inverse band writes `inverseBase`, painted as
+ *  `inverse.background.primary` (#956). The controls name it, so the lever lines up with the preview. The
+ *  contrast floor is a setting, not a token, and is not here. */
+export const SURFACE_TOKENS = { base: 'background.primary', inverseBase: 'inverse.background.primary' } as const;
+/** The scrim (owner decision, 2026-10-02): a read-only row in Background fills, the role the preview's Background
+ *  section ends on. It is a translucent wash (`<ns>.black-alpha.<n>`), so it has no ramp step to pick: the row
+ *  reads out its primitive and its opacity, as the legacy Interactive page's wash read-out (`washSourceRead`
+ *  in `main.ts`) does. */
+export const SCRIM_ROLE = 'scrim.default';
+/** A wash's read-out: its primitive by palette and step (`black-alpha 40`), and its opacity in percent. */
+export const washReadOf = (r: FillRole): { primitive: string; opacity: number } => {
+  const parts = (r.path ?? '').split('.');
+  return { primitive: parts.length >= 2 ? `${parts[parts.length - 2]} ${parts[parts.length - 1]}` : (r.path ?? '—'), opacity: Math.round((r.alpha ?? 1) * 100) };
+};
 /** The neutral steps a page surface or a contrast floor can name, read off the brand's own neutral palette
  *  (labels padded as the token is: `neutral 050`). The stored value stays numeric. */
 export const neutralStepOptions = (): Array<{ value: number; label: string }> => {
@@ -95,7 +128,7 @@ export const setBandStep = (mode: SurfaceMode, step: string | undefined): void =
   writeBand(mode, step == null ? undefined : palette === theme.roleToPalette.neutral ? Number(step) : { palette, step: Number(step) });
 };
 
-// ── role overrides (legacy `setFillOverride`, `setLinkOverride`) ─────────────────────────────────────
+// ── role overrides (legacy `setFillOverride`) ────────────────────────────────────────────────────────
 
 /** Point `role` at `palette` `step` in `mode`, or revert it to the generated baseline (`undefined`), pruning
  *  an emptied mode and an emptied override map so a cleared brand is byte-identical to one never edited. */
@@ -108,34 +141,23 @@ export const setRoleOverride = (mode: string, role: string, palette: string, ste
     if (!Object.keys(ov).length) brandState.overrides = undefined;
   } else forMode[role] = { palette, step };
 };
-/** The link set moves together (#1486's relationship): hover and visited walk one and two steps off rest,
- *  focused equals rest, and Auto clears all four. A lone `text.link.default` override would leave hover
- *  lighter than rest, so whoever offers the control re-establishes the relationship. */
-export const LINK_ROLES = ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused'] as const;
-export const setLinkOverride = (mode: string, palette: string, step: string | undefined): void => {
-  if (step === undefined) {
-    for (const r of LINK_ROLES) setRoleOverride(mode, r, palette, undefined);
-    return;
-  }
-  const steps = stepsOf(palette);
-  const i = steps.indexOf(step);
-  const at = (n: number): string => steps[Math.min(i + n, steps.length - 1)];
-  setRoleOverride(mode, 'text.link.default', palette, step);
-  setRoleOverride(mode, 'text.link.hover', palette, at(1));
-  setRoleOverride(mode, 'text.link.visited', palette, at(2));
-  setRoleOverride(mode, 'text.link.focused', palette, step);
-};
 /** The step `role` is overridden to in `mode`, or undefined. */
 export const overrideOf = (mode: string, role: string): string | undefined => {
   const s = brandState.overrides?.[mode]?.[role]?.step;
   return typeof s === 'string' ? s : undefined;
 };
 
-/** One overridable row: the role, its label, and the palette key its steps come from (`roleToPalette`). */
-export type FillRow = { readonly role: string; readonly label: string; readonly paletteKey: string };
+/** One overridable row: the role, its label, and the palette key its steps come from (`roleToPalette`).
+ *  `transparent` marks a fill that is transparent until it is overridden (#1341): its swatch shows the
+ *  `ground` it sits on, and a step is judged by the value `ink` on it at `floor`, because the engine measures
+ *  the fill against itself (no ratio of its own). */
+export type FillRow = {
+  readonly role: string; readonly label: string; readonly paletteKey: string;
+  readonly transparent?: { readonly ground: string; readonly ink: string; readonly floor: number };
+};
 /** The bold fills (concept v6's five, in the legacy editor's order), then the neutral surface tiers the
- *  legacy Foreground fills editor carried. They stay rows here: the Roles matrix (S4b) is a secondary view,
- *  never the only editor of a role (owner decision Q20, `decisions-2026-10-01-qa.md`). */
+ *  legacy Foreground fills editor carried. They stay rows here (owner decision Q20, `decisions-2026-10-01-qa.md`:
+ *  every role keeps a normal row; the Roles matrix that was to sit beside them is not built, Q31). */
 export const FILL_ROWS: readonly FillRow[] = [
   { role: 'foreground.brand', label: 'Brand', paletteKey: 'brand' },
   { role: 'foreground.success', label: 'Success', paletteKey: 'success' },
@@ -146,11 +168,9 @@ export const FILL_ROWS: readonly FillRow[] = [
   { role: 'foreground.secondary', label: 'Surface — panel', paletteKey: 'neutral' },
   { role: 'foreground.tertiary', label: 'Surface — nested', paletteKey: 'neutral' },
 ];
-/** The field fill (#1341): transparent by default; a neutral step gives the field a solid surface. A step is
- *  judged by the value ink on it (`text.primary` at 4.5:1). */
-export const FIELD_FILL = { role: 'field.fill', label: 'Field fill', paletteKey: 'neutral', ink: 'text.primary', floor: 4.5 } as const;
-/** The text rows the legacy page's Text section carried: the neutral ladder, then the semantic and link
- *  inks, each keyed to its own palette. `text.link.default` moves the link set (`setLinkOverride`). */
+/** The text rows the legacy page's Text section carried: the neutral ladder, then the semantic inks, each
+ *  keyed to its own palette. The link ink is not here: links are edited on Color › Interactive only (owner
+ *  decision Q28, #1961). */
 export const TEXT_ROWS: readonly FillRow[] = [
   { role: 'text.primary', label: 'Primary text', paletteKey: 'neutral' },
   { role: 'text.secondary', label: 'Secondary text', paletteKey: 'neutral' },
@@ -165,15 +185,27 @@ export const TEXT_ROWS: readonly FillRow[] = [
   { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning' },
   { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger' },
   { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info' },
-  { role: 'text.link.default', label: 'Link', paletteKey: 'action' },
+];
+/** The Fields rows (owner decision Q29, #1962): every `field.*` role the engine emits, on the page and on the
+ *  inverse band. The engine derives all eight from the neutral ramp (`modes.ts`: the borders and the
+ *  placeholder walk it, the fills default to `core.palette.transparent`), so each row picks neutral steps.
+ *  `field.fill` was a Foreground fills row until Q29 (#1341: transparent by default; a step is judged by the
+ *  value ink on it, `text.primary` at 4.5:1). Its inverse twin is judged the same way on the band. */
+export const FIELD_ROWS: readonly FillRow[] = [
+  { role: 'field.fill', label: 'Field fill', paletteKey: 'neutral', transparent: { ground: 'background.primary', ink: 'text.primary', floor: 4.5 } },
+  { role: 'field.border.rest', label: 'Field border', paletteKey: 'neutral' },
+  { role: 'field.border.hover', label: 'Field border, hover', paletteKey: 'neutral' },
+  { role: 'field.placeholder', label: 'Placeholder', paletteKey: 'neutral' },
+  { role: 'inverse.field.fill', label: 'Field fill, inverse', paletteKey: 'neutral', transparent: { ground: 'inverse.background.primary', ink: 'inverse.text.primary', floor: 4.5 } },
+  { role: 'inverse.field.border.rest', label: 'Field border, inverse', paletteKey: 'neutral' },
+  { role: 'inverse.field.border.hover', label: 'Field border, inverse hover', paletteKey: 'neutral' },
+  { role: 'inverse.field.placeholder', label: 'Placeholder, inverse', paletteKey: 'neutral' },
 ];
 /** The palette a row's steps come from: `roleToPalette[paletteKey]`, or the key itself (neutral). */
 export const paletteOf = (row: FillRow): string => (theme.roleToPalette as Record<string, string>)[row.paletteKey] ?? row.paletteKey;
-/** Write a row: the link set as a set, any other role on its own. */
+/** Write a row: the role on its own, from the row's palette. */
 export const setRowOverride = (mode: string, row: FillRow, step: string | undefined): void => {
-  const palette = paletteOf(row);
-  if (row.role === 'text.link.default') setLinkOverride(mode, palette, step);
-  else setRoleOverride(mode, row.role, palette, step);
+  setRoleOverride(mode, row.role, paletteOf(row), step);
 };
 
 // ── gradients (legacy gradient editor) ───────────────────────────────────────────────────────────────

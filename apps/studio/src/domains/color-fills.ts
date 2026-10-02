@@ -1,22 +1,24 @@
 /**
  * Color › Surfaces & fills, the levers panel (UI redesign S4a; concept v6's Surfaces & fills page, V8, V9,
- * V10, R2, R5).
+ * V10, R2, R5; S4c, the owner's decisions Q22 to Q30).
  *
- * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`, in v6's order: the intro; **Surfaces** (the
- * page, the contrast floor and the inverse band, for light and for dark); **Foreground fills** (a row per
- * fill: a small swatch, its name and role, and a button that opens the step picker under the row, with the
- * ratio on it); **Text** (the same rows for the text inks: the permanent, primary text editor, owner decision
- * Q20; the Roles matrix, S4b, is a secondary view and never the only editor of a token);
- * **Gradients** (the switch, then an editor per gradient with a 44px bar and editable stops). Every lever is
- * shown (R2: this page shows every lever). Last, the way on to Interactive.
+ * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`: the intro; **Background fills** (the page, the
+ * contrast floor and the inverse band, one set for the mode the preview shows, Q22); **Foreground** (a
+ * row per fill: a small swatch, its name and role, and a button that opens the step picker under the row,
+ * with the ratio on it); **Text color** (the same rows for the text inks: the permanent, primary text editor,
+ * owner decision Q20; no link row, Q28: links are edited on Interactive only); **Fields** (a row per
+ * `field.*` role, page and inverse, Q29); **Gradients** (the switch, then an editor per gradient with a 44px
+ * bar and editable stops). Every lever is shown (R2: this page shows every lever). Last, the way on to
+ * Interactive.
  *
- * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/fills-input.ts`, which writes what the
- * legacy page's closures wrote, byte for byte on the persisted brand. Two places differ from concept v6, each
+ * WRITES. Every write goes through `state/fills-input.ts`. Each control writes what the S4a page's control
+ * for that mode wrote, byte for byte on the persisted brand: since S4c the surface controls write the
+ * previewed mode's `surfaces` key, where S4a drew a Light group and a Dark group. The Fields rows are new
+ * writes (`setRoleOverride`, the one `field.fill` always had). Where this page differs from concept v6, it is
  * by the owner's decision (`docs/superpowers/ui-redesign/decisions-2026-10-01-qa.md`):
- *   · the fill and text rows edit the mode the preview shows, as the legacy page edited the mode its strip
- *     showed (Q19), not light only as v6's R5 had it;
+ *   · every control edits the mode the preview shows (Q19, Q22), not light only as v6's R5 had it;
  *   · the options are the legacy page's: every neutral step for the page and the floor, the inverse band as
- *     a palette and a step, one palette per fill row in the step picker (Q21).
+ *     a palette and a step, one palette per row in the step picker (Q21).
  *
  * HOW IT REPAINTS: by store subscription only (plan §5). A control writes through `fills-input.ts` and calls
  * `rebuild()`; the `brand` topic repaints this panel, the preview and the chrome, and `mode` repaints both.
@@ -27,10 +29,10 @@
 import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
-  FIELD_FILL, FILL_ROWS, SURFACE_MODES, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
+  FIELD_ROWS, FILL_ROWS, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   inputGradientCss, neutralStepOptions, overrideOf, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
-  setBandPalette, setBandStep, setCenter, setGradientsOn, setRoleOverride, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  setSurfaceBase, setSurfaceFloor, stepHex, stepOfPath, stepsOf, type FillRow, type SurfaceMode,
+  setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
+  SCRIM_ROLE, SURFACE_TOKENS, setSurfaceBase, setSurfaceFloor, stepHex, stepOfPath, stepsOf, surfaceSourceOf, washReadOf, type FillRow,
 } from '../state/fills-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
@@ -39,8 +41,7 @@ import { leverBlock, selectField, stateLine, subLine, switchButton, type LeverBl
 import { fmtRatio, stepPicker } from '../ui/step-picker';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'fills')!;
-/** The page the Continue button opens: the next Color sub-page, by the store's page key (its legacy page
- *  until S5 moves it). */
+/** The page the Continue button opens: the next Color sub-page, by the store's page key. */
 const NEXT = { label: 'Interactive', page: 'interactive' } as const;
 
 /** Something drawn that search can hide and a refusal can mark. */
@@ -67,62 +68,105 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     rebuild();
   };
 
-  // ── Surfaces: the page, the contrast floor and the inverse band, for light and for dark ─────────────
+  // ── Background fills: the page, the contrast floor and the inverse band, for the previewed mode ─────
+  // One set of controls (owner decision Q22), where S4a drew a Light group and a Dark group: each control
+  // writes `surfaces.<the previewed mode>`, as that mode's group did. A mode with no surfaces of its own (a
+  // derived or a custom mode) shows the ones it is drawn from, disabled, with the line the rows use.
   const surfaces = (): Item[] => {
-    const b = leverBlock('surfaces');
+    // The lever's name is the section's (owner decision Q26), not the manifest's "Page surfaces": the block
+    // heads the section, as Gradients' does. Its info text is the owner's (approved 2026-10-02), for this page
+    // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
+    const b = leverBlock('surfaces', {
+      label: 'Background fills',
+      desc: 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.',
+    });
     const opts = neutralStepOptions();
-    const sel = (id: string, label: string, role: string, options: { v: string; l: string }[], cur: string, on: (v: string) => void): HTMLElement => {
+    const { source: m, editable } = surfaceSourceOf(currentMode);
+    const sel = (id: string, label: string, role: string, options: { v: string; l: string }[], cur: string, on: (v: string) => void, token?: string): HTMLElement => {
       const f = h('div', 'p3-field');
-      const lab = h('label', 'p3-field-label', label);
+      const lab = token ? tokenField(id, token, label) : h('label', 'p3-field-label', label);
       lab.htmlFor = id;
-      const s = selectField(id, `${label}, ${modeLabelOf(id)}`, role, on);
+      const s = selectField(id, `${label}, ${modeLabel(currentMode)}`, role, on);
       s.set(options, cur);
+      s.select.disabled = !editable;
       f.append(lab, s.el);
       return f;
     };
-    const modeLabelOf = (id: string): string => modeLabel(id.endsWith('-dark') ? 'dark' : 'light');
-    for (const m of SURFACE_MODES) {
-      const roles = rolesIn(m);
-      const cur = brandState.surfaces?.[m];
-      const grp = hook(h('div', 'p3-modegroup'), `surfaces-${m}`);
-      grp.append(h('h4', 'p3-modegroup-title', modeLabel(m)));
-      const grid = h('div', 'p3-fieldgrid');
-      // Page: white, black, or a neutral step. No Auto: an unset base reads as the mode's default.
-      const baseVal = cur?.base ?? (m === 'dark' ? 'black' : 'white');
-      grid.append(sel(`p3-surf-base-${m}`, 'Page', `surface-base-${m}`,
-        [{ v: 'white', l: 'White' }, { v: 'black', l: 'Black' }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
-        String(baseVal), (v) => edit('surfaces', () => setSurfaceBase(m, v))));
-      // Contrast floor: Auto names the floor it derived, read off a bold fill's `against`.
-      const autoFloor = roles['foreground.brand']?.against;
-      grid.append(sel(`p3-surf-floor-${m}`, 'Contrast floor', `surface-floor-${m}`,
-        [{ v: '', l: autoFloor ? `Auto · ${autoFloor.replace('.', ' ')}` : 'Auto' }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
-        cur?.floorStep == null ? '' : String(cur.floorStep), (v) => edit('surfaces', () => setSurfaceFloor(m, v))));
-      // Inverse band: a palette, then a step in it (#898).
-      const band = bandOf(m);
-      const nPal = theme.roleToPalette.neutral;
-      const bf = h('div', 'p3-field p3-field-wide');
-      const bl = h('label', 'p3-field-label', 'Inverse band');
-      bl.htmlFor = `p3-surf-band-${m}`;
-      const pair = h('div', 'p3-fieldpair');
-      const ps = selectField(`p3-surf-band-${m}`, `Inverse band palette, ${modeLabel(m)}`, `surface-band-palette-${m}`, (v) => edit('surfaces', () => setBandPalette(m, v)));
-      ps.set(bandPalettes().map((p) => ({ v: p, l: p === nPal ? 'Neutral' : p })), band.palette);
-      const curSteps = stepsOf(band.palette);
-      const bandAuto = band.palette === nPal ? stepOfPath(roles['inverse.background.primary']?.path)?.step ?? '' : String(curSteps[curSteps.length - 1] ?? '');
-      const ss = selectField(`p3-surf-bandstep-${m}`, `Inverse band step, ${modeLabel(m)}`, `surface-band-step-${m}`, (v) => edit('surfaces', () => setBandStep(m, v === '' ? undefined : v)));
-      ss.set([{ v: '', l: `Auto · ${band.palette} ${bandAuto}` }, ...curSteps.map((s) => ({ v: s, l: `${band.palette} ${s}` }))], band.step ?? '');
-      pair.append(ps.el, ss.el);
-      bf.append(bl, pair);
-      grid.append(bf);
-      grp.append(grid);
-      b.ctl.append(grp);
-    }
-    b.ctl.append(subLine('Custom modes seed their surfaces from their base mode.'));
-    return [{ el: b.el, said: `${b.said} page contrast floor inverse band`, key: 'surfaces', block: b }];
+    /** A field that sets a token: the token, as a fill row shows its role, then the field's name. */
+    const tokenField = (id: string, token: string, label: string): HTMLLabelElement => {
+      const l = h('label', 'p3-fill-name');
+      l.htmlFor = id;
+      l.dataset.role = token;
+      l.append(h('span', 'p3-fill-tok', token), h('span', 'p3-field-label', label));
+      return l;
+    };
+    const roles = rolesIn(m);
+    const cur = brandState.surfaces?.[m];
+    const grp = hook(h('div', 'p3-modegroup'), 'surfaces-group');
+    grp.dataset.mode = m;
+    const d = derivedLine();
+    grp.append(d ?? (editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.')));
+    const grid = h('div', 'p3-fieldgrid');
+    // Page: white, black, or a neutral step. No Auto: an unset base reads as the mode's default.
+    const baseVal = cur?.base ?? (m === 'dark' ? 'black' : 'white');
+    grid.append(sel('p3-surf-base', 'Page', 'surface-base',
+      [{ v: 'white', l: 'White' }, { v: 'black', l: 'Black' }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
+      String(baseVal), (v) => edit('surfaces', () => setSurfaceBase(m, v)), SURFACE_TOKENS.base));
+    // Contrast floor: Auto names the floor it derived, read off a bold fill's `against`.
+    const autoFloor = roles['foreground.brand']?.against;
+    grid.append(sel('p3-surf-floor', 'Contrast floor', 'surface-floor',
+      [{ v: '', l: autoFloor ? `Auto · ${autoFloor.replace('.', ' ')}` : 'Auto' }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
+      cur?.floorStep == null ? '' : String(cur.floorStep), (v) => edit('surfaces', () => setSurfaceFloor(m, v))));
+    // Inverse band: a palette, then a step in it (#898).
+    const band = bandOf(m);
+    const nPal = theme.roleToPalette.neutral;
+    const bf = h('div', 'p3-field p3-field-wide');
+    const bl = tokenField('p3-surf-band', SURFACE_TOKENS.inverseBase, 'Inverse fill');
+    const pair = h('div', 'p3-fieldpair');
+    const ps = selectField('p3-surf-band', `Inverse fill palette, ${modeLabel(currentMode)}`, 'surface-band-palette', (v) => edit('surfaces', () => setBandPalette(m, v)));
+    ps.set(bandPalettes().map((p) => ({ v: p, l: p === nPal ? 'Neutral' : p })), band.palette);
+    const curSteps = stepsOf(band.palette);
+    const bandAuto = band.palette === nPal ? stepOfPath(roles['inverse.background.primary']?.path)?.step ?? '' : String(curSteps[curSteps.length - 1] ?? '');
+    const ss = selectField('p3-surf-bandstep', `Inverse fill step, ${modeLabel(currentMode)}`, 'surface-band-step', (v) => edit('surfaces', () => setBandStep(m, v === '' ? undefined : v)));
+    ss.set([{ v: '', l: `Auto · ${band.palette} ${bandAuto}` }, ...curSteps.map((s) => ({ v: s, l: `${band.palette} ${s}` }))], band.step ?? '');
+    ps.select.disabled = ss.select.disabled = !editable;
+    pair.append(ps.el, ss.el);
+    bf.append(bl, pair);
+    grid.append(bf);
+    grp.append(grid);
+    b.ctl.append(grp);
+    const sc = scrimRow();
+    if (sc) b.ctl.append(sc);
+    return [{ el: b.el, said: `${b.said} page contrast floor inverse band ${SURFACE_TOKENS.base} ${SURFACE_TOKENS.inverseBase} scrim ${SCRIM_ROLE}`, key: 'surfaces', block: b }];
+  };
+
+  /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the
+   *  picker its primitive and opacity in the previewed mode. A wash has no ramp step to swap in, so there is
+   *  nothing to pick (the reasons are on `washSourceRead` in `main.ts`). Its swatch composites the wash over the
+   *  mode's page, as the preview's scrim card does. */
+  const scrimRow = (): HTMLElement | null => {
+    const roles = rolesIn(currentMode);
+    const r = roles[SCRIM_ROLE];
+    if (!r) return null;
+    const { primitive, opacity } = washReadOf(r);
+    const el = hook(h('div', 'p3-fillrow'), 'scrim-row');
+    el.dataset.role = SCRIM_ROLE;
+    const sw = h('span', 'p3-fill-sw');
+    sw.dataset.content = '';
+    const n = parseInt(r.hex.slice(1), 16);
+    const wash = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
+    sw.style.background = `linear-gradient(${wash}, ${wash}), ${roles['background.primary']?.hex ?? '#ffffff'}`;
+    const nm = h('div', 'p3-fill-name');
+    nm.append(h('b', 'p3-fill-label', 'Scrim'), h('span', 'p3-fill-tok', SCRIM_ROLE));
+    const read = hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), 'scrim-readout');
+    read.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
+    el.append(sw, nm, read);
+    return el;
   };
 
   // ── fill and text rows, each with the step picker under it (V9, V10) ──────────────────────────────
   /** One overridable row: the swatch, the name and role, and the button that opens the step picker. */
-  const row = (r: FillRow, opts: { field?: boolean } = {}): Item | null => {
+  const row = (r: FillRow): Item | null => {
     const mode = currentMode;
     const roles = rolesIn(mode);
     const res = roles[r.role];
@@ -133,23 +177,24 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const derived = isDerived(mode);
     const ov = overrideOf(mode, r.role);
     const at = stepOfPath(res.path);
-    // A field fill that is transparent reads as the page it sits on, so its swatch shows the page.
-    const transparent = !!opts.field && ov === undefined;
-    const pageHex = roles['background.primary']?.hex ?? '#ffffff';
-    // What the role is measured against, and its floor. The field fill is judged by its value ink on it.
-    const against = opts.field
-      ? (roles[FIELD_FILL.ink] ? { hex: roles[FIELD_FILL.ink]!.hex, name: FIELD_FILL.ink, floor: FIELD_FILL.floor } : null)
+    // A field fill that is transparent reads as the ground it sits on, so its swatch shows that ground.
+    const tf = r.transparent;
+    const transparent = !!tf && ov === undefined;
+    const groundHex = roles[tf?.ground ?? 'background.primary']?.hex ?? '#ffffff';
+    // What the role is measured against, and its floor. A field fill is judged by its value ink on it.
+    const against = tf
+      ? (roles[tf.ink] ? { hex: roles[tf.ink]!.hex, name: tf.ink, floor: tf.floor } : null)
       : res.against && res.against !== 'self' && (res.min ?? 0) > 0
         ? { hex: roles[res.against]?.hex ?? (() => { const d = res.against!.lastIndexOf('.'); return stepHex(res.against!.slice(0, d), res.against!.slice(d + 1)) ?? '#ffffff'; })(), name: res.against, floor: res.min! }
         : null;
-    const ratio = !opts.field && res.against && res.against !== 'self' && typeof res.ratio === 'number' ? res.ratio : null;
+    const ratio = !tf && res.against && res.against !== 'self' && typeof res.ratio === 'number' ? res.ratio : null;
     const below = ratio !== null && (res.min ?? 0) > 0 && ratio + 1e-9 < res.min!;
 
     const el = hook(h('div', 'p3-fillrow'), rowHook(r.role));
     el.dataset.role = r.role;
     const sw = h('span', 'p3-fill-sw');
     sw.dataset.content = '';
-    sw.style.background = transparent ? pageHex : res.hex;
+    sw.style.background = transparent ? groundHex : res.hex;
     const nm = h('div', 'p3-fill-name');
     nm.append(h('b', 'p3-fill-label', r.label), h('span', 'p3-fill-tok', r.role));
     const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), 'fill-pick');
@@ -191,8 +236,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         current: transparent || !at || at.palette !== palette ? null : { palette, step: at.step },
         against,
         overridden: ov !== undefined,
-        onPick: (_p, step) => edit(key, () => (opts.field ? setRoleOverride(mode, r.role, palette, step) : setRowOverride(mode, r, step))),
-        onAuto: () => edit(key, () => (opts.field ? setRoleOverride(mode, r.role, palette, undefined) : setRowOverride(mode, r, undefined))),
+        onPick: (_p, step) => edit(key, () => setRowOverride(mode, r, step)),
+        onAuto: () => edit(key, () => setRowOverride(mode, r, undefined)),
         onClose: () => { openRole = null; render(); root.querySelector<HTMLElement>(`#${btn.id}`)?.focus(); },
       });
       wrap.append(pk.el);
@@ -205,24 +250,18 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     isDerived(currentMode) ? stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`) : null;
   const editingLine = (): HTMLElement => subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
 
-  const fills = (): Item[] => {
-    const box = hook(h('div', 'p3-fillrows'), 'fill-rows');
+  /** A section's rows, under the line that says which mode they edit. */
+  const rows = (key: string, list: readonly FillRow[]): Item[] => {
+    const box = hook(h('div', 'p3-fillrows'), `${key === 'fills' ? 'fill' : key === 'fields' ? 'field' : key}-rows`);
     const out: Item[] = [];
     const d = derivedLine();
     box.append(d ?? editingLine());
-    for (const r of FILL_ROWS) { const it = row(r); if (it) { box.append(it.el); out.push(it); } }
-    const ff = row(FIELD_FILL, { field: true });
-    if (ff) { box.append(ff.el); out.push(ff); }
-    return [{ el: box, said: '', key: 'fills' }, ...out];
+    for (const r of list) { const it = row(r); if (it) { box.append(it.el); out.push(it); } }
+    return [{ el: box, said: '', key }, ...out];
   };
-  const text = (): Item[] => {
-    const box = hook(h('div', 'p3-fillrows'), 'text-rows');
-    const out: Item[] = [];
-    const d = derivedLine();
-    box.append(d ?? editingLine());
-    for (const r of TEXT_ROWS) { const it = row(r); if (it) { box.append(it.el); out.push(it); } }
-    return [{ el: box, said: '', key: 'text' }, ...out];
-  };
+  const fills = (): Item[] => rows('fills', FILL_ROWS);
+  const text = (): Item[] => rows('text', TEXT_ROWS);
+  const fields = (): Item[] => rows('fields', FIELD_ROWS);
 
   // ── Gradients: the switch, then an editor per gradient (v6: stops are editable) ─────────────────
   const gradients = (): Item[] => {
@@ -358,7 +397,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return [{ el: b.el, said: `${b.said} stops`, key: 'gradients', block: b }];
   };
 
-  const ROWS: Record<string, () => Item[]> = { surfaces, fills, text, gradients };
+  const ROWS: Record<string, () => Item[]> = { surfaces, fills, text, fields, gradients };
 
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
