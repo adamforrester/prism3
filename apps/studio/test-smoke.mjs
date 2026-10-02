@@ -373,7 +373,7 @@ const describeField = (u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.care
  * names it: "harbor/primary 2.62" is one of the three cells that decision was taken on.
  *
  * So an exempt node is not a finding — but it must not be EXCUSED WHOLESALE either, by a specimen floor
- * that happens to sit under it. The render site names the pair (`specimenPair` in `main.ts`), and this
+ * that happens to sit under it. The render site names the pair (`specimenPair` in `src/preview/sections/kit.ts`), and this
  * reads the pair's contract from the ENGINE, never from the studio:
  *
  *  - the two hexes come from `packages/engine/out/<brand>.tokens.json`, the committed emission, not the
@@ -1237,8 +1237,12 @@ const SG_FILLS = '[data-p3="preview-body"] [data-p3="surfaces-style-guide"]';
  *  by title. Literal. A section drawn by anything but its module (`main.ts` drawing its own Border through an
  *  aliased `palSection`, say) carries none, and fails here by name on whichever page drew it. */
 const EXPECT_SHARED_MARKER = { Background: 'background', Foreground: 'foreground', 'Text color': 'text-color', Border: 'border', Icon: 'icon' };
-const checkSharedMarkers = (where, got) => {
-  for (const [name, key] of Object.entries(EXPECT_SHARED_MARKER)) {
+/** The Style guide's last two sections, shared since S5.1 (`sections/disabled.ts`, `sections/interactive.ts`).
+ *  Only the Style guide draws them until Color › Interactive (S5.2), so they are held there and not on
+ *  Surfaces & fills. Literal. */
+const EXPECT_SG_ONLY_MARKER = { Disabled: 'disabled', Interactive: 'interactive' };
+const checkSharedMarkers = (where, got, expect = EXPECT_SHARED_MARKER) => {
+  for (const [name, key] of Object.entries(expect)) {
     const s = got.sections.find((x) => x.name === name);
     ok(!!s && s.shared === key, `${where}: the ${name} section is the shared module's (data-sg-section="${key}")${!s ? ' — not drawn' : s.shared !== key ? ` — its root carries ${s.shared === null ? 'no marker' : `data-sg-section="${s.shared}"`}: drawn by something other than preview/sections/` : ''}`);
   }
@@ -1338,7 +1342,7 @@ for (const brand of BRANDS) {
       ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
     }
     checkSwatches(where, sg, emission, mode, modes);
-    checkSharedMarkers(where, sg);
+    checkSharedMarkers(where, sg, { ...EXPECT_SHARED_MARKER, ...EXPECT_SG_ONLY_MARKER });
     hooks.absent(ok, { seen: sg.sections.length >= 5, state: 'the Style guide\'s sections' }, sg.badges.length === 0, `${where}: draws no ratio badge (owner decision Q5: badges on Surfaces & fills only)`);
   }
   await ctx.close();
