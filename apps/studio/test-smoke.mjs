@@ -1446,6 +1446,39 @@ for (const brand of BRANDS) {
     const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), ['base', 'floor', 'band-palette', 'band-step'].map(SURF));
     ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
   }
+  // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
+  // wired to its sibling's role went green while only three rows were edited). EXPECTED: the role is the
+  // literal below, never the row's own `data-role`, which the row selector only uses to find the row; the
+  // step is a literal per row; the persisted brand's `overrides.<mode>` must equal what it was before the
+  // edit with exactly that one role set to `{ palette: 'neutral', step }`, and the other mode's untouched.
+  const ALL_FIELD_ROLES = ['field.fill', 'field.border.rest', 'field.border.hover', 'field.placeholder',
+    'inverse.field.fill', 'inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.field.placeholder'];
+  const FIELD_STEPS = { dark: ['150', '250', '350', '450', '550', '650', '750', '850'], light: ['200', '300', '400', '500', '600', '700', '800', '900'] };
+  const brandRaw = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+  const sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => a.localeCompare(b))));
+  let fieldEdits = 0;
+  for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
+    if (!modes.includes(m)) continue;
+    await previewMode(page, m);
+    for (const [i, role] of ALL_FIELD_ROLES.entries()) {
+      fieldEdits++;
+      const step = FIELD_STEPS[m][i];
+      const before = (await inputAt(page))?.overrides ?? {};
+      const rawBefore = await brandRaw(page);
+      const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
+      await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+      // Bounded: an edit that writes nothing leaves the brand as it was, and the check below says so.
+      await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawBefore, { timeout: 5000 }).catch(() => {});
+      await page.keyboard.press('Escape');
+      const after = (await inputAt(page))?.overrides ?? {};
+      const want = { ...(before[m] ?? {}), [role]: { palette: 'neutral', step } };
+      const held = JSON.stringify(after[other]) === JSON.stringify(before[other]);
+      ok(sorted(after[m]) === sorted(want) && held,
+        `S4c ${brand}: previewing ${m}, the Fields row ${role} writes overrides.${m}["${role}"] = neutral ${step} and nothing else — wrote ${sorted(after[m])} (before ${sorted(before[m])}; ${other} ${held ? 'unchanged' : 'CHANGED'})`);
+    }
+  }
+  ok(fieldEdits === ALL_FIELD_ROLES.length * 2, `S4c ${brand}: every Fields row was edited in Dark and in Light (${fieldEdits} edits, want ${ALL_FIELD_ROLES.length * 2})`);
   // A Fields edit, in Dark and in Light, reaches the exported token tree.
   const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
   const root = Object.keys(emission)[0];
