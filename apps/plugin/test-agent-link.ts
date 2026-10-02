@@ -33,6 +33,14 @@
  *     (mutations: the guard's `busy` check removed from `guarded` → busy/panel and busy/agent-first fail;
  *     the dispatcher's `refuse` removed → busy/agent fails; the `delete` moved out of the `finally` →
  *     busy/release fails, each by name)
+ *   · busy/keying: while an apply runs, a different operation still runs (mutation: one hold shared by
+ *     every operation → busy/keying fails). busy/preview: a prune preview, from the panel or an agent, is not
+ *     refused while a delete runs, and a second delete is (mutations: `writes` true for a preview, or the
+ *     panel's prune confirm read as always true → busy/preview's preview arms fail; the delete unguarded →
+ *     its control arm fails).
+ *   · busy/sink: a `refused` that reaches the agent's sink fails the command with its code (mutation: the
+ *     dispatcher's refusal check removed → busy/sink fails). busy/titles: `run-guard.ts`'s TITLE equals the
+ *     drawer's OP_TITLE (mutation: one title changed in either file → busy/titles fails) (#1995)
  *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
  *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
  *   · claim-before-run: the id is in `claimed` while its handler runs
@@ -52,7 +60,9 @@ import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
 import { agentLinkStatusText } from './src/agent-link-ui';
-import { createRunGuard } from './src/run-guard';
+import { createRunGuard, TITLE } from './src/run-guard';
+import { createDispatcher } from './src/agent-dispatch';
+import { OP_TITLE } from '../studio/src/shell/activity';
 
 let failed = 0;
 let executed = 0;
@@ -422,7 +432,68 @@ section('busy — a second write of an operation, while one is running, is refus
   const g2 = createRunGuard();
   await g2.run('apply-theme', async () => { throw new Error('test: the write threw'); }).catch(() => undefined);
   ok(!g2.busy('apply-theme'), 'busy/release: a write that threw releases the operation');
+
+  // KEYING (#1995): the hold is per operation. While an apply is held, a file setup still runs.
+  posted.length = 0;
+  release = hold();
+  await toUi({ type: 'apply-theme', input: brand });
+  await toUi({ type: 'file-setup' });
+  ok(!posted.some((m) => m.type === 'refused') && posted.some((m) => m.type === 'file-setup-result') && !posted.some((m) => m.type === 'apply-result'),
+    'busy/keying: while an apply is running, a file setup still runs and is not refused');
+  await release();
+
+  // PREVIEW (#1995): a prune preview writes nothing, so it is never refused, even while a prune delete runs.
+  // The prune reads the file's collections, so that read holds the delete here.
+  const vars = host.variables as Record<string, unknown>;
+  const savedCollections = vars.getLocalVariableCollectionsAsync;
+  vars.getLocalVariableCollectionsAsync = held;
+  posted.length = 0;
+  release = hold();
+  await toUi({ type: 'prune', input: brand, confirm: true });
+  ok(!posted.some((m) => m.type === 'prune-result'), 'busy/preview: the prune delete is held mid-run');
+  await toUi({ type: 'prune', input: brand, confirm: true });
+  ok(posted.filter((m) => m.type === 'refused').length === 1 &&
+    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.' }),
+    'busy/preview: a second prune delete is refused (the control for the preview arms)');
+  posted.length = 0;
+  await toUi({ type: 'prune', input: brand, confirm: false });
+  const pv2 = await send('prune', { input: brand, confirm: false });
+  await tick();
+  ok(!posted.some((m) => m.type === 'refused'), 'busy/preview: a prune preview from the panel, and one from an agent, are not refused while a delete runs');
+  await release();
+  for (let i = 0; i < 400 && timers.size === 0; i++) await settle();
+  const pa = (await read(pv2.id)) as AgentResult;
+  ok(posted.filter((m) => m.type === 'prune-result').length >= 2 && pa.error?.code !== 'busy' && !!pa.result,
+    `busy/preview: both previews run to a verdict, and the agent's is not busy (${pa.error?.code ?? 'no error'})`);
+  vars.getLocalVariableCollectionsAsync = savedCollections;
   Object.assign(host, savedHost);
+}
+
+/* ── busy/sink + busy/titles ────────────────────────────────────────────────────────────────────────── */
+section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails the command; the two title tables agree (#1995)');
+{
+  // The dispatcher declines before the guarded call, so this path is unreachable through main.ts. Driven here
+  // with a handler that posts the refusal itself, the way the guard would if `refuse` were ever bypassed.
+  const MSG = 'Apply Theme is already running. Try again when it finishes.';
+  const noop = async () => undefined;
+  const d = createDispatcher({
+    actions: {
+      applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
+      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop,
+    } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
+    status: async () => ({}),
+    census: async () => null,
+  });
+  const r = await d(envelope('apply-theme', { input: brand }), 'mailbox');
+  ok(r.ok === false && r.error?.code === 'busy' && r.error?.message === MSG,
+    `busy/sink: a refusal that reaches the agent's sink fails the command with its code (${r.ok}, ${r.error?.code})`);
+
+  // Each table read from its own file; the key pairing written out here.
+  const PAIRS: [keyof typeof TITLE, keyof typeof OP_TITLE][] = [
+    ['apply-theme', 'apply'], ['build-components', 'components'], ['file-setup', 'filesetup'], ['style-guide', 'styleguide'], ['prune', 'prune'],
+  ];
+  ok(PAIRS.length === Object.keys(TITLE).length && PAIRS.every(([w, o]) => TITLE[w] === OP_TITLE[o]),
+    `busy/titles: run-guard.ts's TITLE matches the drawer's OP_TITLE for every write (${PAIRS.filter(([w, o]) => TITLE[w] !== OP_TITLE[o]).map(([w]) => w).join(', ') || 'all equal'})`);
 }
 
 /* ── order ──────────────────────────────────────────────────────────────────────────────────────────── */
