@@ -114,7 +114,7 @@ export const withInverseBadge = (path: string, pill: HTMLElement): HTMLElement =
   if (!isInversePath(path)) return pill;
   const wrap = hook(el('span', 'tpill-wrap'), 'token-pill-wrap');
   const badge = hook(el('span', 'tpill-inv', 'inverse'), 'token-pill-inverse');
-  badge.title = 'The inverse band. Shown beside the path because a narrow pill hides its leading part.';
+  badge.title = 'The inverse fill. Shown beside the path because a narrow pill hides its leading part.';
   wrap.append(badge, pill);
   return wrap;
 };
