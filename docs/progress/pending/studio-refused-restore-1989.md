@@ -28,6 +28,18 @@ passes the first check and fails the second.
   clears it. While it is set, Apply Theme (bar and Figma menu), Prune stale, and the prune dialog's Delete
   are disabled, and the error bar says the file's brand did not resolve and why the writes are off.
 
+### Review fixes (orchestrator, and the owner's copy answers, 2026-10-02)
+
+- **The notice goes when a brand loads.** It used to outlive the choice: it sat under the frame, first in
+  tab order, and its Clear would have deleted the brand just chosen. It now subscribes to the store's
+  `origin` topic, which every load invalidates, and removes itself.
+- **Smoke §9 now pins** that the saved brand is still in storage right after boot, before any click, and
+  adds a third case: a mode list `brandTheme` itself rejects (`modes: ['light', 'bogus']`).
+- **Copy:** strings 1–5 and 7 approved as written. The plugin's error bar (6) is trimmed to the owner's
+  wording: "This file's saved brand didn't resolve: {reason} Apply Theme and Prune stale are off until a
+  brand resolves. Load an example or import a design.md to continue."
+- **The notice keeps `.errbar`.** The owner wants the new chrome's styling, and that is the UI lane's (#1999).
+
 ### Approaches tried and dropped
 
 - **Guards in `runApply`/`runPrune`.** Written first, then measured: with the controls disabled, removing
@@ -52,6 +64,7 @@ refused restore, then a good one as the positive control.
 | P2 controls left enabled | 3 |
 | P4 Delete left enabled | 3, including `posted [{"type":"prune","id":"prism3"}]` |
 | P5 bar copy reverted | 1: `the error bar says the file's brand did not resolve …` |
+| S4 notice left mounted after a brand loads | 3, one per case: `choosing an example removes the notice, so its Clear cannot reach the chosen brand — notice in DOM true, Clear buttons 1` |
 
 **The trap for whoever re-verifies this:** the smoke arm's last click (choosing an example after Clear)
 originally threw on a blank page under S1 and ended the run before the second role and the summary. It

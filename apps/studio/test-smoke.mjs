@@ -3673,25 +3673,42 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
 }
 
 // =============================================================================================
-// 9. A saved brand the engine refuses in resolution boots to a usable studio, and says so (#1989)
+// 9. A saved brand the engine refuses boots to a usable studio, and says so (#1989)
 // =============================================================================================
 // `bootBrand` validated the stored brand with `brandTheme` alone, which accepts a ground override; the
 // engine refuses it later, in `resolvePreview`, and that throw had no catch. So the page stayed blank on
 // an uncaught error, and stayed blank on every reload, because the brand stayed stored.
 //
+// THREE CASES: a ground override on a tier (#1972) and on the page (#956), both refused in resolution, and
+// a mode list `brandTheme` itself rejects, which the old guard caught but fell back on silently.
+//
 // The stored brand is made BY THE STUDIO, not restated here: an example is chosen, the studio persists it,
-// and the refused override is added to that blob. So the persist format and its version are the app's own,
-// and only the override is this test's. EXPECTED is the role written into it, the words on screen and the
-// storage key; ACTUAL is the page, its errors, the download and `localStorage`.
+// and the case's edit is applied to that blob. So the persist format and its version are the app's own,
+// and only the edit is this test's. EXPECTED is what the edit names (`mention`), the words on screen and
+// the storage key; ACTUAL is the page, its errors, the download and `localStorage`.
+//
+// TWO PATHS per case. First the designer chooses an example without clearing: the notice must go with the
+// choice, because its Clear would otherwise delete the brand just chosen (review of #1997). Then the save
+// is put back and Clear is used.
 //
 // MUTATIONS, each failing here by name:
-//   · `bootBrand` back to `brandTheme(restored)` alone → `#1989 <role>: the page boots with no uncaught error`
-//     and `… boots to a usable studio` (and the notice arm, since nothing renders).
-//   · the notice not mounted → `#1989 <role>: the notice says the saved brand didn't open …` and the two
-//     button arms.
-//   · Clear not clearing storage → `#1989 <role>: Clear saved brand removes it from storage …`.
+//   · `bootBrand` back to `brandTheme(restored)` alone → `#1989 <case>: the page boots with no uncaught error`
+//     and `… boots to a usable studio` for the two override cases (and the notice arms, since nothing renders).
+//   · the notice not mounted → `#1989 <case>: the notice says the saved brand didn't open …` and the button arms.
+//   · the notice left mounted after a brand loads → `#1989 <case>: choosing an example removes the notice …`.
+//   · Clear not clearing storage → `#1989 <case>: Clear saved brand removes it from storage …`.
 console.log(`\nA refused saved brand (#1989)\n${'='.repeat(78)}`);
-for (const role of ['background.secondary', 'background.primary']) {
+const REFUSED_CASES = [
+  { label: 'background.secondary', mention: "'background.secondary'", edit: { overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } } },
+  { label: 'background.primary', mention: "'background.primary'", edit: { overrides: { light: { 'background.primary': { palette: 'neutral', step: '200' } } } } },
+  { label: 'modes bogus', mention: "'bogus'", edit: { modes: ['light', 'bogus'] } },
+];
+const storedRaw = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return 'unreadable'; } });
+const readNotice = (page) => page.evaluate(() => {
+  const n = document.querySelector('[data-p3="refused-brand"]');
+  return { text: n && n.checkVisibility() ? n.textContent : null, inDom: !!n, clear: document.querySelectorAll('[data-p3="refused-brand-clear"]').length };
+});
+for (const c of REFUSED_CASES) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 }, acceptDownloads: true });
   const page = await ctx.newPage();
   await hooks.watch(page);
@@ -3700,57 +3717,73 @@ for (const role of ['background.secondary', 'background.primary']) {
   await hooks.click(page.locator('[data-p3="start-example"]').first());
   await hooks.need(page, '[data-p3="frame"]');
   await page.waitForFunction(() => { try { return !!localStorage.getItem('prism3:brandInput'); } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
-  const seeded = await page.evaluate((r) => {
+  const seededRaw = await page.evaluate((edit) => {
     const o = JSON.parse(localStorage.getItem('prism3:brandInput') ?? 'null');
-    if (!o?.input) return false;
-    o.input.overrides = { light: { [r]: { palette: 'neutral', step: '200' } } };
-    localStorage.setItem('prism3:brandInput', JSON.stringify(o));
-    return true;
-  }, role);
-  ok(seeded, `#1989 ${role}: the studio persisted a brand this test could add the override to`);
+    if (!o?.input) return null;
+    Object.assign(o.input, edit);
+    const raw = JSON.stringify(o);
+    localStorage.setItem('prism3:brandInput', raw);
+    return raw;
+  }, c.edit);
+  ok(!!seededRaw, `#1989 ${c.label}: the studio persisted a brand this test could edit`);
   drain();
   await page.reload({ waitUntil: 'networkidle' });
 
+  // ── boot, before any click ──
   const uncaught = drain().filter((e) => e.startsWith('uncaught'));
-  ok(uncaught.length === 0, `#1989 ${role}: the page boots with no uncaught error${uncaught.length ? ` — ${uncaught[0].slice(0, 160)}` : ''}`);
+  ok(uncaught.length === 0, `#1989 ${c.label}: the page boots with no uncaught error${uncaught.length ? ` — ${uncaught[0].slice(0, 160)}` : ''}`);
   const usable = await page.locator('[data-p3="start-example"]').count();
-  ok(usable > 0, `#1989 ${role}: the page boots to a usable studio — the start screen offers ${usable} example(s)`);
-  const notice = await page.evaluate(() => {
-    const n = document.querySelector('[data-p3="refused-brand"]');
-    return n && n.checkVisibility() ? n.textContent : null;
-  });
-  ok((notice ?? '').includes("The saved brand didn't open") && (notice ?? '').includes(`'${role}'`),
-    `#1989 ${role}: the notice says the saved brand didn't open, with the engine's reason naming '${role}' — read ${JSON.stringify((notice ?? '').slice(0, 140))}`);
+  ok(usable > 0, `#1989 ${c.label}: the page boots to a usable studio — the start screen offers ${usable} example(s)`);
+  const atBoot = await storedRaw(page);
+  ok(!!seededRaw && atBoot === seededRaw,
+    `#1989 ${c.label}: right after boot, before any click, the saved brand is still in storage, unchanged — ${atBoot === seededRaw ? 'same blob' : `now ${JSON.stringify(atBoot)?.slice(0, 60)}`}`);
+  const notice = await readNotice(page);
+  ok((notice.text ?? '').includes("The saved brand didn't open") && (notice.text ?? '').includes(c.mention),
+    `#1989 ${c.label}: the notice says the saved brand didn't open, with the engine's reason naming ${c.mention} — read ${JSON.stringify((notice.text ?? '').slice(0, 140))}`);
 
-  // Export: a design.md that still carries what was refused, so the designer keeps their brand.
+  // ── Export: a design.md that still carries what was refused, so the designer keeps their brand ──
   const [dl] = await Promise.all([
     page.waitForEvent('download', { timeout: 5000 }).catch(() => null),
     hooks.click(page.locator('[data-p3="refused-brand-export"]'), { timeout: 4000 }).catch(() => {}),
   ]);
   const md = dl ? await readFile(await dl.path(), 'utf8').catch(() => '') : '';
-  ok(!!dl && dl.suggestedFilename().endsWith('.design.md') && md.includes(role),
-    `#1989 ${role}: Export saved brand downloads a design.md that keeps the refused override — file ${JSON.stringify(dl?.suggestedFilename() ?? null)}, mentions ${role}: ${md.includes(role)}`);
+  const kept = c.mention.replace(/'/g, '');
+  ok(!!dl && dl.suggestedFilename().endsWith('.design.md') && md.includes(kept),
+    `#1989 ${c.label}: Export saved brand downloads a design.md that keeps what was refused — file ${JSON.stringify(dl?.suggestedFilename() ?? null)}, mentions ${kept}: ${md.includes(kept)}`);
 
-  // Clear: the stored brand goes, the notice with it, and the next reload is an ordinary first run.
+  // ── path 1: choose an example without clearing — the notice goes with the choice ──
+  await hooks.click(page.locator('[data-p3="start-example"]').first(), { timeout: 5000 }).catch(() => {});
+  await hooks.need(page, '[data-p3="frame"]', { timeout: 5000 }).catch(() => {});
+  const chose = await readNotice(page);
+  hooks.absent(ok, { seen: notice.inDom, state: 'the refused-brand notice at boot' }, !chose.inDom && chose.clear === 0,
+    `#1989 ${c.label}: choosing an example removes the notice, so its Clear cannot reach the chosen brand — notice in DOM ${chose.inDom}, Clear buttons ${chose.clear}`);
+  const afterChoice = await storedRaw(page);
+  ok(!!afterChoice && afterChoice !== seededRaw,
+    `#1989 ${c.label}: the chosen brand is what is now saved — ${afterChoice === seededRaw ? 'still the refused blob' : 'replaced'}`);
+
+  // ── path 2: the save put back, then Clear ──
+  await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), seededRaw ?? '');
+  await page.reload({ waitUntil: 'networkidle' });
+  await hooks.need(page, '[data-p3="refused-brand"]', { timeout: 5000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="refused-brand-clear"]'), { timeout: 4000 }).catch(() => {});
   const after = await page.evaluate(() => ({
     stored: (() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return 'unreadable'; } })(),
     notice: !!document.querySelector('[data-p3="refused-brand"]'),
   }));
   ok(after.stored === null && !after.notice,
-    `#1989 ${role}: Clear saved brand removes it from storage and dismisses the notice — stored ${JSON.stringify(after.stored)?.slice(0, 40)}, notice ${after.notice}`);
+    `#1989 ${c.label}: Clear saved brand removes it from storage and dismisses the notice — stored ${JSON.stringify(after.stored)?.slice(0, 40)}, notice ${after.notice}`);
   await page.reload({ waitUntil: 'networkidle' });
   const again = await page.evaluate(() => !!document.querySelector('[data-p3="refused-brand"]'));
-  hooks.absent(ok, { seen: !!notice, state: 'the refused-brand notice before Clear' }, !again,
-    `#1989 ${role}: after Clear, a reload shows no notice`);
+  hooks.absent(ok, { seen: notice.inDom, state: 'the refused-brand notice at boot' }, !again,
+    `#1989 ${c.label}: after Clear, a reload shows no notice`);
   // Caught, not awaited bare: on a blank page this click is what fails, and a throw here would end the run
-  // before the next role and the summary, naming no gate.
+  // before the next case and the summary, naming no gate.
   await hooks.click(page.locator('[data-p3="start-example"]').first(), { timeout: 5000 }).catch(() => {});
   await hooks.need(page, '[data-p3="frame"]', { timeout: 5000 }).catch(() => {});
   const frameUp = await page.locator('[data-p3="frame"]').count();
-  ok(frameUp > 0, `#1989 ${role}: after Clear, choosing an example opens the studio`);
+  ok(frameUp > 0, `#1989 ${c.label}: after Clear, choosing an example opens the studio`);
   const errs = drain();
-  ok(errs.length === 0, `#1989 ${role}: 0 console errors after the boot${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  ok(errs.length === 0, `#1989 ${c.label}: 0 console errors after the boot${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 

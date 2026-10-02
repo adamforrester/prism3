@@ -244,7 +244,7 @@ const syncErrorBar = (): void => {
   globalErrHost.hidden = !lastError;
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
-  if (lastError && restoreRefusal) globalErrHost.textContent = `This file's saved brand didn't resolve: ${restoreRefusal} Apply Theme and Prune stale are off until a brand resolves, so the demo brand on screen can't be written over the file's brand. Load an example or import a design.md to continue.`;
+  if (lastError && restoreRefusal) globalErrHost.textContent = `This file's saved brand didn't resolve: ${restoreRefusal} Apply Theme and Prune stale are off until a brand resolves. Load an example or import a design.md to continue.`;
   else if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };

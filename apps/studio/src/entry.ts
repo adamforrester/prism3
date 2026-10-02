@@ -24,7 +24,7 @@ import type { Origin } from './provenance';
 import { clearInput, persistInput, restoreInput, type LocalStore } from './persist-local';
 import { hook } from './shell/dom';
 import { initTheme } from './shell/theme';
-import { BRANDS, BOOT_BRAND, initSession, setPersist } from './state/store';
+import { BRANDS, BOOT_BRAND, initSession, setPersist, subscribe } from './state/store';
 import { commit, handleHostMessage, mountApp, installStyles, mountResizeGrip, build } from './main';
 // The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769) — see step 4 below for
 // what that buys and what it costs.
@@ -149,7 +149,10 @@ if (refused) {
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   };
-  const clearIt = (): void => { clearInput(localStorage); card.remove(); };
+  // Unsubscribed with the card, so a second load does not reach a notice that is already gone.
+  let offOrigin: (() => void) | null = null;
+  const dismiss = (): void => { card.remove(); offOrigin?.(); offOrigin = null; };
+  const clearIt = (): void => { clearInput(localStorage); dismiss(); };
   card.append(
     line("The saved brand didn't open, so the studio started without it."),
     line(refused.message),
@@ -158,4 +161,9 @@ if (refused) {
     btn('Clear saved brand', 'refused-brand-clear', clearIt),
   );
   document.body.insertBefore(card, document.getElementById('app'));
+  // GONE THE MOMENT A BRAND LOADS (review of #1997). Left mounted, the card outlived the choice: it sat under
+  // the frame, first in tab order, and its Clear would have deleted the brand just chosen, whose rebuild
+  // had already persisted over the refused one. Every load assigns a new provenance (`loadInput`), which
+  // invalidates `origin`, so this hears each one whichever control made it.
+  offOrigin = subscribe('origin', dismiss);
 }
