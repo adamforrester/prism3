@@ -84,6 +84,10 @@ if (badTheme) {
 // Light and at a dark step in Dark. Derived by hand, not by the module: each override makes that one role
 // fail its 4.5 floor in that one mode (neutral.100 on the Light page, neutral.900 on the Dark page), and no
 // role in the committed `out/prism3.tokens.json` is measured against `text.secondary`, so nothing else moves.
+// Its icon twin is pinned: since #1968 a text override carries to `icon.secondary` when icons match text (prism3's
+// default), which would fail that role too. Each pin is the icon's own derived step (neutral.550 in Light at
+// 4.54:1, neutral.450 in Dark at 4.64:1, read once off the engine's resolved record), so it passes as it does
+// with no override, and the explicit icon override wins over the carry.
 // High contrast light and dark are resolved on their own and carry no override. So: 2 failures, 1 in Light
 // and 1 in Dark, 2 modes failing, out of the same 884.
 const TWO_MODES_LINE = '2 of 884 below floor, 2 modes';
@@ -92,8 +96,8 @@ const TWO_MODES_PER = ['Light: 1 of 221 below', 'Dark: 1 of 221 below', 'High co
 const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark' };
 const two = structuredClone(input) as BrandInput;
 two.overrides = {
-  light: { 'text.secondary': { palette: 'neutral', step: '100' } },
-  dark: { 'text.secondary': { palette: 'neutral', step: '900' } },
+  light: { 'text.secondary': { palette: 'neutral', step: '100' }, 'icon.secondary': { palette: 'neutral', step: '550' } },
+  dark: { 'text.secondary': { palette: 'neutral', step: '900' }, 'icon.secondary': { palette: 'neutral', step: '450' } },
 } as BrandInput['overrides'];
 let twoTheme;
 try { twoTheme = brandTheme(two); } catch (e) { twoTheme = null; ok(false, `a two-mode below-floor fixture resolves — threw ${(e as Error).message}`); }
@@ -108,10 +112,11 @@ if (twoTheme) {
 // A failure just under its floor (#1930). `text.tertiary` re-pointed at neutral.350 in Light: its floor is
 // 3:1 against neutral.050, and it lands a fraction under (about 2.82:1, measured once by hand and checked
 // below from the engine's own resolved record, never from the verdict module). Nothing else is measured
-// against `text.tertiary`, and no other mode carries an override. So: 1 failure, in Light, 1 mode.
+// against `text.tertiary`, and no other mode carries an override. Its icon twin is pinned at its own derived step,
+// neutral.450 (3.18:1), for the same reason as above (#1968). So: 1 failure, in Light, 1 mode.
 const NEAR_LINE = '1 of 884 below floor, 1 mode';
 const near = structuredClone(input) as BrandInput;
-near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '350' } } } as BrandInput['overrides'];
+near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '350' }, 'icon.tertiary': { palette: 'neutral', step: '450' } } } as BrandInput['overrides'];
 let nearTheme;
 try { nearTheme = brandTheme(near); } catch (e) { nearTheme = null; ok(false, `a near-floor fixture resolves — threw ${(e as Error).message}`); }
 if (nearTheme) {
