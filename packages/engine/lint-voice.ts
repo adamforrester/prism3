@@ -659,6 +659,8 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['interactivePalettes over accentPalette', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], accentPalette: 'accent', interactivePalettes: [{ name: 'accent', palette: 'accent' }] }],
   ['every opt-in at once', { controlShape: 'hairline', gradients: true, buttonLabelWeight: 'default', typography: { sizeFloor: 8, titleFloor: 16, captionFloor: 10, responsive: { fluid: false } }, disabledStrategy: 'full', outlineInteraction: 'solid-tint', neutralEmphasis: 'strong', strictInteractiveContrast: true }],
   ['radiusHairline, no hover, surfaces', { radiusHairline: true, outlineInteraction: 'none', surfaces: { light: { base: 100, floorStep: 300 }, dark: { floorStep: 800 } } }],
+  // #1972: a declared second tier, with the floor following it (light) and held by `floorStep` (dark).
+  ['declared second tiers', { surfaces: { light: { secondary: 200 }, dark: { secondary: 700, floorStep: 800 } } }],
   ['brand inverse band', { brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.06, h: 250 } }], surfaces: { light: { inverseBase: { palette: 'navy', step: 900 } } } }],
   ['links on neutral', { linkPalette: 'neutral' }],
   ['link set apart from a rebased action', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], roleColors: { action: 'accent' }, linkPalette: 'primary' }],
@@ -723,6 +725,8 @@ const PRODUCERS: Producer[] = [
   { id: 'overlays: none', re: /^interactive overlays: 'none' — /, kind: 'site' },
   { id: 'surfaces: page', re: /^surfaces: the \S+ page is /, kind: 'site' },
   { id: 'surfaces: floor', re: /^surfaces: the \S+ contrast floor is set to /, kind: 'site' },
+  { id: 'surfaces: second tier, floor follows', re: /^surfaces: the \S+ second tier is .+ — the contrast floor moves with it\.$/, kind: 'site' },
+  { id: 'surfaces: second tier, floor declared', re: /^surfaces: the \S+ second tier is .+ — the contrast floor stays at /, kind: 'site' },
   { id: 'surfaces: inverse band', re: /^surfaces: the \S+ inverse band is a brand color/, kind: 'site' },
   { id: 'action: anchored', re: /^action: anchored at '[^']+' step \d+/, kind: 'site' },
   { id: 'link color: same as action', re: /^link color: '[^']+', the same palette as the action color,/, kind: 'site' },
@@ -750,7 +754,7 @@ const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
 // theme.ts: 44 note pushes + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 45, 'packages/engine/vocabulary.ts': 2 };
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme.ts': 46, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [

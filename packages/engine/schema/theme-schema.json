@@ -196,7 +196,7 @@
     "surfaces": {
       "type": "object",
       "additionalProperties": false,
-      "description": "OPTIONAL. Non-default primary surfaces per mode (e.g. a warm off-white page). The contrast FLOOR moves with the declared base; the engine flags it in notes. Omit for white/black defaults.",
+      "description": "OPTIONAL. Non-default surfaces per mode (e.g. a warm off-white page), and the second and third tiers of the page and inverse ladders. The contrast FLOOR follows the second tier, which follows the declared base unless it is set itself; the engine flags it in notes. Omit for white/black defaults.",
       "properties": {
         "light": { "$ref": "#/$defs/surfaceMode" },
         "dark": { "$ref": "#/$defs/surfaceMode" }
@@ -613,10 +613,26 @@
           "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
           "description": "The page surface for this mode. NEUTRAL-ONLY: a bare number / white / black. It does NOT accept a palette band — only the inverse band may (#898)."
         },
-        "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor; defaults follow `base`." },
+        "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor. Defaults to `secondary` when that is set, otherwise to one step past `base`." },
+        "secondary": {
+          "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
+          "description": "OPTIONAL. The page's second tier (`background.secondary`). NEUTRAL-ONLY, like `base`. Defaults to one step past `base`. The contrast floor moves with it unless `floorStep` is set, so the roles measured against this tier are re-derived against it. Set it here, not through `overrides`, which cannot re-derive those roles. High-contrast modes keep a flat page."
+        },
+        "tertiary": {
+          "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
+          "description": "OPTIONAL. The page's third tier (`background.tertiary`). NEUTRAL-ONLY, like `base`. Defaults to two steps past `base`. The roles measured against this tier are re-derived against it. Set it here, not through `overrides`. High-contrast modes keep a flat page."
+        },
         "inverseBase": {
           "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
           "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (near the extreme, not at it: pure black reads muddy, pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy or a deep accent (#898). Set it here, not through `overrides`, which cannot re-derive the band's roles. High-contrast modes keep the pure extremes."
+        },
+        "inverseSecondary": {
+          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
+          "description": "OPTIONAL. The inverse band's second tier (`inverse.background.secondary`), and the contrast floor for inverse roles. Takes the same forms as `inverseBase`. Defaults to one step past `inverseBase`. The roles measured against it are re-derived against it. Set it here, not through `overrides`. High-contrast modes keep a flat band."
+        },
+        "inverseTertiary": {
+          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
+          "description": "OPTIONAL. The inverse band's third tier (`inverse.background.tertiary`). Takes the same forms as `inverseBase`. Defaults to two steps past `inverseBase`. The roles measured against it are re-derived against it. Set it here, not through `overrides`. High-contrast modes keep a flat band."
         }
       }
     }
