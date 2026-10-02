@@ -90,7 +90,7 @@ export const leverManifest: Lever[] = [
   { key: 'status.info', group: 'color', label: 'Info color', control: 'color', advanced: true,
     description: 'Optional measured override; omit to synthesize from the canonical blue hue.' },
   { key: 'surfaces', group: 'color', label: 'Page surfaces', control: 'object', advanced: true,
-    description: 'Non-default page surface per mode (e.g. a warm off-white). The contrast floor moves with it.' },
+    description: 'Non-default page and inverse surfaces per mode. The contrast floor follows the second tier.' },
   { key: 'strictInteractiveContrast', group: 'color', label: 'Strict interactive contrast', control: 'toggle', advanced: true, default: false,
     description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color.' },
   { key: 'linkStateRungs', group: 'color', label: 'Link states', control: 'object', advanced: true,

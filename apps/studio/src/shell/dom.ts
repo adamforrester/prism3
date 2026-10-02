@@ -66,3 +66,30 @@ export const glyph = (name: Glyph): SVGSVGElement => {
   svg.innerHTML = GLYPHS[name];
   return svg;
 };
+
+/**
+ * A write's control while that write runs, panel or agent (owner decision #4 on #1956, which also fixes
+ * #1957): the engine Button's `isPending` (`packages/engine/components/button.ts`, the prop and its `aria`
+ * note). The control stays focusable and says it is busy (`aria-disabled` and `aria-busy`, never native
+ * `disabled`), its click does nothing until the write ends, and it keeps its width: both labels sit in one
+ * cell, the one not showing held invisible, so the wider sets the width in either state. The busy label
+ * opens on "…" in a cell of its own, which the stylesheet turns into a spinner after a short delay, so a
+ * quick write never flashes one. That cell is `aria-hidden`: the label names the control, and the
+ * Activity drawer's status line announces the run. `busy` is the busy label without its "…"; which of the
+ * two shows is read from the control's `aria-busy`.
+ */
+export const pendingLabel = (idle: string, busy: string): HTMLElement => {
+  const cell = h('span', 'p3-pend');
+  const spin = h('span', 'p3-spin', '…');
+  spin.setAttribute('aria-hidden', 'true');
+  const on = hook(h('span', 'p3-pend-busy'), 'label-busy');
+  on.append(spin, ` ${busy}`);
+  cell.append(hook(h('span', 'p3-pend-idle', idle), 'label-idle'), on);
+  return cell;
+};
+/** Marks `b` busy or not, as `pendingLabel` describes. The click is refused by the write the control runs,
+ *  which knows whether its own write is out; this only says so. */
+export const setBusy = (b: HTMLElement, busy: boolean): void => {
+  if (busy) { b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-busy', 'true'); }
+  else { b.removeAttribute('aria-disabled'); b.removeAttribute('aria-busy'); }
+};

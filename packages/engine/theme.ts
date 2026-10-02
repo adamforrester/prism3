@@ -373,10 +373,17 @@ export type InverseSurfaceSpec = SurfaceSpec | SurfaceStep;
 // contrast they did not have, and zero warnings — the flag is computed from the stale ratio, so
 // allow-and-flag degraded to allow-and-silently-lie. `base` never had that defect precisely because
 // it was always declared here; this gives the inverse band the same footing.
-export type SurfacesConfig = {
-  light?: { base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec };
-  dark?:  { base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec };
+//
+// The second and third TIERS of both ladders are declarable too (#1972), for the same reason: each is a
+// ground that other roles are measured against. Unset, a tier is the ladder's own step off its anchor.
+// The page tiers take the page's type (neutral-only) and the inverse tiers the inverse band's. A declared
+// `secondary` also carries the contrast floor with it unless `floorStep` names one (see `modeConfigs`).
+export type SurfaceMode = {
+  base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec;
+  secondary?: SurfaceSpec; tertiary?: SurfaceSpec;
+  inverseSecondary?: InverseSurfaceSpec; inverseTertiary?: InverseSurfaceSpec;
 };
+export type SurfacesConfig = { light?: SurfaceMode; dark?: SurfaceMode };
 
 // ---- canonical status hues (engine-supplied; a brand need not specify them) ----
 const STATUS_DEFAULTS: Record<'success' | 'warning' | 'danger' | 'info', OKLCH & { chroma: number }> = {
@@ -2996,13 +3003,30 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (STATUS_ROLE_SET.has(pb.role)) throw new Error(`surfaces.${where}: palette '${spec.palette}' is a STATUS palette (role '${pb.role}') — a page band in a semantic status color would use it decoratively, which #898 excludes. Use neutral, the brand, or a custom palette.`);
   };
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
-    if (sf?.base != null && typeof sf.base === 'object') {
-      throw new Error(`surfaces.${mode}.base does not accept a palette band — only the inverse band may (#898). The page ground is neutral-only: use 'white', 'black', or a neutral step number.`);
+    for (const key of ['base', 'secondary', 'tertiary'] as const) {
+      if (sf?.[key] != null && typeof sf[key] === 'object') {
+        throw new Error(`surfaces.${mode}.${key} does not accept a palette band — only the inverse band may (#898). The page ground is neutral-only: use 'white', 'black', or a neutral step number.`);
+      }
     }
-    checkSurfacePalette(sf?.inverseBase, `${mode}.inverseBase`);
+    for (const key of ['inverseBase', 'inverseSecondary', 'inverseTertiary'] as const) checkSurfacePalette(sf?.[key], `${mode}.${key}`);
+    // The four TIERS (#1972) are checked here as well as in the schema, because the schema alone does not
+    // hold: `json-schema-lite` skips `allOf`/`oneOf`, so `'grey'` passes it, and the resolver would snap
+    // it to a step nobody chose. A tier names white, black, or a real step on its palette's ramp.
+    for (const key of ['secondary', 'tertiary', 'inverseSecondary', 'inverseTertiary'] as const) {
+      const spec: unknown = sf?.[key];
+      if (spec == null || spec === 'white' || spec === 'black') continue;
+      const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : palettes.find((p) => p.role === 'neutral');
+      const num = typeof spec === 'object' ? (spec as SurfaceStep).step : spec;
+      if (typeof num !== 'number' || !pal?.steps.some((s) => s.num === num)) {
+        throw new Error(`surfaces.${mode}.${key}: ${JSON.stringify(spec)} is not a surface. Use 'white', 'black', or a step on the ${pal?.palette ?? 'neutral'} ramp (${(pal?.steps ?? []).map((s) => s.num).join(', ')}).`);
+      }
+    }
+    if (sf?.secondary !== undefined) {
+      notes.push(`surfaces: the ${mode} second tier is ${surfaceLabel(sf.secondary)}, not the default — ${sf.floorStep !== undefined ? `the contrast floor stays at neutral.${sf.floorStep}` : 'the contrast floor moves with it'}.`);
+    }
     if (sf?.base !== undefined && sf.base !== 'white' && sf.base !== 'black') {
-      notes.push(`surfaces: the ${mode} page is ${surfaceLabel(sf.base)}, not the default — the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}.`);
-    } else if (sf?.floorStep !== undefined) {
+      notes.push(`surfaces: the ${mode} page is ${surfaceLabel(sf.base)}, not the default${sf.secondary !== undefined ? '' : ` — the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}`}.`);
+    } else if (sf?.floorStep !== undefined && sf?.secondary === undefined) {
       notes.push(`surfaces: the ${mode} contrast floor is set to neutral.${sf.floorStep}.`);
     }
     // A brand/custom inverse band re-derives ~60 roles against it and flags any that miss (#898);

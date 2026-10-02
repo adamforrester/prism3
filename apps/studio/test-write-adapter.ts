@@ -99,10 +99,12 @@ accepts('prune-result (preview)', { type: 'prune-result', ok: true, applied: fal
   { kind: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' });
 accepts('prune-result (agent preview, pillOnly)', { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true },
   { kind: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true });
-accepts('seed-info', { type: 'seed-info', ok: true, present: true, summary: 'ours' },
-  { kind: 'seed-info', ok: true, summary: 'ours', present: true });
-accepts('seed-info without present (older host)', { type: 'seed-info', ok: true, summary: 'ours' },
-  { kind: 'seed-info', ok: true, summary: 'ours', present: false });
+accepts('seed-info', { type: 'seed-info', ok: false, present: true, summary: 'ours', failed: 2 },
+  { kind: 'seed-info', ok: false, summary: 'ours', present: true, failed: 2 });
+accepts('seed-info without present or failed (older host)', { type: 'seed-info', ok: true, summary: 'ours' },
+  { kind: 'seed-info', ok: true, summary: 'ours', present: false, failed: 0 });
+accepts('seed-info with a malformed failed count', { type: 'seed-info', ok: false, present: true, summary: 'ours', failed: '2' },
+  { kind: 'seed-info', ok: false, summary: 'ours', present: true, failed: 0 });
 accepts('restore-input', { type: 'restore-input', input: { name: 'b' } },
   { kind: 'restore-input', input: { name: 'b' } });
 accepts('restore-input-empty', { type: 'restore-input-empty' }, { kind: 'restore-input-empty' });
@@ -115,7 +117,13 @@ accepts('font-list without styles (older host)', { type: 'font-list', families: 
 
 drops('agent-link-state (the panel\'s own listener reads it)', wire({ type: 'agent-link-state', state: { on: true } }));
 drops('agent-result', wire({ type: 'agent-result', result: { id: 'a' } }));
-drops('agent-progress', wire({ type: 'agent-progress', id: 'a', progress: {} }));
+// UI redesign S11: the agent's runs, which the Activity drawer shows.
+accepts('agent-started', { type: 'agent-started', id: 'a1', cmd: 'apply-theme' }, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' });
+accepts('agent-finished', { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' }, { kind: 'agent-finished', id: 'a1' });
+accepts('agent-progress', { type: 'agent-progress', id: 'b1', progress: { phase: 'build', done: 24.6, total: 648, chunkMs: 40 } },
+  { kind: 'agent-progress', id: 'b1', phase: 'build', done: 24, total: 648 });
+drops('agent-progress with no reading', wire({ type: 'agent-progress', id: 'a', progress: {} }));
+drops('agent-started with no id', wire({ type: 'agent-started', cmd: 'apply-theme' }));
 drops('agent-log', wire({ type: 'agent-log', id: 'a', line: 'x' }));
 drops('an unknown type', wire({ type: 'apply-results', ok: true, summary: 's' }));
 drops('an inherited key as type (toString)', wire({ type: 'toString' }));

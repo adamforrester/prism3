@@ -354,6 +354,21 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
       : (family === 'light' ? baseS.num + 50 : baseS.num - 50);
     const floorStep = cfg.floorStep ?? defFloor;
     const dir = family === 'light' ? +1 : -1;           // light steps darker; dark steps lighter
+    // A declared TIER (#1972) replaces one rung of the ladder below; an unset one keeps the ladder's own
+    // step, so a brand that declares none emits exactly what it did before.
+    const tier = (spec: InverseSurfaceSpec | undefined, derived: Cand): Cand => {
+      if (spec == null) return derived;
+      const s = specToSurf(spec);
+      return surfAtP(s.pal, s.num);
+    };
+    const bg = bgLadder(baseS.pal, baseS.num, dir);
+    const bgTiers: SurfSet = { primary: bg.primary, secondary: tier(cfg.secondary, bg.secondary), tertiary: tier(cfg.tertiary, bg.tertiary) };
+    // The floor FOLLOWS a declared `secondary` (#1972, owner, option A). 46 roles per mode are gated on the
+    // floor and describe themselves as clearing their bar "on background.secondary". With nothing declared
+    // the two are the same step, so that was true by coincidence; with `secondary` declared and the floor
+    // left behind, every one of those claims would name a surface the tree no longer has. An explicit
+    // `floorStep` still wins: it is a declaration too, and may differ from the tier, as it may today.
+    const floor = cfg.floorStep == null && cfg.secondary != null ? bgTiers.secondary : n(floorStep);
     // Inverse anchors NEAR the opposite extreme, not AT it — pure black reads
     // harsh/muddy and pure white halates in dark UIs (KB 31 §halation, §tint-not-
     // black). Light inverse = near-black 950; dark inverse = near-white 25. HC
@@ -369,10 +384,14 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     const invSpec = cfg.inverseBase ?? (family === 'light' ? 950 : 25);
     const invS = specToSurf(invSpec);
     const invDir = -dir;
+    // The inverse floor needs no such coupling: it IS `inverse.background.secondary` (read off `bgInverse`
+    // in `resolveMode`), so a declared `inverseSecondary` moves every role gated on it by construction.
+    const bgInv = bgLadder(invS.pal, invS.num, invDir);
     return {
-      base: surfAtP(baseS.pal, baseS.num), floor: n(floorStep),
-      bg: bgLadder(baseS.pal, baseS.num, dir), fg: fgLadder(baseS.pal, baseS.num, dir),
-      bgInverse: bgLadder(invS.pal, invS.num, invDir), fgInverse: fgLadder(invS.pal, invS.num, invDir),
+      base: surfAtP(baseS.pal, baseS.num), floor,
+      bg: bgTiers, fg: fgLadder(baseS.pal, baseS.num, dir),
+      bgInverse: { primary: bgInv.primary, secondary: tier(cfg.inverseSecondary, bgInv.secondary), tertiary: tier(cfg.inverseTertiary, bgInv.tertiary) },
+      fgInverse: fgLadder(invS.pal, invS.num, invDir),
       invRgb: surfAtP(invS.pal, invS.num).rgb,
     };
   };
@@ -420,7 +439,8 @@ const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 /**
  * Grounds that HAVE a declarative input, and which `surfaces.<mode>` field it is (#956).
  *
- * Only the two page/band anchors are here, and the gap is the point rather than an omission: the
+ * Only the surface ladders are here — the two anchors (#956) and their second and third tiers (#1972) —
+ * and the gap is the point rather than an omission: the
  * other grounds (`text.primary`, `foreground.<semantic>`, `interactive.<c>.fill.rest`, `field.fill`,
  * `disabled.fill`, …) are DERIVED roles that happen to also serve as grounds, so there is nowhere
  * earlier to declare them — they do not exist until derivation has run. The override refusal names
@@ -430,6 +450,12 @@ const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 export const GROUND_INPUT: Record<string, string> = {
   'background.primary': 'base',
   'inverse.background.primary': 'inverseBase',
+  // The page and inverse tiers (#1972). Overridden, each left its dependents on the old surface: the S4b
+  // probe saw `inverse.background.secondary` leave 12 roles reported stale.
+  'background.secondary': 'secondary',
+  'background.tertiary': 'tertiary',
+  'inverse.background.secondary': 'inverseSecondary',
+  'inverse.background.tertiary': 'inverseTertiary',
 };
 
 /**

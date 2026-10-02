@@ -4265,6 +4265,166 @@ arm: {
       ok(bogus.length === 0, `grounds: every GROUND_INPUT key is a real ground${bogus.length ? ` — not grounds: ${bogus.join(', ')}` : ''}`);
     }
 
+    // (a5b) THE BACKGROUND TIERS ARE INPUTS (#1972).
+    //
+    // `background.secondary`/`tertiary` and their inverse twins are grounds, so they are declared in
+    // `surfaces.<mode>` (where derivation can still see them), never overridden after it. These arms
+    // hold the three promises that makes:
+    //
+    //   1. A declared tier IS the declared step: the emitted hex equals the neutral ramp step's own hex.
+    //   2. Every role measured against the tier re-derives against it: each one's reported ratio equals
+    //      `contrast()` over the two EMITTED hexes, and it clears its bar or is warned. For `secondary`
+    //      that includes the ~46 roles gated on the contrast floor (owner, option A): the floor follows a
+    //      declared `secondary` unless `floorStep` is set, and high-contrast follows the standard floor.
+    //   3. An override on any of the four is refused, naming the input to use instead.
+    //
+    // WHERE THE EXPECTATIONS COME FROM (`docs/34`): the ramp step's hex out of `theme.palettes`, and the
+    // emitted hexes of the role and its ground. WHICH roles count as dependents is read off the UNSET
+    // baseline: those measured against the tier, or (for `secondary`) against the ramp step the tier
+    // aliased. Neither is the new code's bookkeeping, so dropping the input or leaving the floor behind
+    // cannot agree with these numbers. With nothing declared `regen --check` holds `out/` byte-identical.
+    {
+      const TIER = { secondary: 'background.secondary', tertiary: 'background.tertiary', inverseSecondary: 'inverse.background.secondary', inverseTertiary: 'inverse.background.tertiary' } as const;
+      type TierKey = keyof typeof TIER;
+      // Off every example brand's default tier, so a case that ignored the input could not pass by landing
+      // where the ladder already put it (asserted below, not assumed).
+      const STEP: Record<'light' | 'dark', Record<TierKey, number>> = {
+        light: { secondary: 200, tertiary: 300, inverseSecondary: 800, inverseTertiary: 700 },
+        dark: { secondary: 700, tertiary: 600, inverseSecondary: 200, inverseTertiary: 300 },
+      };
+      // Measured on the example brands before this change: 49 / 9 / 34 / 9 dependents per mode. The floor
+      // sits below that, so a vocabulary move that empties a set reads as a failure, not a pass.
+      const MIN_DEPS: Record<TierKey, number> = { secondary: 40, tertiary: 5, inverseSecondary: 25, inverseTertiary: 5 };
+      const withTier = (b: BrandInput, family: 'light' | 'dark', patch: Record<string, unknown>): BrandInput =>
+        ({ ...b, surfaces: { ...(b.surfaces ?? {}), [family]: { ...((b.surfaces as Record<string, object> | undefined)?.[family] ?? {}), ...patch } } } as BrandInput);
+      const stepHex = (theme: ReturnType<typeof brandTheme>, num: number): string | undefined => {
+        const s = theme.palettes.find((p) => p.palette === theme.roleToPalette.neutral)?.steps.find((x) => x.num === num);
+        return s ? hex(s.rgb).toLowerCase() : undefined;
+      };
+      const shortPath = (p: string): string => p.split('.').slice(-2).join('.');
+      type Roles = Record<string, { hex: string; against?: string; ratio?: number; min?: number; path: string }>;
+      const warnedIn = (m: { warnings?: Array<{ role: string; against?: string }> }): Set<string> =>
+        new Set((m.warnings ?? []).filter((w) => w.against == null).map((w) => w.role));
+      // Each dependent's reported ratio against the ground's EMITTED hex; a mismatch or an unconfessed miss.
+      const misreported = (roles: Roles, deps: string[], groundHex: string, warned: Set<string>): string[] =>
+        deps.flatMap((k) => {
+          const r = roles[k];
+          if (!r || !(r.min && r.min > 0) || r.ratio == null) return [];
+          const truth = contrast(hexToRgb(r.hex), hexToRgb(groundHex));
+          if (Math.abs(truth - r.ratio) > 0.005) return [`${k} reports ${r.ratio.toFixed(2)}, measures ${truth.toFixed(2)}`];
+          if (truth < r.min && !warned.has(k)) return [`${k} measures ${truth.toFixed(2)} under its ${r.min}:1 with no warning`];
+          return [];
+        });
+
+      for (const brand of EXAMPLE_IDS) {
+        const input = exampleBrands()[brand] as BrandInput;
+        const base = brandTheme(input);
+        const baseModes = resolveAllModes(base);
+        for (const family of ['light', 'dark'] as const) {
+          const baseM = baseModes.find((m) => m.mode === family)!;
+          const baseRoles = baseM.roles as Roles;
+          for (const key of Object.keys(TIER) as TierKey[]) {
+            const tier = TIER[key], step = STEP[family][key];
+            const label = `bg-tiers: ${brand} surfaces.${family}.${key}=${step}`;
+            const want = stepHex(base, step);
+            ok(!!want && baseRoles[tier].hex.toLowerCase() !== want,
+              `${label} — precondition: neutral.${step} exists and is not already the default ${tier} (${baseRoles[tier].hex})`);
+            const theme = brandTheme(withTier(input, family, { [key]: step }));
+            const m = resolveAllModes(theme).find((x) => x.mode === family)!;
+            const roles = m.roles as Roles;
+            ok(roles[tier].hex.toLowerCase() === want, `${label} — ${tier} resolves to neutral.${step} (${want}), got ${roles[tier].hex}`);
+
+            // Dependents, read off the UNSET tree: named against the tier, or (secondary) against the step it aliased.
+            const floorStepName = shortPath(baseRoles[tier].path);
+            const named = Object.keys(baseRoles).filter((k) => baseRoles[k].against === tier);
+            const viaFloor = key === 'secondary' ? Object.keys(baseRoles).filter((k) => baseRoles[k].against === floorStepName) : [];
+            ok(named.length + viaFloor.length >= MIN_DEPS[key],
+              `${label} — ${named.length + viaFloor.length} role(s) measured against ${tier} (floor ${MIN_DEPS[key]})`);
+            const warned = warnedIn(m);
+            const badNamed = misreported(roles, named, roles[tier].hex, warned);
+            ok(badNamed.length === 0,
+              `${label} — the ${named.length} role(s) named against ${tier} re-derive against it${badNamed.length ? `: ${badNamed.slice(0, 3).join('; ')}` : ''}`);
+            if (key === 'secondary') {
+              const badFloor = misreported(roles, viaFloor, roles[tier].hex, warned);
+              ok(badFloor.length === 0,
+                `${label} — the ${viaFloor.length} floor-gated role(s) (text.secondary, links, fills, …) re-measure against the declared tier${badFloor.length ? `: ${badFloor.slice(0, 3).join('; ')}` : ''}`);
+            }
+          }
+        }
+      }
+
+      // HIGH CONTRAST FOLLOWS THE STANDARD FLOOR (owner): HC's page is flat, but its floor is the standard
+      // mode's, as it already is for `base`. So hc-light's floor-gated roles measure against LIGHT's tier.
+      {
+        const input = exampleBrands()['aurora'] as BrandInput;
+        const baseHc = resolveAllModes(brandTheme(input)).find((m) => m.mode === 'hc-light')!.roles as Roles;
+        const baseLight = resolveAllModes(brandTheme(input)).find((m) => m.mode === 'light')!.roles as Roles;
+        const floorName = shortPath(baseLight['background.secondary'].path);
+        const deps = Object.keys(baseHc).filter((k) => baseHc[k].against === floorName);
+        const all = resolveAllModes(brandTheme(withTier(input, 'light', { secondary: 200 })));
+        const light = all.find((m) => m.mode === 'light')!.roles as Roles;
+        const hc = all.find((m) => m.mode === 'hc-light')!;
+        const bad = misreported(hc.roles as Roles, deps, light['background.secondary'].hex, warnedIn(hc));
+        ok(deps.length >= 40 && bad.length === 0,
+          `bg-tiers: aurora hc-light — the ${deps.length} floor-gated role(s) follow light's declared secondary (floor 40)${bad.length ? `: ${bad.slice(0, 3).join('; ')}` : ''}`);
+      }
+
+      // AN EXPLICIT floorStep STILL WINS, and may differ from the tier (owner: allowed, not refused).
+      {
+        const input = exampleBrands()['aurora'] as BrandInput;
+        const theme = brandTheme(withTier(input, 'light', { secondary: 200, floorStep: 100 }));
+        const light = resolveAllModes(theme).find((m) => m.mode === 'light')!;
+        const r = (light.roles as Roles)['text.secondary'];
+        const want = stepHex(theme, 100)!;
+        const truth = contrast(hexToRgb(r.hex), hexToRgb(want));
+        ok(Math.abs(truth - (r.ratio ?? -1)) <= 0.005 && (light.roles as Roles)['background.secondary'].hex.toLowerCase() === stepHex(theme, 200),
+          `bg-tiers: aurora light secondary=200 with floorStep=100 — the tier is neutral.200 and text.secondary measures against neutral.100 (reports ${r.ratio?.toFixed(2)}, measures ${truth.toFixed(2)})`);
+      }
+
+      // AN OVERRIDE ON ANY OF THE FOUR IS REFUSED, NAMING THE INPUT. `inverse.background.secondary` was the
+      // (a6) purity probe until this change; it is covered from this side now.
+      for (const family of ['light', 'dark'] as const) {
+        for (const key of Object.keys(TIER) as TierKey[]) {
+          const tier = TIER[key];
+          let threw = '';
+          try { resolveAllModes(brandTheme({ ...MINIMAL_BRAND, overrides: { [family]: { [tier]: { palette: 'neutral', step: '500' } } } } as BrandInput)); }
+          catch (e) { threw = (e as Error).message; }
+          ok(threw.includes(`surfaces.${family}.${key}`),
+            `bg-tiers: overrides refused — overrides.${family}['${tier}'] throws naming \`surfaces.${family}.${key}\`${threw ? ` (got: "${threw.slice(0, 100)}…")` : ' (it was ACCEPTED)'}`);
+        }
+      }
+
+      // VALIDATED IN `brandTheme`, not the schema alone. `json-schema-lite` skips `allOf`/`oneOf`, so the
+      // schema passes `'grey'` (it does for `base` too, filed separately); the engine must refuse it, by name.
+      {
+        const b = MINIMAL_BRAND;
+        const rejects: Array<[string, unknown]> = [
+          ['secondary', 'grey'], ['tertiary', '300'], ['secondary', 333], ['tertiary', 1000],
+          ['inverseSecondary', 'grey'], ['inverseTertiary', { palette: 'primary', step: 901 }],
+        ];
+        for (const [key, value] of rejects) {
+          let threw = '';
+          try { brandTheme(withTier(b, 'light', { [key]: value })); } catch (e) { threw = (e as Error).message; }
+          ok(threw.includes(`surfaces.light.${key}`) && threw.includes('ramp'),
+            `bg-tiers: validation — surfaces.light.${key}=${JSON.stringify(value)} is refused by name (got: "${threw.slice(0, 120)}")`);
+        }
+        const good = withTier(b, 'light', { secondary: 200, tertiary: 'white', inverseSecondary: { palette: 'primary', step: 900 }, inverseTertiary: 850 });
+        let goodThrew = '';
+        try { brandTheme(good); } catch (e) { goodThrew = (e as Error).message; }
+        ok(validateBrandInput(good).length === 0 && goodThrew === '',
+          `bg-tiers: validation — well-formed tiers pass the schema and build (errors: ${JSON.stringify(validateBrandInput(good)).slice(0, 120)}; threw: "${goodThrew.slice(0, 120)}")`);
+        let pageBand = '';
+        try { brandTheme(withTier(b, 'light', { tertiary: { palette: 'primary', step: 900 } })); } catch (e) { pageBand = (e as Error).message; }
+        ok(pageBand.includes('surfaces.light.tertiary') && pageBand.includes('neutral-only'),
+          `bg-tiers: validation — brandTheme refuses a palette band on surfaces.light.tertiary (got: "${pageBand.slice(0, 100)}")`);
+        const status = brandTheme(b).palettes.find((p) => p.role === 'danger')!.palette;
+        let statusBand = '';
+        try { brandTheme(withTier(b, 'dark', { inverseTertiary: { palette: status, step: 300 } })); } catch (e) { statusBand = (e as Error).message; }
+        ok(statusBand.includes('surfaces.dark.inverseTertiary') && statusBand.includes('STATUS'),
+          `bg-tiers: validation — brandTheme refuses a status palette on surfaces.dark.inverseTertiary (got: "${statusBand.slice(0, 100)}")`);
+      }
+    }
+
     // (a6) THE OVERRIDE ASSUMPTION, ASSERTED (#979).
     //
     // #979 proposed two-pass derivation and named the risk: an override must not feed back into
@@ -4286,7 +4446,10 @@ arm: {
         ['text.primary', 'neutral', '500'],
         ['foreground.brand', 'neutral', '100'],
         ['interactive.primary.fill.rest', 'neutral', '300'],
-        ['inverse.background.secondary', 'neutral', '500'],
+        // Was `inverse.background.secondary` until #1972 gave that tier an input, after which the engine
+        // refuses the override (held by `bg-tiers: overrides refused` below). This arm is about override
+        // purity, not that tier, so the probe moved to another ground with no input.
+        ['disabled.fill', 'neutral', '500'],
       ];
       const impure: string[] = [], unstable: string[] = [];
       for (const [role, palette, step] of probes) {

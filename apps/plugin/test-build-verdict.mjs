@@ -161,7 +161,12 @@ const readSurfaces = (page) => page.evaluate(() => {
   const text = (sel) => [...document.querySelectorAll(sel)].map((n) => n.textContent);
   const btn = document.querySelector('[data-p3="components-build"]');
   const sel = document.querySelector('[data-p3="components-def-picker"]');
-  const detail = document.querySelector('[data-p3="apply-detail"]');
+  // UI redesign S11: the build's chrome status is its row in the Activity drawer. Its verdict pill reads
+  // "Running" while the build runs, so a verdict is read only once the row has settled.
+  const row = document.querySelector('[data-p3="activity-op"][data-op="components"]');
+  const pill = row?.querySelector('[data-p3="op-verdict"]');
+  const detail = row?.querySelector('[data-p3="op-summary"]') ?? null;
+  const drawer = document.querySelector('[data-p3="activity-drawer"]');
   return {
     button: btn ? btn.textContent : null,
     buttonDisabled: btn ? btn.disabled : null,
@@ -169,12 +174,11 @@ const readSurfaces = (page) => page.evaluate(() => {
     picker: sel ? sel.value : null,
     pageVerdict: text('[data-p3="components-row"] [data-p3="status-verdict"]'),
     pagePending: text('[data-p3="components-row"] [data-p3="status-pill"]'),
-    barVerdict: text('[data-p3="bar"] [data-p3="status-verdict"]'),
-    barPending: text('[data-p3="bar"] [data-p3="status-pill"]'),
-    detail: detail && getComputedStyle(detail).display !== 'none' ? detail.textContent : null,
-    // Mounted, whether or not it is showing: what makes "the detail stays collapsed" a measurement rather
-    // than a lookup that found nothing (#1831).
-    detailMounted: detail !== null,
+    barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent] : [],
+    barPending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
+    // Shown, read the way the browser decides it: the row's body and the drawer's are hidden with `hidden`.
+    detail: detail && detail.checkVisibility() ? detail.textContent : null,
+    drawerOpen: drawer?.dataset.open === 'true',
   };
 });
 
@@ -370,7 +374,7 @@ for (const c of CONDITIONS) {
   );
   ok(
     during.barPending.some((t) => /24 of 648/.test(t ?? '')),
-    `${c.name}: the BAR's pending pill shows the live fraction (was frozen at the placeholder)`,
+    `${c.name}: the Activity row shows the live fraction (was frozen at the placeholder)`,
   );
 
   await post(page, c.msg);
@@ -393,7 +397,7 @@ for (const c of CONDITIONS) {
   );
   ok(
     after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline)),
-    `${c.name}: the chrome bar carries the verdict "${c.msg.headline}"`,
+    `${c.name}: the Activity row carries the verdict "${c.msg.headline}"`,
   );
 
   // No pending text survives the verdict, on either surface. This is the other half of "reaches a
@@ -404,17 +408,22 @@ for (const c of CONDITIONS) {
   const barLanded = after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline));
   hooks.absent(ok, { seen: during.pagePending.some((t) => /24 of 648/.test(t ?? '')) && pageLanded, state: "the page's pending pill during the build, then its verdict" },
     after.pagePending.length === 0, `${c.name}: no stale fraction is left on the page beside the verdict — found ${JSON.stringify(after.pagePending)}`);
-  hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')) && barLanded, state: "the bar's pending pill during the build, then its verdict" },
-    after.barPending.length === 0, `${c.name}: no stale fraction is left in the bar beside the verdict`);
+  hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')) && barLanded, state: "the Activity row's progress during the build, then its verdict" },
+    after.barPending.length === 0, `${c.name}: no stale fraction is left in the Activity row beside the verdict`);
 
-  // A build a designer must act on auto-expands its detail; a clean one stays collapsed (#483's rule).
-  // Asserted because the misses live in the detail, and this suite exists because of the misses.
+  // A build a designer must act on keeps the drawer open on its row, its summary showing (#483's rule). A
+  // clean one does not pin it: concept v6 collapses the whole drawer COLLAPSE_MS (4 s) after a success
+  // (UI redesign S11). Asserted because the misses live in the detail, and this suite exists because of them.
   if (c.verdictOpens) {
     ok(after.detail !== null && after.detail.length > 0, `${c.name}: the detail row is open, so the misses are readable without a click`);
     ok((after.detail ?? '').includes(c.msg.summary.slice(0, 24)), `${c.name}: the open detail carries the host's own summary`);
   } else {
-    hooks.absent(ok, { seen: after.detailMounted, state: 'the detail row mounted beside the verdict' },
-      after.detail === null, `${c.name}: a clean verdict leaves the detail collapsed — found ${JSON.stringify(after.detail)}`);
+    // v6 holds the collapse while the pointer is over the drawer, and the click that started the build
+    // can leave it there once the drawer opens under it: move it off, as a designer reading the page would.
+    await page.mouse.move(1, 1);
+    const closed = await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 7000 }).then(() => true, () => false);
+    hooks.absent(ok, { seen: after.drawerOpen && barLanded, state: 'the drawer open on the verdict when it landed' },
+      closed, `${c.name}: a clean verdict does not pin the drawer open — it collapses by itself after 4 s`);
   }
 
   ok(errors.length === 0, `${c.name}: no console errors (${errors.slice(0, 2).join(' · ')})`);
@@ -458,7 +467,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(after.pageVerdict.some((t) => (t ?? '').includes(String(n))),
     `${label}: the page's pill states how many nodes were left — read ${JSON.stringify(after.pageVerdict)}`);
   ok(after.barVerdict.some((t) => (t ?? '').includes(String(n))),
-    `${label}: the chrome bar states it too, so it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
+    `${label}: the Activity row states it too, so it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
 
   // The WHERE is in the detail, and the detail is open without a click: a designer who has to expand a row
   // to learn that 648 components are sitting on their canvas will not learn it.
@@ -515,7 +524,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   const away = await readSurfaces(page);
-  ok(away.barPending.some((t) => /Wiring references… 600 of 648/.test(t ?? '')), `away from the page, the bar still reports progress — read ${JSON.stringify(away.barPending)}`);
+  ok(away.barPending.some((t) => /Wiring references… 600 of 648/.test(t ?? '')), `away from the page, the Activity row still reports progress — read ${JSON.stringify(away.barPending)}`);
 
   // #1679: the reference back-off's wait names itself (owner's wording), with no fraction, instead of the
   // pill freezing on the last wire reading for the whole pause. Through the real bridge validator, so a
@@ -527,9 +536,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
 
   await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
-  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-verdict"]')].some((n) => (n.textContent ?? '').includes('✓ built 648')), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '').includes('✓ built 648'), null, { timeout: 5000 }).catch(() => {});
   const landed = await readSurfaces(page);
-  ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the chrome, which is what survives navigation');
+  ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
 
   await gotoRail(page, '[data-p3="rail-page-components"]');
   await hooks.need(page, '[data-p3="components-build"]');
@@ -582,7 +591,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const readPrune = (page) => page.evaluate(() => ({
     dialog: !!document.querySelector('[data-p3="prune-dialog"]'),
     deleteCta: [...document.querySelectorAll('[data-p3="dialog-confirm"]')].map((n) => n.textContent),
-    pills: [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-pill"]')].map((n) => n.textContent),
+    pills: [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-verdict"]')].map((n) => n.textContent),
+    // The row's details carry the host's sentence under the short verdict (owner decision #3 on #1956).
+    // Read whether or not the row is expanded: a clean result's row is collapsed (#483).
+    summaries: [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].map((n) => n.textContent),
   }));
   // #1830 — the dialog used to be FOUND by its role and accessible name, which asserted both for free.
   // F1 moved the lookup to its hook, so they are asserted here instead, by what the accessibility tree
@@ -591,7 +603,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     .evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
   const settle = (page) => page
     .waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]')
-      || [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-pill"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
+      || [...document.querySelectorAll('[data-p3="activity-op"][data-op="prune"] [data-p3="op-summary"]')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
     .catch(() => {});
 
   // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog. Its readings are kept, because they
@@ -619,13 +631,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await post(page, { ...preview, pillOnly: true });
     await settle(page);
     const s = await readPrune(page);
-    const landed = s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`);
+    const landed = s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`);
     hooks.absent(ok, { seen: control.dialog && landed, state: 'the dialog in the control arm, and the agent preview landing in this one' },
       !s.dialog, '#1663 an agent prune preview (pillOnly) opens NO confirm dialog on the owner\'s screen');
     hooks.absent(ok, { seen: control.deleteCta.includes('Delete 4 items') && landed, state: 'the Delete CTA in the control arm, and the agent preview landing in this one' },
       s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete CTA — found ${JSON.stringify(s.deleteCta)}`);
-    ok(s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`),
-      `#1663 an agent prune preview reads "Agent preview: ${PRUNE_SUMMARY}" in the bar — read ${JSON.stringify(s.pills)}`);
+    ok(s.pills.includes('4 stale') && s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`),
+      `#1663 an agent prune preview reads "4 stale" in the Activity drawer, "Agent preview: ${PRUNE_SUMMARY}" in its details — read ${JSON.stringify(s.pills)}, ${JSON.stringify(s.summaries)}`);
     ok(errors.length === 0, `#1663 agent preview: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -721,105 +733,281 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
-// ── #1890: a verdict repaints the bar BEFORE the detail row, and measures the chrome AFTER both ─────
+// ── S11 (#1788): an agent's run shows in the Activity drawer, and the panel's controls do not move ──
 //
-// A verdict invalidates `host` and then `host:detail` (`topicsFor`, `state/host-session.ts`). `host`
-// rebuilds the bar, and `host:detail` opens or closes the detail row and then re-measures `--chrome-h`,
-// which positions everything sticky below the chrome. So the order is what makes that measurement read the
-// NEW bar. Reversed, the chrome is measured before the bar is rebuilt, and nothing measures it again.
-// Before this arm, reversing every verdict's topic order left this suite green. Only
-// `test-host-session.ts` caught it, through a literal topic array, and a refactor that updated that
-// literal would have passed every gate.
+// The plugin brackets every agent command that has an operation with `agent-started` and
+// `agent-finished` (`agent-dispatch.ts`, asserted in `test-agent-link.ts`). Between the two the panel's
+// Activity drawer shows the run on its operation's row, tagged Agent. While any run of an operation is in
+// progress, panel or agent, that operation's controls are busy (owner decision #4 on #1956, fixing #1957):
+// aria-disabled and aria-busy, never natively disabled, announced once through the drawer's polite status
+// line, and a click on them posts nothing, so a second write cannot start under the first. EXPECTED is each
+// row state written here as a literal; ACTUAL is the built panel's DOM, and the UI → plugin messages caught
+// on this window, after each host message.
 //
-// WHY THE ORDER ITSELF IS ASSERTED, AND NOT ONLY ITS CONSEQUENCE. Measured on the built panel at widths
-// from 1280 down to 480, a verdict does not change the bar's height (to within 1px of rounding) at any of
-// them. So a stale `--chrome-h` is not visible on screen today, and an end-state check alone could not
-// fail under the reversal. What CAN be observed honestly is the order the DOM was written in. A
-// MutationObserver, installed before the verdict is posted, records which region each write landed in:
-// the bar, the detail row, or the `--chrome-h` value on the root element. The arm asserts the two orderings
-// the comment at the subscriptions claims: the bar is written before the detail row, and the last
-// `--chrome-h` write follows the last bar write. Then it checks the end state as well, which is the
-// part a designer would see if a verdict ever does change the bar's height.
+// The no-post check has a positive control at the end of the arm: the same click, once nothing is running
+// Apply, does post `apply-theme`. Without it a listener that caught nothing would read as "posts nothing".
 //
-// EXPECTED is the order stated here as a literal ('bar' before 'detail', 'chrome-h' last); ACTUAL is the
-// sequence of DOM writes in the built bundle. Nothing reads `topicsFor` or the subscription order.
-// All four verdict kinds are driven, because `topicsFor` lists each one separately, and reversing one of
-// them should fail here as well as reversing all four. Each verdict is a bad one, so that the detail row
-// opens and `--chrome-h` really changes. An unchanged value would leave no write to observe.
+// MUTATIONS, each run against the built bundle and each failing here by name:
+//   · `reduce` ignoring `agent-started` → `S11 an agent's Apply Theme run opens the Activity drawer …`.
+//   · `settleAgent` dropped → `S11 the agent's verdict lands on the row, still tagged Agent — state running`.
+//   · the drawer's auto-open on a start removed → `S11 an agent's Apply Theme run opens … drawer open false`.
+//   · the row's revert on a run with no verdict removed → `S11 a run that finishes with no verdict reverts …`.
+//   · `opReading` tagging no run as the agent's → `S11 the running row is tagged Agent …` and the build arm.
+//   · the reveal branch removed, or the pill's click without `hostChanged()` → `S11 clicking it opens the drawer …`.
+//   · the success collapse never scheduled → `clean build: a clean verdict does not pin the drawer open …`.
+//   · `applyBusy` ignoring the agent's run → `S11 during an agent's Apply the panel's Apply Theme is busy …`.
+//   · `runApply`'s busy guard removed → `S11 clicking the busy Apply Theme posts nothing …`.
+//   · the status line's start announcement removed → `S11 the start is announced once …`.
+//   · a clean result after a run leaving its row expanded → `S11 a clean result collapses its row …`; one that
+//     lands with no run (a later read-back) → `S11 a clean read-back reads "Clean" and collapses the row …`.
+//   · `HISTORY_MAX` set to 6 → `S11 the history keeps exactly five earlier results …`.
+//   · the hover hold, or the focus hold, removed from the collapse → `S11 the collapse waits while the pointer …` / `… while focus …`.
+//   · the reveal expanding the first row, not the asked one → `S11 clicking it opens the drawer with the Set up file row expanded …`.
+//   · Read-back's verdict back to the host's sentence → `S11 a failing read-back reads "2 mismatches" …`.
+//   · the page pill's caret dropped → `S11 the page row's verdict keeps its caret …`.
+{
+  const { page, errors } = await openPanel();
+  await page.evaluate(() => {
+    window.__sent = [];
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'apply-theme') window.__sent.push(m.type); });
+  });
+  const sentApply = () => page.evaluate(() => window.__sent.length);
+  const readOp = (k) => page.evaluate((key) => {
+    const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
+    const drawer = document.querySelector('[data-p3="activity-drawer"]');
+    const agent = row?.querySelector('.p3-op-agent');
+    const apply = document.querySelector('[data-p3="apply-to-figma"]');
+    return {
+      state: row?.dataset.state ?? null,
+      verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      agent: !!agent && !agent.hidden,
+      phase: [...(row?.querySelectorAll('[data-p3="op-progress"]') ?? [])].map((n) => n.textContent),
+      expanded: row?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') ?? null,
+      history: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null,
+      drawerOpen: drawer?.dataset.open === 'true',
+      applyDisabled: apply ? apply.disabled : null,
+      applyBusy: apply ? apply.getAttribute('aria-busy') === 'true' && apply.getAttribute('aria-disabled') === 'true' : null,
+      status: document.querySelector('[data-p3="activity-status"]')?.textContent ?? null,
+      statusRole: document.querySelector('[data-p3="activity-status"]')?.getAttribute('role') ?? null,
+    };
+  }, k);
+  const settle = (k, want) => page.waitForFunction(([key, w]) => document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`)?.dataset.state === w, [k, want], { timeout: 5000 }).catch(() => {});
+
+  await post(page, { type: 'agent-started', id: 'a1', cmd: 'apply-theme' });
+  await settle('apply', 'running');
+  const running = await readOp('apply');
+  ok(running.state === 'running' && running.drawerOpen,
+    `S11 an agent's Apply Theme run opens the Activity drawer on the Apply Theme row — state ${running.state}, drawer open ${running.drawerOpen}`);
+  ok(running.agent && running.verdict === 'Running' && running.phase.some((t) => (t ?? '').includes('Writing to Figma…')),
+    `S11 the running row is tagged Agent, reads "Running", phase "Writing to Figma…" — agent ${running.agent}, verdict ${JSON.stringify(running.verdict)}, phase ${JSON.stringify(running.phase)}`);
+  ok(running.applyBusy === true && running.applyDisabled === false,
+    `S11 during an agent's Apply the panel's Apply Theme is busy (aria-busy + aria-disabled), not natively disabled — busy ${running.applyBusy}, disabled ${running.applyDisabled}`);
+  ok(running.statusRole === 'status' && running.status === 'Apply Theme, Writing to Figma…',
+    `S11 the start is announced once through the drawer's polite status line — role ${running.statusRole}, read ${JSON.stringify(running.status)}`);
+  // `force`: Playwright's actionability check reads aria-disabled as disabled and would never click, which
+  // would pass this check with the guard gone. A designer's click is not so polite.
+  const clickedBusy = await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000, force: true }).then(() => true, () => false);
+  ok(clickedBusy, 'S11 the busy Apply Theme takes a click (it is aria-disabled, not natively disabled)');
+  await page.waitForTimeout(200);
+  const firedBusy = await sentApply();
+  ok(firedBusy === 0, `S11 clicking the busy Apply Theme posts nothing to the plugin — apply-theme messages ${firedBusy}`);
+
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+  await settle('apply', 'ok');
+  const landed = await readOp('apply');
+  ok(landed.state === 'ok' && (landed.verdict ?? '').includes('✓ 42 roles written') && landed.agent,
+    `S11 the agent's verdict lands on the row, still tagged Agent — state ${landed.state}, verdict ${JSON.stringify(landed.verdict)}, agent ${landed.agent}`);
+  ok(running.expanded === 'true' && landed.expanded === 'false',
+    `S11 a clean result collapses its row (#483, owner decision #1 on #1956), which a run had opened — running ${running.expanded}, landed ${landed.expanded}`);
+
+  await post(page, { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' });
+  await page.waitForTimeout(100);
+  const finished = await readOp('apply');
+  ok(finished.state === 'ok' && (finished.verdict ?? '').includes('✓ 42 roles written'),
+    `S11 agent-finished keeps the verdict on the row — state ${finished.state}, verdict ${JSON.stringify(finished.verdict)}`);
+
+  await post(page, { type: 'agent-started', id: 'a2', cmd: 'apply-theme' });
+  await settle('apply', 'running');
+  const second = await readOp('apply');
+  ok(second.history === 'Earlier results (1)', `S11 a second run retires the first result to history — read ${JSON.stringify(second.history)}`);
+
+  // A run that ends with no verdict (the command threw) leaves nothing running: the row goes back to the
+  // result it had, rather than spinning forever.
+  await post(page, { type: 'agent-finished', id: 'a2', cmd: 'apply-theme' });
+  await settle('apply', 'ok');
+  const reverted = await readOp('apply');
+  ok(reverted.state === 'ok' && (reverted.verdict ?? '').includes('✓ 42 roles written') && reverted.history === null,
+    `S11 a run that finishes with no verdict reverts the row to its last result — state ${reverted.state}, verdict ${JSON.stringify(reverted.verdict)}, history ${JSON.stringify(reverted.history)}`);
+
+  // Seven more runs, each with its own verdict: the row holds the newest, and the history exactly the five
+  // before it (concept v6). Seven, not six, so a cap of six would show six rather than coincide.
+  for (let i = 1; i <= 7; i++) {
+    await post(page, { type: 'agent-started', id: `h${i}`, cmd: 'apply-theme' });
+    await settle('apply', 'running');
+    await post(page, { type: 'apply-result', ok: true, headline: `✓ ${i} roles written`, summary: `${i} roles written` });
+    await page.waitForFunction((w) => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '') === w, `✓ ${i} roles written`, { timeout: 5000 }).catch(() => {});
+    await post(page, { type: 'agent-finished', id: `h${i}`, cmd: 'apply-theme' });
+  }
+  const kept = await page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
+    return { summary: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => n.textContent ?? '') };
+  });
+  const wantItems = [6, 5, 4, 3, 2].map((i) => `✓ ${i} roles written`);
+  ok(kept.summary === 'Earlier results (5)' && kept.items.length === 5 && kept.items.every((t, j) => t.includes(wantItems[j])),
+    `S11 the history keeps exactly five earlier results, newest first — read ${JSON.stringify(kept.summary)}, ${JSON.stringify(kept.items.map((t) => t.replace(/^\d\d:\d\d · /, '')))}`);
+
+  await post(page, { type: 'agent-started', id: 'b1', cmd: 'build-components' });
+  await post(page, { type: 'agent-progress', id: 'b1', progress: { phase: 'build', done: 24, total: 648 } });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"]')].some((n) => /24 of 648/.test(n.textContent ?? '')), null, { timeout: 5000 }).catch(() => {});
+  const build = await readOp('components');
+  ok(build.state === 'running' && build.agent && build.phase.some((t) => /Building members… 24 of 648/.test(t ?? '')),
+    `S11 an agent's build shows its live progress on the Build set row — state ${build.state}, agent ${build.agent}, phase ${JSON.stringify(build.phase)}`);
+  // Positive control for the no-post check: nothing runs Apply now, so the same click does post.
+  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const firedIdle = await sentApply();
+  ok(firedIdle === 1, `S11 control: with no Apply running, the same click posts one apply-theme — messages ${firedIdle}`);
+  ok(errors.length === 0, `S11 agent run: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── S11: a page row's verdict opens the Activity drawer on that operation's row ─────────────────────
 //
-// UNDER THE S1.2 FRAME (`apps/studio/src/shell/frame.ts`) the chrome is the frame's sticky head, which
-// holds the bar and the notices row the detail row is lent to, and the frame's ResizeObserver on that head
-// re-publishes `--chrome-h` whenever it resizes. So moving the measurement in `syncApplyDetail` ahead of
-// the row's opening does not, on its own, leave a stale value: the observer writes the right one after.
-// Only with that re-sync gone as well does the end-state check below fail. The topic order is still
-// caught by the two ordering checks.
+// Two rows, the asked-for one second and neither expanded (both clean, so both collapsed, #483): a reveal
+// that expanded the first row, or every row, cannot pass by coinciding with the target.
+{
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+  await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added' });
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="activity-op"]').length === 2, null, { timeout: 5000 }).catch(() => {});
+  const before = await page.evaluate(() => ({
+    order: [...document.querySelectorAll('[data-p3="activity-op"]')].map((n) => n.dataset.op),
+    expanded: [...document.querySelectorAll('[data-p3="activity-op"] [data-p3="op-head"]')].map((n) => n.getAttribute('aria-expanded')),
+    open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open,
+  }));
+  ok(JSON.stringify(before.order) === '["apply","filesetup"]' && before.expanded.every((e) => e === 'false') && before.open === 'false',
+    `S11 reveal premise: two clean rows, Set up file second, neither expanded, the drawer closed — ${JSON.stringify(before)}`);
+  const pill = page.locator('[data-p3="file-setup-row"] [data-p3="status-verdict"]');
+  const caret = await pill.evaluate((n) => { const c = n.querySelector('.caret'); return c ? { text: c.textContent, hidden: c.getAttribute('aria-hidden'), name: n.getAttribute('aria-label') } : null; }).catch(() => null);
+  ok(caret?.text === '▾' && caret.hidden === 'true' && (caret.name ?? '').startsWith('✓ file set up'),
+    `S11 the page row's verdict keeps its caret (owner decision #5 on #1956), hidden from its name — read ${JSON.stringify(caret)}`);
+  const clicked = await hooks.click(pill, { timeout: 4000 }).then(() => true, () => false);
+  ok(clicked, 'S11 the file-setup verdict on the page row can be clicked');
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
+  const shown = await page.evaluate(() => {
+    const head = (k) => document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-head"]`)?.getAttribute('aria-expanded');
+    const sum = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]');
+    return { open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', expanded: head('filesetup'), other: head('apply'), summary: sum && sum.checkVisibility() ? sum.textContent : null };
+  });
+  ok(shown.open && shown.expanded === 'true' && shown.other === 'false' && (shown.summary ?? '').includes('6 pages added'),
+    `S11 clicking it opens the drawer with the Set up file row expanded, and only that row — open ${shown.open}, expanded ${shown.expanded}, Apply Theme ${shown.other}, summary ${JSON.stringify(shown.summary)}`);
+  ok(errors.length === 0, `S11 reveal: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── S11: the 4 s collapse waits while the pointer, or focus, is inside the drawer (concept v6) ──────────
 //
-// UNDER S1.4 THE PILLS AND THE DETAIL ROW LIVE IN THE ACTIVITY DRAWER (plan §3.9). The `bar` hook moved
-// with the pills to the drawer's bar row, and the detail row is the drawer's body, at the bottom of the
-// frame, pinned to the bottom edge. So a verdict no longer changes the sticky head's height, and there is
-// no `--chrome-h` write left for the old "measured after the bar" ordering to observe: an unchanged value
-// leaves none (see above). What the move intends is checked in its place: the bar is still written before
-// the detail row it opens; the detail opens in the drawer, beside the bar, in a drawer pinned to the
-// bottom edge; it stays inside the viewport with the page scrolled to its top and to its bottom; and
-// `--chrome-h` still equals the sticky head's rendered height after the verdict. The arm keeps its seven
-// checks per verdict kind.
+// The drawer opens by itself on a run; the clean verdict schedules the collapse COLLAPSE_MS (4 s) later.
+// Held, it looks again every COLLAPSE_RECHECK_MS (1.5 s). EXPECTED: still open well past 4 s while held,
+// closed within a recheck of letting go. Each hold is read in its own panel, so one cannot stand in for
+// the other.
+for (const how of ['pointer', 'focus']) {
+  const { page, errors } = await openPanel();
+  await page.mouse.move(1, 1);
+  await post(page, { type: 'agent-started', id: 'c1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
+  // The pointer goes in once the verdict has drawn: opening the drawer moves its bar, so a pointer placed
+  // on the bar before the row appears is no longer inside it.
+  if (how === 'focus') await page.locator('[data-p3="activity-toggle"]').focus();
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+  await post(page, { type: 'agent-finished', id: 'c1', cmd: 'apply-theme' });
+  if (how === 'pointer') await page.locator('[data-p3="activity-op"][data-op="apply"]').hover();
+  await page.waitForTimeout(6000);
+  const held = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
+  ok(held === 'true', `S11 the collapse waits while ${how === 'pointer' ? 'the pointer is' : 'focus is'} inside the drawer — open at 6 s: ${held}`);
+  if (how === 'pointer') await page.mouse.move(1, 1);
+  else await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 3000 }).catch(() => {});
+  const let_go = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
+  ok(let_go === 'false', `S11 control: once the ${how} leaves, the drawer collapses within a recheck — open ${let_go}`);
+  ok(errors.length === 0, `S11 ${how} hold: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── S11: Read-back's row shows a short verdict, the host's sentence in its details (owner decision #3) ──
+{
+  const SENTENCE = 'Existing theme: 268 color vars, modes light — FAILED: declaredModes, plannedModes';
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'seed-info', ok: false, present: true, summary: SENTENCE, failed: 2 });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="readback"]'), null, { timeout: 5000 }).catch(() => {});
+  const rb = await page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+    const sum = row?.querySelector('[data-p3="op-summary"]');
+    return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sum && sum.checkVisibility() ? sum.textContent : null };
+  });
+  ok(rb.state === 'bad' && rb.verdict === '2 mismatches' && (rb.summary ?? '').includes(SENTENCE),
+    `S11 a failing read-back reads "2 mismatches", its sentence showing in the row's details — state ${rb.state}, verdict ${JSON.stringify(rb.verdict)}, summary ${JSON.stringify(rb.summary)}`);
+  // A clean read-back that lands later, with no run the drawer saw, collapses the row the bad one opened.
+  const readRb = () => page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+    return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, expanded: row?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') };
+  });
+  const opened = await readRb();
+  await post(page, { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="readback"]')?.dataset.state === 'ok', null, { timeout: 5000 }).catch(() => {});
+  const clean = await readRb();
+  ok(opened.expanded === 'true' && clean.state === 'ok' && clean.verdict === 'Clean' && clean.expanded === 'false',
+    `S11 a clean read-back reads "Clean" and collapses the row the failing one opened — before ${JSON.stringify(opened)}, after ${JSON.stringify(clean)}`);
+  ok(errors.length === 0, `S11 read-back: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #1890: a bad verdict opens its row in the Activity drawer, and the drawer stays in view ─────────
+//
+// HISTORY. This arm began as an ordering check: a verdict invalidated `host` (the bar) and then
+// `host:detail` (the detail row, which then re-measured `--chrome-h`), so the bar had to be written before
+// the detail row or the chrome would be measured stale. A MutationObserver recorded the DOM write order.
+// Under S1.4 the bar and the detail row moved into the Activity drawer at the bottom edge, and the
+// `--chrome-h` ordering had nothing left to observe; the bar-before-detail ordering stayed.
+//
+// UNDER S11 (plan §3.9) THERE IS ONE SURFACE. The bar's pills and the separate detail row are gone: each
+// operation has its own row in the drawer, and its verdict pill and its summary are painted by one
+// subscriber in one pass (`apps/studio/src/shell/activity.ts`). There is no second region for a write
+// order to be measured between, so the ordering checks are retired rather than kept against a structure
+// that no longer exists. What the arm still owes a designer is checked in their place: a bad verdict
+// opens its own row, the row carries the host's own summary, it sits in the drawer, the drawer is open and
+// pinned to the bottom edge, it stays in view with the page scrolled to its top and to its bottom, and
+// `--chrome-h` still equals the sticky head's rendered height after the verdict.
+//
+// EXPECTED is the op row named here as a literal per verdict kind; ACTUAL is the built panel's DOM.
+// All four verdict kinds are driven, because `topicsFor` lists each one separately.
 {
   const VERDICTS = [
-    { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' },
-    { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" },
-    { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' },
-    { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: no variables in this file' },
+    { op: 'apply', msg: { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' } },
+    { op: 'components', msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" } },
+    { op: 'filesetup', msg: { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' } },
+    { op: 'styleguide', msg: { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: no variables in this file' } },
   ];
-  ok(VERDICTS.length === 4, `#1890 the repaint-order arm drives all 4 verdict kinds (found ${VERDICTS.length})`);
-  for (const v of VERDICTS) {
+  ok(VERDICTS.length === 4, `#1890 the drawer arm drives all 4 verdict kinds (found ${VERDICTS.length})`);
+  for (const { op, msg: v } of VERDICTS) {
     const { page, errors } = await openPanel();
-    const watched = await page.evaluate(() => {
-      const bar = document.querySelector('[data-p3="bar"]');
-      const detail = document.querySelector('[data-p3="apply-detail"]');
-      const root = document.documentElement;
-      window.__writes = [];
-      const regionOf = (n) => {
-        const e = n.nodeType === 1 ? n : n.parentElement;
-        if (!e) return null;
-        if (bar && bar.contains(e)) return 'bar';
-        if (detail && detail.contains(e)) return 'detail';
-        return null;
-      };
-      // `--chrome-h` lives in the root element's style attribute. A root style write is counted as a
-      // chrome-height write only when the variable's value actually moved, read from the old and new
-      // attribute text, so another root style write cannot stand in for it.
-      const chromeH = (style) => /--chrome-h:\s*([^;]+)/.exec(style ?? '')?.[1]?.trim() ?? null;
-      new MutationObserver((records) => {
-        for (const r of records) {
-          // Only the value BEFORE the write is on the record. The value after it is resolved in Node, below.
-          if (r.target === root && r.type === 'attributes' && r.attributeName === 'style') {
-            window.__writes.push({ region: 'root-style', before: chromeH(r.oldValue) });
-            continue;
-          }
-          const region = regionOf(r.target);
-          if (region) window.__writes.push({ region });
-        }
-      }).observe(root, { subtree: true, childList: true, attributes: true, characterData: true, attributeOldValue: true });
-      return { bar: !!bar, detail: !!detail };
-    });
-    ok(watched.bar && watched.detail, `#1890 ${v.type}: the bar and the detail row are both mounted before the verdict, so the observer can see each`);
+    // v6 lists an operation only once it has run, so before the verdict the drawer holds no such row: the
+    // read below is of the row this verdict made.
+    const before = await page.evaluate((k) => ({ drawer: !!document.querySelector('[data-p3="activity-drawer"]'), row: !!document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`) }), op);
+    ok(before.drawer && !before.row, `#1890 ${v.type}: the drawer is mounted and has no ${op} row before the verdict — drawer ${before.drawer}, row ${before.row}`);
     await post(page, v);
-    await page.waitForFunction(() => {
-      const d = document.querySelector('[data-p3="apply-detail"]');
-      return !!d && !d.hidden && getComputedStyle(d).display !== 'none' && (d.textContent ?? '').length > 0;
-    }, null, { timeout: 5000 }).catch(() => {});
-    const seen = await page.evaluate(() => {
-      const bar = document.querySelector('[data-p3="bar"]');
-      const detail = document.querySelector('[data-p3="apply-detail"]');
-      // The chrome is the frame's sticky head, located by its own hook rather than as the bar's
-      // `parentElement`: under the S1.2 frame the bar is lent a `display: contents` slot, which measures
-      // 0px. Whether this IS the region the browser pins is read off its computed style below, so a stale
-      // locator fails as "not the sticky region" instead of as a height mismatch.
+    await page.waitForFunction((k) => {
+      const d = document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-summary"]`);
+      return !!d && d.checkVisibility() && (d.textContent ?? '').length > 0;
+    }, op, { timeout: 5000 }).catch(() => {});
+    const seen = await page.evaluate((k) => {
+      const row = document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`);
+      const detail = row?.querySelector('[data-p3="op-summary"]') ?? null;
+      // The chrome is the frame's sticky head, located by its own hook. Whether this IS the region the
+      // browser pins is read off its computed style, so a stale locator fails as "not the sticky region".
       const chrome = document.querySelector('[data-p3="frame-head"]');
       const cs = chrome ? getComputedStyle(chrome) : null;
       const style = document.documentElement.getAttribute('style');
-      // S1.4: the drawer that holds the bar and the detail row, located by its own hook, and where the
-      // detail row sits in the viewport with the page scrolled to its top and to its bottom.
       const drawer = document.querySelector('[data-p3="activity-drawer"]');
       const ds = drawer ? getComputedStyle(drawer) : null;
       const inView = () => { const r = detail?.getBoundingClientRect(); return !!r && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight; };
@@ -829,44 +1017,22 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       window.scrollTo(0, 0);
       const atTop = inView();
       return {
-        writes: window.__writes,
+        summary: detail?.textContent ?? null,
         finalChromeH: /--chrome-h:\s*([^;]+)/.exec(style ?? '')?.[1]?.trim() ?? null,
         chromeHeight: chrome ? chrome.offsetHeight : null,
         chromeSticky: !!cs && cs.position === 'sticky' && cs.display !== 'contents',
-        drawerHolds: !!(drawer && bar && detail && drawer.contains(bar) && drawer.contains(detail) && !bar.contains(detail)),
+        drawerHolds: !!(drawer && detail && drawer.contains(detail)),
         drawerPinned: !!ds && ds.position === 'sticky' && ds.bottom === '0px' && drawer.dataset.open === 'true',
         scrolls: maxScroll > 0, atTop, atBottom,
-        // Shown, read the way the browser decides it: S1.2 hides the row with `hidden`, not an inline
-        // `display`, so an inline-style read would call a hidden row open (orchestrator review of #1922).
-        detailOpen: !!detail && !detail.hidden && getComputedStyle(detail).display !== 'none',
+        detailOpen: !!detail && detail.checkVisibility(),
       };
-    });
-    // Resolve each root-style write into a `--chrome-h` write or not: the value after write i is the old
-    // value of the next root-style write, or the final value for the last one.
-    const rootWrites = seen.writes.map((w, i) => ({ ...w, i })).filter((w) => w.region === 'root-style');
-    const sequence = seen.writes.map((w) => w.region);
-    rootWrites.forEach((w, k) => {
-      const after = k + 1 < rootWrites.length ? rootWrites[k + 1].before : seen.finalChromeH;
-      sequence[w.i] = after !== w.before ? 'chrome-h' : 'root-other';
-    });
-    const first = (r) => sequence.indexOf(r);
-    const shown = sequence.filter((r, i) => r !== sequence[i - 1]).join(' → ');
-
-    // The probe proves it saw each region written, so the orderings below compare three real writes rather
-    // than an index of -1 (docs/34, "did it look?").
-    ok(seen.detailOpen, `#1890 ${v.type}: a bad verdict opens the detail row`);
-    ok(first('bar') >= 0 && first('detail') >= 0,
-      `#1890 ${v.type}: the observer saw the bar and the detail row each written — saw ${shown || 'nothing'}`);
-    ok(first('bar') >= 0 && first('detail') >= 0 && first('bar') < first('detail'),
-      `#1890 ${v.type}: the bar repaints before the detail row it opens — write order ${shown || 'nothing'}`);
-    // S1.4: where the detail row is, and that it stays visible (see the header above).
+    }, op);
+    ok(seen.detailOpen, `#1890 ${v.type}: a bad verdict opens the ${op} row's summary`);
+    ok((seen.summary ?? '').includes(v.summary.slice(0, 24)), `#1890 ${v.type}: the open row carries the host's own summary — read ${JSON.stringify(seen.summary)}`);
     ok(seen.drawerHolds && seen.drawerPinned,
-      `#1890 ${v.type}: the detail row opens in the Activity drawer beside the bar, and the drawer is open and pinned to the bottom edge — holds bar and detail ${seen.drawerHolds}, pinned and open ${seen.drawerPinned}`);
+      `#1890 ${v.type}: the summary opens in the Activity drawer, and the drawer is open and pinned to the bottom edge — in drawer ${seen.drawerHolds}, pinned and open ${seen.drawerPinned}`);
     ok(seen.scrolls && seen.atTop && seen.atBottom,
-      `#1890 ${v.type}: the open detail stays in view with the page scrolled to its top and to its bottom — page scrolls ${seen.scrolls}, in view at top ${seen.atTop}, at bottom ${seen.atBottom}`);
-    // The consequence, in the units a designer sees: the sticky offset equals the chrome's rendered height.
-    // The chrome is measured only where it is the region the browser pins (at this 1280px panel, the whole
-    // head; narrow pins only the top bar, Q7).
+      `#1890 ${v.type}: the open summary stays in view with the page scrolled to its top and to its bottom — page scrolls ${seen.scrolls}, in view at top ${seen.atTop}, at bottom ${seen.atBottom}`);
     ok(seen.chromeSticky && seen.finalChromeH === `${seen.chromeHeight}px`,
       `#1890 ${v.type}: --chrome-h equals the sticky chrome's rendered height after the verdict — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px, sticky ${seen.chromeSticky}`);
     ok(errors.length === 0, `#1890 ${v.type}: no console errors (${errors.slice(0, 2).join(' · ')})`);

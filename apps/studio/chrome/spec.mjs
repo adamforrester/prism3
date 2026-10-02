@@ -148,6 +148,8 @@ export const SHELL_VARS = [
   'fs-16', 'fw-strong', 'ls-snug', 'lh-cozy', 'warn-icon', 'fill-2', 'field-edge', 'hero-sw', 'step-w',
   // S4a: the gradient editor's bar on Color › Surfaces & fills.
   'gbar-h',
+  // S11 (owner decision #4 on #1956): a running write's spinner, its delay and turn, and the reduced turn.
+  'dur-fast', 'dur-spin', 'dur-spin-reduced',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.

@@ -35,7 +35,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
 import { hostCommit, type HostCommit } from './write-adapter';
-import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession } from './state/host-session';
+import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
@@ -45,7 +45,7 @@ import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
-import { glyph } from './shell/dom';
+import { glyph, pendingLabel, setBusy } from './shell/dom';
 // The Style guide's shared color sections and the helpers they draw with (UI redesign S4a, owner decision Q5):
 // Color › Surfaces & fills draws the same five sections from the same modules.
 import {
@@ -55,7 +55,7 @@ import {
 import { COLOR_SECTIONS, disabledSection, interactiveSection } from './preview/sections/index';
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
-  type Origin, type SeedOutcome,
+  type Origin,
 } from './provenance';
 import {
   ARTIFACTS, defaultSettings, visibleSettings, projectDtcg, fileNames, previewFiles, availableImportSlots,
@@ -5186,9 +5186,8 @@ type ChromeSurface = {
   readonly key: string;
   /** `root` surfaces are mounted by `mountView` into the chrome header on the start view, and into the
    *  frame's notices row on the app view; `bar` surfaces into the frame's top bar (UI redesign S1.2);
-   *  `drawer` surfaces into the Activity drawer's body (S1.4, app view only); `workspace` surfaces are
-   *  minted by `renderWorkspace` alongside the page they scope. */
-  readonly home: 'bar' | 'root' | 'drawer' | 'workspace';
+   *  `workspace` surfaces are minted by `renderWorkspace` alongside the page they scope. */
+  readonly home: 'bar' | 'root' | 'workspace';
   /** Which root views carry it. */
   readonly views: readonly RootView[];
   /** Mint the node. The mounter stamps and appends it, so a surface cannot land unstamped or in the
@@ -5211,10 +5210,11 @@ type ChromeSurface = {
   readonly syncLast?: true;
 };
 
-/** Every reference below is wrapped in an arrow rather than passed as a value. Two of these four
- *  (`syncApplyDetail`, `APPLY_DETAIL_ID`) are declared LATER in this file, and a bare value reference
- *  would be evaluated while this array literal is built — at module init, in their temporal dead zone.
- *  Uniform wrapping means moving a declaration cannot arm that trap. */
+/** Every reference below is wrapped in an arrow rather than passed as a value. A function declared LATER
+ *  in this file as a `const` and referenced bare would be evaluated while this array literal is built — at
+ *  module init, in its temporal dead zone. Uniform wrapping means moving a declaration cannot arm that trap.
+ *  (The apply detail, the surface that first needed it, left this list in UI redesign S11: the Activity
+ *  drawer draws every write's result itself.) */
 const CHROME_SURFACES: readonly ChromeSurface[] = [
   {
     key: 'brand-bar', home: 'bar', views: ['app'],
@@ -5238,23 +5238,6 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // the survey note in `renderStartScreen`.)
     mount: () => { globalErrHost = hook(el('div', 'errbar errbar-global'), 'error-bar'); return globalErrHost; },
     sync: () => syncErrorBar(),
-  },
-  {
-    // In the Activity drawer's body since S1.4 (plan §3.9): the drawer is pinned to the bottom edge, so an
-    // open detail stays in view however far the page scrolls, and it no longer moves `--chrome-h`.
-    key: 'apply-detail', home: 'drawer', views: ['app'],
-    // App-level write status, in the chrome for the same reason the error bar is (#483): a per-page or
-    // popover home would either be forgotten by the next page or cover the CTA it describes. Minted
-    // unconditionally — `renderApplyStatus` is plugin-only, so on web `applyState` stays null and the
-    // sync keeps this hidden. Visibility is derived, never hardcoded at mount: page nav re-runs
-    // `build()`, so a hardcoded "hidden" would collapse an open detail (and, one surface up, would drop
-    // a live error the moment the user changed page — the hole #388 closed).
-    mount: () => {
-      applyDetailHost = hook(el('div', 'p3-detail'), 'apply-detail');
-      applyDetailHost.id = APPLY_DETAIL_ID;
-      return applyDetailHost;
-    },
-    sync: () => syncApplyDetail(),
   },
   {
     key: 'mode-strip', home: 'workspace', views: ['app'],
@@ -5346,10 +5329,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
     chromeHost = frame.head;
     frame.bar.replaceChildren();
     frame.notices.replaceChildren();
-    frame.drawer.replaceChildren();
     mountSurfaces('bar', view, frame.bar);
     mountSurfaces('root', view, frame.notices);
-    mountSurfaces('drawer', view, frame.drawer);
     frame.legacyPage.replaceChildren(body());
   } else {
     frame?.unmount();
@@ -6506,140 +6487,131 @@ subscribe('host:progress', () => {
   }
 });
 
-/**
- * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedOutcome`
- * rendered — this ticket lands the model, and where the three outcomes are properly surfaced is
- * #533's decision (#721 is its fifth client, and its first whose status is not the result of an
- * action the user took). No new class, no new slot, no new scope.
- *
- * What DOES change is the copy, because state 2 previously had none. "Contract holds ✓" over knobs
- * that are the boot demo is the defect: it is true about the file and false about what the user is
- * looking at. So the unrecoverable case says both halves, and is styled as a plain pill rather than
- * `.bad` — #721 requires it not read as a failure.
- */
-function renderSeedPill(o: SeedOutcome): HTMLElement {
-  if (o.state === 'error') {
-    const pill = hook(el('span', 'p3-pill p3-pill-bad', o.message), 'status-pill');
-    pill.title = o.message;   // the pill ellipsizes when the bar is crowded; the whole message is worth reading
-    return pill;
-  }
-  if (o.state === 'absent') return hook(el('span', 'p3-pill', 'No existing Prism3 theme in this file — start from the knobs.'), 'status-pill');
-  // state 2 — the file is ours, its knobs are not recoverable. A success with a limitation.
-  const text = isUnrecoverable(o)
-    ? `${o.detail} — knobs not stored in this file, so these are defaults`
-    : o.detail;
-  const pill = hook(el('span', o.contractOk ? 'p3-pill' : 'p3-pill p3-pill-bad', text), 'status-pill');
-  pill.title = text;
-  return pill;
-}
-
-function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: 'apply' | 'components' | 'filesetup' | 'styleguide', where: 'bar' | 'row' = 'row'): HTMLElement {
+function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: DetailKey): HTMLElement {
   const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : which === 'styleguide' ? 'style guide' : 'component build';
-  // The same pill in two homes: the new top bar draws it in the chrome's own classes (S1.2), and a page
-  // row in the legacy frame keeps the legacy ones, which its row sync looks up to replace.
-  const inBar = where === 'bar';
-  const pendingPill = (text: string): HTMLElement => hook(inBar ? el('span', 'p3-pill', text) : el('span', 'bar-seed', text), 'status-pill');
+  // A page row's pill, in the legacy frame's own classes, which its row sync looks up to replace. Since UI
+  // redesign S11 it is the row's only copy: the bar's moved into the Activity drawer, which draws its own.
+  const pendingPill = (text: string): HTMLElement => hook(el('span', 'bar-seed', text), 'status-pill');
   if (state === 'pending') {
     // The theme write's pending text is static and the component build's is not (#684), so only the
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
     // second; a 648-member build takes tens of seconds, which is precisely why it reports.
-    if (which === 'apply') return pendingPill('Writing to Figma…');
+    if (which === 'apply') return pendingPill(PENDING_TEXT.apply);
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
-    if (which === 'filesetup') return pendingPill('Setting up file…');
-    if (which === 'styleguide') return pendingPill('Drawing the style guide…');
+    if (which === 'filesetup') return pendingPill(PENDING_TEXT.filesetup);
+    if (which === 'styleguide') return pendingPill(PENDING_TEXT.styleguide);
     const node = pendingPill(componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
     componentPendingEls.add(node);
     return node;
   }
-  const open = host.openDetail === which;
-  const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');
-  const btn = hook((inBar ? el('button', state.ok ? 'p3-pill p3-pill-btn p3-pill-ok' : 'p3-pill p3-pill-btn p3-pill-bad') : el('button', cls)) as HTMLButtonElement, 'status-verdict');
-  if (inBar) btn.type = 'button';
+  const btn = hook(el('button', 'applystat' + (state.ok ? ' ok' : ' bad')) as HTMLButtonElement, 'status-verdict');
+  btn.type = 'button';
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
   // type and color), and an element with a class but no rule is a name reserved against nothing — the
   // shape the scope law (#770) exists to make unspellable.
-  btn.append(document.createTextNode(state.headline), inBar ? glyph('chev') : el('span', 'caret', open ? '▴' : '▾'));
-  // The accessible name has to carry the headline, because the caret glyph is the only other content and
-  // a screen reader would otherwise announce a bare triangle. `aria-expanded` states the disclosure, and
-  // `aria-controls` names the row it opens — which lives in the chrome, not inside this button.
-  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  btn.setAttribute('aria-controls', APPLY_DETAIL_ID);
-  btn.setAttribute('aria-label', `${state.headline} — ${noun} details`);
-  // Opening one closes the other: one row, so this assignment IS the mutual exclusion.
-  btn.onclick = () => { setHost({ openDetail: open ? null : which }); hostChanged(); };
+  // The caret stays as the pill's sign that it opens something (owner decision #5 on #1956); it is the
+  // pre-S11 caret, unturned, because what it opens is the drawer, not a row under it. The name carries
+  // the headline, so the glyph is hidden from it.
+  const caret = el('span', 'caret', '▾');
+  caret.setAttribute('aria-hidden', 'true');
+  btn.append(document.createTextNode(state.headline), caret);
+  // The pill shows its result in the Activity drawer (S11), which holds the detail now: the click asks for
+  // it through `openDetail`, and the drawer opens on it and answers. It discloses nothing in place, so it
+  // carries no `aria-expanded`; `aria-controls` names the drawer it opens.
+  btn.setAttribute('aria-controls', 'p3-activity');
+  btn.setAttribute('aria-label', `${state.headline} — ${noun} details in Activity`);
+  btn.onclick = () => { setHost({ openDetail: which }); hostChanged(); };
   return btn;
 }
 
-/** The expanded apply detail — a row in the CHROME under the bar, not a popover hanging off the pill.
- *
- *  A popover was the first shape and it was measured wrong: at the narrow tier the bar wraps to two
- *  rows (pre-existing — the brand/export/nav controls take row one and Apply takes row two), so an
- *  absolutely-positioned panel under the pill covered the Apply button itself. Hiding the primary CTA
- *  behind its own status is worse than the truncation this replaced.
- *
- *  The chrome row is the pattern already established for exactly this by #388's `errbar-global`: status
- *  that belongs to the whole app rather than to a page, mounted once in the chrome, pushing content
- *  down rather than covering it. Being in flow it cannot overlap anything at any width, needs no
- *  z-index, and needs no outside-click dismissal — it is not an overlay.
- *
- *  SINCE UI REDESIGN S1.4 the row is the Activity drawer's body (`shell/activity.ts`), beside the pills it
- *  details, at the bottom of the frame and pinned to the bottom edge, so it stays in view however far the
- *  page scrolls and still covers nothing above the drawer. It no longer sits in the sticky head, but
- *  `--chrome-h` is still re-read here: it is cheap, and it keeps the measurement after the bar's repaint
- *  for any head change a verdict causes. */
-const APPLY_DETAIL_ID = 'apply-detail';
-let applyDetailHost: HTMLElement | null = null;
-const syncApplyDetail = (): void => {
-  if (!applyDetailHost) return;
-  // ONE row, shared by both write pills (#483) — `openDetail` names whose summary is in it. Reading the
-  // state through the discriminant rather than tracking it here means the row cannot show a summary whose
-  // pill is not the open one: there is a single source for "which", and both the pill and this read it.
-  const state = host.openDetail === 'apply' ? host.applyState : host.openDetail === 'components' ? host.componentState : host.openDetail === 'filesetup' ? host.fileSetupState : host.openDetail === 'styleguide' ? host.styleGuideState : null;
-  const show = state !== null && state !== 'pending';
-  applyDetailHost.hidden = !show;   // `hidden`, for the reason `syncErrorBar` gives
-  if (show) applyDetailHost.textContent = state.summary;
-  syncChromeHeight();
-};
-
-// The chrome's host subscriptions, guarded on the chrome being mounted — the guard the switch carried.
-// `host` before `host:detail` in `topicsFor`, so the bar repaints before the row it opens, as it did.
+// The bar's host subscription, guarded on the chrome being mounted — the guard the switch carried.
 subscribe('host', () => { if (barHost) renderBar(); });
-subscribe('host:detail', () => { if (barHost) syncApplyDetail(); });
 
-/** The UI's own host-state change (a write going pending, a detail opened or closed): told through the same
- *  two topics a host verdict invalidates, in the same order, so the bar, the detail row and the Activity
- *  drawer (S1.4) each repaint from their subscription. Before S1.4 these callers named `renderBar` and
- *  `syncApplyDetail` directly, which the drawer could not hear. */
+/** The UI's own host-state change (a write going pending, a result asked for): told through the same two
+ *  topics a host verdict invalidates, in the same order, so the bar and the Activity drawer (S1.4) each
+ *  repaint from their subscription. Before S1.4 these callers named `renderBar` directly, which the drawer
+ *  could not hear. */
 const hostChanged = (): void => { invalidate('host'); invalidate('host:detail'); };
 
-/** Close the open result detail (S1.4): lent to the Activity drawer, which calls it when it collapses, so
- *  the pill whose detail it was stops reading as expanded while its detail is out of sight. */
+/** Answer a request to show a result (S11): lent to the Activity drawer, which calls it once it has opened
+ *  on the result `openDetail` names, so the same pill can ask again. */
 const closeOpenDetail = (): void => { if (host.openDetail === null) return; setHost({ openDetail: null }); hostChanged(); };
 
-/** One write's state as the Activity drawer reads it (S1.4). */
-const opReading = (st: HostSession['applyState']): OpReading =>
-  ({ state: st === null ? 'idle' : st === 'pending' ? 'running' : st.ok ? 'ok' : 'bad', ref: st });
-/** The host session's writes, lent to the Activity drawer (`shell/activity.ts`). Pure. A prune preview
- *  with something to remove is a settled run (its confirm dialog takes over); its verdict, when there is
- *  one, is the prune's result. */
+/** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
+ *  phase line read the same words. */
+const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+/** The component build's phase and progress, from either reading (the panel's or the agent's). The words
+ *  are `componentPendingText`'s, with the fraction moved to the progress bar. */
+const componentPhase = (p: HostSession['componentProgress']): Pick<OpReading, 'phase' | 'progress'> =>
+  !p ? { phase: 'Building the Button set…', progress: null }
+    : p.phase === 'retry' ? { phase: 'Retrying property links…', progress: null }
+      : { phase: p.phase === 'build' ? 'Building members…' : 'Wiring references…', progress: { done: p.done, total: p.total } };
+const IDLE: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
+/** True while the agent's command for `k` runs and its verdict has not landed. */
+const agentRunning = (k: OpKey): boolean => !!host.agentRun && host.agentRun.op === k && !host.agentRun.settled;
+/** One operation as the Activity drawer reads it (S11). Running when the panel's own slot is pending, or
+ *  the agent's command for it runs (`agentRun`); `ref` is `'pending'` or the agent run's id then, so a run
+ *  that ends with no verdict is the slot's old value coming back. `agent` is true while an agent's command
+ *  runs it and when its verdict lands, which is the moment the drawer records it. */
+const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | 'progress' | 'agent'> | null, phase: () => Pick<OpReading, 'phase' | 'progress'>): OpReading => {
+  const byAgent = agentRunning(k);
+  if (busy || byAgent) return { state: 'running', ref: busy ? 'pending' : `agent:${host.agentRun!.id}`, verdict: null, summary: null, ...phase(), agent: !busy };
+  if (!settled) return IDLE;
+  return { ...settled, phase: null, progress: null, agent: !!host.agentRun && host.agentRun.op === k };
+};
+/** A write slot's verdict, as a settled reading. */
+const verdictOf = (st: HostSession['applyState']): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
+  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary };
+/** The short verdicts Read-back and Prune stale show on their rows (owner decision #3 on #1956): a word or
+ *  a count, with the host's full sentence in the row's details. The other rows' verdicts are already short
+ *  headlines. */
+const SHORT = { clean: 'Clean', failed: 'Failed', noTheme: 'No theme', notRestored: 'Not restored' } as const;
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+/** The boot read-back's result (#722): the seed pill's words and the restore refusal (#480) as its body,
+ *  under a short verdict. The unrecoverable case says both halves, and is not styled as a failure: #721
+ *  requires it not read as one. */
+const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null => {
+  const o = host.seedOutcome;
+  const err = host.restoreError;
+  if (!o && !err) return null;
+  const refused = err ? `Saved brand not restored — ${err}` : null;
+  if (!o) return { state: 'bad', ref: err, verdict: SHORT.notRestored, summary: refused };
+  const [text, ok] = o.state === 'error' ? [o.message, false]
+    : o.state === 'absent' ? ['No existing Prism3 theme in this file — start from the knobs.', true]
+      : [isUnrecoverable(o) ? `${o.detail} — knobs not stored in this file, so these are defaults` : o.detail, o.contractOk];
+  const verdict = o.state === 'error' ? SHORT.failed
+    : o.state === 'absent' ? SHORT.noTheme
+      : o.contractOk ? (err ? SHORT.notRestored : SHORT.clean)
+        : o.failed > 0 ? plural(o.failed, 'mismatch', 'mismatches') : SHORT.failed;
+  return { state: ok && !err ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
+};
+/** Prune stale's short verdict: what the preview found, or what the delete removed. */
+const pruneShort = (v: { ok: boolean; applied: boolean; count: number }): string =>
+  !v.ok ? SHORT.failed : v.applied ? `Removed ${v.count}` : v.count === 0 ? SHORT.clean : `${v.count} stale`;
+/** The host session's operations, lent to the Activity drawer (`shell/activity.ts`). Pure. A prune
+ *  preview with something to remove is a settled run (its confirm dialog takes over); its verdict, when
+ *  there is one, is the prune's result. Agent progress is the agent's own reading (`agentRun.progress`). */
 const activityReading = (): ActivityReading => {
-  const detailState = host.openDetail === 'apply' ? host.applyState : host.openDetail === 'components' ? host.componentState
-    : host.openDetail === 'filesetup' ? host.fileSetupState : host.openDetail === 'styleguide' ? host.styleGuideState : null;
   const pv = host.pruneVerdict;
+  const pp = host.prunePreview;
+  const fixed = (phase: string | null) => () => ({ phase, progress: null });
   return {
     ops: {
-      apply: opReading(host.applyState),
-      components: opReading(host.componentState),
-      filesetup: opReading(host.fileSetupState),
-      styleguide: opReading(host.styleGuideState),
-      prune: host.pruneBusy ? { state: 'running', ref: host.pruneBusy }
-        : pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv }
-          : host.prunePreview ? { state: 'ok', ref: host.prunePreview } : { state: 'idle', ref: null },
+      apply: opReading('apply', host.applyState === 'pending', verdictOf(host.applyState), fixed(PENDING_TEXT.apply)),
+      components: opReading('components', host.componentState === 'pending', verdictOf(host.componentState),
+        () => componentPhase(host.componentState === 'pending' ? host.componentProgress : host.agentRun?.progress ?? null)),
+      filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
+      styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), fixed(PENDING_TEXT.styleguide)),
+      prune: opReading('prune', !!host.pruneBusy,
+        pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv, verdict: pruneShort(pv), summary: pv.summary }
+          : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,
+        fixed(host.pruneBusy === 'delete' ? 'Removing…' : host.pruneBusy === 'preview' ? 'Checking…' : null)),
+      readback: opReading('readback', false, readbackOf(), fixed(null)),
     },
-    detail: detailState !== null && detailState !== 'pending',
+    detail: host.openDetail,
   };
 };
 
@@ -6647,33 +6619,55 @@ const activityReading = (): ActivityReading => {
 // One function per write, called by its control and by its Figma menu item, so the two cannot drift.
 // Each sets its own pending state and says so through `hostChanged`; the bar, the detail row and the
 // Activity drawer repaint from that.
+//
+// WHILE A WRITE RUNS, PANEL OR AGENT, ITS CONTROLS ARE BUSY (owner decision #4 on #1956, which also fixes
+// #1957): the engine Button's `isPending` (`shell/dom.ts`'s `pendingLabel`). Each run function refuses
+// while its own write is out, whoever started it. That refusal is the one re-fire guard: the bar's
+// control and the menu's item both call it, and neither carries a second guard a test could not tell apart.
+// Before this, an agent's run left the panel's Apply ready to post a second write over the same variables.
+
+/** True while a write of this kind runs: the panel's own slot is pending, or an agent's command runs it. */
+const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
+const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
+const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
 
 /** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
  *  the state. */
-const runApply = (): void => { setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput); };
+const runApply = (): void => {
+  if (applyBusy()) return;
+  setHost({ applyState: 'pending', openDetail: null }); hostChanged(); commit.postTheme(lastGoodInput);
+};
 /** Prune stale: a dry run first, whose count the confirm dialog shows (#1521). */
-const runPrune = (): void => { setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false); };
+const runPrune = (): void => {
+  if (pruneBlocked()) return;
+  setHost({ pruneBusy: 'preview', pruneVerdict: null, prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, false);
+};
 /** Set up file (#1558). `openDetail` is cleared for the reason the build clears it: the previous run's
  *  detail is stale the instant a new one starts. */
 const runFileSetup = (): void => {
+  if (fileSetupBusy()) return;
   setHost({ fileSetupState: 'pending', openDetail: null });
   hostChanged(); syncFileSetupRow();
   commit.postFileSetup();
 };
-/** Prune is unavailable while a prune runs AND while a theme apply is pending: a prune reads the same
- *  variables an apply writes, so overlapping the two would race a delete against a create. */
-const pruneBlocked = (): boolean => !!host.pruneBusy || host.applyState === 'pending';
+/** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
+ *  same variables an apply writes, so overlapping the two would race a delete against a create. */
+const pruneBlocked = (): boolean => pruneBusy() || applyBusy();
 const PRUNE_HINT = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
 
 /** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, the
  *  file-setup button, and the two pages whose writes need options first (concept v6's "Build set…" and
  *  "Style guide…"), which open those pages. */
+/** The busy labels are the pending labels the panel already used (#1948), without their leading "…",
+ *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
+ *  so its busy label is the item's own. */
 const figmaActions = (): FigmaAction[] => [
-  { id: 'apply', label: 'Apply Theme', disabled: host.applyState === 'pending', run: runApply },
-  { id: 'prune', label: host.pruneBusy === 'preview' ? '… Checking…' : host.pruneBusy === 'delete' ? '… Removing…' : 'Prune stale', disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
-  { id: 'file-setup', label: FILE_SETUP_LABEL, disabled: host.fileSetupState === 'pending', run: runFileSetup },
-  { id: 'build', label: 'Build set…', disabled: false, run: () => setPage('components') },
-  { id: 'style-guide', label: 'Style guide…', disabled: false, run: () => setPage('styleGuide') },
+  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: false, run: runApply },
+  { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
+    disabled: pruneBlocked(), hint: PRUNE_HINT, run: runPrune },
+  { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
+  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage('components') },
+  { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
 ];
 
 /** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
@@ -6691,14 +6685,11 @@ function renderBar(): void {
   // nodes on every render, so one that held focus gets it back once it is placed again.
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   barHost.innerHTML = '';
-  // The status pills live in the Activity drawer's bar row since S1.4, lent by the frame.
-  const pillHost = frame?.pills ?? null;
-  pillHost?.replaceChildren();
   // THE LEGACY HALF OF THE NEW TOP BAR (UI redesign S1.2). The frame (`shell/frame.ts`) owns the bar and
   // its theme toggle; this paints the controls the legacy code still owns into the slot it lends: the
   // brand switcher, Export, the Pages menu and the plugin's Apply Theme, and places the shell's own
   // controls among them in concept v6's order (S1.4): the verdict, the Agent chip's slot, Activity and the
-  // Figma menu. The plugin's write verdicts (the pills) go to the Activity drawer. Every control here wears
+  // Figma menu. The plugin's write verdicts are the Activity drawer's own (S11). Every control here wears
   // the chrome's classes; the menus and dialogs they open are legacy surfaces, pinned light (`pinLight`).
 
   // Brand switcher — identity, examples, new, import.
@@ -6731,36 +6722,22 @@ function renderBar(): void {
   if (frame) barHost.append(frame.activity);
 
   const actions = barHost;
-  // Where a status pill goes: the Activity drawer's bar row (S1.4), or the bar while there is no frame.
-  const pills = pillHost ?? barHost;
 
-  // Apply Theme — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
-  // web (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
-  // eliminated; see `renderApplyStatus`). Its status is `applyState`; the #109 boot read-back keeps its own
-  // pill, shown only until the first apply, after which the write's own result is the newer fact and
-  // "what was in the file when I opened it" is no longer what the designer is asking about.
+  // Apply Theme — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on web
+  // (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
+  // eliminated). Its status, the boot read-back's (#109, #480) and every other write's are the Activity
+  // drawer's since S11 (`activityReading`): each operation's row holds its latest result and the earlier ones.
   let applyBtn: HTMLButtonElement | null = null;
   if (commit.isFigma) {
-    // #480: independent of the applyState/seedOutcome slot below — a restore refusal is a fact about
-    // BOOT, not about the write button, and must stay visible even once an apply (or the read-back)
-    // has something else to say in that slot.
-    if (host.restoreError) {
-      // `title` carries the full message — the pill itself truncates when the bar is crowded, and this
-      // is the one boot fact worth reading in full.
-      const pill = hook(el('span', 'p3-pill p3-pill-bad', `Saved brand not restored — ${host.restoreError}`), 'status-pill');
-      pill.title = host.restoreError;
-      pills.append(pill);
-    }
-    if (host.applyState) pills.append(renderApplyStatus(host.applyState, 'apply', 'bar'));
-    else if (host.seedOutcome) pills.append(renderSeedPill(host.seedOutcome));
-    const pending = host.applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
-    // enough that a button which neither moves nor disables reads as broken — and a second click posts a
-    // second concurrent write over the same variables. Disabled while in flight is both the signal and
-    // the guard. Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
-    applyBtn = hook(el('button', 'p3-btn p3-btn-primary', pending ? '… Applying…' : 'Apply Theme') as HTMLButtonElement, 'apply-to-figma');
+    // enough that a button which neither moves nor says so reads as broken — and a second click posts a
+    // second concurrent write over the same variables. Busy while any Apply runs, the panel's or an
+    // agent's (owner decision #4 on #1956): the signal is `pendingLabel`'s, the guard is `runApply`'s.
+    // Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
+    applyBtn = hook(el('button', 'p3-btn p3-btn-primary') as HTMLButtonElement, 'apply-to-figma');
     applyBtn.type = 'button';
-    applyBtn.disabled = pending;
+    applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
+    setBusy(applyBtn, applyBusy());
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
     applyBtn.onclick = runApply;
 
@@ -6769,30 +6746,10 @@ function renderBar(): void {
     // only write that belongs in the primary bar: it is the terminal action of the theme flow, runs after
     // every knob change, and answers in well under a second.
     //
-    // What did NOT move is the build's STATUS. `componentState` still renders through the shared
-    // `renderApplyStatus` pill into the shared `openDetail` row, both of which live in the chrome (#483),
-    // so a build's verdict stays legible after navigating away from the page that started it. A status
-    // that vanished with its control would be worse than the control's old placement: a 648-member build
-    // runs ~105s cold (#700), and nobody watches a rail page for that long.
-    if (host.componentState) pills.append(renderApplyStatus(host.componentState, 'components', 'bar'));
-    // File setup and the style guide report into the drawer as well (S1.4). Their verdicts opened the shared
-    // detail row before with no pill in the bar to say whose detail it was (#483 asks that the open detail
-    // always belong to a named pill); in the drawer every write's result sits beside the detail it opens.
-    if (host.fileSetupState) pills.append(renderApplyStatus(host.fileSetupState, 'filesetup', 'bar'));
-    if (host.styleGuideState) pills.append(renderApplyStatus(host.styleGuideState, 'styleguide', 'bar'));
-
-    // PRUNE (#1521; modes + all four style kinds since #1570): remove the styles, modes and variables a
-    // config change dropped, which is the whole cleanup path for a config that SHRANK (6 breakpoints down
-    // to 2 strands four `layout` modes and four grid styles). It never writes, only deletes, and only
-    // after the designer confirms the count in the dialog below, so the #479 / #1152 "never blind-delete
-    // on an apply" rule holds. Its control moved into the Figma menu in S1.4 (`figmaActions`, `runPrune`).
-    // Its verdict is its own pill (a preview that finds nothing stale, or the outcome of a delete), never
-    // the theme write's, for the same reason the component build keeps its own.
-    if (host.pruneVerdict) {
-      const pill = hook(el('span', host.pruneVerdict.ok ? 'p3-pill' : 'p3-pill p3-pill-bad', host.pruneVerdict.summary), 'status-pill');
-      pill.title = host.pruneVerdict.summary;   // the pill ellipsizes when the row is crowded; the full sentence is worth reading
-      pills.append(pill);
-    }
+    // What did NOT move is the build's STATUS: it stays legible after navigating away from the page that
+    // started it, in the Activity drawer since S11, because a 648-member build runs ~105s cold (#700) and
+    // nobody watches a page for that long. The prune's control is the Figma menu's (`figmaActions`), and
+    // its verdict (a preview that finds nothing stale, or the outcome of a delete) is its own row there.
   }
 
   // Export — opens the export dialog (#723, replacing #159's dropdown). Concept v6 names it with the

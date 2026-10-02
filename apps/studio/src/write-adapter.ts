@@ -115,10 +115,15 @@ export type HostMessage =
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
   | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
+  // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
+  // `cmd` stays a string here; which commands have an operation to show is the host session's call.
+  | { kind: 'agent-started'; id: string; cmd: string }
+  | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry'; done: number; total: number }
+  | { kind: 'agent-finished'; id: string }
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
-  | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
+  | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean; failed: number }
   | { kind: 'restore-input'; input: unknown }
   | { kind: 'restore-input-error'; message: string }
   // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
@@ -228,6 +233,18 @@ const verdict = (kind: VerdictKind, m: Untrusted<OfType<MainToUi, VerdictKind>>,
   return { kind, ok: !!m.ok, headline, summary: String(m.summary ?? '') };
 };
 
+const count = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
+/** A build's progress reading, from the panel's own build or an agent's: `null` when the numbers are
+ *  unusable. `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
+ *  unknown phase from a newer host should not print its name. */
+const progressReading = (m: { phase?: unknown; done?: unknown; total?: unknown }): { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null => {
+  const done = count(m.done);
+  const total = count(m.total);
+  const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
+  return phase && done !== null && total !== null && total > 0 ? { phase, done, total } : null;
+};
+const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
+
 /** One entry per `MainToUi` kind, keyed by the union itself, so a kind added in `messages.ts` is a compile
  *  error here until it is either handled or declared `null`. `null` means the kind is not this adapter's:
  *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
@@ -244,15 +261,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     // above, which fall back to a default headline. A result is a fact the designer is waiting for,
     // so a degraded one is still worth showing; a progress reading is one of dozens and the next one
     // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
-    const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
-    const done = n(m.done);
-    const total = n(m.total);
-    // `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
-    // unknown phase from a newer host should not print its name.
-    const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
-    return phase && done !== null && total !== null && total > 0
-      ? { kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 }
-      : null;
+    const r = progressReading(m);
+    return r ? { kind: 'component-progress', ...r, chunkMs: count(m.chunkMs) ?? 0 } : null;
   },
   'prune-result': (m) => {
     // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
@@ -266,7 +276,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
   // claims nothing about a stored input, whereas defaulting true would assert the file is ours
   // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
-  'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present }),
+  // `failed` (S11) defaults 0 when omitted or malformed: the drawer then says the contract failed without a count.
+  'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present, failed: Number.isInteger(m.failed) && (m.failed as number) > 0 ? m.failed as number : 0 }),
   'restore-input': (m) => (m.input ? { kind: 'restore-input', input: m.input } : null),
   'restore-input-empty': () => ({ kind: 'restore-input-empty' }),
   'restore-input-error': (m) => ({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') }),
@@ -292,11 +303,18 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     return { kind: 'font-list', families, styles };
   },
   // The agent link's messages. The panel's own listeners read them (`agent-link-ui.ts`, and the bridge
-  // relay in `agent-bridge-relay.ts`); the shared UI body never does.
+  // relay in `agent-bridge-relay.ts`); the shared UI body reads only what the Activity drawer shows (S11):
+  // a command's start, its build progress, and its end. The result envelope and the log lines stay the
+  // relay's.
   'agent-link-state': null,
   'agent-result': null,
-  'agent-progress': null,
+  'agent-progress': (m) => {
+    const p = m.progress && typeof m.progress === 'object' ? progressReading(m.progress as Record<string, unknown>) : null;
+    return p && isId(m.id) ? { kind: 'agent-progress', id: m.id, ...p } : null;
+  },
   'agent-log': null,
+  'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string' ? { kind: 'agent-started', id: m.id, cmd: m.cmd } : null),
+  'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
 };
 
 /** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,

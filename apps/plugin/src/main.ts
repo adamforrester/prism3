@@ -868,7 +868,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
       // not by parsing the sentence: it is what stops "no theme here" being reported as knobs that
       // could not be recovered (#722).
       sink.data({ readback: { present: false } });
-      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
+      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.', failed: 0 });
       return;
     }
     // The saved brand's declared modes against the file's (#1662 follow-up): resolved here from the persisted
@@ -879,11 +879,11 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
     // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.
     sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, declaredModes: v.declaredModes, plannedModes: v.plannedModes, details: v.details } });
-    sink.post({ type: 'seed-info', ok: v.ok, present: true, summary });
+    sink.post({ type: 'seed-info', ok: v.ok, present: true, summary, failed: failed.length });
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
     // either way and claiming presence we could not establish would be worse than not claiming it.
-    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}` });
+    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}`, failed: 0 });
   }
 };
 
@@ -961,6 +961,9 @@ const dispatch = createDispatcher({
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
+  // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
+  onStart: (id, cmd) => postToUi({ type: 'agent-started', id, cmd }),
+  onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
