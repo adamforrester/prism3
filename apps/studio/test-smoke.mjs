@@ -1573,6 +1573,74 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
+// 1f. Type's preview pieces, shared (UI redesign S6.1)
+// =============================================================================================
+// The legacy Typography page's Preview tab draws its three sections, and Layout's "Responsive type sizing"
+// draws its fluid read-out, from `preview/sections/` (the new Type page, S6.2, draws the same code). Per corpus
+// brand: each of the three is the shared module's (its root carries the marker only that module stamps), the
+// tab draws exactly those three in order, and Layout's read-out region carries `type-fluid` and holds the
+// read-out (a row per scaling style, or the note that nothing scales). A section `main.ts` draws for itself,
+// by any spelling, carries no marker and fails here by name. Literal.
+console.log(`\nType's preview pieces — the shared sections on the legacy Typography and Layout pages\n${'='.repeat(78)}`);
+const EXPECT_TYPE_PREVIEW_MARKER = { Typefaces: 'typefaces', 'Weight roles by face': 'weights-by-face', 'The full type ramp': 'type-ramp' };
+let typePreviewStates = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoRail(page, '[data-p3="rail-page-typography"]');
+  await hooks.click(page.locator('[data-p3="type-tab-preview"]'));
+  await hooks.need(page, '[data-p3="legacy-frame"] .psec');
+  const where = `${brand} / Typography / Preview`;
+  typePreviewStates++;
+  const got = await readSections(page, '[data-p3="legacy-frame"]');
+  ok(JSON.stringify(got.sections.map((x) => x.name)) === JSON.stringify(Object.keys(EXPECT_TYPE_PREVIEW_MARKER)),
+    `${where}: the tab draws exactly ${Object.keys(EXPECT_TYPE_PREVIEW_MARKER).join(', ')}, in order — drew ${got.sections.map((x) => x.name).join(', ')}`);
+  checkSharedMarkers(where, got, EXPECT_TYPE_PREVIEW_MARKER);
+  // What the shared sections DRAW, against the brand's committed emission (never the page): the ramp lists
+  // every `type.*` composite the emission carries, and nothing else, and each row's first column (the base
+  // mode) sets its sample at the emission's size and at its weight role's emitted numeric; the Typefaces
+  // section's base column names the face the emission binds each `font.family.<category>` to.
+  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const rootNode = tree[Object.keys(tree)[0]];
+  const leaves = [];
+  const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') leaves.push([`${path}.${k}`, v]); else walk(v, `${path}.${k}`); } };
+  walk(rootNode.type, 'type');
+  const roleNum = (r) => rootNode.core?.font?.['weight-role']?.[r]?.$extensions?.prism3?.numeric;
+  const drawn = await page.evaluate(() => {
+    const ramp = [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="type-ramp"] .tr-row')].map((r) => {
+      const s = r.querySelector('.tr-mode .tr-samp'); const cs = s ? getComputedStyle(s) : null;
+      return { path: r.querySelector('[data-p3="token-pill"]')?.textContent ?? '', size: cs?.fontSize ?? '', weight: cs?.fontWeight ?? '' };
+    });
+    const faces = [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="typefaces"] tbody tr')]
+      .map((r) => [r.querySelector('.mtbl-name')?.textContent ?? '', r.querySelector('td.mtbl-mode .tp-fam')?.textContent ?? '']);
+    return { ramp, faces };
+  });
+  const want = new Map(leaves.map(([p, v]) => [p, v]));
+  const missing = [...want.keys()].filter((p) => !drawn.ramp.some((r) => r.path === p));
+  const extra = drawn.ramp.filter((r) => !want.has(r.path)).map((r) => r.path);
+  ok(want.size > 0 && missing.length === 0 && extra.length === 0 && drawn.ramp.length === want.size,
+    `${where}: the type ramp draws the emission's ${want.size} type.* styles, each once${missing.length || extra.length ? ` — missing ${missing.slice(0, 3).join(', ')}; extra ${extra.slice(0, 3).join(', ')}` : ` (drew ${drawn.ramp.length})`}`);
+  const offRamp = [];
+  for (const r of drawn.ramp) {
+    const v = want.get(r.path); if (!v) continue;
+    const px = v.$extensions?.prism3?.sizePx, wt = roleNum(v.$extensions?.prism3?.weightRole);
+    if (r.size !== `${px}px` || r.weight !== String(wt)) offRamp.push(`${r.path} is set ${r.size} / ${r.weight}, the emission says ${px}px / ${wt}`);
+  }
+  ok(drawn.ramp.length > 0 && offRamp.length === 0, `${where}: every ramp sample in the base column is set at its emitted size and weight${offRamp.length ? ` — ${offRamp.slice(0, 3).join(' | ')}` : ''}`);
+  const fams = rootNode.core?.font?.family ?? {};
+  const offFace = drawn.faces.filter(([g, f]) => fams[g]?.$extensions?.prism3?.face !== f).map(([g, f]) => `${g} names ${f}, the emission binds ${fams[g]?.$extensions?.prism3?.face}`);
+  ok(drawn.faces.length > 0 && offFace.length === 0, `${where}: the Typefaces section names each category's emitted face in the base column (${drawn.faces.length} categories)${offFace.length ? ` — ${offFace.slice(0, 3).join(' | ')}` : ''}`);
+  await gotoRail(page, '[data-p3="rail-page-layout"]');
+  const fluid = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="type-fluid"]')]
+    .map((n) => ({ rows: n.querySelectorAll('.fz-row').length, note: !!n.querySelector('.sl-note') })));
+  ok(fluid.length === 1 && (fluid[0].rows > 0 || fluid[0].note),
+    `${brand} / Layout: the fluid read-out is the shared module's (data-sg-section="type-fluid"), once, and holds the read-out${fluid.length !== 1 ? ` — ${fluid.length} node(s) carry the marker: drawn by something other than preview/sections/` : ` (${fluid[0].rows} scaling style(s))`}`);
+  const errs = drain();
+  ok(errs.length === 0, `${brand} / Typography and Layout: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+ok(typePreviewStates >= BRANDS.length, `the Type preview sweep visited ${typePreviewStates} brand(s) (floor ${BRANDS.length})`);
+
+// =============================================================================================
 // 2. The controls — driven, not merely rendered
 // =============================================================================================
 // A page that loads clean proves the renderer runs. It proves nothing about what the controls DO,

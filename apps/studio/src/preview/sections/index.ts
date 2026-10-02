@@ -12,6 +12,10 @@ import { disabledSection } from './disabled';
 import { BUILT_IN_SECTION_COLUMNS, interactiveSection, type InteractiveSectionOptions } from './interactive';
 import { linksSection } from './links';
 import { focusRingSection } from './focus-ring';
+import { typefacesSection } from './typefaces';
+import { weightsByFaceSection } from './weights-by-face';
+import { typeRampSection, TYPE_GROUP_BLURB } from './type-ramp';
+import { paintTypeFluid } from './type-fluid';
 import type { SgCtx } from './kit';
 
 export { backgroundSection, foregroundSection, textColorSection, borderSection, iconSection };
@@ -23,6 +27,9 @@ export { linksSection };
 /** The Focus ring section (UI redesign S4c), shared so Color › Surfaces & fills can draw it after Border
  *  (owner decision Q30). Read-only. */
 export { focusRingSection };
+/** The Typography Preview tab's three sections and Layout's fluid read-out (UI redesign S6.1), shared so the
+ *  new Type page draws the same code. Read-only. */
+export { typefacesSection, weightsByFaceSection, typeRampSection, TYPE_GROUP_BLURB, paintTypeFluid };
 /** The five, in order, by the title each section draws. */
 export const COLOR_SECTIONS: ReadonlyArray<readonly [string, (c: SgCtx) => HTMLElement]> = [
   ['Background', backgroundSection], ['Foreground', foregroundSection], ['Text color', textColorSection], ['Border', borderSection], ['Icon', iconSection],

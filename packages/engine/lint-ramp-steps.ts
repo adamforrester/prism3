@@ -115,10 +115,12 @@ import { readExampleBrand } from './emit-dtcg.ts';
 
 const HERE = import.meta.dirname;
 /** The studio sources the authored step arrays live in. `main.ts` held all of them until UI redesign S2,
- *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`). A
- *  file is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name. */
-const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts'];
-const STUDIO_LABEL = 'apps/studio/src/main.ts or apps/studio/src/preview/palettes.ts';
+ *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`), and
+ *  S6.1, which moved the typography group list with the Type writes (`state/type-input.ts`,
+ *  `TYPE_GROUP_ORDER` and `BULK_CATS`). A file is listed by path, so a constant that moves to an unlisted
+ *  file reads as STALE below, by name. */
+const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts'];
+const STUDIO_LABEL = 'apps/studio/src/main.ts, apps/studio/src/preview/palettes.ts or apps/studio/src/state/type-input.ts';
 
 /** One corpus member. `tree` is the brand's committed DTCG tree where one exists, else `null` — a
  *  synthetic lever probe has no emitted artifact, and a ramp whose oracle needs one says so by
@@ -214,8 +216,8 @@ const RAMPS: Ramp[] = [
   {
     name: 'BULK_CATS',
     exempt:
-      'not an authored list — it is `TYPE_GROUP_ORDER.filter((g) => g !== \'code\')`, computed inside a ' +
-      'function from a list this gate already checks. It has no content of its own to drift, so checking ' +
+      'not an authored list — it is `TYPE_GROUP_ORDER.filter((g) => g !== \'code\')`, computed from a ' +
+      'list this gate already checks. It has no content of its own to drift, so checking ' +
       'it would be asserting a filter of a checked list against the same ladder (docs/34 shape 2). The ' +
       'consumption anchor sees it because it IS iterated into a token path; that is the anchor working, ' +
       'and this is the human answer it asks for.',
