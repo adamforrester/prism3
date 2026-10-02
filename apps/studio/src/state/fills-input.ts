@@ -266,11 +266,14 @@ export const pairIcons = (): void => {
   }
   if (!Object.keys(ov).length) brandState.overrides = undefined;
 };
-/** The re-pair confirm's words (owner decision Q52, APPROVED 2026-10-02, verbatim), `n` the override count. One
- *  place, so each control that re-pairs asks in the same words. */
+/** The re-pair confirm's words (owner decisions Q52 and Q60, APPROVED 2026-10-02, verbatim), `n` the override
+ *  count: the singular for one (Q60), the plural otherwise. One place, so each control that re-pairs asks in the
+ *  same words. */
 export const PAIR_ICONS_CONFIRM = {
   title: 'Pair icons with text?',
-  body: (n: number): string => `This removes ${n} custom icon colors. Icons will follow their text color again.`,
+  body: (n: number): string => n === 1
+    ? 'This removes 1 custom icon color. Icons will follow their text color again.'
+    : `This removes ${n} custom icon colors. Icons will follow their text color again.`,
   action: 'Pair icons',
 } as const;
 /** The text role an icon row is locked to in `mode`, or null when the row is editable. Locked while paired,

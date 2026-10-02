@@ -21,7 +21,8 @@
  *   5. THE NEW ROWS' PALETTES AND WRITES: as (1), for each of them, in light and dark.
  *   6. THE ICON LOCK (Q50): paired, each icon row is locked to its text twin, by the engine's own rule restated
  *      here, and the engine is shown to carry an edit on that twin to the icon (#1968), so "Follows" is true;
- *      Unpair writes `iconContrast: '3:1'` and nothing else, and unlocks every row.
+ *      Unpair writes `iconContrast: '3:1'` and nothing else, and unlocks every row; re-pairing clears every
+ *      icon override (Q52), and the confirm's body is singular for one override, plural otherwise (Q60).
  *   7. THE PAGE PICKER (Q45): each of its choices writes byte for byte what the select's option wrote.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). The role list is read from the COMMITTED EMISSION
@@ -389,6 +390,11 @@ ok(JSON.stringify(store.brandState) === JSON.stringify(prism3), `re-pair clearin
 // The confirm's words, APPROVED verbatim (owner decision Q52, 2026-10-02). Literal.
 ok(F.PAIR_ICONS_CONFIRM.title === 'Pair icons with text?' && F.PAIR_ICONS_CONFIRM.body(3) === 'This removes 3 custom icon colors. Icons will follow their text color again.'
   && F.PAIR_ICONS_CONFIRM.action === 'Pair icons', `the re-pair confirm's title, body and action are the approved copy (${JSON.stringify([F.PAIR_ICONS_CONFIRM.title, F.PAIR_ICONS_CONFIRM.body(3), F.PAIR_ICONS_CONFIRM.action])})`);
+// The singular for one override (owner decision Q60, APPROVED 2026-10-02), the plural for two. Literal.
+ok(F.PAIR_ICONS_CONFIRM.body(1) === 'This removes 1 custom icon color. Icons will follow their text color again.',
+  `the re-pair confirm's body for 1 override is the approved singular (Q60) — read ${JSON.stringify(F.PAIR_ICONS_CONFIRM.body(1))}`);
+ok(F.PAIR_ICONS_CONFIRM.body(2) === 'This removes 2 custom icon colors. Icons will follow their text color again.',
+  `the re-pair confirm's body for 2 overrides is the approved plural (Q52) — read ${JSON.stringify(F.PAIR_ICONS_CONFIRM.body(2))}`);
 // "subtle", the token's own word, never "muted" (owner decision Q57): every row label, and two by name. Literal.
 const mutedLabels = ALL_ROWS.filter((r) => /muted/i.test(r.label)).map((r) => `${r.role} "${r.label}"`);
 ok(mutedLabels.length === 0, `no Surfaces & fills row says "muted" (Q57)${mutedLabels.length ? ` — ${mutedLabels.slice(0, 4).join(', ')}` : ''}`);

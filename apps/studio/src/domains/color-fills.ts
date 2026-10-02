@@ -10,7 +10,8 @@
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
  * primary text editor, owner decision Q20; no link row, Q28: links are edited on Interactive only); **Border**
  * (page and inverse, the focus rings read-only, #1966); **Icon** (every icon role, locked to its text role while
- * icons match text, with the note and the button that unpairs them, Q50); **Fields** (a row per `field.*` role,
+ * icons match text, with the note and the button that unpairs them, Q50, and once unpaired the note and the
+ * button that pairs them again, Q61); **Fields** (a row per `field.*` role,
  * page and inverse, Q29); **Gradients** (the switch, then an editor per gradient with a 44px bar and editable
  * stops). A section's inverse rows sit under the preview's "Inverse" sub-heading. Every lever is shown (R2:
  * this page shows every lever). Last, the way on to Interactive.
@@ -34,15 +35,15 @@
 import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
-  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, FOREGROUND_ROWS, ICON_ROWS, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
-  iconsPaired, inputGradientCss, lockedTo, neutralStepOptions, overrideOf, pageKeyOf, pageSteps, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
+  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
+  iconOverrideCount, iconsPaired, inputGradientCss, lockedTo, neutralStepOptions, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
   SCRIM_ROLE, SURFACE_TOKENS, setSurfaceBase, setSurfaceFloor, stepHex, stepOfPath, stepsOf, surfaceSourceOf, unpairIcons, washReadOf, type FillRow,
 } from '../state/fills-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { leverBlock, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { inlineConfirm, leverBlock, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'fills')!;
@@ -63,6 +64,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   let openRole: string | null = null;
   /** The key the last edit wrote, so an engine refusal marks the lever or row that caused it. */
   let lastEdited: string | null = null;
+  /** True while the re-pair confirm is open under the Icon section's Pair button (Q52, Q61). */
+  let confirmPair = false;
   let items: Item[] = [];
   /** The open picker's focus, by role, from the last draw. */
   const pickers = new Map<string, () => void>();
@@ -347,10 +350,37 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const f = focusRow(sub ? FOCUS_ROLES[1] : FOCUS_ROLES[0], 'Focus');
     return f ? [f] : [];
   });
-  /** The Icon section (Q50): while icons match text, one note and the button that unpairs them, above rows
-   *  that each say which text role they follow. Unpaired, the note goes and the rows edit. */
+  /** The Icon section (Q50, Q61): while icons match text, one note and the button that unpairs them, above rows
+   *  that each say which text role they follow. Unpaired, the rows edit, and the note and its button say the
+   *  other way: "Pair icons with text" re-pairs through `pairIcons`, as every control that sets `iconContrast` to
+   *  `'text'` does, writing at once with no icon override to lose and otherwise asking first, in place, in
+   *  `PAIR_ICONS_CONFIRM`'s words (Q52, Q60). Cancel writes nothing. */
   const icon = (): Item[] => {
     const lead: HTMLElement[] = [];
+    if (!iconsPaired()) {
+      const note = hook(h('div', 'p3-icon-pair'), 'icons-unpaired');
+      const pair = hook(h('button', 'p3-btn p3-btn-page'), 'icons-pair');
+      pair.type = 'button';
+      pair.append(h('span', 'p3-btn-label', 'Pair icons with text'));
+      // Disabled in a derived mode, as Unpair is (owner decision Q59).
+      pair.disabled = isDerived(currentMode);
+      pair.onclick = () => {
+        if (!iconOverrideCount()) { edit('icons', () => pairIcons()); return; }
+        confirmPair = true;
+        render();
+      };
+      note.append(h('p', 'p3-icon-pair-note', 'Icons are set on their own. Pair them to follow their text color again.'), pair);
+      const n = iconOverrideCount();
+      if (confirmPair && n && !pair.disabled) {
+        note.append(inlineConfirm('icons-pair-confirm', {
+          title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
+          onConfirm: () => { confirmPair = false; edit('icons', () => pairIcons()); },
+          onCancel: () => { confirmPair = false; render(); },
+          back: () => root.querySelector<HTMLElement>('[data-p3="icons-pair"], [data-p3="icons-unpair"]'),
+        }));
+      } else confirmPair = false;
+      lead.push(note);
+    }
     if (iconsPaired()) {
       const note = hook(h('div', 'p3-icon-pair'), 'icons-paired');
       const unpair = hook(h('button', 'p3-btn p3-btn-page'), 'icons-unpair');
@@ -597,7 +627,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
   };
 
-  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; render(); }), subscribe('search', filter));
+  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; confirmPair = false; render(); }), subscribe('search', filter));
   // Leaving the page clears its count, so the next page's search starts from its own.
   cleanups.push(() => { if (searchQuery.trim()) setSearchHits(null); });
   render();

@@ -2899,6 +2899,101 @@ for (const host of ['web', 'figma']) {
   ok(errors.length === 0, `Q52 re-pair: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// Q61: re-pair from Surfaces & fills. While icons are unpaired, the Icon section shows the APPROVED note and the
+// "Pair icons with text" button in place of the paired note and Unpair; the button writes `iconContrast: "text"` at
+// once with no icon override to lose, and otherwise asks first in Q52's words, singular for one (Q60). Disabled in
+// every derived mode (Q59). THE ORACLE: the copy is literal, typed here; a write is the brand the web host persists
+// (`prism3:brandInput`), read before and after; the figma host's write is read off what it draws (the paired note
+// back). The derived modes are the engine's three, by name.
+const ICON_SECTION = () => {
+  const q = (s) => document.querySelector(`[data-p3="levers-pane"] ${s}`);
+  return {
+    pairedNote: q('[data-p3="icons-paired"] p')?.textContent ?? null, unpair: q('[data-p3="icons-unpair"]')?.textContent ?? null,
+    unpairedNote: q('[data-p3="icons-unpaired"] p')?.textContent ?? null, pair: q('[data-p3="icons-pair"]')?.textContent ?? null,
+    pairDisabled: q('[data-p3="icons-pair"]')?.disabled ?? null, dialogs: document.querySelectorAll('[data-p3="icons-pair-confirm"]').length,
+  };
+};
+const PAIRED_NOTE = 'Icons follow their text color. Unpair them to set icons on their own.';
+const UNPAIRED_NOTE = 'Icons are set on their own. Pair them to follow their text color again.';
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'brand');
+  await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="mode-option"]'), ...document.querySelectorAll('[data-p3="mode-select"] option')]
+    .some((b) => (b.dataset?.mode ?? b.value) === 'wireframe'), null, { timeout: 5000 }).catch(() => {});
+  await goPlace(page, 'color-fills');
+  const s0 = await page.evaluate(ICON_SECTION);
+  ok(s0.pairedNote === PAIRED_NOTE && s0.unpair === 'Unpair icons from text' && s0.unpairedNote === null && s0.pair === null,
+    `${host} Q61: paired, the Icon section shows its note and "Unpair icons from text", and no Pair button — read ${JSON.stringify(s0)}`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]'), null, { timeout: 5000 }).catch(() => {});
+  const s1 = await page.evaluate(ICON_SECTION);
+  ok(s1.unpairedNote === UNPAIRED_NOTE && s1.pair === 'Pair icons with text' && s1.pairDisabled === false && s1.pairedNote === null && s1.unpair === null,
+    `${host} Q61: unpaired, the Icon section shows the approved note and an enabled "Pair icons with text" in place of the paired note and Unpair — read ${JSON.stringify(s1)}`);
+  for (const mode of ['hc-light', 'hc-dark', 'wireframe']) {
+    await showMode(page, mode);
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), null, { timeout: 5000 }).catch(() => {});
+    const s = await page.evaluate(ICON_SECTION);
+    ok(s.pair === 'Pair icons with text' && s.pairDisabled === true, `${host} ${mode} Q61: the Pair button is drawn and disabled (Q59) — read ${JSON.stringify(s)}`);
+  }
+  await showMode(page, 'light');
+  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+  // No icon overrides: Pair writes at once, no dialog.
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
+  const s2 = await page.evaluate(ICON_SECTION);
+  hooks.absent(ok, { seen: s2.pairedNote !== null || s2.pair !== null, state: 'the Icon section' }, s2.dialogs === 0, `${host} Q61: Pair with no icon overrides asks nothing (${s2.dialogs} dialog(s))`);
+  ok(s2.pairedNote === PAIRED_NOTE && s2.unpair === 'Unpair icons from text' && s2.pair === null,
+    `${host} Q61: Pair with no icon overrides pairs icons again, the paired note and Unpair back — read ${JSON.stringify(s2)}`);
+  if (host === 'web') {
+    const st = JSON.parse(await page.evaluate(() => localStorage.getItem('prism3:brandInput')) ?? 'null')?.input;
+    ok(st?.iconContrast === 'text' && st?.overrides === undefined, `web Q61: Pair with no icon overrides persists iconContrast "text" (${JSON.stringify(st?.iconContrast)}, overrides ${JSON.stringify(st?.overrides)})`);
+  }
+  ok(errors.length === 0, `${host} Q61 Pair on Surfaces & fills: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// Q61 with one icon override: the dialog in Q52's words with the singular body (Q60); Cancel writes nothing, byte
+// for byte; Pair icons clears the override and writes iconContrast "text".
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+  const dialog = () => page.evaluate(() => {
+    const d = document.querySelectorAll('[data-p3="icons-pair-confirm"]');
+    const el = d[0];
+    return { n: d.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, body: [...(el?.querySelectorAll('.p3-confirm-line') ?? [])].map((x) => x.textContent),
+      go: el?.querySelector('[data-p3="icons-pair-confirm-go"]')?.textContent ?? null, cancel: el?.querySelector('[data-p3="icons-pair-confirm-cancel"]')?.textContent ?? null };
+  });
+  await goPlace(page, 'color-fills');
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]'), null, { timeout: 5000 }).catch(() => {});
+  const row = '[data-p3="levers-pane"] [data-p3="fill-row-icon-brand"]';
+  await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="700"]'));
+  await page.waitForFunction((r) => /^Override/.test(document.querySelector(`${r} [data-p3="fill-pick"]`)?.textContent?.trim() ?? ''), row, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const before = await stored();
+  const b0 = JSON.parse(before ?? 'null')?.input;
+  ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: { 'icon.brand': { palette: 'primary', step: '700' } } }),
+    `Q61 setup: unpaired, one icon override persisted (${JSON.stringify(b0?.iconContrast)}, ${JSON.stringify(b0?.overrides)})`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
+  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  const d1 = await dialog();
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel' };
+  ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q61: Pair on Surfaces & fills with 1 icon override asks first, the body singular (Q60) — read ${JSON.stringify(d1)}`);
+  ok(await stored() === before, 'Q61: the dialog open, nothing is written yet');
+  await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
+  const d2 = await dialog();
+  ok(d2.n === 0 && await stored() === before, `Q61: Cancel closes the dialog and the stored brand is byte-identical (${d2.n} dialog(s), brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
+  await hooks.need(page, '[data-p3="icons-pair-confirm"]');
+  await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
+  const a = JSON.parse(await stored() ?? 'null')?.input;
+  ok(a?.iconContrast === 'text' && a?.overrides === undefined,
+    `Q61: Pair icons on Surfaces & fills writes iconContrast "text" and clears the icon override (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
+  ok(errors.length === 0, `Q61 re-pair with an override: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
 // the picker's focus, the preview repaints to the emission's own step, Return to Auto reverts, Escape closes it
 // to its button; and nothing of this moves the preview's home (V1).
