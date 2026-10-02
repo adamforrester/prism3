@@ -4,8 +4,8 @@
  * checked, a palette select, Return to Auto and Close.
  *
  * SHIPPED UNMOUNTED IN S2. The plan lists it under Color › Palettes, but concept v6 gives Palettes no
- * use for it: its homes are the Surfaces & fills fill rows and the Roles matrix cells, both of which write
- * a role override (`overrides[mode][role] = { palette, step }`). So S2 ships the shared component and its
+ * use for it: its home is the Surfaces & fills rows (the Roles matrix cells v6 also drew are not built,
+ * owner decision Q31), which write a role override (`overrides[mode][role] = { palette, step }`). So S2 ships the shared component and its
  * tests, and S4's fill rows are its first product mount. `test:chrome` drives it on a fixture page built
  * from this file, never from a shipped route.
  *

@@ -3,13 +3,16 @@
  *
  * WHAT IT SHOWS: the legacy Style guide's Background, Foreground, Text color, Border and Icon sections, drawn
  * by the SAME code the Style guide draws them with (`preview/sections/`), each token chip with its ratio badge
- * beside it; then each gradient the brand ships, across the card at 160px (v5 review V8, "gradients large").
+ * beside it; the legacy Interactive page's Focus ring section after Border, read-only (owner decision Q30,
+ * S4c; customizing it is #1966); then each gradient the brand ships, across the card at 160px (v5 review V8, "gradients large").
  * This departs from concept v6's own Surfaces & fills preview by the owner's decision (2026-10-01, Q5 in
  * `decisions-2026-10-01-qa.md`): the owner prefers the legacy sections. The gradients are the one part v6
  * draws that those five sections do not.
  *
  * LEGACY MARKUP IN A LIGHT-PINNED HOST. The sections draw in `styles.css`, which has no dark theme (D2), so
- * they sit in `p3-legacy-card` pinned light, as Inspect's lent views and the Style guide do.
+ * they sit in `p3-legacy-card` pinned light, as Inspect's lent views and the Style guide do. Each section's
+ * container takes the levers panel's gray (`p3-sgsec` in `chrome.css`, owner decision Q24), read in
+ * the host's pinned light theme; the specimen ground inside it keeps the brand's page color.
  *
  * SPECIMENS SIT ON THE BRAND'S PAGE (plan §9.1). Each section's ground is a specimen root painted with the
  * brand's own `background.primary` for the mode the preview shows (the Page surface), never the chrome's card.
@@ -22,7 +25,7 @@ import { currentMode, rp, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { h, hook } from '../shell/dom';
 import { modeLabel } from '../shell/preview';
-import { COLOR_SECTIONS } from './sections/index';
+import { COLOR_SECTIONS, focusRingSection } from './sections/index';
 import { SG_SURFACES, el, ground, oppositeOf, palSection, sgContext, specimen, tokenPillSpan, type SgRole } from './sections/kit';
 
 /** The CSS for a RESOLVED gradient: the engine's stops, at their positions, interpolated as it says. */
@@ -51,7 +54,12 @@ export const mountSurfacesPreview = (host: HTMLElement, cleanups: (() => void)[]
     });
     // The Page surface: the brand's own `background.primary`, with its own ink and border set.
     const page = SG_SURFACES[0];
-    const out: HTMLElement[] = COLOR_SECTIONS.map(([, section]) => ground(c, section(c), page));
+    const out: HTMLElement[] = [];
+    for (const [title, section] of COLOR_SECTIONS) {
+      out.push(ground(c, section(c), page));
+      // The focus ring, read-only, right after Border (owner decision Q30), in the previewed mode's ring color.
+      if (title === 'Border') out.push(ground(c, focusRingSection(c.paint(cur, 'border.focus')), page));
+    }
     const grads = theme.gradient?.gradients ?? [];
     if (grads.length) {
       const sec = palSection('Gradients', 'Each gradient the brand ships, across the card. Stop colors alias the ramp.');
@@ -69,6 +77,8 @@ export const mountSurfacesPreview = (host: HTMLElement, cleanups: (() => void)[]
       sec.append(list);
       out.push(ground(c, sec, page));
     }
+    // Q24: each section container on the levers panel's gray (the class S5.2's Interactive preview uses too).
+    for (const s of out) s.classList.add('p3-sgsec');
     card.replaceChildren(...out);
   };
   cleanups.push(subscribe('brand', paint), subscribe('mode', paint));

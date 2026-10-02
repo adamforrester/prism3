@@ -52,7 +52,7 @@ import {
   SG_SURFACES, colorPath, ground as sharedGround, oppositeOf, palSection, sgContext, specimen, subHead,
   tokenPillSpan, withInverseBadge, type SgRole,
 } from './preview/sections/kit';
-import { COLOR_SECTIONS, disabledSection, interactiveSection } from './preview/sections/index';
+import { COLOR_SECTIONS, disabledSection, focusRingSection, interactiveSection } from './preview/sections/index';
 import { setRoleOverride } from './state/fills-input';
 // The Interactive page's writes and its "Auto" baselines (UI redesign S5.1): DOM-free, so Color › Interactive
 // (S5.2) can make the same edits without importing this file. This page calls them, then repaints.
@@ -2283,38 +2283,9 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     example: twoUp(['Match text', exIconLabel(txt, txt)], ['Distinct', exIconLabel(lighter, txt)]) }));
   host.append(ic);
 
-  // FOCUS RING (review, 2026-08-04) — 4 emitted tokens that appeared nowhere in the dashboard. They
-  // belong here: a focus ring is an interaction state, and `color.border.focus` (its colour, already
-  // on this page's contract table) is the one part of it that WAS visible. These are the geometry.
-  // Fixed constants in the engine, so read-only — shown with a live specimen because a 2px ring at 2px
-  // offset is a thing you judge by looking, not by reading two numbers.
-  const fr = palSection('Focus ring', 'The ring geometry every focusable control shares — width, how far it sits off the element, and its stroke style. Fixed for every brand (WCAG 2.4.13 sets the floor); its color is the color.border.focus role above.');
-  const frRows: Array<[string, string, string]> = [
-    ['focus.ring.width', '2px', 'WCAG 2.4.13 floor'],
-    ['focus.ring.offset', '2px', 'separates the ring from the element edge'],
-    ['focus.ring.offset-field', '0px', 'form fields — the ring hugs the field'],
-    ['focus.ring.style', 'solid', 'dashed and dotted fail at small sizes'],
-  ];
-  const frWrap = el('div', 'fr-wrap');
-  const frList = el('div', 'fr-list');
-  for (const [ref, val, why] of frRows) {
-    const r = el('div', 'fr-row');
-    r.append(tokenPill(ref), el('span', 'fr-v mono', val), el('span', 'fr-why', why));
-    frList.append(r);
-  }
-  const frEx = el('div', 'fr-ex');
-  const ringColor = roles['border.focus']?.hex ?? roles['interactive.primary.border.rest']?.hex ?? '#3e6dc8';
-  for (const [lab, off] of [['Control', '2px'], ['Form field', '0px']] as Array<[string, string]>) {
-    const cell = el('div', 'fr-excell');
-    const btn = el('div', 'fr-btn', lab);
-    btn.style.outline = `2px solid ${ringColor}`;
-    btn.style.outlineOffset = off;
-    cell.append(btn, el('span', 'fr-exlab', `offset ${off}`));
-    frEx.append(cell);
-  }
-  frWrap.append(frList, frEx);
-  fr.append(frWrap);
-  host.append(fr);
+  // FOCUS RING (review, 2026-08-04): the ring geometry, read-only, in the ring's color. Shared with Color ›
+  // Surfaces & fills since UI redesign S4c (owner decision Q30), so it lives in `preview/sections/focus-ring.ts`.
+  host.append(focusRingSection(roles['border.focus']?.hex ?? roles['interactive.primary.border.rest']?.hex ?? '#3e6dc8'));
 };
 
 /** The add-accent promote row — a select of promotable palettes + an add button (structural, base-mode
