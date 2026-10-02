@@ -673,8 +673,8 @@
 [data-per="5"] .p3-palh-anchor { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; }
 .p3-checker { background: repeating-conic-gradient(var(--p3-fill-2) 0% 25%, var(--p3-bg-page) 0% 50%) 0 0 / var(--p3-space-150) var(--p3-space-150); }
 .p3-sr { position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* The Activity status line sits outside the drawer (so it is in the document before the drawer is drawn),
-   so it takes the chrome face itself rather than inheriting it (S11). */
+/* The Activity status line rides in the top bar, outside the drawer (so it is in the document before the
+   drawer is drawn), and takes the chrome face itself rather than inheriting it (S11). */
 .p3-live { margin: 0; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }
 
 /* ── the step picker (V9, ui/step-picker.ts; first mounted in S4) ───────────────────────────── */

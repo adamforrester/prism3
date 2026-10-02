@@ -287,7 +287,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
-  root.append(head, legacy, panes, inspect, activity.drawer, activity.live);
+  // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
+  bar.append(activity.live);
+  root.append(head, legacy, panes, inspect, activity.drawer);
   app.append(root);
 
   // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).

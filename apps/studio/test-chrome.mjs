@@ -498,6 +498,10 @@ const PROBE = (opt) => {
   const shown = (el) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
+    // A closed <details> hides its content with `content-visibility: hidden`, not `display: none`, so its
+    // children keep a box and pass the walk below while drawing nothing (S11: the drawer's "Earlier
+    // results" list). `checkVisibility` reads content-visibility; the walk is kept for what it reads.
+    if (!el.checkVisibility()) return false;
     for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
       const cs = getComputedStyle(n);
       if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) return false;

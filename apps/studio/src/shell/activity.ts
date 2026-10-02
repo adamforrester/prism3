@@ -75,8 +75,8 @@ export type Activity = {
   readonly button: HTMLButtonElement;
   /** The drawer, at the bottom of the frame. */
   readonly drawer: HTMLElement;
-  /** The status line a write's start is announced on, outside the drawer, which is not drawn until
-   *  something has run, so it is in the document before its first announcement. */
+  /** The status line a write's start is announced on, for the top bar: outside the drawer, which is not
+   *  drawn until something has run, so it is in the document before its first announcement. */
   readonly live: HTMLElement;
 };
 
