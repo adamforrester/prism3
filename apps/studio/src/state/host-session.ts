@@ -119,7 +119,7 @@ export interface HostSession {
    *  text after a preview finds nothing stale or after a delete completes. */
   readonly pruneBusy: false | 'preview' | 'delete';
   readonly prunePreview: { count: number; summary: string } | null;
-  readonly pruneVerdict: { ok: boolean; count: number; summary: string } | null;
+  readonly pruneVerdict: { ok: boolean; applied: boolean; count: number; summary: string } | null;
   /** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
    *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
    *
@@ -237,14 +237,14 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'prune-result':
       // Three outcomes, told apart by `applied` and `count`: a finished delete, a preview with something
       // to remove (the confirm dialog), or a preview with nothing stale (a pill, never an empty dialog).
-      if (m.applied) return { ...s, pruneBusy: false, pruneVerdict: { ok: m.ok, count: m.count, summary: m.summary }, prunePreview: null };
+      if (m.applied) return { ...s, pruneBusy: false, pruneVerdict: { ok: m.ok, applied: true, count: m.count, summary: m.summary }, prunePreview: null };
       // An agent's preview: a pill, never the dialog, whose Confirm would prune against this panel's knobs.
-      if (m.count > 0 && m.pillOnly) return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, count: m.count, summary: `Agent preview: ${m.summary}` } };
+      if (m.count > 0 && m.pillOnly) return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: m.count, summary: `Agent preview: ${m.summary}` } };
       if (m.count > 0) return { ...s, pruneBusy: false, prunePreview: { count: m.count, summary: m.summary }, pruneVerdict: null };
-      return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, count: 0, summary: m.summary } };
+      return { ...s, pruneBusy: false, prunePreview: null, pruneVerdict: { ok: m.ok, applied: false, count: 0, summary: m.summary } };
     case 'seed-info':
       // Joins the two independent boot reads into one outcome (#721); `restore-input` repairs it if it lands later.
-      return { ...s, seedOutcome: joinSeed({ present: m.present, ok: m.ok, detail: m.summary }, s.inputRecovered) };
+      return { ...s, seedOutcome: joinSeed({ present: m.present, ok: m.ok, detail: m.summary, failed: m.failed }, s.inputRecovered) };
   }
 };
 

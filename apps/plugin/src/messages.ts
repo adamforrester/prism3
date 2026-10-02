@@ -201,7 +201,11 @@ export type MainToUi =
    *  the variables) and nowhere else, so it travels rather than being inferred from `summary`'s
    *  prose downstream — which would make the wording load-bearing, the same trap the
    *  headline/summary split above exists to avoid. */
-  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string }
+  /*  `failed` is how many contract checks failed (0 when the contract holds, the file is unthemed, or the
+   *  read threw). It travels for the Activity drawer's short verdict ("2 mismatches", owner decision #3 on
+   *  #1956), for the same reason `present` does: a count read out of `summary`'s prose would make the
+   *  wording load-bearing. */
+  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string; failed: number }
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
    *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a

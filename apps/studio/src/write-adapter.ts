@@ -123,7 +123,7 @@ export type HostMessage =
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
-  | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
+  | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean; failed: number }
   | { kind: 'restore-input'; input: unknown }
   | { kind: 'restore-input-error'; message: string }
   // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
@@ -276,7 +276,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
   // claims nothing about a stored input, whereas defaulting true would assert the file is ours
   // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
-  'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present }),
+  // `failed` (S11) defaults 0 when omitted or malformed: the drawer then says the contract failed without a count.
+  'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present, failed: Number.isInteger(m.failed) && (m.failed as number) > 0 ? m.failed as number : 0 }),
   'restore-input': (m) => (m.input ? { kind: 'restore-input', input: m.input } : null),
   'restore-input-empty': () => ({ kind: 'restore-input-empty' }),
   'restore-input-error': (m) => ({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') }),

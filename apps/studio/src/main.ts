@@ -7604,7 +7604,12 @@ function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, whic
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
   // type and color), and an element with a class but no rule is a name reserved against nothing — the
   // shape the scope law (#770) exists to make unspellable.
-  btn.append(document.createTextNode(state.headline));
+  // The caret stays as the pill's sign that it opens something (owner decision #5 on #1956); it is the
+  // pre-S11 caret, unturned, because what it opens is the drawer, not a row under it. The name carries
+  // the headline, so the glyph is hidden from it.
+  const caret = el('span', 'caret', '▾');
+  caret.setAttribute('aria-hidden', 'true');
+  btn.append(document.createTextNode(state.headline), caret);
   // The pill shows its result in the Activity drawer (S11), which holds the detail now: the click asks for
   // it through `openDetail`, and the drawer opens on it and answers. It discloses nothing in place, so it
   // carries no `aria-expanded`; `aria-controls` names the drawer it opens.
@@ -7652,19 +7657,32 @@ const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | '
 /** A write slot's verdict, as a settled reading. */
 const verdictOf = (st: HostSession['applyState']): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
   st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary };
-/** The boot read-back's result (#722): the seed pill's words, and the restore refusal (#480) as its body.
- *  The unrecoverable case says both halves, and is not styled as a failure: #721 requires it not read as one. */
+/** The short verdicts Read-back and Prune stale show on their rows (owner decision #3 on #1956): a word or
+ *  a count, with the host's full sentence in the row's details. The other rows' verdicts are already short
+ *  headlines. */
+const SHORT = { clean: 'Clean', failed: 'Failed', noTheme: 'No theme', notRestored: 'Not restored' } as const;
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+/** The boot read-back's result (#722): the seed pill's words and the restore refusal (#480) as its body,
+ *  under a short verdict. The unrecoverable case says both halves, and is not styled as a failure: #721
+ *  requires it not read as one. */
 const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null => {
   const o = host.seedOutcome;
   const err = host.restoreError;
   if (!o && !err) return null;
   const refused = err ? `Saved brand not restored — ${err}` : null;
-  if (!o) return { state: 'bad', ref: err, verdict: refused, summary: null };
+  if (!o) return { state: 'bad', ref: err, verdict: SHORT.notRestored, summary: refused };
   const [text, ok] = o.state === 'error' ? [o.message, false]
     : o.state === 'absent' ? ['No existing Prism3 theme in this file — start from the knobs.', true]
       : [isUnrecoverable(o) ? `${o.detail} — knobs not stored in this file, so these are defaults` : o.detail, o.contractOk];
-  return { state: ok && !err ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict: text, summary: refused };
+  const verdict = o.state === 'error' ? SHORT.failed
+    : o.state === 'absent' ? SHORT.noTheme
+      : o.contractOk ? (err ? SHORT.notRestored : SHORT.clean)
+        : o.failed > 0 ? plural(o.failed, 'mismatch', 'mismatches') : SHORT.failed;
+  return { state: ok && !err ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
 };
+/** Prune stale's short verdict: what the preview found, or what the delete removed. */
+const pruneShort = (v: { ok: boolean; applied: boolean; count: number }): string =>
+  !v.ok ? SHORT.failed : v.applied ? `Removed ${v.count}` : v.count === 0 ? SHORT.clean : `${v.count} stale`;
 /** The host session's operations, lent to the Activity drawer (`shell/activity.ts`). Pure. A prune
  *  preview with something to remove is a settled run (its confirm dialog takes over); its verdict, when
  *  there is one, is the prune's result. Agent progress is the agent's own reading (`agentRun.progress`). */
@@ -7680,8 +7698,8 @@ const activityReading = (): ActivityReading => {
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
       styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), fixed(PENDING_TEXT.styleguide)),
       prune: opReading('prune', !!host.pruneBusy,
-        pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv, verdict: pv.summary, summary: null }
-          : pp ? { state: 'ok', ref: pp, verdict: pp.summary, summary: null } : null,
+        pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv, verdict: pruneShort(pv), summary: pv.summary }
+          : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,
         fixed(host.pruneBusy === 'delete' ? 'Removing…' : host.pruneBusy === 'preview' ? 'Checking…' : null)),
       readback: opReading('readback', false, readbackOf(), fixed(null)),
     },

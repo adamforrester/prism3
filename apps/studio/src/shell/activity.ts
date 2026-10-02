@@ -348,7 +348,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           continue;
         }
         rec.result = resultOf(n, rec.t);
-        if (n.state === 'bad') { settledBad = true; expanded.add(k); } else settledOk = true;
+        // A clean result collapses its row (#483, owner decision #1 on #1956); a bad one opens it.
+        if (n.state === 'bad') { settledBad = true; expanded.add(k); } else { settledOk = true; expanded.delete(k); }
         continue;
       }
       if (n.state === 'idle' || (n.state === p.state && n.ref === p.ref)) continue;
@@ -357,7 +358,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       retire(rec);
       rec.t = clock(now());
       rec.result = resultOf(n, rec.t);
-      if (n.state === 'bad') { settledBad = true; expanded.add(k); } else landedOk = true;
+      if (n.state === 'bad') { settledBad = true; expanded.add(k); } else { landedOk = true; expanded.delete(k); }
     }
     // A result a page asked to show (its verdict pill clicked, or a bad verdict) opens the drawer on it.
     const reveal = cur.detail !== null && cur.detail !== last.detail ? cur.detail : null;
