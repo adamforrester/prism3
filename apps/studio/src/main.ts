@@ -6067,7 +6067,9 @@ const SHORT = { clean: 'Clean', failed: 'Failed', noTheme: 'No theme', notRestor
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 /** The boot read-back's result (#722): the seed pill's words and the restore refusal (#480) as its body,
  *  under a short verdict. The unrecoverable case says both halves, and is not styled as a failure: #721
- *  requires it not read as one. */
+ *  requires it not read as one. A read-back whose checks pass reads "Clean" even when the saved brand was
+ *  not restored, the refusal in its details; "Not restored" is only for a refusal with nothing checked
+ *  (the owner's approved copy, #1990). */
 const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null => {
   const o = host.seedOutcome;
   const err = host.restoreError;
@@ -6079,7 +6081,7 @@ const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
       : [isUnrecoverable(o) ? `${o.detail} — knobs not stored in this file, so these are defaults` : o.detail, o.contractOk];
   const verdict = o.state === 'error' ? SHORT.failed
     : o.state === 'absent' ? SHORT.noTheme
-      : o.contractOk ? (err ? SHORT.notRestored : SHORT.clean)
+      : o.contractOk ? SHORT.clean
         : o.failed > 0 ? plural(o.failed, 'mismatch', 'mismatches') : SHORT.failed;
   return { state: ok && !err ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
 };

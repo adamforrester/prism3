@@ -1022,6 +1022,109 @@ for (const how of ['pointer', 'focus']) {
   await page.close();
 }
 
+// ── #1990: every approved short verdict, by literal, from a driven host message ─────────────────────
+//
+// The owner's copy for Read-back and Prune stale (approved on #1956): "Clean", "N mismatch(es)", "Failed",
+// "No theme", "Not restored"; "N stale", "Removed N", "Clean", "Failed". A read-back whose checks pass
+// reads "Clean" even when the saved brand was not restored, the refusal in its details; "Not restored" is
+// only for a refusal with nothing checked. EXPECTED is each literal written here.
+//
+// MUTATIONS, each failing here by name:
+//   · the contract-passing read-back with a restore refusal back to "Not restored" → `#1990 a read-back whose checks pass reads "Clean" …`.
+//   · any one short word changed in `SHORT`, or `Removed ${n}` → its own `#1990 …` arm.
+{
+  const readOp = (page, k) => page.evaluate((key) => {
+    const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
+    const sum = row?.querySelector('[data-p3="op-summary"]');
+    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sum?.textContent ?? null };
+  }, k);
+  const until = (page, k, want) => page.waitForFunction(([key, w]) => document.querySelector(`[data-p3="activity-op"][data-op="${key}"] [data-p3="op-verdict"]`)?.textContent === w, [k, want], { timeout: 5000 }).catch(() => {});
+  const REFUSAL = 'saved brand data is from an older shape';
+
+  // A restore refusal with no read-back yet: nothing was checked.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'readback', 'Not restored');
+    const nr = await readOp(page, 'readback');
+    ok(nr.verdict === 'Not restored' && (nr.summary ?? '').includes(REFUSAL),
+      `#1990 a restore refusal with nothing checked reads "Not restored", the reason in details — verdict ${JSON.stringify(nr.verdict)}, summary ${JSON.stringify(nr.summary)}`);
+    // The read-back then lands and its checks pass.
+    await post(page, { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 });
+    await until(page, 'readback', 'Clean');
+    const cl = await readOp(page, 'readback');
+    ok(cl.verdict === 'Clean' && (cl.summary ?? '').includes('Saved brand not restored') && (cl.summary ?? '').includes(REFUSAL),
+      `#1990 a read-back whose checks pass reads "Clean" when the saved brand was not restored, which its details say — verdict ${JSON.stringify(cl.verdict)}, summary ${JSON.stringify(cl.summary)}`);
+    ok(errors.length === 0, `#1990 not restored: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'seed-info', ok: true, present: false, summary: '', failed: 0 });
+    await until(page, 'readback', 'No theme');
+    ok((await readOp(page, 'readback')).verdict === 'No theme', `#1990 a file with no Prism3 theme reads "No theme" — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+    await post(page, { type: 'seed-info', ok: false, present: false, summary: 'read-back failed: host threw', failed: 0 });
+    await until(page, 'readback', 'Failed');
+    ok((await readOp(page, 'readback')).verdict === 'Failed', `#1990 a read-back that threw reads "Failed" — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+    await post(page, { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars', failed: 0 });
+    await until(page, 'readback', 'Clean');
+    await post(page, { type: 'seed-info', ok: false, present: true, summary: 'Existing theme — FAILED (no count from this host)', failed: 0 });
+    await until(page, 'readback', 'Failed');
+    ok((await readOp(page, 'readback')).verdict === 'Failed', `#1990 a failing contract with no count reads "Failed" (the fallback) — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+    await post(page, { type: 'seed-info', ok: false, present: true, summary: 'Existing theme — FAILED: declaredModes', failed: 1 });
+    await until(page, 'readback', '1 mismatch');
+    ok((await readOp(page, 'readback')).verdict === '1 mismatch', `#1990 one failed check reads "1 mismatch" — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+
+    await post(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale variables' });
+    await until(page, 'prune', 'Removed 3');
+    ok((await readOp(page, 'prune')).verdict === 'Removed 3', `#1990 a prune delete reads "Removed 3" — ${JSON.stringify((await readOp(page, 'prune')).verdict)}`);
+    await post(page, { type: 'prune-result', ok: false, applied: true, count: 0, summary: 'prune failed: host threw' });
+    await until(page, 'prune', 'Failed');
+    ok((await readOp(page, 'prune')).verdict === 'Failed', `#1990 a failed prune reads "Failed" — ${JSON.stringify((await readOp(page, 'prune')).verdict)}`);
+    await post(page, { type: 'prune-result', ok: true, applied: false, count: 0, summary: 'Nothing stale' });
+    await until(page, 'prune', 'Clean');
+    ok((await readOp(page, 'prune')).verdict === 'Clean', `#1990 a prune preview that finds nothing reads "Clean" — ${JSON.stringify((await readOp(page, 'prune')).verdict)}`);
+    ok(errors.length === 0, `#1990 short verdicts: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
+// ── #1990: the busy spinner waits before it draws ───────────────────────────────────────────────────
+//
+// The spinner is CSS only (`chrome.css` `.p3-spin`): the "…" holds for three of the fast duration, then the
+// arc fades in, so a quick write never flashes a spinner. Both halves are pinned: the computed delay (and
+// that it sits inside the engine spinner's 200 to 500 ms anti-flash wait), and what is drawn before and
+// after it, read off the busy Apply during an agent's run (no host message arrives in between, so
+// `renderBar` does not re-mint the control and restart the delay).
+//
+// MUTATIONS: the delay removed from `.p3-spin::before` → `#1990 the spinner's arc waits …`; the arc drawn
+// before its fade (base `opacity: 1`) → `#1990 the arc is not drawn at once …`; the arc never shown →
+// `#1990 … and is drawn after the delay`. Removing the delay alone does not fail the at-start arm: with no
+// delay the fast fade is over before the first read.
+{
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'agent-started', id: 'sp1', cmd: 'apply-theme' });
+  const sel = '[data-p3="apply-to-figma"] .p3-spin';
+  await page.waitForSelector(sel, { timeout: 5000 }).catch(() => {});
+  const probe = () => page.evaluate((q) => {
+    const n = document.querySelector(q);
+    if (!n) return null;
+    const ms = (t) => t.split(',').map((x) => x.trim()).map((x) => x.endsWith('ms') ? parseFloat(x) : parseFloat(x) * 1000);
+    const b = getComputedStyle(n, '::before');
+    return { delays: ms(b.animationDelay), names: b.animationName, opacity: Number(b.opacity) };
+  }, sel);
+  const early = await probe();
+  await page.waitForTimeout(900);
+  const late = await probe();
+  const delay = early?.delays[0] ?? 0;
+  ok(!!early && /p3-spin-show/.test(early.names) && delay >= 200 && delay <= 500,
+    `#1990 the spinner's arc waits before it fades in, inside the 200 to 500 ms anti-flash window — delay ${delay} ms, animations ${early?.names}`);
+  ok(!!early && early.opacity === 0, `#1990 the arc is not drawn at once — opacity at start ${early?.opacity}`);
+  ok(!!late && late.opacity === 1, `#1990 … and is drawn after the delay — opacity at 900 ms ${late?.opacity}`);
+  ok(errors.length === 0, `#1990 spinner: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #1890: a bad verdict opens its row in the Activity drawer, and the drawer stays in view ─────────
 //
 // HISTORY. This arm began as an ordering check: a verdict invalidated `host` (the bar) and then
