@@ -2744,6 +2744,19 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.222.0 — folded 2026-10-02 from 1 change note, newest merge first.
+ *
+ * [engine-bg-tier-inputs · minor · 75104b3e] The background tiers are inputs (#1972). `surfaces.<light|dark>` takes four optional keys:
+ * `secondary` and `tertiary` (the page's second and third tiers, neutral-only like `base`) and
+ * `inverseSecondary` and `inverseTertiary` (the inverse band's, the same forms as `inverseBase`). Each is
+ * read during derivation, so every role measured against the tier re-derives against it. A declared
+ * `secondary` carries the contrast floor with it unless `floorStep` is set, so the 46 floor-gated roles
+ * per mode re-measure too; high-contrast modes follow the standard floor, as they already do for `base`.
+ * An `overrides` entry on any of the four is now refused, naming the input. Unset, every tier is the
+ * ladder's own step and every artifact is byte-identical. The keys are checked in `brandTheme` (white,
+ * black, or a step on the palette's ramp), because the schema validator skips `allOf`/`oneOf`. Token
+ * paths are unchanged, so CONTRACT_VERSION does not move.
+ *
  * 0.221.0 — folded 2026-10-02 from 1 change note, newest merge first.
  *
  * [engine-icon-follows-text · minor · 2b413d28] A text override carries to its icon twin wherever the tree has one, when icons match text (#1968).
@@ -4456,7 +4469,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.221.0';
+export const ENGINE_VERSION = '0.222.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
