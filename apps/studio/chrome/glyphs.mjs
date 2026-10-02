@@ -157,6 +157,10 @@ export const NOT_CHROME = {
   'apps/studio/src/main.ts': 'the legacy studio, drawn in its own face (styles.css) and taken apart page by page '
     + '(LEGACY_PAGES in test-chrome.mjs). Of the chrome copy it still paints, test:chrome measures the Apply '
     + 'label and the write-status pills as drawn, and NEVER_DRAWN below reads it like every other file.',
+  'apps/studio/src/preview/sections/weights-by-face.ts': 'the legacy Typography page\'s "Weight roles by face" '
+    + 'section, lifted out of main.ts unchanged by UI redesign S6.1 and drawn only by that page, in main.ts\'s '
+    + 'face (styles.css). Its availability marks (● ○) are not in the chrome subset. When a new page draws this '
+    + 'section (S6.2), it reaches the chrome and this entry goes: re-subset Inter, or record a FACE_LACKS decision.',
 };
 /** Code points no string under a source root may carry, NOT_CHROME included, each with the owner's decision. */
 export const NEVER_DRAWN = {

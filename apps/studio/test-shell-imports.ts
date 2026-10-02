@@ -116,7 +116,10 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S5.2: Color › Interactive (its levers, its preview) and the Links section it draws.
   'src/domains/color-interactive.ts', 'src/preview/interactive.ts', 'src/preview/sections/links.ts',
   // S4c: the Focus ring section, drawn by Surfaces & fills' preview (Q30).
-  'src/preview/sections/focus-ring.ts'];
+  'src/preview/sections/focus-ring.ts',
+  // S6.1: Type's writes, the font-availability helpers, and the Typography preview's shared sections.
+  'src/state/type-input.ts', 'src/ui/fonts.ts',
+  'src/preview/sections/typefaces.ts', 'src/preview/sections/weights-by-face.ts', 'src/preview/sections/type-ramp.ts', 'src/preview/sections/type-fluid.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -487,7 +490,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'typefaces', 'weights-by-face', 'type-ramp', 'type-fluid']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
@@ -507,6 +510,51 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(!own, `src/main.ts draws no "Focus ring" section of its own${own ? " — main.ts carries its own Focus ring (palSection('Focus ring', …) or the fr-wrap markup): Surfaces & fills would drift from the Interactive page" : ''}`);
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
   ok(idx.includes("from './focus-ring'"), "preview/sections/index.ts exports the focus-ring section from ./focus-ring");
+}
+
+// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1) ─────────────────────────────
+// The legacy Typography page's Preview tab (Typefaces, Weight roles by face, the full type ramp) and Layout's
+// fluid read-out are drawn from `preview/sections/`, so the new Type page (S6.2) draws the same code; and every
+// Type write goes through `state/type-input.ts`, so the new page writes the same bytes. Subject: `main.ts`, read
+// from disk, comments stripped. Oracle: the literal renderer names, each section's own title or copy (the
+// legacy page has two OTHER sections titled "Typefaces", on Primitives and Semantics, so the preview's is
+// matched by its description), and the literal write shapes the legacy closures used. A copy pasted back into
+// `main.ts` fails by what it draws; the smoke suite holds each drawn section to its marker.
+{
+  const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
+  const mainSrc = readFileSync(MAIN, 'utf8');
+  const mainCode = strip(mainSrc);
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  for (const [fn, file, what] of [
+    ['typefacesSection', 'typefaces', 'the Typography preview\'s Typefaces section'],
+    ['weightsByFaceSection', 'weights-by-face', 'the Typography preview\'s Weight roles by face section'],
+    ['typeRampSection', 'type-ramp', 'the type ramp'],
+    ['paintTypeFluid', 'type-fluid', 'Layout\'s fluid read-out'],
+  ] as const) {
+    ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
+    ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports ${what} from ./${file}`);
+  }
+  const OWN: Array<[RegExp, string]> = [
+    [/palSection\(\s*'The full type ramp'/, "its own type ramp (palSection('The full type ramp', …))"],
+    [/palSection\(\s*'Weight roles by face'/, "its own Weight roles by face section (palSection('Weight roles by face', …))"],
+    [/Everything below is set in these\./, 'the shared Typefaces section\'s copy ("Everything below is set in these.")'],
+    [/'fz-list'|What fluid does — /, "its own fluid read-out (the fz-list markup or \"What fluid does — \")"],
+  ];
+  for (const [re, what] of OWN) {
+    const own = re.test(mainCode);
+    ok(!own, `src/main.ts draws no Type preview piece of its own: ${what.split(' (')[0].replace(/^its own |^the shared /, '')}${own ? ` — main.ts carries ${what}: the Type page would drift from the legacy one` : ''}`);
+  }
+  // The writes. Every Type write the legacy page made was one of these shapes; `main.ts` keeps none.
+  const WRITES: Array<[RegExp, string]> = [
+    [/setPath\(\s*brandState\s*,\s*[`'"]typography\./, "setPath(brandState, 'typography.…')"],
+    [/delete\s+brandState\.typography\./, 'delete brandState.typography.…'],
+    [/setModeLever\([^)]*[`'"](families|weights|typeSizes|lineHeights|letterSpacings)\./, "setModeLever(…, 'families.…' and the other Type mode fields)"],
+  ];
+  for (const [re, what] of WRITES) {
+    const m = re.exec(mainCode);
+    ok(!m, `src/main.ts writes no Type input itself (${what})${m ? ` — found "${m[0]}": the write belongs in state/type-input.ts` : ''}`);
+  }
+  ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports its Type writes from ./state/type-input');
 }
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
