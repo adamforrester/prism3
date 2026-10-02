@@ -2654,6 +2654,29 @@ const FILL_ROW_ROLES = [...SEM_FILL.map((s) => `foreground.${s}`), ...SEM_FILL.m
   ...SEM_FILL.map((s) => `inverse.foreground.${s}`), ...SEM_FILL.map((s) => `inverse.foreground.${s}-subtle`)];
 const inks = (p) => [...TIERS3.map((t) => `${p}.${t}`), ...SEM_INK.map((s) => `${p}.${s}`), ...SEM_INK.map((s) => `${p}.${s}-subtle`)];
 const TEXT_ROW_ROLES = [...inks('text'), ...inks('inverse.text')];
+// =============================================================================================
+// WHAT COUNTS AS A CONTROL in a read-only check (#1991): a derived mode's, or a read-only row's. `button, select, input` alone missed any
+// non-native control: a `[role=switch]`, a `[contenteditable]`, any `[tabindex]` element with a click handler
+// could stay live in a derived mode and the check would still pass. So: every native control, every ARIA
+// widget role, every editable region, and every element in the tab order. OFF means `:disabled` (which also
+// covers a control inside a disabled fieldset) or `aria-disabled="true"`. Shared by every derived-mode check
+// below, passed into the page as data, so the checks cannot drift apart on what a control is.
+const DERIVED_CONTROL_QUERY = [
+  'button', 'select', 'textarea', 'input:not([type="hidden"])', 'a[href]',
+  ...['button', 'switch', 'checkbox', 'radio', 'slider', 'spinbutton', 'tab', 'menuitem', 'menuitemradio', 'menuitemcheckbox', 'option', 'combobox', 'textbox']
+    .map((r) => `[role="${r}"]`),
+  '[contenteditable]:not([contenteditable="false"])', '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+/** The controls under `scope`, less the info toggletips (they open help and edit nothing), each with whether it
+ *  is off. Runs in the page; `q` is `DERIVED_CONTROL_QUERY`. */
+const DERIVED_CONTROLS = ([scope, q]) => [...document.querySelectorAll(scope)].flatMap((root) => [...root.querySelectorAll(q)])
+  .filter((c, i, all) => all.indexOf(c) === i && c.getAttribute('data-p3') !== 'lever-info')
+  .map((c) => ({
+    hook: c.getAttribute('data-p3') ?? (c.id || `${c.tagName.toLowerCase()}${c.getAttribute('role') ? `[role=${c.getAttribute('role')}]` : ''}`),
+    role: c.dataset.role ?? null,
+    disabled: c.matches(':disabled') || c.getAttribute('aria-disabled') === 'true',
+  }));
+
 /** S4d (Q49): the borders, page and inverse; the focus rings are read-only rows (#1966), below. */
 const BORDER_ROW_ROLES = [...[...TIERS3, ...SEM_FILL].map((s) => `border.${s}`), ...[...TIERS3, ...SEM_FILL].map((s) => `inverse.border.${s}`)];
 /** S4d (Q50): every icon role, page and inverse, each with the text twin it follows while paired. */
@@ -2728,21 +2751,21 @@ for (const [key, hk] of FILLS_LEVERS) {
 for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   await goPlace(page, 'color-fills');
-  const c = await page.evaluate(([lh, roles]) => ({
+  const c = await page.evaluate(([lh, roles, q]) => ({
     levers: Object.fromEntries(lh.map((hk) => [hk, document.querySelectorAll(`[data-p3="levers-pane"] ${hk}`).length])),
     rows: Object.fromEntries(roles.map((r) => [r, document.querySelectorAll(`[data-p3="levers-pane"] .p3-fillrow[data-role="${r}"]`).length])),
     strayLevers: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
     strayRows: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
     fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
     scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
-      controls: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"] :is(button, select, input)').length },
+      controls: document.querySelectorAll(`[data-p3="levers-pane"] [data-p3="scrim-row"] :is(${q})`).length },
     // Q50: the icon rows, as drawn while the default theme's icons match text.
     icons: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')].map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })),
     pairNote: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"] p')?.textContent ?? null,
     unpair: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]')?.textContent ?? null,
-    focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll('button, select, input').length })),
+    focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll(q).length })),
     jumps: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="fills-jump-link"]')].map((a) => ({ text: a.textContent, to: document.querySelector(a.getAttribute('href'))?.querySelector('.p3-lsec-title')?.textContent ?? null })),
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES], DERIVED_CONTROL_QUERY]);
   // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
   // alias and that primitive's alpha.
   const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
@@ -2837,8 +2860,8 @@ for (const host of ['web', 'figma']) {
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
 // =============================================================================================
-// THE ORACLE for "every control" is the DOM itself: every button, select and input inside the page's sections,
-// enumerated as rendered, with a floor on the count so an empty read fails, less only the info buttons (they open
+// THE ORACLE for "every control" is the DOM itself: every control inside the page's sections, as
+// `DERIVED_CONTROL_QUERY` defines one (#1991), enumerated as rendered, with a floor on the count so an empty read fails, less only the info buttons (they open
 // help and edit nothing). The words are literals typed here. The derived modes are the engine's three, by name.
 const VISIBLE_WORDS = () => {
   const root = document.querySelector('[data-p3="frame"]');
@@ -2857,9 +2880,8 @@ const showMode = async (page, mode) => {
     && [...document.querySelectorAll('[data-p3="mode-option"]')].some((b) => b.dataset.mode === m && b.getAttribute('aria-checked') === 'true')
     || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 }).catch(() => {});
 };
-const FILLS_CONTROLS = () => [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec :is(button, select, input)')]
-  .filter((c) => c.getAttribute('data-p3') !== 'lever-info')
-  .map((c) => ({ hook: c.getAttribute('data-p3') ?? c.id ?? c.tagName, role: c.dataset.role ?? null, disabled: c.disabled }));
+const FILLS_SCOPE = '[data-p3="fills-levers"] .p3-lsec';
+const fillsControls = (page) => page.evaluate(DERIVED_CONTROLS, [FILLS_SCOPE, DERIVED_CONTROL_QUERY]);
 /** At least this many controls on the page in a derived mode: the override rows' pick buttons, the surface
  *  controls, Unpair and the default theme's two gradient editors. Set below the measured count, 145 in each of
  *  hc-light, hc-dark and wireframe on both hosts (printed per mode), so a page that drew less fails. */
@@ -2893,14 +2915,14 @@ for (const host of ['web', 'figma']) {
   ok(/^Inverse fill step, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
     `${host}: the inverse.background.primary controls' accessible names say "Inverse fill" (Q58) — read ${JSON.stringify(fillNames)}`);
   // Light, the proof the read below sees controls that CAN be enabled: the Unpair button is, and most controls are.
-  const light = await page.evaluate(FILLS_CONTROLS);
+  const light = await fillsControls(page);
   const lightUnpair = light.find((c) => c.hook === 'icons-unpair');
   ok(lightUnpair && !lightUnpair.disabled && light.length >= DERIVED_CONTROLS_FLOOR && light.filter((c) => !c.disabled).length >= LIGHT_ENABLED_FLOOR,
     `${host}: in Light the page's controls edit, Unpair included (${light.filter((c) => !c.disabled).length} of ${light.length} enabled; Unpair ${JSON.stringify(lightUnpair)})`);
   for (const mode of ['hc-light', 'hc-dark', 'wireframe']) {
     await showMode(page, mode);
     await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode && document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), mode, { timeout: 5000 }).catch(() => {});
-    const cs = await page.evaluate(FILLS_CONTROLS);
+    const cs = await fillsControls(page);
     const live = cs.filter((c) => !c.disabled);
     const unpair = cs.find((c) => c.hook === 'icons-unpair');
     console.log(`  ${host} ${mode}: ${cs.length} controls on Surfaces & fills, ${live.length} enabled`);
@@ -3547,7 +3569,7 @@ const chooseAnyMode = async (page, mode) => {
     await chooseAnyMode(page, 'light');
 
     // Q59: in each derived mode every lever on the page is disabled, brand-wide ones included, under the derived
-    // line. Enumerated from the DOM: every button, select and input in a lever section but the info toggletips.
+    // line. Enumerated from the DOM: every control in a lever section (`DERIVED_CONTROL_QUERY`, #1991) but the info toggletips.
     await goPlace(page, 'brand');
     await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
@@ -3558,16 +3580,13 @@ const chooseAnyMode = async (page, mode) => {
     for (const [mode, label] of DERIVED) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="interactive-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
-      const d = await page.evaluate(() => {
-        const pane = document.querySelector('[data-p3="levers-pane"]');
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
-        return {
-          n: ctls.length,
-          enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName),
-          hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
-          line: document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null,
-        };
-      });
+      const ctls = await page.evaluate(DERIVED_CONTROLS, ['[data-p3="levers-pane"] [data-p3="lever-section"]', DERIVED_CONTROL_QUERY]);
+      const d = {
+        n: ctls.length,
+        enabled: ctls.filter((c) => !c.disabled).map((c) => c.hook),
+        hooks: [...new Set(ctls.map((c) => c.hook))],
+        line: await page.evaluate(() => document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null),
+      };
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Interactive is disabled (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
