@@ -1235,6 +1235,8 @@ for (const how of ['pointer', 'focus']) {
 //   · Export back to `lastGoodInput` → `#1994 rejected: Export design.md writes the file's brand that failed …`.
 //   · Export left enabled with nothing readable → `#1994 unreadable: Export design.md is off …`.
 //   · the "nothing chosen yet" guard removed → `#1994 guard: an unreadable restore after a brand was chosen …`.
+//   · Design tokens left enabled after a failed restore (#2007) → `#2007 <kind>: Export's Design tokens is off …`,
+//     one per failure.
 {
   const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
   const capture = (page) => page.evaluate(() => {
@@ -1298,6 +1300,23 @@ for (const how of ['pointer', 'focus']) {
     }
     return { ...st, file };
   };
+  /** Open Export on Design tokens and FORCE its Download: its state, the note, and whether a file arrived.
+   *  Forced, so a disabled button that still downloaded would be caught rather than skipped. */
+  const exportTokensTry = async (page) => {
+    await hooks.click(page.locator('[data-p3="export-open"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Design tokens$/ }), { timeout: 4000 }).catch(() => {});
+    const st = await page.evaluate(() => ({
+      off: document.querySelector('[data-p3="export-dialog"] [data-p3="dialog-confirm"]')?.disabled ?? null,
+      note: document.querySelector('[data-p3="export-restore-note"]')?.textContent ?? null,
+    }));
+    const [dl] = await Promise.all([
+      page.waitForEvent('download', { timeout: 2500 }).catch(() => null),
+      hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {}),
+    ]);
+    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 }).catch(() => {});
+    return { ...st, file: dl ? dl.suggestedFilename() : null };
+  };
+  const tokensOff = (t) => t.off === true && t.file === null && (t.note ?? '').includes("these tokens would be the demo brand's");
   /** Choose an example from the brand menu. No edits are at risk here, so no overwrite confirm is asked. */
   const chooseExample = async (page) => {
     await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
@@ -1318,6 +1337,8 @@ for (const how of ['pointer', 'focus']) {
     const ex = await exportBrief(page);
     ok(ex.off === false && !!ex.file && ex.file.name === 'refused-brand.design.md' && ex.file.text.includes('background.secondary'),
       `#1994 unresolved: Export design.md writes the file's brand that failed, not the demo — file ${JSON.stringify(ex.file?.name ?? null)}, keeps the override ${!!ex.file?.text.includes('background.secondary')}`);
+    const tk = await exportTokensTry(page);
+    ok(tokensOff(tk), `#2007 unresolved: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
     const example = await chooseExample(page);
     const on = await read(page);
     ok(on.bar === null && allOn(on),
@@ -1357,6 +1378,8 @@ for (const how of ['pointer', 'focus']) {
     ok(ex.off === false && !!ex.file && ex.file.name === 'rejected-brand.design.md' && ex.file.text.includes('bogus')
       && (ex.note ?? '').includes("This is the file's saved brand"),
       `#1994 rejected: Export design.md writes the file's brand that failed, and says so — file ${JSON.stringify(ex.file?.name ?? null)}, names bogus ${!!ex.file?.text.includes('bogus')}, note ${JSON.stringify(ex.note)}`);
+    const tk = await exportTokensTry(page);
+    ok(tokensOff(tk), `#2007 rejected: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
     ok(errors.length === 0, `#1994 rejected: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -1377,6 +1400,8 @@ for (const how of ['pointer', 'focus']) {
     const ex = await exportBrief(page);
     ok(ex.off === true && (ex.note ?? '').includes('Nothing to export'),
       `#1994 unreadable: Export design.md is off, with the reason — Download disabled ${ex.off}, note ${JSON.stringify(ex.note)}`);
+    const tk = await exportTokensTry(page);
+    ok(tokensOff(tk), `#2007 unreadable: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
     const example = await chooseExample(page);
     const on = await read(page);
     ok(on.bar === null && allOn(on), `#1994 unreadable: choosing an example (${JSON.stringify(example)}) turns the writes back on — ${JSON.stringify(on)}`);
@@ -1394,6 +1419,10 @@ for (const how of ['pointer', 'focus']) {
     const st = await read(page);
     ok(!!example && allOn(st) && !/couldn't be read/.test(st.bar ?? ''),
       `#1994 guard: an unreadable restore after a brand was chosen leaves the writes on — chose ${JSON.stringify(example)}, ${JSON.stringify(st)}`);
+    // CONTROL for the no-download arms above: with nothing failed, the same forced click does download.
+    const tk = await exportTokensTry(page);
+    ok(tk.off === false && !!tk.file && tk.note === null,
+      `#2007 control: with no failed restore, Design tokens is on and the same click downloads a file — ${JSON.stringify(tk)}`);
     ok(errors.length === 0, `#1994 guard: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }

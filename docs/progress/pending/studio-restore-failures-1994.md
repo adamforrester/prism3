@@ -49,7 +49,9 @@ must not re-enable, both Export behaviors, and the guard.
 artifact choice and the import slot "↑ Brand brief…"). A loose `hasText` match is refused as ambiguous, and
 a caught click then reads as the wrong artifact downloading. The locator is anchored (`/^Brand brief$/`).
 
-### Not changed
+### Design tokens, too (owner, on #2007)
 
-Export's Design tokens artifact still writes the demo's tokens in a failed state. It is a download, not a
-write to the file, and the owner's decision named design.md only; raised in the PR.
+After a failed restore, Export's Design tokens Download is off as well, with a note: the tokens on hand are
+the demo's. Mutation (left enabled) fails `#2007 <kind>: Export's Design tokens is off …` once per failure,
+each showing `"file":"prism3.tokens.json"`, the demo's tokens. A control in the guard scenario, where nothing
+failed, proves the same forced click does download.

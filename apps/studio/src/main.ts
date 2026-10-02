@@ -5780,6 +5780,7 @@ const renderExportDialog = (): HTMLElement => {
     list.textContent = files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`;
     list.title = files.join('\n');
     right.append(list);
+    if (restoreFailure) right.append(hook(el('p', 'exdlg-sdesc', TOKENS_NONE), 'export-restore-note'));
     right.append(el('div', 'exdlg-cap', 'A few tokens, shaped by these settings'));
     // One block PER FILE, with the name above it — not the file texts concatenated. The split setting
     // makes the sample several documents (3 for the 6-token sample), and joined with a newline they read
@@ -5814,6 +5815,8 @@ const renderExportDialog = (): HTMLElement => {
   const go = hook(el('button', 'exdlg-go') as HTMLButtonElement, 'dialog-confirm');
   go.textContent = exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens';
   if (exportArtifact === 'design-md' && !briefInput()) { go.disabled = true; go.title = BRIEF_NONE; }
+  // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
+  if (exportArtifact === 'dtcg' && restoreFailure) { go.disabled = true; go.title = TOKENS_NONE; }
   go.onclick = () => {
     exportMenuOpen = false; renderBar();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
@@ -6162,6 +6165,7 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 };
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
+const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
 const RESTORE_OFF_HINT = "Off until a brand resolves. This file's saved brand did not, and writing now would put the demo brand over it.";
 
 /** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
