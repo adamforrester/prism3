@@ -1,8 +1,13 @@
 /** The Style guide's Interactive section (UI redesign S5.1: lifted out of `renderPreviewStyleGuide` in
  *  `main.ts` so Color › Interactive can draw the same section, as S4a did for the five color sections).
- *  Primary, Neutral and Destructive, each in three treatments (Filled, Outline, Inverse) at rest, hover and
- *  pressed, then the shared Disabled set. Moved unchanged in output: the Style guide's HTML is identical but for
- *  the shared-section marker on its root.
+ *  Each column in four treatments (Filled, Outline, Text, Inverse) at rest, hover and pressed, then the
+ *  shared Disabled set. The Style guide draws Primary, Neutral and Destructive; Color › Interactive draws
+ *  every column, accents included (owner decision Q39), through `columns`.
+ *
+ *  THE TEXT ROW (S5.2, owner decision Q32): the engine's text button (`packages/engine/components/button.ts`,
+ *  appearance `text`): the ink `interactive.‹c›.text.‹state›` over the outline row's hover wash, and NO
+ *  border. It reads the same `outlineStateRoles` the Outline row reads, takes its `fill` and its `text`, and
+ *  never its `border`, so the two rows cannot disagree on the ground switch (#1629).
  *
  *  WHAT IT IS HANDED. The section context (`SgCtx`), the brand's `outlineInteraction` (which family the
  *  Outline row's hover fill reads, through `outlineStateRoles`) and the role key of the ground the section
@@ -18,13 +23,25 @@ export type InteractiveSectionOptions = {
   readonly method: Theme['outlineInteraction'];
   /** The role key of the ground the section sits on (`SgSurface.key`). */
   readonly surface: string;
+  /** The columns to draw, as [name shown, column], in order. Default: Primary, Neutral, Destructive. */
+  readonly columns?: ReadonlyArray<readonly [string, string]>;
 };
+
+/** The Style guide's three columns, in order. */
+export const BUILT_IN_SECTION_COLUMNS: ReadonlyArray<readonly [string, string]> = [['Primary', 'primary'], ['Neutral', 'neutral'], ['Destructive', 'destructive']];
+/** The last sentence on Color › Interactive (owner decision Q53, APPROVED). */
+export const EVERY_SET = 'Every button set is shown, including ones you added.';
+const DESC_HEAD = 'Each interactive palette in four treatments — filled, outline, text, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set.';
 
 export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HTMLElement => {
   const { cur, paint } = ctx;
   // With `badges: false` a chip is the pill alone, exactly the node the Style guide drew before the lift.
   const pill = (k: string, label?: string): HTMLElement[] => ctx.chip(k, label);
-  const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.');
+  const columns = o.columns ?? BUILT_IN_SECTION_COLUMNS;
+  // The last sentence is true only where the accents are left out (the Style guide).
+  const secInt = palSection('Interactive', o.columns
+    ? `${DESC_HEAD} ${EVERY_SET}`
+    : `${DESC_HEAD} This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.`);
   secInt.dataset.sgSection = 'interactive';   // the shared-section marker (`kit.ts`'s header)
   const STATES = ['rest', 'hover', 'pressed'];
   // `pair` names the engine roles an OPAQUE fill specimen previews (#1652) — see `specimenPair`. The
@@ -112,10 +129,13 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
     const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
+    // The text button: the Outline row's wash and ink, no edge (`bd` null leaves `.sg-btn`'s transparent one).
+    const text = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), null, s, otxt(s), `text.${s}`));
     const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`,
       [`inverse.interactive.${c}.on-fill`, `inverse.interactive.${c}.fill.${s}`]));
     block.append(trow('Filled', [footLine('text', ...pill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(hook(trow('Outline', [footLine('border', ...pill(obd, 'border'))], outline, false), 'style-guide-outline'));
+    block.append(hook(trow('Text', [footLine('text', ...pill(otxt('rest'), 'text'))], text, false), 'style-guide-text'));
     // The Inverse row paints its own inverse band so the inverse-column variants have the ground they
     // were measured against. When the PREVIEW ground is already that band, painting it again is a
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
@@ -123,7 +143,7 @@ export const interactiveSection = (ctx: SgCtx, o: InteractiveSectionOptions): HT
     block.append(trow('Inverse', [footLine('text', ...pill(`inverse.interactive.${c}.on-fill`, 'on-fill'))], inv, !onInverseGround));
     return block;
   };
-  secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
+  for (const [nm, c] of columns) secInt.append(paletteBlock(nm, c));
   {
     const block = hook(el('div', 'sg-pblock'), 'style-guide-palette');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), ...pill('disabled.fill', 'color.disabled')); block.append(hd);

@@ -17,7 +17,7 @@
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
  * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills);
+ * S4a: Color › Surfaces & fills; S5.2: Color › Interactive);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -26,6 +26,15 @@
  * The prose here (`intro`, `desc`, section titles) is concept v6's, verbatim, except where an owner decision
  * replaced it (marked where it does). It ships in the bundle.
  */
+
+/** The Links copy (S5.2), shared by the levers' Links section and the preview's (owner decision Q23). APPROVED. */
+export const LINKS_DESC = 'The link color in each state, on the page and on the inverse fill.';
+/** The Icons copy (S5.2), shared by the levers' Icons section and the preview's (Q23). APPROVED. */
+export const ICONS_DESC = 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.';
+/** The Disabled copy, the Style guide's own, shared by the shared Disabled section and the levers' (Q23, Q51). */
+export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
+/** The Interactive levers section's intro (owner decision Q53, APPROVED). */
+export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, border and state colors.';
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -122,36 +131,42 @@ export const DOMAINS = [
       {
         id: 'interactive', label: 'Interactive', home: 'interactive', intro: 'How actions, links and disabled states draw from the palettes, and the floors they meet.',
         roles: ['interactive', 'inverse.interactive', 'text.link', 'icon.link', 'inverse.text.link', 'inverse.icon.link', 'disabled', 'inverse.disabled'],
+        // NOT CONCEPT V6'S (S5.2, owner decision Q51): the sections are the preview's, Interactive, Disabled,
+        // Links and Icons. v6's Actions and Interactive palettes are Interactive; its Legibility splits into
+        // Disabled and Icons.
         sections: [
           {
-            title: 'Actions', rows: [
+            title: 'Interactive', desc: BUTTON_SETS_DESC, rows: [
               { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
               { ctl: 'enum', keys: ['outlineInteraction'], drive: 'action' },
               { ctl: 'enum', keys: ['neutralEmphasis'], drive: 'neutral' },
-            ],
-          },
-          {
-            title: 'Interactive palettes', desc: 'Each column is a full set of fill, text, border and state roles.', rows: [
-              { ctl: 'interactivePalettes', keys: ['interactivePalettes'], schemaOnly: ['modeAnchors'], drive: 'action' },
+              // S5.2: every per-column color is a row here (owner decision Q33), so the row also edits overrides.
+              { ctl: 'interactivePalettes', keys: ['interactivePalettes'], schemaOnly: ['modeAnchors', 'overrides'], drive: 'action' },
               { ctl: 'toggle', keys: ['strictInteractiveContrast'], drive: 'inverse' },
             ],
           },
           {
-            title: 'Links', rows: [
-              { ctl: 'palette', keys: ['linkPalette'], drive: 'link' },
-              { ctl: 'linkStateRungs', keys: ['linkStateRungs'], drive: 'link' },
-            ],
-          },
-          {
-            title: 'Legibility', rows: [
-              { ctl: 'enum', keys: ['iconContrast'], drive: 'icon' },
+            title: 'Disabled', desc: DISABLED_DESC, rows: [
               { ctl: 'enum', keys: ['disabledStrategy'], drive: 'disabled' },
               { ctl: 'disabledMin', keys: ['disabledMin'], drive: 'disabled' },
             ],
           },
+          {
+            // NOT CONCEPT V6'S (S5.2): a description, the preview's Links section's own (owner decision Q23:
+            // the levers and the preview section they drive say the same thing).
+            title: 'Links', desc: LINKS_DESC, rows: [
+              { ctl: 'palette', keys: ['linkPalette'], drive: 'link' },
+              { ctl: 'linkStateRungs', keys: ['linkStateRungs'], drive: 'link' },
+              // S5.2: the four link families' resting link, pinned per mode (#1510). Links are edited only here
+              // (owner decision Q28, #1961).
+              { ctl: 'linkFamilies', schemaOnly: ['overrides'], drive: 'link' },
+            ],
+          },
+          { title: 'Icons', desc: ICONS_DESC, rows: [{ ctl: 'enum', keys: ['iconContrast'], drive: 'icon' }] },
         ],
-        status: 'legacy',
-        legacy: ['interactive'],
+        // S5.2: moved. Its levers are `domains/color-interactive.ts`, its preview `preview/interactive.ts`.
+        status: 'new',
+        legacy: [],
       },
     ],
   },
