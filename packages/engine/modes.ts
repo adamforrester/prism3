@@ -433,28 +433,41 @@ export const GROUND_INPUT: Record<string, string> = {
 };
 
 /**
- * THE LABEL → GLYPH OVERRIDE TWIN (#1617). `interactive.<c>.icon.<st>` (and its `inverse.` column) is
- * minted as a VALUE twin of `interactive.<c>.text.<st>` — the same derived candidate (#1471). The
- * override layer rewrites exactly one role, so an override on the label ink alone used to move the
- * label and leave the glyph at the derived value: near-black label, grey icon on the owner's NB file.
- * The requirement is that an outline / text control's icon always matches its label, so an override on
- * a `text` twin is carried to its `icon` twin — unless the icon carries its own explicit override, which
- * wins. `border` is deliberately NOT coupled: a border override is an independent authoring choice.
+ * THE LABEL → GLYPH OVERRIDE TWIN (#1617, widened #1968). Every `text` role is minted beside an `icon`
+ * role at the same path with the `text` segment swapped — `text.brand` / `icon.brand`, `inverse.text.link.hover`
+ * / `inverse.icon.link.hover`, `interactive.<c>.text.rest` / `interactive.<c>.icon.rest`. The override layer
+ * rewrites exactly one role, so an override on the label ink alone used to move the label and leave the glyph
+ * at the derived value: near-black label, grey icon on the owner's NB file. So an override on a `text` role is
+ * carried to its `icon` twin — unless the icon carries its own explicit override, which wins. `border` is
+ * deliberately NOT coupled: a border override is an independent authoring choice.
+ *
+ * THE TWIN MAP IS READ OFF THE TREE, not listed: a twin is the swapped path IF this mode's tree has it, so a
+ * family added later is covered the day it emits both halves, and a role absent in this mode carries nothing.
+ *
+ * TWO CASES, split by whether the icon is a value twin regardless of the lever (owner, 2026-10-02):
+ *   - `(inverse.)interactive.*` — the control's glyph is minted as the label's value twin (#1471) under BOTH
+ *     `iconContrast` values, and #1617's requirement is that it always matches its label. Carried always.
+ *   - every other pair — the icon has its own floor under `iconContrast: '3:1'` and derives its own value, so
+ *     carrying the label there would override that choice. Carried only when icons match text (`'text'`).
  *
  * Only the post-derivation layer needs this. The pre-derivation `ovRgb` / `asGround` path substitutes
- * overrides only at GROUND reads, and neither twin is a ground (nothing is contrast-measured against a
- * label or glyph ink), so the twin has nothing to feed there. The expanded icon entry is re-rated
- * against its own `against` by the same loop as any explicit override, and the final contrast sweep
- * warns for it exactly as it does for the label.
+ * overrides only at GROUND reads, and no `icon` role is a ground (nothing is contrast-measured against a
+ * glyph ink), so the twin has nothing to feed there. The expanded icon entry is re-rated against its own
+ * `against` by the same loop as any explicit override — a carried link meets the same floor clamp (#1510) —
+ * and the final contrast sweep warns for it exactly as it does for the label.
  */
-const ICON_TWIN_OF_TEXT = /^((?:inverse\.)?interactive\.[^.]+\.)text\.(rest|hover|pressed)$/;
-export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | undefined {
+const TEXT_SEGMENT = /(^|\.)text\./;
+const ALWAYS_TWINNED = /^(?:inverse\.)?interactive\./;
+export function withIconTwins(
+  ov: ModeOverrides | undefined, roles: Record<string, unknown>, iconContrast: Theme['iconContrast'],
+): ModeOverrides | undefined {
   if (!ov) return ov;
   const out: ModeOverrides = { ...ov };
   for (const [rolePath, ref] of Object.entries(ov)) {
-    const m = ICON_TWIN_OF_TEXT.exec(rolePath);
-    if (!m) continue;
-    const iconPath = `${m[1]}icon.${m[2]}`;
+    if (!TEXT_SEGMENT.test(rolePath)) continue;
+    const iconPath = rolePath.replace(TEXT_SEGMENT, '$1icon.');
+    if (!(iconPath in roles)) continue;                 // no twin in this mode's tree
+    if (iconContrast !== 'text' && !ALWAYS_TWINNED.test(rolePath)) continue;
     if (!(iconPath in ov)) out[iconPath] = ref;         // an explicit icon override wins
   }
   return out;
@@ -2164,7 +2177,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode]));
+  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode], roles, theme.iconContrast));
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
