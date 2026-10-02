@@ -758,6 +758,12 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //   · `applyBusy` ignoring the agent's run → `S11 during an agent's Apply the panel's Apply Theme is busy …`.
 //   · `runApply`'s busy guard removed → `S11 clicking the busy Apply Theme posts nothing …`.
 //   · the status line's start announcement removed → `S11 the start is announced once …`.
+//   · a clean result leaving its row expanded → `S11 a clean result collapses its row …`.
+//   · `HISTORY_MAX` set to 6 → `S11 the history keeps exactly five earlier results …`.
+//   · the hover hold, or the focus hold, removed from the collapse → `S11 the collapse waits while the pointer …` / `… while focus …`.
+//   · the reveal expanding the first row, not the asked one → `S11 clicking it opens the drawer with the Set up file row expanded …`.
+//   · Read-back's verdict back to the host's sentence → `S11 a failing read-back reads "2 mismatches" …`.
+//   · the page pill's caret dropped → `S11 the page row's verdict keeps its caret …`.
 {
   const { page, errors } = await openPanel();
   await page.evaluate(() => {
@@ -775,6 +781,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
       agent: !!agent && !agent.hidden,
       phase: [...(row?.querySelectorAll('[data-p3="op-progress"]') ?? [])].map((n) => n.textContent),
+      expanded: row?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') ?? null,
       history: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null,
       drawerOpen: drawer?.dataset.open === 'true',
       applyDisabled: apply ? apply.disabled : null,
@@ -809,6 +816,8 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const landed = await readOp('apply');
   ok(landed.state === 'ok' && (landed.verdict ?? '').includes('✓ 42 roles written') && landed.agent,
     `S11 the agent's verdict lands on the row, still tagged Agent — state ${landed.state}, verdict ${JSON.stringify(landed.verdict)}, agent ${landed.agent}`);
+  ok(running.expanded === 'true' && landed.expanded === 'false',
+    `S11 a clean result collapses its row (#483, owner decision #1 on #1956), which a run had opened — running ${running.expanded}, landed ${landed.expanded}`);
 
   await post(page, { type: 'agent-finished', id: 'a1', cmd: 'apply-theme' });
   await page.waitForTimeout(100);
@@ -829,6 +838,23 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(reverted.state === 'ok' && (reverted.verdict ?? '').includes('✓ 42 roles written') && reverted.history === null,
     `S11 a run that finishes with no verdict reverts the row to its last result — state ${reverted.state}, verdict ${JSON.stringify(reverted.verdict)}, history ${JSON.stringify(reverted.history)}`);
 
+  // Seven more runs, each with its own verdict: the row holds the newest, and the history exactly the five
+  // before it (concept v6). Seven, not six, so a cap of six would show six rather than coincide.
+  for (let i = 1; i <= 7; i++) {
+    await post(page, { type: 'agent-started', id: `h${i}`, cmd: 'apply-theme' });
+    await settle('apply', 'running');
+    await post(page, { type: 'apply-result', ok: true, headline: `✓ ${i} roles written`, summary: `${i} roles written` });
+    await page.waitForFunction((w) => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '') === w, `✓ ${i} roles written`, { timeout: 5000 }).catch(() => {});
+    await post(page, { type: 'agent-finished', id: `h${i}`, cmd: 'apply-theme' });
+  }
+  const kept = await page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
+    return { summary: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => n.textContent ?? '') };
+  });
+  const wantItems = [6, 5, 4, 3, 2].map((i) => `✓ ${i} roles written`);
+  ok(kept.summary === 'Earlier results (5)' && kept.items.length === 5 && kept.items.every((t, j) => t.includes(wantItems[j])),
+    `S11 the history keeps exactly five earlier results, newest first — read ${JSON.stringify(kept.summary)}, ${JSON.stringify(kept.items.map((t) => t.replace(/^\d\d:\d\d · /, '')))}`);
+
   await post(page, { type: 'agent-started', id: 'b1', cmd: 'build-components' });
   await post(page, { type: 'agent-progress', id: 'b1', progress: { phase: 'build', done: 24, total: 648 } });
   await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"]')].some((n) => /24 of 648/.test(n.textContent ?? '')), null, { timeout: 5000 }).catch(() => {});
@@ -845,25 +871,82 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 }
 
 // ── S11: a page row's verdict opens the Activity drawer on that operation's row ─────────────────────
+//
+// Two rows, the asked-for one second and neither expanded (both clean, so both collapsed, #483): a reveal
+// that expanded the first row, or every row, cannot pass by coinciding with the target.
 {
   const { page, errors } = await openPanel();
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 7000 }).catch(() => {});
-  const closed = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
-  ok(closed === 'false', `S11 a clean file-setup verdict collapses the drawer by itself — data-open ${closed}`);
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="activity-op"]').length === 2, null, { timeout: 5000 }).catch(() => {});
+  const before = await page.evaluate(() => ({
+    order: [...document.querySelectorAll('[data-p3="activity-op"]')].map((n) => n.dataset.op),
+    expanded: [...document.querySelectorAll('[data-p3="activity-op"] [data-p3="op-head"]')].map((n) => n.getAttribute('aria-expanded')),
+    open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open,
+  }));
+  ok(JSON.stringify(before.order) === '["apply","filesetup"]' && before.expanded.every((e) => e === 'false') && before.open === 'false',
+    `S11 reveal premise: two clean rows, Set up file second, neither expanded, the drawer closed — ${JSON.stringify(before)}`);
   const pill = page.locator('[data-p3="file-setup-row"] [data-p3="status-verdict"]');
+  const caret = await pill.evaluate((n) => { const c = n.querySelector('.caret'); return c ? { text: c.textContent, hidden: c.getAttribute('aria-hidden'), name: n.getAttribute('aria-label') } : null; }).catch(() => null);
+  ok(caret?.text === '▾' && caret.hidden === 'true' && (caret.name ?? '').startsWith('✓ file set up'),
+    `S11 the page row's verdict keeps its caret (owner decision #5 on #1956), hidden from its name — read ${JSON.stringify(caret)}`);
   const clicked = await hooks.click(pill, { timeout: 4000 }).then(() => true, () => false);
   ok(clicked, 'S11 the file-setup verdict on the page row can be clicked');
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
   const shown = await page.evaluate(() => {
-    const row = document.querySelector('[data-p3="activity-op"][data-op="filesetup"]');
-    const head = row?.querySelector('[data-p3="op-head"]');
-    const sum = row?.querySelector('[data-p3="op-summary"]');
-    return { open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', expanded: head?.getAttribute('aria-expanded'), summary: sum && sum.checkVisibility() ? sum.textContent : null };
+    const head = (k) => document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-head"]`)?.getAttribute('aria-expanded');
+    const sum = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]');
+    return { open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', expanded: head('filesetup'), other: head('apply'), summary: sum && sum.checkVisibility() ? sum.textContent : null };
   });
-  ok(shown.open && shown.expanded === 'true' && (shown.summary ?? '').includes('6 pages added'),
-    `S11 clicking it opens the drawer with the Set up file row expanded — open ${shown.open}, expanded ${shown.expanded}, summary ${JSON.stringify(shown.summary)}`);
+  ok(shown.open && shown.expanded === 'true' && shown.other === 'false' && (shown.summary ?? '').includes('6 pages added'),
+    `S11 clicking it opens the drawer with the Set up file row expanded, and only that row — open ${shown.open}, expanded ${shown.expanded}, Apply Theme ${shown.other}, summary ${JSON.stringify(shown.summary)}`);
   ok(errors.length === 0, `S11 reveal: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── S11: the 4 s collapse waits while the pointer, or focus, is inside the drawer (concept v6) ──────────
+//
+// The drawer opens by itself on a run; the clean verdict schedules the collapse COLLAPSE_MS (4 s) later.
+// Held, it looks again every COLLAPSE_RECHECK_MS (1.5 s). EXPECTED: still open well past 4 s while held,
+// closed within a recheck of letting go. Each hold is read in its own panel, so one cannot stand in for
+// the other.
+for (const how of ['pointer', 'focus']) {
+  const { page, errors } = await openPanel();
+  await page.mouse.move(1, 1);
+  await post(page, { type: 'agent-started', id: 'c1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
+  // The pointer goes in once the verdict has drawn: opening the drawer moves its bar, so a pointer placed
+  // on the bar before the row appears is no longer inside it.
+  if (how === 'focus') await page.locator('[data-p3="activity-toggle"]').focus();
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+  await post(page, { type: 'agent-finished', id: 'c1', cmd: 'apply-theme' });
+  if (how === 'pointer') await page.locator('[data-p3="activity-op"][data-op="apply"]').hover();
+  await page.waitForTimeout(6000);
+  const held = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
+  ok(held === 'true', `S11 the collapse waits while ${how === 'pointer' ? 'the pointer is' : 'focus is'} inside the drawer — open at 6 s: ${held}`);
+  if (how === 'pointer') await page.mouse.move(1, 1);
+  else await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 3000 }).catch(() => {});
+  const let_go = await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open);
+  ok(let_go === 'false', `S11 control: once the ${how} leaves, the drawer collapses within a recheck — open ${let_go}`);
+  ok(errors.length === 0, `S11 ${how} hold: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── S11: Read-back's row shows a short verdict, the host's sentence in its details (owner decision #3) ──
+{
+  const SENTENCE = 'Existing theme: 268 color vars, modes light — FAILED: declaredModes, plannedModes';
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'seed-info', ok: false, present: true, summary: SENTENCE, failed: 2 });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="readback"]'), null, { timeout: 5000 }).catch(() => {});
+  const rb = await page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+    const sum = row?.querySelector('[data-p3="op-summary"]');
+    return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sum && sum.checkVisibility() ? sum.textContent : null };
+  });
+  ok(rb.state === 'bad' && rb.verdict === '2 mismatches' && (rb.summary ?? '').includes(SENTENCE),
+    `S11 a failing read-back reads "2 mismatches", its sentence showing in the row's details — state ${rb.state}, verdict ${JSON.stringify(rb.verdict)}, summary ${JSON.stringify(rb.summary)}`);
+  ok(errors.length === 0, `S11 read-back: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
