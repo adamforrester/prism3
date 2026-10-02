@@ -1340,6 +1340,11 @@ for (const how of ['pointer', 'focus']) {
 //   · the "nothing chosen yet" guard removed → `#1994 guard: an unreadable restore after a brand was chosen …`.
 //   · Design tokens left enabled after a failed restore (#2007) → `#2007 <kind>: Export's Design tokens is off …`,
 //     one per failure.
+//   · a load not clearing `rejected` → `#2007 rejected: choosing an example … turns the writes back on …`.
+//   · `rejected`/`unreadable` cleared on any `origin` change again (so "New brand" clears them) → `#2007 New brand: …`.
+//   · the late-restore guard applied to `unreadable` only → `#2007 guard: a rejected restore after a brand was chosen …`.
+//   · `rejected`'s bar back to "until a brand resolves", or the tooltip back to the old wording → `#2007 rejected: the
+//     bar says the writes are off "until a brand loads" …`.
 {
   const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
   const capture = (page) => page.evaluate(() => {
@@ -1420,11 +1425,13 @@ for (const how of ['pointer', 'focus']) {
     return { ...st, file: dl ? dl.suggestedFilename() : null };
   };
   const tokensOff = (t) => t.off === true && t.file === null && (t.note ?? '').includes("these tokens would be the demo brand's");
-  /** Choose an example from the brand menu. No edits are at risk here, so no overwrite confirm is asked. */
+  /** Choose an example from the brand menu, answering the overwrite confirm when edits are at risk. */
   const chooseExample = async (page) => {
     await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
     const name = await page.locator('[data-p3="brand-menu-example"]').first().textContent().catch(() => null);
     await hooks.click(page.locator('[data-p3="brand-menu-example"]').first(), { timeout: 4000 }).catch(() => {});
+    // After a demo edit there are edits to lose, so the choice asks first (#1033); answering it is the load.
+    if (await page.locator('[data-p3="overwrite-replace"]').count()) await hooks.click(page.locator('[data-p3="overwrite-replace"]'), { timeout: 4000 }).catch(() => {});
     await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
     return (name ?? '').trim();
   };
@@ -1464,6 +1471,10 @@ for (const how of ['pointer', 'focus']) {
     const off = await read(page);
     ok((off.bar ?? '').includes("This file's saved brand didn't resolve") && (off.bar ?? '').includes("'bogus'"),
       `#1994 rejected: the error bar says the file's brand did not resolve and names the refused mode — read ${JSON.stringify((off.bar ?? '').slice(0, 140))}`);
+    // Owner copy by kind: only a LOAD ends this one, so the bar says "loads", and the tooltip is the one wording.
+    const hint = await page.evaluate(() => document.querySelector('[data-p3="apply-to-figma"]')?.title ?? null);
+    ok((off.bar ?? '').includes('are off until a brand loads.') && hint === "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.",
+      `#2007 rejected: the bar says the writes are off "until a brand loads", and the tooltip is the one approved wording — bar ${JSON.stringify((off.bar ?? '').slice(-110))}, tooltip ${JSON.stringify(hint)}`);
     ok(allOff(off), `#1994 rejected: Apply Theme, Prune stale and Delete are off — ${JSON.stringify(off)}`);
     const t = await tryWrites(page);
     ok(t.deleteOff === true && t.posted.length === 0,
@@ -1483,6 +1494,16 @@ for (const how of ['pointer', 'focus']) {
       `#1994 rejected: Export design.md writes the file's brand that failed, and says so — file ${JSON.stringify(ex.file?.name ?? null)}, names bogus ${!!ex.file?.text.includes('bogus')}, note ${JSON.stringify(ex.note)}`);
     const tk = await exportTokensTry(page);
     ok(tokensOff(tk), `#2007 rejected: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
+    // A LOAD is what turns them back on (review of #2007: untested for this kind until now).
+    const example = await chooseExample(page);
+    const on = await read(page);
+    ok(on.bar === null && allOn(on), `#2007 rejected: choosing an example (${JSON.stringify(example)}) turns the writes back on and clears the bar — ${JSON.stringify(on)}`);
+    await page.evaluate(() => { window.__writes = []; });
+    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
+    const posted = await writes(page);
+    ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === example,
+      `#2007 rejected: after the example choice, Apply posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
     ok(errors.length === 0, `#1994 rejected: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -1512,6 +1533,31 @@ for (const how of ['pointer', 'focus']) {
     await page.close();
   }
 
+  // 5. "New brand" is not a load (review of #2007). It puts the start screen up and loads nothing, so the
+  //    failure must survive it: the start screen keeps the error bar saying why. Export is not on the start
+  //    screen, and every way off it loads a brand, which is what then ends the failure (checked last).
+  {
+    const { page, errors } = await openPanel();
+    await capture(page);
+    await post(page, { type: 'restore-input', input: { ...base, id: 'rejected-brand', modes: ['light', 'bogus'] } });
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="brand-menu-new"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.need(page, '[data-p3="start-screen"]', { timeout: 5000 }).catch(() => {});
+    const onStart = await page.evaluate(() => {
+      const b = document.querySelector('[data-p3="error-bar"]');
+      return { start: !!document.querySelector('[data-p3="start-screen"]'), bar: b && b.checkVisibility() ? b.textContent : null };
+    });
+    ok(onStart.start && (onStart.bar ?? '').includes("This file's saved brand didn't resolve"),
+      `#2007 New brand: the start screen still says the file's brand did not resolve — "New brand" loads nothing, so the failure stands — start screen ${onStart.start}, bar ${JSON.stringify((onStart.bar ?? '').slice(0, 80))}`);
+    await hooks.click(page.locator('[data-p3="start-example"]').first(), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    const on = await read(page);
+    ok(on.bar === null && allOn(on), `#2007 New brand: leaving the start screen with an example is a load, and turns the writes back on — ${JSON.stringify(on)}`);
+    ok(errors.length === 0, `#2007 New brand: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+
   // 4. The guard: once a designer has chosen a brand, a late unreadable restore is not a reason to turn
   //    the writes off. They post the chosen brand, not the demo.
   {
@@ -1522,6 +1568,11 @@ for (const how of ['pointer', 'focus']) {
     const st = await read(page);
     ok(!!example && allOn(st) && !/couldn't be read/.test(st.bar ?? ''),
       `#1994 guard: an unreadable restore after a brand was chosen leaves the writes on — chose ${JSON.stringify(example)}, ${JSON.stringify(st)}`);
+    await post(page, { type: 'restore-input', input: { ...base, id: 'late-rejected', modes: ['light', 'bogus'] } });
+    await page.waitForTimeout(500);
+    const st2 = await read(page);
+    ok(allOn(st2) && !/didn't resolve/.test(st2.bar ?? ''),
+      `#2007 guard: a rejected restore after a brand was chosen leaves the writes on too — ${JSON.stringify(st2)}`);
     // CONTROL for the no-download arms above: with nothing failed, the same forced click does download.
     const tk = await exportTokensTry(page);
     ok(tk.off === false && !!tk.file && tk.note === null,

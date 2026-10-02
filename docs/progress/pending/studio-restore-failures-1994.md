@@ -49,6 +49,23 @@ must not re-enable, both Export behaviors, and the guard.
 artifact choice and the import slot "↑ Brand brief…"). A loose `hasText` match is refused as ambiguous, and
 a caught click then reads as the wrong artifact downloading. The locator is anchored (`/^Brand brief$/`).
 
+### Review fixes (orchestrator, at `3e59156c`)
+
+- **A load ends `rejected` and `unreadable`, and nothing else does.** The clear moved from an `origin`
+  subscriber into `loadBrand` (the one caller of `loadInput`). The subscriber also heard "New brand"
+  (`clearOrigin`), which loads nothing, and dropped the error bar and the Export rescue with it. The start
+  screen it leads to shows the bar but not Export, and every way off the start screen is a load, so the test
+  holds the bar on the start screen and then the load that ends the failure.
+- **Test gaps closed.** The rejected arm now loads a brand afterwards (Apply comes back and posts that
+  example), and the guard arm covers a late rejected restore as well as an unreadable one. A mutation the
+  orchestrator ran (`rejected` never cleared) had survived 250/250.
+- **Copy by kind (owner):** string 6 keeps "until a brand resolves" for `unresolved` and says "until a
+  brand loads" for `rejected`. String 7 is one wording for every kind: "Off until a brand loads. This file's
+  saved brand didn't open, and writing now would put the demo brand over it." Strings 8–10 are approved.
+
+**A second trap:** a demo edit makes the next brand choice ask "Replace the current brand?" first (#1033),
+so a test that edits and then picks an example has to answer the confirm, or nothing loads.
+
 ### Design tokens, too (owner, on #2007)
 
 After a failed restore, Export's Design tokens Download is off as well, with a note: the tokens on hand are

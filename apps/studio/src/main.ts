@@ -244,8 +244,7 @@ const syncErrorBar = (): void => {
   globalErrHost.hidden = !lastError && !restoreFailure;
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
-  if (restoreFailure?.kind === 'unreadable') globalErrHost.textContent = `This file's saved brand couldn't be read: ${restoreFailure.reason} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`;
-  else if (restoreFailure) globalErrHost.textContent = `This file's saved brand didn't resolve: ${restoreFailure.reason} Apply Theme and Prune stale are off until a brand resolves. Load an example or import a design.md to continue.`;
+  if (restoreFailure) globalErrHost.textContent = RESTORE_BAR[restoreFailure.kind](restoreFailure.reason);
   else if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -5377,6 +5376,8 @@ const loadBrand = (input: BrandInput, origin: Origin): void => {
   // `loadInput` sets the page before it resolves the new brand, so the `page` subscriber must not
   // render mid-load: the `build()` below is the one render, against the resolved brand.
   loading = true;
+  // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
+  if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
   try { loadInput(input, origin); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   build();
@@ -6151,7 +6152,9 @@ const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentR
  *   - `unreadable`: the host could not deserialize it (`restore-input-error`, #480). No brand arrives at all.
  * In both, the DEMO is what is loaded and its edits rebuild cleanly, so "the first rebuild that resolves"
  * cannot be what turns the writes back on: a demo edit would, and Apply would post it over the file. They
- * clear when a brand LOADS (`origin`, which every load invalidates). `unresolved` keeps #1989's rule, since
+ * clear when a brand LOADS, in `loadBrand` (the one caller of `loadInput`), and on nothing else: an `origin`
+ * subscriber also heard "New brand" (`clearOrigin`), which loads nothing, and dropped the error bar and the
+ * Export rescue with it (review of #2007). `unresolved` keeps #1989's rule, since
  * there `brandState` is the file's own brand and a rebuild that resolves is that brand, fixed.
  *
  * `brand` is what Export design.md writes in this state: the file's brand that failed, never the demo, and
@@ -6160,7 +6163,6 @@ const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentR
 type RestoreFailure = { kind: 'unresolved' | 'rejected' | 'unreadable'; reason: string; brand: BrandInput | null };
 let restoreFailure: RestoreFailure | null = null;
 subscribe('brand', () => { if (restoreFailure?.kind === 'unresolved' && !lastError) restoreFailure = null; });
-subscribe('origin', () => { if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null; });
 /** The file's failed brand as a design.md, or null when it cannot be written as one. */
 const failedBrandOf = (input: unknown): BrandInput | null => {
   try { toDesignMd(input as BrandInput); return input as BrandInput; } catch { return null; }
@@ -6168,7 +6170,15 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
-const RESTORE_OFF_HINT = "Off until a brand resolves. This file's saved brand did not, and writing now would put the demo brand over it.";
+/** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
+ *  rebuild that resolves also ends it; the other two end only when a brand loads. */
+const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
+  unresolved: (r) => `This file's saved brand didn't resolve: ${r} Apply Theme and Prune stale are off until a brand resolves. Load an example or import a design.md to continue.`,
+  rejected: (r) => `This file's saved brand didn't resolve: ${r} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`,
+  unreadable: (r) => `This file's saved brand couldn't be read: ${r} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`,
+};
+/** The tooltip on every write that is off after a failed restore: one wording for every kind (owner). */
+const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.";
 
 /** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
  *  the state. */
