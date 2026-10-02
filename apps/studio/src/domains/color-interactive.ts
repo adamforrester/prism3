@@ -3,12 +3,17 @@
  *
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`, titled as the preview's sections (owner decision
  * Q51): the intro, then jump links to each button set (Q33; "column" in code, never in copy, Q53);
- * **Interactive** (the action palette, the outline hover, the neutral emphasis, a group per button set,
- * Primary, Neutral, Destructive, then each accent, every color it carries as a row, its hover and pressed under
- * it, then the add row; and the strict contrast switch); **Disabled** (the disabled contrast and its floor);
- * **Links** (the link palette, the three state rungs, and the four link families' resting link); **Icons**
- * (the icon contrast floor; moving it back to match text re-pairs through `pairIcons`, asking first when icon
- * overrides would be cleared, Q52, Q60). Every lever is shown (R2). Last, the way on to Type.
+ * **Interactive** (the page-wide settings, the action palette, the outline hover and the strict contrast switch,
+ * QA-I5; then a group per button set, Primary, Neutral, Destructive, then each accent, every color it carries as a
+ * row, its hover and pressed under it, the Neutral set opening on its neutral emphasis, QA-I6; then the dashed add
+ * button, whose color select shows only once it is clicked, QA-I4); **Disabled** (the "Full contrast" switch, and
+ * the floor chips only while it is off, QA-I8); **Links** (the link palette, the three state rungs, each select
+ * on its own line, QA-I9, and the four link families' resting link). Every lever is shown (R2), except the floor
+ * chips under Full. Last, the way on to Type.
+ *
+ * NO ICONS SECTION (S5.3, the owner's QA-I10): the icon contrast control left this page. Surfaces & fills' Icon
+ * section writes `iconContrast` (Unpair and Pair), and the preview dropped its Icons section with it, so the lever
+ * sections and the preview's still match one for one (Q23).
  *
  * EVERY PER-COLUMN COLOR IS A ROW (owner decision Q33, replacing v6's "per-role in the Roles matrix only",
  * which Q31 deferred): `INTERACTIVE_ROWS` / `interactiveRowsFor` in `state/interactive-input.ts`, in the
@@ -35,7 +40,7 @@
 import { normalizeDisabledStrategy } from '@prism3/engine/theme';
 import { brandState, currentMode, getPath, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { PAIR_ICONS_CONFIRM, iconOverrideCount, overrideOf, pairIcons, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
+import { overrideOf, rolesIn, stepHex, stepOfPath, stepsOf } from '../state/fills-input';
 import {
   BUILT_IN_COLUMNS, LINK_ROWS, addAccent, anchorOf, baselineAnchorStepOf, baselineStepOf, interactivePaletteOf, interactiveRowsFor,
   removeAccent, setLever, setLinkPalette, setLinkRung, setStrictInteractiveContrast, stepKeyOf, writeInteractiveRow,
@@ -45,7 +50,7 @@ import { paletteRefOptions } from '../levers/controls';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, inlineConfirm, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { addRowButton, choice, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
 /** The button sets lever's info text (owner-approved, 2026-10-02). */
@@ -66,6 +71,13 @@ export const BUTTON_SET_COPY = {
   remove: 'Remove button set',
   removeLabel: (name: string): string => `Remove the ${name} button set`,
   landmark: 'Button sets',
+} as const;
+/** The Disabled switch (the owner's QA-I8 answer, APPROVED verbatim, 2026-10-02): its label and its caption
+ *  in each state. */
+export const DISABLED_SWITCH = {
+  label: 'Full contrast',
+  on: 'Disabled controls keep full contrast.',
+  off: 'Disabled controls drop to the floor you pick.',
 } as const;
 /** The link palette's Auto (owner decision Q36). */
 export const LINK_AUTO = 'Auto: follows action palette';
@@ -99,8 +111,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   let lastEdited: string | null = null;
   let items: Item[] = [];
   const pickers = new Map<string, () => void>();
-  /** True while the re-pair confirm is open under the icon contrast lever (owner decisions Q52, Q60). */
-  let confirmPair = false;
+  /** True once Add button set is clicked: the color select, the add and Cancel show in its place (QA-I4). */
+  let adding = false;
 
   const edit = (key: string, write: () => void): void => {
     lastEdited = key;
@@ -114,40 +126,14 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   /** Which mode the rows edit; nothing in a derived mode, which says so once at the top. */
   const editingLine = (): HTMLElement | null => isDerived(currentMode) ? null : subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
 
-  /** The icon contrast lever's pick (owner decisions Q52, Q60). Re-pairing icons with text (`'text'`) clears every
-   *  icon override, so it goes through `pairIcons`, never `setLever`: at once with no icon override to lose,
-   *  otherwise after the confirm in `PAIR_ICONS_CONFIRM`'s words, the lever staying on the brand's value until
-   *  Pair icons. Cancel writes nothing. The other value is a plain lever write. */
-  const pickIconContrast = (v: string): void => {
-    if (v !== 'text') { edit('iconContrast', () => setLever('iconContrast', v)); return; }
-    if (!iconOverrideCount()) { edit('iconContrast', () => pairIcons()); return; }
-    confirmPair = true;
-    render();
-  };
-
   // ── an enum lever as chips (#1675's rule: two to four options) ──────────────────────────────────
   const enumLever = (key: string): Item => {
     const L = leverOf(key)!;
     const b = leverBlock(key, { group: true });
     const role = `${b.el.getAttribute('data-p3')!.slice('lever-'.length)}-chips`;
-    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })),
-      (v) => (key === 'iconContrast' ? pickIconContrast(v) : edit(key, () => setLever(key, v))));
+    const c = choice(L.label, role, (L.options ?? []).map((o) => ({ v: String(o.value), l: o.label })), (v) => edit(key, () => setLever(key, v)));
     c.set(String(getPath(brandState, key) ?? L.default));
     b.ctl.append(c.el);
-    if (key === 'iconContrast') {
-      const n = iconOverrideCount();
-      if (confirmPair && n && !isDerived(currentMode)) {
-        b.ctl.append(inlineConfirm('icons-pair-confirm', {
-          title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
-          onConfirm: () => { confirmPair = false; edit('iconContrast', () => pairIcons()); },
-          onCancel: () => { confirmPair = false; render(); },
-          back: () => root.querySelector<HTMLElement>(`[data-p3="${role}"] [aria-checked="true"]`),
-        }));
-      } else confirmPair = false;
-    }
-    if (key === 'disabledStrategy' && normalizeDisabledStrategy(getPath(brandState, key) as string | undefined) === 'full') {
-      b.setState(stateLine('At 4.5:1 a disabled label reads like body text. The disabled cue rests on fill, border and cursor.'));
-    }
     return { el: b.el, said: b.said, key, block: b };
   };
 
@@ -344,26 +330,50 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         head.append(rm);
       }
       grp.append(head);
+      // The neutral emphasis opens the Neutral set (the owner's QA-I6): it sets how bold that set's fill is.
+      if (col === 'neutral') { const ne = enumLever('neutralEmphasis'); grp.append(ne.el); out.push(ne); }
       const list = h('div', 'p3-fillrows');
       rowsInGroups(rows, list, out);
       grp.append(list);
       box.append(grp);
     });
     // The add row, in every mode (Q54): the list is mode-independent. The promotable list is the legacy page's (Q35).
+    // S5.3 (the owner's QA-I4): the dashed Add button set first; the color select only once it is clicked, with the
+    // add and Cancel beside it. Cancel, or Escape in the form, writes nothing and puts the dashed button back.
     {
       const add = hook(h('div', 'p3-icol-add'), 'column-add');
       const already = new Set((brandState.interactivePalettes ?? []).map((e) => e.palette));
       const actionPal = theme.roleToPalette.action;
       const promotable = ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_COLUMNS.has(p));
-      if (!promotable.length) add.append(hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint'));
-      else {
+      const reopen = (): void => root.querySelector<HTMLElement>('[data-p3="column-add-open"]')?.focus();
+      if (!promotable.length) { adding = false; add.append(hook(subLine(ADD_COLUMN_HINT), 'column-promote-hint')); }
+      else if (!adding) {
+        add.append(addRowButton('column-add-open', BUTTON_SET_COPY.add, () => {
+          adding = true;
+          render();
+          root.querySelector<HTMLElement>('#p3-promote')?.focus();
+        }));
+      } else {
+        const form = hook(h('div', 'p3-icol-addform'), 'column-add-form');
+        const lab = h('label', 'p3-field-label', BUTTON_SET_COPY.select);
+        lab.htmlFor = 'p3-promote';
         const s = selectField('p3-promote', BUTTON_SET_COPY.select, 'column-promote-select', () => {});
         s.set(promotable.map((p) => ({ v: p, l: capWord(p) })), promotable[0]);
         const go = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote');
         go.type = 'button';
         go.append(glyph('plus'), h('span', 'p3-btn-label', BUTTON_SET_COPY.add));
-        go.onclick = () => edit('interactivePalettes', () => addAccent(s.select.value));
-        add.append(s.el, go);
+        go.onclick = () => { adding = false; edit('interactivePalettes', () => addAccent(s.select.value)); reopen(); };
+        // "Cancel" is the inline confirm's word (`inlineConfirm`, `ui/lever-kit.ts`), reused.
+        const cancel = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote-cancel');
+        cancel.type = 'button';
+        cancel.append(h('span', 'p3-btn-label', 'Cancel'));
+        const close = (): void => { adding = false; render(); reopen(); };
+        cancel.onclick = close;
+        form.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } });
+        const row = h('div', 'p3-icol-addrow');
+        row.append(s.el, go, cancel);
+        form.append(lab, row);
+        add.append(form);
       }
       box.append(add);
     }
@@ -383,7 +393,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   // ── Links: the rungs and the four families' resting link ─────────────────────────────────────────
   const rungs = (): Item => {
     const b = leverBlock('linkStateRungs', { group: true });
-    const grid = h('div', 'p3-fieldgrid');
+    // One select to a line, the full width of the panel, so no option label is cut short (the owner's QA-I9).
+    const grid = h('div', 'p3-fieldgrid p3-irungs');
     for (const st of ['hover', 'pressed', 'visited'] as LinkRungState[]) {
       const f = h('div', 'p3-field');
       const id = `p3-link-rung-${st}`;
@@ -407,17 +418,30 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     return [{ el: box, said: '', key: 'linkFamilies' }, ...out];
   };
 
-  // ── Legibility: the disabled floor as four chips, off under Full (owner decision Q37) ──────────────
-  const disabledMin = (): Item => {
+  // ── Disabled: the "Full contrast" switch, and the floor as four chips while it is off (QA-I8, Q37) ─────
+  const isFull = (): boolean => normalizeDisabledStrategy(getPath(brandState, 'disabledStrategy') as string | undefined) === 'full';
+  /** On writes `'full'`, off writes `'reduced'`: the two values the segmented control it replaces wrote, so the
+   *  persisted brand is the same byte for byte. Under Full it keeps the approved Full note (#1974). */
+  const disabledSwitch = (): Item => {
+    const b = leverBlock('disabledStrategy', { label: DISABLED_SWITCH.label, forId: 'p3-disabled-switch' });
+    const full = isFull();
+    const sw = switchButton('p3-disabled-switch', DISABLED_SWITCH.label, 'disabled-full-switch', { on: 'On', off: 'Off' },
+      (on) => edit('disabledStrategy', () => setLever('disabledStrategy', on ? 'full' : 'reduced')));
+    sw.set(full);
+    const caption = full ? DISABLED_SWITCH.on : DISABLED_SWITCH.off;
+    b.ctl.append(sw.el, hook(subLine(caption), 'disabled-full-caption'));
+    if (full) b.setState(stateLine('At 4.5:1 a disabled label reads like body text. The disabled cue rests on fill, border and cursor.'));
+    return { el: b.el, said: `${b.said} ${caption}`.toLowerCase(), key: 'disabledStrategy', block: b };
+  };
+  /** The floor chips, drawn only while the switch is off: under Full the floor is 4.5:1 and the chips do nothing. */
+  const disabledMin = (): Item[] => {
+    if (isFull()) return [];
     const L = leverOf('disabledMin')!;
     const b = leverBlock('disabledMin', { group: true });
-    const full = normalizeDisabledStrategy(getPath(brandState, 'disabledStrategy') as string | undefined) === 'full';
     const c = choice(L.label, 'disabled-min-chips', [3, 3.5, 4, 4.5].map((v) => ({ v: String(v), l: `${v}:1` })), (v) => edit('disabledMin', () => setLever('disabledMin', Number(v))));
-    c.set(full ? '' : String(getPath(brandState, 'disabledMin') ?? L.default));
-    if (full) for (const x of c.el.querySelectorAll('button')) x.disabled = true;
+    c.set(String(getPath(brandState, 'disabledMin') ?? L.default));
     b.ctl.append(c.el);
-    if (full) b.setState(stateLine('Full fixes the disabled floor at 4.5:1, so this has no effect.'));
-    return { el: b.el, said: b.said, key: 'disabledMin', block: b };
+    return [{ el: b.el, said: b.said, key: 'disabledMin', block: b }];
   };
 
   const one = (f: () => Item): (() => Item[]) => () => [f()];
@@ -428,7 +452,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     toggle: one(strict),
     linkStateRungs: one(rungs),
     linkFamilies,
-    disabledMin: one(disabledMin),
+    disabledSwitch: one(disabledSwitch),
+    disabledMin,
   };
 
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
@@ -519,18 +544,18 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const shown = items.filter((it) => it.said);
     for (const it of shown) it.el.hidden = !!q && !it.said.includes(q);
     for (const g of root.querySelectorAll<HTMLElement>('.p3-irow-group')) g.hidden = !!q && !g.querySelector('.p3-fillrow-wrap:not([hidden])');
-    for (const g of root.querySelectorAll<HTMLElement>('.p3-icol')) g.hidden = !!q && !g.querySelector('.p3-fillrow-wrap:not([hidden])');
+    for (const g of root.querySelectorAll<HTMLElement>('.p3-icol')) g.hidden = !!q && !g.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
     for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) {
       s.hidden = !!q && !s.querySelector(':is(.p3-lever[data-p3]:not([data-p3="lever-interactive-palettes"]), .p3-fillrow-wrap):not([hidden])');
     }
     const cols = root.querySelector<HTMLElement>('[data-p3="lever-interactive-palettes"]');
     const colsItem = items.find((it) => it.key === 'interactivePalettes');
-    if (cols && colsItem?.block) cols.hidden = !!q && !colsItem.block.said.includes(q) && !cols.querySelector('.p3-fillrow-wrap:not([hidden])');
+    if (cols && colsItem?.block) cols.hidden = !!q && !colsItem.block.said.includes(q) && !cols.querySelector(':is(.p3-fillrow-wrap, .p3-lever):not([hidden])');
     for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-jump, .p3-icol-add')) n.hidden = !!q;
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
   };
 
-  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; confirmPair = false; render(); }), subscribe('search', filter));
+  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openRole = null; adding = false; render(); }), subscribe('search', filter));
   cleanups.push(() => { if (searchQuery.trim()) setSearchHits(null); });
   render();
 };

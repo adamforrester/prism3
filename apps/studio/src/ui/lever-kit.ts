@@ -237,6 +237,17 @@ export const switchButton = (id: string, label: string, role: string, words: { o
   };
 };
 
+/** The add button a growing list ends on (V7's dashed add row; the owner's QA-I4, 2026-10-02): full width, a
+ *  dashed edge, a plus and its label. One helper so every list draws one control: Interactive's Add button set
+ *  first, and Brand's Add custom mode and Gradients' Add gradient when they move onto it (QA-R1, QA-B15). */
+export const addRowButton = (role: string, label: string, onClick: () => void): HTMLButtonElement => {
+  const el = hook(h('button', 'p3-btn p3-addrow'), role);
+  el.type = 'button';
+  el.append(glyph('plus'), h('span', 'p3-btn-label', label));
+  el.onclick = onClick;
+  return el;
+};
+
 /** A one-line text field with its own edge (B1), labeled by its lever (`forId`) or by `label`. Writes on
  *  every keystroke when `onInput` is given, and on Enter or blur through `onCommit`. `set` never touches a
  *  focused field, so a caret survives every repaint. */
