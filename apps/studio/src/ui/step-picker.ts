@@ -33,6 +33,8 @@ export type StepPickerOpts = {
   readonly against: { readonly hex: string; readonly name: string; readonly floor: number } | null;
   /** True when the role is overridden now, so Return to Auto has something to undo. */
   readonly overridden: boolean;
+  /** False for a control with no Auto to return to (the page surface, Q21 and Q45): no Return to Auto. */
+  readonly auto?: boolean;
   readonly onPick: (palette: string, step: string) => void;
   readonly onAuto: () => void;
   readonly onClose: () => void;
@@ -74,7 +76,8 @@ export const stepPicker = (o: StepPickerOpts): { el: HTMLElement; focusCurrent: 
   auto.textContent = 'Return to Auto';
   auto.disabled = !o.overridden;
   auto.onclick = () => o.onAuto();
-  tools.append(selWrap, h('span', 'p3-spacer'), auto);
+  tools.append(selWrap, h('span', 'p3-spacer'));
+  if (o.auto !== false) tools.append(auto);
 
   const grid = hook(h('div', 'p3-picker-steps'), 'step-picker-steps');
   let buttons: HTMLButtonElement[] = [];

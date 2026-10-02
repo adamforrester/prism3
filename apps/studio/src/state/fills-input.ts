@@ -18,6 +18,15 @@
  * WHAT S4c CHANGED IN WHAT IS WRITTEN. The link row and its set write (`setLinkOverride`) are gone: links are
  * edited on Color › Interactive only (owner decision Q28, #1961). The Fields rows (Q29, #1962) are new: seven
  * roles that had no editor, each a plain `setRoleOverride`, the write `field.fill` always had.
+ *
+ * WHAT S4d ADDS (owner decisions Q44 to Q50). Rows for the 83 Surfaces & fills roles that had no editor, each a
+ * plain `setRoleOverride` on the palette the engine derives the role from (measured: every one takes a step of
+ * that palette, in light and dark, on all three corpus brands): the subtle fills and the on-color inks, the
+ * inverse ladders, fills, inks and borders, the page borders, and the icons. The icon rows are LOCKED while
+ * icons match text (`iconContrast: 'text'`, the engine's #1968: a text override then carries to its icon twin),
+ * and `unpairIcons` writes the lever's other value, exactly as the lever's own control does. Two roles stay
+ * read-only by declared reason: the focus rings (#1966). The page and the band step keep their writes; only
+ * their control became the step picker (Q45).
  */
 import type { GradientInput } from '@prism3/engine/theme';
 import { BUILTIN_MODES } from '@prism3/engine/modes';
@@ -84,7 +93,18 @@ export const neutralStepOptions = (): Array<{ value: number; label: string }> =>
   const pal = theme.palettes.find((p) => p.palette === theme.roleToPalette.neutral);
   return (pal?.steps ?? []).map((s) => ({ value: Number(s.key), label: `${theme.roleToPalette.neutral} ${s.key}` }));
 };
-/** The page surface: `white`, `black` or a neutral step (the select's value as a string). */
+/** The page's choices as the step picker lists them (owner decision Q45, the select's option set unchanged):
+ *  White, every neutral step by its key, then Black. White and Black are the engine's fixed primitives
+ *  (`core.palette.white`, `.black`), not ramp steps. The picker hands back the key, which `setSurfaceBase`
+ *  writes exactly as the select's value was written (`'050'` and `'50'` are both the number 50). */
+export const pageSteps = (): Array<{ key: string; hex: string }> => {
+  const pal = theme.palettes.find((p) => p.palette === theme.roleToPalette.neutral);
+  return [{ key: 'white', hex: '#ffffff' }, ...(pal?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })), { key: 'black', hex: '#000000' }];
+};
+/** The picker key for a stored page base (`'white'`, `'black'`, or the neutral step's key for a number). */
+export const pageKeyOf = (base: string | number): string =>
+  typeof base === 'number' ? (pageSteps().find((s) => s.key !== 'white' && s.key !== 'black' && Number(s.key) === base)?.key ?? String(base)) : base;
+/** The page surface: `white`, `black` or a neutral step (the select's value, or the picker's key). */
 export const setSurfaceBase = (mode: SurfaceMode, v: string): void => {
   setPath(brandState, `surfaces.${mode}.base`, v === 'white' || v === 'black' ? v : Number(v));
 };
@@ -150,42 +170,86 @@ export const overrideOf = (mode: string, role: string): string | undefined => {
 /** One overridable row: the role, its label, and the palette key its steps come from (`roleToPalette`).
  *  `transparent` marks a fill that is transparent until it is overridden (#1341): its swatch shows the
  *  `ground` it sits on, and a step is judged by the value `ink` on it at `floor`, because the engine measures
- *  the fill against itself (no ratio of its own). */
+ *  the fill against itself (no ratio of its own). `sub` starts a group inside the section (the preview's own
+ *  sub-heading, "Inverse"), drawn before the first row that carries it. `follows` marks an icon row: the text
+ *  role it follows while icons match text (Q50). */
 export type FillRow = {
   readonly role: string; readonly label: string; readonly paletteKey: string;
   readonly transparent?: { readonly ground: string; readonly ink: string; readonly floor: number };
+  readonly sub?: string;
+  readonly follows?: string;
 };
-/** The bold fills (concept v6's five, in the legacy editor's order), then the neutral surface tiers the
- *  legacy Foreground fills editor carried. They stay rows here (owner decision Q20, `decisions-2026-10-01-qa.md`:
- *  every role keeps a normal row; the Roles matrix that was to sit beside them is not built, Q31). */
+/** The five semantic families, in the order the fill rows list them (the legacy Foreground fills editor's). */
+const SEM = [['brand', 'Brand'], ['success', 'Success'], ['warning', 'Warning'], ['info', 'Info'], ['danger', 'Danger']] as const;
+/** The same five in the order the text rows list them (the legacy Text section's). */
+const SEM_TEXT = [['brand', 'Brand'], ['success', 'Success'], ['warning', 'Warning'], ['danger', 'Danger'], ['info', 'Info']] as const;
+/** The three neutral tiers. */
+const TIERS = [['primary', 'Primary'], ['secondary', 'Secondary'], ['tertiary', 'Tertiary']] as const;
+/** The "Inverse" group's sub-heading: the preview sections' own word for the same roles (Q23). */
+export const INVERSE_SUB = 'Inverse';
+/** Mark the first row of a group with its sub-heading. */
+const grouped = (sub: string, rows: FillRow[]): FillRow[] => rows.map((r, i) => (i === 0 ? { ...r, sub } : r));
+/** The Foreground section (owner decision Q44): the neutral ladder of surfaces placed on the page, labeled
+ *  Primary, Secondary and Tertiary, then its inverse ladder, as the preview's Foreground section draws them. */
+export const FOREGROUND_ROWS: readonly FillRow[] = [
+  ...TIERS.map(([k, l]) => ({ role: `foreground.${k}`, label: l, paletteKey: 'neutral' })),
+  ...grouped(INVERSE_SUB, TIERS.map(([k, l]) => ({ role: `inverse.foreground.${k}`, label: l, paletteKey: 'neutral' }))),
+];
+/** The fills (Foreground fills): concept v6's five bold fills, in the legacy editor's order; their subtle tints
+ *  and the on-color inks that sit on the bold fills (Q49: the preview's Foreground section pairs each fill with
+ *  its on-surface text); then the inverse band's bold and subtle fills. The neutral tiers moved to the
+ *  Foreground section (Q44). Every role keeps a normal row (owner decision Q20; the Roles matrix is not built,
+ *  Q31). The on-color inks resolve to white, black or a light neutral step, so they pick neutral steps. */
 export const FILL_ROWS: readonly FillRow[] = [
-  { role: 'foreground.brand', label: 'Brand', paletteKey: 'brand' },
-  { role: 'foreground.success', label: 'Success', paletteKey: 'success' },
-  { role: 'foreground.warning', label: 'Warning', paletteKey: 'warning' },
-  { role: 'foreground.info', label: 'Info', paletteKey: 'info' },
-  { role: 'foreground.danger', label: 'Danger', paletteKey: 'danger' },
-  { role: 'foreground.primary', label: 'Surface — card', paletteKey: 'neutral' },
-  { role: 'foreground.secondary', label: 'Surface — panel', paletteKey: 'neutral' },
-  { role: 'foreground.tertiary', label: 'Surface — nested', paletteKey: 'neutral' },
+  ...SEM.map(([k, l]) => ({ role: `foreground.${k}`, label: l, paletteKey: k })),
+  ...SEM.map(([k, l]) => ({ role: `foreground.${k}-subtle`, label: `${l}, subtle`, paletteKey: k })),
+  ...SEM.map(([k, l]) => ({ role: `text.on-${k}`, label: `On ${l.toLowerCase()}`, paletteKey: 'neutral' })),
+  ...grouped(INVERSE_SUB, [
+    ...SEM.map(([k, l]) => ({ role: `inverse.foreground.${k}`, label: l, paletteKey: k })),
+    ...SEM.map(([k, l]) => ({ role: `inverse.foreground.${k}-subtle`, label: `${l}, subtle`, paletteKey: k })),
+  ]),
 ];
-/** The text rows the legacy page's Text section carried: the neutral ladder, then the semantic inks, each
- *  keyed to its own palette. The link ink is not here: links are edited on Color › Interactive only (owner
- *  decision Q28, #1961). */
-export const TEXT_ROWS: readonly FillRow[] = [
-  { role: 'text.primary', label: 'Primary text', paletteKey: 'neutral' },
-  { role: 'text.secondary', label: 'Secondary text', paletteKey: 'neutral' },
-  { role: 'text.tertiary', label: 'Tertiary text', paletteKey: 'neutral' },
-  { role: 'text.brand', label: 'Brand ink', paletteKey: 'brand' },
-  { role: 'text.success', label: 'Success ink', paletteKey: 'success' },
-  { role: 'text.warning', label: 'Warning ink', paletteKey: 'warning' },
-  { role: 'text.danger', label: 'Danger ink', paletteKey: 'danger' },
-  { role: 'text.info', label: 'Info ink', paletteKey: 'info' },
-  { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand' },
-  { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success' },
-  { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning' },
-  { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger' },
-  { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info' },
+/** The ink rows under `prefix` (`text`, `inverse.text`): the neutral ladder, the semantic inks, then their muted
+ *  forms, each keyed to its own palette, with the labels the legacy page's Text section used. */
+const inkRows = (prefix: string): FillRow[] => [
+  ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} text`, paletteKey: 'neutral' })),
+  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} ink`, paletteKey: k })),
+  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l} ink, muted`, paletteKey: k })),
 ];
+/** The text rows the legacy page's Text section carried, then the inverse band's inks under "Inverse" (Q49).
+ *  The link ink is not here: links are edited on Color › Interactive only (owner decision Q28, #1961). */
+export const TEXT_ROWS: readonly FillRow[] = [...inkRows('text'), ...grouped(INVERSE_SUB, inkRows('inverse.text'))];
+/** The Border section (Q49): the neutral separators and the semantic borders, page then inverse. The focus
+ *  rings are read-only until #1966 (`FOCUS_ROLES`). */
+const borderRows = (prefix: string): FillRow[] => [
+  ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: 'neutral' })),
+  ...SEM.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: k })),
+];
+export const BORDER_ROWS: readonly FillRow[] = [...borderRows('border'), ...grouped(INVERSE_SUB, borderRows('inverse.border'))];
+/** The focus rings: read-only rows in the Border section, their step read out. Customizing them is #1966. */
+export const FOCUS_ROLES = ['border.focus', 'inverse.border.focus'] as const;
+/** The Icon section (Q50): a row per icon role, page then inverse, in the text rows' order with the on-color
+ *  icons last, each naming the text role it follows: `text` swapped for `icon`, the engine's twin rule
+ *  (`withIconTwins` in `modes.ts`). */
+const iconRows = (prefix: string, textPrefix: string, on: boolean): FillRow[] => [
+  ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: 'neutral', follows: `${textPrefix}.${k}` })),
+  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: k, follows: `${textPrefix}.${k}` })),
+  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l}, muted`, paletteKey: k, follows: `${textPrefix}.${k}-subtle` })),
+  ...(on ? SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.on-${k}`, label: `On ${l.toLowerCase()}`, paletteKey: 'neutral', follows: `${textPrefix}.on-${k}` })) : []),
+];
+export const ICON_ROWS: readonly FillRow[] = [...iconRows('icon', 'text', true), ...grouped(INVERSE_SUB, iconRows('inverse.icon', 'inverse.text', false))];
+/** True while icons match text (`iconContrast: 'text'`, the lever's default): the engine then carries a text
+ *  override to its icon twin (#1968), so the icon rows are locked to their text rows (Q50). */
+export const iconsPaired = (): boolean => theme.iconContrast === 'text';
+/** "Unpair icons from text" (Q50): the lever's other value, written as the lever's own control writes it
+ *  (`setLever` in `interactive-input.ts`, `setPath(brandState, key, v)`). */
+export const unpairIcons = (): void => { setPath(brandState, 'iconContrast', '3:1'); };
+/** The text role an icon row is locked to in `mode`, or null when the row is editable. Locked while paired,
+ *  unless the icon carries its own override in that mode: the engine applies an explicit icon override over the
+ *  carried text one (#1968), so that row shows the override it has, with Return to Auto, rather than claim a
+ *  "Follows" the engine is not doing. */
+export const lockedTo = (mode: string, row: FillRow): string | null =>
+  row.follows && iconsPaired() && overrideOf(mode, row.role) === undefined ? row.follows : null;
 /** The Fields rows (owner decision Q29, #1962): every `field.*` role the engine emits, on the page and on the
  *  inverse band. The engine derives all eight from the neutral ramp (`modes.ts`: the borders and the
  *  placeholder walk it, the fills default to `core.palette.transparent`), so each row picks neutral steps.

@@ -1531,6 +1531,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-ratio{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--ink);font-size:10.5px;line-height:1.5;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sg-ratio-no{border-style:dashed}
 .sg-ratio-mk{font-weight:700}
+.sg-tc .sg-ratio{margin-left:auto}
 .sg-grads{display:grid;gap:16px}
 .sg-gcard{display:flex;flex-direction:column;gap:8px;min-width:0}
 .sg-gbar{height:160px;border-radius:var(--r);border:1px solid var(--line)}

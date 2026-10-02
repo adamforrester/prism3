@@ -156,6 +156,11 @@ export type SgCtx = {
   readonly fails: (m: string, k: string) => boolean;
   /** The token chip for a role, as one node or two: the pill, then (on Surfaces & fills) its ratio badge. */
   readonly chip: (k: string, label?: string, m?: string) => HTMLElement[];
+  /** The token pill alone, never a badge (the Text color section's token column, owner decision Q46). */
+  readonly pill: (k: string, label?: string, m?: string) => HTMLElement;
+  /** The ratio badge for a role in mode `m`, or null: on the Style guide (no badges), or for a role measured
+   *  against itself. The Text color section draws one per column (Q46). */
+  readonly badge: (k: string, m?: string) => HTMLElement | null;
   readonly pills: (...nodes: HTMLElement[]) => HTMLElement;
   readonly grid: (cols: number, cards: HTMLElement[]) => HTMLElement;
   /** Mark a painted node with the role and the property it paints, so a test can read its computed color
@@ -218,11 +223,14 @@ export const sgContext = (o: {
     // The inverse badge goes on LAST, so `.sg-failpill`'s marker and the bubble both stay on the pill (#1147).
     return withInverseBadge(path, p);
   };
+  const badge = (k: string, m: string = cur): HTMLElement | null => {
+    if (!o.badges) return null;
+    const r = role(m, k);
+    return ratioBadge(k, r, againstHex(m, r));
+  };
   const chip = (k: string, label?: string, m: string = cur): HTMLElement[] => {
     const pill = sgPill(k, label, m);
-    if (!o.badges) return [pill];
-    const r = role(m, k);
-    const b = ratioBadge(k, r, againstHex(m, r));
+    const b = badge(k, m);
     return b ? [pill, b] : [pill];
   };
   const pills = (...nodes: HTMLElement[]): HTMLElement => { const w = el('div', 'sg-pills'); nodes.forEach((n) => w.append(n)); return w; };
@@ -233,7 +241,7 @@ export const sgContext = (o: {
     if (m !== cur) n.dataset.sgMode = m;
     return n;
   };
-  return { cur, opp: o.opp, modeLabel: o.modeLabel, role, paint, fails, chip, pills, grid, painted };
+  return { cur, opp: o.opp, modeLabel: o.modeLabel, role, paint, fails, chip, pill: sgPill, badge, pills, grid, painted };
 };
 
 /** Re-home a built section's SPECIMENS onto the mode's own canvas: the specimens render the mode's colors,

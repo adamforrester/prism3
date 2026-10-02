@@ -327,8 +327,8 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
 /** Color › Surfaces & fills in the two panes (S4a): the controls its levers must render, by hook. The page draws
  *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
  *  controls, for the previewed mode (owner decision Q22). */
-const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base"]', '[data-p3="surface-floor"]',
-  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step"]', '[data-p3="fill-pick"]',
+const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor"]',
+  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
@@ -374,7 +374,7 @@ const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
 const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts: 5 };
 /** Every chrome control is one of these, by class. A control that is none fails as unclassified. */
-const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
+const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'], ['p3-jump-link', 'jump link'],
   ['p3-seg-tab', 'segment'], ['p3-select', 'select'], ['p3-menu-item', 'menu item'], ['p3-search-input', 'search field'],
   // S2: the levers panel's text fields and sliders, and the step picker's steps.
   ['p3-hex-input', 'text field'], ['p3-range', 'slider'], ['p3-step', 'picker step'],
@@ -2564,15 +2564,25 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
 /** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
  *  tiers and the text inks). Literal; each must render its row once. No link row (S4c, owner decision Q28:
  *  links are edited on Interactive only), so a `text.link.default` row fails below as an unlisted row. */
-const FILL_ROW_ROLES = ['foreground.brand', 'foreground.success', 'foreground.warning', 'foreground.info', 'foreground.danger',
-  'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
-const TEXT_ROW_ROLES = ['text.primary', 'text.secondary', 'text.tertiary', 'text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
-  'text.brand-subtle', 'text.success-subtle', 'text.warning-subtle', 'text.danger-subtle', 'text.info-subtle'];
+const SEM_FILL = ['brand', 'success', 'warning', 'info', 'danger'];
+const SEM_INK = ['brand', 'success', 'warning', 'danger', 'info'];
+const TIERS3 = ['primary', 'secondary', 'tertiary'];
+/** S4d (owner decision Q44): the neutral ladder, page and inverse, in its own Foreground section. */
+const FOREGROUND_ROW_ROLES = [...TIERS3.map((t) => `foreground.${t}`), ...TIERS3.map((t) => `inverse.foreground.${t}`)];
+/** S4d (Q49): the bold fills, then their subtle tints and the on-color inks, then the inverse band's fills. */
+const FILL_ROW_ROLES = [...SEM_FILL.map((s) => `foreground.${s}`), ...SEM_FILL.map((s) => `foreground.${s}-subtle`), ...SEM_FILL.map((s) => `text.on-${s}`),
+  ...SEM_FILL.map((s) => `inverse.foreground.${s}`), ...SEM_FILL.map((s) => `inverse.foreground.${s}-subtle`)];
+const inks = (p) => [...TIERS3.map((t) => `${p}.${t}`), ...SEM_INK.map((s) => `${p}.${s}`), ...SEM_INK.map((s) => `${p}.${s}-subtle`)];
+const TEXT_ROW_ROLES = [...inks('text'), ...inks('inverse.text')];
+/** S4d (Q49): the borders, page and inverse; the focus rings are read-only rows (#1966), below. */
+const BORDER_ROW_ROLES = [...[...TIERS3, ...SEM_FILL].map((s) => `border.${s}`), ...[...TIERS3, ...SEM_FILL].map((s) => `inverse.border.${s}`)];
+/** S4d (Q50): every icon role, page and inverse, each with the text twin it follows while paired. */
+const ICON_ROW_ROLES = [...inks('icon'), ...SEM_INK.map((s) => `icon.on-${s}`), ...inks('inverse.icon')];
 /** The Fields rows (S4c, owner decision Q29): one per field role the default theme EMITS, page and inverse,
  *  read from the committed emission rather than from the page, so a role the engine adds needs a row too. The
  *  count is held to the eight Q29 names, so an empty read fails. */
 /** The read-only rows: the scrim (S4c, the owner's decision of 2026-10-02), a wash with no step to pick. */
-const READONLY_ROW_ROLES = ['scrim.default'];
+const READONLY_ROW_ROLES = ['scrim.default', 'border.focus', 'inverse.border.focus'];
 const FIELD_ROW_ROLES = (() => {
   const out = [];
   const walk = (n, path) => { if (!n || typeof n !== 'object') return; if ('$value' in n) { out.push(path.join('.')); return; } for (const [k, v] of Object.entries(n)) if (!k.startsWith('$')) walk(v, [...path, k]); };
@@ -2646,7 +2656,13 @@ for (const host of ['web', 'figma']) {
     fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
     scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
       controls: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"] :is(button, select, input)').length },
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
+    // Q50: the icon rows, as drawn while the default theme's icons match text.
+    icons: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')].map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })),
+    pairNote: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"] p')?.textContent ?? null,
+    unpair: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]')?.textContent ?? null,
+    focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll('button, select, input').length })),
+    jumps: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="fills-jump-link"]')].map((a) => ({ text: a.textContent, to: document.querySelector(a.getAttribute('href'))?.querySelector('.p3-lsec-title')?.textContent ?? null })),
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]]);
   // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
   // alias and that primitive's alpha.
   const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
@@ -2656,7 +2672,17 @@ for (const host of ['web', 'figma']) {
   ok(c.scrim.rows === 1 && c.scrim.controls === 0 && c.scrim.read === wantScrim,
     `${host}: Background fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
-  for (const r of [...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...FIELD_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  for (const r of [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  // The focus rings (S4d, #1966): read-only rows, no control.
+  ok(JSON.stringify(c.focus) === JSON.stringify([{ role: 'border.focus', controls: 0 }, { role: 'inverse.border.focus', controls: 0 }]), `${host}: Border shows border.focus and inverse.border.focus read-only — read ${JSON.stringify(c.focus)}`);
+  // Q50, paired (the default theme's iconContrast is "text"): every icon row is disabled and says which text role it
+  // follows, the twin named by the engine's rule (\`text\` for \`icon\`), restated here; the note and the button, APPROVED copy.
+  const twin = (r) => r.replace(/(^|\.)icon\./, '$1text.');
+  const badLock = ICON_ROW_ROLES.filter((r) => { const b = c.icons.find((x) => x.role === r); return !b || !b.disabled || b.text !== `Follows ${twin(r)}`; });
+  ok(c.icons.length === ICON_ROW_ROLES.length && badLock.length === 0, `${host}: paired, each of the ${ICON_ROW_ROLES.length} icon rows is locked and reads "Follows text.X"${badLock.length ? ` — not: ${badLock.slice(0, 4).map((r) => `${r} ${JSON.stringify(c.icons.find((x) => x.role === r))}`).join(', ')}` : ''}`);
+  ok(c.pairNote === 'Icons follow their text color. Unpair them to set icons on their own.' && c.unpair === 'Unpair icons from text', `${host}: the Icon section's note and button are the approved copy — read ${JSON.stringify([c.pairNote, c.unpair])}`);
+  // Jump links (Q49): one per section, each to its own section, in order.
+  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 8, `${host}: a jump link to each of the 8 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
   ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
   // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
   const copy = await page.evaluate(() => ({
@@ -2665,9 +2691,11 @@ for (const host of ['web', 'figma']) {
     descs: Object.fromEntries([...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].map((n) => [n.querySelector('.p3-lsec-title')?.textContent, n.querySelector('.p3-lsec-desc')?.textContent ?? null])),
     surfacesName: document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"] .p3-lever-name')?.textContent ?? null,
     modeHeads: document.querySelectorAll('[data-p3="fills-levers"] .p3-modegroup-title').length,
+    fgLabels: [...document.querySelectorAll('[data-p3="fills-levers"] [data-p3="foreground-rows"] .p3-fillrow')].map((n) => [n.dataset.role, n.querySelector('.p3-fill-label')?.textContent]),
+    subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
     // The token a surface control names, read off the label its select is named by (`for`), so it is the
     // control's own label and not text elsewhere in the block.
-    tokens: Object.fromEntries(['surface-base', 'surface-band-palette', 'surface-floor'].map((hk) => {
+    tokens: Object.fromEntries(['surface-base-pick', 'surface-band-palette', 'surface-floor'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
@@ -2675,17 +2703,27 @@ for (const host of ['web', 'figma']) {
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
-  const WANT_TOKENS = { 'surface-base': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
+  const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
-    titles: ['Background fills', 'Foreground fills', 'Text color', 'Fields', 'Gradients'],
+    titles: ['Background fills', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
     'Background fills': 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.',
+    // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
+    Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
+    Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
+    Icon: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.',
     Fields: 'Form field fills, borders and text, in every state.',
   };
+  // Q44: the neutral ladder labeled Primary, Secondary, Tertiary (no "Surface — card / panel / nested"), then its inverse
+  // under the preview's "Inverse" sub-heading, which also heads the inverse group of every other section that has one.
+  const FG_LABELS = [['foreground.primary', 'Primary'], ['foreground.secondary', 'Secondary'], ['foreground.tertiary', 'Tertiary'],
+    ['inverse.foreground.primary', 'Primary'], ['inverse.foreground.secondary', 'Secondary'], ['inverse.foreground.tertiary', 'Tertiary']];
+  ok(JSON.stringify(copy.fgLabels) === JSON.stringify(FG_LABELS), `${host}: the Foreground section's rows are labeled Primary, Secondary, Tertiary (Q44) — read ${JSON.stringify(copy.fgLabels)}`);
+  ok(JSON.stringify(copy.subs) === JSON.stringify(['Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']), `${host}: Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  for (const t of ['Background fills', 'Foreground', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);

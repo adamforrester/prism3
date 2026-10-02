@@ -103,11 +103,18 @@ export const DOMAINS = [
         roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse', 'field', 'inverse.field'],
         sections: [
           { title: 'Background fills', desc: 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
+          // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
+          // Foreground description (Q23). The fills keep Foreground fills.
+          { title: 'Foreground', desc: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.', rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
           // permanent, primary text editor (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's
           // R3). The Roles matrix that was to sit beside them is not built (Q31).
           { title: 'Text color', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
+          // S4d (Q49, Q50): the borders and the icons, page and inverse, as rows, headed and described as the preview's
+          // Border and Icon sections are (Q23). The Icon section's rows are locked while icons match text.
+          { title: 'Border', desc: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.', rows: [{ ctl: 'border', schemaOnly: ['overrides'] }] },
+          { title: 'Icon', desc: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.', rows: [{ ctl: 'icon', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4c): every field role, page and inverse, as rows (owner decision Q29, #1962).
           { title: 'Fields', desc: 'Form field fills, borders and text, in every state.', rows: [{ ctl: 'fields', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },

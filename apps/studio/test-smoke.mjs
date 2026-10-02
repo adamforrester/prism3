@@ -1181,7 +1181,8 @@ console.log(`\nColor › Surfaces & fills — the moved page, against each brand
  *  them before the lift (UI redesign S4a), which both pages must keep drawing. */
 const SEM5 = ['brand', 'danger', 'success', 'warning', 'info'];
 const EXPECT_SECTION_CHIPS = {
-  Background: ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary', 'inverse.text.primary',
+  // S4d (owner decision Q47): no "Inverse text" sample on the inverse Primary card, so no inverse.text.primary chip.
+  Background: ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary',
     'inverse.background.secondary', 'inverse.background.tertiary', 'scrim.default'],
   Foreground: ['foreground.primary', 'foreground.secondary', 'foreground.tertiary', 'inverse.foreground.primary', 'inverse.foreground.secondary',
     'inverse.foreground.tertiary', ...SEM5.flatMap((s) => [`foreground.${s}`, `text.on-${s}`]), ...SEM5.flatMap((s) => [`foreground.${s}-subtle`, `text.${s}`])],
@@ -1226,13 +1227,23 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
       col: grid ? [...grid.children].indexOf(n) % 3 : null,
       css: n.dataset.sgPaint === 'background' ? cs.backgroundColor : n.dataset.sgPaint === 'border' ? cs.borderTopColor : n.dataset.sgPaint === 'outline' ? cs.outlineColor : cs.color };
   });
-  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '' }));
+  // A badge inside the Text color grid reports its COLUMN, by its cell's position (0: the page's mode, 1: the
+  // opposite mode, 2: the token column), never by anything the section writes about it (S4d, Q46).
+  const colOf = (b) => { const cell = b.closest('.sg-tc'); const grid = cell?.parentElement?.classList.contains('sg-tcg') ? cell.parentElement : null; return grid ? [...grid.children].indexOf(cell) % 3 : null; };
+  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '', col: colOf(b) }));
+  // The Text color section's graded inks, by row: the token in the third column, and the column of each badge in that row.
+  const tcRows = [...(host?.querySelectorAll('.sg-tcg') ?? [])].flatMap((g) => {
+    const cells = [...g.children].slice(3);
+    const out = [];
+    for (let i = 0; i + 2 < cells.length; i += 3) out.push({ role: cells[i + 2].querySelector('[data-p3="token-pill"]')?.textContent.replace(/^color\./, '').replace(/!$/, '') ?? '?', cols: [0, 1, 2].map((c) => [...cells[i + c].querySelectorAll('[data-p3="ratio-badge"]')].map((b) => b.dataset.role)) });
+    return out;
+  });
   const chipsWithBadge = [...(host?.querySelectorAll('.sg-pills') ?? [])].flatMap((w) => [...w.querySelectorAll('[data-p3="token-pill"]')].map((p) => {
     const role = p.textContent.replace(/^color\./, '').replace(/!$/, '');
     let n = p.closest('[data-p3="token-pill-wrap"]') ?? p; n = n.nextElementSibling;
     return { role, badge: n?.getAttribute('data-p3') === 'ratio-badge' && n.dataset.role === role };
   }));
-  return { sections, paint, badges, chipsWithBadge };
+  return { sections, paint, badges, chipsWithBadge, tcRows };
 }, hostSel);
 const SG_FILLS = '[data-p3="preview-body"] [data-p3="surfaces-style-guide"]';
 /** The marker each shared section module stamps on its own root (`data-sg-section`, `kit.ts`'s header),
@@ -1320,10 +1331,13 @@ for (const brand of BRANDS) {
     ok(rings === 2, `${where}: the Focus ring section draws its two rings in border.focus, and the swatch check read them (read ${rings})`);
     // Ratio badges: computed HERE from the emitted pair.
     const offBadge = [];
+    const opp = oppositeMode(mode, modes);
     for (const b of got.badges) {
-      const r = emission?.role(b.role, mode);
+      // A Text color badge in the second column is that column's mode's (Q46), by its position.
+      const bm = b.col === 1 ? opp : mode;
+      const r = emission?.role(b.role, bm);
       const ag = r?.against;
-      const agHex = ag ? (emission.role(ag, mode)?.hex ?? palOf(ag)) : null;
+      const agHex = ag ? (emission.role(ag, bm)?.hex ?? palOf(ag)) : null;
       if (!r || !agHex) { offBadge.push(`${b.role}: the emission gives no pair to measure (against ${ag})`); continue; }
       const want = wcag(hexRgb(r.hex), hexRgb(agHex));
       const printed = parseFloat(b.text);
@@ -1333,8 +1347,18 @@ for (const brand of BRANDS) {
       else if (b.below !== wantBelow) offBadge.push(`${b.role} is ${b.below ? '' : 'not '}marked below floor at ${want.toFixed(2)}:1 against min ${r.min}`);
     }
     ok(offBadge.length === 0, `${where}: every ratio badge prints the emitted pair's ratio and marks its floor${offBadge.length ? ` — ${offBadge.slice(0, 3).join(' | ')}` : ''}`);
-    const noBadge = got.chipsWithBadge.filter((c) => { const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
+    // Q46: the Text color section's token column carries the pill alone; its badges are per column, below.
+    const tcTokens = new Set(got.tcRows.map((t) => t.role));
+    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
     ok(noBadge.length === 0, `${where}: every chip of a role measured against another carries its ratio badge${noBadge.length ? ` — no badge: ${[...new Set(noBadge)].slice(0, 5).join(', ')}` : ''}`);
+    // Q46: every text token graded in a column's mode carries exactly one badge in that column, its own, and the
+    // token column carries none. Which roles are graded is the emission's (an \`against\` other than itself).
+    const graded = (role, m) => { const r = emission?.role(role, m); return !!(r && r.against && r.against !== 'self'); };
+    const offCols = got.tcRows.filter((t) => {
+      const want = [graded(t.role, mode) ? [t.role] : [], graded(t.role, opp) ? [t.role] : [], []];
+      return JSON.stringify(t.cols) !== JSON.stringify(want);
+    }).map((t) => `${t.role} ${JSON.stringify(t.cols)}`);
+    ok(got.tcRows.length >= 18 && offCols.length === 0, `${where}: each text token has one ratio badge in the "On ${mode}" column and one in the "On ${opp}" column, none by the token (${got.tcRows.length} rows)${offCols.length ? ` — ${offCols.slice(0, 3).join(' | ')}` : ''}`);
   }
   // The Style guide itself (Brand's preview, lent by `main.ts`, S3) draws the same five sections.
   await hooks.click(page.locator('[data-p3="tab-brand"]'));
@@ -1373,8 +1397,10 @@ const previewMode = async (page, m) => {
   await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${m}"]`));
   await page.waitForFunction((mm) => document.querySelector(`[data-p3="mode-option"][data-mode="${mm}"]`)?.getAttribute('aria-checked') === 'true', m);
 };
-const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
-  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step"]' };
+// S4d (owner decision Q45): the Page and the band step are step pickers; the floor and the band palette stay selects.
+const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
+  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]' };
+const PICKED = new Set(['base', 'band-step']);
 const SURF = (k) => SURF_HOOKS[k];
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1390,11 +1416,23 @@ for (const brand of BRANDS) {
     await previewMode(page, m);
     for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
-      const values = await page.locator(SURF(k)).evaluate((x) => [...x.options].map((o) => o.value));
-      const v = values[Math.min(pick, values.length - 1)];
-      await page.locator(SURF(k)).selectOption(v);
-      // Bounded: a control that wrote the wrong key redraws on its old value, and the check below says so.
-      await page.waitForFunction(([sel, vv]) => document.querySelector(sel)?.value === vv, [SURF(k), v], { timeout: 5000 }).catch(() => {});
+      let v;
+      if (PICKED.has(k)) {
+        // The picker: open it, choose its pick-th step (a key: `white`, `050`), close it.
+        await hooks.click(page.locator(SURF(k)));
+        await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+        const keys = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
+        v = keys[Math.min(pick, keys.length - 1)];
+        await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${v}"]`));
+        // Bounded: a control that wrote the wrong key redraws on its old value, and the check below says so.
+        await page.waitForFunction((vv) => document.querySelector(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${vv}"]`)?.getAttribute('aria-pressed') === 'true', v, { timeout: 5000 }).catch(() => {});
+        await page.keyboard.press('Escape');
+      } else {
+        const values = await page.locator(SURF(k)).evaluate((x) => [...x.options].map((o) => o.value));
+        v = values[Math.min(pick, values.length - 1)];
+        await page.locator(SURF(k)).selectOption(v);
+        await page.waitForFunction(([sel, vv]) => document.querySelector(sel)?.value === vv, [SURF(k), v], { timeout: 5000 }).catch(() => {});
+      }
       const after = (await inputAt(page))?.surfaces ?? {};
       const want = toSurface(v);
       ok(JSON.stringify(after?.[m]?.[field]) === JSON.stringify(want) && JSON.stringify(after?.[other]) === JSON.stringify(before?.[other]),
@@ -1435,6 +1473,85 @@ for (const brand of BRANDS) {
   }
   const errs = drain();
   ok(errs.length === 0, `S4c ${brand}: 0 console errors across the surface and Fields edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// 1e. S4d: the icon rows' lock (owner decision Q50; the engine's #1968), and an edit in each section S4d added
+//     reaching the exported tokens (Q44, Q49). Per corpus brand. EXPECTED: whether a brand loads paired is its
+//     example input's `iconContrast`, written here per brand (literal); the text role an icon row follows is the
+//     engine's twin rule (`text` for `icon`), restated here; Unpair's write is the literal `iconContrast: "3:1"`;
+//     an edit's persisted override and its exported alias are literals worked out here from the step chosen.
+console.log(`\nColor › Surfaces & fills — the icon lock, and an edit in each new section reaching the export (S4d)\n${'='.repeat(78)}`);
+const ICONS_PAIRED = { prism3: true, aurora: false, harbor: true };
+const ICON_TWIN = (r) => r.replace(/(^|\.)icon\./, '$1text.');
+const iconRowsAt = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')]
+  .map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })));
+/** One edit per section S4d added or filled, in both modes: [mode, role, palette, step, section]. */
+const S4D_EDITS = [
+  ['dark', 'inverse.foreground.secondary', 'neutral', '300', 'Foreground'],
+  ['light', 'foreground.brand-subtle', 'primary', '200', 'Foreground fills'],
+  ['dark', 'text.on-brand', 'neutral', '100', 'Foreground fills'],
+  ['light', 'inverse.text.brand', 'primary', '250', 'Text color'],
+  ['dark', 'border.warning', 'warning', '250', 'Border'],
+  ['light', 'icon.brand', 'primary', '750', 'Icon'],
+  ['dark', 'inverse.icon.success', 'success', '350', 'Icon'],
+];
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const b = brand.toLowerCase();
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
+  await previewMode(page, 'light');
+  ok(b in ICONS_PAIRED, `S4d ${brand}: the suite says whether this brand loads with icons paired (ICONS_PAIRED)`);
+  const rows0 = await iconRowsAt(page);
+  ok(rows0.length === 31, `S4d ${brand}: the Icon section draws the 31 icon rows (read ${rows0.length})`);
+  if (ICONS_PAIRED[b]) {
+    const bad = rows0.filter((r) => !r.disabled || r.text !== `Follows ${ICON_TWIN(r.role)}`);
+    ok(bad.length === 0, `S4d ${brand}: paired, every icon row is disabled and reads "Follows text.X"${bad.length ? ` — ${bad.slice(0, 3).map((r) => JSON.stringify(r)).join(' | ')}` : ''}`);
+    const before = await inputAt(page);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]'), null, { timeout: 5000 }).catch(() => {});
+    const after = await inputAt(page);
+    ok(after?.iconContrast === '3:1' && JSON.stringify({ ...after, iconContrast: before?.iconContrast }) === JSON.stringify(before),
+      `S4d ${brand}: Unpair icons from text persists iconContrast "3:1" and nothing else (persisted ${JSON.stringify(after?.iconContrast)}, was ${JSON.stringify(before?.iconContrast)})`);
+  } else {
+    const note = await page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]').count();
+    ok(note === 0, `S4d ${brand}: loads unpaired, so no Unpair note is drawn (${note})`);
+  }
+  const rows1 = await iconRowsAt(page);
+  const still = rows1.filter((r) => r.disabled || /^Follows/.test(r.text));
+  ok(rows1.length === 31 && still.length === 0, `S4d ${brand}: unpaired, every icon row is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
+  for (const [m, role, pal, step, sec] of S4D_EDITS) {
+    await previewMode(page, m);
+    const row = `[data-p3="levers-pane"] .p3-fillrow[data-role="${role}"]`;
+    // Bounded: a row left locked (or not drawn) is a failure by name here, not a 30-second timeout.
+    const can = await page.evaluate((sel) => { const b = document.querySelector(sel); return !!b && !b.disabled; }, `${row} [data-p3="fill-pick"]`);
+    if (!can) { ok(false, `S4d ${brand}: the ${sec} row ${role} in ${m} is drawn and enabled, so it can be edited`); continue; }
+    await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    await page.waitForFunction((sel) => /Override/.test(document.querySelector(sel)?.textContent ?? ''), `${row} [data-p3="fill-pick"]`, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    const ov = (await inputAt(page))?.overrides?.[m]?.[role];
+    ok(JSON.stringify(ov) === JSON.stringify({ palette: pal, step }), `S4d ${brand}: the ${sec} row ${role} in ${m} persists overrides.${m}["${role}"] = ${JSON.stringify({ palette: pal, step })} (persisted ${JSON.stringify(ov)})`);
+  }
+  const emission = JSON.parse(await readFile(join(OUT_DIR, `${b}.tokens.json`), 'utf8'));
+  const root = Object.keys(emission)[0];
+  const leaf = (tree, role) => role.split('.').reduce((n, x) => n?.[x], tree[root]?.color);
+  const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
+  await hooks.click(page.locator('[data-p3="export-open"]'));
+  await hooks.need(page, '[data-p3="export-dialog"]');
+  const pending = page.waitForEvent('download');
+  await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+  let exported = null;
+  try { exported = JSON.parse(await readFile(await (await pending).path(), 'utf8')); } catch { /* reported below */ }
+  for (const [m, role, pal, step, sec] of S4D_EDITS) {
+    const want = `{${root}.core.palette.${pal}.${step}}`;
+    const was = aliasIn(emission, role, m), got = exported ? aliasIn(exported, role, m) : null;
+    ok(got === want && was !== want, `S4d ${brand}: an edit on the ${sec} section's ${role} in ${m} reaches the exported tokens as ${want} (exported ${got}; the committed emission has ${was})`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `S4d ${brand}: 0 console errors across the icon lock and the section edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 
