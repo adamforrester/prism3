@@ -1089,6 +1089,85 @@ for (const how of ['pointer', 'focus']) {
   }
 }
 
+// ── #2008: a "Clean" read-back after a failed restore is a normal row ───────────────────────────────
+//
+// The owner's call (option a on #2008): a read-back whose checks pass, after the saved brand could not be
+// restored, reads "Clean" (#1990) and draws as a clean row. It is not counted as needing attention and does
+// not open the drawer; the plugin's error bar already says the saved brand did not load. Both orders the
+// two host messages can land in are driven. A control proves the probe can see a bad row: a failing check
+// after the same refusal still counts and opens the drawer. EXPECTED is each value written here.
+//
+// MUTATION: the row's state back to `ok && !err` → `#2008 … is a normal row …` and
+// `#2008 … is not counted …` and `#2008 … does not open the drawer …`, in both orders. The state pinned to
+// `'ok'` for every read-back → `#2008 control: …` (and S11's own failing read-back arms).
+{
+  const REFUSAL = 'saved brand data is from an older shape';
+  const CLEAN = { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 };
+  const read = (page) => page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+    return {
+      state: row?.dataset.state ?? null,
+      verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      count: document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count')?.textContent ?? '',
+      open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open ?? null,
+    };
+  });
+  const until = (page, w) => page.waitForFunction((want) => document.querySelector('[data-p3="activity-op"][data-op="readback"] [data-p3="op-verdict"]')?.textContent === want, w, { timeout: 5000 }).catch(() => {});
+  const closeDrawer = async (page) => {
+    if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open) === 'true') {
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'), { timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 3000 }).catch(() => {});
+  };
+  const check = (r, how) => {
+    ok(r.verdict === 'Clean' && r.state === 'ok',
+      `#2008 a "Clean" read-back after a failed restore is a normal row (${how}) — verdict ${JSON.stringify(r.verdict)}, state ${r.state}`);
+    ok(!/attention/.test(r.count), `#2008 a "Clean" read-back after a failed restore is not counted as needing attention (${how}) — count ${JSON.stringify(r.count)}`);
+    ok(r.open === 'false', `#2008 a "Clean" read-back after a failed restore does not open the drawer (${how}) — open ${r.open}`);
+  };
+  // The refusal first, then the read-back. The refusal alone is "Not restored", a bad row, and opens the drawer.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'Not restored');
+    await closeDrawer(page);
+    await post(page, CLEAN);
+    await until(page, 'Clean');
+    await page.waitForTimeout(200);
+    check(await read(page), 'refusal first');
+    ok(errors.length === 0, `#2008 refusal first: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  // The read-back first, then the refusal.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, CLEAN);
+    await until(page, 'Clean');
+    await closeDrawer(page);
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="readback"] [data-p3="op-summary"]')?.textContent ?? '').includes('Saved brand not restored'), null, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(200);
+    check(await read(page), 'read-back first');
+    ok(errors.length === 0, `#2008 read-back first: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  // Control: a failing check after the same refusal is still a bad row, counted, and opens the drawer.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'Not restored');
+    await closeDrawer(page);
+    await post(page, { ...CLEAN, ok: false, failed: 1 });
+    await until(page, '1 mismatch');
+    await page.waitForTimeout(200);
+    const r = await read(page);
+    ok(r.verdict === '1 mismatch' && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
+      `#2008 control: a failing check after a failed restore is still a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
+    ok(errors.length === 0, `#2008 control: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
 // ── #1990: the busy spinner waits before it draws ───────────────────────────────────────────────────
 //
 // The spinner is CSS only (`chrome.css` `.p3-spin`): the "…" holds for three of the fast duration, then the

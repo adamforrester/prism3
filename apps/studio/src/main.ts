@@ -6045,7 +6045,9 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
  *  under a short verdict. The unrecoverable case says both halves, and is not styled as a failure: #721
  *  requires it not read as one. A read-back whose checks pass reads "Clean" even when the saved brand was
  *  not restored, the refusal in its details; "Not restored" is only for a refusal with nothing checked
- *  (the owner's approved copy, #1990). */
+ *  (the owner's approved copy, #1990). That "Clean" row is also a normal row, not counted as needing attention
+ *  and not opening the drawer (the owner's call, option a on #2008): the plugin's error bar already says the
+ *  saved brand did not load. */
 const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null => {
   const o = host.seedOutcome;
   const err = host.restoreError;
@@ -6059,7 +6061,7 @@ const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
     : o.state === 'absent' ? SHORT.noTheme
       : o.contractOk ? SHORT.clean
         : o.failed > 0 ? plural(o.failed, 'mismatch', 'mismatches') : SHORT.failed;
-  return { state: ok && !err ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
+  return { state: ok && (!err || o.state === 'present') ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
 };
 /** Prune stale's short verdict: what the preview found, or what the delete removed. */
 const pruneShort = (v: { ok: boolean; applied: boolean; count: number }): string =>
