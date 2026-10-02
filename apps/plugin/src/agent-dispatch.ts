@@ -125,6 +125,10 @@ type Deps = {
    *  writes to the file, and a throw from either never fails the command. */
   onStart?(id: string, cmd: AgentCmd): void;
   onFinish?(id: string, cmd: AgentCmd): void;
+  /** A valid command the plugin declines before it runs (#1957): a write whose operation is already
+   *  running. Asked before `onStart`, so a declined command is never shown as running; what it returns is
+   *  the error the agent gets and the message the panel is sent. */
+  refuse?(c: ValidCommand): { message: string; post: MainToUi } | null;
 };
 
 /** Per-command routes into the table. The ONLY place a command meets a handler — see the header. */
@@ -197,6 +201,11 @@ export const createDispatcher = (deps: Deps) => {
       return failedResult({ id: parsed.id ?? '', cmd: parsed.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, parsed.error);
     }
     const c = parsed.command;
+    const refused = deps.refuse?.(c) ?? null;
+    if (refused) {
+      try { deps.forward?.(refused.post); } catch { /* a reader; see `forward` */ }
+      return failedResult({ id: c.id, cmd: c.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, { code: 'busy', message: refused.message });
+    }
     const verdicts: MainToUi[] = [];
     const progress: AgentProgress[] = [];
     const data: Record<string, unknown> = {};

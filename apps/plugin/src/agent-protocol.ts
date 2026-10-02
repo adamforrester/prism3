@@ -78,7 +78,9 @@ export type AgentErrorCode =
   /** The handler threw past its own catch — a defect in the plugin, reported rather than swallowed. */
   | 'handler-threw'
   /** A bridge command reached the plugin after the owner switched the link off. */
-  | 'link-off';
+  | 'link-off'
+  /** A run of the same write was already going, the panel's or an agent's, so this one was not run (#1957). */
+  | 'busy';
 export type AgentError = { code: AgentErrorCode; message: string };
 
 /** One `component-progress` reading, as the UI's pill receives it, with when it arrived. */

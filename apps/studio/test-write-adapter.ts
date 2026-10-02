@@ -125,6 +125,12 @@ accepts('agent-progress', { type: 'agent-progress', id: 'b1', progress: { phase:
 drops('agent-progress with no reading', wire({ type: 'agent-progress', id: 'a', progress: {} }));
 drops('agent-started with no id', wire({ type: 'agent-started', cmd: 'apply-theme' }));
 drops('agent-log', wire({ type: 'agent-log', id: 'a', line: 'x' }));
+// #1957: a second write of a running operation, declined by the main thread.
+accepts('refused', { type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Apply Theme is already running. Try again when it finishes.' },
+  { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: 'Apply Theme is already running. Try again when it finishes.' });
+drops('refused with another code', wire({ type: 'refused', code: 'nope', cmd: 'apply-theme', agent: false, message: 'm' }));
+drops('refused with no message', wire({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false }));
+drops('refused with no caller', wire({ type: 'refused', code: 'busy', cmd: 'apply-theme', message: 'm' }));
 drops('an unknown type', wire({ type: 'apply-results', ok: true, summary: 's' }));
 drops('an inherited key as type (toString)', wire({ type: 'toString' }));
 drops('a message with no type', wire({ ok: true, summary: 's' }));
