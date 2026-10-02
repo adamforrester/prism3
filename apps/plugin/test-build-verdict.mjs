@@ -793,7 +793,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `S11 during an agent's Apply the panel's Apply Theme is busy (aria-busy + aria-disabled), not natively disabled — busy ${running.applyBusy}, disabled ${running.applyDisabled}`);
   ok(running.statusRole === 'status' && running.status === 'Apply Theme, Writing to Figma…',
     `S11 the start is announced once through the drawer's polite status line — role ${running.statusRole}, read ${JSON.stringify(running.status)}`);
-  await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+  // `force`: Playwright's actionability check reads aria-disabled as disabled and would never click, which
+  // would pass this check with the guard gone. A designer's click is not so polite.
+  const clickedBusy = await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000, force: true }).then(() => true, () => false);
+  ok(clickedBusy, 'S11 the busy Apply Theme takes a click (it is aria-disabled, not natively disabled)');
   await page.waitForTimeout(200);
   const firedBusy = await sentApply();
   ok(firedBusy === 0, `S11 clicking the busy Apply Theme posts nothing to the plugin — apply-theme messages ${firedBusy}`);
