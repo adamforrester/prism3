@@ -3747,10 +3747,9 @@ for (const host of ['web', 'figma']) {
     ok(!before.all && before.label === 'Show 2 advanced' && after.all && after.expanded === 'true' && after.label === 'Hide 2 advanced',
       `Q64: ${host}: Apply to all sits behind "Show 2 advanced" (${JSON.stringify({ before, after })})`);
     // The owner's rule (2026-10-02): never "face" as a word in visible copy, on the levers (the lent region, the
-    // info toggletips and Show advanced's controls included) or the preview. Read off the rendered DOM: every text
+    // info toggletips, which are in the DOM while hidden, and Show advanced's controls included) or the preview. Read off the rendered DOM: every text
     // node, option and aria-label, title and placeholder, with the token pills taken out (`font.typeface.*` is a
     // token, and fine). Code, hooks and classes are not copy and are not read.
-    for (const tip of await page.locator('[data-p3="levers-pane"] [data-p3="lever-info"]').all()) await tip.click();
     const faceWords = await page.evaluate(() => {
       const out = [];
       for (const root of [document.querySelector('[data-p3="levers-pane"]'), document.querySelector('[data-p3="preview-body"]')]) {
