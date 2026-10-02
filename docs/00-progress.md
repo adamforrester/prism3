@@ -7,6 +7,365 @@
 
 ---
 
+## (2026-10-02) — UI redesign S6.1: Type groundwork (the Typography page's writes DOM-free, its preview pieces shared)
+
+**STATUS: branch `ui/s6-groundwork`, behavior-neutral, no visible change.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The first of S6's PRs (the scoping report's split, as S5.1 did for Interactive: lift and extract, then the page in two halves). Nothing here is an owner call: every question the report raises (C1–C14: which mode Type edits, Desktop and Mobile sizes, the controls v6 left out, the step picker for type values, the preview's sections, the #1942 sample, token names, the advanced fold, plain words, Responsive leaving Layout, the #1802 line) waits for S6.2 and S6.3. The #1942 sample is not built here.
+
+**What moved.**
+- **The legacy Typography page's writes are DOM-free**, in `state/type-input.ts`: faces (`setFamily(mode, cat, face | null)`, `setAllFamilies`, `addLibraryFace` returning the field's refusal, `removeLibraryFace`), weights (`setWeightRole(mode, …)`, `setCategoryWeights`, `toggleCategoryWeight`, `categoryWeightLock` with the required-role and last-weight reasons as data), italics and links (`setItalicDefault`, `setItalic`, `setLink`), line height and letter spacing (`setRungBinding`, `setRepoint(mode, …)`, `setShift`, with `nudgeSteps` and `resolvedRungs`), cut pins (`setFacePin`), scale and limits (`setTypeScale`, `shapeBlocked`, `setDisplayCeiling`, `ceilingPx`, `setTitleFloor`, Layout's `setFluid` and `setResponsiveViewport`), and every individual size (`setSizePin(mode | null, …)`, `setMobileSize`, `releasePinnedSizes`, `pinnedSizeCount`, `ladderStep`, `rowsOf`, `widestRowsOf` and the three pin readers). `TYPE_GROUP_ORDER` moved with them. The legacy page calls them in place and repaints through the tier it always used: `apply()` for the nudges, the links, the cut pins and responsive, `applyFull()` for the rest (#831's fix belongs to S6.3, not here). `renderRepointTable` stays in `main.ts` (Motion's easing table draws it); its two type ladders write through `setRepoint`, easing keeps its own write.
+- **`ui/fonts.ts`**: `fontAvailable`, `faceStatus` (now handed the host's font list rather than reading `main.ts`'s `host`), `KNOWN_WEIGHTS`/`knownWeightsOf` and `WEIGHT_NAME`, moved unchanged.
+- **The Typography Preview tab's three sections and Layout's fluid read-out are shared**, in `preview/sections/`: `typefacesSection`, `weightsByFaceSection`, `typeRampSection` (with `TYPE_GROUP_BLURB`) and `paintTypeFluid`, lifted unchanged in output. Each stamps #1964's marker as a literal in its own module (`data-sg-section="typefaces"`, `"weights-by-face"`, `"type-ramp"`; the fluid read-out fills a node Layout owns, so it stamps `"type-fluid"` on that node rather than wrap its output). Each is handed the resolved typography and the modes; none reads the session.
+- `main.ts`: 7,148 → 6,608 lines.
+
+**Behavior-neutral, measured.** Driven on a build of `d4795cfe` and on this branch, every corpus brand (prism3, aurora, harbor): the library (add, a duplicate and an empty name refused, remove), Apply to all (two faces and no choice), each Light face including code None and back, Dark faces set and Auto, Light and Dark weight steppers and their resets, the line-height and letter-spacing bindings, Dark swaps set and Auto, the three shapes, the ceiling, the title floor on and off, the individual-sizes toggle, Desktop, Mobile and Dark size steppers and their resets, Release pinned sizes (offered and clicked in all three brands), category weights ticked and unticked with the label lock, both nudges set and zeroed, Italic default and Italic each way, two links in a row with no repaint between (the #831 path) and one cleared, two cut pins set and cleared, and on Layout the fluid switch both ways, both viewports and a refused non-number. **231 of 231 persisted brands byte-identical after each edit** (151 distinct states; 199 controls driven, the other 32 a locked, disabled or absent control that reads the same in both builds), 0 page errors on either side. **Every Typography tab, Layout and Brand's Style guide in every mode (27 captures): HTML identical once the `data-sg-section` attributes are removed (the Style guide's byte-identical as is), PNG byte-identical, 27/27.**
+
+### Tests
+
+- New **`test-type-input.ts`** (63 assertions, in `npm test`): each write against a JSON literal of the legacy bytes, the traps included (an emptied `italics` or `links` is `[]`; an emptied `italicDefault` and a category's emptied `weights` are unset; a zero nudge leaves `leadingShift: {}`; `responsive.fluid` is written even when true; removing the last staged face leaves `typefaceLibrary: []`; a second link toggle reads the set its caller drew), each Auto and clear against the brand as loaded, serialized; the readers against values worked out by hand from the ladders; the engine taking each edit and resolving it (`brandTheme`'s composites).
+- **`test-shell-imports`** 123 → 149: `MUST_SCAN` adds the six new modules; the marker arm holds the four new markers; a new arm holds that `main.ts` draws the four pieces through the shared functions, keeps no copy (the ramp and Weight roles by face by title, the Typefaces preview by its copy since two other legacy sections are titled "Typefaces", the fluid read-out by its markup), writes no Type input itself (no `setPath(brandState, 'typography.…')`, no `delete brandState.typography.…`, no Type `setModeLever`), and imports `./state/type-input`.
+- **`test:smoke`** +28 (section 1f): per corpus brand, the Typography Preview tab draws exactly its three sections in order, each the shared module's by marker; the ramp lists the emission's `type.*` styles, each once, with each base-column sample at its emitted size and weight-role numeric; the Typefaces section names each category's emitted face; Layout's fluid read-out carries `type-fluid` once and holds the read-out.
+- **`lint-ramp-steps`** reads `state/type-input.ts` too, where `TYPE_GROUP_ORDER` and `BULK_CATS` now live (declared as bare `const`s so its `const NAME = [` parse still finds them).
+- **`chrome/glyphs.mjs`**: `preview/sections/weights-by-face.ts` is classified `NOT_CHROME`, with its reason. Its ● ○ marks are not in the embedded Inter subset, and today only the legacy page, in `main.ts`'s face, draws it. **S6.2 must remove that entry when the new Type page draws the section**: re-subset Inter or record a `FACE_LACKS` decision.
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`, each failing by name:**
+- `setItalic` writing `undefined` for an emptied list instead of `[]`: unit `setItalic(body, off) on the last italic category writes italics [] — not unset (…)`.
+- `main.ts` drawing its own ramp (`palSection('The full type ramp', …)` with its own rows) instead of `typeRampSection()`: shell-imports `src/main.ts draws the type ramp through the shared typeRampSection()` and `src/main.ts draws no Type preview piece of its own: type ramp — main.ts carries its own type ramp (…)`; smoke `prism3 / Typography / Preview: the The full type ramp section is the shared module's (data-sg-section="type-ramp") — its root carries no marker: drawn by something other than preview/sections/`, with the emission checks, on all three brands.
+- The shared ramp setting each sample at its mobile size (`sizeMinPx`) instead of its size: smoke `prism3 / Typography / Preview: every ramp sample in the base column is set at its emitted size and weight — type.display.3xl.emphasis is set 48px / 500, the emission says 160px / 500 | …`, on all three brands.
+- Run on the `d4795cfe` build, section 1f fails on every brand by its marker checks (12 failures), so it is not vacuous.
+
+### Traps
+
+- **The legacy page's bytes have more traps than the scoping report listed.** Besides `[]` for emptied italics and links: a zero nudge does not unset `leadingShift`/`trackingShift` but leaves `{}`, and removing the last staged face leaves `typefaceLibrary: []`. Both are the legacy bytes and are kept; changing either is a behavior change, so it belongs with the controls that replace them.
+- **The italic, link and weight toggles take their set from the caller.** The link checkbox repaints through `apply()`, so a second click before a full repaint toggles against the set as drawn and drops the first click's write. Reading the live theme instead would have "fixed" that silently and failed the equivalence driver; it is #831's, for S6.3.
+- **`lint-ramp-steps.ts` parses `^const NAME = [`.** An `export const` would read as STALE; the constant is declared bare and exported below it.
+
+---
+
+## (2026-10-02) — The plugin's main thread refuses a second write of an operation while one is running (#1957)
+
+**STATUS: PR #1988 open from `plugin/busy-guard-1957`, on `main` after #1956 squash-merged.** Plugin and UI only. No engine change and no emitted artifact moves, so ENGINE stays at 0.222.0 and `CONTRACT_VERSION` is unchanged. This is #1957's main-thread half. #1956 carries the UI half (busy controls). It is a separate PR because it adds a wire message, a reducer rule and a drawer history entry, and #1956 had already been reviewed.
+
+**What changed.** The panel's buttons and the agent dispatcher both call the `ACTIONS` table in `main.ts`, so that table is where the guard sits. Each write entry is wrapped by `guarded(cmd, fn)`, over a `createRunGuard()` set in the new `run-guard.ts`. A second call of the same operation while one is running posts `{type: 'refused', code: 'busy', cmd, agent, message}` and runs nothing. The busy check and the hold are one step, with no await between them, and the hold is released in a `finally`. Different operations are not serialized. That was not asked for, and the agent link already runs its own commands one at a time.
+
+**Owner decisions (2026-10-02), as built and confirmed on the PR.**
+- Error code `busy`; message "‹Operation› is already running. Try again when it finishes."
+- The row keeps showing the running write. The refusal goes straight into Earlier results with the verdict "Refused" (not "Failed") and the busy message as its details.
+- It is not counted in "N need attention" and does not open the drawer.
+- The live line reads "‹Operation› already running; the second request was declined."
+- An agent sees the code in its own command result.
+
+**Technical calls.**
+- **The agent's command is refused before the brackets.** `Deps.refuse` is asked before `onStart`, so a declined command never posts `agent-started` and never shows as an agent's run. The dispatcher forwards the refusal to the panel and returns `failedResult` with `{code: 'busy'}`.
+- **A prune preview is exempt.** It writes nothing, so it is never refused and never holds the prune. Only `confirm: true` is guarded. The read-back is not guarded.
+- **The `unpend` rule.** A refusal settles no run and fills no verdict slot, because the running write's verdict is still coming. There is one exception. When the panel's own request is declined behind an agent's run of the same operation (`!agent && agentRun.op === op`), the panel's `pending` gets no verdict, so the reducer clears it. A panel request declined behind the panel's own run leaves `pending` to that run. The ordering makes this decidable: main posts `agent-started` before running the command, so a raced panel refusal reaches the UI after `agentRun` is set.
+- `refused.n` increments on every refusal, so two identical ones are still two changes to the drawer.
+- The drawer's "run ended with no verdict" revert skips refused history entries.
+
+**Suites.**
+- `test-agent-link.ts`: `busy/panel`, `busy/agent`, `busy/agent-first`, `busy/release`. Each held write's verdict is compared byte-for-byte against a baseline from a lone apply.
+- `test-host-session.ts`: `refused:` arms.
+- `test-write-adapter.ts`: parsing.
+- `test-build-verdict.mjs`: a `#1957` arm for the owner's row behavior.
+
+Mutations, each failing by name:
+- the guard's `busy` check removed → `busy/panel`, `busy/agent-first`;
+- `refuse` removed → `busy/agent`;
+- the release moved out of the `finally` → `busy/release`;
+- `unpend` dropped, the refusal filling the apply slot as a failure, `n` pinned → `refused:`;
+- the adapter accepting any code → `drops refused with another code`;
+- the drawer branch removed, or the refusal opening the drawer → `#1957 …`.
+
+**Traps for whoever re-verifies this.**
+- The suite's host has no `loadFontAsync`, so an apply there fails synchronously in `fontPreloadApiOf`, before its first await. A gated host read is never reached, and every busy arm then fails for a reason unrelated to the guard. The busy section therefore gives the host a `loadFontAsync` and gates `getLocalTextStylesAsync`, the first host read of an apply, restoring both afterwards.
+- The suite's spies wrap the `ACTIONS` entries from outside, so throwing from `duringCall` never reaches the guard's `finally`. `busy/release` therefore drives `createRunGuard` directly with a rejecting write.
+- Writing the refusal as the row's *result* is an equivalent mutation in the drawer. A running row shows its run, and the run's own verdict replaces the result, so no arm claims it. Counting a refusal as needing attention can only come from the reducer, because the drawer's counts read the host session's slots. The `refused:` arms catch it there.
+
+---
+
+## (2026-10-02) — UI redesign S4d: Color › Surfaces & fills rows (a Foreground section, swatch-panel pickers, preview fixes, a row for every remaining role, locked icon rows)
+
+**STATUS: branch `ui/s4d-rows`, stacked on `ui/s4c-surfaces` (#1980, since squash-merged) with `origin/main` merged in.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. Applies the owner's decisions Q44 to Q50 of 2026-10-02, recorded in this change as rows of `docs/superpowers/ui-redesign/decisions-2026-10-01-qa.md`, where S4c's prose below the table (Q41, Q42) became rows too, its wording kept.
+
+**What the user sees on Color › Surfaces & fills.**
+- **Jump links** to each of the eight sections at the top of the levers (Q49), with Color › Interactive's control (S5.2, PR #1974): the same `p3-jump` classes and the same CSS lines, so the two branches meet with a duplicate rule, not a conflict.
+- **Background fills**: Page and the Inverse fill step open the rows' step picker (Q45), not a native select. Page lists White, every neutral step, Black, with no Return to Auto (Q21: Page has no Auto; the picker gained `auto: false`). The Inverse fill palette stays a select (Q55, confirmed: a dropdown, the step in the step picker): the picker shows one palette's steps, and choosing a band palette is its own write (it seeds the darkest step). Contrast floor is unchanged.
+- **Foreground** (Q44): its own section, the APPROVED heading with the preview's Foreground description. Rows Primary, Secondary, Tertiary (`foreground.*`), then the same under "Inverse" (`inverse.foreground.*`). "Surface — card / panel / nested" are gone.
+- **Foreground fills**: the five bold fills, then the subtle fills, the on-color inks (`text.on-*`), and the inverse band's bold and subtle fills under "Inverse".
+- **Text color**: the 13 page inks, then the 13 `inverse.text.*` under "Inverse".
+- **Border** (new, the preview's heading and description): 8 page borders, then `border.focus` read-only (#1966); the same for the inverse band.
+- **Icon** (new, the preview's heading and description; Q50): all 31 icon rows, always visible. While `iconContrast` is `'text'`, each row is disabled and reads "Follows text.X", and the section opens with the APPROVED note and the "Unpair icons from text" button, which writes `iconContrast: '3:1'` exactly as the lever's own control does. Unpaired, the note goes and the rows edit.
+- **The preview**: the Text color section draws a ratio badge in each mode column and none by the token (Q46; the Style guide draws none, as before); the inverse Primary background card loses its "Inverse text" sample and chip (Q47). Both are shared sections, so Q47 shows on Brand's Style guide too.
+
+**The owner's copy and answers (2026-10-02, morning and late morning), applied after merging S4c's own copy commit (`d095adc9`: the Background fills tooltip, "Foreground" and the preview's descriptions, "Inverse fill").** The merge kept S4d's structure (Foreground for the neutral ladder, Foreground fills for the semantic fills) with S4c's approved Text color description.
+- **APPROVED copy, as listed for #1981:** "Brand, subtle", "On brand"; Border Primary … Focus; Icon Primary … "On brand"; the "Inverse" sub-heading; the jump nav "Sections on this page"; the focus read-out "primary 600"; the Page picker keys "white" and "black".
+- **Q57, "subtle" everywhere.** The owner picked "subtle", the token's own word. The Icon rows' "Brand, muted" and the Text rows' "Brand ink, muted" (the legacy page's label) now say "subtle", page and inverse. Nothing visible on the page says "muted".
+- **Q58, "fill" for "band".** The Inverse fill step picker's accessible name (S4c renamed the label and the palette select), the page's search words, and the `inverse` badge's tooltip in the shared preview ("The inverse fill. …", so Brand's Style guide reads it too). Nothing visible on the page says "band". Code names (`bandOf`, `surface-band-*` hooks) are unchanged.
+- **Q52, re-pairing clears icon colors.** `pairIcons()` in `state/fills-input.ts` writes `iconContrast: 'text'` as the lever writes it and clears every icon override, `icon.*` and `inverse.icon.*`, in every mode, pruning as `setRoleOverride` does; every other override stays. `iconOverrideCount()` is what it would remove, and `PAIR_ICONS_CONFIRM` holds the APPROVED words: "Pair icons with text?", "This removes ‹n› custom icon colors. Icons will follow their text color again.", "Pair icons" / "Cancel". Merging #1974 (Color › Interactive) deleted the legacy Interactive page, and with it this branch's first wiring of Q52 there (`main.ts`, `iconContrastControl`), so the merge took `main`'s `main.ts` whole. The icon contrast lever in the new page's Icons section (`domains/color-interactive.ts`, `pickIconContrast`) now re-pairs through `pairIcons()`: with no icon overrides it writes at once; with some it asks first in place under the lever, with the existing confirm (`inlineConfirm`, the remove-brand-color one), the chips staying on `'3:1'` until Pair icons. Cancel writes nothing. The Surfaces & fills Icon section re-pairs too, since Q61 (below).
+- **Q60, the singular dialog body (APPROVED).** `PAIR_ICONS_CONFIRM.body(1)` reads "This removes 1 custom icon color. Icons will follow their text color again."; every other n keeps the approved plural. One place, so every control that re-pairs says it the same way.
+- **Q61, re-pair from Surfaces & fills (APPROVED).** While icons are unpaired (`iconContrast: '3:1'`), the Icon section shows, in place of the paired note and Unpair, the note "Icons are set on their own. Pair them to follow their text color again." and the button "Pair icons with text" (hooks `icons-unpaired`, `icons-pair`, named after `icons-paired`, `icons-unpair`). The button re-pairs through `pairIcons()`: with no icon override it writes at once; with one or more it opens the same `inlineConfirm` (`icons-pair-confirm`) under the note, in Q52's words with Q60's singular. Cancel writes nothing. Disabled in HC light, HC dark and wireframe (Q59), as Unpair is.
+- **Q56, Q59, derived modes read-only.** In HC light, HC dark and wireframe every control on the page is disabled: the surfaces and rows already were; now the Unpair button and every Gradients control too, Gradients under the existing derived line. The info buttons stay enabled (they open help and edit nothing).
+
+**Which palette each new row picks, measured.** A probe through `brandTheme` + `resolveAllModes` (deleted after) read every new role's derivation on prism3, aurora and harbor, light and dark: each is a step of the palette its family names (neutral for the tiers, `roleToPalette[status]` for the semantic ones), except the on-color inks, which resolve to white, black or a light neutral step, so their rows pick neutral (declared in the test). Then each role was overridden to a step of that palette in light and dark, under both `iconContrast` values, on all three brands: **996 of 996 accepted, each resolving to exactly the step written**, no alpha kept. The only warnings are contrast shortfalls, marked not blocked, as on the existing rows.
+
+**#1968 and the lock.** Under `'text'`, the engine's icon profile is the text one, so icon and text twins resolve to the same step (0 mismatches on prism3 and harbor; aurora loads with `'3:1'`), and a text override carries to the icon: "Follows" is true in value and in edits. An explicit icon override still wins in the engine. So a row with its own icon override in a mode (left from before a re-pair on Interactive) is NOT locked in that mode: it shows its Override and Return to Auto, rather than claim a "Follows" the engine is not doing. Held for the owner below.
+
+**Q48, found real.** `inverse.foreground.tertiary` is the only inverse ladder role with a badge because the engine contracts it: Badge paints its bold neutral member with it, so it is measured against the page at the non-text floor (3:1, 4.5:1 in HC) and carries a second pair with `inverse.text.primary` (#1745, #1776, `modes.ts`). Its siblings are surfaces measured against themselves, so they have no ratio. Not changed.
+
+**Behavior-neutral where it should be, measured.** The same 62 edits per corpus brand (Page through White, Black and four neutral steps; the band step through four steps, Auto, two non-neutral palettes and back; the floor; the three moved Foreground rows picked twice and reverted; three unmoved rows) were driven on a build of `HEAD` before this change (`3a2f8338`, the selects) and on this page (the pickers), in Light and Dark. They leave **byte-identical persisted brands after every edit: 186 of 186** (52, 52 and 50 distinct states, 0 page errors). Every option set matched too (96: the select's options as the picker's keys).
+
+### Tests
+
+- **`test-fills-input`** 98 → 924. (4) Every Surfaces & fills role in the committed emission is a row, a ground set by a Background fills control, or read-only by a reason the test declares literally (the washes; the tier grounds, #1972; the focus rings, #1966), never two; Q49's list written out by family. (5) Each S4d row's palette against the emission's alias in light and dark, and its write, literal, in each mode; the engine resolves it to the emitted hex; the other mode is unmoved; Auto is byte-identical. (6) The lock: paired, each icon row is locked to its twin by the engine's rule restated here, and an edit on each twin moves the icon (so "Follows" is the engine's behavior); Unpair writes `iconContrast: '3:1'` and nothing else; an explicit icon override unlocks only its mode; aurora loads unpaired. (7) Each Page choice writes byte for byte what its select option wrote.
+- **`test:chrome`** 10,094 → 10,332: every new row rendered once (literal lists), the focus rows read-only, the 31 icon rows disabled reading "Follows text.X", the APPROVED note and button, the eight jump links each naming its target, the new headings and descriptions, Q44's labels, the "Inverse" sub-headings; jump links classified as chrome controls.
+- **`test:smoke`** 3,900 → 3,971: Q46, per mode, every text token carries one badge in each column (by position), its ratio from the emitted pair in that column's mode, none by the token; Q47 in the Background chips; the S4c surface block drives the pickers; new block per corpus brand: the lock and Unpair (persisted `iconContrast`), then one edit in each new section (Foreground, Foreground fills ×2, Text color, Border, Icon ×2) persisted as a literal override and reaching the **exported** DTCG tree as `{<root>.core.palette.<p>.<n>}`, where the committed emission has something else.
+
+- **Owner copy (Q52, Q56–Q59):** `test-fills-input` 924 → 931: re-pair with no overrides writes `iconContrast: 'text'` and nothing else; `iconOverrideCount` counts 3 across modes, page and inverse; re-pair clears exactly those and keeps a text and a fill override (literal); clearing the only overrides is byte-identical to the brand loaded; the confirm's words, literal; no row label says "muted", three by name. `test:chrome` 10,332 → 10,375: on web and figma, no visible text, `aria-label`, `title` or placeholder on the page says "muted" or "band"; the subtle labels by name; the Inverse fill controls' accessible names; in Light, Unpair and most controls enabled; in each derived mode, every `button`, `select` and `input` in the page's sections disabled (enumerated from the DOM, less the info buttons; 145 measured, floor 140) and Unpair drawn and disabled. Web, against the persisted brand: re-pair with no overrides asks nothing and writes `'text'`; with two icon overrides (one inverse) and a text override, the dialog shows the approved words with n = 2 and nothing is written; Cancel leaves the brand byte-identical; Pair icons leaves only `text.brand`.
+- **Q60, Q61:** `test-fills-input` 931 → 933: the confirm's body for n = 1 and n = 2, literal. `test:chrome` 10,375 → 10,398: on web and figma, paired shows the paired note and Unpair and no Pair button; unpaired shows the approved note and an enabled "Pair icons with text" in place of them; the Pair button drawn and disabled in HC light, HC dark and wireframe; Pair with no icon override asks nothing and draws the paired note again (web: persists `iconContrast: 'text'`). Web, against the persisted brand: with one icon override, Pair opens the dialog in the approved words with the singular body and writes nothing; Cancel leaves the brand byte-identical; Pair icons writes `'text'` and leaves no override.
+- **Q52 on Color › Interactive (after merging #1974):** the Q52 chrome block now drives the new page's icon contrast chips (`[role="radio"][data-value="text"]` in `lever-icon-contrast`), not the legacy radios: no overrides asks nothing and writes `'text'`; two icon overrides and a text override show the plural, the lever on `'3:1'`, nothing written; Cancel byte-identical; Pair icons keeps only `text.brand`; then one icon override shows the singular (Q60) and Pair icons clears it, `text.brand` kept. The dialog is waited for without requiring it, so a lever that re-pairs without asking fails by name rather than at a hook wait. `test:chrome` 12,013 after the merge.
+
+### Mutations (each after a `wip:` commit, diff checked non-empty, each failing by name)
+
+| Mutation | Failure |
+|---|---|
+| (a) `border.warning` dropped from `BORDER_ROWS` | unit, 4: `✗ every Surfaces & fills role the engine emits is a row, a lever or read-only by a declared reason — no home: border.warning`; chrome: `✗ web: Surfaces & fills renders the border.warning row once — rendered 0` |
+| (b) icon rows editable while paired (`lockedTo` never locks) | unit, 3: `✗ paired, in light: every icon row is locked and names its text twin ("Follows text.X") — icon.primary → null, …`; chrome: `✗ web: paired, each of the 31 icon rows is locked and reads "Follows text.X" — not: icon.primary {…"disabled":false,"text":"Auto · neutral 950"}` |
+| (c) Unpair writes `'text'` | unit, 2: `✗ Unpair writes iconContrast "3:1" and nothing else (iconContrast "text")`; smoke: `✗ S4d prism3: Unpair icons from text persists iconContrast "3:1" and nothing else (persisted "text", was "text")` |
+| (d) the text badge only in the page's column | smoke, 12: `✗ aurora / Surfaces & fills / light: each text token has one ratio badge in the "On light" column and one in the "On dark" column, none by the token (18 rows) — text.primary [["text.primary"],[],[]] …` |
+| (e) the "Inverse text" sample put back | smoke, 24: `✗ prism3 / Surfaces & fills / light: the shared Background section draws its 7 chips in order — drew [… "inverse.text.primary" …]` |
+| (g) owner copy: `pairIcons` leaves `inverse.icon.*` | unit: `✗ re-pair: iconContrast "text", icon.brand (light), inverse.icon.primary and icon.on-brand (dark) cleared, …`; chrome: `✗ Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.primary, keeping text.brand (… "inverse.icon.primary" …)` |
+| (h) Cancel still clears | chrome: `✗ Q52: Cancel closes the dialog and changes nothing (0 dialog(s), lever on "text", brand CHANGED)` |
+| (i) "Brand, muted" restored on the Icon rows | unit: `✗ no Surfaces & fills row says "muted" (Q57) — icon.brand-subtle "Brand, muted", …`; chrome: `✗ web: nothing visible on Surfaces & fills says "muted" …`, the same on figma |
+| (j) Unpair enabled in HC dark | chrome: `✗ web hc-dark: every control on Surfaces & fills is disabled (Q59) — 145 controls (floor 100), 1 enabled: icons-unpair`; `✗ web hc-dark: the Unpair button is drawn and disabled (Q56)`, the same on figma |
+| (k) Gradients left enabled in derived modes | chrome: `✗ web hc-light: every control on Surfaces & fills is disabled (Q59) — 145 controls (floor 100), 28 enabled: gradients-switch, gradient-name, …`, each derived mode on both hosts |
+| (l) Q60: the singular body says "colors" | unit: `✗ the re-pair confirm's body for 1 override is the approved singular (Q60) — read "This removes 1 custom icon colors. …"`; chrome: `✗ Q61: Pair on Surfaces & fills with 1 icon override asks first, the body singular (Q60) — read {… "This removes 1 custom icon colors. …" …}` |
+| (m) Q61: the Pair button writes `'3:1'` (`unpairIcons` in both its writes) | chrome: `✗ web Q61: Pair with no icon overrides pairs icons again, the paired note and Unpair back — read {"pairedNote":null,…}`, the same on figma; `✗ web Q61: Pair with no icon overrides persists iconContrast "text" ("3:1", overrides undefined)`; `✗ Q61: Pair icons on Surfaces & fills writes iconContrast "text" and clears the icon override (iconContrast "3:1", overrides {"light":{"icon.brand":…}})` |
+| (n) Q61: the Pair button enabled in HC dark | chrome: `✗ web hc-dark Q61: the Pair button is drawn and disabled (Q59) — read {… "pairDisabled":false …}`, the same on figma |
+| (o) Q52 on Color › Interactive: the lever writes `'text'` with `setLever`, clearing nothing | chrome: `✗ Q52: re-pairing with 2 icon overrides asks first, in the approved words, the lever still on "3:1" — read {"n":0,…,"checked":"text"}`; `✗ Q52: the dialog open, nothing is written yet`; `✗ Q52: Cancel and Pair icons NOT REACHED: re-pairing with 2 icon overrides drew no dialog`; `✗ Q60: re-pairing with 1 icon override asks first, the body singular, …`; `✗ Q60: Pair icons with 1 icon override writes iconContrast "text" and clears icon.brand, keeping text.brand (… "icon.brand" …)` |
+| (f) the Page picker writes the step one above | smoke, 6: `✗ S4c prism3: previewing dark, the base control writes surfaces.dark.base = 100 … — wrote surfaces {… "dark":{"base":150}}`; the equivalence driver: 28/62 |
+
+### Traps
+
+- **The plugin host in `test:chrome` runs `apps/plugin/dist`, not the studio's.** A mutation rebuilt with only `npm run build` in `apps/studio` fails on the web host and passes on figma. Rebuild the plugin too when the figma arm matters.
+- **Mutation (h) stops the run after its failure.** Cancel having paired, the next re-pair asks nothing, so the `need` on the dialog throws, naming its hook. The failure above it is the named one.
+- **A locked row clicked by a test is a 30-second timeout, not a failure.** The S4d smoke edits check the button is enabled first, so mutation (c) fails by name and the suite goes on.
+- **Band step keys are padded, stored steps are not** (`'050'` vs `50`). The picker matches by number; the old select showed no current value for steps under 100.
+
+### Open with the owner
+
+- **Settled 2026-10-02:** the held copy above is APPROVED; "subtle" over "muted" (Q57); "fill" over "band" (Q58); an icon override left while paired is now cleared by re-pairing (Q52), so the editable-Override case only arises from a brand that loads paired with icon overrides; the Unpair button is disabled in derived modes (Q56, Q59); the band palette stays a dropdown (Q55).
+- **Settled 2026-10-02, later:** the singular dialog body (Q60) and the Pair button on Surfaces & fills (Q61), both APPROVED and built.
+- **Q47 also changes Brand's Style guide** (the section is shared, Q5); so does Q58's tooltip.
+- **Q59 beyond this page.** Every Surfaces & fills control is read-only in derived modes; the legacy Interactive page's levers (icon contrast included) are not touched here. Color › Interactive (#1974) should follow Q59.
+
+---
+
+## (2026-10-02) — UI redesign S11: the Activity drawer gives every Figma operation its own row, and shows an agent's run (#1788)
+
+**STATUS: PR open from `ui/s11-figma-activity`, held for the owner's review (DO NOT MERGE).** UI and plugin bridge only. No engine change and no emitted artifact moves, so ENGINE stays at 0.222.0 and `CONTRACT_VERSION` is unchanged. Writes are behavior-neutral: every write message the panel posts is byte-identical to main's, and `test:chrome` asserts each one whole against the committed `example-brands.json`.
+
+**What moved.** The S1.4 drawer held the old bar's pills plus one shared detail row. S11 replaces both with concept v6's model (plan §3.9). Each operation has its own row: Apply Theme, Build set, Set up file, Style guide, Prune stale and Read-back. A row appears once that operation has run. It carries a verdict pill, its time, a phase line and progress bar while it runs, its summary, and "Earlier results (N)", the last five. The drawer's bar row names the newest operation and counts how many are running or need attention. It opens by itself when a write starts. A success collapses it 4 s later (`COLLAPSE_MS`), held while the pointer or focus is inside. A failure or warning keeps it open. A page row's verdict no longer discloses anything in place: clicking it opens the drawer on that operation's row, through the store's `openDetail`. `renderSeedPill`, `syncApplyDetail`, the `apply-detail` row and the drawer's `bar` slot are gone. The rows' phase lines use the panel's existing pending copy ("Writing to Figma…", "Building members… 24 of 648"). The owner's copy pass (#1948: "Apply Theme", the "… Applying…" button labels, `FACE_GAPS` removed) landed on main first and is merged in unchanged.
+
+**The agent's run.** The plugin's dispatcher now brackets every valid agent command, `status` included, with `agent-started {id, cmd}` and `agent-finished {id, cmd}` around the verdict. `test-agent-link.ts`'s `brackets/<cmd>` arms check the order, and its `brackets/throw` arm checks that a handler that throws still sends `agent-finished`, so the "Agent" tag cannot stick. `host-session.ts` keeps the run in a new `agentRun` slot: a verdict for the same operation settles it (`settleAgent`, first thing in `reduce`), `agent-progress` feeds its build reading, and `agent-finished` clears it. The drawer tags the row "Agent". A run that finishes with no verdict restores the row's previous result from history rather than leaving it spinning.
+
+**Busy controls (owner decision #4 on #1956, and #1957).** While any run of an operation is in progress, the panel's or an agent's, its controls follow the engine Button's `isPending`: a delayed spinner, the width kept, `aria-disabled` rather than native `disabled`, `aria-busy`, and one polite announcement. `shell/dom.ts`'s `pendingLabel` stacks the idle and busy labels in one grid cell, with the hidden one at `visibility: hidden`, so the control never changes width. `setBusy` sets the two attributes. The re-fire guard lives in the run functions (`runApply`, `runPrune`, `runFileSetup`), not the control: a busy click reaches the handler and posts nothing. This closes #1957's UI half. The main-thread half, refusing a second write that arrives while one is running, is not in this PR. The owner approved its copy and its row behavior on 2026-10-02 (error code `busy`, "‹Operation› is already running. Try again when it finishes."), and it lands in its own follow-up PR on top of this one. The announcement is one `role=status` line, `[data-p3="activity-status"]`, mounted in the top bar, so it is in the document before the drawer first draws and sits on a ground the contrast audit can read.
+
+**Owner decisions on #1956, as built.** A clean result collapses its row (#483), and a bad one opens it. The count keeps "N need(s) attention". Read-back and Prune stale show a short verdict, with the host's sentence in the row's details. To count Read-back's mismatches, `seed-info` gains a `failed` wire field (the failed-check count, 0 from an older host or a malformed value), and `pruneVerdict` gains `applied`, to tell a delete from a preview. The page-row verdict keeps its "▾" caret, hidden from the accessible name. The 380 strip, and the missing queued state, Export row and agent note, stay as they are for now.
+
+**Copy chosen in-lane, flagged for the owner.** Read-back: "Clean", "N mismatch(es)", "Failed", "No theme", "Not restored". An unrecoverable read-back whose contract passes reads "Clean", and its details still say the knobs were not stored. Prune stale: "N stale" for a preview that found items, "Removed N", "Clean", "Failed". The live line reads "<operation title>, <phase>", for example "Apply Theme, Writing to Figma…". An agent's prune keeps the label "Prune stale" while busy, because the agent command does not say whether it is a dry run. The menu's Apply reads "… Applying…". The caret stays "▾", unturned.
+
+**Two technical calls, both forced by existing gates.** The progress fill is a native `<progress value max>`, not v6's `<i style="width:…">`. The chrome sets no inline value, and `chrome.css` may read only `var(--p3-*)` variables defined in the token map. The element also brings the progressbar role. And `OP_TITLE`'s `'apply'` key is quoted: `test-shell-imports.ts` reads a bare `apply` identifier in shell code as a reference to the legacy repaint tier.
+
+**Suites.** `test-build-verdict.mjs` reads each build from its `components` row rather than `[data-p3="bar"]`. Its #1890 arm retires its bar-before-detail write-order checks, because there is one surface now, painted in one pass. A reversed `topicsFor` is still caught, by `test-host-session.ts`. New arms cover:
+- an agent's Apply end to end. During it, the panel's Apply is busy, not natively disabled, and announced once, and a click on it posts nothing. A positive control at the end proves the same click posts once when idle.
+- a clean row collapsing, and the history keeping exactly five earlier results, newest first, over seven runs.
+- the 4 s collapse waiting while the pointer, and separately focus, is inside the drawer, and collapsing within a recheck after.
+- a page-row verdict opening the drawer on its own row: two clean rows, the target second, so expanding the first row or every row fails.
+- Read-back's short verdict, and the caret.
+
+`test-chrome.mjs` reads rows by `data-op`, classifies the two new control kinds (`p3-drawer-bar`, `p3-op-head`), counts top-bar pills by class (this suite never renders a `status-pill`), and asserts the busy Apply keeps its width. The mutations, each failing by name, are listed in the headers of `test-build-verdict.mjs`, `test-chrome.mjs`, `test-host-session.ts` and `test-agent-link.ts`.
+
+**Traps for whoever re-verifies this.**
+- Playwright's actionability check treats `aria-disabled` as disabled and never clicks, so a "posts nothing" check on a busy control passes with the guard removed. The busy click uses `{force: true}`, and the arm asserts the click happened.
+- `renderBar` re-mints the bar's controls on each host change, which restarts the spinner's delay. That is harmless while the delay is shorter than the gap between host messages, but a test that waits for the spinner across a host change will not see it.
+- The clean-collapse arms move the pointer off the drawer first. The click that started a run leaves the pointer where the drawer then opens, and the collapse waits while hovered. Opening the drawer also moves its bar, so the pointer-hold arm hovers a row after the verdict draws, not the bar before.
+- `test-chrome`'s `shown()` probe now also requires `checkVisibility()`. A closed `<details>` hides its content with `content-visibility`, which leaves the children a box while drawing nothing. That made the history list fail the probe. The defect was already on the branch after the main merge, before this round's changes.
+
+**Follow-ups, not in this PR:** #1957's main-thread refusal (above, its own PR); structured error causes on a row; the Figma action panels (the build picker, the in-place prune confirm, and the style guide, held for #1784/#1788).
+
+---
+
+## (2026-10-02) — the background tiers are inputs, not overrides (#1972)
+
+**Status:** ENGINE `0.222.0` (`engine: minor` change note), CONTRACT unchanged; no token path
+moves. Engine only: the Studio rows for these four come from the UI lane after this lands.
+
+### What changed
+
+`surfaces.<light|dark>` takes four optional keys: `secondary` and `tertiary` (the page's second and
+third tiers, neutral-only like `base`), and `inverseSecondary` and `inverseTertiary` (the same forms as
+`inverseBase`, including a `{ palette, step }` band). Each is read in `modeConfigs`, where derivation can
+still see it, so every role measured against the tier re-derives against it. Unset, a tier is the
+ladder's own step and every artifact is byte-identical. `GROUND_INPUT` gains the four rows, so an
+`overrides` entry on any of them is refused, naming the input.
+
+### The diagnosis that shaped it: the page floor is not the tier
+
+The inverse side was simple: the inverse contrast floor IS `inverse.background.secondary`, so 34 roles
+per mode follow a declared `inverseSecondary` by construction. The page side was not. Measured on the
+example brands, light mode: **3** roles name `background.secondary` as their ground, and **46** name the
+contrast floor, a palette step (`neutral.050`; `neutral.100` on harbor). The floor comes from
+`floorStep`, whose default is one step past `base`, which is always the same step as the second tier.
+So the 46 descriptions ("clears 4.5:1 on background.secondary") were true by coincidence. A `secondary`
+that moved only the tier would have re-derived 3 roles and left 46 claiming a surface they no longer
+sit on: the defect #1972 exists to remove.
+
+**Owner decision (option A):** with `floorStep` unset, the floor follows a declared `secondary`. An
+explicit `floorStep` still wins and may differ from the tier, as it may today. High-contrast modes
+follow the standard floor, as they already did for `base`.
+
+### Two premises that did not hold, and what was done
+
+- **A test overrode one of the four.** `test.ts`'s override-purity probe (#979) used
+  `inverse.background.secondary`. Owner-approved: it now probes `disabled.fill` (a ground with no
+  input; `field.fill` was suggested but is no longer a ground since the transparent-fill change), and
+  the old role is covered from the refusal side.
+- **"Validate like `base`" would have meant no validation.** `json-schema-lite` skips `allOf`/`oneOf`,
+  so `base: 'grey'` passes the schema today and resolves to `neutral.025`. The four new keys are checked
+  in `brandTheme` instead (white, black, or a step on the palette's ramp). `base`/`inverseBase` were
+  left alone: filed as #1985.
+
+### The gate and its mutations
+
+`test.ts` (a5b), `bg-tiers:` arms. Expectations come from the ramp step's hex and the emitted hexes of
+each role and its ground; which roles count as dependents is read off the UNSET tree. Each mutation
+was run on its own `wip:` commit.
+
+| Mutation | Fails |
+|---|---|
+| (a) ignore the input | 25 `bg-tiers` arms, e.g. `prism3 surfaces.light.secondary=200 — background.secondary resolves to neutral.200` |
+| (b) `secondary` set, floor not moved | 7: the six floor-gated arms (`the 46 floor-gated role(s) … re-measure against the declared tier: foreground.brand reports 6.44, measures 4.34`) and the HC arm |
+| (c) accept an override on `background.secondary` | 2: `overrides refused — overrides.light['background.secondary'] … (it was ACCEPTED)`, and dark |
+| (d) drop the `brandTheme` tier check | 6 `validation` arms |
+
+**The trap for whoever re-verifies this:** under (b), nothing else in the suite fails, including
+`lint-ratio-truth`. That gate `continue`s past any role whose ground is a palette step, so the 1,640
+floor-gated ratios across the corpus are never recomputed there. Filed as #1986. Until it lands, the
+`bg-tiers` floor arms are the only check on the floor following `secondary`.
+
+---
+
+## (2026-10-02) — UI redesign S5.2: Color › Interactive in the two panes, every column color a row, the Text row and Links in the preview
+
+**STATUS: branch `ui/s5-interactive`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The second of S5's PRs (S5.1, #1965, shared the Style guide's Disabled and Interactive sections and moved the page's writes into `state/interactive-input.ts`). The spec is the S5 scoping report, concept v6's Interactive page, and the owner's decisions of 2026-10-02 (Q22, Q23, Q32–Q40, and the copy and design answers Q51, Q53, Q54, Q57–Q59; copy marked APPROVED there is used verbatim). The Roles matrix is deferred (Q31), so nothing here hooks it.
+
+**What the user sees.** Color › Interactive is the third Color page in the two panes; the legacy page is gone, and with it the last Color row of the Pages menu.
+- **The levers panel**, its sections titled as the preview's (Q51): the intro; **jump links** to each button set (Q33), landmark "Button sets"; **Interactive** ("Each button set is a full set of fill, text, border and state colors."): Action palette, Outline hover, Neutral emphasis, then a group per button set, Primary, Neutral, Destructive, then each accent (Q33), every color the set carries as a row (S4a's row: swatch, name and role, "Auto · ‹palette› ‹step›" with its ratio, the step picker under it), each Hover and Pressed row under its rest row, all expanded; the overlay wash (or the tinted wash) as a read-out, never a picker (#1210); "Remove button set" and the add row ("Color for the new button set", "Add button set") in every editable mode (Q54), with the hint "Add a brand color on Palettes to use it for another button set." when nothing is left to add; then the **Strict interactive contrast** switch with Q38's caption; **Disabled** (the Style guide's Disabled description; Disabled contrast, and the reduced floor as four chips, disabled under Full, Q37); **Links** ("The link color in each state, on the page and on the inverse fill."; Link palette with "Auto: follows action palette", Q36; the three state rungs; each link family's resting link as a row, #1510); **Icons** ("The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor."; Icon contrast floor). Last, **Continue to Type**.
+- **Rows and anchors edit the mode the preview shows** (Q22, Q34): a column anchor in Light is the column's own field, in Dark `modeAnchors.dark`. **A button set exists across every mode** (Q54): `addAccent`/`removeAccent` write `interactivePalettes`, which no mode keys, so Add and Remove are offered previewing any editable mode and write the same bytes from each. **A derived mode (HC light, HC dark, wireframe) is read-only, every lever** (Q59), brand-wide ones included: every control in a lever section is disabled (the info toggletips aside), under S4a's approved line, shown once at the top of the levers.
+- **The preview**, in the Style guide's markup with a ratio badge on every chip: the shared **Interactive** section with every column, accents included (Q39), and a new **Text** row (Q32); the shared **Disabled** section; **Links** (text and icon links in their five states, on the page and on the inverse fill); **Icons** (the inks the icon contrast floor moves). Each section's container takes the levers panel's gray (Q24, class `p3-sgsec` on `--p3-levers-bg`). **Brand's Style guide gets the Text row too** (Q32) and keeps Primary, Neutral and Destructive.
+
+### Diagnosis and structure
+
+- **The Text row is the engine's text button** (`packages/engine/components/button.ts`, appearance `text`): the ink `interactive.‹c›.text.‹state›` over the outline hover wash, no border. It reads the same `outlineStateRoles` the Outline row reads and takes its `fill` and `text`, never its `border`, so the two rows cannot take the inverse-ground switch separately (#1629).
+- **New modules:** `domains/color-interactive.ts` (the levers), `preview/interactive.ts` (the preview), `preview/sections/links.ts` (the Links section, stamped `data-sg-section="links"`). `sections/interactive.ts` gains the Text row and a `columns` option; its description says four treatments, and on Interactive drops the "Primary, Neutral and Destructive only" sentence. `state/interactive-input.ts` gains `setLinkPalette` and `setStrictInteractiveContrast`, both of which UNSET their key for Auto and off, so an untouched brand stays byte-identical.
+- **Writes are S5.1's**, unchanged: every row goes through `writeInteractiveRow`, the levers through `setLever`.
+
+### Retired from `main.ts` (8,240 → 7,149 lines)
+
+The legacy Interactive page: the matrix and every helper only it used (`renderInteractiveMatrix`, `renderGlobalBehavior` with its Focus ring table, `renderPaletteSection`, the row builders, the example specimens, `renderLinksSection`, `renderAddAccentRow`, the lead controls, `contrastMark`, the wash helpers), `renderInteractivePage`, `renderSectionContrast` (Interactive was its last caller), the legacy `stepPicker` and `setFillOverride`, `removeButton`, `iconEl` and its glyphs, the dead `STATUS_ROLES` (#1963), and the `interactive` rows in `NAV`, `PAGE_COPY`, `PAGE_RENDERERS` and `SECTION_MODE_SCOPE`.
+
+**Behavior-neutral, measured.** 88 edits driven on the legacy page in a build of `9f026d6c` and on the new page (every chip of every enum lever, the action and link palettes, the three rungs set and cleared, the disabled floor, every row kind in Light, an accent added, anchored and overridden in Dark and removed, the four link families pinned in Light and Dark and cleared, and in Dark the destructive anchor, a border state, the inverse fill from the neutral ramp and the on-fill ink, each then Auto) leave **byte-identical persisted brands after every edit, 88/88** (75 distinct states; 0 page errors on either side). The two writes with no legacy control are held to literal expectations instead: the link palette set to neutral writes `"neutral"`, Auto then removes the key and nothing else; strict on writes `true`, off returns the brand to the bytes it had.
+
+**Brand's Style guide changes by exactly the Text row.** Captured for every corpus brand × mode × ground (36 states) before and after: with the three Text rows taken out and the one changed description sentence put back, 36/36 byte-identical.
+
+### Owner copy and design answers (2026-10-02), applied
+
+- **Copy APPROVED, used verbatim:** the preview's Interactive description ("four treatments — filled, outline, text, inverse —"), the Text row "Text", the Links and Icons descriptions above, v6's "Auto: tuned walk", "‹n› step(s)", the WCAG 1.4.1 line and Full's notes, "On"/"Off", "Continue to Type".
+- **Q51, retitled:** v6's Actions + Interactive palettes + the strict switch are **Interactive**; disabled contrast and its floor chips are **Disabled**; **Links**; the icon contrast floor is **Icons**. Each section carries its preview section's description (Q23); Disabled's is the Style guide's own, now `DISABLED_DESC` in `shell/pages.ts`, read by both. The jump links target the button-set groups by id, so they are unaffected.
+- **Q53, no "column" in copy:** "Add button set", "Color for the new button set", "Remove button set" (screen reader "Remove the ‹name› button set"), landmark "Button sets", the section intro, the preview's "Every button set is shown, including ones you added.", and the hint. Code identifiers and hooks (`column-promote`, `interactive-column`) are unchanged. **Q58:** "band" → "fill" in visible copy (the Links description, the inverse pill's tooltip "The inverse fill. …", shared with the Style guide). **Q57:** no visible "muted" was on this page.
+- **Still says "column", engine prose, left for the owner:** the Interactive palettes lever's manifest description in its info toggletip (`packages/engine/levers.ts`: "Promote declared palettes … to full interactive.‹name›.* columns … Supersedes the back-compat single-column `accentPalette` input."). It is the engine's shipped lever prose, so it was not reworded here.
+- **Kept as the legacy page had it:** the inverse fill's Auto reads "Auto · white (crisp)".
+
+### Tests
+
+- **`test:chrome`**: Interactive moves to `NEW_PAGES`; sections 4 and 9 read Type and Shape. New section 19: specimen grounds by name, both hosts, both themes, every mode; the 10 levers once and shown, every row by its literal role (3 × 22 and 4), strays failing; no Show advanced; the columns in order in the levers, the jump links and the preview, each jump link resolving to and focusing its own group; the Text row on Interactive and on Brand's Style guide against the emission (ink per state, no edge, the wash over the page); every ratio badge against the emission's measured contrast; the picker mounted; Dark writes `modeAnchors` and not Light's field; a derived mode read-only; Auto and strict-off unset their keys; an accent last everywhere; the chrome probe at 1280, 640 and 380.
+- **`test:smoke`**: new section 1d (per brand and mode, against the emission: specimen roots by name, the shared markers for Interactive, Disabled and Links, every Text-row ink, every painted link and icon, every paired specimen, every ratio badge computed here). #330, #1210, #576, #1487 and #1496 move to the new hooks; #812 moves to the preview's Outline row (the hover pair as drawn clears `text.hover`'s contract); the #485 scroll check moves to Layout; the #1675 chips on Interactive are held in their new markup (3c). The Pages menu floor is 5.
+- **`test-interactive-input`** 46 → 51 (the link palette's Auto, the strict switch). **`test-shell-imports`** 110 → 118 (the new modules scanned; Interactive draws the shared Disabled, Interactive and Links sections; `main.ts` draws no "Disabled" section of its own; the Links module stamps its marker). **`test-pages`**: `MOVED` gains Color › Interactive. **`test:chrome`** 11,669 assertions, with the owner-copy case: the four section titles and descriptions literal, each lever in its section, every Q53 string literal, no "column"/"band"/"muted" in the page's copy, labels and titles (the manifest's descriptions aside), Q54's Dark-versus-Light add and remove byte-identical, and Q59 in HC light, HC dark and wireframe: every control in a lever section enumerated from the DOM and none enabled, on a floor of 60, under the derived line. **`audit:modes`**: the Pages menu offers Type first and no Interactive; #1912's Interactive/Links row is deleted with the page.
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`, each failing by name:**
+- A row writing Light's key while previewing Dark (`writeInteractiveRow('light', …)` in the picker): chrome `interactive: previewing Dark, primary 400 writes modeAnchors.dark.primary and not the light anchor (Q34) — wrote modeAnchors undefined, actionAnchorStep 400`.
+- The Text row dropped from the shared section: chrome `text buttons: color-interactive primary has no Text row (web, light)` and `text buttons: brand primary has no Text row (web, light)`, every column and mode on both pages.
+- `strictInteractiveContrast` put in an advanced section: test-pages `strictInteractiveContrast: manifest advanced=true, placed advanced in Color › Interactive › Strict (every lever on this page is shown)`.
+- The columns reordered, Neutral first (`BUILT_IN_COLUMNS`): chrome `web: the levers draw the columns in the owner's order, Primary, Neutral, Destructive (Q33) — drew [["neutral","Neutral"],…]`, and the jump links' order.
+- The link palette's Auto writing the action palette's name: unit `setLinkPalette(Auto) unsets linkPalette, leaving the brand byte-identical to the one loaded (linkPalette "primary")`.
+- Owner copy: "Promote to a column" back on the add button → chrome `Q53: the add row reads "Add button set" on a select named "Color for the new button set" (["Promote to a column", …])`; the Interactive section titled "Actions" → chrome `Q51: Interactive's lever sections are the preview's, Interactive, Disabled, Links, Icons, with their approved copy — drew [["Actions", …`; the add row hidden in Dark → chrome `Q54: previewing Dark, Add button set is shown and enabled`; the action palette select left enabled in a derived mode → chrome `Q59: previewing HC light, every control on Interactive is disabled (…) — enabled action-palette-select`.
+- A jump link aimed at the wrong group: chrome `web: the jump link "Neutral" resolves to its own column group (neutral) — targets ["interactive-column","primary","Primary"]`.
+
+### Traps
+
+- **At 640 the levers pane is 268px and its content is wider** (on every moved page), so a pointer click on a control at the right edge can land on the preview. The chrome loop opens the picker by keyboard.
+- **At 640 the Color sub-nav runs under the preview**, so a pointer cannot reach the Interactive sub-tab (the keyboard can). Pre-existing; the chrome loop reaches the page by keyboard at 640 and the defect is reported for its own issue.
+- **#1147's elision premise lost its subject.** The pills that elided to identical text were the legacy Interactive page's one-line `tokenPill`s. The shared sections' pills break at their dots, so a capped inverse twin now shows its whole path. The premise is now "enough twins elide for the collision check to bite, or no pill in a twin pairing elides at all"; the Links section draws full paths so the walk still finds its 20 twin pairings.
+- **A ratio badge on the painted inverse band** needs the band's label ink (`styles.css`), or it reads ink-on-ink.
+
+---
+
+## (2026-10-02) — UI redesign S4c: Color › Surfaces & fills revisions (one set of surface controls, Background fills, Fields, no link row, the focus ring, the section gray)
+
+**STATUS: branch `ui/s4c-surfaces`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. Applies the owner's decisions of 2026-10-02, recorded in this change as Q22 to Q40 of `docs/superpowers/ui-redesign/decisions-2026-10-01-qa.md` (#1961, #1962, #1966, #1967, #1968, #1969): Q22 for Surfaces & fills, Q23 to Q30, and Q31, which builds nothing. Q21's "Light and Dark both always shown" is marked superseded by Q22. Plus three directions the owner added the same day: each surface control names the token it sets, a read-only scrim row, and Background fills' intro as the preview's full sentence.
+
+**What the user sees on Color › Surfaces & fills.**
+- **The page intro** is the owner's (Q27). **"Surfaces" is "Background fills"** (Q26), and the lever block under it is named the same, not the manifest's "Page surfaces". Its description is the preview's Background sentence (Q23, once the scrim had a row).
+- **One set of surface controls, for the mode the preview shows** (Q22), where S4a drew a Light group and a Dark group. Page writes `surfaces.<mode>.base`, Contrast floor `.floorStep`, Inverse band `.inverseBase`, exactly as that mode's group did. A derived mode (HC light, HC dark, wireframe) shows its family's surfaces, disabled, under the rows' own "‹Mode› is auto-derived — read-only…" line; a custom mode shows its base mode's, disabled, under the existing "Custom modes seed their surfaces from their base mode." line, because `SurfacesConfig` has only light and dark keys (`surfaceSourceOf`). No "Light"/"Dark" subheadings.
+- **Each surface control names its token** (owner direction): Page `background.primary`, Inverse band `inverse.background.primary`, in the fill rows' mono token style, the field's name under it. Contrast floor is a setting and is unchanged. `SURFACE_TOKENS` holds the two names.
+- **A read-only scrim row** (owner direction) at the end of Background fills: swatch composited over the mode's page, "Scrim", `scrim.default`, and its primitive and opacity (`black-alpha 40 · 40%` in Light). A wash has no ramp step to pick; the read-out follows `washSourceRead` in `main.ts`, but is drawn in the chrome's classes, because that one draws legacy classes the new page cannot mint.
+- **"Text" is "Text color"**, the preview section's title (Q23). **No Link row** (Q28, #1961): links are edited on Interactive only. `setLinkOverride` and `LINK_ROLES` are gone from `fills-input.ts`; `interactive-input.ts`'s link-family pin is the studio's only link write.
+- **A Fields section** (Q29, #1962) with the approved heading and intro: a row for each of the eight field roles the engine emits, `field.fill`, `field.border.rest`, `field.border.hover`, `field.placeholder` and their `inverse.` twins. All eight derive from the neutral ramp (borders and placeholder walk it; the fills default to `core.palette.transparent`), so each row picks neutral steps. Measured before building: the engine takes a neutral-step override on all eight, in light and dark, on all three corpus brands, and re-measures each against its own ground. `field.fill` moved here from Foreground fills. The two fills keep #1341's treatment: transparent until overridden, swatch showing the ground, a step judged by the value ink on it (`text.primary`, and `inverse.text.primary` on the band, at 4.5:1).
+- **The preview** draws the legacy Interactive page's **Focus ring** section after Border, read-only (Q30; customizing it is #1966). It moved to `preview/sections/focus-ring.ts` and `main.ts` draws it from there, so there is one copy. Its rings carry `data-sg-role="border.focus"` and `data-sg-paint="outline"`.
+- **Every preview section container is the levers panel's gray** (Q24): each section gets `p3-sgsec`, the class S5.2's Interactive preview uses, and `.p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg) }` paints it (one rule for both pages; the two branches add the identical rule, so they meet in a trivial merge). The card is pinned light, so it reads the light value in either chrome theme. The specimen grounds inside keep the brand's `background.primary`, as on `main`.
+
+**Data.** `pages.ts` moves the `field` and `inverse.field` families from Interactive to Surfaces & fills (Q29). The `roles` prefixes stay for coverage, and their comment now says no Roles toggle is drawn (Q31). Stale comments that called the Roles matrix a secondary view are corrected (`pages.ts`, `fills-input.ts`, `step-picker.ts`), and so is the one in `interactive-input.ts` that called #1961 open.
+
+**Behavior-neutral where it should be, measured.** The same 76 edits per corpus brand (Page, Contrast floor, Inverse band palette and step in Light with the preview on Light and in Dark with the preview on Dark, through Auto, a non-neutral band, back to neutral, white, black; every kept fill and text row and `field.fill` picked in both modes; six reverted to Auto) were driven on a build of `main` (`9f026d6c`), using that mode's group, and on this page. They leave **byte-identical persisted brands after every edit: 228 of 228** (70 distinct states per brand, 0 page errors on either side). Every option list matched too.
+
+### Tests
+
+- New **`test-fills-input.ts`** (98, in `npm test`). The Fields rows are checked against the committed emission's field roles and a literal list of the eight. Each role's palette comes from the emission's own alias, in light and dark. Each write in each mode is checked against a literal override; the engine resolves it to neutral 300, the emitted hex; the other mode is unmoved; Auto leaves the brand byte-identical. `surfaceSourceOf` is checked per mode against literals. `SURFACE_TOKENS` is checked against the engine's `GROUND_INPUT`, and a written page or band must move exactly that role. The scrim read-out is checked per mode against the emission's alias and that primitive's `alpha`. No row may edit a link role.
+- **`test-pages`** 71 → 76. Every emitted `field.*` and `inverse.field.*` role belongs to Surfaces & fills; `text.link.*`, `inverse.text.link.*` and `interactive.*` belong to Interactive.
+- **`test-shell-imports`** 110 → 116: `focus-ring.ts` in `MUST_SCAN` and the marker arm; `main.ts` and `surfaces.ts` both draw it through `focusRingSection()`, and `main.ts` keeps no copy.
+- **`test:chrome`** 10,058 → 10,094: the Focus ring as a listed specimen root; Q24, every section container against the emission's `core.palette.neutral.025` (IA-2's light levers ground), both hosts and themes, every mode, and the light levers panel itself; the one-set surface hooks; Fields rows against the emission's field roles; no link row; the approved copy, literally; each surface control's token; the scrim row.
+- **`test:smoke`** 3,828 → 3,900. The Focus ring section's marker and its two rings, held as painted swatches to the emission's `border.focus`, on every brand × mode. New block per corpus brand: previewing Dark and then Light, Page, Contrast floor and band step write that mode's key and leave the other's as persisted; a derived mode disables all four; three Fields edits (Dark `field.border.rest` 300, Light `inverse.field.placeholder` 200, Dark `field.fill` 100) reach the **exported** DTCG tree as `{<root>.core.palette.neutral.<n>}`, where the committed emission aliased something else.
+
+### Mutations (each after a `wip:` commit, diff checked non-empty, each failing by name)
+
+| Mutation | Failure |
+|---|---|
+| (a) Page writes `setSurfaceBase('light', v)` whatever the preview shows | smoke, 3 (one per brand): `✗ S4c prism3: previewing dark, the base control writes surfaces.dark.base = 50 and leaves surfaces.light as it was — wrote surfaces {"light":{"base":50}} (before {"light":{"base":"white"}})` |
+| (b) `field.placeholder` dropped from `FIELD_ROWS` | unit, 4: `✗ every emitted field role has exactly one Fields row — no row, or more than one: field.placeholder`; chrome, 4: `✗ web: Surfaces & fills renders the field.placeholder row once — rendered 0` |
+| (c) the Link row put back in `TEXT_ROWS` | unit: `✗ no Surfaces & fills row edits a link role — link rows: text.link.default`; chrome, 2: `✗ web: every override row on Surfaces & fills is a listed role — unlisted row text.link.default` |
+| (d) the Q24 rule removed from `chrome.css` | chrome, 12: `✗ Q24 section containers: surfaces & fills web light 1280, previewing light: every section container is the levers panel's gray #f7f7f7 (7 read) — Background on #ffffff, …` |
+| (e) the Focus ring not drawn in `surfaces.ts` | shell-imports: `✗ src/preview/surfaces.ts draws the Focus ring section through the shared focusRingSection()`; smoke, 72: `✗ prism3 / Surfaces & fills / light: section Focus ring is a specimen root on the emission's background.primary #ffffff — not drawn`; chrome, 24: `✗ specimen ground: surfaces & fills web light 1280, previewing light: Focus ring is a specimen root on background.primary #ffffff — not drawn` |
+
+### Traps
+
+- **A control that writes the wrong mode's key redraws on its old value.** The S4c smoke block waits for the select to show the new value. That wait must be bounded and non-fatal, or mutation (a) dies as a 30-second `TimeoutError` before any assertion runs. The first run of (a) did exactly that, and a crash is not a by-name failure.
+- **`test-shell-imports` run from a copy of the tree** fails one arm (`@prism3/studio/src/main resolves to this checkout's src/main.ts`), because the workspace link points at the real checkout. Counting a baseline that way, read 110, not 109.
+- **`test-shell-imports.ts` carries the S4a "one Style guide, two pages" block twice** (a merge artifact). It is harmless, but that block's assertions are counted twice. Not touched here.
+
+### Open with the owner
+
+- The color of the area the specimens sit in (today the brand's `background.primary`), left as on `main`.
+
+**Copy, APPROVED by the owner (2026-10-02).** Each item below was listed in the PR and is now approved as shipped:
+- the field rows' labels — **APPROVED (2026-10-02)**;
+- the surface controls' token-plus-name layout — **APPROVED (2026-10-02)**;
+- the scrim row and its read-out — **APPROVED (2026-10-02)**;
+- the lever name "Background fills" — **APPROVED (2026-10-02)**;
+- the Background fills info text, in the owner's words: "The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page." — **APPROVED (2026-10-02)**. It is the Studio's text for this page only: `color-fills.ts` hands it to `leverBlock` as `desc`, which now wins over the manifest's description (`lever-kit.ts`). The engine's `surfaces` description in `levers.ts` ("Non-default page surface per mode…") is unchanged, because MCP, the manifest and the emitted artifacts read it. `test:chrome` holds the rendered toggletip to the literal; mutation: one word changed in `color-fills.ts` → `✗ web: the Background fills info text is the owner's — read …`.
+- Q23 applied to Foreground and Text color — **APPROVED (2026-10-02)**: the levers' "Foreground fills" heading is the preview's "Foreground", and both sections' descriptions ("Auto follows the contrast-gated/placed default…") are the preview sections' own sentences, copied verbatim from `preview/sections/foreground.ts` and `text-color.ts` into `pages.ts`. `test:chrome` holds each to its literal and to the rendered preview section, so an edit to one side alone fails.
+- "band" is "fill" in visible copy — **APPROVED (2026-10-02)**: the `inverse.background.primary` control is "Inverse fill", and its two select names are "Inverse fill palette" and "Inverse fill step". Identifiers (`surface-band-palette`, `setBandPalette`) and comments keep "band". `test:chrome` holds the label to the literal "Inverse fill".
+
+---
+
 ## (2026-10-02) — When icons match text, every text override carries to its icon twin, not only the interactive labels (#1968)
 
 **STATUS: PR open from `engine/icon-follows-text`.** Engine, plus one Studio test fixture (below). A change note (`engine: minor`) declares the bump, and the fold sets ENGINE to 0.221.0. `CONTRACT_VERSION` is unchanged: no path is added or removed, and `token-contract.ts --check` passes. `regen.ts` moves no committed artifact, because no corpus brand carries a per-mode override.
