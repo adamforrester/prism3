@@ -10,7 +10,7 @@
  *  Nothing here reads the session. */
 import type { Theme } from '@prism3/engine/theme';
 import type { FaceStatus } from '../../ui/fonts';
-import { el, hook, palSection, specimenPair, subHead, tokenPillSpan, type SgCtx } from './kit';
+import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 
 /** The two tables' sub-headings: the levers' own names for the two controls (Q23). DRAFT, as the levers' are. */
 export const FACES_BY_TYPE = 'Face for each text type';
@@ -50,7 +50,7 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
     tc.append(tokenPillSpan(`font.family.${f.group}`));
     const face = f.stack[0] ?? '';
     const spec = el('td', 'mtbl-fill mtbl-spec');
-    const samp = specimenPair(el('span', 'mtbl-spec-t', 'The quick brown fox jumps'), 'text.primary', 'background.primary');
+    const samp = c.painted(specimen(el('span', 'mtbl-spec-t', 'The quick brown fox jumps')), 'text.primary', 'color');
     samp.style.color = c.paint(c.cur, 'text.primary');
     samp.style.fontFamily = f.stack.map((x) => (/^[a-z-]+$/.test(x) ? x : `"${x}"`)).join(', ');
     spec.append(samp);

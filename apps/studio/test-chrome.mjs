@@ -315,18 +315,18 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['type', 'shape', 'depth', 'layout', 'components'];
+const LEGACY_PAGES = ['shape', 'depth', 'layout', 'components'];
 /** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills;
- *  S5.2: Color › Interactive). A slice that moves a place adds it here in the same change; a place in both lists, or
- *  in neither, fails by name. */
-const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive'];
+ *  S5.2: Color › Interactive; S6.2: Type). A slice that moves a place adds it here in the same change; a place in both
+ *  lists, or in neither, fails by name. */
+const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
   web: {
-    type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
+    shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
   figma: {
-    type: ['typography'], shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
+    shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
 const PLACE_CLICKS = {
@@ -379,9 +379,13 @@ const INTERACTIVE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="intera
 const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]', '[data-p3="lever-info"]', '[data-p3="personality-word"]',
   '[data-p3="mode-on-dark"]', '[data-p3="mode-on-hc-light"]', '[data-p3="mode-on-hc-dark"]', '[data-p3="mode-on-wireframe"]',
   '[data-p3="custom-mode-add"]', '[data-p3="brand-continue"]'];
+/** Type in the two panes (S6.2): the controls its levers must render, by hook (Faces: the library's Add face, the
+ *  face for each text type, Show advanced; the way on to Shape). The lent legacy region is `INSPECT_LEGACY`'s. */
+const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-input"]', '[data-p3="face-add"]', '[data-p3="family-select"]',
+  '[data-p3="type-advanced"]', '[data-p3="type-continue"]'];
 /** Each moved place's levers, by place. */
 const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
-  'color-interactive': INTERACTIVE_LEVERS_CONTROLS };
+  'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS };
 /** The preview header: the mode choice and Inspect. The mode choice is the radios, or, where they do not all fit
  *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
  *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
@@ -437,7 +441,10 @@ const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect
   // pinned light the same way. Its specimens are held to the brand's page color in section 16.
   '[data-p3="surfaces-style-guide"]',
   // S5.2: Color › Interactive's preview, the same way. Its specimens are held to the brand's page color in section 19.
-  '[data-p3="interactive-style-guide"]'];
+  '[data-p3="interactive-style-guide"]',
+  // S6.2: Type's preview, the same way (section 20), and the legacy region its LEVERS lend until S6.3 (pinned light,
+  // `styles.css`: the legacy page's own controls, held in section 4 for #1031 and in section 20 for Q59).
+  '[data-p3="type-style-guide"]', '[data-p3="type-lent"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -947,15 +954,16 @@ for (const theme of ['light', 'dark']) {
 console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  // A legacy page: Color moved to the two panes in S2, S4a and S5.2, so this reads Type, the first legacy page,
-  // whose families and scale are selects.
+  // Legacy fields: Color moved to the two panes in S2, S4a and S5.2 and Type in S6.2, so this reads the legacy region
+  // Type's levers lend (its heading scale and weights are selects and text fields), the same legacy markup.
   await goPlace(page, 'type');
+  await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
     const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
     const ground = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ? over(acc, parse(getComputedStyle(document.body).backgroundColor)) : parse(getComputedStyle(document.body).backgroundColor); };
-    const fields = [...document.querySelectorAll('[data-p3="legacy-page"] input[type="text"], [data-p3="legacy-page"] input:not([type]), [data-p3="legacy-page"] select')]
+    const fields = [...document.querySelectorAll(':is([data-p3="legacy-page"], [data-p3="type-lent"]) :is(input[type="text"], input:not([type]), select)')]
       .filter((n) => n.getBoundingClientRect().width > 0);
     return { doc: getComputedStyle(document.documentElement).colorScheme, fields: fields.map((n) => {
       const cs = getComputedStyle(n); const g = ground(n); const x = lum(over(parse(cs.color), g)), y = lum(g);
@@ -1304,7 +1312,7 @@ for (const host of ['web', 'figma']) {
   await hooks.need(page, '[data-p3="health"]');
   await goPlace(page, 'type');
   const s = await inspectState(page);
-  ok(!s.open && s.page && s.legacyPage === 'typography' && s.view === 'type', `a tab change closes Inspect and shows the new page (${JSON.stringify({ open: s.open, page: s.legacyPage, view: s.view })})`);
+  ok(!s.open && s.page && s.legacyPage === undefined && s.view === 'type', `a tab change closes Inspect and shows the new page, Type in the two panes (${JSON.stringify({ open: s.open, page: s.legacyPage, view: s.view })})`);
   await ctx.close();
 }
 
@@ -1836,8 +1844,9 @@ const groundsOf = (page) => page.evaluate(() => {
   })] };
 });
 /** The Style guide's specimen roots, by section title, in order: each section `renderPreviewStyleGuide` draws on a
- *  ground (S3; modeled on S2's `EXPECT_SPECIMENS`). Literal (orchestrator review of #1939). */
-const STYLE_GUIDE_ROOTS = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
+ *  ground (S3; modeled on S2's `EXPECT_SPECIMENS`). Literal (orchestrator review of #1939). The type sample opens
+ *  it (#1942, owner decision Q67, S6.2). */
+const STYLE_GUIDE_ROOTS = ['Type sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
 /** Each moved place's preview, with the specimens it must draw, by name. */
 const SPECIMEN_PLACES = { 'color-palettes': ['palettes', EXPECT_SPECIMENS], brand: ['brand', STYLE_GUIDE_ROOTS] };
 for (const host of ['web', 'figma']) {
@@ -3619,6 +3628,241 @@ for (const { w, h } of WIDTHS) {
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `S5.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+
+// =============================================================================================
+// 20. Type (S6.2): Faces in the two panes, the type sample and Faces in the preview, the lent legacy region
+// =============================================================================================
+console.log(`\nType (S6.2)\n${'='.repeat(78)}`);
+/** EXPECTED, by name (represented, not counted; docs/34): the Type preview's specimen roots, each a section on the
+ *  brand's page color. Literal: the shared type sample (#1942), Faces, the two lifted Preview-tab sections, and the
+ *  fluid read-out under the owner's plain words (Q70). */
+const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Faces', 'Weight roles by face', 'The full type ramp', 'Headings scale between mobile and desktop'];
+/** The text types, in order, each with the plain name its token carries under it (owner decision Q68, its example
+ *  "Body face"). Literal. */
+const TYPE_FACES = [['display', 'Display face'], ['title', 'Title face'], ['body', 'Body face'], ['label', 'Label face'],
+  ['caption', 'Caption face'], ['eyebrow', 'Eyebrow face'], ['code', 'Code face']];
+/** The default theme's faces, from the emission, the oracle for what each select shows in Light. */
+const TYPE_FACE_OF = (g) => {
+  let v = OUT[OUT_ROOT]?.core?.font?.family?.[g]?.$value;
+  for (let i = 0; typeof v === 'string' && v.startsWith('{') && i < 8; i++) v = v.slice(1, -1).replace(`${OUT_ROOT}.`, '').split('.').reduce((n, k) => n?.[k], OUT[OUT_ROOT])?.$value;
+  return v;
+};
+ok(TYPE_FACE_OF('body') === 'Inter' && TYPE_FACE_OF('display') === 'Playfair Display', `the oracle resolves the default theme's faces from the emission (body ${TYPE_FACE_OF('body')}, display ${TYPE_FACE_OF('display')})`);
+/** The Faces copy (Q23: the lever section and the preview section say the same thing). DRAFT, typed here. */
+const FACES_COPY = ['Faces', 'The faces in the brand, and the face each text type uses.'];
+const sectionGrounds = (page, hk) => page.evaluate((hostHook) => {
+  const parse = (x) => { const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  const host = document.querySelector(`[data-p3="preview-body"] [data-p3="${hostHook}"]`);
+  const grounds = [...(host?.querySelectorAll('.sg-ground') ?? [])];
+  return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
+    sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })) };
+}, hk);
+// Specimen grounds and Q24's gray containers: both hosts, both themes, every mode.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'type');
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await chooseMode(page, mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await sectionGrounds(page, 'type-style-guide');
+        const want = EMITTED[mode];
+        for (const name of EXPECT_TYPE_SPECIMENS) {
+          const r = g.roots.find((x) => x.name === name);
+          ok(!!r && r.root && r.ground === want, `specimen ground: type ${where}: ${name} is a specimen root on background.primary ${want}${
+            !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        }
+        const unlisted = g.roots.filter((x) => !EXPECT_TYPE_SPECIMENS.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: type ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+        const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
+        ok(g.sections.length >= EXPECT_TYPE_SPECIMENS.length && offGray.length === 0,
+          `Q24 section containers: type ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
+      }
+    } catch (e) {
+      ok(false, `S6.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+// Represented, on both hosts: the two Faces levers once; every text type's select by its token, the token FIRST in
+// mono with its plain name under it (Q68); the library's faces by token first; code's None (Q75, literal); Light's
+// selects on the emission's faces; the four-tab bar gone; the lent legacy region drawn; Show advanced holding Apply
+// to all and the remove button; Q23's Faces copy the same in the levers and the preview.
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
+    const r = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const fams = [...pane.querySelectorAll('[data-p3="family-row"]')].map((row) => {
+        const name = row.querySelector('.p3-fill-name');
+        const sel = row.querySelector('[data-p3="family-select"]');
+        return { group: row.dataset.group, first: name?.firstElementChild?.className ?? null, tok: name?.querySelector('.p3-fill-tok')?.textContent ?? null,
+          tokFont: name?.querySelector('.p3-fill-tok') ? getComputedStyle(name.querySelector('.p3-fill-tok')).fontFamily : null,
+          label: name?.querySelector('.p3-field-label')?.textContent ?? null, labelFor: name?.getAttribute('for') === sel?.id,
+          value: sel?.selectedOptions[0]?.textContent ?? null, options: sel ? [...sel.options].map((o) => o.textContent) : [] };
+      });
+      const lib = [...pane.querySelectorAll('[data-p3="face-row"]')].map((row) => ({ slug: row.dataset.slug, first: row.querySelector('.p3-fill-name')?.firstElementChild?.textContent ?? null }));
+      const lsec = pane.querySelector('[data-p3="lever-section"]');
+      const prev = [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].find((x) => x.querySelector('.psec-t')?.textContent === 'Faces');
+      return {
+        blocks: ['lever-typography-typeface-library', 'lever-typography-families'].map((hk) => pane.querySelectorAll(`[data-p3="${hk}"]`).length),
+        fams, lib, tabs: pane.querySelectorAll('.pvseg').length + document.querySelectorAll('[data-p3="legacy-page"] .pvseg').length,
+        lent: ['heading-shapes', 'category-table', 'pin-cut-table'].map((hk) => !!pane.querySelector(`[data-p3="type-lent"] [data-p3="${hk}"]`)),
+        leverCopy: [lsec?.querySelector('.p3-lsec-title')?.textContent ?? null, lsec?.querySelector('.p3-lsec-desc')?.textContent ?? null],
+        previewCopy: [prev?.querySelector('.psec-t')?.textContent ?? null, prev?.querySelector('.psec-d')?.textContent ?? null],
+        source: document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null,
+      };
+    });
+    ok(r.blocks.every((n) => n === 1), `${host}: the library and the face-for-each-text-type levers render once each (${r.blocks.join(', ')})`);
+    ok(JSON.stringify(r.fams.map((f) => f.group)) === JSON.stringify(TYPE_FACES.map(([g]) => g)), `${host}: a face select per text type, in order — drew ${JSON.stringify(r.fams.map((f) => f.group))}`);
+    for (const [g, label] of TYPE_FACES) {
+      const f = r.fams.find((x) => x.group === g);
+      ok(!!f && f.first === 'p3-fill-tok' && f.tok === `font.family.${g}` && f.label === label && f.labelFor && /JetBrains Mono|P3 Chrome Mono/.test(f.tokFont ?? ''),
+        `Q68: ${host}: the ${g} select is named by its token first, font.family.${g} in mono, then "${label}" — read ${JSON.stringify(f && { first: f.first, tok: f.tok, label: f.label, labelFor: f.labelFor, font: f.tokFont })}`);
+      ok(f?.value === (g === 'code' ? TYPE_FACE_OF('code') : TYPE_FACE_OF(g)), `${host}: in Light the ${g} select shows the emission's face ${TYPE_FACE_OF(g)} (shows ${f?.value})`);
+    }
+    const code = r.fams.find((x) => x.group === 'code');
+    ok(!!code && code.options.includes('None — no code styles'), `Q75: ${host}: code's select offers "None — no code styles" (${JSON.stringify(code?.options)})`);
+    ok(r.lib.length >= 3 && r.lib.every((x) => x.first === `font.typeface.${x.slug}`), `Q68: ${host}: every library face is named by its token first (${JSON.stringify(r.lib)})`);
+    ok(r.tabs === 0, `${host}: the four-tab bar (Primitives · Semantics · Text styles · Preview) is gone (${r.tabs} drawn)`);
+    ok(r.lent.every(Boolean), `${host}: the lent region draws the legacy heading sizes, the text-type table and the font-style pins (${JSON.stringify(r.lent)})`);
+    ok(JSON.stringify(r.leverCopy) === JSON.stringify(FACES_COPY) && JSON.stringify(r.previewCopy) === JSON.stringify(r.leverCopy),
+      `Q23: ${host}: the Faces lever section and the preview's Faces section have one heading and description — levers ${JSON.stringify(r.leverCopy)}, preview ${JSON.stringify(r.previewCopy)}`);
+    ok(r.source === 'On this device', `${host}: before the host sends a font list, the library's availability reads "On this device" (${r.source})`);
+    // Show advanced (Q64, Q69): closed, it holds Apply to all; open, Apply to all is there.
+    const before = await page.evaluate(() => ({ all: !!document.querySelector('[data-p3="family-all-apply"]'), label: document.querySelector('[data-p3="type-advanced"]')?.textContent?.trim() }));
+    await hooks.click(page.locator('[data-p3="type-advanced"]'));
+    await hooks.need(page, '[data-p3="family-all-apply"]');
+    const after = await page.evaluate(() => ({ all: !!document.querySelector('[data-p3="family-all-apply"]'), label: document.querySelector('[data-p3="type-advanced"]')?.textContent?.trim(), expanded: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-expanded') }));
+    ok(!before.all && before.label === 'Show 2 advanced' && after.all && after.expanded === 'true' && after.label === 'Hide 2 advanced',
+      `Q64: ${host}: Apply to all sits behind "Show 2 advanced" (${JSON.stringify({ before, after })})`);
+    ok(errors.length === 0, `${host} Type levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Edits (Q22, Q62 option A): Light writes the brand value; previewing Dark, the same select writes
+// modeLevers.dark.families and leaves the brand value alone, shown as Auto: follows Light until set, with Return to
+// Auto; the library takes a face and refuses a duplicate; Show advanced removes an unused face. Each write read back
+// from the PERSISTED brand.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    const view0 = (await previewView(page)).view;
+    const body = page.locator('[data-p3="family-select"][data-group="body"]');
+    const p0 = await persisted(page);
+    await body.selectOption('JetBrains Mono');
+    await page.waitForFunction(() => document.querySelector('[data-p3="family-select"][data-group="body"]')?.value === 'JetBrains Mono');
+    const p1 = await persisted(page);
+    ok(p1?.typography?.families?.body === 'JetBrains Mono' && p1?.modeLevers === undefined, `type: in Light, the body face writes typography.families.body (${JSON.stringify({ body: p1?.typography?.families?.body, modeLevers: p1?.modeLevers })})`);
+    await body.selectOption('Inter');
+    await page.waitForFunction(() => document.querySelector('[data-p3="family-select"][data-group="body"]')?.value === 'Inter');
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: setting body back to Inter returns the persisted brand to its bytes');
+    await chooseMode(page, 'dark');
+    const auto = await page.evaluate(() => { const s = document.querySelector('[data-p3="family-select"][data-group="body"]'); return { value: s?.value, text: s?.selectedOptions[0]?.textContent, line: document.querySelector('[data-p3="lever-typography-families"] .p3-sub')?.textContent }; });
+    ok(auto.value === '' && auto.text === 'Auto: follows Light (Inter)' && auto.line === 'Editing Dark, the mode the preview shows.',
+      `Q62: previewing Dark, the body select starts on "Auto: follows Light (Inter)" under the editing line (${JSON.stringify(auto)})`);
+    await page.locator('[data-p3="family-select"][data-group="body"]').selectOption('JetBrains Mono');
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="family-reset"][data-group="body"]'), null, { timeout: 5000 }).catch(() => {});
+    const p2 = await persisted(page);
+    ok(p2?.modeLevers?.dark?.families?.body === 'JetBrains Mono' && p2?.typography?.families?.body === p0?.typography?.families?.body,
+      `previewing Dark, body face writes modeLevers.dark.families.body and not the brand value — wrote modeLevers ${JSON.stringify(p2?.modeLevers)}, typography.families.body ${JSON.stringify(p2?.typography?.families?.body)}`);
+    const prevFace = await page.evaluate(() => [...document.querySelectorAll('[data-p3="type-style-guide"] [data-p3="faces-type-row"]')].find((r) => r.dataset.group === 'body')?.querySelectorAll('td')[1]?.textContent);
+    ok(prevFace === 'JetBrains Mono', `type: previewing Dark, the preview's Faces section names the Dark body face (${prevFace})`);
+    await hooks.click(page.locator('[data-p3="family-reset"][data-group="body"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="family-select"][data-group="body"]')?.value === '');
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: Return to Auto prunes modeLevers: the persisted brand is the one loaded');
+    await chooseMode(page, 'light');
+    // The library: add a face, refuse a duplicate by slug, then remove it under Show advanced.
+    await page.locator('[data-p3="face-add-input"]').fill('Roboto');
+    await hooks.click(page.locator('[data-p3="face-add"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="face-row"][data-slug="roboto"]'), null, { timeout: 5000 }).catch(() => {});
+    ok(JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '["Roboto"]', `type: Add face stages Roboto in typography.typefaceLibrary (${JSON.stringify((await persisted(page))?.typography?.typefaceLibrary)})`);
+    await page.locator('[data-p3="face-add-input"]').fill('roboto');
+    await hooks.click(page.locator('[data-p3="face-add"]'));
+    await hooks.need(page, '[data-p3="face-add-error"]');
+    const dup = await page.evaluate(() => document.querySelector('[data-p3="face-add-error"]')?.textContent);
+    ok(dup === 'Roboto is already in the library.' && JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '["Roboto"]', `type: a duplicate by slug is refused, nothing written ("${dup}")`);
+    await hooks.click(page.locator('[data-p3="type-advanced"]'));
+    await hooks.click(page.locator('[data-p3="face-row"][data-slug="roboto"] [data-p3="face-remove"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="face-row"][data-slug="roboto"]'), null, { timeout: 5000 }).catch(() => {});
+    ok(JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '[]', `type: Show advanced's remove takes the unused face out (the legacy bytes, [] left) (${JSON.stringify((await persisted(page))?.typography?.typefaceLibrary)})`);
+    const inUse = await page.evaluate(() => ['inter', 'playfair-display', 'jetbrains-mono'].map((x) => !!document.querySelector(`[data-p3="face-row"][data-slug="${x}"] [data-p3="face-remove"]`)));
+    ok(inUse.every((x) => !x), `type: a face a text type uses offers no remove (${JSON.stringify(inUse)})`);
+    ok((await previewView(page)).view === view0, `V1 edit: Type's edits never move the preview's home (${view0})`);
+    ok(errors.length === 0, `type edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S6.2 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Q59, Q74: in each derived mode every control on Type is disabled, the lent region included, under the derived
+// line. Enumerated from the DOM: every button, select and input in a lever section but the info toggletips.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
+    await goPlace(page, 'type');
+    await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
+    /** The floor on the controls a derived mode must hold disabled: the seven face selects and the lent region's
+     *  heading shapes alone are more than 10, and the lent tables carry dozens. */
+    const DERIVED_CONTROLS_FLOOR = 40;
+    for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
+      await chooseAnyMode(page, mode);
+      await page.waitForFunction((l) => document.querySelector('[data-p3="type-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      const d = await page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="type-derived"]')?.textContent ?? null };
+      });
+      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Type ("${d.line}")`);
+      ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
+        `Q59: previewing ${label}, every control on Type is disabled, the lent region included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['family-select', 'face-add-input', 'face-add', 'type-advanced', 'heading-shape-compact'])
+        ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Type is among those held disabled`);
+    }
+    await chooseAnyMode(page, 'light');
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="type-derived"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, lent: document.querySelector('[data-p3="heading-shape-compact"]')?.disabled }));
+    ok(!back.line && back.sel === false && back.lent === false, `Q59: back in Light, Type's derived line is gone and its controls, lent ones included, are editable (${JSON.stringify(back)})`);
+    ok(errors.length === 0, `type derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S6.2 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The chrome on Type: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
+// narrow).
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w, h });
+      try {
+        await goPlace(page, 'type');
+        const where = `${host} ${theme} ${w} / type`;
+        const narrow = w <= 560;
+        const m = await measure(page, where, host, w);
+        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s6-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
+        if (narrow) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          const mp = await measure(page, `${where} / preview`, host, w);
+          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `S6.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
       } finally { await ctx.close(); }
     }
   }

@@ -9,10 +9,10 @@
  *  in the body face. `test:smoke` holds every line's first face to the emission's `core.font.family.<type>`.
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="type-sample"`, `kit.ts`'s header).
- *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, and the ground's ink and fill
- *  roles (the Style guide can draw on the inverse fill). Nothing here reads the session. */
+ *  WHAT IT IS HANDED. The section context, the resolved typography, the mode, and the ground's ink role (the
+ *  Style guide can draw on the inverse fill). Nothing here reads the session. */
 import type { Theme, TypeComposite } from '@prism3/engine/theme';
-import { el, hook, palSection, specimenPair, tokenPillSpan, type SgCtx } from './kit';
+import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 /** The display style the sample opens with: large, but not the largest (owner decision Q67: the largest can be
  *  160px). `display.md.strong` is 64px in the default theme. A PROPOSAL, pending the owner's approval: change it
@@ -47,7 +47,7 @@ export const typeSamplePicks = (ty: Typography): TypeComposite[] => {
 const cssStack = (stack: readonly string[]): string =>
   stack.map((f) => (/^[a-z-]+$/.test(f) ? f : `"${f.replace(/"/g, '')}"`)).join(', ');
 
-export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground: { ink: string; fill: string }): HTMLElement => {
+export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground: { ink: string }): HTMLElement => {
   const sec = palSection(TYPE_SAMPLE_TITLE, TYPE_SAMPLE_DESC);
   sec.dataset.sgSection = 'type-sample';   // the shared-section marker (`kit.ts`'s header)
   const fams = ty.familiesByMode?.[mode] ?? ty.families;
@@ -59,7 +59,9 @@ export const typeSampleSection = (c: SgCtx, ty: Typography, mode: string, ground
     row.dataset.token = `type.${comp.path}`;
     const lh = ty.lineHeights.find((l) => l.key === (comp.lineHeightByMode?.[mode] ?? comp.lineHeight))?.value;
     const ls = ty.letterSpacings.find((l) => l.key === (comp.trackingByMode?.[mode] ?? comp.tracking))?.em;
-    const text = specimenPair(el('p', 'tsm-text', TYPE_SAMPLE_TEXT), ground.ink, ground.fill);
+    // A specimen inked with the ground's own ink role, marked with the role it paints so a test reads its color
+    // against the emission.
+    const text = c.painted(specimen(el('p', 'tsm-text', TYPE_SAMPLE_TEXT)), ground.ink, 'color');
     text.style.color = c.paint(c.cur, ground.ink);
     text.style.fontFamily = cssStack(fams.find((f) => f.group === comp.group)?.stack ?? []);
     text.style.fontSize = `${comp.sizeByMode?.[mode] ?? comp.sizePx}px`;

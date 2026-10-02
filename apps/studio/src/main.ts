@@ -1347,7 +1347,7 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 
   // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
   // the brand's text styles in its faces, in the previewed mode, inked for the chosen ground.
-  host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink, fill: surf.key })));
+  host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink })));
   // The five shared color sections, in the Style guide's order, each on the chosen ground.
   for (const [, section] of COLOR_SECTIONS) host.append(ground(section(c)));
 
