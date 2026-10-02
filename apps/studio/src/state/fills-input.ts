@@ -276,12 +276,19 @@ export const PAIR_ICONS_CONFIRM = {
     : `This removes ${n} custom icon colors. Icons will follow their text color again.`,
   action: 'Pair icons',
 } as const;
-/** The text role an icon row is locked to in `mode`, or null when the row is editable. Locked while paired,
- *  unless the icon carries its own override in that mode: the engine applies an explicit icon override over the
- *  carried text one (#1968), so that row shows the override it has, with Return to Auto, rather than claim a
- *  "Follows" the engine is not doing. */
+/** The icon roles that follow their text under both lever values (#1982): each keeps its text's 4.5:1 floor under
+ *  '3:1', so the engine carries a text override to them whether icons are paired or not (`ALWAYS_TWINNED` in
+ *  `modes.ts`). Their rows stay locked while unpaired. */
+const ALWAYS_FOLLOWS: ReadonlySet<string> = new Set([
+  'icon.primary', 'inverse.icon.primary',
+  'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info',
+]);
+/** The text role an icon row is locked to in `mode`, or null when the row is editable. Locked while paired, and
+ *  always for the `ALWAYS_FOLLOWS` rows, unless the icon carries its own override in that mode: the engine applies
+ *  an explicit icon override over the carried text one (#1968), so that row shows the override it has, with
+ *  Return to Auto, rather than claim a "Follows" the engine is not doing. */
 export const lockedTo = (mode: string, row: FillRow): string | null =>
-  row.follows && iconsPaired() && overrideOf(mode, row.role) === undefined ? row.follows : null;
+  row.follows && (iconsPaired() || ALWAYS_FOLLOWS.has(row.role)) && overrideOf(mode, row.role) === undefined ? row.follows : null;
 /** The Fields rows (owner decision Q29, #1962): every `field.*` role the engine emits, on the page and on the
  *  inverse band. The engine derives all eight from the neutral ramp (`modes.ts`: the borders and the
  *  placeholder walk it, the fills default to `core.palette.transparent`), so each row picks neutral steps.
