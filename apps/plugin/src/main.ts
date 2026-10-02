@@ -24,6 +24,8 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
+import { createRunGuard, isWriteCmd, writes, busyMessage } from './run-guard';
+import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
@@ -940,6 +942,23 @@ const sendFonts = async (): Promise<void> => {
 };
 
 /**
+ * ONE RUN OF A WRITE AT A TIME, PER OPERATION (#1957; `run-guard.ts`). Each writing entry of the table
+ * below goes through `guarded`, so the panel's buttons and the agent link meet the same guard. A second
+ * write of a running operation is not run: its caller's sink is sent `refused`, and nothing else is.
+ * The agent link asks first, through `refuse` below, so a declined command is never bracketed as running.
+ */
+const guard = createRunGuard();
+const refusal = (cmd: WriteCmd, agent: boolean): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd) });
+const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
+  (...a: A): Promise<void> => {
+    if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
+    // Every action's sink is its last argument.
+    const sink = a[a.length - 1] as ActionSink;
+    if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
+    return guard.run(cmd, () => fn(...a));
+  };
+
+/**
  * THE ACTION TABLE — the one set of handlers the panel's buttons and the agent link both reach.
  *
  * The switch below calls every action THROUGH this table, and the agent link's dispatcher is handed the
@@ -948,7 +967,14 @@ const sendFonts = async (): Promise<void> => {
  * drives both the UI message and the agent command — a route pointed at a copy fails there by name.
  * Exported for that test only; nothing in the plugin imports it.
  */
-export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, styleGuide, prune, seedFromFile };
+export const ACTIONS: AgentActions = {
+  applyTheme: guarded('apply-theme', applyTheme),
+  buildComponents: guarded('build-components', buildComponents),
+  fileSetup: guarded('file-setup', fileSetup),
+  styleGuide: guarded('style-guide', styleGuide),
+  prune: guarded('prune', prune, (_input, confirm) => confirm),
+  seedFromFile,
+};
 
 /**
  * THE AGENT LINK (off until the owner switches it on in the panel; never persisted). Commands arrive as
@@ -964,6 +990,11 @@ const dispatch = createDispatcher({
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
   onStart: (id, cmd) => postToUi({ type: 'agent-started', id, cmd }),
   onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
+  // #1957: an agent's write of an operation that is already running is declined before it starts.
+  refuse: (c) => {
+    if (!isWriteCmd(c.cmd) || !writes(c.cmd, c.cmd === 'prune' ? c.args.confirm : undefined) || !guard.busy(c.cmd)) return null;
+    return { message: busyMessage(c.cmd), post: refusal(c.cmd, true) };
+  },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.

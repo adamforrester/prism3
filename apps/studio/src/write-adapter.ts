@@ -120,6 +120,9 @@ export type HostMessage =
   | { kind: 'agent-started'; id: string; cmd: string }
   | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry'; done: number; total: number }
   | { kind: 'agent-finished'; id: string }
+  // #1957: a write the main thread declined because a run of the same operation was already going. Not a
+  // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
+  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string }
   // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
   // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
   // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -315,6 +318,9 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'agent-log': null,
   'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string' ? { kind: 'agent-started', id: m.id, cmd: m.cmd } : null),
   'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
+  // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
+  'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
+    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message } : null),
 };
 
 /** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,

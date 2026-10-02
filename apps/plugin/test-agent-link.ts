@@ -27,6 +27,12 @@
  *   · brackets/throw: a handler that throws still sends agent-finished, so the panel's row cannot stick
  *     (mutation: `onFinish` moved out of the `finally`, after the try → `brackets/throw` fails, by name)
  *   · envelope: every field of the result envelope, for every command
+ *   · busy/panel, busy/agent, busy/agent-first: a second apply-theme sent while one is running, by the
+ *     panel or an agent, is refused with `busy` and the owner's words, and the running write's verdict is
+ *     byte-for-byte the baseline's (#1957). busy/release: the hold ends with the run, even one that threw.
+ *     (mutations: the guard's `busy` check removed from `guarded` → busy/panel and busy/agent-first fail;
+ *     the dispatcher's `refuse` removed → busy/agent fails; the `delete` moved out of the `finally` →
+ *     busy/release fails, each by name)
  *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
  *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
  *   · claim-before-run: the id is in `claimed` while its handler runs
@@ -46,6 +52,7 @@ import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
 import { agentLinkStatusText } from './src/agent-link-ui';
+import { createRunGuard } from './src/run-guard';
 
 let failed = 0;
 let executed = 0;
@@ -78,6 +85,9 @@ const mailboxKeys = () => [...store.keys()].filter((x) => x.startsWith(`${MAILBO
 
 const posted: any[] = [];
 const empty = async () => [];
+/** While set, `held` waits on it: the busy arms hold a write mid-run this way (#1957). */
+let gate: Promise<void> | null = null;
+const held = async () => { if (gate) await gate; return []; };
 const host: Record<string, unknown> = {
   showUI: () => undefined,
   ui: { postMessage: (m: unknown) => { posted.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
@@ -337,6 +347,82 @@ section('brackets/throw — a handler that throws still tells the panel the run 
   ok(at('agent-started') >= 0 && at('agent-started') < at('agent-finished'),
     'brackets/throw: the panel still gets agent-started, then agent-finished, naming the command');
   ok(!posted.some((m) => m.type === 'apply-result'), 'brackets/throw: and no verdict, so the drawer restores the row\'s previous result');
+}
+
+/* ── busy ───────────────────────────────────────────────────────────────────────────────────────────── */
+section('busy — a second write of an operation, while one is running, is refused with busy (#1957)');
+{
+  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  /** Hold the host's text-style read, so a write that reaches it waits there until `release()`. */
+  const hold = (): (() => Promise<void>) => {
+    let open!: () => void;
+    gate = new Promise<void>((r) => { open = r; });
+    return async () => { gate = null; open(); for (let i = 0; i < 40; i++) await settle(); };
+  };
+  // An apply's first host read is the text styles, in its font preload; it needs `loadFontAsync` to get
+  // that far (this host has none, so an apply otherwise fails before its first await).
+  const savedHost = { getLocalTextStylesAsync: host.getLocalTextStylesAsync, loadFontAsync: host.loadFontAsync };
+  Object.assign(host, { getLocalTextStylesAsync: held, loadFontAsync: async () => undefined });
+  const refusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
+  const isRefusal = (m: any, agentFlag: boolean) =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: agentFlag, message: BUSY });
+  // The baseline: a lone panel apply, nothing else running.
+  posted.length = 0;
+  await toUi({ type: 'apply-theme', input: brand });
+  const baseline = JSON.stringify(posted.filter((m) => m.type === 'apply-result').pop());
+  ok(baseline !== undefined && !posted.some((m) => m.type === 'refused'), 'busy/baseline: a lone apply posts its verdict and is not refused');
+
+  // The panel's apply is running; the panel sends a second one.
+  posted.length = 0;
+  let release = hold();
+  await toUi({ type: 'apply-theme', input: brand });
+  ok(!posted.some((m) => m.type === 'apply-result'), 'busy/panel: the first apply is held mid-write');
+  await toUi({ type: 'apply-theme', input: brand });
+  const pr = refusals(false);
+  ok(pr.length === 1 && isRefusal(pr[0], false), `busy/panel: the second apply is refused with busy and the owner's words (${pr[0]?.message})`);
+  await release();
+  const pv = posted.filter((m) => m.type === 'apply-result');
+  ok(pv.length === 1 && JSON.stringify(pv[0]) === baseline, `busy/panel: the first write is unaffected: one verdict, the baseline's (${pv.length})`);
+
+  // The panel's apply is running; an agent sends one.
+  posted.length = 0;
+  release = hold();
+  await toUi({ type: 'apply-theme', input: brand });
+  const { id } = await send('apply-theme', { input: brand });
+  await tick();
+  const r = (await read(id)) as AgentResult;
+  ok(r.ok === false && r.error?.code === 'busy' && r.error?.message === BUSY, `busy/agent: the agent's apply fails as busy (${r.error?.code})`);
+  const ar = refusals(true);
+  ok(ar.length === 1 && isRefusal(ar[0], true), 'busy/agent: the panel is told an agent\'s apply was refused');
+  ok(!posted.some((m) => m.type === 'agent-started' && m.id === id), 'busy/agent: and never that it started');
+  await release();
+  const av = posted.filter((m) => m.type === 'apply-result');
+  ok(av.length === 1 && JSON.stringify(av[0]) === baseline, 'busy/agent: the panel\'s write is unaffected');
+
+  // An agent's apply is running; the panel sends one.
+  posted.length = 0;
+  release = hold();
+  const first = await send('apply-theme', { input: brand });
+  await tick();
+  ok(posted.some((m) => m.type === 'agent-started' && m.id === first.id) && !posted.some((m) => m.type === 'apply-result'),
+    'busy/agent-first: the agent\'s apply is held mid-write');
+  await toUi({ type: 'apply-theme', input: brand });
+  const fr = refusals(false);
+  ok(fr.length === 1 && isRefusal(fr[0], false), 'busy/agent-first: the panel\'s apply is refused with busy');
+  await release();
+  for (let i = 0; i < 400 && timers.size === 0; i++) await settle();
+  const fa = (await read(first.id)) as AgentResult;
+  ok(fa.error?.code !== 'busy' && JSON.stringify(fa.result?.verdict) === baseline, 'busy/agent-first: the agent\'s write is unaffected: its verdict is the baseline\'s');
+
+  // Released however it ended: a new apply runs.
+  posted.length = 0;
+  await toUi({ type: 'apply-theme', input: brand });
+  ok(!posted.some((m) => m.type === 'refused') && posted.filter((m) => m.type === 'apply-result').length === 1, 'busy/release: once the run ends, the next apply runs');
+  // A write that throws releases too: the hold is dropped in a `finally`.
+  const g2 = createRunGuard();
+  await g2.run('apply-theme', async () => { throw new Error('test: the write threw'); }).catch(() => undefined);
+  ok(!g2.busy('apply-theme'), 'busy/release: a write that threw releases the operation');
+  Object.assign(host, savedHost);
 }
 
 /* ── order ──────────────────────────────────────────────────────────────────────────────────────────── */

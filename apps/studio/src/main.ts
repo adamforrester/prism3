@@ -6612,6 +6612,7 @@ const activityReading = (): ActivityReading => {
       readback: opReading('readback', false, readbackOf(), fixed(null)),
     },
     detail: host.openDetail,
+    refused: host.refused,
   };
 };
 

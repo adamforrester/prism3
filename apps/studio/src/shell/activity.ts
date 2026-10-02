@@ -63,9 +63,12 @@ export type OpReading = {
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
 };
-/** What `main.ts` lends: every operation by key, and the result a page asked to show (a page's verdict
- *  pill clicked, or a bad verdict landing), `null` when none is. Pure; no DOM. */
-export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null };
+/** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
+ *  them, so each is a change. */
+export type Refusal = { readonly op: OpKey; readonly message: string; readonly agent: boolean; readonly n: number };
+/** What `main.ts` lends: every operation by key, the result a page asked to show (a page's verdict
+ *  pill clicked, or a bad verdict landing), `null` when none is, and the last refusal. Pure; no DOM. */
+export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null; readonly refused: Refusal | null };
 export type ActivitySource = () => ActivityReading;
 /** What `main.ts` lends the drawer: the reading, and how to say a requested result has been shown. */
 export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail: () => void };
@@ -89,8 +92,9 @@ const attention = (n: number): string => `${n} ${n === 1 ? 'needs' : 'need'} att
 /** A clock time, HH:MM, as concept v6 stamps an operation. */
 const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
-/** One result, as the drawer recorded it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown };
+/** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
+ *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
 /** One operation's record: what the drawer has seen of it this session. */
 type Rec = { t: string; result: Result | null; history: Result[] };
 
@@ -340,9 +344,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         const rec = recOf(k);
         // A run that ended with no verdict of its own (an agent command whose handler threw) leaves the
         // operation where it was: its last result comes back from the history, and nothing is announced.
-        if (n.state === 'idle' || n.ref === rec.history[0]?.ref) {
-          rec.result = rec.history[0] && n.state !== 'idle' ? rec.history[0] : null;
-          if (rec.result) rec.history = rec.history.slice(1);
+        const at = rec.history.findIndex((x) => !x.refused);
+        const back = at < 0 ? undefined : rec.history[at];
+        if (n.state === 'idle' || n.ref === back?.ref) {
+          rec.result = back && n.state !== 'idle' ? back : null;
+          if (rec.result) rec.history = rec.history.filter((_, i) => i !== at);
           if (!rec.result && !rec.history.length) { recs.delete(k); rowEls.delete(k); expanded.delete(k); }
           ended = true;
           continue;
@@ -359,6 +365,17 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       rec.t = clock(now());
       rec.result = resultOf(n, rec.t);
       if (n.state === 'bad') { settledBad = true; expanded.add(k); } else { landedOk = true; expanded.delete(k); }
+    }
+    // A request the main thread declined (#1957, the owner's call): straight into the row's earlier results,
+    // "Refused", with the reason as its details. The file is fine and the running write goes on, so it is
+    // not a failure: the row keeps showing the run, nothing counts it, and the drawer does not open for it.
+    const r = cur.refused;
+    if (r && r.n !== last.refused?.n) {
+      const rec = recOf(r.op);
+      const t = clock(now());
+      if (!rec.t) rec.t = t;
+      rec.history = [{ ok: true, verdict: 'Refused', summary: r.message, agent: r.agent, t, ref: r, refused: true } as Result, ...rec.history].slice(0, HISTORY_MAX);
+      live.textContent = `${OP_TITLE[r.op]} already running; the second request was declined.`;
     }
     // A result a page asked to show (its verdict pill clicked, or a bad verdict) opens the drawer on it.
     const reveal = cur.detail !== null && cur.detail !== last.detail ? cur.detail : null;

@@ -154,6 +154,12 @@ export interface HostSession {
    *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
    *  the panel's own build is pending. */
   readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null } | null;
+  /** The last write the main thread declined because a run of the same operation was already going
+   *  (#1957), `null` until one is. `n` counts them, so the drawer can tell a second refusal from the first
+   *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
+   *  The one slot it moves is the panel's own `pending`, and only when an agent's run holds the operation:
+   *  the panel's request was then the one declined, and nothing is coming to answer it. */
+  readonly refused: { readonly op: OpKey; readonly message: string; readonly agent: boolean; readonly n: number } | null;
 }
 
 /** The session before the host has said anything — and, on web, forever. */
@@ -173,7 +179,22 @@ export const initialHostSession = (): HostSession => ({
   hostFonts: [],
   hostFontStyles: new Map(),
   agentRun: null,
+  refused: null,
 });
+
+/** The panel's own slot for `op`, out of `pending` (#1957). The slot's last verdict was replaced by
+ *  `pending` when the panel posted, so it goes back to never-run rather than to a verdict it no longer has;
+ *  the agent's run, which holds the operation, fills it when its verdict lands. */
+const unpend = (op: OpKey, s: HostSession): Partial<HostSession> => {
+  switch (op) {
+    case 'apply': return s.applyState === 'pending' ? { applyState: null } : {};
+    case 'components': return s.componentState === 'pending' ? { componentState: null, componentProgress: null } : {};
+    case 'filesetup': return s.fileSetupState === 'pending' ? { fileSetupState: null } : {};
+    case 'styleguide': return s.styleGuideState === 'pending' ? { styleGuideState: null } : {};
+    case 'prune': return s.pruneBusy === 'delete' ? { pruneBusy: false } : {};
+    case 'readback': return {};
+  }
+};
 
 /** The session with the agent's run marked settled, when `m` is that run's verdict. */
 const settleAgent = (s: HostSession, m: HostMessage): HostSession => {
@@ -214,6 +235,15 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     }
     case 'agent-finished':
       return s.agentRun && s.agentRun.id === m.id ? { ...s, agentRun: null } : s;
+    case 'refused': {
+      const op = AGENT_OP[m.cmd];
+      if (!op || op === 'readback') return s;
+      const next = { ...s, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
+      // The panel's own request, declined behind an agent's run: it posted, set `pending`, and will get no
+      // verdict. A panel request declined behind the panel's own run leaves `pending` to that run's verdict.
+      if (m.agent || s.agentRun?.op !== op) return next;
+      return { ...next, ...unpend(op, s) };
+    }
     case 'restore-input-error':
       return { ...s, restoreError: m.message };
     case 'font-list':
@@ -295,5 +325,12 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'agent-started': return next === prev ? [] : ['host'];
     case 'agent-finished': return next === prev ? [] : ['host'];
     case 'agent-progress': return next === prev ? [] : ['host:progress'];
+    // #1957: the drawer's row, plus the page row whose control a declined panel request left pending.
+    case 'refused': {
+      if (next === prev) return [];
+      const page: HostTopic | null = next.componentState !== prev.componentState ? 'host:components'
+        : next.fileSetupState !== prev.fileSetupState ? 'host:filesetup' : next.styleGuideState !== prev.styleGuideState ? 'host:styleguide' : null;
+      return page ? ['host', page] : ['host'];
+    }
   }
 };

@@ -23,7 +23,10 @@
  * Mutations that fail here BY NAME (measured, see the F3 and P2 progress entries): drop `apply-result`'s slot
  * write → `apply-result: …`; drop `host:components` from `component-result`'s topics, or its slot write →
  * `#870 replay: …`. UI redesign S11: drop `agent-started`'s case → `agent-started: an apply-theme run …`;
- * drop `settleAgent` from `reduce` → `agent run: the apply verdict settles the run …`.
+ * drop `settleAgent` from `reduce` → `agent run: the apply verdict settles the run …`. #1957: drop the
+ * `unpend` → `refused: a panel request declined behind an agent's run clears …`; fill the apply slot with a
+ * failed verdict (the refusal counted as needing attention) → `refused: an agent's declined request leaves …`;
+ * pin `n` → `refused: a second identical refusal still counts as a change`.
  */
 import type { BrandInput } from '@prism3/engine/theme';
 import { brandTheme } from '@prism3/engine/theme';
@@ -46,7 +49,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'file-setup-result', 'style-guide-result', 'component-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
-  'agent-started', 'agent-progress', 'agent-finished',
+  'agent-started', 'agent-progress', 'agent-finished', 'refused',
 ] as const;
 const exercised = new Set<string>();
 
@@ -65,7 +68,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
 }), 'initial session: every slot empty');
 
 // ---- the four verdict kinds ------------------------------------------------------------------------------
@@ -202,6 +205,40 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const applyRun = step(init, { kind: 'agent-started', id: 'a2', cmd: 'apply-theme' }).next;
   const notBuild = step(applyRun, { kind: 'agent-progress', id: 'a2', phase: 'build', done: 1, total: 2 });
   ok(notBuild.next === applyRun, 'agent-progress: a run that is not a build takes no progress');
+}
+
+// ---- a declined second write (#1957) ---------------------------------------------------------------------
+// The main thread refuses a second write of an operation while one is running. The refusal settles no run and
+// fills no verdict slot: the running write's verdict is still coming.
+{
+  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  const agentRun = step(init, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' }).next;
+  const ownPending: HostSession = { ...agentRun, applyState: 'pending' };
+  // The panel's request, raced behind an agent's run: its own `pending` gets no verdict, so it is cleared.
+  const raced = step(ownPending, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY });
+  ok(same(raced.next.refused, { op: 'apply', message: BUSY, agent: false, n: 1 }), 'refused: recorded for the drawer, with its operation, words and caller');
+  ok(raced.next.applyState === null && same(raced.next.agentRun, agentRun.agentRun),
+    'refused: a panel request declined behind an agent\'s run clears the panel\'s pending, and leaves the run running');
+  ok(same(raced.topics, ['host']), 'refused: invalidates host (the drawer and the Apply controls)');
+  // An agent's request, declined behind the panel's own run: the panel's pending is that run's, and stays.
+  const panelRun: HostSession = { ...init, applyState: 'pending' };
+  const byAgent = step(panelRun, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: BUSY });
+  ok(byAgent.next.applyState === 'pending' && byAgent.next.agentRun === null, 'refused: an agent\'s declined request leaves the panel\'s running write pending');
+  // The panel's own request, declined behind the panel's own run (a re-fire the controls missed): still pending.
+  const own = step(panelRun, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY });
+  ok(own.next.applyState === 'pending', 'refused: a panel request declined behind the panel\'s own run leaves that run pending');
+  // Each refusal is a change, even one with the same words.
+  const again = step(own.next, { kind: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY });
+  ok(again.next.refused?.n === 2 && same(again.topics, ['host']), 'refused: a second identical refusal still counts as a change');
+  // A build's page row moves too when its pending is cleared.
+  const buildRun = step(init, { kind: 'agent-started', id: 'b1', cmd: 'build-components' }).next;
+  const build = step({ ...buildRun, componentState: 'pending' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'Build set is already running. Try again when it finishes.' });
+  ok(build.next.componentState === null && same(build.topics, ['host', 'host:components']), 'refused: a cleared build pending also invalidates its page row');
+  const prune = step({ ...step(init, { kind: 'agent-started', id: 'p1', cmd: 'prune' }).next, pruneBusy: 'delete' },
+    { kind: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.' });
+  ok(prune.next.pruneBusy === false, 'refused: a declined delete behind an agent\'s prune clears the panel\'s delete');
+  const unknown = step(init, { kind: 'refused', code: 'busy', cmd: 'readback', agent: true, message: 'x' });
+  ok(unknown.next === init && unknown.topics.length === 0, 'refused: a command with no write operation changes nothing');
 }
 
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);

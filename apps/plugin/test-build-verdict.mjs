@@ -871,6 +871,66 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #1957: a declined second write ─────────────────────────────────────────────────────────────────
+//
+// The plugin's main thread refuses a second write of an operation while one is running, and tells the panel
+// with `refused` (asserted in `test-agent-link.ts`). The owner's call (2026-10-02): the row keeps showing the
+// running write; the refusal goes straight into Earlier results with the verdict "Refused" and the busy
+// message as its details; it is not counted as needing attention and does not open the drawer; the live line
+// says "‹Operation› already running; the second request was declined." EXPECTED is that copy, written here.
+//
+// MUTATIONS, each failing here by name:
+//   · the drawer's refusal branch removed → `#1957 a declined second Apply goes into Earlier results …` and the live-line arm.
+// Not here: a refusal counted as needing attention. The drawer's counts read the host session's slots, not
+// its own records, so that mutation lives in the reducer and `test-host-session.ts`'s `refused:` arms catch it.
+// Writing the refusal as the row's result is masked here (the running row shows the run, and the run's own
+// verdict replaces it), so it is not claimed as a mutation of this arm.
+//   · the refusal opening the drawer → `#1957 a declined request does not open the drawer …`.
+{
+  const { page, errors } = await openPanel();
+  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  await post(page, { type: 'agent-started', id: 'r1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
+  // The start opened the drawer; close it by hand, so a refusal that opened it would show.
+  await hooks.click(page.locator('[data-p3="activity-toggle"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 3000 }).catch(() => {});
+  await post(page, { type: 'refused', code: 'busy', cmd: 'apply-theme', agent: false, message: BUSY });
+  await page.waitForTimeout(200);
+  const read = await page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
+    const drawer = document.querySelector('[data-p3="activity-drawer"]');
+    return {
+      state: row?.dataset.state ?? null,
+      verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      history: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null,
+      items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => (n.textContent ?? '').replace(/^\d\d:\d\d · /, '')),
+      count: document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count')?.textContent ?? '',
+      open: drawer?.dataset.open ?? null,
+      status: document.querySelector('[data-p3="activity-status"]')?.textContent ?? null,
+    };
+  });
+  ok(read.state === 'running' && read.verdict === 'Running',
+    `#1957 a declined second Apply leaves the row on the running write — the row keeps showing the running write: state ${read.state}, verdict ${JSON.stringify(read.verdict)}`);
+  ok(read.history === 'Earlier results (1)' && read.items.length === 1 && read.items[0].includes('Refused') && read.items[0].includes(BUSY),
+    `#1957 a declined second Apply goes into Earlier results as "Refused", with the busy message — ${JSON.stringify(read.history)}, ${JSON.stringify(read.items)}`);
+  ok(!/attention/.test(read.count), `#1957 a declined request is not counted as needing attention — count ${JSON.stringify(read.count)}`);
+  ok(read.open === 'false', `#1957 a declined request does not open the drawer — open ${read.open}`);
+  ok(read.status === 'Apply Theme already running; the second request was declined.',
+    `#1957 the live line says the second request was declined — read ${JSON.stringify(read.status)}`);
+  // The running write still lands as its own result, and the refusal stays in the history.
+  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
+  await post(page, { type: 'agent-finished', id: 'r1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === 'ok', null, { timeout: 5000 }).catch(() => {});
+  const after = await page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
+    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => n.textContent ?? '') };
+  });
+  ok((after.verdict ?? '').includes('✓ 42 roles written') && after.items.length === 1 && after.items[0].includes('Refused'),
+    `#1957 the running write's verdict lands on the row after a refusal — verdict ${JSON.stringify(after.verdict)}, history ${JSON.stringify(after.items)}`);
+  ok(errors.length === 0, `#1957 refusal: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── S11: a page row's verdict opens the Activity drawer on that operation's row ─────────────────────
 //
 // Two rows, the asked-for one second and neither expanded (both clean, so both collapsed, #483): a reveal
