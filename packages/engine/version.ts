@@ -2744,6 +2744,16 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.223.0 — folded 2026-10-02 from 1 change note, newest merge first.
+ *
+ * [engine-icon-floor-follows-text-1982 · minor · 41fb2431] Under iconContrast '3:1', the seven icon roles that keep a 4.5:1 floor now follow their text (#1982):
+ * icon.primary, inverse.icon.primary and icon.on-brand, -success, -warning, -danger and -info. The lever
+ * does not lower their floor, so they already derived equal to their text, but an override on the text
+ * was left behind on the icon. withIconTwins now carries those seven pairs under both lever values, as
+ * it does the interactive ones. Every other pair still carries only under 'text'. An explicit icon
+ * override still wins. No path is added or removed, so CONTRACT_VERSION is unchanged, and no committed
+ * artifact moves: no corpus brand under '3:1' carries a text override on these.
+ *
  * 0.222.0 — folded 2026-10-02 from 1 change note, newest merge first.
  *
  * [engine-bg-tier-inputs · minor · 75104b3e] The background tiers are inputs (#1972). `surfaces.<light|dark>` takes four optional keys:
@@ -4469,7 +4479,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.222.0';
+export const ENGINE_VERSION = '0.223.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
