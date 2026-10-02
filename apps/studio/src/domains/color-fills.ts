@@ -3,7 +3,7 @@
  * V10, R2, R5; S4c, the owner's decisions Q22 to Q30).
  *
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`: the intro; **Background fills** (the page, the
- * contrast floor and the inverse band, one set for the mode the preview shows, Q22); **Foreground fills** (a
+ * contrast floor and the inverse band, one set for the mode the preview shows, Q22); **Foreground** (a
  * row per fill: a small swatch, its name and role, and a button that opens the step picker under the row,
  * with the ratio on it); **Text color** (the same rows for the text inks: the permanent, primary text editor,
  * owner decision Q20; no link row, Q28: links are edited on Interactive only); **Fields** (a row per
@@ -74,8 +74,12 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   // derived or a custom mode) shows the ones it is drawn from, disabled, with the line the rows use.
   const surfaces = (): Item[] => {
     // The lever's name is the section's (owner decision Q26), not the manifest's "Page surfaces": the block
-    // heads the section, as Gradients' does. Its info text is still the manifest's description.
-    const b = leverBlock('surfaces', { label: 'Background fills' });
+    // heads the section, as Gradients' does. Its info text is the owner's (approved 2026-10-02), for this page
+    // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
+    const b = leverBlock('surfaces', {
+      label: 'Background fills',
+      desc: 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.',
+    });
     const opts = neutralStepOptions();
     const { source: m, editable } = surfaceSourceOf(currentMode);
     const sel = (id: string, label: string, role: string, options: { v: string; l: string }[], cur: string, on: (v: string) => void, token?: string): HTMLElement => {
@@ -117,13 +121,13 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const band = bandOf(m);
     const nPal = theme.roleToPalette.neutral;
     const bf = h('div', 'p3-field p3-field-wide');
-    const bl = tokenField('p3-surf-band', SURFACE_TOKENS.inverseBase, 'Inverse band');
+    const bl = tokenField('p3-surf-band', SURFACE_TOKENS.inverseBase, 'Inverse fill');
     const pair = h('div', 'p3-fieldpair');
-    const ps = selectField('p3-surf-band', `Inverse band palette, ${modeLabel(currentMode)}`, 'surface-band-palette', (v) => edit('surfaces', () => setBandPalette(m, v)));
+    const ps = selectField('p3-surf-band', `Inverse fill palette, ${modeLabel(currentMode)}`, 'surface-band-palette', (v) => edit('surfaces', () => setBandPalette(m, v)));
     ps.set(bandPalettes().map((p) => ({ v: p, l: p === nPal ? 'Neutral' : p })), band.palette);
     const curSteps = stepsOf(band.palette);
     const bandAuto = band.palette === nPal ? stepOfPath(roles['inverse.background.primary']?.path)?.step ?? '' : String(curSteps[curSteps.length - 1] ?? '');
-    const ss = selectField('p3-surf-bandstep', `Inverse band step, ${modeLabel(currentMode)}`, 'surface-band-step', (v) => edit('surfaces', () => setBandStep(m, v === '' ? undefined : v)));
+    const ss = selectField('p3-surf-bandstep', `Inverse fill step, ${modeLabel(currentMode)}`, 'surface-band-step', (v) => edit('surfaces', () => setBandStep(m, v === '' ? undefined : v)));
     ss.set([{ v: '', l: `Auto · ${band.palette} ${bandAuto}` }, ...curSteps.map((s) => ({ v: s, l: `${band.palette} ${s}` }))], band.step ?? '');
     ps.select.disabled = ss.select.disabled = !editable;
     pair.append(ps.el, ss.el);

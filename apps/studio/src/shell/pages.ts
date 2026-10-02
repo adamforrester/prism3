@@ -98,16 +98,19 @@ export const DOMAINS = [
         // The intro and the Background fills and Fields copy are the owner's (Q26, Q27, Q29). Background fills'
         // description and "Text color" are the preview sections' own (Q23: a lever heading and description match
         // the preview section); Background fills took the preview's full sentence once the scrim had a row.
+        // Foreground and Text color take the preview's heading and description verbatim too (Q23, the owner's
+        // approval of 2026-10-02): `preview/sections/foreground.ts` and `text-color.ts`. `test:chrome` reads
+        // each against the rendered preview section, so an edit to one side alone fails.
         id: 'fills', label: 'Surfaces & fills', home: 'surfaces', intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
         // `field` and `inverse.field` moved here from Interactive with the Fields section (owner decision Q29).
         roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse', 'field', 'inverse.field'],
         sections: [
           { title: 'Background fills', desc: 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
-          { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
+          { title: 'Foreground', desc: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
           // permanent, primary text editor (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's
           // R3). The Roles matrix that was to sit beside them is not built (Q31).
-          { title: 'Text color', desc: 'Auto follows the contrast-placed default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
+          { title: 'Text color', desc: 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.', rows: [{ ctl: 'text', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4c): every field role, page and inverse, as rows (owner decision Q29, #1962).
           { title: 'Fields', desc: 'Form field fills, borders and text, in every state.', rows: [{ ctl: 'fields', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
