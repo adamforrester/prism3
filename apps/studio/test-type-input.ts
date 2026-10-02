@@ -21,6 +21,10 @@ import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as T from './src/state/type-input';
+import { knownWeightsOf } from './src/ui/fonts';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -221,6 +225,20 @@ T.setSizePin('dark', 'display', 'md', 72);
 T.setMobileSize('display', 'sm', 40);
 T.releasePinnedSizes();
 ok(pristine() && T.pinnedSizeCount() === 0, 'releasePinnedSizes drops brand sizes, viewport pins and every mode\'s sizes: byte-identical to the brand as loaded');
+
+console.log('\n9. The known-weights list (#1727 part 2): the default theme\'s faces are known families');
+// EXPECTED, literal: Playfair Display ships 400 to 900 (with an italic for each), from its specimen. Then the
+// faces the prism3 default theme EMITS, read from the committed emission (never from the studio): each must be
+// a family the list knows, so the "Weight roles by face" table flags its weights rather than "? unknown".
+const playfair = knownWeightsOf('Playfair Display');
+ok(JSON.stringify(playfair) === '[400,500,600,700,800,900]', `knownWeightsOf("Playfair Display") is [400,500,600,700,800,900] (#1727 part 2)${JSON.stringify(playfair) === "[400,500,600,700,800,900]" ? "" : ` — read ${JSON.stringify(playfair)}`}`);
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const tree = JSON.parse(readFileSync(join(here, '../../packages/engine/out/prism3.tokens.json'), 'utf8'));
+  const faces = Object.values(tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].core.font.typeface as Record<string, { $value: string }>).map((t) => t.$value);
+  const unknown = faces.filter((f) => !knownWeightsOf(f));
+  ok(faces.length >= 3 && unknown.length === 0, `every face the prism3 default theme emits is a known family (${faces.join(', ')})${unknown.length ? ` — unknown: ${unknown.join(', ')}` : ''}`);
+}
 
 console.log(`\n${executed - failed}/${executed} type-input assertions passed.`);
 if (failed) process.exit(1);

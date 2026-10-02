@@ -119,7 +119,10 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/preview/sections/focus-ring.ts',
   // S6.1: Type's writes, the font-availability helpers, and the Typography preview's shared sections.
   'src/state/type-input.ts', 'src/ui/fonts.ts',
-  'src/preview/sections/typefaces.ts', 'src/preview/sections/weights-by-face.ts', 'src/preview/sections/type-ramp.ts', 'src/preview/sections/type-fluid.ts'];
+  'src/preview/sections/weights-by-face.ts', 'src/preview/sections/type-ramp.ts', 'src/preview/sections/type-fluid.ts',
+  // S6.2: Type (its levers and its preview), the shared type sample, and the preview's Faces section. (S6.2 retired
+  // the legacy Preview tab's Typefaces section, folded into Faces.)
+  'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -490,7 +493,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'typefaces', 'weights-by-face', 'type-ramp', 'type-fluid']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-ramp', 'type-fluid', 'type-sample', 'faces']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
@@ -512,37 +515,40 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(idx.includes("from './focus-ring'"), "preview/sections/index.ts exports the focus-ring section from ./focus-ring");
 }
 
-// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1) ─────────────────────────────
-// The legacy Typography page's Preview tab (Typefaces, Weight roles by face, the full type ramp) and Layout's
-// fluid read-out are drawn from `preview/sections/`, so the new Type page (S6.2) draws the same code; and every
-// Type write goes through `state/type-input.ts`, so the new page writes the same bytes. Subject: `main.ts`, read
-// from disk, comments stripped. Oracle: the literal renderer names, each section's own title or copy (the
-// legacy page has two OTHER sections titled "Typefaces", on Primitives and Semantics, so the preview's is
-// matched by its description), and the literal write shapes the legacy closures used. A copy pasted back into
-// `main.ts` fails by what it draws; the smoke suite holds each drawn section to its marker.
+// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1, S6.2) ─────────────────────
+// The Type page's preview (S6.2) draws the legacy Preview tab's sections (Weight roles by face, the full type
+// ramp) and Layout's fluid read-out from `preview/sections/`, plus the shared type sample (#1942) and Faces; the
+// type sample is also Brand's Style guide's first section, and Layout still draws the fluid read-out until S6.3.
+// Every Type write goes through `state/type-input.ts`, so the new page writes the same bytes. Subject: `main.ts`
+// and `preview/type.ts`, read from disk, comments stripped. Oracle: the literal renderer names, each section's
+// own title or copy, and the literal write shapes the legacy closures used. A copy pasted back into `main.ts`
+// fails by what it draws; the smoke suite holds each drawn section to its marker.
 {
   const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
   const mainSrc = readFileSync(MAIN, 'utf8');
   const mainCode = strip(mainSrc);
+  const typeCode = strip(readFileSync(join(SRC, 'preview/type.ts'), 'utf8'));
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
-  for (const [fn, file, what] of [
-    ['typefacesSection', 'typefaces', 'the Typography preview\'s Typefaces section'],
-    ['weightsByFaceSection', 'weights-by-face', 'the Typography preview\'s Weight roles by face section'],
-    ['typeRampSection', 'type-ramp', 'the type ramp'],
-    ['paintTypeFluid', 'type-fluid', 'Layout\'s fluid read-out'],
+  for (const [fn, file, what, inMain] of [
+    ['weightsByFaceSection', 'weights-by-face', 'the Weight roles by face section', false],
+    ['typeRampSection', 'type-ramp', 'the type ramp', false],
+    ['paintTypeFluid', 'type-fluid', 'the fluid read-out', true],
+    ['typeSampleSection', 'type-sample', 'the type sample', true],
+    ['facesSection', 'faces', 'the Faces section', false],
   ] as const) {
-    ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
+    ok(new RegExp(`\\b${fn}\\(`).test(typeCode), `src/preview/type.ts draws ${what} through the shared ${fn}()`);
+    if (inMain) ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
     ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports ${what} from ./${file}`);
   }
   const OWN: Array<[RegExp, string]> = [
     [/palSection\(\s*'The full type ramp'/, "its own type ramp (palSection('The full type ramp', …))"],
     [/palSection\(\s*'Weight roles by face'/, "its own Weight roles by face section (palSection('Weight roles by face', …))"],
-    [/Everything below is set in these\./, 'the shared Typefaces section\'s copy ("Everything below is set in these.")'],
+    [/The quick brown fox jumps over the lazy dog|'tsm-list'/, 'the shared type sample\'s text ("The quick brown fox jumps over the lazy dog") or its tsm-list markup'],
     [/'fz-list'|What fluid does — /, "its own fluid read-out (the fz-list markup or \"What fluid does — \")"],
   ];
   for (const [re, what] of OWN) {
     const own = re.test(mainCode);
-    ok(!own, `src/main.ts draws no Type preview piece of its own: ${what.split(' (')[0].replace(/^its own |^the shared /, '')}${own ? ` — main.ts carries ${what}: the Type page would drift from the legacy one` : ''}`);
+    ok(!own, `src/main.ts draws no Type preview piece of its own: ${what.split(' (')[0].replace(/^its own |^the shared /, '')}${own ? ` — main.ts carries ${what}: the Type page would drift from the Style guide` : ''}`);
   }
   // The writes. Every Type write the legacy page made was one of these shapes; `main.ts` keeps none.
   const WRITES: Array<[RegExp, string]> = [
