@@ -1500,8 +1500,11 @@ const previewMode = async (page, m) => {
 };
 // S4d (owner decision Q45): the Page and the band step are step pickers; the floor and the band palette stay selects.
 const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
-  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]' };
-const PICKED = new Set(['base', 'band-step']);
+  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]',
+  // S4e (#1972): the four background tiers, step pickers writing their own inputs.
+  secondary: '[data-p3="levers-pane"] [data-p3="surface-secondary-pick"]', tertiary: '[data-p3="levers-pane"] [data-p3="surface-tertiary-pick"]',
+  'inverse-secondary': '[data-p3="levers-pane"] [data-p3="surface-inverse-secondary-pick"]', 'inverse-tertiary': '[data-p3="levers-pane"] [data-p3="surface-inverse-tertiary-pick"]' };
+const PICKED = new Set(['base', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
 const SURF = (k) => SURF_HOOKS[k];
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1515,7 +1518,8 @@ for (const brand of BRANDS) {
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
     await previewMode(page, m);
-    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4]]) {
+    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4],
+      ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
       let v;
       if (PICKED.has(k)) {
@@ -1544,7 +1548,7 @@ for (const brand of BRANDS) {
   const derived = modes.find((m) => m.startsWith('hc-'));
   if (derived) {
     await previewMode(page, derived);
-    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), ['base', 'floor', 'band-palette', 'band-step'].map(SURF));
+    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
     ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
   }
   // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
@@ -1607,6 +1611,65 @@ for (const brand of BRANDS) {
   }
   const errs = drain();
   ok(errs.length === 0, `S4c ${brand}: 0 console errors across the surface and Fields edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// 1e. S4e: a Secondary pick moves the contrast floor with it (#1972, the engine's #1987, option A). Per corpus brand,
+//     in Light. EXPECTED: before the pick, the floor's Auto option and the floor-gated text.secondary's picker name
+//     the step the COMMITTED EMISSION aliases for background.secondary in light; after it, the literal step picked
+//     (neutral 200), in the floor's Auto label and as text.secondary's ground; the persisted brand carries
+//     `surfaces.light.secondary: 200` and the overrides it carried before; Return to Auto removes the key.
+console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
+  await previewMode(page, 'light');
+  const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const root = Object.keys(emission)[0];
+  const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
+  const wasStep = (/\.neutral\.([0-9]+)\}$/.exec(wasAlias) ?? [])[1] ?? null;
+  const floorAuto = () => page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor"] option[value=""]')?.textContent ?? null);
+  const TEXT_SEC = '[data-p3="levers-pane"] [data-p3="text-rows"] .p3-fillrow[data-role="text.secondary"] [data-p3="fill-pick"]';
+  const groundOf = async () => {
+    await hooks.click(page.locator(TEXT_SEC));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const hint = await page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] .p3-picker-hint')?.textContent ?? '');
+    await page.keyboard.press('Escape');
+    return (/against ([a-z0-9-]+\.[0-9]+)/.exec(hint) ?? [])[1] ?? hint;
+  };
+  const brandRaw = () => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+  const before = await inputAt(page);
+  const autoBefore = await floorAuto(), groundBefore = await groundOf();
+  ok(wasStep !== null && wasStep !== '200' && autoBefore === `Auto · follows background.secondary (neutral ${wasStep})` && groundBefore === `neutral.${wasStep}`,
+    `S4e ${brand}: before, the floor's Auto follows background.secondary at the emission's neutral ${wasStep}, and text.secondary is measured on neutral.${wasStep} — read ${JSON.stringify(autoBefore)}, ${JSON.stringify(groundBefore)}`);
+  const raw0 = await brandRaw();
+  await hooks.click(page.locator(SURF('secondary')));
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="200"]'));
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw0, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const after = await inputAt(page);
+  ok(after?.surfaces?.light?.secondary === 200 && JSON.stringify(after?.overrides) === JSON.stringify(before?.overrides) && JSON.stringify(after?.surfaces?.dark) === JSON.stringify(before?.surfaces?.dark),
+    `S4e ${brand}: the Secondary pick persists surfaces.light.secondary = 200 and no override — persisted surfaces ${JSON.stringify(after?.surfaces)}, overrides ${JSON.stringify(after?.overrides)}`);
+  const autoAfter = await floorAuto(), groundAfter = await groundOf();
+  ok(autoAfter === 'Auto · follows background.secondary (neutral 200)', `S4e ${brand}: the floor's Auto label follows the pick: "Auto · follows background.secondary (neutral 200)" — read ${JSON.stringify(autoAfter)}`);
+  ok(groundAfter === 'neutral.200', `S4e ${brand}: the floor-gated text.secondary re-derives against neutral.200 — read ${JSON.stringify(groundAfter)} (was ${groundBefore})`);
+  const raw1 = await brandRaw();
+  await hooks.click(page.locator(SURF('secondary')));
+  // Bounded: with nothing to return (a pick that wrote no input), Return to Auto is disabled, and the check below says so.
+  const autoBtn = page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
+  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
+  if (await autoBtn.isEnabled()) await hooks.click(autoBtn);
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw1, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const cleared = await inputAt(page);
+  ok(!('secondary' in (cleared?.surfaces?.light ?? {})) && JSON.stringify(cleared?.surfaces) === JSON.stringify(before?.surfaces),
+    `S4e ${brand}: Return to Auto clears surfaces.light.secondary, the surfaces as loaded — persisted ${JSON.stringify(cleared?.surfaces)} (loaded ${JSON.stringify(before?.surfaces)})`);
+  const autoBack = await floorAuto();
+  ok(autoBack === autoBefore, `S4e ${brand}: and the floor's Auto label is back to ${JSON.stringify(autoBefore)} — read ${JSON.stringify(autoBack)}`);
+  const errs = drain();
+  ok(errs.length === 0, `S4e ${brand}: 0 console errors across the Secondary edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 
