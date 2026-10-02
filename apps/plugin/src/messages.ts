@@ -23,7 +23,7 @@
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import type { AgentLinkState, AgentResult, AgentProgress } from './agent-protocol';
+import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -201,7 +201,11 @@ export type MainToUi =
    *  the variables) and nowhere else, so it travels rather than being inferred from `summary`'s
    *  prose downstream — which would make the wording load-bearing, the same trap the
    *  headline/summary split above exists to avoid. */
-  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string }
+  /*  `failed` is how many contract checks failed (0 when the contract holds, the file is unthemed, or the
+   *  read threw). It travels for the Activity drawer's short verdict ("2 mismatches", owner decision #3 on
+   *  #1956), for the same reason `present` does: a count read out of `summary`'s prose would make the
+   *  wording load-bearing. */
+  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string; failed: number }
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
    *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a
@@ -255,7 +259,13 @@ export type MainToUi =
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
   | { type: 'agent-progress'; id: string; progress: AgentProgress }
   /** A console line printed while an agent command runs, streamed to the bridge. */
-  | { type: 'agent-log'; id: string; line: string };
+  | { type: 'agent-log'; id: string; line: string }
+  /** An agent command has started, and has finished (UI redesign S11): what lets the panel's Activity
+   *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
+   *  included; the panel decides which have an operation to show. `finished` follows the command's
+   *  terminal verdict, and is sent even when its handler threw and posted none. */
+  | { type: 'agent-started'; id: string; cmd: AgentCmd }
+  | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

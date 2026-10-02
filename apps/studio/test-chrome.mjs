@@ -79,10 +79,10 @@
  *
  * S1.4 ADDS (section 10), on both hosts, both themes, at 1280, 640 and 380:
  *   · THE ACTIVITY DRAWER (F2): nothing drawn before anything runs; a write started from the Figma menu opens
- *     it by itself (at 380: the strip, pinned to the bottom edge), with its pill in the drawer's bar row
- *     and none left in the top bar; a success keeps it open at 3 s and collapses it by 5 s (the literal
+ *     it by itself (at 380: the strip, pinned to the bottom edge), running on its own operation row (S11)
+ *     and no pill left in the top bar; a success keeps it open at 3 s and collapses it by 5 s (the literal
  *     `COLLAPSE_MS`, 4 s, v5 Q9; timed at 1280); a failure (light) or a warning (dark) keeps it open past
- *     5 s, its detail showing (at 380: the full-pane sheet); the Activity button's dot and name say
+ *     5 s, its row's summary showing (at 380: the full-pane sheet); the Activity button's dot and name say
  *     running, needs attention or new result, in concept v6's words. The studio's drawer opens on its note.
  *   · THE FIGMA MENU (plugin): its five items by literal label; Arrow Down, Home, End, Arrow Up (wrapping),
  *     Escape and Tab; each item's effect observed on the wire (the write message the old control posted,
@@ -94,9 +94,10 @@
  *     today's status line; Escape closes it to the chip; Tab past the switch closes it; Shift+Tab back to the
  *     chip keeps it, and Escape on the chip closes it. The bottom-left chip is gone, checked through
  *     `hooks.absent` with the new chip as proof. The studio renders neither the slot nor the chip.
- *   · A RESULT'S PILL (plugin): closing the drawer closes the detail it showed (the pill reads collapsed, its
- *     chevron unturned); clicking the pill on a closed drawer opens the drawer on its detail, through the
- *     store; clicking it again closes the detail and leaves the drawer open on its note.
+ *   · A RESULT'S ROW (plugin, S11): the page row's verdict, clicked on a closed drawer, opens the drawer on
+ *     that operation's row, expanded, through the store; the row's own header collapses it and leaves the
+ *     drawer open, and expands it again. (Under S1.4 the pill disclosed a shared detail row; S11 gave every
+ *     operation its own row, so the pill no longer discloses anything in place.)
  *   · A wait that never resolves in this section fails its case by name ("the case stopped at …") and the
  *     run goes on to the next case.
  *   · The full chrome probe runs in each of those states: the drawer open, a write running, a failure open,
@@ -242,16 +243,23 @@
  *   · a failure scheduling the collapse → `F2 … a failure keeps the drawer open past 5 s, its detail showing`.
  *   · the Prune stale item running the Apply write → `Figma menu … Prune stale posts a dry-run prune (prune:false) — posted ["apply-theme"]`.
  *   · the bottom-left chip mounted again → `D6 … the bottom-left agent chip is gone …` and the inline-value check.
- *   · the apply pill painted into the top bar → `F2 … the running write's pill sits in the drawer's bar row`.
+ *   · the apply pill painted into the top bar → `F2 … no status pill is left in the top bar`.
  *   S1.4 review (orchestrator's review of #1929):
- *   · the pill's click without `hostChanged()`, or the drawer's `detailOpened` branch removed →
- *     `F2 … clicking the failure's pill on a closed drawer opens the drawer on its detail, the pill expanded — open false, …`.
+ *   · the pill's click without `hostChanged()`, or the drawer's reveal branch removed (S11) →
+ *     `F2 … clicking the failure's verdict on the page row opens the drawer on its Set up file row, expanded — open false, …`.
  *   · `runApply` posting `{}` → `Figma menu … Apply Theme posts the brand the page loaded (…), whole — input differs at id, root, …`.
  *   · `runPrune` posting a stale input → `Figma menu … Prune stale posts the brand the page loaded with confirm false, whole — input differs at id`.
  *   · the popover's focusout handler removed → `IA-3 … Tab past the switch closes the popover`.
  *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
- *   · a collapse leaving the detail open → `F2 … closing the drawer closes the warning's detail with it — its pill reads collapsed, chevron down`.
+ *   · the row header's toggle removed (S11) → `F2 … the row's own header collapses it, and the drawer stays open`.
  *   · the Figma menu's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator('[data-p3="figma-option-apply"]')`, and the run goes on.
+ *   S11 (#1788), each run against the built bundles:
+ *   · the drawer's auto-open on a start removed → `F2 … Apply opens the drawer by itself while it runs, pinned to the bottom edge`.
+ *   · the success collapse never scheduled → `F2 … a success collapses the drawer by 5 s (COLLAPSE_MS is 4 s), its result still on the drawer's bar row`.
+ *   · the drawer's reveal branch removed, or the page pill's click without `hostChanged()` →
+ *     `F2 … clicking the failure's verdict on the page row opens the drawer on its Set up file row, expanded`.
+ *   · the busy label's hidden layer taken out of layout (`display: none` for `visibility: hidden`, owner
+ *     decision #4 on #1956) → `… the bar's Apply keeps its width while busy (123.1 idle, 126.3 busy)`.
  *   S1.3 review (orchestrator's review of #1923):
  *   · the token list's rows removed → `… Inspect › Tokens opens on Primitives, with palette.neutral.950 at #0d0d0e — row null`.
  *   · Inspect lending a no-op repaint, or `(h) => renderPreviewTokens(h)` (the `paintVolatile` fallback) →
@@ -409,12 +417,14 @@ const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
 const INSPECT_NARROW_FLOOR = { text: 5, edges: 10, glyphs: 3, controls: 8, fonts: 5 };
 /** Every chrome control is one of these, by class. A control that is none fails as unclassified. */
-const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-pill-btn', 'status pill'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
+const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict'], ['p3-btn', 'button'], ['p3-tab', 'tab'],
   ['p3-seg-tab', 'segment'], ['p3-select', 'select'], ['p3-menu-item', 'menu item'], ['p3-search-input', 'search field'],
   // S2: the levers panel's text fields and sliders, and the step picker's steps.
   ['p3-hex-input', 'text field'], ['p3-range', 'slider'], ['p3-step', 'picker step'],
   // S3: Brand's name, namespace and custom-mode name fields.
   ['p3-text-input', 'text field'],
+  // S11: the Activity drawer's bar row (its own toggle) and each operation row's header.
+  ['p3-drawer-bar', 'drawer bar'], ['p3-op-head', 'operation row'],
   // S5.2: Color › Interactive's jump links to its column groups.
   ['p3-jump-link', 'jump link']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
@@ -538,6 +548,10 @@ const PROBE = (opt) => {
   const shown = (el) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
+    // A closed <details> hides its content with `content-visibility: hidden`, not `display: none`, so its
+    // children keep a box and pass the walk below while drawing nothing (S11: the drawer's "Earlier
+    // results" list). `checkVisibility` reads content-visibility; the walk is kept for what it reads.
+    if (!el.checkVisibility()) return false;
     for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
       const cs = getComputedStyle(n);
       if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) return false;
@@ -1434,12 +1448,12 @@ const wireDiff = (got, want) => {
 };
 /** One write posted, and it is exactly `want`. */
 const isWire = (ws, want) => ws.length === 1 && canon(ws[0]) === canon(want);
-/** A pill in the drawer's bar row by its headline: its disclosure state and its chevron's drawn transform. */
-const pillOf = (page, headline) => page.evaluate((hl) => {
-  const n = [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="bar"] [data-p3="status-verdict"]')].find((x) => (x.textContent ?? '').startsWith(hl));
+/** An operation's row header in the drawer (S11): its disclosure state and its chevron's drawn transform. */
+const rowOf = (page, op) => page.evaluate((k) => {
+  const n = document.querySelector(`[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="${k}"] [data-p3="op-head"]`);
   const ico = n?.querySelector('.p3-ico');
   return n ? { expanded: n.getAttribute('aria-expanded'), chev: ico ? getComputedStyle(ico).transform : null } : null;
-}, headline);
+}, op);
 /** Why a case stopped: the error's first line, and the locator it was waiting for. */
 const stopped = (e) => { const lines = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n'); return [lines[0], lines.find((l) => /waiting for/.test(l))?.trim()].filter(Boolean).join(' · '); };
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
@@ -1453,24 +1467,37 @@ const drawerState = (page) => page.evaluate(() => {
     shown: vis(d), open: d?.dataset.open === 'true', body: vis(document.querySelector('[data-p3="activity-body"]')),
     expanded: btn?.getAttribute('aria-expanded') ?? null, name: btn?.getAttribute('aria-label') ?? null,
     dot: btn?.querySelector('[data-state]')?.dataset.state ?? null,
-    pills: [...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="bar"] :is([data-p3="status-pill"], [data-p3="status-verdict"])')].map((n) => n.textContent),
-    barPills: document.querySelectorAll('[data-p3="top-bar"] :is([data-p3="status-pill"], [data-p3="status-verdict"])').length,
+    // S11: every operation that has run has its row: its state, its verdict pill, its phase while running,
+    // and its summary when that is showing.
+    ops: Object.fromEntries([...document.querySelectorAll('[data-p3="activity-drawer"] [data-p3="activity-op"]')].map((n) => [n.dataset.op, {
+      state: n.dataset.state, verdict: n.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      phase: n.querySelector('[data-p3="op-progress"]')?.textContent ?? null,
+      summary: vis(n.querySelector('[data-p3="op-summary"]')) ? n.querySelector('[data-p3="op-summary"]').textContent : null,
+    }])),
+    last: document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? null,
+    // Any write status in the top bar: a page row's pending pill (by its class: this suite never renders one,
+    // so its hook would be one the guard cannot see), its verdict, or a drawer row's verdict pill.
+    barPills: document.querySelectorAll('[data-p3="top-bar"] :is(.bar-seed, [data-p3="status-verdict"], [data-p3="op-verdict"])').length,
     note: vis(document.querySelector('[data-p3="activity-note"]')) ? document.querySelector('[data-p3="activity-note"]').textContent : null,
-    detail: vis(document.querySelector('[data-p3="apply-detail"]')) ? document.querySelector('[data-p3="apply-detail"]').textContent : null,
     pinned: !!dr && vis(d) && Math.abs(dr.bottom - window.innerHeight) <= 1,
     sheet: !!dr && !!br && vis(d) && dr.top >= br.bottom - 1 && Math.abs(dr.bottom - window.innerHeight) <= 1 && !vis(document.querySelector('[data-p3="legacy-frame"]')),
   };
 });
 const sinceMs = async (page, t0, ms) => { const left = t0 + ms - Date.now(); if (left > 0) await page.waitForTimeout(left); };
-const menuState = (page) => page.evaluate(() => ({
+/** A write's control's label as drawn: the text of whichever label layer is visible. A control carries its idle
+ *  and busy labels in one cell (owner decision #4 on #1956); both visible, or neither, reads as both, or empty. */
+const SHOWN = `(n) => n ? ([...n.querySelectorAll('[data-p3="label-idle"], [data-p3="label-busy"]')].filter((x) => getComputedStyle(x).visibility === 'visible').map((x) => x.textContent).join('') || (n.querySelector('[data-p3^="label-"]') ? '' : n.textContent)) : null`;
+const menuState = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc); return {
   open: !!document.querySelector('[data-p3="figma-menu"]'), expanded: document.querySelector('[data-p3="figma-open"]')?.getAttribute('aria-expanded'),
-  items: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), n.textContent, n.disabled]),
+  items: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), shown(n), n.disabled, n.getAttribute('aria-busy') === 'true' && n.getAttribute('aria-disabled') === 'true']),
   focus: document.activeElement?.getAttribute('data-p3') ?? null,
   page: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
-}));
-/** The bar's Apply control: its text, any aria-label overriding that text, and whether it can run. */
-const applyBar = (page) => page.evaluate(() => { const b = document.querySelector('[data-p3="apply-to-figma"]');
-  return { text: b?.textContent ?? null, name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null }; });
+}; }, SHOWN);
+/** The bar's Apply control: its label as drawn, any aria-label overriding it, whether it is natively disabled,
+ *  whether it says it is busy (`aria-busy` and `aria-disabled`, owner decision #4), and its width. */
+const applyBar = (page) => page.evaluate((shownSrc) => { const shown = eval(shownSrc); const b = document.querySelector('[data-p3="apply-to-figma"]');
+  return { text: shown(b), name: b?.getAttribute('aria-label') ?? null, disabled: b?.disabled ?? null,
+    busy: !!b && b.getAttribute('aria-busy') === 'true' && b.getAttribute('aria-disabled') === 'true', width: b ? Math.round(b.getBoundingClientRect().width * 10) / 10 : null }; }, SHOWN);
 const openFigma = async (page) => { await hooks.click(page.locator('[data-p3="figma-open"]'), WAIT); await hooks.need(page, '[data-p3="figma-menu"]', WAIT); };
 
 for (const host of ['web', 'figma']) {
@@ -1596,7 +1623,7 @@ for (const host of ['web', 'figma']) {
 
         // The bar's Apply, idle: its label and its accessible name are the literal label.
         const applyIdle = await applyBar(page);
-        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled,
+        ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled && !applyIdle.busy,
           `${where}: the bar's Apply reads "${APPLY_LABEL}", named by its text, and can run (read ${JSON.stringify(applyIdle)})`);
         // Apply Theme, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
         await takePosts(page);
@@ -1608,40 +1635,45 @@ for (const host of ['web', 'figma']) {
         ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
         await settle(page);
         const r = await drawerState(page);
-        ok(r.pills.includes('Writing to Figma…'), `F2 ${where}: the running write's pill sits in the drawer's bar row (pills ${JSON.stringify(r.pills)})`);
-        hooks.absent(ok, { seen: r.pills.length > 0, state: 'a status pill in the drawer' }, r.barPills === 0, `F2 ${where}: no status pill is left in the top bar (${r.barPills} found)`);
+        const ra = r.ops['apply'];
+        ok(ra?.state === 'running' && ra.phase === 'Writing to Figma…', `F2 ${where}: the running write sits on the drawer's Apply Theme row, reading "Writing to Figma…" (row ${JSON.stringify(ra)})`);
+        ok((r.last ?? '').includes('Apply Theme') && (r.last ?? '').includes('Writing to Figma…'), `F2 ${where}: the drawer's bar row names the running write and its phase (read "${r.last}")`);
+        hooks.absent(ok, { seen: ra?.state === 'running', state: 'the running write on its drawer row' }, r.barPills === 0, `F2 ${where}: no status pill is left in the top bar (${r.barPills} found)`);
         ok(r.dot === 'run' && r.name === 'Activity, 1 running', `F2 ${where}: Activity's dot and name say a write is running (dot ${r.dot}, name "${r.name}")`);
         if (narrow) {
           ok(!r.open && r.shown && r.pinned && !r.body, `F2 ${where}: at 380 a running write shows in the strip, pinned to the bottom edge, and the drawer stays closed (${JSON.stringify({ open: r.open, shown: r.shown, pinned: r.pinned })})`);
         } else {
           ok(r.open && r.body && r.expanded === 'true' && r.pinned, `F2 ${where}: Apply opens the drawer by itself while it runs, pinned to the bottom edge (${JSON.stringify({ open: r.open, body: r.body, pinned: r.pinned })})`);
-          ok(r.note === DRAWER_NOTE.figma, `F2 ${where}: the open drawer's body reads "${DRAWER_NOTE.figma}" while nothing is detailed (read "${r.note}")`);
+          ok(r.note === null && (await rowOf(page, 'apply'))?.expanded === 'true', `F2 ${where}: the open drawer's body shows the Apply Theme row, expanded, and not its empty note (note "${r.note}")`);
         }
         const mr = await measure(page, `${where} / a write running`, host, w);
         check(mr, `${where} / a write running`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="activity-toggle"]'] });
         await shot(narrow ? 'drawer-collapsed' : 'drawer-open');
         const applyBusy = await applyBar(page);
-        ok(applyBusy.text === APPLY_RUNNING && applyBusy.disabled,
-          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", disabled (read ${JSON.stringify(applyBusy)})`);
-        // While it runs, the menu offers neither Apply nor Prune (today's rule: a prune reads what an apply writes).
+        ok(applyBusy.text === APPLY_RUNNING && applyBusy.busy && applyBusy.disabled === false,
+          `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", busy and aria-disabled, not natively disabled (owner decision #4; read ${JSON.stringify(applyBusy)})`);
+        ok(applyBusy.width === applyIdle.width, `${where}: the bar's Apply keeps its width while busy (${applyIdle.width} idle, ${applyBusy.width} busy)`);
+        // While it runs, the menu's Apply is busy (focusable, aria-disabled) and Prune stale is unavailable
+        // (today's rule: a prune reads what an apply writes); Set up file is neither.
         await openFigma(page);
         const busy = await menuState(page);
-        const dis = Object.fromEntries(busy.items.map(([hk, , d]) => [hk, d]));
-        ok(dis['figma-option-apply'] === true && dis['figma-option-prune'] === true && dis['figma-option-file-setup'] === false,
-          `Figma menu ${where}: while Apply runs, Apply and Prune stale are unavailable and Set up file is not (${JSON.stringify(dis)})`);
+        const dis = Object.fromEntries(busy.items.map(([hk, , d, b]) => [hk, b ? 'busy' : d ? 'disabled' : 'ready']));
+        ok(dis['figma-option-apply'] === 'busy' && dis['figma-option-prune'] === 'disabled' && dis['figma-option-file-setup'] === 'ready',
+          `Figma menu ${where}: while Apply runs, Apply is busy, Prune stale is unavailable and Set up file can run (${JSON.stringify(dis)})`);
+        ok(busy.items.find(([hk]) => hk === 'figma-option-apply')?.[1] === APPLY_RUNNING, `Figma menu ${where}: while Apply runs, the menu's Apply reads "${APPLY_RUNNING}" (read "${busy.items.find(([hk]) => hk === 'figma-option-apply')?.[1]}")`);
         await page.keyboard.press('Escape');
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
         const t0 = Date.now();
-        await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="bar"] [data-p3="status-verdict"]')].some((n) => (n.textContent ?? '').includes('✓ Applied')), null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="apply"] [data-p3="op-verdict"]')?.textContent ?? '').includes('✓ Applied'), null, { timeout: 5000 }).catch(() => {});
         if (w === 1280) {
           await sinceMs(page, t0, COLLAPSE_MS - 1000);
           const early = await drawerState(page);
           ok(early.open && early.body, `F2 ${where}: a success keeps the drawer open at ${(COLLAPSE_MS - 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s) — open ${early.open}`);
           await sinceMs(page, t0, COLLAPSE_MS + 1000);
           const late = await drawerState(page);
-          ok(!late.open && !late.body && late.shown && late.pills.some((p) => p.includes('✓ Applied')),
-            `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, pills ${JSON.stringify(late.pills)}`);
+          ok(!late.open && !late.body && late.shown && (late.last ?? '').includes('✓ Applied'),
+            `F2 ${where}: a success collapses the drawer by ${(COLLAPSE_MS + 1000) / 1000} s (COLLAPSE_MS is ${COLLAPSE_MS / 1000} s), its result still on the drawer's bar row — open ${late.open}, bar "${late.last}"`);
           await shot('drawer-collapsed');
         } else if (narrow) {
           const s1 = await drawerState(page);
@@ -1655,7 +1687,7 @@ for (const host of ['web', 'figma']) {
         ok(JSON.stringify(pp) === JSON.stringify(FIGMA_EFFECT.prune), `Figma menu ${where}: Prune stale posts a dry-run prune (${FIGMA_EFFECT.prune}) — posted ${JSON.stringify(pp)}`);
         ok(isWire(wp, FIGMA_WIRE.prune), `Figma menu ${where}: Prune stale posts the brand the page loaded with confirm false, whole — ${wireDiff(wp[0], FIGMA_WIRE.prune)}`);
         // While the dry run is out, the menu's Prune item says so (#1954). The expected text is the literal label.
-        const pruneLabel = async () => { await openFigma(page); const t = await page.evaluate(() => document.querySelector('[data-p3="figma-option-prune"]')?.textContent ?? null); await page.keyboard.press('Escape'); return t; };
+        const pruneLabel = async () => { await openFigma(page); const t = await page.evaluate((shownSrc) => eval(shownSrc)(document.querySelector('[data-p3="figma-option-prune"]')), SHOWN); await page.keyboard.press('Escape'); return t; };
         const checking = await pruneLabel();
         ok(checking === PRUNE_LABEL.preview, `Figma menu ${where}: while the dry run is out, Prune stale reads "${PRUNE_LABEL.preview}" (read "${checking}")`);
         // The dry run finds something, the confirm dialog opens, and its Delete posts the real prune; while that
@@ -1681,34 +1713,42 @@ for (const host of ['web', 'figma']) {
           : { type: 'file-setup-result', ok: false, headline: '⚠ 2 pages skipped', summary: '2 pages already present were skipped: Cover, Sandbox' };
         await postMsg(page, bad);
         const t1 = Date.now();
-        await page.waitForFunction((s) => document.querySelector('[data-p3="apply-detail"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction((s) => document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]')?.textContent === s, bad.summary, { timeout: 5000 }).catch(() => {});
         if (w === 1280 || narrow) await sinceMs(page, t1, COLLAPSE_MS + 1000);
         const f = await drawerState(page);
-        ok(f.open && f.body && f.detail === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its detail showing — open ${f.open}, detail "${f.detail}"`);
+        const fs = f.ops['filesetup'];
+        ok(f.open && f.body && fs?.summary === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its row's summary showing — open ${f.open}, summary "${fs?.summary}"`);
         ok(f.dot === 'bad' && f.name === 'Activity, 1 needs attention', `F2 ${where}: Activity's dot and name say a result needs attention (dot ${f.dot}, name "${f.name}")`);
         if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
         const mf = await measure(page, `${where} / a ${kind} open`, host, w);
         check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
-          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="status-verdict"]'] });
+          { state: narrow ? 'sheet' : 'page', only: narrow ? ['[data-p3="brand-switcher"]', '[data-p3="activity-open"]', ...FIGMA_BAR, '[data-p3="activity-toggle"]', '[data-p3="op-head"]'] : null, extra: narrow ? [] : ['[data-p3="activity-toggle"]', '[data-p3="op-head"]'] });
         if (narrow) await shot('drawer-open');
         await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
         const c = await drawerState(page);
         ok(!c.open && c.shown && c.dot === 'bad', `F2 ${where}: the drawer's toggle closes it, and the dot keeps the ${kind} (open ${c.open}, dot ${c.dot})`);
-        // Closing the drawer closes the detail it showed: the pill reads collapsed, its chevron unturned.
-        const c1 = await pillOf(page, bad.headline);
-        ok(c1?.expanded === 'false' && c1?.chev === 'none', `F2 ${where}: closing the drawer closes the ${kind}'s detail with it — its pill reads collapsed, chevron down (${JSON.stringify(c1)})`);
-        // Clicking that pill opens its detail, and the drawer hears it through the store and opens by hand.
-        const pillLoc = page.locator('[data-p3="activity-drawer"] [data-p3="status-verdict"]').filter({ hasText: bad.headline });
-        await hooks.click(pillLoc, WAIT);
+        // The page row's verdict asks to be shown: the drawer hears it through the store and opens by hand, on
+        // that operation's row, expanded (S11). It discloses nothing in place any more. The verdict is on the
+        // Components page, which the menu's Build set… item opens without writing (asserted below).
+        await openFigma(page);
+        await hooks.click(page.locator(FIGMA_OPTION.build), WAIT);
+        await page.waitForFunction(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === 'components', null, { timeout: 5000 }).catch(() => {});
+        await takePosts(page);
+        await hooks.click(page.locator('[data-p3="file-setup-row"] [data-p3="status-verdict"]'), WAIT);
         await settle(page);
-        const d1 = await drawerState(page), q1 = await pillOf(page, bad.headline);
-        ok(d1.open && d1.body && d1.expanded === 'true' && d1.detail === bad.summary && q1?.expanded === 'true' && q1?.chev !== 'none',
-          `F2 ${where}: clicking the ${kind}'s pill on a closed drawer opens the drawer on its detail, the pill expanded — open ${d1.open}, detail "${d1.detail}", pill ${JSON.stringify(q1)}`);
-        await hooks.click(pillLoc, WAIT);
+        const d1 = await drawerState(page), q1 = await rowOf(page, 'filesetup');
+        ok(d1.open && d1.body && d1.expanded === 'true' && d1.ops['filesetup']?.summary === bad.summary && q1?.expanded === 'true' && q1?.chev !== 'none',
+          `F2 ${where}: clicking the ${kind}'s verdict on the page row opens the drawer on its Set up file row, expanded — open ${d1.open}, summary "${d1.ops['filesetup']?.summary}", row ${JSON.stringify(q1)}`);
+        // The row's own header discloses it, and leaves the drawer open.
+        await hooks.click(page.locator('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-head"]'), WAIT);
         await settle(page);
-        const d2 = await drawerState(page), q2 = await pillOf(page, bad.headline);
-        ok(d2.open && d2.detail === null && d2.note === DRAWER_NOTE.figma && q2?.expanded === 'false' && q2?.chev === 'none',
-          `F2 ${where}: clicking the pill again closes its detail, and the drawer stays open on its note — open ${d2.open}, detail "${d2.detail}", note "${d2.note}", pill ${JSON.stringify(q2)}`);
+        const d2 = await drawerState(page), q2 = await rowOf(page, 'filesetup');
+        ok(d2.open && d2.ops['filesetup']?.summary === null && q2?.expanded === 'false' && q2?.chev === 'none',
+          `F2 ${where}: the row's own header collapses it, and the drawer stays open — open ${d2.open}, summary "${d2.ops['filesetup']?.summary}", row ${JSON.stringify(q2)}`);
+        await hooks.click(page.locator('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-head"]'), WAIT);
+        await settle(page);
+        const d3 = await drawerState(page);
+        ok(d3.ops['filesetup']?.summary === bad.summary, `F2 ${where}: the header expands it again (summary "${d3.ops['filesetup']?.summary}")`);
         await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
         // The two option-first items open the pages that hold those options; neither writes on its own.
         for (const id of ['build', 'style-guide']) {

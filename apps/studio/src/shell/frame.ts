@@ -5,9 +5,8 @@
  * WHAT IT OWNS AND WHAT IT LENDS. The frame is mounted once per app view and outlives every legacy
  * render, so a tab keeps focus across the page change it causes. It lends slots to the legacy code in
  * `main.ts`, which fills them on every `build()`: the bar's legacy controls (brand switcher, Export, Pages
- * and the plugin's Apply Theme), the notices (the engine error), the legacy page itself, and from S1.4
- * the Activity drawer's two (the status pills and the apply detail). Everything else here is the shell's
- * own.
+ * and the plugin's Apply Theme), the notices (the engine error) and the legacy page itself. Everything
+ * else here is the shell's own.
  *
  * HOW IT TALKS TO THE REST OF THE APP: store setters out, store topics in (plan §3.10). A tab click calls
  * `setPage`; the legacy frame repaints because `main.ts` subscribes to `page`, and the tab row repaints
@@ -32,8 +31,8 @@
  *
  * S1.4 adds the Activity drawer (`activity.ts`) at the bottom of the frame, the Activity button and, in the
  * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The legacy bar places
- * those three where concept v6 draws them, as it places the verdict, and paints the status pills into the
- * drawer's bar row; the apply detail is mounted in the drawer's body. The plugin's own entry mounts the
+ * those three where concept v6 draws them, as it places the verdict. Since S11 the drawer draws every write's
+ * result itself, from the host session `main.ts` lends it, so it lends no slot. The plugin's own entry mounts the
  * Agent chip into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
  *
  * NARROW MODE (Q7) is a width class, `data-w="narrow"`, set from the frame's own width, because the chrome
@@ -93,10 +92,6 @@ export type Frame = {
   /** The Agent chip's stable, empty slot (IA-3, plugin only), placed by `renderBar` after the spacer. The
    *  plugin's entry mounts the chip into it; nothing here or in `renderBar` ever clears it. */
   readonly agent: HTMLElement | null;
-  /** Slot: the status pills, in the Activity drawer's bar row. */
-  readonly pills: HTMLElement;
-  /** Slot: the apply detail, in the Activity drawer's body. */
-  readonly drawer: HTMLElement;
   /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
   readonly syncSticky: () => void;
   /** Remove the frame and drop its subscriptions and listeners. */
@@ -140,7 +135,7 @@ const select = (tabs: readonly HTMLElement[], on: HTMLElement | null): void => {
 export const mountFrame = (app: HTMLElement, opts: {
   readonly host: Host;
   readonly inspect: InspectLegacy;
-  /** The host session's writes, as the Activity drawer reads them, and how it closes the open detail (S1.4). */
+  /** The host session's writes, as the Activity drawer reads them, and how it answers a request to show one (S1.4, S11). */
   readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
@@ -295,6 +290,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
+  // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
+  bar.append(activity.live);
   root.append(head, legacy, panes, inspect, activity.drawer);
   app.append(root);
 
@@ -515,7 +512,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   return {
     head, bar: barSlot, notices, legacyPage, verdict, syncSticky,
-    activity: activity.button, figma, agent, pills: activity.pills, drawer: activity.detail,
+    activity: activity.button, figma, agent,
     unmount: () => {
       for (const c of cleanups) c();
       root.remove();

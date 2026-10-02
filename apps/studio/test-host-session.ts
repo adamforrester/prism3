@@ -22,7 +22,8 @@
  *
  * Mutations that fail here BY NAME (measured, see the F3 and P2 progress entries): drop `apply-result`'s slot
  * write → `apply-result: …`; drop `host:components` from `component-result`'s topics, or its slot write →
- * `#870 replay: …`.
+ * `#870 replay: …`. UI redesign S11: drop `agent-started`'s case → `agent-started: an apply-theme run …`;
+ * drop `settleAgent` from `reduce` → `agent run: the apply verdict settles the run …`.
  */
 import type { BrandInput } from '@prism3/engine/theme';
 import { brandTheme } from '@prism3/engine/theme';
@@ -45,6 +46,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'file-setup-result', 'style-guide-result', 'component-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
+  'agent-started', 'agent-progress', 'agent-finished',
 ] as const;
 const exercised = new Set<string>();
 
@@ -63,7 +65,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [],
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null,
 }), 'initial session: every slot empty');
 
 // ---- the four verdict kinds ------------------------------------------------------------------------------
@@ -108,20 +110,20 @@ for (const c of verdictCases) {
 
 // ---- prune-result: the four branches ---------------------------------------------------------------------
 {
-  const busy: HostSession = { ...init, pruneBusy: 'preview', pruneVerdict: { ok: true, count: 1, summary: 'old' } };
+  const busy: HostSession = { ...init, pruneBusy: 'preview', pruneVerdict: { ok: true, applied: false, count: 1, summary: 'old' } };
   const preview = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale' });
   ok(preview.next.pruneBusy === false && same(preview.next.prunePreview, { count: 3, summary: '3 stale' }) && preview.next.pruneVerdict === null,
     'prune-result: a preview with something stale opens the confirm (prunePreview) and clears the verdict');
   ok(same(preview.topics, ['host']), 'prune-result: invalidates host (the bar)');
   const none = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 0, summary: 'nothing stale' });
-  ok(none.next.prunePreview === null && same(none.next.pruneVerdict, { ok: true, count: 0, summary: 'nothing stale' }),
+  ok(none.next.prunePreview === null && same(none.next.pruneVerdict, { ok: true, applied: false, count: 0, summary: 'nothing stale' }),
     'prune-result: a preview with nothing stale is a pill, never a dialog');
   const agent = step(busy, { kind: 'prune-result', ok: true, applied: false, count: 2, summary: '2 stale', pillOnly: true });
-  ok(agent.next.prunePreview === null && same(agent.next.pruneVerdict, { ok: true, count: 2, summary: 'Agent preview: 2 stale' }),
+  ok(agent.next.prunePreview === null && same(agent.next.pruneVerdict, { ok: true, applied: false, count: 2, summary: 'Agent preview: 2 stale' }),
     'prune-result: an agent preview (pillOnly) is a pill, never the dialog');
   const done = step({ ...busy, pruneBusy: 'delete', prunePreview: { count: 3, summary: '3 stale' } },
     { kind: 'prune-result', ok: true, applied: true, count: 3, summary: 'removed 3' });
-  ok(done.next.pruneBusy === false && done.next.prunePreview === null && same(done.next.pruneVerdict, { ok: true, count: 3, summary: 'removed 3' }),
+  ok(done.next.pruneBusy === false && done.next.prunePreview === null && same(done.next.pruneVerdict, { ok: true, applied: true, count: 3, summary: 'removed 3' }),
     'prune-result: an applied delete is the verdict and closes the dialog');
 }
 
@@ -131,20 +133,24 @@ let refuses = false;
 try { brandTheme({} as BrandInput); } catch { refuses = true; }
 ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 {
-  const seedFirst = step(init, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true });
-  ok(same(seedFirst.next.seedOutcome, { state: 'present', recovered: false, contractOk: true, detail: 'contract holds' }),
+  const seedFirst = step(init, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true, failed: 0 });
+  ok(same(seedFirst.next.seedOutcome, { state: 'present', recovered: false, contractOk: true, detail: 'contract holds', failed: 0 }),
     'seed-info: before restore-input, a present file reads as not recovered');
   ok(same(seedFirst.topics, ['host']), 'seed-info: invalidates host (the bar)');
   const thenRestore = step(seedFirst.next, { kind: 'restore-input', input: harbor });
-  ok(thenRestore.next.inputRecovered === true && same(thenRestore.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds' }),
+  ok(thenRestore.next.inputRecovered === true && same(thenRestore.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds', failed: 0 }),
     'restore-input: repairs a seed outcome already joined without it');
   ok(thenRestore.effect === 'loadBrand' && thenRestore.topics.length === 0, 'restore-input: an accepted blob loads the brand, and invalidates no host topic');
 
   const restoreFirst = step(init, { kind: 'restore-input', input: harbor });
   ok(restoreFirst.next.inputRecovered === true && restoreFirst.next.seedOutcome === null, 'restore-input: before seed-info, records the recovery only');
-  const thenSeed = step(restoreFirst.next, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true });
-  ok(same(thenSeed.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds' }),
+  const thenSeed = step(restoreFirst.next, { kind: 'seed-info', ok: true, summary: 'contract holds', present: true, failed: 0 });
+  ok(same(thenSeed.next.seedOutcome, { state: 'present', recovered: true, contractOk: true, detail: 'contract holds', failed: 0 }),
     'seed-info: after restore-input, a present file reads as recovered');
+  // The failed-check count travels into the outcome (S11, the Activity drawer's "2 mismatches").
+  const failing = step(init, { kind: 'seed-info', ok: false, summary: 'FAILED: a, b', present: true, failed: 2 });
+  ok(same(failing.next.seedOutcome, { state: 'present', recovered: false, contractOk: false, detail: 'FAILED: a, b', failed: 2 }),
+    'seed-info: a failing contract carries its failed-check count');
 
   const absent = step(init, { kind: 'seed-info', ok: true, summary: 'no variables', present: false });
   ok(same(absent.next.seedOutcome, { state: 'absent' }), 'seed-info: no Prism3 variables reads as absent');
@@ -165,6 +171,37 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(fonts.next.hostFonts, ['Inter', 'Roboto', 'Mystery']), 'font-list: records the families in order');
   ok(same([...fonts.next.hostFontStyles], [['Inter', 18], ['Roboto', 36], ['Mystery', 0]]), 'font-list: pairs each family with its style count, 0 where none was sent');
   ok(same(fonts.topics, ['fonts']), 'font-list: invalidates fonts');
+}
+
+// ---- the agent's runs (UI redesign S11) ------------------------------------------------------------------
+// The drawer reads `agentRun`; the action slots stay the panel's own, so the panel's controls are unchanged.
+{
+  const started = step(init, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' });
+  ok(same(started.next.agentRun, { id: 'a1', op: 'apply', settled: false, progress: null }) && started.next.applyState === null,
+    'agent-started: an apply-theme run is recorded as the agent\'s, and the apply slot is left alone');
+  ok(same(started.topics, ['host']) && started.effect === null, 'agent-started: invalidates host (the drawer)');
+  const status = step(init, { kind: 'agent-started', id: 'a0', cmd: 'status' });
+  ok(status.next === init && status.topics.length === 0, 'agent-started: a status command runs no operation, so nothing changes');
+  const verdict = step(started.next, { kind: 'apply-result', ok: true, headline: 'H', summary: 'S' });
+  ok(same(verdict.next.agentRun, { id: 'a1', op: 'apply', settled: true, progress: null }) && same(verdict.next.applyState, { ok: true, headline: 'H', summary: 'S' }),
+    'agent run: the apply verdict settles the run and lands in the apply slot');
+  const other = step(started.next, { kind: 'component-result', ok: true, headline: 'H', summary: 'S' });
+  ok(other.next.agentRun?.settled === false, 'agent run: another operation\'s verdict does not settle it');
+  const stale = step(verdict.next, { kind: 'agent-finished', id: 'zz' });
+  ok(stale.next === verdict.next && stale.topics.length === 0, 'agent-finished: another run\'s end changes nothing');
+  const done = step(verdict.next, { kind: 'agent-finished', id: 'a1' });
+  ok(done.next.agentRun === null && same(done.next.applyState, { ok: true, headline: 'H', summary: 'S' }) && same(done.topics, ['host']),
+    'agent-finished: clears the run, keeps its verdict, invalidates host');
+
+  const build = step(init, { kind: 'agent-started', id: 'b1', cmd: 'build-components' }).next;
+  const prog = step(build, { kind: 'agent-progress', id: 'b1', phase: 'wire', done: 24, total: 648 });
+  ok(same(prog.next.agentRun?.progress, { phase: 'wire', done: 24, total: 648 }) && prog.next.componentProgress === null && same(prog.topics, ['host:progress']),
+    'agent-progress: the agent build\'s reading is its own, not the panel\'s, and invalidates host:progress');
+  const wrongId = step(build, { kind: 'agent-progress', id: 'x', phase: 'wire', done: 1, total: 2 });
+  ok(wrongId.next === build && wrongId.topics.length === 0, 'agent-progress: another run\'s progress changes nothing');
+  const applyRun = step(init, { kind: 'agent-started', id: 'a2', cmd: 'apply-theme' }).next;
+  const notBuild = step(applyRun, { kind: 'agent-progress', id: 'a2', phase: 'build', done: 1, total: 2 });
+  ok(notBuild.next === applyRun, 'agent-progress: a run that is not a build takes no progress');
 }
 
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);

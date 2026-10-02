@@ -102,8 +102,8 @@
 .p3-dot-ok { background: var(--p3-ok-icon); }
 .p3-dot-bad { background: var(--p3-bad-icon); }
 
-/* Status pills: the plugin's write verdicts, in the Activity drawer's bar row since S1.4, so on the page
-   ground with the page's edge (B1). */
+/* Status pills: an operation's verdict, in its Activity row (S11), so on the page ground with the page's
+   edge (B1). */
 .p3-pill {
   display: inline-flex; align-items: center; gap: var(--p3-space-050); flex: 0 1 auto; min-width: 0;
   min-height: var(--p3-hit-min); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-pill);
@@ -112,10 +112,6 @@
   line-height: var(--p3-lh-compact); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .p3-pill-bad { color: var(--p3-bad-text); }
-.p3-pill-btn { cursor: pointer; overflow: visible; }
-.p3-pill-btn:hover { border-color: var(--p3-field-edge-hover); }
-.p3-pill-btn .p3-ico { color: var(--p3-icon-2); }
-.p3-pill-btn[aria-expanded="true"] .p3-ico { transform: rotate(180deg); }
 
 /* The theme menu: three radio items (F3). */
 .p3-popwrap { position: relative; display: inline-flex; }
@@ -137,6 +133,33 @@
 .p3-menu-item > .p3-ico:last-child { visibility: hidden; color: var(--p3-icon); }
 .p3-menu-item[aria-checked="true"] { font-weight: var(--p3-fw-emphasis); }
 .p3-menu-item[aria-checked="true"] > .p3-ico:last-child { visibility: visible; }
+
+/* A write's control while that write runs, panel or agent (owner decision #4 on #1956): the engine
+   Button's isPending. Busy is aria-busy, never native disabled, so focus stays and nothing here dims it.
+   Both labels sit in one cell, so the control keeps the wider one's width; the one not showing is held
+   invisible, which also keeps it out of the accessible name. */
+.p3-pend { display: inline-grid; }
+.p3-pend > * { grid-area: 1 / 1; }
+.p3-pend-busy { display: inline-flex; align-items: center; gap: var(--p3-space-050); }
+:is(.p3-btn, .p3-menu-item)[aria-busy="true"] { cursor: progress; }
+:is(.p3-btn, .p3-menu-item)[aria-busy="true"] .p3-pend-idle,
+:is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-pend-busy { visibility: hidden; }
+/* The busy label's "…" is the spinner's cell. After a short delay, three of the fast duration (about
+   300 ms, inside the engine spinner's 200 to 500 ms anti-flash wait), the "…" gives way to the arc, so
+   a quick write never flashes a spinner. The arc takes the label's ink. Under reduced motion it turns at
+   the slower reduced period: the spinner is functional, and aria-busy carries the state either way. */
+.p3-spin { position: relative; display: inline-grid; place-items: center; flex: none; width: var(--p3-icon-xs); height: var(--p3-icon-xs);
+  animation: p3-spin-hide var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both; }
+.p3-spin::before {
+  content: ""; position: absolute; inset: 0; opacity: 0; border-radius: var(--p3-radius-pill);
+  border: var(--p3-bw-thick) solid transparent; border-top-color: var(--p3-text);
+  animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
+}
+.p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+@media (prefers-reduced-motion: reduce) { .p3-spin::before { animation-duration: var(--p3-dur-fast), var(--p3-dur-spin-reduced); } }
+@keyframes p3-spin-hide { to { color: transparent; } }
+@keyframes p3-spin-show { to { opacity: 1; } }
+@keyframes p3-spin { to { transform: rotate(1turn); } }
 
 /* ── the tab row (IA-1): the levers header ───────────────────────────────────────────────── */
 /* ONE HEADER HEIGHT (the owner's QA note Q2): the tab row and the preview's title row are both
@@ -387,33 +410,58 @@
 .p3-status-dot[data-state="unread"] { background: var(--p3-icon); }
 .p3-status-dot[data-state="bad"] { background: var(--p3-bad-icon); }
 .p3-status-dot[data-state="run"] { border: var(--p3-bw-thick) solid var(--p3-icon); }
-/* The drawer: at the bottom of the frame, pinned to the bottom edge, on the page ground. Its bar row holds
-   the toggle and the status pills; its body, the open result's detail. Hidden until something has run
-   or it is opened. */
+/* The bar's lead dot: the newest operation's state. */
+.p3-status-dot[data-state="ok"] { background: var(--p3-ok-icon); }
+/* The drawer: at the bottom of the frame, pinned to the bottom edge, on the page ground. Its bar row is one
+   button: the newest operation, its time, the counts. Its body, one row per operation that has run (S11,
+   concept v6). Hidden until something has run, unless it is opened. */
 .p3-drawer {
   position: sticky; bottom: 0; z-index: 20; display: flex; flex-direction: column; min-height: 0;
   background: var(--p3-bg-page); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
 }
-.p3-drawer[data-open="false"]:has(.p3-drawer-pills:empty) { display: none; }
+.p3-drawer[data-open="false"][data-ever="false"] { display: none; }
 .p3-drawer-bar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); flex: none;
+  display: flex; align-items: center; gap: var(--p3-space-100); flex: none; width: 100%;
   min-height: var(--p3-bar-h); padding: var(--p3-space-050) var(--p3-space-300);
+  border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
-.p3-drawer-pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); flex: 1 1 0; min-width: 0; }
-/* A ghost control on the page ground shows the page's edge on hover (B1). */
-.p3-drawer .p3-btn-ghost:hover { border-color: var(--p3-edge); }
-.p3-drawer[data-open="true"] .p3-drawer-toggle > .p3-ico:last-child { transform: rotate(180deg); }
+.p3-drawer-bar > .p3-ico { color: var(--p3-icon-2); }
+.p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type { transform: rotate(180deg); }
+.p3-drawer-last { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p3-drawer-count { color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-drawer-body {
-  display: grid; gap: var(--p3-space-150); align-content: start; min-height: 0;
-  max-height: calc(4 * var(--p3-bar-h)); overflow: auto; padding: 0 var(--p3-space-300) var(--p3-space-200);
+  display: grid; gap: var(--p3-space-100); align-content: start; min-height: 0;
+  max-height: calc(6 * var(--p3-bar-h)); overflow: auto; padding: 0 var(--p3-space-300) var(--p3-space-200);
 }
 .p3-drawer-body[hidden] { display: none; }
-.p3-drawer-body:has(.p3-detail:not([hidden])) .p3-drawer-note { display: none; }
 .p3-drawer-note { margin: 0; }
-/* The apply detail: the open verdict spelled out. */
-.p3-detail { color: var(--p3-text); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); overflow-wrap: anywhere; }
-.p3-detail[hidden] { display: none; }
+.p3-drawer-note[hidden] { display: none; }
+/* "Close Activity": only the full-pane sheet at 380 has no bar row to close it from. */
+.p3-drawer-close { display: none; justify-self: end; }
+/* One operation: a header that expands its body. */
+.p3-ops { display: grid; gap: var(--p3-space-050); }
+.p3-op { border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); }
+.p3-op-head {
+  display: flex; align-items: center; gap: var(--p3-space-100); width: 100%; min-height: var(--p3-hit-min);
+  padding: var(--p3-space-050) var(--p3-space-150); border: 0; background: transparent; color: inherit;
+  font: inherit; text-align: left; cursor: pointer;
+}
+.p3-op-head > .p3-ico:first-child { color: var(--p3-icon-2); }
+.p3-op-head[aria-expanded="true"] > .p3-ico:first-child { transform: rotate(90deg); }
+.p3-op-agent { display: inline-flex; align-items: center; gap: var(--p3-space-050); color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-op-agent[hidden] { display: none; }
+.p3-op-when { margin-left: auto; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-op-body { display: grid; gap: var(--p3-space-100); padding: 0 var(--p3-space-150) var(--p3-space-150); font-size: var(--p3-fs-12); }
+.p3-op-body[hidden] { display: none; }
+.p3-op-summary { margin: 0; overflow-wrap: anywhere; }
+.p3-op-phase { display: grid; gap: var(--p3-space-050); }
+.p3-op-prog { display: block; appearance: none; width: 100%; height: var(--p3-space-050); border: none; border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
+.p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }
+.p3-op-prog::-webkit-progress-value { background: var(--p3-icon); }
+.p3-op-prog::-moz-progress-bar { background: var(--p3-icon); }
+.p3-op-history > summary { cursor: pointer; color: var(--p3-text-2); }
+.p3-op-history > ul { margin: var(--p3-space-050) 0 0; padding-left: var(--p3-space-300); }
 /* Under the two panes, the drawer is the preview pane's bottom row (plan §3.9). */
 .p3-frame[data-layout="panes"] .p3-drawer { grid-area: drawer; position: static; border-left: 0; }
 /* At 380: the closed drawer is the strip, pinned to the bottom edge; the open drawer is a full-pane sheet
@@ -424,6 +472,7 @@
 .p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) :is(.p3-nav, .p3-subnav, .p3-notices, .p3-legacy, .p3-panes, .p3-inspect) { display: none; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] { flex: 1 1 auto; border-top: 0; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-body { flex: 1 1 auto; max-height: none; }
+.p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-close { display: inline-flex; }
 
 /* The Figma menu (S1.4, plugin only). At 380 it spans the top row, under it, like the Agent popover. */
 .p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }
@@ -628,6 +677,9 @@
 [data-per="5"] .p3-palh-anchor { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; }
 .p3-checker { background: repeating-conic-gradient(var(--p3-fill-2) 0% 25%, var(--p3-bg-page) 0% 50%) 0 0 / var(--p3-space-150) var(--p3-space-150); }
 .p3-sr { position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The Activity status line rides in the top bar, outside the drawer (so it is in the document before the
+   drawer is drawn), and takes the chrome face itself rather than inheriting it (S11). */
+.p3-live { margin: 0; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }
 
 /* ── the step picker (V9, ui/step-picker.ts; first mounted in S4) ───────────────────────────── */
 .p3-picker {
