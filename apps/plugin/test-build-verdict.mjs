@@ -946,6 +946,17 @@ for (const how of ['pointer', 'focus']) {
   });
   ok(rb.state === 'bad' && rb.verdict === '2 mismatches' && (rb.summary ?? '').includes(SENTENCE),
     `S11 a failing read-back reads "2 mismatches", its sentence showing in the row's details — state ${rb.state}, verdict ${JSON.stringify(rb.verdict)}, summary ${JSON.stringify(rb.summary)}`);
+  // A clean read-back that lands later, with no run the drawer saw, collapses the row the bad one opened.
+  const readRb = () => page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+    return { state: row?.dataset.state, verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, expanded: row?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') };
+  });
+  const opened = await readRb();
+  await post(page, { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 });
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="readback"]')?.dataset.state === 'ok', null, { timeout: 5000 }).catch(() => {});
+  const clean = await readRb();
+  ok(opened.expanded === 'true' && clean.state === 'ok' && clean.verdict === 'Clean' && clean.expanded === 'false',
+    `S11 a clean read-back reads "Clean" and collapses the row the failing one opened — before ${JSON.stringify(opened)}, after ${JSON.stringify(clean)}`);
   ok(errors.length === 0, `S11 read-back: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
