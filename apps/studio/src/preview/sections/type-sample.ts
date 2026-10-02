@@ -15,8 +15,8 @@ import type { Theme, TypeComposite } from '@prism3/engine/theme';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 /** The display style the sample opens with: large, but not the largest (owner decision Q67: the largest can be
- *  160px). `display.md.strong` is 64px in the default theme. A PROPOSAL, pending the owner's approval: change it
- *  here and nowhere else. A brand that emits no `display.md.strong` gets its largest display style. */
+ *  160px). `display.md.strong` is 64px in the default theme. APPROVED by the owner (2026-10-02): change it here
+ *  and nowhere else. A brand that emits no `display.md.strong` gets its largest display style. */
 export const TYPE_SAMPLE_DISPLAY = 'display.md.strong';
 /** The rest of the sample, in order: a title, body, label and caption, by text type, size and weight. A brand
  *  missing one falls back to that text type's first plain `md` style, then its first plain style. */
