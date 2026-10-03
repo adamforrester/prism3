@@ -294,11 +294,14 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const { primitive, opacity } = washReadOf(r);
     const el = hook(h('div', 'p3-fillrow'), 'scrim-row');
     el.dataset.role = SCRIM_ROLE;
-    const sw = h('span', 'p3-fill-sw');
-    sw.dataset.content = '';
+    // The owner's A6 (2026-10-03): the wash sits over the chrome's transparency checkerboard (`p3-checker`, Palettes'
+    // alpha swatches), so the swatch reads as translucent, in either chrome theme.
+    const sw = hook(h('span', 'p3-fill-sw p3-checker'), 'scrim-swatch');
+    const wsh = hook(h('span', 'p3-scrim-wash'), 'scrim-wash');
+    wsh.dataset.content = '';
     const n = parseInt(r.hex.slice(1), 16);
-    const wash = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
-    sw.style.background = `linear-gradient(${wash}, ${wash}), ${roles['background.primary']?.hex ?? '#ffffff'}`;
+    wsh.style.background = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
+    sw.append(wsh);
     const nm = tokenLabel(SCRIM_ROLE, 'Scrim');
     const read = hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), 'scrim-readout');
     read.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';

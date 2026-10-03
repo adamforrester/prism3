@@ -194,6 +194,8 @@
  *     (path data literal), aria-hidden, the button named by its words.
  *   · GRADIENTS (QA-B13 to QA-B16): the switch in its block's header at the top right; no element in the levers paints
  *     a gradient of two colors or more; 24px or more each side of a gradient's divider, and Add gradient's own divider.
+ *   · A6 (owner, 2026-10-03): the scrim's wash, in the levers' swatch and the preview's card, over a checkered ground
+ *     (a gradient of two colors or more, read from the render), both chrome themes, Light and Dark.
  *   · MARKS (QA-I2): a Page sweep, Light and Dark, every Page the picker offers: each mark themed reads 3:1 or more on
  *     its composited ground in that theme's status icon color, and no worse than the other theme; an unthemed mark is
  *     the badge's ink, only where neither theme reaches 3:1.
@@ -3290,10 +3292,10 @@ for (const host of ['web', 'figma']) {
       const head = blk?.querySelector('.p3-lever-head');
       const sw = blk?.querySelector('[data-p3="gradients-switch"]');
       const hb = head?.getBoundingClientRect(), sb = sw?.getBoundingClientRect();
-      // A gradient DRAWN is a CSS gradient between two colors or more: the scrim's swatch lays its one wash over the page
-      // as a single-color gradient (a composite, not a gradient preview), and is not one.
+      // A gradient DRAWN is a linear or radial CSS gradient (the engine's two kinds) between two colors or more. The
+      // scrim's swatch sits on the chrome's transparency checkerboard (A6), a conic pattern, and is not one.
       const colors = (bg) => new Set((bg.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi) ?? []).map((x) => x.replace(/\s+/g, '')));
-      const painted = [...document.querySelectorAll('[data-p3="levers-pane"] *')].filter((n) => { const bg = getComputedStyle(n).backgroundImage; return /gradient\(/.test(bg) && colors(bg).size >= 2; })
+      const painted = [...document.querySelectorAll('[data-p3="levers-pane"] *')].filter((n) => { const bg = getComputedStyle(n).backgroundImage; return /(linear|radial)-gradient\(/.test(bg) && colors(bg).size >= 2; })
         .map((n) => n.getAttribute('data-p3') ?? n.className?.baseVal ?? n.className);
       const eds = [...(blk?.querySelectorAll('[data-p3="gradient-editor"]') ?? [])];
       const box = (n) => n.getBoundingClientRect();
@@ -3324,6 +3326,37 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `${host} S4f lock and gradients: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
   }
+}
+// A6 (owner, 2026-10-03): the scrim's wash sits over a checkered ground, in the levers' swatch and the preview's card, so
+// it reads as translucent: both chrome themes, Light and Dark previewed. THE ORACLE is the render: the element under
+// the wash paints a CSS gradient of two colors or more as its background image (a checkerboard is a conic or repeated
+// gradient), and the wash on it is a translucent color (alpha under 1) that covers it.
+for (const theme of ['light', 'dark']) {
+  const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  for (const mode of ['light', 'dark']) {
+    await showMode(page, mode);
+    const got = await page.evaluate(() => {
+      const colors = (bg) => new Set((bg.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi) ?? []).map((x) => x.replace(/\s+/g, '')));
+      const read = (under, wash) => {
+        const u = document.querySelector(under), w = u?.querySelector(wash);
+        if (!u || !w) return { found: false };
+        const bg = getComputedStyle(u).backgroundImage, wb = getComputedStyle(w).backgroundColor;
+        const a = /rgba\([^)]*,\s*([0-9.]+)\)/.exec(wb);
+        const U = u.getBoundingClientRect(), W = w.getBoundingClientRect();
+        return { found: true, checkered: /gradient\(/.test(bg) && colors(bg).size >= 2, image: bg.slice(0, 90), wash: wb, translucent: !!a && Number(a[1]) > 0 && Number(a[1]) < 1,
+          covers: W.width >= U.width - 2 && W.height >= U.height * 0.5 };
+      };
+      return { levers: read('[data-p3="levers-pane"] [data-p3="scrim-swatch"]', '[data-p3="scrim-wash"]'),
+        preview: read('[data-p3="preview-body"] [data-p3="scrim-checker"]', '[data-p3="scrim-wash"]') };
+    });
+    for (const [where, r] of Object.entries(got)) {
+      ok(r.found && r.checkered && r.translucent && r.covers,
+        `A6 web ${theme}, previewing ${mode}: the scrim's ${where === 'levers' ? 'swatch in the levers' : 'card in the preview'} draws its wash over a checkered ground — read ${JSON.stringify(r)}`);
+    }
+  }
+  ok(errors.length === 0, `A6 web ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
 }
 // QA-I2 on Surfaces & fills: a Page sweep. Every Page the picker offers in Light and in Dark (white, every neutral step,
 // black), and every ratio badge's mark in the preview: a mark stamped with a chrome theme is drawn in that theme's
