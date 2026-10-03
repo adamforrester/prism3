@@ -2214,6 +2214,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the same set.
   const overridden = new Set<string>();
   const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode], roles, theme.iconContrast));
+  // A `<palette>.<step>` ground (the contrast floor) resolved on this theme's ramps — see `againstRgb`.
+  const stepRgbOf = (ref: string): RGB | undefined => {
+    const dot = ref.lastIndexOf('.');
+    return dot < 0 ? undefined : ramps.get(ref.slice(0, dot))?.find((s) => s.key === ref.slice(dot + 1))?.rgb;
+  };
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
@@ -2262,7 +2267,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const step = steps.find((s) => s.key === ref.step);
       if (!step) throw new Error(`overrides[${mode}]: unknown step '${ref.step}' in palette '${ref.palette}' (role '${rolePath}')`);
       const newRgb = step.rgb;
-      const againstRgb = existing.against === 'self' ? newRgb : (rgbByRole.get(existing.against) ?? baseRgb);
+      // A floor-measured role (`foreground.*`, links, `interactive.<c>.fill.*`) names its ground as a
+      // PALETTE STEP — the contrast floor, `neutral.050` — not a role, so it is not in `rgbByRole`. Read
+      // it off the ramp. Falling through to the page base re-rated every overridden floor role on white:
+      // a ratio the tree does not contain, no warning for a floor-only shortfall, and the link clamp
+      // just below clearing white instead of the floor (4,810 sub-contract links in the sweep, #2025).
+      const againstRgb = existing.against === 'self' ? newRgb : (rgbByRole.get(existing.against) ?? stepRgbOf(existing.against) ?? baseRgb);
       // ---- the LINK floor guard (#1510) ----
       // The general override layer WARNS-not-blocks: a hand-tuned FOREGROUND ink may dip below its bar
       // by the author's choice — applied, emitted, recorded as a warning (the posture just above). A LINK
