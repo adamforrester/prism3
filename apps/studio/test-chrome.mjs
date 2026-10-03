@@ -3842,13 +3842,19 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
         const tokens = m.below ? STATUS.bad : STATUS.ok;
         const reach = Math.max(...tokens.map((t) => ratioHex(t, m.ground)));
         if (r < lowest) { lowest = r; lowestAt = `Page ${step}, ${m.role}${m.below ? ' (miss)' : ''} ${m.color} on ${m.ground}`; }
+        // Where neither theme's token reaches 3:1, the mark must be the base fallback, the badge's own ink.
+        if (reach < NONTEXT_MIN) {
+          if (m.color === m.ink) { fellBack = true; continue; }
+          bad.push(`Page ${step}: ${m.role} ${m.color} on ${m.ground} is not the badge ink ${m.ink}, and no status token reaches 3:1 there (best ${reach.toFixed(2)}:1)`);
+          continue;
+        }
         if (r >= NONTEXT_MIN) continue;
-        if (reach < NONTEXT_MIN && m.color === m.ink) { fellBack = true; continue; }
         bad.push(`Page ${step}: ${m.role} ${m.color} on ${m.ground} ${r.toFixed(2)}:1 (a status token reaches ${reach.toFixed(2)}:1; badge ink ${m.ink})`);
       }
       if (fellBack) fallbacks++;
       ok(marks.length >= 20, `QA-I2 sweep, Page ${step}: the preview draws its marks (${marks.length})`);
     }
+    ok(fallbacks >= 1, `QA-I2 sweep: the ladder reaches a page where no status token clears ${NONTEXT_MIN}:1, so the fallback is exercised (${fallbacks} step(s))`);
     ok(bad.length === 0, `QA-I2 sweep: on every Page step each mark clears ${NONTEXT_MIN}:1 on its ground, or keeps the badge's ink where neither theme's token can${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
     console.log(`  QA-I2 sweep: ${points} Page steps, ${grounds.size} grounds, lowest mark ${lowest.toFixed(2)}:1 (${lowestAt}), ${fallbacks} step(s) with a mark on the badge-ink fallback`);
     ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);

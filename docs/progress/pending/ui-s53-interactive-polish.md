@@ -78,12 +78,15 @@ helper in `ui/lever-kit.ts`. No engine change and no emitted artifact moves, so 
     mark's computed color and the composited ground under it, and checks each mark against the status tokens from
     the token tree. A mark must clear 3:1, or keep the badge's ink, and the ink is allowed only where neither
     theme's token reaches 3:1.
-  - **Sweep results.** The lowest mark is 3.04:1 (Page 750, a pass mark on `#37383a`). No step used the fallback:
-    on prism3's ladder, one of the two themes always reaches 3:1, so the fallback path is not exercised by this
-    sweep.
+  - **Sweep results.** The lowest mark is 3.04:1 (Page 750, a pass mark on `#37383a`). On 9 of the 22 steps, at
+    least one mark used the badge-ink fallback, and every fallback mark still measured above 3:1. The arm also
+    fails if no step falls back, so the fallback branch cannot go unexercised.
   - **The last add.** A check holds that adding the last color leaves focus on the new set's group, not on the
     body.
-  - **Mutations:** see the sweep and focus mutations below.
+  - **Mutations.**
+    - Picking the theme by the light-or-dark guess alone fails `QA-I2 sweep: on every Page step each mark clears
+      3:1 …`.
+    - Dropping the focus move fails `QA-I4: adding the last color left keeps focus off the page body …`.
 
 ### DRAFT copy
 
