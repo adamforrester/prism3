@@ -157,10 +157,12 @@ export const NOT_CHROME = {
   'apps/studio/src/main.ts': 'the legacy studio, drawn in its own face (styles.css) and taken apart page by page '
     + '(LEGACY_PAGES in test-chrome.mjs). Of the chrome copy it still paints, test:chrome measures the Apply '
     + 'label and the write-status pills as drawn, and NEVER_DRAWN below reads it like every other file.',
-  'apps/studio/src/preview/sections/weights-by-face.ts': 'the legacy Typography page\'s "Weight roles by face" '
-    + 'section, lifted out of main.ts unchanged by UI redesign S6.1 and drawn only by that page, in main.ts\'s '
-    + 'face (styles.css). Its availability marks (● ○) are not in the chrome subset. When a new page draws this '
-    + 'section (S6.2), it reaches the chrome and this entry goes: re-subset Inter, or record a FACE_LACKS decision.',
+  'apps/studio/src/preview/sections/weights-by-face.ts': 'the "Weight roles by font family" section (lifted from '
+    + 'main.ts in UI redesign S6.1). Since S6.2 the Type page\'s preview draws it (preview/type.ts), but inside the '
+    + 'light-pinned legacy card (p3-legacy-card), in styles.css\'s device stack (--sans), never the embedded chrome '
+    + 'face, so the face check does not apply to it. Its availability marks (● ○) are not in the chrome subset: '
+    + '#1993 tracks bringing the file back into this check (re-subset Inter, or draw the marks as shapes) once the '
+    + 'section is drawn in the chrome face.',
 };
 /** Code points no string under a source root may carry, NOT_CHROME included, each with the owner's decision. */
 export const NEVER_DRAWN = {

@@ -56,7 +56,7 @@ export const inLibrary = (name: string): boolean => libraryFaces().some((n) => t
  *  field was drawn from), so a name a category already binds is refused rather than silently absorbed. */
 export const addLibraryFace = (raw: string, typefaces: Typography['typefaces'] = theme.typography.typefaces): string | null => {
   const name = raw.trim();
-  if (!name) return 'Give the face a name.';
+  if (!name) return 'Give the font family a name.';
   const slug = typefaceSlug(name);
   const clash = typefaces.find((t) => t.slug === slug);
   if (clash) {

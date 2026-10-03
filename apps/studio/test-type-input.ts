@@ -21,6 +21,11 @@ import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as T from './src/state/type-input';
+import { knownWeightsOf } from './src/ui/fonts';
+import { typeSamplePicks, TYPE_SAMPLE_DISPLAY } from './src/preview/sections/type-sample';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -72,7 +77,7 @@ ok(pristine(), 'setAllFamilies("") writes nothing');
 
 console.log('\n2. The library: add (with its refusals), remove');
 reset();
-ok(T.addLibraryFace('   ') === 'Give the face a name.' && pristine(), 'addLibraryFace("   ") refuses: "Give the face a name.", nothing written');
+ok(T.addLibraryFace('   ') === 'Give the font family a name.' && pristine(), 'addLibraryFace("   ") refuses: "Give the font family a name.", nothing written');
 ok(T.addLibraryFace('inter') === 'Inter is already here — a category binds it, so it is in the library list already.' && pristine(),
   'addLibraryFace("inter") refuses: a category binds Inter, nothing written');
 ok(T.addLibraryFace('  Roboto ') === null && ty() === with3({ typefaceLibrary: ['Roboto'] }) && takes(),
@@ -221,6 +226,39 @@ T.setSizePin('dark', 'display', 'md', 72);
 T.setMobileSize('display', 'sm', 40);
 T.releasePinnedSizes();
 ok(pristine() && T.pinnedSizeCount() === 0, 'releasePinnedSizes drops brand sizes, viewport pins and every mode\'s sizes: byte-identical to the brand as loaded');
+
+console.log('\n9. The known-weights list (#1727 part 2): the default theme\'s faces are known families');
+// EXPECTED, literal: Playfair Display ships 400 to 900 (with an italic for each), from its specimen. Then the
+// faces the prism3 default theme EMITS, read from the committed emission (never from the studio): each must be
+// a family the list knows, so the "Weight roles by face" table flags its weights rather than "? unknown".
+const playfair = knownWeightsOf('Playfair Display');
+ok(JSON.stringify(playfair) === '[400,500,600,700,800,900]', `knownWeightsOf("Playfair Display") is [400,500,600,700,800,900] (#1727 part 2)${JSON.stringify(playfair) === "[400,500,600,700,800,900]" ? "" : ` — read ${JSON.stringify(playfair)}`}`);
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const tree = JSON.parse(readFileSync(join(here, '../../packages/engine/out/prism3.tokens.json'), 'utf8'));
+  const faces = Object.values(tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].core.font.typeface as Record<string, { $value: string }>).map((t) => t.$value);
+  const unknown = faces.filter((f) => !knownWeightsOf(f));
+  ok(faces.length >= 3 && unknown.length === 0, `every face the prism3 default theme emits is a known family (${faces.join(', ')})${unknown.length ? ` — unknown: ${unknown.join(', ')}` : ''}`);
+}
+
+console.log('\n10. The type sample\'s display line (#1942, owner decisions Q67, Q76): display.md.strong, else the largest display style');
+// No corpus brand lacks `display.md.strong`, so the fallback is fed here: the prism3 typography with every
+// `display.md.*` style taken out, which leaves sm, lg, xl, 2xl and 3xl. EXPECTED is worked out by hand from the
+// default theme's display ramp: 3xl is 160px, the largest, and `display.3xl.emphasis` is its first style at that
+// size. Then the same check against the largest size the remaining styles carry, read off them here.
+{
+  reset();
+  const full = engine();
+  ok(TYPE_SAMPLE_DISPLAY === 'display.md.strong' && typeSamplePicks(full)[0]?.path === 'display.md.strong',
+    `with display.md.strong emitted, the sample opens with it (drew ${typeSamplePicks(full)[0]?.path})`);
+  const noMd = { ...full, composites: full.composites.filter((c) => !c.path.startsWith('display.md.')) };
+  const displays = noMd.composites.filter((c) => c.group === 'display' && !c.italic && !c.link);
+  const sizes = [...new Set(displays.map((c) => c.sizePx))];
+  const pick = typeSamplePicks(noMd)[0];
+  ok(sizes.length >= 4, `the fixture keeps several display sizes once display.md is gone (${sizes.join(', ')}px)`);
+  ok(pick?.path === 'display.3xl.emphasis' && pick.sizePx === 160 && pick.sizePx === Math.max(...sizes),
+    `with no display.md.strong, the sample opens with the largest display style by size, display.3xl.emphasis at 160px — drew ${pick?.path} at ${pick?.sizePx}px`);
+}
 
 console.log(`\n${executed - failed}/${executed} type-input assertions passed.`);
 if (failed) process.exit(1);

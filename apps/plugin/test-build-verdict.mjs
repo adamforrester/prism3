@@ -1304,23 +1304,31 @@ for (const how of ['pointer', 'focus']) {
   }
 }
 
-// ── P2: a font list reaches the Typography page ───────────────────────────────────────────────────
+// ── P2: a font list reaches the Type page ─────────────────────────────────────────────────────────
 //
-// `font-list` invalidates the `fonts` topic, and the one subscriber re-renders the workspace. No other
-// suite sends it, so without this arm that subscription could go the way #1845's case did. What a
-// designer reads is the typeface library's source column: "On this device" until the host answers,
-// "In this Figma" once it has, since the verdicts under it are then Figma's own (docs/34 shape 16).
+// `font-list` invalidates the `fonts` topic. Since UI redesign S6.2 its subscribers are the Type page's levers and
+// preview (no legacy surface reads the host's fonts any more). No other suite sends it, so without this arm that
+// subscription could go the way #1845's case did. What a designer reads is the typeface library's source line:
+// "On this device" until the host answers, "In this Figma" once it has, since the verdicts under it are then
+// Figma's own (docs/34 shape 16); and Add face becomes a type-ahead over the families the host listed (#113).
 {
   const { page, errors } = await openPanel();
-  await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await hooks.need(page, '[data-p3="typeface-source"]', { timeout: 5000 });
+  await hooks.click(page.locator('[data-p3="tab-type"]'));
+  await hooks.need(page, '[data-p3="type-levers"] [data-p3="typeface-source"]', { timeout: 5000 });
   const source = () => page.evaluate(() => document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null);
   const before = await source();
   ok(before === 'On this device', `the typeface library reads "On this device" before the host sends its fonts — read ${JSON.stringify(before)}`);
   await post(page, { type: 'font-list', families: ['Inter', 'Roboto', 'Playfair Display'], styles: [18, 36, 12] });
   await page.waitForFunction(() => document.querySelector('[data-p3="typeface-source"]')?.textContent === 'In this Figma', null, { timeout: 5000 }).catch(() => {});
   const after = await source();
-  ok(after === 'In this Figma', `a font list from the host repaints the Typography page — the library reads "In this Figma", read ${JSON.stringify(after)}`);
+  ok(after === 'In this Figma', `a font list from the host repaints the Type page — the library reads "In this Figma", read ${JSON.stringify(after)}`);
+  const combo = await page.evaluate(() => {
+    const f = document.querySelector('[data-p3="face-add-input"]');
+    f?.focus();
+    return { role: f?.getAttribute('role') ?? null, options: [...document.querySelectorAll('[data-p3="face-font-option"]')].map((o) => o.textContent) };
+  });
+  ok(combo.role === 'combobox' && JSON.stringify(combo.options) === JSON.stringify(['Inter', 'Roboto', 'Playfair Display']),
+    `with the host's font list, Add face is a type-ahead over its families (#113) — role ${combo.role}, options ${JSON.stringify(combo.options)}`);
   ok(errors.length === 0, `font list: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }

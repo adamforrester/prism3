@@ -1537,3 +1537,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-grads{display:grid;gap:16px}
 .sg-gcard{display:flex;flex-direction:column;gap:8px;min-width:0}
 .sg-gbar{height:160px;border-radius:var(--r);border:1px solid var(--line)}
+/* The type sample (#1942, UI redesign S6.2): one line per style, its token pill over its text, set as the
+   composite resolves. The text wraps rather than clips, so a large display line shows whole words. */
+.tsm-list{display:grid;gap:18px}
+.tsm-row{display:grid;gap:6px;min-width:0;justify-items:start}
+.tsm-text{margin:0;max-width:100%;overflow-wrap:anywhere}
