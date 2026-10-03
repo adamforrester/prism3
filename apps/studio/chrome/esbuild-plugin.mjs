@@ -21,11 +21,13 @@
  *   [offline]   the output would make a network request: a remote `url()`, an `@import`, or an
  *               `@font-face` that is not a `data:` URI (v6 check 10).
  *   [pairs]     a PAIRS entry (`spec.mjs`) whose two variables are both mapped measures under its
- *               literal floor in either theme (v6 check 8); or a mapped color variable takes part in
- *               no such pair and is not listed in DECORATIVE.
+ *               literal floor in either theme (v6 check 8); a mapped color variable takes part in
+ *               no such pair and is not listed in DECORATIVE; or a PAIRS or DECORATIVE entry names a
+ *               variable no row defines (#1927).
  *   [fonts]     a chrome face's woff2 file is missing.
- *   [license]   a chrome face's OFL file is missing or has no copyright line, or the output lacks a
- *               comment line carrying that copyright line and the OFL URL.
+ *   [license]   a chrome face's OFL file is missing, has no copyright line, or no longer carries the
+ *               face's LICENSE_COPYRIGHT literal; or the output lacks, for a face in CHROME_FONTS, a
+ *               comment line carrying that literal and the OFL URL (#1927).
  *   [glyphs]    the chrome can be handed a code point the embedded UI face does not carry: in an engine
  *               decision note, a host verdict or the shell's own copy (`glyphs.mjs`, #1924).
  *   [map]       SHELL_VARS names a variable no mockup row maps.
@@ -57,6 +59,28 @@ import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE } from './s
 export const FONT_LICENSES = { Inter: 'OFL-Inter.txt', 'JetBrains Mono': 'OFL-JetBrains-Mono.txt' };
 export const OFL_URL = 'https://openfontlicense.org';
 const COPYRIGHT_RE = /Copyright \d{4}[^()\n]*\([^)\n]*\)/;
+// THE CHECKER'S OWN EXPECTATION (#1927): each face's copyright line, typed here. The notice WRITER reads its
+// line out of the OFL file with COPYRIGHT_RE; the [license] CHECKER must not, or the two share one
+// definition and a loosened pattern weakens both at once (a notice reading only "Inter: Copyright." would
+// pass). The OFL file is held to these literals too, so a swapped font fails here and asks for an update.
+export const LICENSE_COPYRIGHT = {
+  Inter: 'Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)',
+  'JetBrains Mono': 'Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)',
+};
+
+/**
+ * THE STRICT SCAN'S OWN CANARIES (#1927), run on every build before `chrome.css` is scanned. `chrome.css`
+ * alone cannot show the scan still bites: on `main` it carries no nested declaration and no `hwb()`, so a
+ * scan that lost either reach would pass it unchanged. Each canary is a literal: `flag` is the text a
+ * finding must contain, or null for CSS the scan must pass. A canary that stops flagging, or a must-pass
+ * one that starts failing, fails [raw] by name.
+ */
+export const RAW_CANARIES = [
+  ['a named color in a nested rule', '.a { gap: var(--p3-x); & .b { color: red } }', 'named color "red"'],
+  ['a named color beside a nested rule', '.a { color: red; & .b { gap: var(--p3-x) } }', 'named color "red"'],
+  ['an hwb() color', '.a { color: hwb(0 0% 0%) }', 'raw color function "hwb("'],
+  ['identifier-valued properties that spell a color, nested', '.a { grid-area: tan; animation-name: gold; & .b { grid-area: tan; animation: gold var(--p3-d) } }', null],
+];
 
 export const CHROME_CSS_MODULE = 'p3:chrome-css';
 export const CHROME_CSS_FILE = join(ROOT, 'apps', 'studio', 'src', 'chrome.css');
@@ -108,7 +132,9 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     if (!file) { fail('license', `no license file declared for ${family} (FONT_LICENSES in esbuild-plugin.mjs)`); continue; }
     const p = join(FONTS_DIR, file);
     if (!existsSync(p)) { fail('license', `font license missing: ${rel(p)} (${family})`); continue; }
-    const line = readFileSync(p, 'utf8').match(COPYRIGHT_RE)?.[0];
+    const text = readFileSync(p, 'utf8');
+    if (LICENSE_COPYRIGHT[family] && !text.includes(LICENSE_COPYRIGHT[family])) fail('license', `${rel(p)} no longer carries "${LICENSE_COPYRIGHT[family]}" (${family}); if the font changed, update LICENSE_COPYRIGHT in esbuild-plugin.mjs`);
+    const line = text.match(COPYRIGHT_RE)?.[0];
     if (!line) { fail('license', `no copyright line in ${rel(p)} (${family})`); continue; }
     notices.push([family, line]);
   }
@@ -128,6 +154,13 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     for (const msg of brandLeaks({ [mode]: modes[mode] }, rows[mode])) fail('brand', msg);
   }
 
+  // [raw] the scan itself first: its canaries (RAW_CANARIES).
+  for (const [label, css, flag] of RAW_CANARIES) {
+    const got = [];
+    scanRawStrict(css, 'canary', got);
+    if (flag && !got.some((g) => g.includes(flag))) fail('raw', `self-check: the strict scan no longer flags ${label} (want "${flag}", got ${JSON.stringify(got)})`);
+    if (!flag && got.length) fail('raw', `self-check: the strict scan now refuses ${label}: ${got.join('; ')}`);
+  }
   // [raw] the hand-written rules carry no raw value and read only chrome variables.
   const where = rel(chromeCssFile);
   const raw = [];
@@ -152,6 +185,14 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     return row && row[2] === C ? resolve(modes[mode], P(row[1])).value : null;
   };
   const paired = new Set();
+  // A NAME THAT NAMES NOTHING FAILS (#1927). "Not mapped yet" (a row exists, SHELL_VARS does not list it) is
+  // skipped below, legitimately; a name with no row at all is a typo, and skipping it too let a misspelt
+  // `bg-pgae` drop the body-text pair while the build stayed green. The rows are every row the shell reads.
+  const rowNames = new Set(['light', 'dark'].flatMap((m) => [...VARS_FOR(m), ...PRODUCT_FOR(m)].map((r) => r[0])));
+  for (const [fg, bg, , what] of PAIRS) {
+    for (const n of [fg, bg]) if (!rowNames.has(n)) fail('pairs', `PAIRS names --p3-${n}, which no row in TILE_VARS (tokens.mjs), V6_VARS or PRODUCT_VARS (spec.mjs) defines (${fg} on ${bg}, ${what})`);
+  }
+  for (const n of DECORATIVE) if (!rowNames.has(n)) fail('pairs', `DECORATIVE names --p3-${n}, which no row in TILE_VARS (tokens.mjs), V6_VARS or PRODUCT_VARS (spec.mjs) defines`);
   for (const [fg, bg, floor, what] of PAIRS) {
     if (!mapped.has(fg) || !mapped.has(bg)) continue;
     paired.add(fg); paired.add(bg);
@@ -202,12 +243,16 @@ ${src}`;
     if (!/src:\s*url\(data:font\/woff2;base64,/.test(ff[1])) fail('offline', '@font-face that is not a data: URI');
   }
 
-  // [license] the output carries, on one comment line, each embedded face's copyright line (read from
-  // its OFL file, not from the template above) and the OFL URL.
+  // [license] the output carries, on one comment line, each embedded face's copyright line and the OFL URL.
+  // Checked against CHROME_FONTS, every face the CSS embeds, and the literal LICENSE_COPYRIGHT (#1927). It
+  // used to loop over `notices`, the list the writer fills, so a face the writer skipped was a face the
+  // checker never asked about: deleting `notices.push` shipped a bundle with no OFL notice and exit 0.
   const commentLines = (css.match(/\/\*[\s\S]*?\*\//g) ?? []).join('\n').split('\n');
-  for (const [family, line] of notices) {
-    if (!commentLines.some((l) => l.includes(line) && l.includes(OFL_URL))) {
-      fail('license', `the bundled CSS carries no license notice for ${family} (want "${line}" and ${OFL_URL} on one comment line)`);
+  for (const [, family] of CHROME_FONTS) {
+    const want = LICENSE_COPYRIGHT[family];
+    if (!want) { fail('license', `no expected copyright line declared for ${family} (LICENSE_COPYRIGHT in esbuild-plugin.mjs)`); continue; }
+    if (!commentLines.some((l) => l.includes(`${family}: ${want}`) && l.includes(OFL_URL))) {
+      fail('license', `the bundled CSS carries no license notice for ${family} (want "${family}: ${want}" and ${OFL_URL} on one comment line)`);
     }
   }
   return errors.length ? { css: null, errors } : { css, errors };
