@@ -68,9 +68,13 @@ The value picker: "Close"; its group name "Pick a value for ‹name› in ‹mod
 
 Preview: Scale's heads "Style", "Sample", "Desktop", "Mobile", "Line height", "Letter spacing", "Weights"; "Same"; "Sizes that merge on mobile." (legacy words) then "‹styles› all land on ‹px›px. Distinct on desktop, the same on a phone."; Weights and styles' sub-heads "Weights", "Italic and link styles", heads "Name", "Weight", "Text type", "Italic", "Link", "Yes" / "No"; Line height and letter spacing heads "Name", "Step", "Used by", "Specimen", "Not used", a swap shown as "‹value› (‹name›)"; Building blocks sub-heads "Size", "Line height", "Letter spacing", heads "Step", "Used by", "Specimen", "Mobile only", "Not used".
 
-### Found, not fixed
+### Found, not fixed (filed)
 
-- `apps/studio/src/size-labels.ts`' `sizeColumnHeader` has no caller left (the legacy size table was its only one); its unit test still runs. Retire with the next Type touch.
-- `renderRepointTable`'s line height and letter spacing branch (and its `setRepoint` import) is dead now; S9 retires the table with Motion's easing.
-- The weights matrix's lock reasons carry the engine's `REQUIRED_WEIGHT_ROLES` prose, which names `buttonLabelWeight` and `type.label.*.emphasis`: code in a tooltip, the #2005 family.
-- `test:chrome`'s figma host reads the plugin's built `ui.html`, so a studio-only rebuild (a mutation run) leaves it stale: a mutation fails by name on the web host only unless the plugin is rebuilt too.
+- `size-labels.ts`' `sizeColumnHeader` has no caller left, and `renderRepointTable`'s line height and letter spacing branch is dead: #2038.
+- `test:chrome`'s figma host reads the plugin's built `ui.html`, which a studio-only rebuild leaves stale: #2037.
+- The weights matrix's lock reasons carry engine prose with code (`buttonLabelWeight`, `type.label.*.emphasis`): noted on #2005.
+
+### After review (on #2036, after #2041 merged in)
+
+- **One label-and-token helper.** S6.3's own `labelToken(label, token)` is gone: every S6.3 row goes through #2041's `tokenLabel(token, label, forId?)` (`ui/lever-kit.ts`), each call converted to its argument order. `test:chrome` section 22's QA-B2 arm now requires Type's size, weight, line height and letter spacing rows among the row types it reads (every Show advanced open on Type), and adds a check that the mono line under a label is a token path and the label is not, so a call with its arguments swapped fails there by name.
+- **Scale's Show advanced stays openable in a derived mode,** so Individual sizes can be read; every control it opens stays disabled (Q59). The derived-mode arm leaves the two disclosures (info buttons, Scale's fold) out of its "every control disabled" count and adds `Q59: previewing HC light, Scale's Show advanced opens Individual sizes read-only …`. Font families' Show advanced is unchanged (S6.2's arm holds it disabled).

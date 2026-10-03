@@ -4223,18 +4223,33 @@ for (const host of ['web', 'figma']) {
       await page.waitForFunction((l) => document.querySelector('[data-p3="type-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
+        // The info buttons and Scale's Show advanced only disclose; they edit nothing, so they stay live (checked below).
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="scale-advanced"]'));
         return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           line: document.querySelector('[data-p3="type-derived"]')?.textContent ?? null };
       });
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Type ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Type is disabled, the advanced sections included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['family-select', 'face-add-input', 'face-add', 'type-advanced', 'type-scale-compact', 'scale-advanced', 'type-size-desktop', 'type-size-mobile',
+      for (const hk of ['family-select', 'face-add-input', 'face-add', 'type-advanced', 'type-scale-compact', 'type-size-desktop', 'type-size-mobile',
         'type-fluid', 'type-min-viewport', 'type-ceiling', 'title-floor-16', 'caption-floor-10', 'size-floor-8', 'weight-pick', 'weight-cell', 'link-cell',
         'italic-choice-only', 'pin-cut-input', 'lh-pick', 'ls-pick', 'nudge-lh', 'nudge-ls'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Type is among those held disabled`);
     }
+    // In a derived mode Scale's Show advanced stays openable, so Individual sizes can be read; everything it opens is
+    // disabled (Q59). Closed first, then opened, previewing HC light.
+    await chooseAnyMode(page, 'hc-light');
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="type-derived"]'), null, { timeout: 5000 }).catch(() => {});
+    if ((await page.locator('[data-p3="scale-advanced"]').getAttribute('aria-expanded')) === 'true') await hooks.click(page.locator('[data-p3="scale-advanced"]'));
+    const fold0 = await page.evaluate(() => ({ disabled: document.querySelector('[data-p3="scale-advanced"]')?.disabled, open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded') }));
+    await hooks.click(page.locator('[data-p3="scale-advanced"]'), { timeout: 5000 }).catch(() => {});
+    const fold1 = await page.evaluate(() => {
+      const b = document.querySelector('#p3-advb-type-scale');
+      const ctls = b ? [...b.querySelectorAll('button, select, input')].filter((n) => !n.matches('[data-p3="lever-info"]')) : [];
+      return { open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded'), shown: !!b && !b.hidden, n: ctls.length, enabled: ctls.filter((n) => !n.disabled && n.getAttribute('aria-disabled') !== 'true').map((n) => n.getAttribute('data-p3')) };
+    });
+    ok(fold0.disabled === false && fold1.open === 'true' && fold1.shown && fold1.n >= 10 && fold1.enabled.length === 0,
+      `Q59: previewing HC light, Scale's Show advanced opens Individual sizes read-only: the fold is live and every control inside it is disabled (fold disabled ${fold0.disabled}, open ${fold1.open}, ${fold1.n} controls${fold1.enabled.length ? `, enabled ${[...new Set(fold1.enabled)].join(', ')}` : ''})`);
     await chooseAnyMode(page, 'light');
     const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="type-derived"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, scale: document.querySelector('[data-p3="type-scale-compact"]')?.disabled, weight: document.querySelector('[data-p3="weight-pick"]')?.disabled }));
     ok(!back.line && back.sel === false && back.scale === false && back.weight === false, `Q59: back in Light, Type's derived line is gone and its controls, the advanced ones included, are editable (${JSON.stringify(back)})`);
@@ -4728,6 +4743,8 @@ const readNames = (page) => page.evaluate(() => [...document.querySelectorAll('[
   const lab = n.querySelector('.p3-fill-label'), tok = n.querySelector('.p3-fill-tok');
   const L = lab?.getBoundingClientRect(), T = tok?.getBoundingClientRect();
   const kind = n.closest('[data-p3="family-row"]') ? 'type-family' : n.closest('[data-p3="face-row"]') ? 'type-face' : n.closest('[data-p3="interactive-levers"]') ? 'interactive-row'
+    : n.closest('[data-p3="type-size-row"]') ? 'type-size' : n.closest('[data-p3="weight-row"]') ? 'type-weight'
+    : n.closest('[data-p3="lh-row"]') ? 'type-line-height' : n.closest('[data-p3="ls-row"]') ? 'type-letter-spacing'
     : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
   return { kind, token: tok?.textContent ?? null, label: lab?.textContent ?? null, below: !!L && !!T && T.top >= L.bottom - 0.5,
     labTop: L ? Math.round(L.top) : null, tokTop: T ? Math.round(T.top) : null, tokFont: tok ? getComputedStyle(tok).fontFamily : null };
@@ -4788,6 +4805,8 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     const names = [], ctls = [], gaps = [], swatches = [], nexts = [];
     for (const place of ['color-fills', 'color-interactive', 'type', 'brand']) {
       await goPlace(page, place);
+      // Type (S6.3): every Show advanced open, so its size, weight, line height and letter spacing rows are read.
+      if (place === 'type') await openTypeAdvanced(page);
       // Brand draws a select only for a custom mode's base: add one, so the page is represented.
       if (place === 'brand') {
         await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
@@ -4806,12 +4825,17 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
       }, place));
     }
     // QA-B2: each row type is represented, and in each the token sits below its label, in mono.
-    const kinds = ['fill-row', 'fill-field', 'interactive-row', 'type-family', 'type-face'];
+    const kinds = ['fill-row', 'fill-field', 'interactive-row', 'type-family', 'type-face', 'type-size', 'type-weight', 'type-line-height', 'type-letter-spacing'];
     const missing = kinds.filter((k) => !names.some((n) => n.kind === k));
-    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Surfaces & fills fields, Interactive rows, Type families and faces) — missing ${JSON.stringify(missing)}`);
+    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Surfaces & fills fields, Interactive rows, Type families and faces, and Type's sizes, weights, line heights and letter spacings) — missing ${JSON.stringify(missing)}`);
     const above = names.filter((n) => !n.below);
     ok(names.length >= 20 && above.length === 0,
       `QA-B2: ${where}: in every row type the token sits below its label, so the label is read first (${names.length} read)${above.length ? ` — ${JSON.stringify(above.slice(0, 3))}` : ''}`);
+    // …and the two are the right way round: the mono line reads as a token path (dotted, no spaces), the label
+    // above it does not. A call that hands the label and the token in the wrong order fails here.
+    const PATH = /^[a-z0-9*-]+(\.[a-z0-9*-]+)+$/;
+    const swapped = names.filter((n) => !PATH.test(n.token ?? '') || PATH.test(n.label ?? ''));
+    ok(swapped.length === 0, `QA-B2: ${where}: in every row the mono line under the label is a token path and the label is not${swapped.length ? ` — ${JSON.stringify(swapped.slice(0, 3).map((n) => [n.kind, n.label, n.token]))}` : ''}`);
     const notMono = names.filter((n) => !/JetBrains Mono|P3 Chrome Mono/.test(n.tokFont ?? ''));
     ok(notMono.length === 0, `QA-B2: ${where}: every token under a label is set in the chrome's mono${notMono.length ? ` — ${JSON.stringify(notMono.slice(0, 2))}` : ''}`);
     // QA-B5, QA-B18: selects and step-picker buttons, each page represented.

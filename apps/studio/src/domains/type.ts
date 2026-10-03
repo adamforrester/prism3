@@ -473,15 +473,6 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   // ── S6.3: shared pieces ───────────────────────────────────────────────────────────────────────
-  /** A label first, then its token in mono under it (owner QA-B2: the label is read first). S6.3's controls only:
-   *  the Font families controls above keep S6.2's token-first order until the shared styling change flips them. */
-  const labelToken = (label: string, token: string, forId?: string): HTMLElement => {
-    const l = h(forId ? 'label' : 'div', 'p3-fill-name');
-    if (forId && l instanceof HTMLLabelElement) l.htmlFor = forId;
-    l.dataset.role = token;
-    l.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', token));
-    return l;
-  };
   /** The mode a per-mode control edits, and whether it is Light (the brand value). */
   const modeNow = (): { mode: string; light: boolean } => ({ mode: currentMode, light: currentMode === 'light' });
   /** The family a text type uses in the previewed mode, as a CSS stack, for a live sample. */
@@ -607,7 +598,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const row = hook(h('div', 'p3-tsizes-row'), 'type-size-row');
         row.dataset.group = g;
         row.dataset.variant = r.variant;
-        const nm = labelToken(`${S63.groupName(g)} ${r.variant}`, `type.${g}.${r.variant}`);
+        const nm = tokenLabel(`type.${g}.${r.variant}`, `${S63.groupName(g)} ${r.variant}`);
         row.append(nm);
         if (!inRange.has(r.variant)) {
           row.dataset.off = 'true';
@@ -797,7 +788,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       const now = !light && ov === undefined ? S63.autoLight(String(lightV)) : `${value}${WEIGHT_NAME[value] ? ` · ${WEIGHT_NAME[value]}` : ''}`;
       const btn = pickButton(key, id, 'weight-pick', S63.weightName(w.role), now, ov !== undefined);
       btn.dataset.role = w.role;
-      row.append(labelToken(S63.weightName(w.role), `font.weight-role.${w.role}`, id), btn);
+      row.append(tokenLabel(`font.weight-role.${w.role}`, S63.weightName(w.role), id), btn);
       rows.append(row);
       const prev = i > 0 ? roles[i - 1] : null, next = i + 1 < roles.length ? roles[i + 1] : null;
       const pk = pickerFor(key, id, {
@@ -849,7 +840,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       const has = new Set(comps.map((c) => c.weightRole));
       const row = hook(h('div', 'p3-wmatrix-row'), 'weights-row');
       row.dataset.group = g;
-      const nm = labelToken(S63.groupName(g), `type.${g}`);
+      const nm = tokenLabel(`type.${g}`, S63.groupName(g));
       nm.append(hook(h('span', 'p3-sub', S63.styles(comps.length)), 'weights-count'));
       row.append(nm);
       for (const r of roleOrder) {
@@ -885,7 +876,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const only = c.el.querySelector<HTMLButtonElement>('[data-value="only"]');
         if (only) { only.disabled = true; only.title = S63.italicPinned; }
       }
-      row.append(labelToken(S63.groupName(g), `type.${g}`), c.el);
+      row.append(tokenLabel(`type.${g}`, S63.groupName(g)), c.el);
       rows.append(row);
     }
     b.ctl.append(rows);
@@ -912,7 +903,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const row = hook(h('div', 'p3-tpin'), 'pin-cut-row');
         row.setAttribute('data-cat', g);
         row.setAttribute('data-role', role);
-        const nm = labelToken(`${S63.groupName(g)}, ${S63.weightName(role).toLowerCase()}`, `type.${g}.*.${role}`, id);
+        const nm = tokenLabel(`type.${g}.*.${role}`, `${S63.groupName(g)}, ${S63.weightName(role).toLowerCase()}`, id);
         nm.append(hook(h('span', 'p3-sub', fam), 'pin-cut-face'));
         const cur = getPath(brandState, `typography.faces.${g}.${role}`) as FacePin | undefined;
         const t = textField(id, 'pin-cut-input', {
@@ -962,7 +953,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       btn.dataset.name = s.key;
       const ctl = h('div', 'p3-tspace-ctl');
       ctl.append(btn);
-      row.append(labelToken(s.key, `font.${lh ? 'line-height' : 'letter-spacing'}-role.${s.key}`, id), ctl);
+      row.append(tokenLabel(`font.${lh ? 'line-height' : 'letter-spacing'}-role.${s.key}`, s.key, id), ctl);
       if (!light && !isDerived(mode)) {
         const ov = getModeLever(mode, `${field}.${s.key}`) as string | undefined;
         const sel = selectField(`${id}-swap`, `${s.key} in ${modeLabel(mode)}`, lh ? 'lh-swap' : 'ls-swap', (v) => edit(`typography.${field}`, () => setRepoint(mode, field, s.key, v)));
@@ -1007,7 +998,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       if (!ty.composites.some((c) => c.group === g)) continue;
       const row = hook(h('div', 'p3-tnudge'), 'nudge-row');
       row.dataset.group = g;
-      row.append(labelToken(S63.groupName(g), `type.${g}`));
+      row.append(tokenLabel(`type.${g}`, S63.groupName(g)));
       for (const field of ['leadingShift', 'trackingShift'] as const) {
         const cur = (getPath(brandState, `typography.${field}.${g}`) as number | undefined) ?? 0;
         const steps = nudgeSteps(g, field, ty);
@@ -1111,8 +1102,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const add = root.querySelector<HTMLInputElement>('#p3-face-add');
     if (add && typed && addError) add.value = typed;
     // A derived mode is read-only, every control on the page, brand-wide ones included (Q59, Q74). The info
-    // buttons only show a description, so they stay.
-    if (derived) for (const n2 of root.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('.p3-lsec :is(button, select, input):not(.p3-info)')) n2.disabled = true;
+    // buttons only show a description, so they stay; so does Scale's Show advanced (it edits nothing).
+    // Scale's Show advanced only discloses Individual sizes, so it stays live and they can be read; what it opens is held.
+    if (derived) for (const n2 of root.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('.p3-lsec :is(button, select, input):not(.p3-info, [data-p3="scale-advanced"])')) n2.disabled = true;
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }
