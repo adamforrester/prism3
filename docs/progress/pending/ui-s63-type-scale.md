@@ -24,6 +24,8 @@
 
 **Behavior-neutral, measured.** An equivalence driver (scratch, not committed) drove every kept legacy control, previewing Light and Dark, on each corpus brand (prism3, aurora, harbor), on `origin/main`'s lent region and Layout page (`101f6270`) and on the new page: the scale chips away and back, the ceiling, the title floor, desktop and mobile sizes and their resets, a pin left for Release (exercised where a chip clashed), each weight a step and reset, every unlocked matrix cell and Link both ways, every italic chip transition (as the legacy boxes reach it), two pins typed and cleared, each line height and letter spacing name a step and back, every Dark swap and back to Auto, every nudge ±1 and back, the fluid switch and both viewports. **1,078/1,078 persisted brands byte-identical after each edit**, 0 page errors. The traps held: an emptied `italics` or `links` is `[]`; `responsive.fluid` is always written; nudges, links and pins commit through one `rebuild()`.
 
+- **`lint-ramp-steps` reads `domains/type.ts` too.** The gate parses the studio's authored step lists from named files; with the Type controls gone from `main.ts`, `TYPE_GROUP_ORDER`'s consumption and `WEIGHT_STEPS` read STALE. The file is added to its list, and `PER_MODE_SIZE_GROUPS` (imported from the engine, iterated into `type.${g}.${v}` by Individual sizes) is classified exempt with that reason. The comparison is unchanged.
+
 ### Design calls (the most conservative option that reuses a pattern; for the owner)
 
 1. **Three Show advanced folds:** Font families' (S6.2's, unchanged), Scale's (Individual sizes), and the page's (the three advanced sections, Palettes' pattern, counted by rows: "Show 12 advanced").
