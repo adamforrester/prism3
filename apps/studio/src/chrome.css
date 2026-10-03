@@ -799,3 +799,26 @@
 .p3-ipv .sg-foothint { flex-wrap: wrap; max-width: 100%; }
 .p3-ipv .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
 .p3-ipv .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }
+
+/* ── Type (S6.2): the library, Add face with its type-ahead, the face for each text type ──────────── */
+.p3-facehead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-150); }
+.p3-facerow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--p3-space-150); align-items: center; }
+.p3-face-stat { color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-face-stat[data-bad="true"] { color: var(--p3-bad-text); }
+.p3-facerow > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
+.p3-faceadd { display: grid; gap: var(--p3-space-100); }
+.p3-faceadd-row, .p3-famrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; }
+.p3-famrow > .p3-selwrap:only-child { grid-column: 1 / -1; }
+/* The type-ahead (#113): page DOM under the field, so it scrolls and takes the chrome's theme in Figma's iframe. */
+.p3-combo { position: relative; min-width: 0; }
+.p3-combo-list {
+  position: absolute; z-index: 40; top: calc(100% + var(--p3-space-050)); left: 0; right: 0; display: grid;
+  max-height: calc(var(--p3-ctl-h) * 8); overflow-y: auto; padding: var(--p3-space-050);
+  border-radius: var(--p3-radius-xl); border: var(--p3-bw-hairline) solid var(--p3-line-2); background: var(--p3-bg-page);
+}
+.p3-combo-list[hidden] { display: none; }
+.p3-combo-opt {
+  display: flex; align-items: center; min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-lg);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); cursor: pointer;
+}
+.p3-combo-opt:hover, .p3-combo-opt[aria-selected="true"] { background: var(--p3-fill-1); }

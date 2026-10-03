@@ -7,6 +7,301 @@
 
 ---
 
+## (2026-10-02) — Under '3:1', the seven icons that keep a 4.5:1 floor follow their text (#1982)
+
+**STATUS: PR open from `engine/icon-floor-follows-text-1982`.** Engine, plus one condition in Studio under a scoped freeze exception (Color › Surfaces & fills, `lockedTo` in `apps/studio/src/state/fills-input.ts`; nothing else under `apps/studio/src`). An `engine: minor` change note. No path moves, so `CONTRACT_VERSION` is unchanged, and no committed artifact moves: no corpus brand under '3:1' carries a text override on these. No new strings: "Follows ‹token›" is approved copy.
+
+**What was wrong.** `iconContrast: '3:1'` lowers an icon's floor to the mode's non-text floor. But seven icon roles never take that floor: `icon.primary` and `inverse.icon.primary` derive at `primaryMin`, and `icon.on-<status>` derive at `onMin`. Under '3:1' they already derive equal to their text in every mode. A text override, though, was carried to its icon twin only under 'text' (#1968), so an override on `text.primary` left `icon.primary` behind, and Studio unlocked those rows as if the icon had a value of its own.
+
+**What changed.** `ALWAYS_TWINNED` in `withIconTwins` (`modes.ts`) now names `(inverse.)text.primary` and `text.on-<status>` with the interactive pairs, so those carry under both lever values. In Studio, `lockedTo` keeps those seven rows locked as "Follows text.X" while icons are unpaired, through a fixed set. An explicit icon override still wins, and its row still edits.
+
+**Finding, held for the owner.** The issue framed the seven as "the roles whose floor equals their text's", not a hand list. Measured, that rule gives 19 pairs, not seven. `icon.tertiary`, `inverse.icon.tertiary` and the ten `-subtle` icons (page and inverse) also sit at the same floor as their text under '3:1', in every mode, because their text's floor already equals the mode's non-text floor. So the set is named by how each role is derived, not by comparing floors. Whether tertiary and the `-subtle` icons should follow their text under '3:1' too is the owner's call. Today they don't, and IT-03 arm (3) pins that.
+
+**Suites.**
+- `test.ts` IT-03. (1a) each of the seven derives equal to its text in every mode the brand emits; (1b) with a text override in light and dark, each equals its text, with the expected value read off the text token and a precondition that the text differs from the icon's own derived value; (2) and (3) `text.secondary`, `text.tertiary` and `text.success-subtle` overrides do not carry; (4) the #1973 dark case under 'text'.
+- `test-fills-input.ts`: unpaired, the seven are locked to their twin in Light and Dark, and a `text.primary` edit moves `icon.primary`. The "every icon row edits" arm and aurora's now exclude exactly the seven, from a literal typed in the suite.
+- `test-smoke.mjs` S4d: per brand, unpaired, the seven are disabled and read "Follows text.X"; every other row edits.
+- `test-chrome.mjs` Q52: its inverse icon override moves from `inverse.icon.primary`, now locked while unpaired, to `inverse.icon.secondary`. The arm still sets one page and one inverse icon override.
+
+Mutations, each failing by name:
+- the seven dropped from `ALWAYS_TWINNED` → IT-03 (1b), 14 cells;
+- a floor-equality rule (tertiary and `-subtle` added) → IT-03 (3);
+- every pair carried under '3:1' → IT-03 (2) and (3), and IT-02;
+- the carry run in light only → IT-03 (1b) in dark, and (4);
+- the fixed set removed from `lockedTo` → the seven `#1982` arms and aurora's in `test-fills-input.ts`, and S4d `#1982` for prism3, aurora and harbor.
+
+**Trap for whoever re-verifies this.** Only light and dark accept overrides; the other modes are generate-only and throw on one. So "every mode" for the carry is light and dark. For HC and wireframe, IT-03 (1a) holds the derivation alone, and no carry mutation can reach it.
+
+---
+
+## (2026-10-02) — the derived-mode read-only checks count every control, not just native ones (#1991)
+
+**Status:** test-only (`apps/studio/test-chrome.mjs`). No studio source change, no freeze exception, no
+engine change.
+
+### What changed
+
+The derived-mode checks ("in HC light, HC dark and wireframe, every control on the page is disabled", Q59)
+collected controls with `button, select, input`. A non-native control (a `[role=switch]`, a
+`[contenteditable]`, any `[tabindex]` element with a click handler) could stay live in a derived mode and the
+check would pass. None exists today, so the hole was latent.
+
+One shared definition, `DERIVED_CONTROL_QUERY`, now says what a control is: every native control, every ARIA
+widget role (`switch`, `checkbox`, `radio`, `slider`, `spinbutton`, `tab`, the `menuitem`s, `option`,
+`combobox`, `textbox`, `button`), every editable region, and every element in the tab order. Off means
+`:disabled` (which also covers a control in a disabled fieldset) or `aria-disabled="true"`. It is passed
+into the page as data, so the checks that use it cannot drift apart.
+
+### Where it applies
+
+- **Surfaces & fills** (S4d, Q56/Q59) and **Interactive** (S5, Q59): the two derived-mode checks with the
+  issue's shape.
+- **The read-only scrim and focus rows** (S4c, S4d): they assert a row has *no* control, with the same
+  native-only query, so a switch there passed too. Not a derived-mode check, but the same hole.
+- **S2 Palettes and S3 Brand › Modes**, which the issue asked about, have no derived-mode read-only check,
+  so there was nothing to widen. The smoke suite's derived-mode check on the surface controls (S4c) names
+  its four controls one by one, which a wider query would not change.
+
+### Mutations
+
+A `<div role="switch" tabindex="0">`, injected into the source and restored each time:
+
+| Injected into | Fails |
+|---|---|
+| every Surfaces & fills row | 6: `… every control on Surfaces & fills is disabled (Q59) — 257 controls …, 112 enabled: div[role=switch], …`, each derived mode on both hosts |
+| every Interactive lever section | 3: `Q59: previewing HC dark, every control on Interactive is disabled (85/89, …) — enabled div[role=switch]`, each derived mode |
+| the scrim row | 8: the six above, plus `… Background fills shows the scrim once, read-only … 1 control(s) …` on both hosts |
+
+**The control that proves the widening is what bites:** the first mutation run against `main`'s unwidened
+check passes 12,031/12,031, with 112 live switches on the page in every derived mode.
+
+The count of controls on Surfaces & fills is unchanged at 145 per derived mode: nothing non-native exists.
+
+---
+
+## (2026-10-02) — every failed restore keeps the plugin's writes off, and Export rescues the file's brand (#1994)
+
+**Status:** plugin UI only, under #1997's scoped freeze exception, widened by the owner's #1994 routing to
+the Apply/Prune/Export enable state and the restore-error message (`apps/studio/src/main.ts`). No engine
+change, no ENGINE bump.
+
+### What changed
+
+#1989 turned Apply Theme, Prune stale and the prune dialog's Delete off after a restore the engine refuses
+in resolution. Two other failures left the boot demo loaded with those writes live, posting the demo over
+the file's brand:
+
+- **`rejected`**: a blob `brandTheme` refuses. `reduce` dropped it with no message at all.
+- **`unreadable`**: a blob the host cannot deserialize (`restore-input-error`, #480).
+
+Both now set the same state as #1989's (`restoreFailure`, which replaces `restoreRefusal`), so the three
+controls go off and the error bar says why. Export design.md in any failed state writes the file's brand
+that failed (`brandState` for #1989's case, the blob itself for `rejected`), with a note saying it is not
+the brand on screen. Where nothing readable arrived (`unreadable`), its Download is disabled with the reason.
+
+### The decision that was mine: what turns the writes back on
+
+In `rejected` and `unreadable` the DEMO is what is loaded, and its edits rebuild cleanly. So #1989's rule,
+"the first rebuild that resolves", would let a demo edit turn Apply back on, and Apply would then post that
+edited demo over the file. These two clear only when a brand LOADS (the store's `origin` topic, which every
+load invalidates). #1989's case keeps its rule, because there `brandState` is the file's own brand, and a
+rebuild that resolves is that brand, fixed.
+
+Both arrive asynchronously, so they are recorded only while nothing has been chosen (`provenance ===
+bootProvenance`, #1197's guard). Once a designer has picked a brand, the writes post that brand, not the
+demo, and turning them off would be wrong.
+
+### Tests and mutations
+
+`test-build-verdict.mjs`, the `#1994` arm. It covers all three failures, the two test gaps noted on the
+issue (re-enabling by an example choice from the brand menu, and menu Prune re-enabling), a demo edit that
+must not re-enable, both Export behaviors, and the guard.
+
+| Mutation | Fails, all `#1994` |
+|---|---|
+| `rejected` never recorded | 5, including `posted [{"type":"prune","id":"prism3"},{"type":"apply-theme",…` |
+| `unreadable` never recorded | 4, the same shape |
+| `rejected`/`unreadable` cleared by a rebuild | 2: `a demo edit does not turn the writes back on` and the Export arm |
+| Export back to `lastGoodInput` | 3: one per failure |
+| Export left enabled with nothing readable | 1 |
+| the "nothing chosen yet" guard removed | 1: `#1994 guard: …` |
+
+**The trap for whoever re-verifies this:** the export dialog holds two buttons containing "Brand brief" (the
+artifact choice and the import slot "↑ Brand brief…"). A loose `hasText` match is refused as ambiguous, and
+a caught click then reads as the wrong artifact downloading. The locator is anchored (`/^Brand brief$/`).
+
+### Review fixes (orchestrator, at `3e59156c`)
+
+- **A load ends `rejected` and `unreadable`, and nothing else does.** The clear moved from an `origin`
+  subscriber into `loadBrand` (the one caller of `loadInput`). The subscriber also heard "New brand"
+  (`clearOrigin`), which loads nothing, and dropped the error bar and the Export rescue with it. The start
+  screen it leads to shows the bar but not Export, and every way off the start screen is a load, so the test
+  holds the bar on the start screen and then the load that ends the failure.
+- **Test gaps closed.** The rejected arm now loads a brand afterwards (Apply comes back and posts that
+  example), and the guard arm covers a late rejected restore as well as an unreadable one. A mutation the
+  orchestrator ran (`rejected` never cleared) had survived 250/250.
+- **Copy by kind (owner):** string 6 keeps "until a brand resolves" for `unresolved` and says "until a
+  brand loads" for `rejected`. String 7 is one wording for every kind: "Off until a brand loads. This file's
+  saved brand didn't open, and writing now would put the demo brand over it." Strings 8–10 are approved.
+
+**A second trap:** a demo edit makes the next brand choice ask "Replace the current brand?" first (#1033),
+so a test that edits and then picks an example has to answer the confirm, or nothing loads.
+
+### Design tokens, too (owner, on #2007)
+
+After a failed restore, Export's Design tokens Download is off as well, with a note: the tokens on hand are
+the demo's. Mutation (left enabled) fails `#2007 <kind>: Export's Design tokens is off …` once per failure,
+each showing `"file":"prism3.tokens.json"`, the demo's tokens. A control in the guard scenario, where nothing
+failed, proves the same forced click does download.
+
+---
+
+## (2026-10-02) — A failed restore on its own no longer makes a read-back row bad (#2008)
+
+**STATUS: PR #2009 open from `ui/readback-row-state-2008`.** UI only, under S11's freeze exception (`shell/activity.ts` and the files S11 touched). No engine change and no emitted artifact moves, so ENGINE stays at 0.223.0 and `CONTRACT_VERSION` is unchanged. No new strings.
+
+**The owner's calls (option a on #2008, then the question on #2009).** After #1990, a read-back whose checks pass reads "Clean" even when the saved brand could not be restored, with the refusal in its details. But `readbackOf` in `apps/studio/src/main.ts` still returned `state: ok && !err ? 'ok' : 'bad'`. So the row counted toward "N need attention", opened the drawer and drew as a failure under the word "Clean". The owner chose to draw it as a normal row: not counted, and it doesn't open the drawer. Since #1997 the plugin's error bar already says the saved brand did not load and that Apply is off. #2009's first version covered "Clean" only. The owner then ruled that "No theme" after a failed restore follows the same rule. A failed restore on its own no longer makes the row bad; only "Not restored", "Failed" and mismatches do.
+
+**What changed.** The restore error drops out of the row's state, which is now `ok ? 'ok' : 'bad'`. `ok` was already false for a read-back that threw and for a failing contract, and true for "Clean" and "No theme". "Not restored", a refusal with nothing checked, is its own branch and stays bad.
+
+**Suites.** `test-build-verdict.mjs` gains a `#2008, #2009` arm. For "Clean" and for "No theme", it drives both orders the two host messages can arrive in, refusal first and read-back first, each with the drawer closed beforehand. It reads the row's state, the drawer's count, and whether the drawer opened. Three controls check that the probe sees a bad row: a failing check, and a read-back that threw, after the same refusal are still bad, counted, and open the drawer, and so is a refusal on its own ("Not restored", no read-back after it).
+
+Mutations, each failing by name:
+- the state back to `ok && !err` → the arm's three `#2008 …` assertions, for both verdicts in both orders (12);
+- back to #2009's first version, `ok && (!err || o.state === 'present')` → the same three, for "No theme" only (6);
+- the state pinned to `'ok'` → the two after-refusal `#2008 control: …` arms, and S11's own failing read-back arms;
+- the early return for a refusal with nothing checked set to `state: 'ok'` → `#2008 control: a failed restore on its own …`. The orchestrator's review found this one surviving before that control existed.
+
+**Trap for whoever re-verifies this.** A refusal alone is a bad row, so it opens the drawer. The refusal-first cases close the drawer before the read-back lands. Otherwise "does not open the drawer" would read an open drawer the refusal left behind, and fail with the fix in place.
+
+---
+
+## (2026-10-02) — S11 follow-ups: Read-back says "Clean" when its checks pass, and every short verdict and the spinner delay get a test (#1990)
+
+**STATUS: PR open from `ui/s11-followups-1990`.** UI only, under S11's freeze exception (`shell/activity.ts` and the files S11 touched). No engine change and no emitted artifact moves, so ENGINE stays at 0.223.0 and `CONTRACT_VERSION` is unchanged. No new strings: every word here is the copy the owner approved on #1956.
+
+**What was wrong.** The owner approved this rule: a read-back whose brand settings could not be restored, but whose checks pass, reads "Clean", and its details say the settings were not restored. `readbackOf` in `apps/studio/src/main.ts` showed "Not restored" whenever the restore had refused, even when the contract passed. Separately, no test asserted "Removed N", "No theme", "Not restored", or the "Failed" fallback, and the spinner's delay is CSS only, also untested.
+
+**What changed.** One line. A contract-passing read-back reads `SHORT.clean` whatever the restore said. "Not restored" is left for a refusal with no read-back to show.
+
+**Held for the owner: the row's state, not its word.** A "Clean" read-back after a restore refusal still draws as a bad row. It counts toward "N need attention" and opens the drawer, because `state` stays `ok && !err`. The approved copy settles the word but not this. The designer's saved brand really was not applied, which argues for keeping the row bad. A red "Clean" argues against. I did not pick, and no test pins the state either way.
+
+**Suites.** `test-build-verdict.mjs` gains:
+- `#1990` short-verdict arms. Each literal is driven by a host message: "Not restored", and then "Clean" with the refusal in details when the read-back lands; "No theme"; "Failed" for a read-back that threw; "Failed" for a failing contract with no count; "1 mismatch"; "Removed 3"; "Failed" for a prune; "Clean" for an empty preview.
+- A spinner arm. It pins the computed delay of `.p3-spin::before`'s fade-in to the engine spinner's 200 to 500 ms anti-flash window, and it reads the arc's opacity at the start (0) and at 900 ms (1) on the busy Apply during an agent's run.
+
+Mutations, each failing by name: restoring `err ? SHORT.notRestored : …` fails the "Clean" arm; each `SHORT` word, or `Removed ${n}`, fails its own arm; removing the delay fails the window arm; drawing the arc before its fade (base `opacity: 1`) fails the at-start arm; never showing the arc fails the after-delay arm. Removing the delay alone does not fail the at-start arm, because the fast fade has finished before the first read.
+
+**Trap for whoever re-verifies this.** The spinner arm reads its control during an agent's run, with no host message in between. `renderBar` re-mints the bar's controls on each host change, which restarts the CSS delay, so an arm that posted anything between the two reads would measure a fresh spinner.
+
+---
+
+## (2026-10-02) — The busy guard's untested paths get tests, and a refusal on the agent's sink fails the command (#1995)
+
+**STATUS: PR open from `test/busy-guard-gaps-1995`.** Plugin only, with tests. No engine change and no emitted artifact moves, so ENGINE stays at 0.223.0 and `CONTRACT_VERSION` is unchanged. No new user-visible strings.
+
+**What was wrong.** The orchestrator's review of #1988 found four mutations that left its suite green. Guarding the prune preview, sharing one hold across every operation, dropping `refuse`, and editing one copy of the operation titles each passed.
+
+**What changed.**
+- **`agent-dispatch.ts`.** A `refused` message that reaches the agent's sink now fails the command with its own code and message. Before, it carried no `ok` field, so the success check read it as `ok: true`. `refuse` still declines first, so this is a backstop that is unreachable today.
+- **`run-guard.ts`.** `TITLE` is exported, so a test can read it from its own file.
+
+**Suites.** These are `test-agent-link.ts` arms, each failing by name under its mutation:
+- `busy/keying`: while an apply is held, a file setup still runs. Under one shared hold, it fails.
+- `busy/preview`: while a prune delete is held, a second delete is refused. That is the control. A preview from the panel and a preview from an agent both run to a verdict, unrefused. Three mutations fail it: `writes` returning true for a preview; the panel's prune confirm read as always true; the agent path's confirm read as always true. Unguarding the delete fails the control.
+- `busy/sink`: drives `createDispatcher` with a handler that posts the refusal itself, and the command fails as `busy`. Removing the check fails it, with the old `ok: true`.
+- `busy/titles`: `TITLE` from `run-guard.ts` against `OP_TITLE` from `shell/activity.ts`, with the key pairing written out in the test. Changing a title in either file fails it.
+
+The issue also asked whether the drawer arm catches a refusal that opens the drawer. Re-run on this base, `#1957 a declined request does not open the drawer — open true` fails by name.
+
+**Why two title tables rather than one.** The plugin's main thread does not import the panel's shell, and `test-shell-imports.ts` holds shell code to its own boundary. A test that reads each table from its own file is the smaller change, and it is independent: neither side is derived from the other.
+
+**Traps for whoever re-verifies this.**
+- The prune reads the file's collections, so `busy/preview` gates `getLocalVariableCollectionsAsync` to hold the delete. The previews then wait at the same gate. That is not a refusal, and the arm counts verdicts after the release, not before.
+- My first panel-path mutation, `guarded('prune', prune)` with no confirm function, survived. It unguards the delete rather than guarding the preview. That is why the arm now carries the second-delete control.
+
+---
+
+## (2026-10-02) — a saved brand the engine refuses no longer blanks the studio or lets Apply write the demo (#1989)
+
+**Status:** studio and plugin UI only, under the owner's scoped freeze exception (`apps/studio/src/entry.ts`,
+plus the plugin's Apply/Prune enable state and restore-error message in `main.ts`). No engine change, no
+ENGINE bump. Migrating refused overrides at load stays out of scope: the engine keeps refusing them.
+
+### The diagnosis
+
+Both bugs had one cause: the restore check asks `brandTheme` to accept the brand, and the refusal fires
+later, in `resolvePreview`. A ground override (`background.primary` since #956, the four tiers since #1972)
+passes the first check and fails the second.
+
+- **Web.** `bootBrand` booted on the brand, `initSession` threw with nothing to catch it, `#app` stayed
+  empty, and the brand stayed in `localStorage`, so every reload was blank.
+- **Plugin.** `loadInput` caught the throw, so `brandState` held the file's brand while `theme` and
+  `lastGoodInput` stayed on the boot demo. Both writes post `lastGoodInput`. Mutation P1 below shows what
+  that meant: Apply and Prune posted `{"id":"prism3"}`, the demo, over a file whose brand was another.
+
+### What changed
+
+- **Web:** `bootBrand` validates by resolving, `resolvePreview(brandTheme(restored))`, the same two calls
+  `initSession` makes. A refusal boots the empty state and mounts a notice on `body` ahead of `#app`
+  (re-rendered wholesale, so the notice has to sit outside it, like the resize grip). It offers Export
+  (a design.md, which keeps the refused override, so the brand is not lost) and Clear. It wears the
+  existing `.errbar`/`.barbtn` classes, because the freeze allows no stylesheet change. A shape failure
+  that used to fall back silently now shows the same notice: it is also a saved brand that will be lost.
+- **Plugin:** the restore dispatch records the refusal (`restoreRefusal`); the first rebuild that resolves
+  clears it. While it is set, Apply Theme (bar and Figma menu), Prune stale, and the prune dialog's Delete
+  are disabled, and the error bar says the file's brand did not resolve and why the writes are off.
+
+### Review fixes (orchestrator, and the owner's copy answers, 2026-10-02)
+
+- **The notice goes when a brand loads.** It used to outlive the choice: it sat under the frame, first in
+  tab order, and its Clear would have deleted the brand just chosen. It now subscribes to the store's
+  `origin` topic, which every load invalidates, and removes itself.
+- **Smoke §9 now pins** that the saved brand is still in storage right after boot, before any click, and
+  adds a third case: a mode list `brandTheme` itself rejects (`modes: ['light', 'bogus']`).
+- **Copy:** strings 1–5 and 7 approved as written. The plugin's error bar (6) is trimmed to the owner's
+  wording: "This file's saved brand didn't resolve: {reason} Apply Theme and Prune stale are off until a
+  brand resolves. Load an example or import a design.md to continue."
+- **The notice keeps `.errbar`.** The owner wants the new chrome's styling, and that is the UI lane's (#1999).
+
+### Approaches tried and dropped
+
+- **Guards in `runApply`/`runPrune`.** Written first, then measured: with the controls disabled, removing
+  the guards left every test green, because the disabled controls are their only callers. Dead code no
+  test can catch, so they were removed.
+- **A guard on the prune dialog's Delete.** The dialog stays reachable (a host preview opens it whatever
+  the Prune button's state), so it needed something. A guarded Delete that looked live and did nothing also
+  left the modal open over Apply, which is how the test found it. It is disabled instead, with the reason.
+
+### The tests and their mutations
+
+Smoke (`test-smoke.mjs` §9) stores the brand by letting the studio persist an example and then adding the
+override, so the persist format is the app's own. Plugin (`test-build-verdict.mjs`, `#1989`) posts a
+refused restore, then a good one as the positive control.
+
+| Mutation | Fails, all `#1989` |
+|---|---|
+| S1 `bootBrand` back to `brandTheme` alone | 19, both roles: `the page boots with no uncaught error`, `… boots to a usable studio — the start screen offers 0 example(s)`, the notice arms, the hook guard |
+| S2 notice not mounted | 11: the notice, Export, Clear arms for both roles, the hook guard |
+| S3 Clear leaves storage | 4: `Clear saved brand removes it from storage …`, `after Clear, a reload shows no notice` |
+| P1 refusal never recorded | 5, including `posted [{"type":"prune","id":"prism3"},{"type":"apply-theme","id":"prism3"}]` |
+| P2 controls left enabled | 3 |
+| P4 Delete left enabled | 3, including `posted [{"type":"prune","id":"prism3"}]` |
+| P5 bar copy reverted | 1: `the error bar says the file's brand did not resolve …` |
+| S4 notice left mounted after a brand loads | 3, one per case: `choosing an example removes the notice, so its Clear cannot reach the chosen brand — notice in DOM true, Clear buttons 1` |
+
+**The trap for whoever re-verifies this:** the smoke arm's last click (choosing an example after Clear)
+originally threw on a blank page under S1 and ended the run before the second role and the summary. It
+is caught now, so S1 reports all 19.
+
+### Not fixed here
+
+Two other restore failures leave Apply and Prune live on the boot demo: `restore-input-error` (a blob the
+host cannot deserialize, #480's path) and a `restore-input` that `brandTheme` itself refuses (dropped
+silently). Filed as #1994; whether the writes should be off there too is the owner's call.
+
+---
+
 ## (2026-10-02) — UI redesign S6.1: Type groundwork (the Typography page's writes DOM-free, its preview pieces shared)
 
 **STATUS: branch `ui/s6-groundwork`, behavior-neutral, no visible change.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The first of S6's PRs (the scoping report's split, as S5.1 did for Interactive: lift and extract, then the page in two halves). Nothing here is an owner call: every question the report raises (C1–C14: which mode Type edits, Desktop and Mobile sizes, the controls v6 left out, the step picker for type values, the preview's sections, the #1942 sample, token names, the advanced fold, plain words, Responsive leaving Layout, the #1802 line) waits for S6.2 and S6.3. The #1942 sample is not built here.

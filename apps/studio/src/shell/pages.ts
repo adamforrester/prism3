@@ -17,7 +17,7 @@
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
  * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills; S5.2: Color › Interactive);
+ * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -37,6 +37,9 @@ export const ICONS_DESC = 'The icon color set by the icon contrast floor: matche
 export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
 /** The Interactive levers section's intro (owner decision Q53, APPROVED). */
 export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, border and state colors.';
+/** The Faces copy (S6.2), shared by the Type levers' Faces section and the preview's Faces section (Q23). DRAFT:
+ *  pending the owner's approval. */
+export const FACES_DESC = 'The font families in the brand, and the family each text type uses.';
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -184,9 +187,11 @@ export const DOMAINS = [
     ],
   },
   {
-    id: 'type', label: 'Type', home: 'type', intro: 'Faces per text category, then the heading scale they sit on.',
+    // The intro is v6's with "category" swapped for "text type" (owner decision Q70's plain words); the Faces
+    // description is the preview's Faces section's (Q23). Both DRAFT, pending the owner.
+    id: 'type', label: 'Type', home: 'type', intro: 'Font families per text type, then the heading scale they sit on.',
     sections: [
-      { title: 'Faces', rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }, { ctl: 'families', keys: ['typography.families'] }] },
+      { title: 'Font families', desc: FACES_DESC, rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }, { ctl: 'families', keys: ['typography.families'] }] },
       { title: 'Scale', rows: [{ ctl: 'typeScale', keys: ['typography.typeScale'] }] },
       {
         title: 'Scale limits', advanced: true, rows: [
@@ -205,8 +210,10 @@ export const DOMAINS = [
         ],
       },
     ],
-    status: 'legacy',
-    legacy: ['typography'],
+    // S6.2: moved. Its levers are `domains/type.ts` (Faces, then the legacy Text styles controls lent until S6.3),
+    // its preview `preview/type.ts`.
+    status: 'new',
+    legacy: [],
   },
   {
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',

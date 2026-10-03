@@ -119,7 +119,10 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/preview/sections/focus-ring.ts',
   // S6.1: Type's writes, the font-availability helpers, and the Typography preview's shared sections.
   'src/state/type-input.ts', 'src/ui/fonts.ts',
-  'src/preview/sections/typefaces.ts', 'src/preview/sections/weights-by-face.ts', 'src/preview/sections/type-ramp.ts', 'src/preview/sections/type-fluid.ts'];
+  'src/preview/sections/weights-by-face.ts', 'src/preview/sections/type-ramp.ts', 'src/preview/sections/type-fluid.ts',
+  // S6.2: Type (its levers and its preview), the shared type sample, and the preview's Faces section. (S6.2 retired
+  // the legacy Preview tab's Typefaces section, folded into Faces.)
+  'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -490,7 +493,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'typefaces', 'weights-by-face', 'type-ramp', 'type-fluid']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-ramp', 'type-fluid', 'type-sample', 'faces']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
@@ -512,47 +515,229 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(idx.includes("from './focus-ring'"), "preview/sections/index.ts exports the focus-ring section from ./focus-ring");
 }
 
-// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1) ─────────────────────────────
-// The legacy Typography page's Preview tab (Typefaces, Weight roles by face, the full type ramp) and Layout's
-// fluid read-out are drawn from `preview/sections/`, so the new Type page (S6.2) draws the same code; and every
-// Type write goes through `state/type-input.ts`, so the new page writes the same bytes. Subject: `main.ts`, read
-// from disk, comments stripped. Oracle: the literal renderer names, each section's own title or copy (the
-// legacy page has two OTHER sections titled "Typefaces", on Primitives and Semantics, so the preview's is
-// matched by its description), and the literal write shapes the legacy closures used. A copy pasted back into
-// `main.ts` fails by what it draws; the smoke suite holds each drawn section to its marker.
+// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1, S6.2) ─────────────────────
+// The Type page's preview (S6.2) draws the legacy Preview tab's sections (Weight roles by face, the full type
+// ramp) and Layout's fluid read-out from `preview/sections/`, plus the shared type sample (#1942) and Faces; the
+// type sample is also Brand's Style guide's first section, and Layout still draws the fluid read-out until S6.3.
+// Every Type write goes through `state/type-input.ts`, so the new page writes the same bytes. Subject: `main.ts`
+// and `preview/type.ts`, read from disk, comments stripped. Oracle: the literal renderer names, each section's
+// own title or copy, and the literal write shapes the legacy closures used. A copy pasted back into `main.ts`
+// fails by what it draws; the smoke suite holds each drawn section to its marker.
 {
   const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
   const mainSrc = readFileSync(MAIN, 'utf8');
   const mainCode = strip(mainSrc);
+  const typeCode = strip(readFileSync(join(SRC, 'preview/type.ts'), 'utf8'));
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
-  for (const [fn, file, what] of [
-    ['typefacesSection', 'typefaces', 'the Typography preview\'s Typefaces section'],
-    ['weightsByFaceSection', 'weights-by-face', 'the Typography preview\'s Weight roles by face section'],
-    ['typeRampSection', 'type-ramp', 'the type ramp'],
-    ['paintTypeFluid', 'type-fluid', 'Layout\'s fluid read-out'],
+  for (const [fn, file, what, inMain] of [
+    ['weightsByFaceSection', 'weights-by-face', 'the Weight roles by face section', false],
+    ['typeRampSection', 'type-ramp', 'the type ramp', false],
+    ['paintTypeFluid', 'type-fluid', 'the fluid read-out', true],
+    ['typeSampleSection', 'type-sample', 'the type sample', true],
+    ['facesSection', 'faces', 'the Faces section', false],
   ] as const) {
-    ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
+    ok(new RegExp(`\\b${fn}\\(`).test(typeCode), `src/preview/type.ts draws ${what} through the shared ${fn}()`);
+    if (inMain) ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
     ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports ${what} from ./${file}`);
   }
   const OWN: Array<[RegExp, string]> = [
     [/palSection\(\s*'The full type ramp'/, "its own type ramp (palSection('The full type ramp', …))"],
-    [/palSection\(\s*'Weight roles by face'/, "its own Weight roles by face section (palSection('Weight roles by face', …))"],
-    [/Everything below is set in these\./, 'the shared Typefaces section\'s copy ("Everything below is set in these.")'],
+    [/palSection\(\s*'Weight roles by (face|font family)'/, "its own Weight roles by font family section (palSection('Weight roles by font family', …))"],
+    [/The quick brown fox jumps over the lazy dog|'tsm-list'/, 'the shared type sample\'s text ("The quick brown fox jumps over the lazy dog") or its tsm-list markup'],
     [/'fz-list'|What fluid does — /, "its own fluid read-out (the fz-list markup or \"What fluid does — \")"],
   ];
   for (const [re, what] of OWN) {
     const own = re.test(mainCode);
-    ok(!own, `src/main.ts draws no Type preview piece of its own: ${what.split(' (')[0].replace(/^its own |^the shared /, '')}${own ? ` — main.ts carries ${what}: the Type page would drift from the legacy one` : ''}`);
+    ok(!own, `src/main.ts draws no Type preview piece of its own: ${what.split(' (')[0].replace(/^its own |^the shared /, '')}${own ? ` — main.ts carries ${what}: the Type page would drift from the Style guide` : ''}`);
   }
-  // The writes. Every Type write the legacy page made was one of these shapes; `main.ts` keeps none.
-  const WRITES: Array<[RegExp, string]> = [
-    [/setPath\(\s*brandState\s*,\s*[`'"]typography\./, "setPath(brandState, 'typography.…')"],
-    [/delete\s+brandState\.typography\./, 'delete brandState.typography.…'],
-    [/setModeLever\([^)]*[`'"](families|weights|typeSizes|lineHeights|letterSpacings)\./, "setModeLever(…, 'families.…' and the other Type mode fields)"],
-  ];
-  for (const [re, what] of WRITES) {
-    const m = re.exec(mainCode);
-    ok(!m, `src/main.ts writes no Type input itself (${what})${m ? ` — found "${m[0]}": the write belongs in state/type-input.ts` : ''}`);
+  // ── THE WRITES (#1996): matched on the write's TARGET in the AST, never on its spelling ───────────────────
+  // The regexes this replaced matched three spellings, and two more passed unseen: a nullish-assign write
+  // (`(brandState.typography ??= {}).sizes…`) and the generic per-mode swap (`setModeLever(m, `${modeField}.…`)`).
+  // So the rule is stated about what is written, three ways:
+  //   1. DIRECT: no write anywhere in `main.ts` lands on `brandState.typography`, by any operator, `delete`,
+  //      `++`/`--`, `Object.assign`, a mutating method, or through a one-level alias of it or of `brandState`.
+  //   2. KEYED: every `setPath(brandState, K, …)` and `setModeLever(M, K, …)` key is resolved statically (a
+  //      literal, a template's literal head, or a head narrowed by an enclosing `if (X === 'lit')`) and must
+  //      not be a Type key. A key that does not resolve must be on `UNRESOLVED_OK`, by function and key text,
+  //      with the reason it cannot carry a Type key.
+  //   3. FED: the generic lever renderer (`renderControl` and its wrappers) and the Size & radius `csSlider`/
+  //      `csPicker` write whatever key they are handed, so none is handed a Type one: no `typography.*` key
+  //      literal, `leversFor('typography')`, or variable built from either, reaches them. This is what makes
+  //      rule 2's `UNRESOLVED_OK` entries true rather than asserted.
+  // ORACLE: the Type mode fields are literals here, and every member of the engine's `ModeLevers` type must be
+  // classified one way or the other, so a new per-mode field fails until someone decides which it is.
+  {
+    const TYPE_MODE_FIELDS = new Set(['families', 'weights', 'typeSizes', 'lineHeights', 'letterSpacings']);
+    const OTHER_MODE_FIELDS = new Set(['radius', 'tempo', 'easings', 'shadow', 'density']);
+    const themeSf = ts.createSourceFile('theme.ts', readFileSync(join(SRC, '../../../packages/engine/theme.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
+    let modeLeverFields: string[] = [];
+    ts.forEachChild(themeSf, (n) => {
+      if (ts.isTypeAliasDeclaration(n) && n.name.text === 'ModeLevers' && ts.isTypeLiteralNode(n.type))
+        modeLeverFields = n.type.members.map((m) => (m.name && ts.isIdentifier(m.name) ? m.name.text : '?'));
+    });
+    const unclassified = modeLeverFields.filter((f) => TYPE_MODE_FIELDS.has(f) === OTHER_MODE_FIELDS.has(f));
+    ok(modeLeverFields.length >= 8 && unclassified.length === 0,
+      `every ModeLevers field is classified as Type or not (${modeLeverFields.length} read from the engine)${unclassified.length ? ` — unclassified: ${unclassified.join(', ')}` : ''}`);
+
+    /** A variable-key write that is not Type, by `<enclosing function>:<key text>`, and why. */
+    const UNRESOLVED_OK: Record<string, string> = {
+      'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
+      'renderPerModeSelect:key': 'its callers are PER_MODE_SELECTS, the radius, density and tempo selects',
+      'csSlider:key': 'Size & radius sliders; rule 3 holds that no caller passes a Type key',
+      'csPicker:key': 'Size & radius pickers; rule 3 holds that no caller passes a Type key',
+      'renderShadowEditor:path': 'the shadow editor; `path` is built from `shadow.`',
+    };
+    // A one-file program, so an identifier resolves to ITS declaration through the checker. Matching variables by
+    // name was wrong the first time: an unrelated `l` elsewhere in the file tainted every `l`.
+    const host = ts.createCompilerHost({ noResolve: true, noLib: true });
+    const getSourceFile = host.getSourceFile;
+    host.getSourceFile = (f, v) => (f === MAIN ? ts.createSourceFile(MAIN, mainSrc, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS) : getSourceFile(f, v));
+    const program = ts.createProgram([MAIN], { noResolve: true, noLib: true, allowJs: false }, host);
+    const sf = program.getSourceFile(MAIN)!;
+    const checker = program.getTypeChecker();
+    /** The initializer of the variable `id` refers to, or null. */
+    const initOf = (id: ts.Identifier): ts.Expression | null => {
+      const d = checker.getSymbolAtLocation(id)?.valueDeclaration;
+      return d && ts.isVariableDeclaration(d) && d.initializer ? d.initializer : null;
+    };
+    const at = (n: ts.Node): string => `line ${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1}: ${n.getText().replace(/\s+/g, ' ').slice(0, 90)}`;
+    const strip = (e: ts.Expression): ts.Expression => {
+      for (;;) {
+        if (ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isAsExpression(e)) e = e.expression;
+        else return e;
+      }
+    };
+    /** The member chain under `e`, outermost last: `brandState.typography.sizes` → ['brandState', 'typography', 'sizes']. */
+    const chain = (e: ts.Expression): string[] => {
+      e = strip(e);
+      if (ts.isIdentifier(e)) return [e.text];
+      if (ts.isPropertyAccessExpression(e)) return [...chain(e.expression), e.name.text];
+      if (ts.isElementAccessExpression(e)) {
+        const k = e.argumentExpression;
+        return [...chain(e.expression), ts.isStringLiteralLike(k) ? k.text : '[?]'];
+      }
+      // `(brandState.typography ??= {})` is itself a write, caught where it stands; through it, the chain continues.
+      if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return chain(e.left);
+      return ['?'];
+    };
+    /** The identifier at the root of a member chain, or null. */
+    const rootId = (e: ts.Expression): ts.Identifier | null => {
+      e = strip(e);
+      if (ts.isIdentifier(e)) return e;
+      if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) return rootId(e.expression);
+      if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return rootId(e.left);
+      return null;
+    };
+    /** The member chain under `e` with ONE alias spliced in at its root: through `const t = brandState.typography`
+     *  `t.x` is `brandState.typography.x`, and through `const bs = brandState` `bs.typography.x` is too (review of
+     *  #2017: an alias of `brandState` itself escaped when only aliases of `brandState.typography` were followed). */
+    const brandRooted = (e: ts.Expression): string[] => {
+      const c = chain(e);
+      if (c[0] === 'brandState') return c;
+      const r = rootId(e);
+      const init = r ? initOf(r) : null;
+      return init ? [...chain(init), ...c.slice(1)] : c;
+    };
+    const isTypeTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && c[1] === 'typography'; };
+    /** `brandState` itself, directly or through one alias. */
+    const isBrandState = (e: ts.Expression): boolean => brandRooted(e).join('.') === 'brandState';
+    const ASSIGN = new Set([ts.SyntaxKind.EqualsToken, ts.SyntaxKind.PlusEqualsToken, ts.SyntaxKind.MinusEqualsToken,
+      ts.SyntaxKind.AsteriskEqualsToken, ts.SyntaxKind.SlashEqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken,
+      ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken]);
+    const MUTATORS = new Set(['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'set', 'delete', 'clear', 'add']);
+    const enclosingFn = (n: ts.Node): string => {
+      for (let p: ts.Node | undefined = n.parent; p; p = p.parent) {
+        if ((ts.isArrowFunction(p) || ts.isFunctionExpression(p)) && ts.isVariableDeclaration(p.parent) && ts.isIdentifier(p.parent.name)
+          && ts.isVariableStatement(p.parent.parent.parent) && p.parent.parent.parent.parent === sf) return p.parent.name.text;
+        if (ts.isFunctionDeclaration(p) && p.name && p.parent === sf) return p.name.text;
+      }
+      return '(top level)';
+    };
+    /** `X === 'lit'` (either side) in an `if` or `?:` whose TRUE branch holds `n`: the literal, or null. */
+    const narrowed = (n: ts.Node, id: string): string | null => {
+      for (let p: ts.Node | undefined = n, c: ts.Node | undefined; p; c = p, p = p.parent) {
+        const cond = ts.isIfStatement(p) && c === p.thenStatement ? p.expression : ts.isConditionalExpression(p) && c === p.whenTrue ? p.condition : null;
+        if (cond && ts.isBinaryExpression(cond) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(cond.operatorToken.kind)) {
+          const [l, r] = [strip(cond.left), strip(cond.right)];
+          if (ts.isIdentifier(l) && l.text === id && ts.isStringLiteralLike(r)) return r.text;
+          if (ts.isIdentifier(r) && r.text === id && ts.isStringLiteralLike(l)) return l.text;
+        }
+      }
+      return null;
+    };
+    /** The statically known prefix of a key, or null. */
+    const keyPrefix = (k: ts.Expression, site: ts.Node): string | null => {
+      k = strip(k);
+      if (ts.isStringLiteralLike(k)) return k.text;
+      if (ts.isTemplateExpression(k)) {
+        if (k.head.text) return k.head.text;
+        const first = strip(k.templateSpans[0].expression);
+        const lit = ts.isIdentifier(first) ? narrowed(site, first.text) : null;
+        return lit === null ? null : lit + k.templateSpans[0].literal.text;
+      }
+      return null;
+    };
+    const direct: string[] = [], keyed: string[] = [], unresolved: string[] = [];
+    const seenOk = new Set<string>();
+    const visit = (n: ts.Node): void => {
+      if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isTypeTarget(n.left)) direct.push(at(n));
+      if (ts.isDeleteExpression(n) && isTypeTarget(n.expression)) direct.push(at(n));
+      if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
+        && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isTypeTarget(n.operand)) direct.push(at(n));
+      if (ts.isCallExpression(n)) {
+        const callee = n.expression.getText();
+        const [a0, a1] = n.arguments;
+        if (callee === 'Object.assign' && a0 && (isTypeTarget(a0)
+          || (isBrandState(a0) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => pr.name?.getText() === 'typography'))))) direct.push(at(n));
+        if (ts.isPropertyAccessExpression(n.expression) && MUTATORS.has(n.expression.name.text) && isTypeTarget(n.expression.expression)) direct.push(at(n));
+        const keyedCall = (callee === 'setPath' && a0 && isBrandState(a0)) ? 'path' : callee === 'setModeLever' ? 'mode' : null;
+        if (callee === 'setPath' && a0 && isTypeTarget(a0)) direct.push(at(n));
+        if (keyedCall && a1) {
+          const pre = keyPrefix(a1, n);
+          if (pre === null) {
+            const id = `${enclosingFn(n)}:${strip(a1).getText()}`;
+            if (UNRESOLVED_OK[id]) seenOk.add(id); else unresolved.push(`${at(n)} (${id})`);
+          } else {
+            const seg = pre.split('.')[0];
+            const isType = keyedCall === 'path' ? seg === 'typography' : TYPE_MODE_FIELDS.has(seg);
+            if (isType) keyed.push(at(n));
+          }
+        }
+      }
+      ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    ok(direct.length === 0, `src/main.ts writes nothing into brandState.typography itself${direct.length ? ` — ${direct.slice(0, 3).join(' | ')}: the write belongs in state/type-input.ts` : ''}`);
+    ok(keyed.length === 0, `src/main.ts makes no keyed Type write (setPath into typography.*, or setModeLever on a Type mode field)${keyed.length ? ` — ${keyed.slice(0, 3).join(' | ')}` : ''}`);
+    ok(unresolved.length === 0, `every keyed write in src/main.ts resolves to a non-Type key, or is listed with its reason${unresolved.length ? ` — unresolved and unlisted: ${unresolved.slice(0, 3).join(' | ')}` : ''}`);
+    const stale = Object.keys(UNRESOLVED_OK).filter((k) => !seenOk.has(k));
+    ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
+
+    // Rule 3: what the generic renderer is fed.
+    // `csSlider`/`csPicker` too (review of #2017): each ends in `setPath(brandState, key, …)`, so a Type key handed
+    // to either is a Type write, and their `UNRESOLVED_OK` entries rest on this check rather than on a claim.
+    const FEEDS = new Set(['renderControl', 'leverControl', 'leverSection', 'csLeverStack', 'renderPerModeSelect', 'csSlider', 'csPicker']);
+    /** Does `e` name a Type lever: a `typography.*` key literal, `leversFor('typography')`, or a variable whose
+     *  own initializer does (one level, resolved by the checker)? */
+    const typeLever = (e: ts.Node, depth = 0): boolean => {
+      let hit = false;
+      const look = (x: ts.Node): void => {
+        if (hit) return;
+        if (ts.isStringLiteralLike(x) && /^typography\./.test(x.text)) hit = true;
+        else if (ts.isCallExpression(x) && x.expression.getText() === 'leversFor' && x.arguments[0] && ts.isStringLiteralLike(x.arguments[0]) && x.arguments[0].text === 'typography') hit = true;
+        else if (ts.isIdentifier(x) && depth === 0) { const init = initOf(x); if (init && typeLever(init, 1)) hit = true; }
+        ts.forEachChild(x, look);
+      };
+      look(e);
+      return hit;
+    };
+    const fed: string[] = [];
+    const visitFeeds = (n: ts.Node): void => {
+      if (ts.isCallExpression(n) && FEEDS.has(n.expression.getText()) && n.arguments.some(typeLever)) fed.push(at(n));
+      ts.forEachChild(n, visitFeeds);
+    };
+    visitFeeds(sf);
+    ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer, csSlider, csPicker)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
   }
   ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports its Type writes from ./state/type-input');
 }

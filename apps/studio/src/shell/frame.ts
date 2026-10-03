@@ -16,7 +16,7 @@
  * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
  * full-width legacy frame under the tab row, pinned light (D1, D2); Depth & motion carries a local switch
  * between its two legacy pages (D8). A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
- * from S4a, Interactive from S5.2) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * from S4a, Interactive from S5.2, Type from S6.2) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
  * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
@@ -54,13 +54,17 @@ import { mountFillsLevers } from '../domains/color-fills';
 import { mountSurfacesPreview } from '../preview/surfaces';
 import { mountInteractiveLevers } from '../domains/color-interactive';
 import { mountInteractivePreview } from '../preview/interactive';
+import { mountTypeLevers } from '../domains/type';
+import { mountTypePreview } from '../preview/type';
 import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
  *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
  *  compile error. Each mount subscribes to the store and hands back its cleanups. */
 const NEW_PAGES: Record<NewPageKey, {
-  readonly levers: (host: HTMLElement, cleanups: (() => void)[]) => void;
+  /** `lend`: as the preview's, for a levers pane that still draws a legacy region (S6.2: Type's "Scale and
+   *  weights", until S6.3). */
+  readonly levers: (host: HTMLElement, cleanups: (() => void)[], lend: PageLends) => void;
   /** `lend`: the legacy renderers `main.ts` lends a preview until its slice replaces them (S3: Brand's
    *  Style guide), as Inspect is lent its two legacy views. */
   readonly preview: (host: HTMLElement, cleanups: (() => void)[], lend: PageLends) => void;
@@ -69,6 +73,7 @@ const NEW_PAGES: Record<NewPageKey, {
   palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
   fills: { levers: mountFillsLevers, preview: mountSurfacesPreview },
   interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview },
+  type: { levers: mountTypeLevers, preview: mountTypePreview },
 };
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
@@ -140,7 +145,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
-  /** The legacy renderers lent to the moved pages' previews (S3: the Style guide). */
+  /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview; S6.2: Type's
+   *  "Scale and weights", to its levers). */
   readonly lend: PageLends;
 }): Frame => {
   const { host } = opts;
@@ -474,7 +480,7 @@ export const mountFrame = (app: HTMLElement, opts: {
       unmountPanes();
       if (moved) {
         const row = NEW_PAGES[moved];
-        row.levers(levers, paneCleanups);
+        row.levers(levers, paneCleanups, opts.lend);
         row.preview(previewBody, paneCleanups, opts.lend);
         // QA-B9: an edit the levers noted (`noteSectionEdit`, called by Surfaces & fills' and Interactive's edit
         // handlers) reveals the preview section its lever section pairs with. A page whose levers never note one

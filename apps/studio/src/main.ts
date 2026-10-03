@@ -53,8 +53,7 @@ import {
   tokenPillSpan, withInverseBadge, type SgRole,
 } from './preview/sections/kit';
 import {
-  COLOR_SECTIONS, disabledSection, interactiveSection,
-  typefacesSection, weightsByFaceSection, typeRampSection, TYPE_GROUP_BLURB, paintTypeFluid,
+  COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, paintTypeFluid,
 } from './preview/sections/index';
 // The Type writes and their readers (UI redesign S6.1): DOM-free, so the new Type page writes the same bytes.
 import {
@@ -65,7 +64,7 @@ import {
   ladderStep, rowsOf, widestRowsOf, brandSizePin, modeSizePin, viewportPin, setSizePin, setMobileSize,
   releasePinnedSizes, pinnedSizeCount,
 } from './state/type-input';
-import { faceStatus, WEIGHT_NAME } from './ui/fonts';
+import { WEIGHT_NAME } from './ui/fonts';
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin,
@@ -116,7 +115,6 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'typography', label: 'Typography', sub: 'Families, weights → type scale' },
   { key: 'elevation', label: 'Elevation', sub: 'Shadows' },
   { key: 'sizeRadius', label: 'Size & radius', sub: 'Size, density, corner radius' },
   { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
@@ -170,7 +168,7 @@ const isFirstView = (nav: readonly (typeof NAV)[number][], i: number): boolean =
 // out of every generic panel anyway). The `color` + `advanced` groups split by key across pages.
 const PRIMITIVE_KEYS = new Set(['primary', 'neutral.hue', 'neutral.chroma', 'neutral.anchor', 'brandColors']);
 const pageOfLever = (l: Lever): PageKey => {
-  if (l.group === 'type') return 'typography';
+  if (l.group === 'type') return 'type';   // Type, moved (S6.2)
   if (l.group === 'motion') return 'motion';
   if (l.group === 'elevation') return 'elevation';
   if (l.group === 'layout') return 'layout';
@@ -1358,6 +1356,9 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   bar.append(pfield('View style guide on', stack));
   host.append(bar);
 
+  // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
+  // the brand's text styles in its faces, in the previewed mode, inked for the chosen ground.
+  host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink })));
   // The five shared color sections, in the Style guide's order, each on the chosen ground.
   for (const [, section] of COLOR_SECTIONS) host.append(ground(section(c)));
 
@@ -1368,7 +1369,6 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 };
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  typography: ['Set the type system.', 'Families, weights, and the type scale that shifts the semantic→primitive size mapping. The rem ladder is brand-invariant; the scale is the dial.'],
   elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
   sizeRadius: ['Size & radius.', 'Component sizing (control height, driven by density) and corner radius. Both go per-mode outside Light. Each component sets its own padding, and density moves it one step on the spacing scale.'],
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
@@ -1721,7 +1721,7 @@ const renderTypeSizes = (): HTMLElement => {
   const open = typeSizesOpen ?? pins > 0;
   if (open) computeWidestRows();
   const head = el('div', 'szt-head');
-  const tf = toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); });
+  const tf = toggleField(open, (checked) => { typeSizesOpen = checked; typeLentRepaint?.(); });
   const readout = tf.querySelector('.knob-val');
   const headLab = el('span', 'szt-headlab', 'Edit individual sizes');
   if (readout) tf.insertBefore(headLab, readout); else tf.append(headLab);
@@ -1948,88 +1948,24 @@ const renderScreen = (
   setVolatile([vol], () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); });
   paintVolatile();
 };
-/** The typography PREVIEW tab — everything the system generates, at size, in every mode.
+/** Type's "Scale and weights" region (UI redesign S6.2), LENT to the new Type page's levers until S6.3 replaces
+ *  it, the way S3 lends Brand's preview the Style guide (`PageLends` in `preview/brand.ts`). The four-tab bar
+ *  (Primitives · Semantics · Text styles · Preview) is retired: Faces moved to `domains/type.ts` and the Preview
+ *  tab's sections to `preview/type.ts`; everything else the tabs drew is drawn here, unchanged, in the order a
+ *  heading scale is built: the Text styles tab (sizes, what each text type is made of, the font-style pins), then
+ *  the Semantics tab's weights, line heights and letter spacings, then the Primitives tab's fixed ladders.
  *
- *  Read-only by design: the editors live on Semantics/Text styles, and giving the same value two homes is how they
- *  drift. It exists because the ramp was squeezed into the Styles aside, where a 160px display line
- *  and five mode columns have nowhere to go.
- *
- *  It also carries the specimens the tables cannot: a weight number is meaningless as digits, and the
- *  size tables show px rather than type. Those tables are the place to CHANGE a value; this is the
- *  place to SEE it. */
-const renderTypePreview = (): HTMLElement => {
-  const ty = theme.typography;
-  const wrap = el('div');
-  // Faces first — every specimen below inherits from them, so seeing what is actually resolving explains
-  // anything that looks wrong before you go hunting in the ramp. Then weight roles × faces (#362), then the
-  // ramp itself, full width. All three are the shared sections (UI redesign S6.1), so the new Type page
-  // draws the same code.
-  wrap.append(typefacesSection(ty, rp.modes, (m) => MODE_LABEL[m] ?? m));
-  wrap.append(weightsByFaceSection(ty, rp.modes));
-  wrap.append(typeRampSection(ty, rp.modes));
-  return wrap;
+ *  HOW IT REPAINTS. The legacy controls still commit through `applyFull()` or `apply()`, and both rebuild the
+ *  theme, which notifies `brand`; the Type page subscribes and calls this again into a fresh host. The one
+ *  control that repainted the page for view state alone (the individual-sizes toggle) calls `repaint`. */
+let typeLentRepaint: (() => void) | null = null;
+const renderTypeLent = (host: HTMLElement, repaint: () => void): void => {
+  typeLentRepaint = repaint;
+  host.append(renderTypeSizes(), renderCategorySetup(), renderFacePins(), renderWeightRoles(), renderLeadingTracking());
+  const repoints = renderRepoints();
+  if (repoints) host.append(repoints);
+  host.append(renderSizeLadder(), renderRungLadders());
 };
-
-// Typography — type scale (shared, read-only outside Light) + the family/weight/leading editor.
-/** Typography splits along the tier line (docs/26). The old two-way Foundations/Styles split (#272)
- *  conflated two different lines, because typography has THREE tiers where every other axis has two:
- *  primitives, semantic roles, and composites. "Foundations" held the size ladder (a primitive) next
- *  to the leading/tracking rung bindings (semantics), and "Styles" held the weight roles (semantics)
- *  next to the categories (composites). Both tabs straddled the line they were named for.
- *
- *  Four tabs, one tier each:
- *   • PRIMITIVES — the raw material. The typeface library is the ONLY editable primitive in the whole
- *     axis; the size / leading / tracking ladders are fixed and brand-invariant, shown read-only
- *     because otherwise they are visible nowhere in the app and you only ever see the steps some role
- *     happens to bind.
- *   • SEMANTICS — every row is the same shape: a named role and the primitive it binds, re-pointable
- *     per mode. Faces, weights, leading and tracking all four fit it. That regularity is the argument
- *     for the split — it is invisible while the tiers are mixed, and it is what makes this tab teach
- *     the model rather than just list controls.
- *   • TEXT STYLES — the composites and the levers that shape them (shape, range, per-size pins,
- *     which role each category consumes, weights, links, italics).
- *   • PREVIEW — everything generated, at size, in every mode. Read-only.
- *
- *  SIZE has no Semantics row, and that is load-bearing rather than an omission: a size role would
- *  duplicate the composite name — `body.md` IS the size role — where `tight` is not implied by
- *  `caption`. So size runs ladder → composite and lives wholly in Text Styles. Don't "fix" it by
- *  inventing one. */
-type TypeTab = 'primitives' | 'semantics' | 'styles' | 'preview';
-let typeTab: TypeTab = 'primitives';
-const TYPE_TABS: Array<[TypeTab, string]> = [['primitives', 'Primitives'], ['semantics', 'Semantics'], ['styles', 'Text styles'], ['preview', 'Preview']];
-const renderTypographyPage = (host: PageHost): void => renderScreen(host, 'typography', (h) => {
-  const seg = el('div', 'pvseg');
-  for (const [k, label] of TYPE_TABS) {
-    const b = hook(el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement, `type-tab-${k}`);
-    // The tab switch changes the strip too, not just the body: the tier a tab shows IS what the
-    // switcher's visibility turns on (#268) — primitives are mode-invariant and semantics/composites
-    // are not. `renderWorkspace` now ends by repainting the strip (#771), so the tab no longer asks
-    // for it separately; page nav gets the same thing via `build()`.
-    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); } };
-    seg.append(b);
-  }
-  h.append(seg);
-  h.append(el('p', 'tabnote', typeTab === 'primitives'
-    ? 'The raw material. Only the typeface library is yours to edit — the ladders below it are fixed and brand-invariant, shown so you can see what every style is chosen from.'
-    : typeTab === 'semantics'
-      ? 'Named roles, each bound to one primitive. A mode can re-point any of them without touching the primitive underneath.'
-      : typeTab === 'styles'
-        ? 'The styles your product actually uses, and the levers that shape them.'
-        : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
-  if (typeTab === 'primitives') h.append(renderTypefaceLibrary(), renderSizeLadder(), renderRungLadders());
-  else if (typeTab === 'semantics') {
-    // Faces → weights → leading/tracking. One shape repeated four times: role, the primitive it binds,
-    // who uses it, and (below) what each mode substitutes.
-    h.append(renderTypefaceBindings(), renderWeightRoles(), renderLeadingTracking());
-    const repoints = renderRepoints();
-    if (repoints) h.append(repoints);
-  } else if (typeTab === 'styles') h.append(renderTypeSizes(), renderCategorySetup(), renderFacePins());
-  else h.append(renderTypePreview());
-  // No aside on any tab. The ramp used to sit in the Styles aside on the doc-26 rule that a section
-  // carries its own specimen in context — but that rule is satisfied by the Preview tab now, and a
-  // ~220px column was never an honest place to show a 160px display line beside five mode columns.
-  // One ramp, one home.
-}, () => []);
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
 const renderElevationPage = (host: PageHost): void => renderScreen(host, 'elevation', (h) => {
@@ -2684,489 +2620,6 @@ subscribe('host:styleguide', () => syncStyleGuideRow());
 
 // ---- FOUNDATIONS (primitives) ----------------------------------------------
 
-/** Typefaces — the two tiers #269 split apart, made operable.
- *
- *  TIER 1, the library: `font.typeface.<slug>` — one primitive per distinct face, named after the
- *  face itself, carrying its fallback stack. Until now this tier was invisible in the dashboard even
- *  though the engine emits it. It is DERIVED, not authored: `deriveTypefaces` unions the faces the
- *  role bindings (and any per-mode overrides) actually name, so a face exists exactly as long as
- *  something binds it. That is also why removal needs no cascade — unbind it and it stops emitting.
- *
- *  TIER 2, the bindings: `font.family.<category>` — one per text category, the brand-invariant handles
- *  a shared codebase references. Each aliases one library face. #415 retired the display/text/mono
- *  ROLE tier that used to sit here: #269's argument was for a NAMED tier-2 (so a face swap leaves
- *  consumer references intact), which category names satisfy just as well, and role-keying cost a
- *  coupling — two categories on one role could not be moved apart without a second mechanism. The
- *  typeface library is still shared ACROSS brands with each brand binding its own members.
- *
- *  The bindings live on Semantics, not here: `font.family.*` is a semantic token, and this tab is
- *  primitives only. */
-/** Tier 1 — the faces this brand has (Primitives tab). Split from the bindings (#388 part B): they
- *  were one section because they were one tab, and that section straddled the primitive/semantic line
- *  the tabs are now named for. */
-const renderTypefaceLibrary = (): HTMLElement => {
-  const ty = theme.typography;
-  const sec = palSection('Typefaces', 'The faces this brand has, independent of what any of them does. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim. This is the only primitive on this tab you can edit.');
-
-  // #416 — the BASELINE binding, full stop. This used to follow `currentMode`, which only made sense
-  // while the mode bar was an editing context on this page; a primitive is mode-invariant, and the
-  // per-mode faces are shown as columns on Semantics. A face bound only in some non-light mode is
-  // still reported — `bindingOf`'s "Only in <mode>" branch reads `familiesByMode` directly.
-  const boundFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
-
-  // ---- TIER 1 — the library (Primitives tab) ----
-  // Converted to the shared table format alongside leading & tracking (#363) so the tab reads on ONE
-  // column grid rather than a card list beside two tables. Same three fixed-width columns as the rung
-  // tables, and no mode axis for the same reason: a typeface primitive is mode-invariant. WHICH face a
-  // category binds does vary by mode — but that is the bindings tier, now on Semantics.
-  sec.append(subHead('The library — one primitive per face'));
-  /** Where a face's binding lives. #287 made "in the library, bound to nothing" a REAL state — before
-   *  it, a face existed only while a category bound it, so the old copy could say the list was purely
-   *  derived. It no longer can, and an unbound face must not be mislabeled as a mode override. */
-  const bindingOf = (name: string): { label: string; unbound: boolean } => {
-    // #415 — categories, not roles. A face bound by all of them says so once rather than listing
-    // seven names in a 148px cell, which is the shape the collapse would otherwise produce for the
-    // ordinary single-face brand.
-    const here = TYPE_GROUP_ORDER.filter((cat) => boundFace(cat) === name);
-    if (here.length === TYPE_GROUP_ORDER.length) return { label: 'Every category', unbound: false };
-    if (here.length) return { label: here.join(' + '), unbound: false };
-    const inModes = rp.modes.filter((m) => (ty.familiesByMode?.[m] ?? []).some((f) => f.stack[0] === name))
-      .map((m) => MODE_LABEL[m] ?? m);
-    if (inModes.length) return { label: `Only in ${inModes.join(', ')}`, unbound: false };
-    if (ty.families.some((f) => f.stack[0] === name)) return { label: 'A category', unbound: false };
-    return { label: 'Not bound — staged', unbound: true };
-  };
-  /** The AUTHORED library (#287) — distinct from `ty.typefaces`, which is the derived union of authored
-   *  entries and bound faces. Only this array is editable: a face that exists purely because a category
-   *  binds it has no library entry to remove, which is the same reason a bound entry is not deletable. */
-  // `libraryFaces()` / `inLibrary()` in `state/type-input.ts`.
-  const libBox = el('div', 'mtbl');
-  const libScroll = el('div', 'mtbl-scroll');
-  // `.tf-libtbl` widens THIS table's Face column (see the CSS) — the token path moved into it, and a
-  // `font.typeface.<slug>` pill does not fit the shared 112px.
-  // the typeface library rendered as a mode table; tf-libtbl sets its column widths
-  const libTbl = el('table', mix('mtbl-tbl', 'tf-libtbl'));
-  const libHead = el('thead'), libHtr = el('tr');
-  // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
-  // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
-  // device" was actively wrong in Figma — a cloud font is loadable there and absent here.
-  libHtr.append(el('th', 'mtbl-stick', 'Face'), hook(el('th', 'mtbl-mode', host.hostFonts.length ? 'In this Figma' : 'On this device'), 'typeface-source'),
-    el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
-  libHead.append(libHtr); libTbl.append(libHead);
-  const libBody = el('tbody');
-  let anyUnbound = false;
-  for (const tf of ty.typefaces) {
-    const bind = bindingOf(tf.name);
-    anyUnbound = anyUnbound || bind.unbound;
-    const tr = el('tr');
-    const nc = el('td', 'mtbl-stick');
-    const nm = el('span', 'tf-libname', tf.name); nm.title = tf.name;
-    nc.append(nm);
-    if (tf.variable) nc.append(el('span', 'tf-vf', 'Variable'));
-    // The token path belongs to the FACE, not to its specimen — it is the name a product references,
-    // so it reads as a subtitle under the name it identifies. It sat in the specimen cell until now,
-    // where it shared one paragraph with the fallback stack and the `(fallback shown)` note, and three
-    // unrelated facts in one cell made the widest column the least legible one.
-    // The ordinary nowrap `tokenPill`, NOT `tokenPillWrapping`. The wrapping variant was tried first
-    // because it fits the shared 112px and would have cost no column change at all — but measured, it
-    // renders `font.typeface.jetbrains-mono` as a FOUR-line boxed block (67px tall), and a path broken
-    // over four lines is harder to read than one that is elided. The column widens instead.
-    const pathWrap = el('span', 'tf-libpath');
-    pathWrap.append(tokenPill(`font.typeface.${tf.slug}`));
-    nc.append(pathWrap);
-    tr.append(nc);
-    const st = faceStatus(tf.name, host);
-    const sc = el('td', 'mtbl-mode');
-    sc.append(el('span', 'tf-stat ' + (st.ok ? 'ok' : 'no'), st.label));
-    sc.title = st.title;
-    tr.append(sc);
-    const bc = el('td', 'mtbl-mode');
-    bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
-    // The decided removal semantics (#287): only UNBOUND entries are deletable, which needs no cascade
-    // logic anywhere. The known cost is a "why can't I delete this?" moment, and the answer is here —
-    // on the cell that already names the categories standing in the way — rather than as a disabled button,
-    // which would invite the click it then refuses.
-    if (!bind.unbound && inLibrary(tf.name))
-      bc.title = `In the library and bound — re-point ${bind.label} to something else to make this removable.`;
-    tr.append(bc);
-    const pc = el('td', 'mtbl-fill mtbl-spec');
-    // typeface preview inside a mode-table specimen cell
-    const prev = el('span', mix('mtbl-spec-t', 'tf-prev'), 'Ag 123');
-    prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
-    pc.append(prev);
-    // The second fact, on the cell it is actually about. Once the status column reports FIGMA's verdict,
-    // "Ag 123" can be a fallback while the row reads ✓ — true, but confusing unless the specimen says
-    // so itself. Only shown when the two diverge: on a face that renders here the note would be noise,
-    // and on a face Figma lacks the status column has already said it.
-    if (st.fallbackPreview && st.ok) {
-      const fb = el('span', 'tf-fbnote', '(fallback shown)');
-      fb.title = `${tf.name} loads in Figma but is not installed on this device, so this specimen shows the fallback. `
-        + 'The written text styles use the real face.';
-      pc.append(fb);
-    }
-    // Row action at the far right of the row — inside the FILL column on purpose. A fifth column, or a
-    // button in any fixed-width cell, would push that cell past its token and break the 112/148/148
-    // parity #363 just established; the fill column absorbs slack instead.
-    if (bind.unbound) {
-      const rm = el('button', 'tf-rm', '×') as HTMLButtonElement;
-      rm.title = `Remove ${tf.name} from the library`;
-      rm.setAttribute('aria-label', `Remove ${tf.name} from the library`);
-      rm.onclick = () => { removeLibraryFace(tf.slug); applyFull(); };
-      pc.append(rm);
-    }
-    // The specimen cell now carries the specimen and the two things that qualify it — nothing else.
-    // The token pill moved to the Face cell; without it the stack starts the line, so it names itself
-    // rather than reading as a trailing clause on the pill.
-    pc.append(el('span', 'tf-fall',
-      tf.stack.length > 1 ? `Falls back to ${tf.stack.slice(1).join(', ')}` : 'No fallback stack'));
-    tr.append(pc);
-    libBody.append(tr);
-  }
-  libTbl.append(libBody); libScroll.append(libTbl); libBox.append(libScroll);
-  sec.append(libBox);
-
-  // Staging a face — the authoring half #287 deferred to this follow-up. Validation MIRRORS the engine's
-  // (`buildTypography`: non-empty, no duplicate slug) so a typo is answered here instead of surfacing as
-  // a thrown build. The duplicate check runs against the DERIVED list, not just the authored array: a
-  // name already reachable via a category binding would be silently absorbed by the union and the row would
-  // never appear, which reads as "the button did nothing".
-  const addRow = el('div', 'tf-add');
-  const addIn = el('input', 'tf-in tf-addin') as HTMLInputElement;   // tf-in carries the shared field treatment; tf-addin only constrains width
-  addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
-  addIn.setAttribute('aria-label', 'Add a face to the library');
-  // #113 (Figma arm) — when the host knows its real font list, the field becomes type-ahead over it
-  // while still accepting anything typed.
-  //
-  // This WAS a `<datalist>`, and that was the wrong control for an iframe. The original reasoning was
-  // sound on the web — it is the browser's own widget, so keyboard and screen-reader behavior come for
-  // free instead of from a hand-rolled `role="combobox"` — and the accepted cost was recorded as "cannot
-  // be themed". In Figma's plugin iframe the real cost was *unusable*: the popup is browser CHROME drawn
-  // outside the page, so it painted dark (following Figma's app theme, unreachable by our CSS), flipped
-  // UP over the field so the text being typed was hidden, and never received wheel events — making 2,334
-  // families impossible to scroll. None of the three is reachable from the page, which is the point: a
-  // list that must be themed, positioned and scrolled has to BE page DOM. So this is the combobox the
-  // datalist was chosen to avoid. The iframe made that trade non-optional.
-  //
-  // Built on the `.brandmenu` popover vocabulary already used by the brand/export/nav menus — same
-  // `max-height` + `overflow-y:auto` shape, so scrolling and theming are structural rather than patched.
-  //
-  // Names render in the UI face, NOT their own (owner decision). Self-rendering would look more like
-  // Figma's picker, but `listAvailableFontsAsync` mixes locally-installed families with Figma's CLOUD
-  // Google Fonts and this iframe ships `networkAccess: none` — so a cloud face would silently fall back
-  // and read as "broken" rather than "not installed here". One consistent face tells no lie.
-  //
-  // A HINT, not a constraint: an unlisted name still commits, because a brand input is a portable
-  // specification and may legitimately name a face this machine lacks.
-  let addWrap: HTMLElement | null = null;
-  // Arrow/Escape handling lives with the list, but Enter must reach `submit` (defined below) — so the
-  // combobox publishes a key hook that returns true when it CONSUMED the key, and the field's single
-  // keydown handler defers to it before falling through to submit-on-Enter.
-  let comboKey: ((e: KeyboardEvent) => boolean) | null = null;
-  if (host.hostFonts.length) {
-    addWrap = el('div', 'tf-combo');
-    const list = el('div', 'tf-cbolist');
-    list.id = 'tf-font-list';
-    list.setAttribute('role', 'listbox');
-    list.setAttribute('aria-label', 'Font families this Figma can load');
-    list.hidden = true;
-    addIn.setAttribute('role', 'combobox');
-    addIn.setAttribute('aria-controls', list.id);
-    addIn.setAttribute('aria-autocomplete', 'list');
-    addIn.setAttribute('aria-expanded', 'false');
-    addIn.autocomplete = 'off';                       // the browser's own history popup would re-create the overlap
-    let shown: string[] = [];
-    let active = -1;                                  // index into `shown`; -1 = nothing selected, so Enter still submits
-    const optId = (i: number) => `tf-font-o${i}`;
-    // `aria-selected` moves WITH the `.on` class, in both directions. It is a separate fact from
-    // `aria-activedescendant`: that one says where the pointer is, `aria-selected` says which option a
-    // single-select listbox currently holds, and a screen reader reads the second. Shipping it pinned to
-    // "false" at row creation (which is what this did) meant the sighted highlight tracked the arrows
-    // while AT was told, on all 2,340 rows, that nothing was selected — the one piece of the ARIA this
-    // control used to get free from `<datalist>` that the hand-roll missed.
-    const setActive = (i: number): void => {
-      const rows = Array.from(list.children) as HTMLElement[];
-      if (active >= 0 && rows[active]) {
-        rows[active].classList.remove('on');
-        rows[active].setAttribute('aria-selected', 'false');
-      }
-      active = i;
-      if (i < 0) { addIn.removeAttribute('aria-activedescendant'); return; }
-      const row = rows[i];
-      if (!row) return;
-      row.classList.add('on');
-      row.setAttribute('aria-selected', 'true');
-      addIn.setAttribute('aria-activedescendant', optId(i));
-      row.scrollIntoView({ block: 'nearest' });       // keyboard nav must drag the scroll along with it
-    };
-    const close = (): void => {
-      list.hidden = true;
-      addIn.setAttribute('aria-expanded', 'false');
-      setActive(-1);
-    };
-    const open = (): void => {
-      if (!shown.length) { close(); return; }
-      list.hidden = false;
-      addIn.setAttribute('aria-expanded', 'true');
-      // The old popup opened upward over the field. This one is page DOM below it, so the only thing
-      // that can hide it is the page scroll — ask for it to be on screen rather than assume it is.
-      list.scrollIntoView({ block: 'nearest' });
-    };
-    const paint = (q: string): void => {
-      const needle = q.trim().toLowerCase();
-      // Prefix matches first — "Ro" should lead with Roboto, not with a family that merely contains "ro".
-      const pre: string[] = [], mid: string[] = [];
-      for (const f of host.hostFonts) {
-        if (!needle) { pre.push(f); continue; }
-        const at = f.toLowerCase().indexOf(needle);
-        if (at === 0) pre.push(f);
-        else if (at > 0) mid.push(f);
-      }
-      shown = pre.concat(mid);
-      list.textContent = '';
-      shown.forEach((f, i) => {
-        // textContent, never innerHTML — these names are external input.
-        const row = el('div', 'tf-cbo', f);
-        row.id = optId(i);
-        row.setAttribute('role', 'option');
-        row.setAttribute('aria-selected', 'false');
-        // mousedown, not click: click fires after the input's blur, by which point the list is closed.
-        row.onmousedown = (e) => {
-          e.preventDefault();                          // keep focus in the field so Add face is one key away
-          addIn.value = f;
-          close();
-          addIn.focus();
-        };
-        list.append(row);
-      });
-      setActive(-1);
-    };
-    paint('');
-    addIn.oninput = () => { paint(addIn.value); open(); };
-    addIn.onfocus = () => { paint(addIn.value); open(); };
-    // Blur closes, but not before a row's mousedown has run — hence the mousedown handler above.
-    addIn.onblur = () => { close(); };
-    comboKey = (e: KeyboardEvent): boolean => {
-      const open_ = !list.hidden;
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        if (!open_) { paint(addIn.value); open(); if (shown.length) setActive(0); return true; }
-        if (!shown.length) return true;
-        const next = e.key === 'ArrowDown'
-          ? (active + 1) % shown.length
-          : (active <= 0 ? shown.length - 1 : active - 1);
-        setActive(next);
-        return true;
-      }
-      if (e.key === 'Escape') {
-        if (!open_) return false;                      // let Escape do whatever it does elsewhere
-        close();
-        return true;
-      }
-      // Enter with a highlighted row means "take that one" — the field fills and the list closes, and
-      // the face is NOT committed yet, so the next Enter submits. Two deliberate steps: picking a name
-      // and adding it are different decisions, and the second one is destructive-ish (it edits the brand).
-      if (e.key === 'Enter' && open_ && active >= 0 && shown[active]) {
-        addIn.value = shown[active];
-        close();
-        return true;
-      }
-      if (e.key === 'Tab' && open_) { close(); return false; }   // close, but let focus move on
-      return false;
-    };
-    addWrap.append(addIn, list);
-  }
-  // #405 — a SUBMIT CTA, not `.adv-add`. That class is the dashed REVEAL/add-a-row affordance (the
-  // breakpoint editor's "+ Add" appends an empty slot with it, and on Palettes the same look means
-  // "tap to expose fields"). Here the field is already exposed, so the dashed form promised "this will
-  // show you something" while meaning "commit what I typed" — two different actions wearing one look.
-  // Left `.adv-add` alone rather than restyling it: the breakpoint use is a genuine add-a-row.
-  // The `+` goes with it — a leading plus is part of that same add-a-row vocabulary.
-  const addBtn = el('button', 'tf-addbtn', 'Add face') as HTMLButtonElement;
-  const addErr = el('p', 'tf-adderr');
-  addErr.hidden = true;
-  const submit = (): void => {
-    addErr.hidden = true;
-    const refused = addLibraryFace(addIn.value, ty.typefaces);
-    if (refused) { addErr.textContent = refused; addErr.hidden = false; addIn.focus(); return; }
-    applyFull();
-  };
-  addBtn.onclick = submit;
-  addIn.onkeydown = (e) => {
-    const ev = e as KeyboardEvent;
-    if (comboKey && comboKey(ev)) { ev.preventDefault(); return; }
-    if (ev.key === 'Enter') { ev.preventDefault(); submit(); }
-  };
-  addRow.append(addWrap ?? addIn, addBtn);
-  sec.append(addRow, addErr);
-  // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
-  // the four-tab split types nothing: this is the only place a face name is entered by hand.
-  const spell = el('p', 'tf-note');
-  spell.innerHTML = host.hostFonts.length
-    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + host.hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a name chosen from it is spelled the way Figma spells it. That settles the family, not every weight: a text style still skips if the family lacks the specific weight it asks for. Typing a name that is not listed also works — a brand can specify a font this machine does not have — but nothing it needs will load here.'
-    : '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
-  sec.append(spell);
-  // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
-  // role binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
-  sec.append(el('p', 'tf-derivenote', anyUnbound
-    ? 'This list is a union: a face appears because a category on Semantics binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
-    : 'Every face here is bound by a category on Semantics — add a name and its primitive appears here, ready to bind. A brand can also stage a face with no category in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
-
-  return sec;
-};
-
-/** Tier 2 — which face does each CATEGORY draw from (Semantics tab). Split from the library (#388
- *  part B); re-keyed from three abstract roles to the seven categories by #415.
- *
- *  #416 — ONE COLUMN PER MODE, which is the stated rule for editing a mode-varying value on this page.
- *  The rule was already what the codebase did; it had just never been written down. Every column-table
- *  here (weight roles, the leading/tracking re-points, the per-size pins) edits a value with MANY
- *  parallel instances, and every mode-bar control in the app (`renderPerModeSelect` — radius, tempo,
- *  density) edits a SINGLE lever. This control was seven categories sitting on the single-lever side,
- *  which is why it felt wrong and why it alone lacked the `Auto` + `.set` affordance its neighbours
- *  have: an override and an inherited value rendered identically, with no way to clear one.
- *
- *  Since every mode-varying value on Typography is a many-instance value, the mode bar has no editing
- *  job left on this page and is gone from it — the same conclusion #350/#268 reached for Primitives,
- *  arrived at from the other end. */
-const renderTypefaceBindings = (): HTMLElement => {
-  const ty = theme.typography;
-  const modes = rp.modes;
-  const multi = modes.length > 1;
-  const sec = palSection('Typefaces', 'Which face each category draws from. The font.family token for a category is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a text style never names a face directly.');
-  const baseFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
-  const isUnbound = (cat: string): boolean => cat === 'code' && getPath(brandState, 'typography.families.code') === null;
-
-  // The bulk control writes the BASELINE only — it is a brand-level statement ("this brand is one
-  // face"), not a per-mode one. `code` is deliberately out of its reach: its default is a different
-  // KIND of face, so sweeping a text face across it is nearly always wrong and would be silent.
-  const bulk = el('div', 'tf-bulk');
-  const bulkSel = selectEl('sm');
-  bulkSel.append(optionEl('', 'Choose a face…', true));
-  for (const t of ty.typefaces) bulkSel.append(optionEl(t.name, t.name, false));
-  const bulkBtn = el('button', 'tf-addbtn', 'Apply to all') as HTMLButtonElement;
-  bulkBtn.onclick = () => {
-    if (!bulkSel.value) return;
-    setAllFamilies(bulkSel.value);
-    applyFull();
-  };
-  bulk.append(el('span', 'tf-bulklab', `Set every text category to`), bulkSel, bulkBtn);
-  sec.append(bulk, el('p', 'tf-derivenote', 'Code keeps whatever face it has — a monospace choice is a different decision, so it is set on its own row below.'));
-
-  const box = el('div', 'mtbl');
-  const scroll = el('div', 'mtbl-scroll');
-  const tbl = el('table', 'mtbl-tbl');
-  const thead = el('thead'), htr = el('tr');
-  htr.append(el('th', 'mtbl-stick', 'Category'));
-  if (multi) {
-    for (const m of modes) {
-      const th = el('th', 'mtbl-mode');
-      th.append(document.createTextNode(MODE_LABEL[m] ?? m));
-      if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
-      // Same `auto` marker the mode chips carry, so a derived column is identifiable before you click.
-      else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
-      htr.append(th);
-    }
-  } else {
-    // A single-mode brand has no mode axis to show, so the column keeps its plain name rather than
-    // being labeled "Light" — there is nothing for that label to contrast with.
-    htr.append(el('th', 'mtbl-mode', 'Face'));
-  }
-  htr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
-  thead.append(htr); tbl.append(thead);
-  const tb = el('tbody');
-  for (const cat of TYPE_GROUP_ORDER) {
-    const base = baseFace(cat);
-    const unbound = isUnbound(cat);
-    const tr = el('tr');
-    const nc = el('td', 'mtbl-stick');
-    nc.append(el('span', 'mtbl-name mono', cat));
-    nc.append(el('div', 'cs-count', TYPE_GROUP_BLURB[cat] ?? ''));
-    tr.append(nc);
-
-    const NONE = '__none__';                    // a sentinel no font family can be called
-    for (const m of (multi ? modes : ['light'])) {
-      const td = el('td', 'mtbl-mode');
-      if (unbound && m !== 'light') {
-        // Nothing to override: the category ships no styles at all in any mode.
-        td.append(el('span', 'cs-count', '—'));
-        tr.append(td);
-        continue;
-      }
-      if (m === 'light') {
-        // The baseline is the brand-level binding, and it stays EDITABLE here — unlike the
-        // leading/tracking re-point table, whose baseline is set in the table above it. This is the
-        // only place the family baseline is authored, so its column is a control, not a reading.
-        const sel = selectEl('sm fill');
-        const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
-        if (!opts.some(([v]) => v === base) && base) opts.push([base, base]);
-        if (cat === 'code') opts.push([NONE, 'None — no code styles']);
-        for (const [v, label] of opts) sel.append(optionEl(v, label, v === (unbound ? NONE : base)));
-        sel.title = base || '';
-        sel.onchange = () => {
-          if (sel.value === NONE) { setFamily('light', cat, null); applyFull(); return; }
-          if (!sel.value) return;               // matched no option — never write an empty face
-          setFamily('light', cat, sel.value);
-          applyFull();
-        };
-        td.append(sel);
-      } else if (!modeIsEditable(m)) {
-        // #423 — READ-ONLY, and showing the resolved face rather than an empty or disabled control.
-        // A derived mode carries no `familiesByMode` entry (it can hold no levers), so it resolves to
-        // the canonical baseline; that is a real fact about the mode and worth a cell. Rendering an
-        // interactive select here is what let a click reach the engine and surface
-        // "mode 'hc-dark' is generate-only and not customizable" verbatim.
-        const self = el('span', 'mtbl-selfval mono', base || '—');
-        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in Brand › Modes if you don't want it generated.`;
-        td.append(self);
-      } else {
-        const ovRaw = getModeLever(m, `families.${cat}`);
-        const ovStr = Array.isArray(ovRaw) ? ovRaw[0] : (ovRaw as string | undefined);
-        // An override equal to the baseline is INERT — `diffAssign` drops it, so it produces no token
-        // and no mode entry. Reading it as "set" would style a cell that changes nothing, so it is
-        // normalized away here and the cell renders as Auto, which is what it actually is. A brand
-        // input can carry one (hand-authored, or written by the old control before this rule).
-        const ovName = ovStr && ovStr !== base ? ovStr : undefined;
-        // `.set` carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan down
-        // the column finds the overrides without reading every label. This is the affordance the
-        // review of #419 found missing — structural here rather than bolted on, because an inherited
-        // cell and an overridden one are now different by construction.
-        const sel = selectEl(ovName ? 'sm fill set' : 'sm fill');
-        sel.append(optionEl('', `Auto — ${base}`, !ovName));
-        for (const t of ty.typefaces) {
-          if (t.name === base) continue;   // binding the baseline IS Auto — offering both would give
-                                           // one outcome two controls, and the second writes an inert entry
-          sel.append(optionEl(t.name, t.name, ovName === t.name));
-        }
-        if (ovName && !ty.typefaces.some((t) => t.name === ovName)) sel.append(optionEl(ovName, ovName, true));
-        sel.title = ovName ? `${MODE_LABEL[m] ?? m} overrides ${cat} to ${ovName}` : `${cat} follows the baseline (${base}) in ${MODE_LABEL[m] ?? m}`;
-        sel.onchange = () => { setFamily(m, cat, sel.value); applyFull(); };
-        td.append(sel);
-      }
-      tr.append(td);
-    }
-
-    const pc = el('td', 'mtbl-fill mtbl-spec');
-    if (unbound) {
-      pc.append(el('span', 'tf-unbound', 'No code face — the code category is not generated.'));
-    } else {
-      // same specimen cell, longer sample
-      const prev = el('span', mix('mtbl-spec-t', 'tf-prev'), 'The quick brown fox jumps');
-      prev.style.fontFamily = base ? `"${base}", ${cat === 'code' ? 'monospace' : 'sans-serif'}` : 'inherit';
-      pc.append(prev);
-    }
-    pc.append(tokenPill(`font.family.${cat}`));
-    tr.append(pc);
-    tb.append(tr);
-  }
-  tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
-
-  const local = el('p', 'tf-note warn');
-  local.innerHTML = host.hostFonts.length
-    ? '<b>Previews in this table use fonts installed on this device; Figma loads more than that.</b> Figma’s list mixes your installed fonts with its own cloud fonts, and this panel loads no webfonts — so a face Figma will happily write can still preview as the fallback here. The <b>In this Figma</b> column on <b>Primitives</b> reports what Figma can load, which is the fact that decides whether a text style applies. Your emitted tokens are unaffected; they carry the name you typed.'
-    : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
-  sec.append(local);
-  return sec;
-};
-
 /** The size ladder + the three levers that reshape it. The ladder itself was previously
  *  rendered nowhere, and displayCeiling / titleFloor were unreachable from the dashboard. */
 const renderSizeLadder = (): HTMLElement => {
@@ -3658,7 +3111,7 @@ const renderRepoints = (): HTMLElement | null => {
 const renderCategorySetup = (): HTMLElement => {
   const ty = theme.typography;
   const roleOrder = ty.weightRoles.map((w) => w.role);
-  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants, or sets italic as its only cut. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
+  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants, or sets italic as its only cut. Each ticked weight multiplies out into a real style at every size in that category. The font family is shown for context and set on Semantics.');
   // #416 — everything in this table is MODE-INVARIANT by contract (#296): which weights a category
   // ships and whether it gets italic/link decide which styles EXIST, and a mode never adds or removes
   // a token. The nudges are brand-level too. It used to disable every control outside Light, which
@@ -3666,7 +3119,7 @@ const renderCategorySetup = (): HTMLElement => {
   // rule is now stated positively and the controls are always live, which is also what stops them
   // being stranded now that the mode bar has left this page (`currentMode` is global and can still be
   // Dark from another page, which would have left this table permanently dead).
-  sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (face, weight numerics, sizes, rungs), which is done on Semantics and above.'));
+  sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (font family, weight numerics, sizes, rungs), which is done on Semantics and above.'));
   const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
   // #1296 — categories whose default cut is italic. Read from the composites like `italicG`, so the box
   // reports what the engine built rather than what the input asked for.
@@ -3675,7 +3128,7 @@ const renderCategorySetup = (): HTMLElement => {
   const wrap = el('div', 'cs-wrap');
   const table = hook(el('table', 'cs-table'), 'category-table');
   const head = el('tr');
-  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Face'));
+  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Family'));
   // Header casing is SOURCE-ONLY tidying: every table header is `text-transform:uppercase`, so the
   // rendered page was already consistent and none of this is visible. Measured before assuming —
   // an earlier pass here added a `mono` class on the strength of "these are token identifiers", which
@@ -3844,7 +3297,7 @@ const renderCategorySetup = (): HTMLElement => {
  *  family here, and a pin left STALE by a later face change is surfaced inline — never silent. */
 const renderFacePins = (): HTMLElement => {
   const ty = theme.typography;
-  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The face is fixed to the category’s bound family; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight. Italic is set with the Italic columns above, not with a pin.');
+  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The font family is fixed to the one the category binds; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight. Italic is set with the Italic columns above, not with a pin.');
   // The BOUND family for a category — `stack[0]`, the value `font.family.<cat>` carries and the value
   // the engine's pin validation compares against (`buildComposites` `familyPrimary`). This is the same
   // source the row's Face column reads, so the family the control WRITES cannot disagree with the one
@@ -3857,7 +3310,7 @@ const renderFacePins = (): HTMLElement => {
   const wrap = el('div', 'cs-wrap');
   const table = hook(el('table', mix('cs-table', 'pincut')), 'pin-cut-table');
   const head = el('tr');
-  head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Face'), el('th', 'cs-c', 'Style pin'));
+  head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Family'), el('th', 'cs-c', 'Style pin'));
   table.append(head);
   let slots = 0;
   // #1296 — an italic-default category takes no pin: the engine refuses any pin there, since a verbatim
@@ -3904,7 +3357,7 @@ const renderFacePins = (): HTMLElement => {
   }
   wrap.append(table);
   sec.append(wrap);
-  if (!slots) sec.append(el('p', 'sl-note', 'No pinnable slots yet — bind a face to a category on Semantics first.'));
+  if (!slots) sec.append(el('p', 'sl-note', 'No pinnable slots yet — bind a font family to a category on Semantics first.'));
   if (italicDefault.size) {
     const cats = TYPE_GROUP_ORDER.filter((g) => italicDefault.has(g)).join(' and ');
     sec.append(el('p', 'sl-note', `Not listed: ${cats}, which ${italicDefault.size === 1 ? 'is' : 'are'} italic by default. A pin binds its style verbatim, so it would override the italic. Clear Italic default above to pin a cut there.`));
@@ -4050,7 +3503,7 @@ const tintReadout = (): HTMLElement => {
 };
 
 // `TYPE_GROUP_ORDER` lives in `state/type-input.ts`; `TYPE_GROUP_BLURB` and the full type ramp
-// (`typeRampSection`) in `preview/sections/type-ramp.ts` (UI redesign S6.1).
+// (`typeRampSection`) in `preview/sections/type-ramp.ts` (UI redesign S6.1), drawn by `preview/type.ts` (S6.2).
 
 /** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
  *  labeled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
@@ -4803,7 +4256,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         activity: { read: activityReading, closeDetail: closeOpenDetail },
         figma: commit.isFigma ? figmaActions : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
-        lend: { styleGuide: renderPreviewStyleGuide },
+        // S6.2: Type's levers draw the legacy Text styles controls below Faces, lent the same way until S6.3.
+        lend: { styleGuide: renderPreviewStyleGuide, typeStyles: renderTypeLent, fonts: () => host },
       });
     }
     chromeHost = frame.head;
@@ -4887,15 +4341,12 @@ const chromedWorkspace = (ws: HTMLElement): PageHost => {
  *  predicate rather than a per-page flag — placement is DERIVED from what a page contains, so a new
  *  page inherits the right answer instead of needing a decision.
  *
- *  Three pages fail it today, unconditionally:
+ *  Pages fail it unconditionally:
  *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
  *     mode-invariant outright, not merely primitive.
  *   • `palettes` — a ramp is mode-invariant, and choosing which STEP a mode lands on is a Surfaces
  *     concern, not a Palettes one (see the in-function measurement below).
- *   • `typography` — since #416 the whole page edits every mode-varying value it has (families,
- *     weight roles, leading/tracking re-points, per-size pins) as a COLUMN PER MODE, so there is
- *     nothing left for a switcher to drive. The editors write via column-scoped `setModeLever(m, ...)`,
- *     not `currentMode` — there is no single "active" mode left for the bar to control.
+ *   • (`typography` was a third until UI redesign S6.2 moved Type into the two panes.)
  *
  *  `preview` is a fourth, conditional case: it fails outside the style-guide view, where every mode is
  *  already rendered as its own column (see the per-view measurement in the function body).
@@ -4917,13 +4368,7 @@ const pageHasModeVaryingControl = (): boolean => {
   // A moved page (Color › Palettes from UI redesign S2) draws no legacy workspace, so it has no strip:
   // its preview header carries the mode control.
   if (isNewPage(page)) return false;
-  // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
-  //  do — the same reasoning that hides it on Primitives, reached from the other direction.
-  // #416 — Typography edits every mode-varying value it has (families, weight roles, leading and
-  // tracking re-points, per-size pins) as a COLUMN PER MODE, so there is nothing left for a switcher
-  // to drive. Same conclusion as Primitives and Preview, reached from the other end: those have no
-  // per-mode values, this one shows them all at once.
-  if (page === 'typography') return false;
+  // (Typography's column-per-mode rule, #416, went with the page, UI redesign S6.2: Type draws the two panes.)
   // (The Preview page's per-view rule went with the page, UI redesign S3: the Style guide is Brand's
   // preview, whose header carries the mode control, and its other two views are Inspect's.)
   return true;
@@ -4966,7 +4411,6 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
  *  host the chrome mounter produced. */
 const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
-  typography: renderTypographyPage,
   elevation: renderElevationPage,
   sizeRadius: renderSizeRadiusPage,
   layout: renderLayoutPage,
@@ -5150,10 +4594,8 @@ const reconcileRegions = (host: HTMLElement, want: readonly HTMLElement[]): { ke
 // painter per render. Permanent subscriptions whose painters ask whether their surface is live are what
 // the switch did, with the same guards. The new shell (S1) subscribes on mount and unsubscribes on unmount.
 //
-// `fonts`: the Typography page's typeface library and type-ahead read `host.hostFonts`. A plain re-render,
-// the same path a tab click takes: the list can arrive before or after that page first renders, so
-// caching plus a re-render makes the order irrelevant.
-subscribe('fonts', () => renderWorkspace());
+// `fonts`: no legacy surface reads `host.hostFonts` since UI redesign S6.2. The Type page's library and
+// type-ahead read it through `lend.fonts` and subscribe to `fonts` themselves, on mount.
 /** The mode the legacy page was last drawn in (see the `mode` subscription). */
 let paintedMode: Mode | null = null;
 function renderWorkspace(): void {

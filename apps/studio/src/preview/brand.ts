@@ -16,11 +16,18 @@
  */
 import { subscribe } from '../state/store';
 import { h, hook } from '../shell/dom';
+import type { HostFonts } from '../ui/fonts';
 
 /** What `main.ts` lends the moved pages' previews until their slices replace the legacy renderers. */
 export type PageLends = {
   /** The Style guide (`renderPreviewStyleGuide`). Its ground select calls `repaint` to redraw it in place. */
   readonly styleGuide: (host: HTMLElement, repaint: () => void) => void;
+  /** Type's "Scale and weights" region (S6.2): the legacy Text styles, weights, line height and letter spacing
+   *  controls and the fixed ladders, lent to the Type LEVERS until S6.3 replaces them. It draws into `host`, and
+   *  calls `repaint` when only its own view state changed (the individual-sizes toggle). */
+  readonly typeStyles: (host: HTMLElement, repaint: () => void) => void;
+  /** What the host has said about its fonts (S6.2: Type's library and its type-ahead). Empty on the web. */
+  readonly fonts: () => HostFonts;
 };
 
 /** Mount the Brand preview into `host`. */

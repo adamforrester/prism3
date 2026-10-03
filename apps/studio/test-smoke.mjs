@@ -594,6 +594,16 @@ const gotoRail = async (page, selector) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
+/** Open Type through the tab row (UI redesign S6.2: it left the Pages menu for the two panes), and wait for its
+ *  levers and the legacy region they lend (`type-lent`: the heading sizes, what each text type is made of, the
+ *  font-style pins, the weights, line heights and letter spacings) to draw. */
+const gotoType = async (page) => {
+  await hooks.click(page.locator('[data-p3="tab-type"]'));
+  await hooks.need(page, '[data-p3="type-levers"]');
+  await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
+  await page.evaluate(() => document.fonts.ready);
+};
+
 /** Let every FINITE running animation finish before anything is measured (#1069) — the wait the old
  *  `op < 0.02` carve-out stood in for by presuming. A real condition, not a duration: it resolves the
  *  moment the last transition or keyframe run ends, and at once when nothing is moving. Infinite and
@@ -704,9 +714,10 @@ for (const brand of BRANDS) {
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
   const pages = await railLabels(page);
-  // Floor 5: Palettes (S2), Preview (S3: its Style guide is Brand's preview), Surfaces & fills (S4a) and Interactive
-  // (S5.2) left the menu.
-  ok(pages.length >= 5, `${brand}: the Pages menu offers ${pages.length} destinations`);
+  // Floor 4: Palettes (S2), Preview (S3: its Style guide is Brand's preview), Surfaces & fills (S4a), Interactive
+  // (S5.2) and Typography (S6.2) left the menu. The web offers Elevation, Size & radius, Layout and Motion.
+  ok(pages.length >= 4, `${brand}: the Pages menu offers ${pages.length} destinations`);
+  hooks.absent(ok, { seen: pages.length > 0, state: 'the Pages menu\'s rows' }, !pages.includes('Typography'), `${brand}: the Pages menu no longer offers Typography, which moved to the two panes (S6.2)`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
   //
@@ -900,8 +911,9 @@ console.log(`\nBrand — the moved page, the Style guide per mode, the namespace
 /** T2 (v4 review) in concept v6's words: the namespaces that warn before export, and what each says. Literal. */
 const RESERVED_NS = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
-/** The sections the Style guide draws on a ground (its specimen roots), by title, in order. Literal. */
-const STYLE_GUIDE_ROOTS = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
+/** The sections the Style guide draws on a ground (its specimen roots), by title, in order. Literal. The type
+ *  sample opens it (#1942, owner decision Q67, S6.2). */
+const STYLE_GUIDE_ROOTS = ['Type sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
 let brandStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1246,6 +1258,54 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
   }));
   return { sections, paint, badges, chipsWithBadge, tcRows };
 }, hostSel);
+/** THE TYPE SAMPLE'S ORACLE (#1942), from the brand's COMMITTED emission, never the renderer: the face each
+ *  `core.font.family.<type>` resolves to in a mode (the mode's own value where the leaf carries one, its alias
+ *  followed to the `core.font.typeface.*` it names), and the `type.*` styles the brand emits with their sizes. */
+const emittedType = async (brand) => {
+  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const rootKey = Object.keys(tree)[0];
+  const at = (path) => path.split('.').reduce((n, k) => n?.[k], tree[rootKey]);
+  const valueIn = (leaf, mode) => leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value;
+  const face = (group, mode) => {
+    let v = valueIn(at(`core.font.family.${group}`), mode);
+    for (let hops = 0; typeof v === 'string' && v.startsWith('{') && hops < 8; hops++) v = valueIn(at(v.slice(1, -1).replace(`${rootKey}.`, '')), mode);
+    return typeof v === 'string' ? v : null;
+  };
+  const styles = [];
+  const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') styles.push({ path: `${path}.${k}`, px: v.$extensions?.prism3?.sizePx }); else walk(v, `${path}.${k}`); } };
+  walk(tree[rootKey].type, 'type');
+  return { face, styles };
+};
+/** The display style the sample must open with: `type.display.md.strong` where the brand emits it (owner decision
+ *  Q67's proposal, literal here), else the largest display style it emits. Then the title, body, label and caption
+ *  lines, by text type, in that order. Literal. */
+const SAMPLE_DISPLAY = 'type.display.md.strong';
+const SAMPLE_GROUPS = ['display', 'title', 'body', 'label', 'caption'];
+const firstFace = (css) => (css ?? '').split(',')[0].trim().replace(/^["']|["']$/g, '');
+const readTypeSample = (page, hostSel) => page.evaluate((sel) => [...document.querySelectorAll(`${sel} [data-sg-section="type-sample"] [data-p3="type-sample-line"]`)].map((r) => {
+  const t = r.querySelector('.tsm-text');
+  const cs = t ? getComputedStyle(t) : null;
+  return { token: r.querySelector('[data-p3="token-pill"]')?.textContent ?? '', family: cs?.fontFamily ?? '', size: cs?.fontSize ?? '' };
+}), hostSel);
+/** Hold one drawn type sample to the emission: its lines' text types in order, the display line's style, and each
+ *  line's FIRST computed face against the face the emission binds that line's own text type to in `mode`. */
+let typeSampleLines = 0;
+const checkTypeSample = (where, lines, oracle, mode) => {
+  const groups = lines.map((l) => l.token.split('.')[1]);
+  ok(JSON.stringify(groups) === JSON.stringify(SAMPLE_GROUPS), `type sample: ${where}: draws a display, title, body, label and caption line, in order — drew ${JSON.stringify(lines.map((l) => l.token))}`);
+  const displays = oracle.styles.filter((x) => x.path.startsWith('type.display.') && !/-(italic|link)/.test(x.path));
+  const wantDisplay = displays.some((x) => x.path === SAMPLE_DISPLAY) ? SAMPLE_DISPLAY : displays.reduce((a, x) => (!a || x.px > a.px ? x : a), null)?.path;
+  ok(lines[0]?.token === wantDisplay, `type sample: ${where}: the display line is ${wantDisplay} — drew ${lines[0]?.token}`);
+  for (const l of lines) {
+    typeSampleLines++;
+    const g = l.token.split('.')[1];
+    const want = oracle.face(g, mode);
+    const got = firstFace(l.family);
+    ok(!!want && got === want, `type sample: ${where}: ${g} line is set in ${want} (core.font.family.${g})${got === want ? '' : ` — drew ${got}`}`);
+    const px = oracle.styles.find((x) => x.path === l.token)?.px;
+    ok(px !== undefined && l.size === `${px}px`, `type sample: ${where}: ${l.token} is set at its emitted ${px}px${l.size === `${px}px` ? '' : ` — drew ${l.size}`}`);
+  }
+};
 const SG_FILLS = '[data-p3="preview-body"] [data-p3="surfaces-style-guide"]';
 /** The marker each shared section module stamps on its own root (`data-sg-section`, `kit.ts`'s header),
  *  by title. Literal. A section drawn by anything but its module (`main.ts` drawing its own Border through an
@@ -1361,6 +1421,7 @@ for (const brand of BRANDS) {
     ok(got.tcRows.length >= 18 && offCols.length === 0, `${where}: each text token has one ratio badge in the "On ${mode}" column and one in the "On ${opp}" column, none by the token (${got.tcRows.length} rows)${offCols.length ? ` — ${offCols.slice(0, 3).join(' | ')}` : ''}`);
   }
   // The Style guide itself (Brand's preview, lent by `main.ts`, S3) draws the same five sections.
+  const typeOracle = await emittedType(brand);
   await hooks.click(page.locator('[data-p3="tab-brand"]'));
   await hooks.need(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"] .psec');
   // Per mode, as on Surfaces & fills: its swatches (the Text color columns by position) and the shared marker.
@@ -1375,7 +1436,12 @@ for (const brand of BRANDS) {
       ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
     }
     checkSwatches(where, sg, emission, mode, modes);
-    checkSharedMarkers(where, sg, { ...EXPECT_SHARED_MARKER, ...EXPECT_SG_ONLY_MARKER });
+    checkSharedMarkers(where, sg, { ...EXPECT_SHARED_MARKER, ...EXPECT_SG_ONLY_MARKER, 'Type sample': 'type-sample' });
+    // #1942, owner decision Q67: the type sample opens the Style guide, before Background, and every line is set in
+    // its own text type's emitted face, in this mode.
+    ok(sg.sections[0]?.name === 'Type sample' && sg.sections[0]?.shared === 'type-sample' && sg.sections[1]?.name === 'Background',
+      `${where}: the Style guide's first section is the type sample (data-sg-section="type-sample"), then Background — drew ${sg.sections.slice(0, 2).map((x) => `${x.name} [${x.shared}]`).join(', ')}`);
+    checkTypeSample(`${brand.toLowerCase()} / Style guide / ${mode}`, await readTypeSample(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"]'), typeOracle, mode);
     hooks.absent(ok, { seen: sg.sections.length >= 5, state: 'the Style guide\'s sections' }, sg.badges.length === 0, `${where}: draws no ratio badge (owner decision Q5: badges on Surfaces & fills only)`);
   }
   await ctx.close();
@@ -1502,8 +1568,11 @@ const previewMode = async (page, m) => {
 };
 // S4d (owner decision Q45): the Page and the band step are step pickers; the floor and the band palette stay selects.
 const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
-  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]' };
-const PICKED = new Set(['base', 'band-step']);
+  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]',
+  // S4e (#1972): the four background tiers, step pickers writing their own inputs.
+  secondary: '[data-p3="levers-pane"] [data-p3="surface-secondary-pick"]', tertiary: '[data-p3="levers-pane"] [data-p3="surface-tertiary-pick"]',
+  'inverse-secondary': '[data-p3="levers-pane"] [data-p3="surface-inverse-secondary-pick"]', 'inverse-tertiary': '[data-p3="levers-pane"] [data-p3="surface-inverse-tertiary-pick"]' };
+const PICKED = new Set(['base', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
 const SURF = (k) => SURF_HOOKS[k];
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1517,7 +1586,8 @@ for (const brand of BRANDS) {
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
     await previewMode(page, m);
-    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4]]) {
+    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4],
+      ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
       let v;
       if (PICKED.has(k)) {
@@ -1546,7 +1616,7 @@ for (const brand of BRANDS) {
   const derived = modes.find((m) => m.startsWith('hc-'));
   if (derived) {
     await previewMode(page, derived);
-    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), ['base', 'floor', 'band-palette', 'band-step'].map(SURF));
+    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
     ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
   }
   // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
@@ -1609,6 +1679,106 @@ for (const brand of BRANDS) {
   }
   const errs = drain();
   ok(errs.length === 0, `S4c ${brand}: 0 console errors across the surface and Fields edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// 1e. S4e: a Secondary pick moves the contrast floor with it (#1972, the engine's #1987, option A). Per corpus brand,
+//     in Light. EXPECTED: before the pick, the floor's Auto option and the floor-gated text.secondary's picker name
+//     the step the COMMITTED EMISSION aliases for background.secondary in light; after it, the literal step picked
+//     (neutral 200), in the floor's Auto label and as text.secondary's ground; the persisted brand carries
+//     `surfaces.light.secondary: 200` and the overrides it carried before; Return to Auto removes the key. Then
+//     (the review): the page tiers' pickers offer neutral only and the inverse tiers the Inverse fill's palettes,
+//     and at a ladder-end Page in Light and in Dark the floor's Auto label names the engine's floor alone.
+console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
+  await previewMode(page, 'light');
+  const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const root = Object.keys(emission)[0];
+  const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
+  const wasStep = (/\.neutral\.([0-9]+)\}$/.exec(wasAlias) ?? [])[1] ?? null;
+  const floorAuto = () => page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor"] option[value=""]')?.textContent ?? null);
+  const TEXT_SEC = '[data-p3="levers-pane"] [data-p3="text-rows"] .p3-fillrow[data-role="text.secondary"] [data-p3="fill-pick"]';
+  const groundOf = async () => {
+    await hooks.click(page.locator(TEXT_SEC));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const hint = await page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] .p3-picker-hint')?.textContent ?? '');
+    await page.keyboard.press('Escape');
+    return (/against ([a-z0-9-]+\.[0-9]+)/.exec(hint) ?? [])[1] ?? hint;
+  };
+  const brandRaw = () => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+  const before = await inputAt(page);
+  const autoBefore = await floorAuto(), groundBefore = await groundOf();
+  ok(wasStep !== null && wasStep !== '200' && autoBefore === `Auto · follows background.secondary (neutral ${wasStep})` && groundBefore === `neutral.${wasStep}`,
+    `S4e ${brand}: before, the floor's Auto follows background.secondary at the emission's neutral ${wasStep}, and text.secondary is measured on neutral.${wasStep} — read ${JSON.stringify(autoBefore)}, ${JSON.stringify(groundBefore)}`);
+  const raw0 = await brandRaw();
+  await hooks.click(page.locator(SURF('secondary')));
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="200"]'));
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw0, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const after = await inputAt(page);
+  ok(after?.surfaces?.light?.secondary === 200 && JSON.stringify(after?.overrides) === JSON.stringify(before?.overrides) && JSON.stringify(after?.surfaces?.dark) === JSON.stringify(before?.surfaces?.dark),
+    `S4e ${brand}: the Secondary pick persists surfaces.light.secondary = 200 and no override — persisted surfaces ${JSON.stringify(after?.surfaces)}, overrides ${JSON.stringify(after?.overrides)}`);
+  const autoAfter = await floorAuto(), groundAfter = await groundOf();
+  ok(autoAfter === 'Auto · follows background.secondary (neutral 200)', `S4e ${brand}: the floor's Auto label follows the pick: "Auto · follows background.secondary (neutral 200)" — read ${JSON.stringify(autoAfter)}`);
+  ok(groundAfter === 'neutral.200', `S4e ${brand}: the floor-gated text.secondary re-derives against neutral.200 — read ${JSON.stringify(groundAfter)} (was ${groundBefore})`);
+  const raw1 = await brandRaw();
+  await hooks.click(page.locator(SURF('secondary')));
+  // Bounded: with nothing to return (a pick that wrote no input), Return to Auto is disabled, and the check below says so.
+  const autoBtn = page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
+  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
+  if (await autoBtn.isEnabled()) await hooks.click(autoBtn);
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw1, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const cleared = await inputAt(page);
+  ok(!('secondary' in (cleared?.surfaces?.light ?? {})) && JSON.stringify(cleared?.surfaces) === JSON.stringify(before?.surfaces),
+    `S4e ${brand}: Return to Auto clears surfaces.light.secondary, the surfaces as loaded — persisted ${JSON.stringify(cleared?.surfaces)} (loaded ${JSON.stringify(before?.surfaces)})`);
+  const autoBack = await floorAuto();
+  ok(autoBack === autoBefore, `S4e ${brand}: and the floor's Auto label is back to ${JSON.stringify(autoBefore)} — read ${JSON.stringify(autoBack)}`);
+  // The page tiers draw on the neutral palette only (S4e review): their pickers' palette select offers neutral and
+  // nothing else, the palette the committed emission aliases background.secondary to. The inverse tiers keep every
+  // palette the Inverse fill can draw on (owner, 2026-10-03: the picker's palette select stays), read off the
+  // Inverse fill's own palette select. EXPECTED: literal 'neutral', and the emission's alias.
+  const wasPalette = (/\.palette\.([a-z0-9-]+)\.[0-9]+\}$/.exec(wasAlias) ?? [])[1] ?? null;
+  const pickerPalettes = async (k) => {
+    await hooks.click(page.locator(SURF(k)));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-palette"]');
+    const vals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-palette"] option')].map((o) => o.value));
+    await page.keyboard.press('Escape');
+    return vals;
+  };
+  const bandPals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-band-palette"] option')].map((o) => o.value));
+  for (const k of ['secondary', 'tertiary']) {
+    const pals = await pickerPalettes(k);
+    ok(wasPalette === 'neutral' && JSON.stringify(pals) === JSON.stringify(['neutral']),
+      `S4e ${brand}: the ${k} picker offers the neutral palette only (the emission draws background.secondary on ${wasPalette}) — read ${JSON.stringify(pals)}`);
+  }
+  for (const k of ['inverse-secondary', 'inverse-tertiary']) {
+    const pals = await pickerPalettes(k);
+    ok(pals.includes('neutral') && pals.includes('primary') && JSON.stringify(pals) === JSON.stringify(bandPals),
+      `S4e ${brand}: the ${k} picker still offers the Inverse fill's palettes ${JSON.stringify(bandPals)} — read ${JSON.stringify(pals)}`);
+  }
+  // The floor's Auto label names the ENGINE's floor (S4e review). At a ladder end the second tier snaps to black
+  // (Light, Page Black) or white (Dark, Page White) while the floor stays a neutral step, so the label names the
+  // floor alone. EXPECTED: the literal label, and the floor the engine measures the floor-gated text.secondary on
+  // (its picker's hint), the two read through different controls.
+  for (const [m, pageKey, want] of [['light', 'black', 'Auto · neutral 950'], ['dark', 'white', 'Auto · neutral 050']]) {
+    await previewMode(page, m);
+    const rawP = await brandRaw();
+    await hooks.click(page.locator(SURF('base')));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${pageKey}"]`));
+    await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawP, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    const persisted = (await inputAt(page))?.surfaces?.[m]?.base;
+    const label = await floorAuto(), ground = await groundOf();
+    ok(persisted === pageKey && label === want && `Auto · ${String(ground).split('.').join(' ')}` === want,
+      `S4e ${brand}: ${m}, Page ${pageKey} (a ladder end): the floor's Auto reads ${JSON.stringify(want)}, the floor text.secondary is measured on — read ${JSON.stringify(label)}, against ${JSON.stringify(ground)}, base ${JSON.stringify(persisted)}`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `S4e ${brand}: 0 console errors across the Secondary and Page edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 
@@ -1696,72 +1866,92 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
-// 1f. Type's preview pieces, shared (UI redesign S6.1)
+// 1f. Type — moved to the two panes (UI redesign S6.2), its preview against each brand's emission
 // =============================================================================================
-// The legacy Typography page's Preview tab draws its three sections, and Layout's "Responsive type sizing"
-// draws its fluid read-out, from `preview/sections/` (the new Type page, S6.2, draws the same code). Per corpus
-// brand: each of the three is the shared module's (its root carries the marker only that module stamps), the
-// tab draws exactly those three in order, and Layout's read-out region carries `type-fluid` and holds the
-// read-out (a row per scaling style, or the note that nothing scales). A section `main.ts` draws for itself,
-// by any spelling, carries no marker and fails here by name. Literal.
-console.log(`\nType's preview pieces — the shared sections on the legacy Typography and Layout pages\n${'='.repeat(78)}`);
-const EXPECT_TYPE_PREVIEW_MARKER = { Typefaces: 'typefaces', 'Weight roles by face': 'weights-by-face', 'The full type ramp': 'type-ramp' };
+// The Type preview draws the shared type sample (#1942), Faces, the legacy Preview tab's Weight roles by face and
+// type ramp, and the fluid read-out, all from `preview/sections/`. Per corpus brand and per mode, against the
+// brand's COMMITTED EMISSION, never the page:
+//   · the sections are exactly the listed ones, in order, each a specimen root on the emission's
+//     `background.primary` in that mode, and each shared one carries the marker only its module stamps;
+//   · the type sample's lines are a display, title, body, label and caption, the display line the proposed
+//     `display.md.strong` (or the largest display style where a brand has none), each line set in its own text
+//     type's emitted face (`core.font.family.<type>`, alias followed) at its emitted size;
+//   · the Faces section names, for each text type, the face the emission binds in that mode;
+//   · in Light, the ramp lists every `type.*` style the emission carries, once, at its emitted size and weight.
+// Layout still draws the fluid read-out until S6.3, from the same module (its marker, once).
+console.log(`\nType — the moved page, against each brand's emission\n${'='.repeat(78)}`);
+const SG_TYPE = '[data-p3="preview-body"] [data-p3="type-style-guide"]';
+/** The Type preview's sections, by title, in order. Literal (S6.2). */
+const EXPECT_TYPE_SECTIONS = ['Type sample', 'Font families', 'Weight roles by font family', 'The full type ramp', 'Headings scale between mobile and desktop'];
+/** The shared sections it draws, by title, with the marker each module stamps on its root. Literal. */
+const EXPECT_TYPE_PREVIEW_MARKER = { 'Type sample': 'type-sample', 'Font families': 'faces', 'Weight roles by font family': 'weights-by-face', 'The full type ramp': 'type-ramp' };
 let typePreviewStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await hooks.click(page.locator('[data-p3="type-tab-preview"]'));
-  await hooks.need(page, '[data-p3="legacy-frame"] .psec');
-  const where = `${brand} / Typography / Preview`;
-  typePreviewStates++;
-  const got = await readSections(page, '[data-p3="legacy-frame"]');
-  ok(JSON.stringify(got.sections.map((x) => x.name)) === JSON.stringify(Object.keys(EXPECT_TYPE_PREVIEW_MARKER)),
-    `${where}: the tab draws exactly ${Object.keys(EXPECT_TYPE_PREVIEW_MARKER).join(', ')}, in order — drew ${got.sections.map((x) => x.name).join(', ')}`);
-  checkSharedMarkers(where, got, EXPECT_TYPE_PREVIEW_MARKER);
-  // What the shared sections DRAW, against the brand's committed emission (never the page): the ramp lists
-  // every `type.*` composite the emission carries, and nothing else, and each row's first column (the base
-  // mode) sets its sample at the emission's size and at its weight role's emitted numeric; the Typefaces
-  // section's base column names the face the emission binds each `font.family.<category>` to.
-  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
-  const rootNode = tree[Object.keys(tree)[0]];
-  const leaves = [];
-  const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') leaves.push([`${path}.${k}`, v]); else walk(v, `${path}.${k}`); } };
-  walk(rootNode.type, 'type');
-  const roleNum = (r) => rootNode.core?.font?.['weight-role']?.[r]?.$extensions?.prism3?.numeric;
-  const drawn = await page.evaluate(() => {
-    const ramp = [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="type-ramp"] .tr-row')].map((r) => {
-      const s = r.querySelector('.tr-mode .tr-samp'); const cs = s ? getComputedStyle(s) : null;
+  const emission = await loadEmission(brand);
+  const oracle = await emittedType(brand);
+  await gotoType(page);
+  await hooks.need(page, `${SG_TYPE} .psec`);
+  const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
+  for (const mode of modes) {
+    await chooseMode(page, mode);
+    const where = `${brand} / Type / ${mode}`;
+    typePreviewStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    const got = await readSections(page, SG_TYPE);
+    ok(JSON.stringify(got.sections.map((x) => x.name)) === JSON.stringify(EXPECT_TYPE_SECTIONS),
+      `${where}: the preview draws exactly ${EXPECT_TYPE_SECTIONS.join(', ')}, in order — drew ${got.sections.map((x) => x.name).join(', ')}`);
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    for (const name of EXPECT_TYPE_SECTIONS) {
+      const x = got.sections.find((y) => y.name === name);
+      ok(!!x && x.root && x.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!x ? ' — not drawn' : !x.root ? ' — not a specimen root' : x.ground !== page0 ? ` — on ${x.ground}` : ''}`);
+    }
+    checkSharedMarkers(where, got, EXPECT_TYPE_PREVIEW_MARKER);
+    const fluid = await page.evaluate((sel) => document.querySelectorAll(`${sel} [data-sg-section="type-fluid"]`).length, SG_TYPE);
+    ok(fluid === 1, `${where}: the fluid read-out is the shared module's (data-sg-section="type-fluid"), once — ${fluid} node(s) carry the marker`);
+    checkTypeSample(`${brand.toLowerCase()} / Type / ${mode}`, await readTypeSample(page, SG_TYPE), oracle, mode);
+    const faces = await page.evaluate((sel) => [...document.querySelectorAll(`${sel} [data-sg-section="faces"] [data-p3="faces-type-row"]`)]
+      .map((r) => [r.dataset.group, r.querySelectorAll('td')[1]?.textContent ?? '']), SG_TYPE);
+    const offFace = faces.filter(([g, f]) => oracle.face(g, mode) !== f).map(([g, f]) => `${g} names ${f}, the emission binds ${oracle.face(g, mode)}`);
+    ok(faces.length >= 6 && offFace.length === 0, `${where}: the Faces section names each text type's emitted face (${faces.length} text types)${offFace.length ? ` — ${offFace.slice(0, 3).join(' | ')}` : ''}`);
+    if (mode !== 'light') continue;
+    // The ramp, in Light, against the emission: every `type.*` style once, at its emitted size and weight.
+    const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+    const rootNode = tree[Object.keys(tree)[0]];
+    const leaves = [];
+    const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') leaves.push([`${path}.${k}`, v]); else walk(v, `${path}.${k}`); } };
+    walk(rootNode.type, 'type');
+    const roleNum = (r) => rootNode.core?.font?.['weight-role']?.[r]?.$extensions?.prism3?.numeric;
+    const ramp = await page.evaluate((sel) => [...document.querySelectorAll(`${sel} [data-sg-section="type-ramp"] .tr-row`)].map((r) => {
+      const x = r.querySelector('.tr-mode .tr-samp'); const cs = x ? getComputedStyle(x) : null;
       return { path: r.querySelector('[data-p3="token-pill"]')?.textContent ?? '', size: cs?.fontSize ?? '', weight: cs?.fontWeight ?? '' };
-    });
-    const faces = [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="typefaces"] tbody tr')]
-      .map((r) => [r.querySelector('.mtbl-name')?.textContent ?? '', r.querySelector('td.mtbl-mode .tp-fam')?.textContent ?? '']);
-    return { ramp, faces };
-  });
-  const want = new Map(leaves.map(([p, v]) => [p, v]));
-  const missing = [...want.keys()].filter((p) => !drawn.ramp.some((r) => r.path === p));
-  const extra = drawn.ramp.filter((r) => !want.has(r.path)).map((r) => r.path);
-  ok(want.size > 0 && missing.length === 0 && extra.length === 0 && drawn.ramp.length === want.size,
-    `${where}: the type ramp draws the emission's ${want.size} type.* styles, each once${missing.length || extra.length ? ` — missing ${missing.slice(0, 3).join(', ')}; extra ${extra.slice(0, 3).join(', ')}` : ` (drew ${drawn.ramp.length})`}`);
-  const offRamp = [];
-  for (const r of drawn.ramp) {
-    const v = want.get(r.path); if (!v) continue;
-    const px = v.$extensions?.prism3?.sizePx, wt = roleNum(v.$extensions?.prism3?.weightRole);
-    if (r.size !== `${px}px` || r.weight !== String(wt)) offRamp.push(`${r.path} is set ${r.size} / ${r.weight}, the emission says ${px}px / ${wt}`);
+    }), SG_TYPE);
+    const want = new Map(leaves.map(([p, v]) => [p, v]));
+    const missing = [...want.keys()].filter((p) => !ramp.some((r) => r.path === p));
+    const extra = ramp.filter((r) => !want.has(r.path)).map((r) => r.path);
+    ok(want.size > 0 && missing.length === 0 && extra.length === 0 && ramp.length === want.size,
+      `${where}: the type ramp draws the emission's ${want.size} type.* styles, each once${missing.length || extra.length ? ` — missing ${missing.slice(0, 3).join(', ')}; extra ${extra.slice(0, 3).join(', ')}` : ` (drew ${ramp.length})`}`);
+    const offRamp = [];
+    for (const r of ramp) {
+      const v = want.get(r.path); if (!v) continue;
+      const px = v.$extensions?.prism3?.sizePx, wt = roleNum(v.$extensions?.prism3?.weightRole);
+      if (r.size !== `${px}px` || r.weight !== String(wt)) offRamp.push(`${r.path} is set ${r.size} / ${r.weight}, the emission says ${px}px / ${wt}`);
+    }
+    ok(ramp.length > 0 && offRamp.length === 0, `${where}: every ramp sample is set at its emitted size and weight${offRamp.length ? ` — ${offRamp.slice(0, 3).join(' | ')}` : ''}`);
   }
-  ok(drawn.ramp.length > 0 && offRamp.length === 0, `${where}: every ramp sample in the base column is set at its emitted size and weight${offRamp.length ? ` — ${offRamp.slice(0, 3).join(' | ')}` : ''}`);
-  const fams = rootNode.core?.font?.family ?? {};
-  const offFace = drawn.faces.filter(([g, f]) => fams[g]?.$extensions?.prism3?.face !== f).map(([g, f]) => `${g} names ${f}, the emission binds ${fams[g]?.$extensions?.prism3?.face}`);
-  ok(drawn.faces.length > 0 && offFace.length === 0, `${where}: the Typefaces section names each category's emitted face in the base column (${drawn.faces.length} categories)${offFace.length ? ` — ${offFace.slice(0, 3).join(' | ')}` : ''}`);
+  await chooseMode(page, 'light');
   await gotoRail(page, '[data-p3="rail-page-layout"]');
   const fluid = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="type-fluid"]')]
     .map((n) => ({ rows: n.querySelectorAll('.fz-row').length, note: !!n.querySelector('.sl-note') })));
   ok(fluid.length === 1 && (fluid[0].rows > 0 || fluid[0].note),
     `${brand} / Layout: the fluid read-out is the shared module's (data-sg-section="type-fluid"), once, and holds the read-out${fluid.length !== 1 ? ` — ${fluid.length} node(s) carry the marker: drawn by something other than preview/sections/` : ` (${fluid[0].rows} scaling style(s))`}`);
   const errs = drain();
-  ok(errs.length === 0, `${brand} / Typography and Layout: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  ok(errs.length === 0, `${brand} / Type and Layout: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
-ok(typePreviewStates >= BRANDS.length, `the Type preview sweep visited ${typePreviewStates} brand(s) (floor ${BRANDS.length})`);
+ok(typePreviewStates >= BRANDS.length * 2, `the Type sweep visited ${typePreviewStates} brand × mode states (floor ${BRANDS.length * 2})`);
+ok(typeSampleLines >= BRANDS.length * 2 * 2 * 5, `the type sample check read ${typeSampleLines} lines on the Type preview and the Style guide (floor ${BRANDS.length * 2 * 2 * 5})`);
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered
@@ -2049,9 +2239,7 @@ for (const brand of BRANDS) {
   // Brand-agnostic on purpose. The two corpus brands start on opposite sides of this (aurora ships the
   // floor on and pinned sizes; harbor does not), so a fixed click list would exercise one and silently
   // no-op on the other.
-  await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await hooks.click(page.locator('[data-p3="type-tab-styles"]'));
-  await hooks.need(page, '[data-p3="heading-shapes"]');
+  await gotoType(page);
   const floorToggle = () => page.locator('[data-p3="heading-title-floor"] input[type=checkbox]');
   const floorOn = () => page.evaluate(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked ?? null);
   if (await floorOn()) {
@@ -2092,9 +2280,7 @@ for (const brand of BRANDS) {
 
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
-  await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await hooks.click(page.locator('[data-p3="type-tab-styles"]'));
-  await hooks.need(page, '[data-p3="heading-shapes"]');
+  await gotoType(page);
   await hooks.click(floorToggle());
   const cleared = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
@@ -3594,8 +3780,7 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   const STYLE = 'Light Condensed';   // a WIDTH cut — precisely the case a numeric weight cannot reach, which is why facePin exists
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
-  await gotoRail(page, '[data-p3="rail-page-typography"]');
-  await hooks.click(page.locator('[data-p3="type-tab-styles"]'));
+  await gotoType(page);
   await hooks.need(page, '[data-p3="pin-cut-table"]');
 
   // FLOOR: the control is present and reachable for a slot that supports a pin. A studio that dropped

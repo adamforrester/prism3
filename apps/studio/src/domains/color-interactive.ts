@@ -58,8 +58,8 @@ import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 export const BUTTON_SET_TOOLTIP = 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'interactive')!;
-/** The page the Continue button opens: the next tab, Type, by the store's page key (its legacy page until S6). */
-const NEXT = { label: 'Type', page: 'typography' } as const;
+/** The page the Continue button opens: the next tab, Type, by the store's page key (moved in S6.2). */
+const NEXT = { label: 'Type', page: 'type' } as const;
 
 /** Owner decision Q38, verbatim (APPROVED). */
 export const STRICT_CAPTION = 'Off: inverse button labels clear 4.5:1 at rest and may dip on hover and pressed. On: they clear 4.5:1 in every state.';

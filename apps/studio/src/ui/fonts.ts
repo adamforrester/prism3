@@ -29,6 +29,8 @@ export const KNOWN_WEIGHTS: Record<string, number[]> = {
   'Poppins': [100, 200, 300, 400, 500, 600, 700, 800, 900], 'Montserrat': [100, 200, 300, 400, 500, 600, 700, 800, 900],
   'Lato': [100, 300, 400, 700, 900], 'Open Sans': [300, 400, 500, 600, 700, 800], 'Nunito': [200, 300, 400, 500, 600, 700, 800, 900],
   'Source Sans 3': [200, 300, 400, 500, 600, 700, 800, 900], 'Source Serif 4': [200, 300, 400, 500, 600, 700, 800, 900],
+  // #1727 part 2: the Prism3 default theme's display face. It ships 400 to 900, each with an italic.
+  'Playfair Display': [400, 500, 600, 700, 800, 900],
 };
 const KNOWN_WEIGHTS_LC: Record<string, number[]> = Object.fromEntries(Object.entries(KNOWN_WEIGHTS).map(([k, v]) => [k.toLowerCase(), v]));
 /** The known weight list for a family primary name, or null when the family is unknown (no warning). */

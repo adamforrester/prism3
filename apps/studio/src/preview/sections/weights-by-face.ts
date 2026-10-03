@@ -15,7 +15,7 @@ import { knownWeightsOf, WEIGHT_NAME } from '../../ui/fonts';
 import { el, palSection } from './kit';
 
 export const weightsByFaceSection = (ty: Theme['typography'], modes: readonly string[]): HTMLElement => {
-  const wsec = palSection('Weight roles by face', 'Each role at the numeric it resolves to, and whether each face actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Semantics.');
+  const wsec = palSection('Weight roles by font family', 'Each role at the numeric it resolves to, and whether each font family actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Semantics.');
   wsec.dataset.sgSection = 'weights-by-face';   // the shared-section marker (`kit.ts`'s header)
   const faces: Array<{ name: string; stack: string; roles: string[] }> = [];
   const addFace = (stackArr: string[] | undefined, cat: string): void => {
