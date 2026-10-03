@@ -45,7 +45,7 @@ import {
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -104,14 +104,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       f.append(lab, s.el);
       return f;
     };
-    /** A field that sets a token: the token, as a fill row shows its role, then the field's name. */
-    const tokenField = (id: string, token: string, label: string): HTMLLabelElement => {
-      const l = h('label', 'p3-fill-name');
-      l.htmlFor = id;
-      l.dataset.role = token;
-      l.append(h('span', 'p3-fill-tok', token), h('span', 'p3-field-label', label));
-      return l;
-    };
+    /** A field that sets a token: its name, then the token under it, as a fill row shows its role (QA-B2). */
+    const tokenField = (id: string, token: string, label: string): HTMLLabelElement => tokenLabel(token, label, id) as HTMLLabelElement;
     /** A control that opens the step picker (owner decision Q45: the Page and the band step use the rows' swatch
      *  panel, not a native select). `key` is the picker's slot in `openRole`; the picker draws under the group. */
     const pickButton = (id: string, hk: string, key: string, name: string, now: string): HTMLButtonElement => {
@@ -249,8 +243,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const n = parseInt(r.hex.slice(1), 16);
     const wash = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
     sw.style.background = `linear-gradient(${wash}, ${wash}), ${roles['background.primary']?.hex ?? '#ffffff'}`;
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', 'Scrim'), h('span', 'p3-fill-tok', SCRIM_ROLE));
+    const nm = tokenLabel(SCRIM_ROLE, 'Scrim');
     const read = hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), 'scrim-readout');
     read.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
     el.append(sw, nm, read);
@@ -292,8 +285,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const sw = h('span', 'p3-fill-sw');
     sw.dataset.content = '';
     sw.style.background = transparent ? groundHex : res.hex;
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', r.label), h('span', 'p3-fill-tok', r.role));
+    const nm = tokenLabel(r.role, r.label);
     const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), 'fill-pick');
     btn.type = 'button';
     btn.id = `p3-pick-${r.role.replace(/\./g, '-')}`;
@@ -358,8 +350,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const sw = h('span', 'p3-fill-sw');
     sw.dataset.content = '';
     sw.style.background = res.hex;
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', role));
+    const nm = tokenLabel(role, label);
     const at = stepOfPath(res.path);
     el.append(sw, nm, hook(h('span', 'p3-fill-read', at ? `${at.palette} ${at.step}` : (res.path ?? '')), 'focus-readout'));
     const wrap = h('div', 'p3-fillrow-wrap');

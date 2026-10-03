@@ -58,8 +58,20 @@ export function leafAt(tree, dotted) {
   if (!isLeaf(n)) throw new Error(`${dotted} is a group, not a token`);
   return n;
 }
-/** Follows alias chains; returns { value, leaf, chain } where chain lists every path visited. */
+/** Follows alias chains; returns { value, leaf, chain } where chain lists every path visited. A path may name one
+ *  member of a composite token after a `#` (`motion.transition.default#duration`): the member's value is resolved
+ *  the same way, so two variables read from one composite cannot drift apart. */
 export function resolve(tree, dotted, chain = []) {
+  const hash = dotted.indexOf('#');
+  if (hash >= 0) {
+    const base = dotted.slice(0, hash), member = dotted.slice(hash + 1);
+    const leaf = leafAt(tree, base);
+    chain.push(dotted);
+    const v = leaf.$value?.[member];
+    if (v === undefined) throw new Error(`${base} has no member ${member}`);
+    if (typeof v === 'string' && /^\{[^}]+\}$/.test(v)) return resolve(tree, v.slice(1, -1), chain);
+    return { value: v, leaf, chain };
+  }
   const leaf = leafAt(tree, dotted);
   chain.push(dotted);
   const v = leaf.$value;

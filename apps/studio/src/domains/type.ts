@@ -62,7 +62,7 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, textField, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -228,14 +228,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   const derivedLine = (): HTMLElement | null =>
     isDerived(currentMode) ? hook(stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`), 'type-derived') : null;
 
-  /** A token first, in mono, and its plain name under it (owner decision Q68), as Surfaces & fills' fields. */
-  const tokenName = (token: string, name: string, forId?: string): HTMLElement => {
-    const l = h(forId ? 'label' : 'div', 'p3-fill-name');
-    if (forId && l instanceof HTMLLabelElement) l.htmlFor = forId;
-    l.dataset.role = token;
-    l.append(h('span', 'p3-fill-tok', token), h('span', 'p3-field-label', name));
-    return l;
-  };
+  /** A plain name, and its token under it in mono (QA-B2, which reverses Q68's order), as Surfaces & fills' fields. */
+  const tokenName = tokenLabel;
 
   // ── the library ───────────────────────────────────────────────────────────────────────────────
   const library = (): Item => {
