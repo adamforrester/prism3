@@ -119,10 +119,13 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/preview/sections/focus-ring.ts',
   // S6.1: Type's writes, the font-availability helpers, and the Typography preview's shared sections.
   'src/state/type-input.ts', 'src/ui/fonts.ts',
-  'src/preview/sections/weights-by-face.ts', 'src/preview/sections/type-ramp.ts', 'src/preview/sections/type-fluid.ts',
+  'src/preview/sections/weights-by-face.ts',
   // S6.2: Type (its levers and its preview), the shared type sample, and the preview's Faces section. (S6.2 retired
   // the legacy Preview tab's Typefaces section, folded into Faces.)
-  'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts'];
+  'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts',
+  // S6.3: the value picker, and the Type preview's Scale, Line height and letter spacing, and Building blocks sections.
+  // (S6.3 retired S6.1's type-ramp.ts and type-fluid.ts, folded into Scale.)
+  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -493,7 +496,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-ramp', 'type-fluid', 'type-sample', 'faces']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-scale', 'line-spacing', 'building-blocks', 'type-sample', 'faces']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
@@ -515,14 +518,14 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(idx.includes("from './focus-ring'"), "preview/sections/index.ts exports the focus-ring section from ./focus-ring");
 }
 
-// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1, S6.2) ─────────────────────
-// The Type page's preview (S6.2) draws the legacy Preview tab's sections (Weight roles by face, the full type
-// ramp) and Layout's fluid read-out from `preview/sections/`, plus the shared type sample (#1942) and Faces; the
-// type sample is also Brand's Style guide's first section, and Layout still draws the fluid read-out until S6.3.
-// Every Type write goes through `state/type-input.ts`, so the new page writes the same bytes. Subject: `main.ts`
-// and `preview/type.ts`, read from disk, comments stripped. Oracle: the literal renderer names, each section's
-// own title or copy, and the literal write shapes the legacy closures used. A copy pasted back into `main.ts`
-// fails by what it draws; the smoke suite holds each drawn section to its marker.
+// ── Type's preview pieces and writes, out of `main.ts` (UI redesign S6.1, S6.2, S6.3) ───────────────
+// The Type page's preview draws its sections from `preview/sections/`: the shared type sample (#1942), Font
+// families, Scale (S6.3: it folds the legacy full type ramp and Layout's fluid read-out, so Layout no longer draws
+// one), Weights and styles, Line height and letter spacing, and Building blocks; the type sample is also Brand's
+// Style guide's first section. Every Type write goes through `state/type-input.ts`, so the new page writes the same
+// bytes. Subject: `main.ts` and `preview/type.ts`, read from disk, comments stripped. Oracle: the literal renderer
+// names, each section's own title or copy, and the literal write shapes the legacy closures used. A copy pasted
+// back into `main.ts` fails by what it draws; the smoke suite holds each drawn section to its marker.
 {
   const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
   const mainSrc = readFileSync(MAIN, 'utf8');
@@ -530,9 +533,10 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const typeCode = strip(readFileSync(join(SRC, 'preview/type.ts'), 'utf8'));
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
   for (const [fn, file, what, inMain] of [
-    ['weightsByFaceSection', 'weights-by-face', 'the Weight roles by face section', false],
-    ['typeRampSection', 'type-ramp', 'the type ramp', false],
-    ['paintTypeFluid', 'type-fluid', 'the fluid read-out', true],
+    ['weightsByFaceSection', 'weights-by-face', 'the Weights and styles section', false],
+    ['typeScaleSection', 'type-scale', 'the Scale section', false],
+    ['lineSpacingSection', 'line-spacing', 'the Line height and letter spacing section', false],
+    ['buildingBlocksSection', 'building-blocks', 'the Building blocks section', false],
     ['typeSampleSection', 'type-sample', 'the type sample', true],
     ['facesSection', 'faces', 'the Faces section', false],
   ] as const) {
@@ -541,10 +545,11 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports ${what} from ./${file}`);
   }
   const OWN: Array<[RegExp, string]> = [
-    [/palSection\(\s*'The full type ramp'/, "its own type ramp (palSection('The full type ramp', …))"],
-    [/palSection\(\s*'Weight roles by (face|font family)'/, "its own Weight roles by font family section (palSection('Weight roles by font family', …))"],
+    [/palSection\(\s*'(The full type ramp|Scale)'/, "its own Scale section (palSection('Scale', …), or the retired 'The full type ramp')"],
+    [/palSection\(\s*'(Weight roles by (face|font family)|Weights and styles)'/, "its own Weights and styles section (palSection('Weights and styles', …))"],
+    [/palSection\(\s*'(The size ladder|Leading & tracking ladders|Building blocks)'/, "its own Building blocks ladders (palSection('The size ladder' or 'Building blocks', …))"],
     [/The quick brown fox jumps over the lazy dog|'tsm-list'/, 'the shared type sample\'s text ("The quick brown fox jumps over the lazy dog") or its tsm-list markup'],
-    [/'fz-list'|What fluid does — /, "its own fluid read-out (the fz-list markup or \"What fluid does — \")"],
+    [/'fz-list'|What fluid does — |Sizes that merge on mobile/, "its own fluid read-out (the fz-list markup, \"What fluid does — \" or \"Sizes that merge on mobile\")"],
   ];
   for (const [re, what] of OWN) {
     const own = re.test(mainCode);

@@ -108,7 +108,7 @@ ok(ty() === with3({ weights: { title: ['emphasis', 'strong'] } }), `setCategoryW
 const labelLock = T.categoryWeightLock('label', 'emphasis', new Set(['emphasis']));
 ok(!!labelLock && labelLock.startsWith('Label always ships emphasis — ') && labelLock.endsWith('.'),
   `categoryWeightLock(label, emphasis) refuses: label keeps emphasis (${labelLock})`);
-ok(T.categoryWeightLock('display', 'strong', new Set(['strong'])) === 'Every category ships at least one weight — tick another before clearing this one.',
+ok(T.categoryWeightLock('display', 'strong', new Set(['strong'])) === 'Every text type ships at least one weight. Tick another before clearing this one.',
   'categoryWeightLock(display, strong) refuses the last shipped weight');
 ok(T.categoryWeightLock('display', 'strong', new Set(['emphasis', 'strong'])) === undefined && T.categoryWeightLock('label', 'default', new Set(['emphasis'])) === undefined,
   'categoryWeightLock allows an untick with another weight left, and a tick');
@@ -135,6 +135,33 @@ reset();
 T.setLink('display', true, new Set());
 T.setLink('title', true, new Set());
 ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the caller drew, not the first toggle's write (#831, the legacy bytes) (${ty()})`);
+
+// S6.3: the italic chips (owner decision Q6) compose the two legacy writes. prism3 loads with italics ["body"] and
+// italicDefault ["display","title"], so each chip's write is a literal worked out from those two lists.
+{
+  const sets = (): [Set<string>, Set<string>] => {
+    const t = engine();
+    return [new Set(t.composites.filter((c) => c.italic).map((c) => c.group)), new Set(t.composites.filter((c) => c.italicDefault).map((c) => c.group))];
+  };
+  reset();
+  ok(T.italicStyleOf('body', ...sets()) === 'both' && T.italicStyleOf('display', ...sets()) === 'only' && T.italicStyleOf('caption', ...sets()) === 'upright',
+    'italicStyleOf reads prism3 as loaded: body Upright + italic, display Italic only, caption Upright');
+  T.setItalicStyle('caption', 'upright', ...sets());
+  ok(pristine(), 'setItalicStyle(caption, upright) on an upright text type writes nothing');
+  T.setItalicStyle('caption', 'both', ...sets());
+  ok(ty() === with3({ italics: ['body', 'caption'] }) && takes(), `setItalicStyle(caption, both) writes italics ["body","caption"] in text-type order (${ty()})`);
+  reset();
+  T.setItalicStyle('body', 'only', ...sets());
+  ok(ty() === with3({ italicDefault: ['display', 'title', 'body'], italics: [] }) && takes(),
+    `setItalicStyle(body, only) clears body's italic first ([] left, the legacy bytes), then makes it italic only (${ty()})`);
+  T.setItalicStyle('body', 'both', ...sets());
+  ok(ty() === with3({ italicDefault: ['display', 'title'], italics: ['body'] }) && takes(),
+    `setItalicStyle(body, both) from Italic only puts body back in italics and out of italicDefault (${ty()})`);
+  reset();
+  T.setItalicStyle('display', 'upright', ...sets());
+  ok(ty() === with3({ italicDefault: ['title'] }) && takes() && engine().composites.filter((c) => c.group === 'display').every((c) => !c.italic && !c.italicDefault),
+    `setItalicStyle(display, upright) takes display out of italicDefault, and the engine ships display upright (${ty()})`);
+}
 
 console.log('\n5. Line height and letter spacing: bindings, per-mode swaps, nudges');
 reset();
@@ -184,6 +211,17 @@ ok(ty() === with3({ titleFloor: 16 }) && takes(), `setTitleFloor(on) writes 16 (
 ok(T.shapeBlocked('compact', 'default') === true, 'shapeBlocked(compact) with the 16px title floor: the engine refuses it, so the card is blocked');
 T.setTitleFloor(false);
 ok(pristine(), 'setTitleFloor(off) UNSETS titleFloor');
+// S6.3: the caption and size floors, no surface's before: the default UNSETS the key.
+T.setCaptionFloor(10);
+ok(ty() === with3({ captionFloor: 10 }) && takes() && engine().composites.some((c) => c.path.startsWith('caption.sm.')),
+  `setCaptionFloor(10) writes 10 and the engine adds caption.sm (${ty()})`);
+T.setCaptionFloor(11);
+ok(pristine(), 'setCaptionFloor(11) leaves the brand byte-identical (11 is the default: the key is unset)');
+T.setSizeFloor(8);
+ok(ty() === with3({ sizeFloor: 8 }) && takes() && engine().composites.some((c) => c.path.startsWith('caption.xs.')) && engine().sizesPx[0] === 8,
+  `setSizeFloor(8) writes 8, and the engine adds caption.xs and an 8px step (${ty()})`);
+T.setSizeFloor(10);
+ok(pristine(), 'setSizeFloor(10) leaves the brand byte-identical (10 is the default: the key is unset)');
 T.setDisplayCeiling('md');
 ok(ty() === with3({ displayCeiling: 'md' }) && takes() && JSON.stringify([...new Set(engine().composites.filter((c) => c.group === 'display').map((c) => c.variant))].sort()) === '["md","sm"]',
   'setDisplayCeiling(md) writes "md" and the engine ships display sm and md only');

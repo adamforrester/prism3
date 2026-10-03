@@ -19,7 +19,8 @@
  * Surfaces & fills' Gradients) are drawn outside `sections/` and carry no marker, and only `sections/` may
  * write one (`test-shell-imports.ts`). Two lever headings were renamed away from their preview section by the
  * owner (Q26: "Background fills"; Q44: "Foreground fills", the fills the Foreground section draws), and
- * `PREVIEW_HEADING` names their pair. A lever section with no preview section (Fields) reveals nothing.
+ * `PREVIEW_HEADING` names their pair, as it does Type's Scale limits (S6.3), whose preview is the Scale section. A lever
+ * section with no preview section (Fields) reveals nothing.
  *
  * EASED, ON THE STUDIO'S OWN MOTION TOKENS (QA-B9, QA-B17). `scrollTo({ behavior: 'smooth' })` takes neither a
  * duration nor a curve, so the scroll is stepped here, one position per animation frame, along the chrome's
@@ -193,6 +194,8 @@ export const revealGroup = (body: HTMLElement, palette: string): boolean => {
 export const PREVIEW_HEADING: Readonly<Record<string, string>> = {
   'Background fills': 'Background',
   'Foreground fills': 'Foreground',
+  // Type (S6.3): the limits change the scale, so they reveal the preview's Scale section (scope §3).
+  'Scale limits': 'Scale',
 };
 
 /** The preview section headed as the lever section `title` pairs with, in `body`, or null. */

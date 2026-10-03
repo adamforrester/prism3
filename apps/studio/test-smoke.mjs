@@ -594,13 +594,18 @@ const gotoRail = async (page, selector) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
-/** Open Type through the tab row (UI redesign S6.2: it left the Pages menu for the two panes), and wait for its
- *  levers and the legacy region they lend (`type-lent`: the heading sizes, what each text type is made of, the
- *  font-style pins, the weights, line heights and letter spacings) to draw. */
+/** Open Type through the tab row (UI redesign S6.2: it left the Pages menu for the two panes), open Scale's and
+ *  the page's Show advanced (S6.3: Individual sizes, Scale limits, Weights and styles, Line height and letter
+ *  spacing), and wait for its levers to draw. */
 const gotoType = async (page) => {
   await hooks.click(page.locator('[data-p3="tab-type"]'));
   await hooks.need(page, '[data-p3="type-levers"]');
-  await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
+  for (const hk of ['scale-advanced', 'type-sections-advanced']) {
+    const sel = `[data-p3="${hk}"]`;
+    await hooks.need(page, sel);
+    if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
+  }
+  await hooks.need(page, '[data-p3="weights-matrix"]');
   await page.evaluate(() => document.fonts.ready);
 };
 
@@ -1762,23 +1767,25 @@ for (const brand of BRANDS) {
 // =============================================================================================
 // 1f. Type — moved to the two panes (UI redesign S6.2), its preview against each brand's emission
 // =============================================================================================
-// The Type preview draws the shared type sample (#1942), Faces, the legacy Preview tab's Weight roles by face and
-// type ramp, and the fluid read-out, all from `preview/sections/`. Per corpus brand and per mode, against the
-// brand's COMMITTED EMISSION, never the page:
+// The Type preview draws the shared type sample (#1942), Font families, Scale, Weights and styles, Line height and
+// letter spacing, and Building blocks (S6.3), all from `preview/sections/`. Per corpus brand and per mode, against
+// the brand's COMMITTED EMISSION, never the page:
 //   · the sections are exactly the listed ones, in order, each a specimen root on the emission's
 //     `background.primary` in that mode, and each shared one carries the marker only its module stamps;
 //   · the type sample's lines are a display, title, body, label and caption, the display line the proposed
 //     `display.md.strong` (or the largest display style where a brand has none), each line set in its own text
 //     type's emitted face (`core.font.family.<type>`, alias followed) at its emitted size;
 //   · the Faces section names, for each text type, the face the emission binds in that mode;
-//   · in Light, the ramp lists every `type.*` style the emission carries, once, at its emitted size and weight.
-// Layout still draws the fluid read-out until S6.3, from the same module (its marker, once).
+//   · in Light, Scale lists every style (`type.<text type>.<size>`) the emission carries, once, at its emitted
+//     desktop and mobile size, with every weight it ships at the emitted number;
+//   · Layout draws no fluid read-out: S6.3 folded it into Scale (owner decision Q71).
 console.log(`\nType — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 const SG_TYPE = '[data-p3="preview-body"] [data-p3="type-style-guide"]';
-/** The Type preview's sections, by title, in order. Literal (S6.2). */
-const EXPECT_TYPE_SECTIONS = ['Type sample', 'Font families', 'Weight roles by font family', 'The full type ramp', 'Headings scale between mobile and desktop'];
+/** The Type preview's sections, by title, in order. Literal (S6.3). */
+const EXPECT_TYPE_SECTIONS = ['Type sample', 'Font families', 'Scale', 'Weights and styles', 'Line height and letter spacing', 'Building blocks'];
 /** The shared sections it draws, by title, with the marker each module stamps on its root. Literal. */
-const EXPECT_TYPE_PREVIEW_MARKER = { 'Type sample': 'type-sample', 'Font families': 'faces', 'Weight roles by font family': 'weights-by-face', 'The full type ramp': 'type-ramp' };
+const EXPECT_TYPE_PREVIEW_MARKER = { 'Type sample': 'type-sample', 'Font families': 'faces', Scale: 'type-scale', 'Weights and styles': 'weights-by-face',
+  'Line height and letter spacing': 'line-spacing', 'Building blocks': 'building-blocks' };
 let typePreviewStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1802,44 +1809,53 @@ for (const brand of BRANDS) {
       ok(!!x && x.root && x.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!x ? ' — not drawn' : !x.root ? ' — not a specimen root' : x.ground !== page0 ? ` — on ${x.ground}` : ''}`);
     }
     checkSharedMarkers(where, got, EXPECT_TYPE_PREVIEW_MARKER);
-    const fluid = await page.evaluate((sel) => document.querySelectorAll(`${sel} [data-sg-section="type-fluid"]`).length, SG_TYPE);
-    ok(fluid === 1, `${where}: the fluid read-out is the shared module's (data-sg-section="type-fluid"), once — ${fluid} node(s) carry the marker`);
     checkTypeSample(`${brand.toLowerCase()} / Type / ${mode}`, await readTypeSample(page, SG_TYPE), oracle, mode);
     const faces = await page.evaluate((sel) => [...document.querySelectorAll(`${sel} [data-sg-section="faces"] [data-p3="faces-type-row"]`)]
       .map((r) => [r.dataset.group, r.querySelectorAll('td')[1]?.textContent ?? '']), SG_TYPE);
     const offFace = faces.filter(([g, f]) => oracle.face(g, mode) !== f).map(([g, f]) => `${g} names ${f}, the emission binds ${oracle.face(g, mode)}`);
     ok(faces.length >= 6 && offFace.length === 0, `${where}: the Faces section names each text type's emitted face (${faces.length} text types)${offFace.length ? ` — ${offFace.slice(0, 3).join(' | ')}` : ''}`);
     if (mode !== 'light') continue;
-    // The ramp, in Light, against the emission: every `type.*` style once, at its emitted size and weight.
+    // Scale, in Light, against the emission: every style (`type.<text type>.<size>`) once, at its emitted desktop
+    // and mobile size, listing every weight it ships at the emitted number.
     const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
     const rootNode = tree[Object.keys(tree)[0]];
     const leaves = [];
     const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') leaves.push([`${path}.${k}`, v]); else walk(v, `${path}.${k}`); } };
     walk(rootNode.type, 'type');
     const roleNum = (r) => rootNode.core?.font?.['weight-role']?.[r]?.$extensions?.prism3?.numeric;
-    const ramp = await page.evaluate((sel) => [...document.querySelectorAll(`${sel} [data-sg-section="type-ramp"] .tr-row`)].map((r) => {
-      const x = r.querySelector('.tr-mode .tr-samp'); const cs = x ? getComputedStyle(x) : null;
-      return { path: r.querySelector('[data-p3="token-pill"]')?.textContent ?? '', size: cs?.fontSize ?? '', weight: cs?.fontWeight ?? '' };
-    }), SG_TYPE);
-    const want = new Map(leaves.map(([p, v]) => [p, v]));
-    const missing = [...want.keys()].filter((p) => !ramp.some((r) => r.path === p));
-    const extra = ramp.filter((r) => !want.has(r.path)).map((r) => r.path);
-    ok(want.size > 0 && missing.length === 0 && extra.length === 0 && ramp.length === want.size,
-      `${where}: the type ramp draws the emission's ${want.size} type.* styles, each once${missing.length || extra.length ? ` — missing ${missing.slice(0, 3).join(', ')}; extra ${extra.slice(0, 3).join(', ')}` : ` (drew ${ramp.length})`}`);
-    const offRamp = [];
-    for (const r of ramp) {
-      const v = want.get(r.path); if (!v) continue;
-      const px = v.$extensions?.prism3?.sizePx, wt = roleNum(v.$extensions?.prism3?.weightRole);
-      if (r.size !== `${px}px` || r.weight !== String(wt)) offRamp.push(`${r.path} is set ${r.size} / ${r.weight}, the emission says ${px}px / ${wt}`);
+    const want = new Map();
+    for (const [, v] of leaves) {
+      const x = v.$extensions?.prism3 ?? {};
+      const key = `${x.group}.${x.variant}`;
+      const w = want.get(key) ?? { px: x.sizePx, min: x.responsive?.min?.px ?? x.sizePx, weights: new Set() };
+      w.weights.add(`${x.weightRole} ${roleNum(x.weightRole)}`);
+      want.set(key, w);
     }
-    ok(ramp.length > 0 && offRamp.length === 0, `${where}: every ramp sample is set at its emitted size and weight${offRamp.length ? ` — ${offRamp.slice(0, 3).join(' | ')}` : ''}`);
+    const rows = await page.evaluate((sel) => [...document.querySelectorAll(`${sel} [data-sg-section="type-scale"] [data-p3="type-scale-row"]`)].map((r) => ({
+      style: r.dataset.style, pill: r.querySelector('[data-p3="token-pill"]')?.textContent ?? '',
+      desk: r.querySelector('[data-p3="type-scale-desktop"]')?.textContent ?? '', mob: r.querySelector('[data-p3="type-scale-mobile"]')?.textContent ?? '',
+      weights: r.querySelector('[data-p3="type-scale-weights"]')?.textContent ?? '',
+    })), SG_TYPE);
+    const missing = [...want.keys()].filter((k) => !rows.some((r) => r.style === k));
+    const extra = rows.filter((r) => !want.has(r.style)).map((r) => r.style);
+    ok(want.size > 0 && missing.length === 0 && extra.length === 0 && rows.length === want.size,
+      `${where}: Scale draws the emission's ${want.size} styles, each once${missing.length || extra.length ? ` — missing ${missing.slice(0, 3).join(', ')}; extra ${extra.slice(0, 3).join(', ')}` : ` (drew ${rows.length})`}`);
+    const off = [];
+    for (const r of rows) {
+      const w = want.get(r.style); if (!w) continue;
+      const wantMob = w.min !== w.px ? `${w.min}px` : 'Same';
+      const ws = r.weights.split(', ').sort().join(', '), wantWs = [...w.weights].sort().join(', ');
+      if (r.pill !== `type.${r.style}` || r.desk !== `${w.px}px` || r.mob !== wantMob || ws !== wantWs) off.push(`${r.style} reads ${r.pill} ${r.desk} / ${r.mob} / ${r.weights}, the emission says ${w.px}px / ${wantMob} / ${wantWs}`);
+    }
+    ok(rows.length > 0 && off.length === 0, `${where}: every Scale row is the emitted style at its emitted desktop and mobile size, with its weights${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
   }
   await chooseMode(page, 'light');
   await gotoRail(page, '[data-p3="rail-page-layout"]');
-  const fluid = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section="type-fluid"]')]
-    .map((n) => ({ rows: n.querySelectorAll('.fz-row').length, note: !!n.querySelector('.sl-note') })));
-  ok(fluid.length === 1 && (fluid[0].rows > 0 || fluid[0].note),
-    `${brand} / Layout: the fluid read-out is the shared module's (data-sg-section="type-fluid"), once, and holds the read-out${fluid.length !== 1 ? ` — ${fluid.length} node(s) carry the marker: drawn by something other than preview/sections/` : ` (${fluid[0].rows} scaling style(s))`}`);
+  // S6.3 (owner decision Q71): Layout no longer draws the fluid read-out; Type's Scale holds what it showed.
+  const layoutFluid = await page.evaluate(() => ({ frame: !!document.querySelector('[data-p3="legacy-frame"]'),
+    marked: document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section]').length, list: document.querySelectorAll('[data-p3="legacy-frame"] .fz-list').length }));
+  hooks.absent(ok, { seen: layoutFluid.frame, state: 'the legacy Layout page' }, layoutFluid.marked === 0 && layoutFluid.list === 0,
+    `${brand} / Layout: draws no fluid read-out (S6.3 moved it to Type's Scale)${layoutFluid.marked || layoutFluid.list ? ` — ${layoutFluid.marked} shared section(s), ${layoutFluid.list} fz-list(s)` : ''}`);
   const errs = drain();
   ok(errs.length === 0, `${brand} / Type and Layout: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
@@ -2133,19 +2149,19 @@ for (const brand of BRANDS) {
   // Brand-agnostic on purpose. The two corpus brands start on opposite sides of this (aurora ships the
   // floor on and pinned sizes; harbor does not), so a fixed click list would exercise one and silently
   // no-op on the other.
+  // S6.3: the title floor is Scale limits' 18px / 16px chips, the scale Scale's chips (Type's levers).
   await gotoType(page);
-  const floorToggle = () => page.locator('[data-p3="heading-title-floor"] input[type=checkbox]');
-  const floorOn = () => page.evaluate(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked ?? null);
+  const floorOn = () => page.evaluate(() => document.querySelector('[data-p3="title-floor-16"]')?.getAttribute('aria-checked') === 'true');
   if (await floorOn()) {
-    await hooks.click(floorToggle());
-    await page.waitForFunction(() => document.querySelector('[data-p3="heading-title-floor"] input[type=checkbox]')?.checked === false);
+    await hooks.click(page.locator('[data-p3="title-floor-18"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.getAttribute('aria-checked') === 'true');
   }
-  const release = page.locator('[data-p3="heading-shape-release"]');
-  if (await release.count()) { await hooks.click(release); await hooks.need(page, '[data-p3="heading-shapes"]'); }
-  const compact = page.locator('[data-p3="heading-shape-compact"]');
-  ok(!(await compact.isDisabled()), `${brand}: with the title floor released, the Compact shape is selectable`);
+  const release = page.locator('[data-p3="type-scale-release"]');
+  if (await release.count()) { await hooks.click(release); await hooks.need(page, '[data-p3="type-scale"]'); }
+  const compact = page.locator('[data-p3="type-scale-compact"]');
+  ok(!(await compact.isDisabled()), `${brand}: with the title floor released, the Compact scale is selectable`);
   await hooks.click(compact);
-  await page.waitForFunction(() => document.querySelector('[data-p3="heading-shape-compact"]')?.getAttribute('aria-pressed') === 'true');
+  await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-compact"]')?.getAttribute('aria-checked') === 'true');
 
   const errState = () => page.evaluate(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
@@ -2154,14 +2170,14 @@ for (const brand of BRANDS) {
   const clean = await errState();
   ok(clean.present && !clean.shown, `${brand}: the error surface is mounted and quiet before the refused edit`);
 
-  await hooks.click(floorToggle());
+  await hooks.click(page.locator('[data-p3="title-floor-16"]'));
   // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
   // loudly as the defect it is rather than passing on a measurement taken too early.
   const surfaced = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display !== 'none';
   }, null, { timeout: 5000 }).then(() => true, () => false);
-  ok(surfaced, `${brand}: an engine throw raised on Typography SURFACES (#388's defect path)`);
+  ok(surfaced, `${brand}: an engine throw raised on Type SURFACES (#388's defect path)`);
   const raised = await errState();
   ok(/titleFloor/.test(raised.text), `${brand}: the bar names what the engine refused — "${raised.text.slice(0, 90)}"`);
 
@@ -2175,7 +2191,7 @@ for (const brand of BRANDS) {
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
   await gotoType(page);
-  await hooks.click(floorToggle());
+  await hooks.click(page.locator('[data-p3="title-floor-18"]'));
   const cleared = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display === 'none';
@@ -2187,22 +2203,15 @@ for (const brand of BRANDS) {
   // category table must not offer either untick: the box is disabled, with the reason on hover. The
   // required pair (label → emphasis) is authored here, not read from the engine (docs/34). A swap the
   // owner allowed is driven too: tick a second eyebrow weight, then clear the first, with no error.
-  const weightRow = (cat) => page.evaluate((c) => {
-    const table = document.querySelector('[data-p3="category-table"]');
-    const heads = [...table.querySelectorAll('[data-p3="category-col"]')].map((t) => t.textContent.trim().toLowerCase());
-    const roles = heads.slice(0, heads.length - 5);   // then Leading, Tracking, Italic default, Italic, Link (#1296)
-    const row = [...table.querySelectorAll('tr')].find((tr) => tr.querySelector('[data-p3="category-name"]')?.textContent === c);
-    const boxes = row ? [...row.querySelectorAll('[data-p3="category-cell"] input[type=checkbox]')].slice(0, roles.length) : [];
-    return roles.map((role, i) => ({ role, checked: !!boxes[i]?.checked, disabled: !!boxes[i]?.disabled, title: boxes[i]?.title ?? '' }));
-  }, cat);
-  // The row's style count is re-derived from the rebuilt theme, so it moves only once the table has
+  // S6.3: the table is Weights and styles' matrix, one check per (text type, weight), locked with aria-disabled and
+  // the reason in its title, the style count beside each text type.
+  const weightRow = (cat) => page.evaluate((c) => [...document.querySelectorAll(`[data-p3="weights-row"][data-group="${c}"] [data-p3="weight-cell"]`)]
+    .map((b) => ({ role: b.dataset.role, checked: b.getAttribute('aria-checked') === 'true', disabled: b.getAttribute('aria-disabled') === 'true', title: b.title ?? '' })), cat);
+  // The row's style count is re-derived from the rebuilt theme, so it moves only once the matrix has
   // re-rendered: the wait is on the ENGINE's answer painting, not on the click. Read before clicking.
-  const countOf = (cat) => page.evaluate((c) => [...document.querySelectorAll('[data-p3="category-table"] tr')]
-    .find((tr) => tr.querySelector('[data-p3="category-name"]')?.textContent === c)?.querySelector('[data-p3="category-count"]')?.textContent, cat);
-  const repainted = (cat, before) => page.waitForFunction(({ c, b }) => [...document.querySelectorAll('[data-p3="category-table"] tr')]
-    .find((tr) => tr.querySelector('[data-p3="category-name"]')?.textContent === c)?.querySelector('[data-p3="category-count"]')?.textContent !== b, { c: cat, b: before });
-  const boxIn = (cat, row0, role) => page.locator('[data-p3="category-table"] tr').filter({ has: page.locator('[data-p3="category-name"]', { hasText: new RegExp(`^${cat}$`) }) })
-    .locator('[data-p3="category-cell"] input[type=checkbox]').nth(row0.findIndex((b) => b.role === role));
+  const countOf = (cat) => page.evaluate((c) => document.querySelector(`[data-p3="weights-row"][data-group="${c}"] [data-p3="weights-count"]`)?.textContent, cat);
+  const repainted = (cat, before) => page.waitForFunction(({ c, b }) => document.querySelector(`[data-p3="weights-row"][data-group="${c}"] [data-p3="weights-count"]`)?.textContent !== b, { c: cat, b: before });
+  const boxIn = (cat, _row0, role) => page.locator(`[data-p3="weights-row"][data-group="${cat}"] [data-p3="weight-cell"][data-role="${role}"]`);
   // Give label a SECOND weight first, so the last-weight rule cannot be what holds `emphasis`: only
   // the label rule can, and the box must say why.
   const label0 = await weightRow('label');
@@ -2269,20 +2278,17 @@ for (const brand of BRANDS) {
       const leaves = leavesOf(n);
       return leaves.length > 0 && leaves.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k));
     }).map(([cat]) => cat).sort();
-    const shown = await page.evaluate(() => {
-      const table = document.querySelector('[data-p3="category-table"]');
-      const heads = [...table.querySelectorAll('[data-p3="category-col"]')].map((t) => t.textContent.trim().toLowerCase());
-      const idIdx = heads.indexOf('italic default'), iIdx = heads.indexOf('italic');
-      return [...table.querySelectorAll('tr')].filter((tr) => tr.querySelector('[data-p3="category-name"]')).map((tr) => {
-        const boxes = [...tr.querySelectorAll('[data-p3="category-cell"]')].map((td) => td.querySelector('input[type=checkbox]'));
-        return { cat: tr.querySelector('[data-p3="category-name"]').textContent, idOn: !!boxes[idIdx]?.checked, iDisabled: !!boxes[iIdx]?.disabled, found: idIdx >= 0 && iIdx >= 0 };
-      });
-    });
+    // S6.3: the italic styles are a 3-chip per text type (owner decision Q6); "Italic only" is the italic default.
+    const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="italic-row"]')].map((r) => ({
+      cat: r.dataset.group, idOn: r.querySelector('[data-p3="italic-choice-only"]')?.getAttribute('aria-checked') === 'true',
+      checked: r.querySelectorAll('[role="radio"][aria-checked="true"]').length, found: !!r.querySelector('[data-p3="italic-choice-only"]') && !!r.querySelector('[data-p3="italic-choice-both"]'),
+      iDisabled: r.querySelector('[data-p3="italic-choice-both"]')?.getAttribute('aria-checked') !== 'true',
+    })));
     const shownOn = shown.filter((r) => r.idOn).map((r) => r.cat).sort();
     ok(shown.length > 0 && shown.every((r) => r.found) && JSON.stringify(shownOn) === JSON.stringify(expected),
-      `${brand}: the Italic default column ticks exactly the categories the emission sets italic [${expected.join(', ') || 'none'}] (shows [${shownOn.join(', ') || 'none'}])`);
-    ok(shown.filter((r) => r.idOn).every((r) => r.iDisabled),
-      `${brand}: an italic-default category's Italic box is disabled — the engine refuses both (${shown.filter((r) => r.idOn).map((r) => `${r.cat}:${r.iDisabled ? 'disabled' : 'LIVE'}`).join(', ') || 'none to check'})`);
+      `${brand}: "Italic only" is on for exactly the text types the emission sets italic [${expected.join(', ') || 'none'}] (shows [${shownOn.join(', ') || 'none'}])`);
+    ok(shown.every((r) => r.checked === 1) && shown.filter((r) => r.idOn).every((r) => r.iDisabled),
+      `${brand}: each text type has exactly one italic chip on, so Italic only and Upright + italic never both hold — the engine refuses both (${shown.map((r) => `${r.cat}:${r.checked}`).join(', ')})`);
   }
 
   const errs = drain();
@@ -3754,6 +3760,52 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Pin-a-cut control raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`  ${brand}: pinned ${cat} · ${role} → "${STYLE}" (face ${boundFace}), verified in brand input + ${emitted?.length ?? 0} emitted leaves, then cleared.`);
+  await ctx.close();
+}
+
+// The italic chips (UI redesign S6.3, owner decision Q6): each chip, round-tripped through the EXPORTED DTCG.
+//
+// Each of Type's italic chips writes the brand through `setItalicStyle`; the oracle is the emission the studio
+// exports after the click, read for the text type's `type.<text type>.*` leaves and their `$value.fontStyle`, with
+// the rule typed here from the engine's contract (#1296): "Upright" ships no italic leaf; "Upright + italic" ships
+// an `-italic` twin for each upright style, italic, and keeps the upright ones upright; "Italic only" ships no
+// `-italic` twin and every leaf italic. A chip mapped to the wrong write fails by name.
+console.log(`\nItalic chips, through the exported DTCG (S6.3)\n${'='.repeat(78)}`);
+{
+  const brand = BRANDS[0];
+  const G = 'caption';
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoType(page);
+  const exported = async () => {
+    await hooks.click(page.locator('[data-p3="export-open"]'));
+    await hooks.need(page, '[data-p3="export-dialog"]');
+    const pending = page.waitForEvent('download');
+    await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'));
+    const dl = await pending;
+    try {
+      const tree = JSON.parse(await readFile(await dl.path(), 'utf8'));
+      const root = tree[Object.keys(tree).find((k) => !k.startsWith('$'))];
+      const out = [];
+      const walk = (n, path) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$') || !v || typeof v !== 'object') continue; if (v.$type === 'typography') out.push({ key: `${path}.${k}`, italic: v.$value?.fontStyle === 'italic' }); else walk(v, `${path}.${k}`); } };
+      walk(root?.type?.[G], `type.${G}`);
+      return out;
+    } catch { return null; }
+  };
+  const RULE = {
+    upright: (ls) => ls.length > 0 && ls.every((l) => !l.italic && !/-italic/.test(l.key)),
+    both: (ls) => ls.some((l) => /-italic/.test(l.key)) && ls.every((l) => (/-italic/.test(l.key) ? l.italic : !l.italic)),
+    only: (ls) => ls.length > 0 && ls.every((l) => l.italic && !/-italic/.test(l.key)),
+  };
+  const WORDS = { upright: 'Upright', both: 'Upright + italic', only: 'Italic only' };
+  const SAYS = { upright: 'no italic style', both: 'an italic twin for each upright style', only: 'fontStyle italic with no upright style' };
+  for (const chip of ['both', 'only', 'upright']) {
+    await hooks.click(page.locator(`[data-p3="italic-row"][data-group="${G}"] [data-p3="italic-choice-${chip}"]`));
+    await page.waitForFunction(({ g, c }) => document.querySelector(`[data-p3="italic-row"][data-group="${g}"] [data-p3="italic-choice-${c}"]`)?.getAttribute('aria-checked') === 'true', { g: G, c: chip }, { timeout: 5000 }).catch(() => {});
+    const ls = await exported();
+    ok(!!ls && RULE[chip](ls), `italics chip "${WORDS[chip]}" on ${G} exports ${SAYS[chip]} (${ls ? ls.map((l) => `${l.key.split('.').slice(2).join('.')}${l.italic ? '*' : ''}`).join(' ') : 'no export'})`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: driving the italic chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 

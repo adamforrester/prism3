@@ -442,9 +442,8 @@ const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect
   '[data-p3="surfaces-style-guide"]',
   // S5.2: Color › Interactive's preview, the same way. Its specimens are held to the brand's page color in section 19.
   '[data-p3="interactive-style-guide"]',
-  // S6.2: Type's preview, the same way (section 20), and the legacy region its LEVERS lend until S6.3 (pinned light,
-  // `styles.css`: the legacy page's own controls, held in section 4 for #1031 and in section 20 for Q59).
-  '[data-p3="type-style-guide"]', '[data-p3="type-lent"]'];
+  // S6.2: Type's preview, the same way (section 20). (S6.2 also lent its levers a legacy region, retired in S6.3.)
+  '[data-p3="type-style-guide"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -954,23 +953,23 @@ for (const theme of ['light', 'dark']) {
 console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  // Legacy fields: Color moved to the two panes in S2, S4a and S5.2 and Type in S6.2, so this reads the legacy region
-  // Type's levers lend (its heading scale and weights are selects and text fields), the same legacy markup.
-  await goPlace(page, 'type');
-  await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
+  // Legacy fields: Color moved to the two panes in S2, S4a and S5.2 and Type in S6.2 (S6.3 retired the legacy region
+  // Type's levers lent), so this reads Layout, still a legacy page, whose grid columns are a legacy select.
+  await goPlace(page, 'layout');
+  await hooks.need(page, '[data-p3="legacy-page"]');
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
     const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
     const ground = (n0) => { let acc = null; for (let n = n0; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ? over(acc, parse(getComputedStyle(document.body).backgroundColor)) : parse(getComputedStyle(document.body).backgroundColor); };
-    const fields = [...document.querySelectorAll(':is([data-p3="legacy-page"], [data-p3="type-lent"]) :is(input[type="text"], input:not([type]), select)')]
+    const fields = [...document.querySelectorAll('[data-p3="legacy-page"] :is(input[type="text"], input:not([type]), select)')]
       .filter((n) => n.getBoundingClientRect().width > 0);
     return { doc: getComputedStyle(document.documentElement).colorScheme, fields: fields.map((n) => {
       const cs = getComputedStyle(n); const g = ground(n); const x = lum(over(parse(cs.color), g)), y = lum(g);
       return { name: n.getAttribute('data-p3') ?? n.className, value: n.value, scheme: cs.colorScheme, r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100 };
     }) };
   });
-  const where = `${host} dark / Type`;
+  const where = `${host} dark / Layout`;
   ok(/\bdark\b/.test(f.doc), `${where}: the document resolves a dark color-scheme ("${f.doc}") — the premise this check is about`);
   ok(f.fields.length >= 1, `${where}: measured ${f.fields.length} legacy field(s) (floor 1)`);
   const bad = f.fields.filter((x) => /\bdark\b/.test(x.scheme) || x.r < TEXT_MIN);
@@ -3656,13 +3655,22 @@ for (const { w, h } of WIDTHS) {
 }
 
 // =============================================================================================
-// 20. Type (S6.2): Faces in the two panes, the type sample and Faces in the preview, the lent legacy region
+// 20. Type (S6.2, S6.3): Font families in the two panes, the type sample and the preview's sections
 // =============================================================================================
-console.log(`\nType (S6.2)\n${'='.repeat(78)}`);
+console.log(`\nType (S6.2, S6.3)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the Type preview's specimen roots, each a section on the
- *  brand's page color. Literal: the shared type sample (#1942), Faces, the two lifted Preview-tab sections, and the
- *  fluid read-out under the owner's plain words (Q70). */
-const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Font families', 'Weight roles by font family', 'The full type ramp', 'Headings scale between mobile and desktop'];
+ *  brand's page color. Literal: the shared type sample (#1942), then one section per lever section (Q23), then the
+ *  read-only Building blocks (Q73). */
+const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Font families', 'Scale', 'Weights and styles', 'Line height and letter spacing', 'Building blocks'];
+/** Open every Show advanced on Type (Font families', Scale's and the page's), so the S6.3 levers are drawn. */
+const openTypeAdvanced = async (page) => {
+  for (const hk of ['type-advanced', 'scale-advanced', 'type-sections-advanced']) {
+    const sel = `[data-p3="${hk}"]`;
+    await hooks.need(page, sel);
+    if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
+    await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-expanded') === 'true', sel);
+  }
+};
 /** The text types, in order, each with the plain name its token carries under it (owner decision Q68, its example
  *  "Body face", with the owner's rule of 2026-10-02 applied: never "face" in visible copy). Literal. */
 const TYPE_FACES = [['display', 'Display family'], ['title', 'Title family'], ['body', 'Body family'], ['label', 'Label family'],
@@ -3722,7 +3730,7 @@ for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
     await goPlace(page, 'type');
-    await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
+    await hooks.need(page, '[data-p3="lever-typography-type-scale"]');
     const r = await page.evaluate(() => {
       const pane = document.querySelector('[data-p3="levers-pane"]');
       const fams = [...pane.querySelectorAll('[data-p3="family-row"]')].map((row) => {
@@ -3739,7 +3747,7 @@ for (const host of ['web', 'figma']) {
       return {
         blocks: ['lever-typography-typeface-library', 'lever-typography-families'].map((hk) => pane.querySelectorAll(`[data-p3="${hk}"]`).length),
         fams, lib, tabs: pane.querySelectorAll('.pvseg').length + document.querySelectorAll('[data-p3="legacy-page"] .pvseg').length,
-        lent: ['heading-shapes', 'category-table', 'pin-cut-table'].map((hk) => !!pane.querySelector(`[data-p3="type-lent"] [data-p3="${hk}"]`)),
+        lent: pane.querySelectorAll('[data-p3="type-lent"], .p3-legacy-card').length,
         leverCopy: [lsec?.querySelector('.p3-lsec-title')?.textContent ?? null, lsec?.querySelector('.p3-lsec-desc')?.textContent ?? null],
         previewCopy: [prev?.querySelector('.psec-t')?.textContent ?? null, prev?.querySelector('.psec-d')?.textContent ?? null],
         source: document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null,
@@ -3757,7 +3765,7 @@ for (const host of ['web', 'figma']) {
     ok(!!code && code.options.includes('None — no code styles'), `Q75: ${host}: code's select offers "None — no code styles" (${JSON.stringify(code?.options)})`);
     ok(r.lib.length >= 3 && r.lib.every((x) => x.first === `font.typeface.${x.slug}`), `Q68: ${host}: every library face is named by its token first (${JSON.stringify(r.lib)})`);
     ok(r.tabs === 0, `${host}: the four-tab bar (Primitives · Semantics · Text styles · Preview) is gone (${r.tabs} drawn)`);
-    ok(r.lent.every(Boolean), `${host}: the lent region draws the legacy heading sizes, the text-type table and the font-style pins (${JSON.stringify(r.lent)})`);
+    ok(r.lent === 0, `${host}: the levers draw no lent legacy region (S6.3 retired it; ${r.lent} drawn)`);
     ok(JSON.stringify(r.leverCopy) === JSON.stringify(FACES_COPY) && JSON.stringify(r.previewCopy) === JSON.stringify(r.leverCopy),
       `Q23: ${host}: the Faces lever section and the preview's Faces section have one heading and description — levers ${JSON.stringify(r.leverCopy)}, preview ${JSON.stringify(r.previewCopy)}`);
     ok(r.source === 'On this device', `${host}: before the host sends a font list, the library's availability reads "On this device" (${r.source})`);
@@ -3768,6 +3776,8 @@ for (const host of ['web', 'figma']) {
     const after = await page.evaluate(() => ({ all: !!document.querySelector('[data-p3="family-all-apply"]'), label: document.querySelector('[data-p3="type-advanced"]')?.textContent?.trim(), expanded: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-expanded') }));
     ok(!before.all && before.label === 'Show 2 advanced' && after.all && after.expanded === 'true' && after.label === 'Hide 2 advanced',
       `Q64: ${host}: Apply to all sits behind "Show 2 advanced" (${JSON.stringify({ before, after })})`);
+    // S6.3: the other two folds, so the scans below read every lever on the page.
+    await openTypeAdvanced(page);
     // The owner's rule (2026-10-02): never "face" as a word in visible copy, on the levers (the lent region, the
     // info toggletips, which are in the DOM while hidden, and Show advanced's controls included) or the preview. Read off the rendered DOM: every text
     // node, option and aria-label, title and placeholder, with the token pills taken out (`font.typeface.*` is a
@@ -3784,6 +3794,23 @@ for (const host of ['web', 'figma']) {
       return out;
     });
     ok(faceWords.length === 0, `owner rule: ${host}: no "face" or "faces" in the Type page's visible copy, levers and preview, token pills aside${faceWords.length ? ` — found ${faceWords.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
+    // The owner's plain words (Q70, with Q53, Q57 and Q58), read the same way, every Show advanced open: no "rung",
+    // "leading", "tracking", "cut", "baseline", "weight role", "category", "column", "band" or "muted" in the Type
+    // page's visible copy. The words are typed here, from the decisions.
+    const PLAIN = /\b(rungs?|leading|tracking|cuts?|baseline|weight roles?|categor(y|ies)|columns?|bands?|muted)\b/i;
+    const plainWords = await page.evaluate((src) => {
+      const re = new RegExp(src, 'i');
+      const out = [];
+      for (const root of [document.querySelector('[data-p3="levers-pane"]'), document.querySelector('[data-p3="preview-body"]')]) {
+        const c = root.cloneNode(true);
+        for (const t of c.querySelectorAll('[data-p3="token-pill"], .p3-fill-tok')) t.remove();
+        const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) if (re.test(n.textContent)) out.push(n.textContent.trim().slice(0, 80));
+        for (const e of c.querySelectorAll('[aria-label], [title], [placeholder], [aria-description]')) for (const a of ['aria-label', 'title', 'placeholder', 'aria-description']) { const v = e.getAttribute(a); if (v && re.test(v)) out.push(`${a} "${v.slice(0, 80)}"`); }
+      }
+      return out;
+    }, PLAIN.source);
+    ok(plainWords.length === 0, `Q70 plain words: ${host}: no "rung", "leading", "tracking", "cut", "baseline", "weight role", "category", "column", "band" or "muted" in the Type page's visible copy, levers and preview${plainWords.length ? ` — found ${plainWords.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
     ok(errors.length === 0, `${host} Type levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
@@ -3853,10 +3880,12 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
     await goPlace(page, 'type');
-    await hooks.need(page, '[data-p3="type-lent"] [data-p3="heading-shapes"]');
-    /** The floor on the controls a derived mode must hold disabled: the seven face selects and the lent region's
-     *  heading shapes alone are more than 10, and the lent tables carry dozens. */
-    const DERIVED_CONTROLS_FLOOR = 40;
+    await hooks.need(page, '[data-p3="lever-typography-type-scale"]');
+    // Every Show advanced open first, in Light, so the S6.3 sections are drawn when a derived mode is previewed.
+    await openTypeAdvanced(page);
+    /** The floor on the controls a derived mode must hold disabled: the weights matrix alone is 42 checks, the
+     *  italic chips 21, the nudges 14 and the line height and letter spacing pickers 13. */
+    const DERIVED_CONTROLS_FLOOR = 150;
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="type-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
@@ -3868,13 +3897,15 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Type ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
-        `Q59: previewing ${label}, every control on Type is disabled, the lent region included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['family-select', 'face-add-input', 'face-add', 'type-advanced', 'heading-shape-compact'])
+        `Q59: previewing ${label}, every control on Type is disabled, the advanced sections included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['family-select', 'face-add-input', 'face-add', 'type-advanced', 'type-scale-compact', 'scale-advanced', 'type-size-desktop', 'type-size-mobile',
+        'type-fluid', 'type-min-viewport', 'type-ceiling', 'title-floor-16', 'caption-floor-10', 'size-floor-8', 'weight-pick', 'weight-cell', 'link-cell',
+        'italic-choice-only', 'pin-cut-input', 'lh-pick', 'ls-pick', 'nudge-lh', 'nudge-ls'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Type is among those held disabled`);
     }
     await chooseAnyMode(page, 'light');
-    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="type-derived"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, lent: document.querySelector('[data-p3="heading-shape-compact"]')?.disabled }));
-    ok(!back.line && back.sel === false && back.lent === false, `Q59: back in Light, Type's derived line is gone and its controls, lent ones included, are editable (${JSON.stringify(back)})`);
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="type-derived"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, scale: document.querySelector('[data-p3="type-scale-compact"]')?.disabled, weight: document.querySelector('[data-p3="weight-pick"]')?.disabled }));
+    ok(!back.line && back.sel === false && back.scale === false && back.weight === false, `Q59: back in Light, Type's derived line is gone and its controls, the advanced ones included, are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `type derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S6.2 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
@@ -3904,6 +3935,230 @@ for (const { w, h } of WIDTHS) {
       } finally { await ctx.close(); }
     }
   }
+}
+
+// =============================================================================================
+// 20b. Type (S6.3): Scale, Scale limits, Weights and styles, Line height and letter spacing — represented, their
+//      copy, the Q23 pairs, the label read first (QA-B2), the previewed mode (Q22, Q62), brand-wide values from any
+//      editable mode (Q54), the style count's repaint (#831), and typography.responsive's one home (Q71)
+//
+//      Independence (docs/34): the copy, the lever hooks, the pairs and the expected writes are literals typed here
+//      from the owner's decisions and the legacy page's bytes; the style counts come from the committed emission;
+//      every write is read back from the PERSISTED brand (`prism3:brandInput`).
+//
+//      Mutations this fails by name: a Dark weight edit writing the brand value → `previewing Dark, a weight edit
+//      writes modeLevers.dark.weights.strong and not the brand value …`; Layout's responsive section left in →
+//      `typography.responsive is drawn on Type only — also on Layout …`.
+// =============================================================================================
+console.log(`\nType (S6.3)\n${'='.repeat(78)}`);
+/** Q23: each lever section, in order, and the preview section it pairs with (Scale limits with Scale, scope §3). */
+const TYPE_PAIRS = [['Font families', 'Font families'], ['Scale', 'Scale'], ['Scale limits', 'Scale'], ['Weights and styles', 'Weights and styles'],
+  ['Line height and letter spacing', 'Line height and letter spacing']];
+/** The S6.3 sections' descriptions, DRAFT, literal (the preview's paired section says the same, Q23). */
+const TYPE_S63_COPY = {
+  Scale: 'The size of each heading style on desktop and mobile, and the scale they step along.',
+  'Scale limits': 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.',
+  'Weights and styles': 'The weight behind each name, the weights each text type ships, and its italic and link styles.',
+  'Line height and letter spacing': 'The step each line height and letter spacing name uses, and how far each text type moves from it.',
+};
+/** Every S6.3 lever, by its hook, drawn once each (represented, not counted). */
+const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-sizes', 'lever-typography-responsive', 'lever-typography-display-ceiling',
+  'lever-typography-title-floor', 'lever-typography-caption-floor', 'lever-typography-size-floor', 'lever-typography-weight-roles', 'lever-typography-weights',
+  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift'];
+/** Literal copy on the controls: the chips (the manifest's scale labels; Q6's italic chips), the floors, the
+ *  owner's words for fluid sizing (Q70) and the way to Layout. */
+const TYPE_S63_WORDS = {
+  scale: ['Compact', 'Default', 'Expressive'], italic: ['Upright', 'Upright + italic', 'Italic only'],
+  title: ['18px', '16px'], caption: ['11px', '10px'], size: ['10px', '8px'],
+  fluid: 'Headings scale between mobile and desktop', layout: 'Depends on Layout: breakpoints',
+};
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await openTypeAdvanced(page);
+    const r = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const txt = (sel) => [...pane.querySelectorAll(sel)].map((n) => n.textContent.trim());
+      const nameOf = (row) => { const n = row?.querySelector('.p3-fill-name'); return n ? [...n.children].slice(0, 2).map((c) => [c.className, c.textContent]) : null; };
+      return {
+        levers: Object.fromEntries([...pane.querySelectorAll('[data-p3^="lever-typography-"]')].map((n) => n.getAttribute('data-p3')).reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map())),
+        lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
+        psec: [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
+        words: {
+          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] [role="radio"]'),
+          title: txt('[data-p3="title-floor"] [role="radio"]'), caption: txt('[data-p3="caption-floor"] [role="radio"]'), size: txt('[data-p3="size-floor"] [role="radio"]'),
+          fluid: pane.querySelector('[data-p3="lever-typography-responsive"] .p3-lever-name')?.textContent ?? null,
+          layout: pane.querySelector('[data-p3="type-fluid-layout"]')?.textContent?.trim() ?? null,
+        },
+        folds: ['type-advanced', 'scale-advanced', 'type-sections-advanced'].map((hk) => document.querySelector(`[data-p3="${hk}"]`)?.textContent?.trim()),
+        names: {
+          weight: nameOf(pane.querySelector('[data-p3="weight-row"][data-role="strong"]')),
+          lh: nameOf(pane.querySelector('[data-p3="lh-row"][data-key="normal"]')),
+          size: nameOf(pane.querySelector('[data-p3="type-size-row"][data-group="title"]')),
+          matrix: nameOf(pane.querySelector('[data-p3="weights-row"][data-group="body"]')),
+        },
+      };
+    });
+    const missing = TYPE_S63_LEVERS.filter((k) => r.levers[k] !== 1).map((k) => `${k} ×${r.levers[k] ?? 0}`);
+    ok(missing.length === 0, `${host}: every S6.3 Type lever is drawn once (${TYPE_S63_LEVERS.length})${missing.length ? ` — ${missing.join(', ')}` : ''}`);
+    ok(JSON.stringify(r.lsec.map(([t]) => t)) === JSON.stringify(TYPE_PAIRS.map(([t]) => t)), `${host}: Type's lever sections, in order: ${TYPE_PAIRS.map(([t]) => t).join(', ')} — drew ${r.lsec.map(([t]) => t).join(', ')}`);
+    for (const [title, want] of TYPE_PAIRS) {
+      const lev = r.lsec.find(([t]) => t === title), pre = r.psec.find(([t]) => t === want);
+      ok(!!lev && !!pre && (title !== want || lev[1] === pre[1]),
+        `Q23: ${host}: the lever section "${title}" pairs with the preview's "${want}"${title === want ? ', one description on both sides' : ''} — levers ${JSON.stringify(lev)}, preview ${JSON.stringify(pre)}`);
+      if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
+    }
+    for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 2 advanced', 'Hide 1 advanced', 'Hide 12 advanced']), `${host}: the three Show advanced folds, open, read Hide 2, Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
+    const WANT_NAMES = {
+      weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
+      matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
+    };
+    for (const [k, want] of Object.entries(WANT_NAMES)) ok(JSON.stringify(r.names[k]) === JSON.stringify(want), `QA-B2: ${host}: the ${k} control reads its label first and its token under it, ${JSON.stringify(want)} (${JSON.stringify(r.names[k])})`);
+    ok(r.names.size?.[0]?.[0] === 'p3-fill-label' && /^type\.title\./.test(r.names.size?.[1]?.[1] ?? ''), `QA-B2: ${host}: a heading size reads its label first and its type.title.* token under it (${JSON.stringify(r.names.size)})`);
+    ok(errors.length === 0, `${host} Type S6.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S6.3 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The previewed mode (Q22, Q62): previewing Dark, a weight, a heading's desktop size and a line height swap write
+// modeLevers.dark.* and leave the brand value alone, each shown as "Auto: follows Light (…)" until set; a brand-wide
+// value (a nudge) writes the same bytes from Dark as from Light (Q54); a value that breaks the order is offered
+// disabled with its reason and writes nothing; the style count follows a weight tick at once (#831).
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await openTypeAdvanced(page);
+    const p0 = await persisted(page);
+    /** Open a value picker by its button, click a value, and wait for the repaint. */
+    const pick = async (btn, v) => {
+      if ((await page.locator(btn).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(btn));
+      await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${v}"]`));
+      await page.waitForFunction((x) => document.querySelector(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${x}"]`)?.getAttribute('aria-pressed') === 'true', String(v), { timeout: 5000 }).catch(() => {});
+    };
+    const reset = async (btn) => {
+      if ((await page.locator(btn).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(btn));
+      await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'));
+      await page.waitForTimeout(80);
+    };
+    const close = async () => { if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]')); };
+    // In Light, a weight past its neighbor is offered disabled with the reason, and clicking it writes nothing.
+    await hooks.click(page.locator('[data-p3="weight-pick"][data-role="strong"]'));
+    const refused = await page.evaluate(() => { const b = document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="300"]'); return { off: b?.getAttribute('aria-disabled'), why: b?.querySelector('.p3-vpick-why')?.textContent ?? null }; });
+    ok(refused.off === 'true' && refused.why === 'Lighter than emphasis (500). Weights stay in order.', `Q65: the strong weight's 300 is offered disabled with its reason (${JSON.stringify(refused)})`);
+    await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="300"]'));
+    await page.waitForTimeout(80);
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'Q65: clicking a disabled weight writes nothing');
+    await close();
+    // #831: a weight tick repaints the text type's style count at once. Oracle: the emission's type.display leaves
+    // and its display sizes, so ticking one more weight adds one style per size.
+    const dispLeaves = (() => { const out = []; const w = (n) => { for (const [k, v] of Object.entries(n ?? {})) { if (k.startsWith('$')) continue; if (v?.$type === 'typography') out.push(v); else w(v); } }; w(OUT[OUT_ROOT]?.type?.display); return out; })();
+    const dispSizes = new Set(dispLeaves.map((v) => v.$extensions?.prism3?.variant)).size;
+    const countOf = () => page.evaluate(() => document.querySelector('[data-p3="weights-row"][data-group="display"] [data-p3="weights-count"]')?.textContent ?? null);
+    ok((await countOf()) === `${dispLeaves.length} styles`, `#831: display's style count is the emission's ${dispLeaves.length} styles (${await countOf()})`);
+    await hooks.click(page.locator('[data-p3="weights-row"][data-group="display"] [data-p3="weight-cell"][data-role="subtle"]'));
+    await page.waitForFunction((w) => document.querySelector('[data-p3="weights-row"][data-group="display"] [data-p3="weights-count"]')?.textContent === w, `${dispLeaves.length + dispSizes} styles`, { timeout: 5000 }).catch(() => {});
+    ok((await countOf()) === `${dispLeaves.length + dispSizes} styles`, `#831: ticking subtle on display repaints its count at once, ${dispLeaves.length + dispSizes} styles (${await countOf()})`);
+    await hooks.click(page.locator('[data-p3="weights-row"][data-group="display"] [data-p3="weight-cell"][data-role="subtle"]'));
+    await page.waitForFunction((w) => document.querySelector('[data-p3="weights-row"][data-group="display"] [data-p3="weights-count"]')?.textContent === w, `${dispLeaves.length} styles`, { timeout: 5000 }).catch(() => {});
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), '#831: unticking it returns the persisted brand to its bytes');
+    // A nudge in Light (brand-wide), its bytes noted, then undone.
+    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('1');
+    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
+    const pLight = await persisted(page);
+    ok(pLight?.typography?.leadingShift?.body === 1 && pLight?.modeLevers === undefined, `type: in Light, body one step looser writes typography.leadingShift.body 1 (${JSON.stringify(pLight?.typography?.leadingShift)})`);
+    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('0');
+    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '0');
+    const pZero = await persisted(page);
+    await chooseMode(page, 'dark');
+    // Dark: the weight.
+    const auto = await page.evaluate(() => document.querySelector('[data-p3="weight-pick"][data-role="strong"] .p3-btn-label')?.textContent);
+    ok(auto === 'Auto: follows Light (600)', `Q62: previewing Dark, the strong weight reads "Auto: follows Light (600)" ("${auto}")`);
+    await pick('[data-p3="weight-pick"][data-role="strong"]', 700);
+    const p1 = await persisted(page);
+    ok(p1?.modeLevers?.dark?.weights?.strong === 700 && JSON.stringify(p1?.typography?.weightRoles) === JSON.stringify(p0?.typography?.weightRoles),
+      `previewing Dark, a weight edit writes modeLevers.dark.weights.strong and not the brand value — wrote modeLevers ${JSON.stringify(p1?.modeLevers)}, typography.weightRoles ${JSON.stringify(p1?.typography?.weightRoles)}`);
+    await reset('[data-p3="weight-pick"][data-role="strong"]');
+    await close();
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(pZero), 'Q62: Return to Auto on the Dark weight prunes modeLevers: the persisted brand is the one before');
+    // Dark: a heading's desktop size.
+    const sizeBtn = '[data-p3="type-size-desktop"][data-group="title"][data-variant="xs"]';
+    const sAuto = await page.evaluate((s) => document.querySelector(`${s} .p3-btn-label`)?.textContent, sizeBtn);
+    ok(sAuto === 'Auto: follows Light (18px)', `Q62: previewing Dark, title xs's desktop size reads "Auto: follows Light (18px)" ("${sAuto}")`);
+    await pick(sizeBtn, 16);
+    const p2 = await persisted(page);
+    ok(p2?.modeLevers?.dark?.typeSizes?.title?.xs === 16 && p2?.typography?.sizes === undefined,
+      `previewing Dark, a heading's desktop size writes modeLevers.dark.typeSizes.title.xs and not typography.sizes — wrote ${JSON.stringify(p2?.modeLevers)}, ${JSON.stringify(p2?.typography?.sizes)}`);
+    await reset(sizeBtn);
+    await close();
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(pZero), 'Q62: Return to Auto on the Dark size prunes modeLevers');
+    // Dark: a line height swap (Light has none).
+    await page.locator('[data-p3="lh-swap"][data-name="normal"]').selectOption('relaxed');
+    await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === 'relaxed');
+    const p3 = await persisted(page);
+    ok(p3?.modeLevers?.dark?.lineHeights?.normal === 'relaxed' && JSON.stringify(p3?.typography) === JSON.stringify(pZero?.typography),
+      `previewing Dark, a line height swap writes modeLevers.dark.lineHeights.normal and nothing brand-wide — wrote ${JSON.stringify(p3?.modeLevers)}`);
+    await page.locator('[data-p3="lh-swap"][data-name="normal"]').selectOption('');
+    await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === '');
+    // Dark: the same nudge writes the same bytes as from Light (Q54).
+    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('1');
+    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(pLight), 'Q54: previewing Dark, body one step looser writes the same bytes as from Light');
+    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('0');
+    await chooseMode(page, 'light');
+    // The floors: caption 10 then back unsets; size 8 shows its warning, then back.
+    await hooks.click(page.locator('[data-p3="caption-floor-10"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true');
+    ok((await persisted(page))?.typography?.captionFloor === 10, 'type: the 10px caption floor writes typography.captionFloor 10');
+    await hooks.click(page.locator('[data-p3="caption-floor-11"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-11"]')?.getAttribute('aria-checked') === 'true');
+    ok(!('captionFloor' in ((await persisted(page))?.typography ?? {})), 'type: back to 11px, the caption floor is unset (the default)');
+    await hooks.click(page.locator('[data-p3="size-floor-8"]'));
+    await hooks.need(page, '[data-p3="size-floor-warn"]');
+    const warn = await page.evaluate(() => document.querySelector('[data-p3="size-floor-warn"]')?.textContent);
+    ok(warn === '8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative.', `type: the 8px size floor shows its warning ("${warn}")`);
+    await hooks.click(page.locator('[data-p3="size-floor-10"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="size-floor-warn"]'));
+    // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
+    const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
+    await pinIn.fill('Medium');
+    await pinIn.evaluate((e) => e.blur());
+    await page.waitForFunction(() => document.querySelector('[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice-only"]')?.disabled === true, null, { timeout: 5000 }).catch(() => {});
+    const only = await page.evaluate(() => { const b = document.querySelector('[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice-only"]'); return { off: b?.disabled, why: b?.title }; });
+    ok(only.off === true && only.why === 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.', `type: with a pinned style, body's "Italic only" is disabled with its reason (${JSON.stringify(only)})`);
+    await page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]').fill('');
+    await page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]').evaluate((e) => e.blur());
+    await page.waitForFunction(() => document.querySelector('[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice-only"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: every edit undone, the persisted brand is the one loaded');
+    ok(errors.length === 0, `type S6.3 edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// typography.responsive has one home (owner decision Q71): Type › Scale limits draws it, and the legacy Layout page,
+// which drew "Responsive type sizing" and its fluid read-out (#361), no longer does. Both hosts.
+for (const host of ['web', 'figma']) {
+  const { ctx, page } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await openTypeAdvanced(page);
+    const onType = await page.evaluate(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-typography-responsive"]').length);
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="legacy-page"]');
+    const onLayout = await page.evaluate(() => {
+      const lp = document.querySelector('[data-p3="legacy-page"]');
+      const out = [];
+      for (const t of lp.querySelectorAll('[data-p3="section-title"], .cs-title, h2, h3')) if (/responsive type|fluid/i.test(t.textContent)) out.push(`title "${t.textContent.trim()}"`);
+      if (lp.querySelector('[data-sg-section="type-fluid"], [data-sg-section="type-scale"]')) out.push('the fluid read-out');
+      if (/Fluid heading sizing|Min viewport|Max viewport/.test(lp.textContent)) out.push('the fluid switch or the viewport fields');
+      return out;
+    });
+    ok(onType === 1 && onLayout.length === 0, `typography.responsive is drawn on Type only${onType !== 1 ? ` — drawn ${onType} time(s) on Type` : ''}${onLayout.length ? ` — also on Layout (${onLayout.join(', ')})` : ''} (${host})`);
+  } catch (e) {
+    ok(false, `S6.3 responsive home ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
 }
 
 // =============================================================================================
@@ -4070,6 +4325,33 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     await frames('preview');
     const b2 = await sec('Links');
     ok(lands(b2) && b2.view === 'interactive', `QA-B9: editing the link palette on Interactive brings the preview's Links section into view, on the same page (top at ${b2.rel}px, ${b2.view})`);
+    // (g) Type (S6.3): an edit in a Type lever section eases the preview to the section it pairs with (Q23): the
+    // type scale to Scale; a limit (the caption floor) to Scale too, its pair by the scope (§3); a weight tick to
+    // Weights and styles. Pairs typed here.
+    await goPlace(page, 'type');
+    await openTypeAdvanced(page);
+    const typeEdit = async (what, sel, want) => {
+      await setTop('preview-body', 0);
+      const t0 = await sec(want);
+      await hooks.click(page.locator(sel));
+      const f = await frames('preview');
+      const t1 = await sec(want);
+      ok(t0.found && !t0.inView && lands(t1) && t1.view === 'type' && t1.place === 'type',
+        `QA-B9: editing ${what} on Type brings the preview's ${want} section into view, on the same page (from below the fold: ${!t0.inView}; top at ${t1.rel}px, scrollTop ${t1.top} of ${t1.max}; ${t1.place} / ${t1.view})`);
+      return f;
+    };
+    const ft = await typeEdit('the type scale', '[data-p3="type-scale-compact"]', 'Scale');
+    ok(between(ft.tops) >= 2, `QA-B9: without reduced motion the Type reveal glides through positions on its way (${between(ft.tops)} in-between over ${ft.tops.length} frames)`);
+    await typeEdit('the type scale back', '[data-p3="type-scale-default"]', 'Scale');
+    await typeEdit('the caption floor (Scale limits)', '[data-p3="caption-floor-10"]', 'Scale');
+    await typeEdit('the caption floor back', '[data-p3="caption-floor-11"]', 'Scale');
+    await typeEdit('a weight tick', '[data-p3="weights-row"][data-group="eyebrow"] [data-p3="link-cell"]', 'Weights and styles');
+    await typeEdit('the same tick back', '[data-p3="weights-row"][data-group="eyebrow"] [data-p3="link-cell"]', 'Weights and styles');
+    // Focusing a Type lever, and opening a picker, are not edits: the preview stays where it is.
+    await setTop('preview-body', 0);
+    await hooks.click(page.locator('[data-p3="weight-pick"][data-role="strong"]'));
+    const tf = await frames('preview');
+    ok(tf.tops.every((t) => t === 0), `QA-B9: opening a value picker on Type does not move the preview (scrollTops ${JSON.stringify([...new Set(tf.tops)])})`);
     ok(errors.length === 0, `QA-B9/B17/I11: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

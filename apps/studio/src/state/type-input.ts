@@ -111,7 +111,7 @@ export const toggleCategoryWeight = (g: string, role: string, roleOrder: readonl
 export const categoryWeightLock = (g: string, role: string, shipped: ReadonlySet<string>): string | undefined => {
   const required = (REQUIRED_WEIGHT_ROLES as Record<string, { role: string; why: string } | undefined>)[g];
   if (shipped.has(role) && required?.role === role) return `${g[0].toUpperCase()}${g.slice(1)} always ships ${role} — ${required.why}.`;
-  if (shipped.has(role) && shipped.size === 1) return 'Every category ships at least one weight — tick another before clearing this one.';
+  if (shipped.has(role) && shipped.size === 1) return 'Every text type ships at least one weight. Tick another before clearing this one.';
   return undefined;
 };
 
@@ -132,6 +132,24 @@ export const setItalic = (g: string, on: boolean, current: ReadonlySet<string>):
 /** The underlined-link variants. An emptied list is written `[]`, not unset (the legacy page's bytes). */
 export const setLink = (g: string, on: boolean, current: ReadonlySet<string>): void => {
   setPath(brandState, 'typography.links', toggled(g, on, current));
+};
+
+/** A text type's italic style, as the three chips name it (owner decision Q6): `'upright'` (no italic styles),
+ *  `'both'` (each weight also ships an -italic variant) or `'only'` (italic is the only cut, #1296). Composed of
+ *  the two legacy writes and nothing else, in the order the legacy page needed them (the two boxes were
+ *  exclusive, so moving between `both` and `only` cleared one before setting the other). `italicG` and
+ *  `italicDefG` are the sets the control was drawn from. The traps hold: an emptied `italics` is `[]`, an
+ *  emptied `italicDefault` is unset, and a chip that is already on writes nothing. */
+export type ItalicStyle = 'upright' | 'both' | 'only';
+export const italicStyleOf = (g: string, italicG: ReadonlySet<string>, italicDefG: ReadonlySet<string>): ItalicStyle =>
+  italicDefG.has(g) ? 'only' : italicG.has(g) ? 'both' : 'upright';
+export const setItalicStyle = (g: string, to: ItalicStyle, italicG: ReadonlySet<string>, italicDefG: ReadonlySet<string>): void => {
+  const from = italicStyleOf(g, italicG, italicDefG);
+  if (from === to) return;
+  if (from === 'both') setItalic(g, false, italicG);
+  if (from === 'only') setItalicDefault(g, false, italicDefG);
+  if (to === 'both') setItalic(g, true, italicG);
+  if (to === 'only') setItalicDefault(g, true, italicDefG);
 };
 
 // ── line height and letter spacing (legacy `renderLeadingTracking`, `renderRepoints`, the nudges) ────
@@ -212,6 +230,11 @@ export const ceilingPx = (widest: unknown): Map<string, number> => {
 };
 /** The 16px title floor: on writes `16`, off UNSETS the key (18 is the default). */
 export const setTitleFloor = (on: boolean): void => { setPath(brandState, 'typography.titleFloor', on ? 16 : undefined); };
+/** The caption floor (UI redesign S6.3: no surface edited it before). `10` writes 10; the default, 11, UNSETS
+ *  the key, so a brand that never touched it stays byte-identical. */
+export const setCaptionFloor = (px: 10 | 11): void => { setPath(brandState, 'typography.captionFloor', px === 10 ? 10 : undefined); };
+/** The type size floor (UI redesign S6.3: no surface edited it before). `8` writes 8; the default, 10, UNSETS it. */
+export const setSizeFloor = (px: 8 | 10): void => { setPath(brandState, 'typography.sizeFloor', px === 8 ? 8 : undefined); };
 /** Fluid heading sizing. ALWAYS written, `true` included (the legacy page's bytes). */
 export const setFluid = (on: boolean): void => { setPath(brandState, 'typography.responsive.fluid', on); };
 /** A responsive viewport bound. A non-finite number writes nothing; returns whether it wrote. */
