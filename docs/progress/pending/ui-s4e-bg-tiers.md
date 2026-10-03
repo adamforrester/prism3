@@ -42,7 +42,7 @@
 ### Traps
 
 - **Each corpus brand has its own root.** A path read as `${ROOT}.core.palette.…` with prism3's root (`pds3`) misses harbor's (`hds`): the first run of the floor sweep failed on every harbor and aurora Page that way. The test strips any `<root>.core.(palette.)` prefix.
-- **The floor sweep costs.** 132 Page states, each resolved twice, take `test-fills-input` from about 20 s to about 44 s.
+- **The floor sweep costs.** 132 Page states are resolved twice each; `test-fills-input` now runs in 40 to 44 s here.
 - **A refused override poisons the session.** Under mutation (a) the engine refuses the override, the persisted brand keeps the last valid input, but the in-memory brand keeps the override, so every later edit in that smoke session is refused too: the S4c arms after it fail as collateral. The S4e arms are the named ones.
 - **Return to Auto is disabled when nothing was written.** The S4e smoke checks it is enabled before clicking (through the hook guard, which refuses a bare `.click`), so a pick that wrote no input fails by name instead of timing out.
 - **The equivalence bundles** were built from this worktree with `origin/main`'s two changed files swapped in at load time (`fills-input.ts`, `color-fills.ts`); the engine is the same at both refs, so nothing else differs.
