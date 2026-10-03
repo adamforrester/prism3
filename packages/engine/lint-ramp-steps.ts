@@ -117,10 +117,11 @@ const HERE = import.meta.dirname;
 /** The studio sources the authored step arrays live in. `main.ts` held all of them until UI redesign S2,
  *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`), and
  *  S6.1, which moved the typography group list with the Type writes (`state/type-input.ts`,
- *  `TYPE_GROUP_ORDER` and `BULK_CATS`). A file is listed by path, so a constant that moves to an unlisted
- *  file reads as STALE below, by name. */
-const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts'];
-const STUDIO_LABEL = 'apps/studio/src/main.ts, apps/studio/src/preview/palettes.ts or apps/studio/src/state/type-input.ts';
+ *  `TYPE_GROUP_ORDER` and `BULK_CATS`), and S6.3, which moved every Type control to the new page
+ *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`). A file
+ *  is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name. */
+const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts'];
+const STUDIO_LABEL = 'apps/studio/src/main.ts, apps/studio/src/preview/palettes.ts, apps/studio/src/state/type-input.ts or apps/studio/src/domains/type.ts';
 
 /** One corpus member. `tree` is the brand's committed DTCG tree where one exists, else `null` — a
  *  synthetic lever probe has no emitted artifact, and a ramp whose oracle needs one says so by
@@ -221,6 +222,13 @@ const RAMPS: Ramp[] = [
       'it would be asserting a filter of a checked list against the same ladder (docs/34 shape 2). The ' +
       'consumption anchor sees it because it IS iterated into a token path; that is the anchor working, ' +
       'and this is the human answer it asks for.',
+  },
+  {
+    name: 'PER_MODE_SIZE_GROUPS',
+    exempt:
+      'not an authored list — it is imported from the engine (`@prism3/engine/theme`, the keys of ' +
+      '`HEADING_SIZE_FLOOR`), so the studio holds no copy of its own to drift. The consumption anchor sees it ' +
+      'because Type\'s Individual sizes iterate it into `type.${g}.${v}` (UI redesign S6.3).',
   },
   {
     name: 'WEIGHT_STEPS',

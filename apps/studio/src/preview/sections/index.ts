@@ -15,8 +15,9 @@ import { focusRingSection } from './focus-ring';
 import { scrimSection } from './scrim';
 import { fieldsSection } from './fields';
 import { weightsByFaceSection } from './weights-by-face';
-import { typeRampSection, TYPE_GROUP_BLURB } from './type-ramp';
-import { paintTypeFluid } from './type-fluid';
+import { typeScaleSection, SCALE_SAMPLE_CAP, MERGE_TITLE } from './type-scale';
+import { lineSpacingSection } from './line-spacing';
+import { buildingBlocksSection } from './building-blocks';
 import { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY } from './type-sample';
 import { facesSection } from './faces';
 import type { SgCtx } from './kit';
@@ -33,9 +34,10 @@ export { focusRingSection };
 /** Color › Surfaces & fills' Scrim and Fields sections (UI redesign S4f: QA-B10; #2016, Q80), shared modules so each
  *  carries its own marker. Only Surfaces & fills draws them; the Style guide's Background keeps its scrim. */
 export { scrimSection, fieldsSection };
-/** The legacy Typography Preview tab's sections and Layout's fluid read-out (UI redesign S6.1), shared so the
- *  Type page draws the same code. Read-only. (Its Typefaces table retired in S6.2, folded into Faces.) */
-export { weightsByFaceSection, typeRampSection, TYPE_GROUP_BLURB, paintTypeFluid };
+/** The Type preview's sections (UI redesign S6.1 lifted Weights and styles out of `main.ts`; S6.3 replaced the full
+ *  type ramp and Layout's fluid read-out with Scale, and added Line height and letter spacing and the read-only
+ *  Building blocks). Read-only. */
+export { weightsByFaceSection, typeScaleSection, SCALE_SAMPLE_CAP, MERGE_TITLE, lineSpacingSection, buildingBlocksSection };
 /** The type sample (#1942, S6.2): Brand's Style guide draws it first, and the Type preview too (owner decision
  *  Q67). The Type preview's Faces section (S6.2). Read-only. */
 export { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY, facesSection };
