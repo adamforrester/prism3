@@ -4608,6 +4608,38 @@ arm: {
         ok(statusBand.includes('surfaces.dark.inverseTertiary') && statusBand.includes('STATUS'),
           `bg-tiers: validation — brandTheme refuses a status palette on surfaces.dark.inverseTertiary (got: "${statusBand.slice(0, 100)}")`);
       }
+
+      // #1985 (owner, 2026-10-03, option A): `base` and `inverseBase` are held to the same check, so a typo never
+      // silently picks a color. Measured before the change: across every corpus brand, fixture, gate case and
+      // the Studio unit suites, no base or inverseBase relied on snapping or an unknown keyword (1,688 resolved,
+      // 0 off the ramp). EXPECTED is typed here: the refused values, the key the message must name, and the
+      // nearest real step, which is the neutral ramp's own arithmetic (25 … 950 in 50s), written out.
+      {
+        const b = MINIMAL_BRAND;
+        const withSurf = (mode: 'light' | 'dark', key: string, v: unknown): BrandInput =>
+          ({ ...b, surfaces: { [mode]: { [key]: v } } } as BrandInput);
+        const refusal = (input: BrandInput): string => { try { brandTheme(input); return ''; } catch (e) { return (e as Error).message; } };
+        const REFUSED: Array<[unknown, string | null]> = [['grey', null], [333, '350'], [1234, '950'], ['300', null]];
+        for (const mode of ['light', 'dark'] as const) {
+          for (const key of ['base', 'inverseBase']) {
+            for (const [v, nearest] of REFUSED) {
+              const msg = refusal(withSurf(mode, key, v));
+              ok(msg.includes(`surfaces.${mode}.${key}`) && msg.includes('ramp') && (nearest === null || msg.includes(`the nearest step is ${nearest}.`)),
+                `#1985: surfaces.${mode}.${key} = ${JSON.stringify(v)} is refused by name${nearest ? `, naming the nearest step ${nearest}` : ''} (got: "${msg.slice(0, 140)}")`);
+            }
+            for (const v of [350, 'white', 'black']) {
+              const msg = refusal(withSurf(mode, key, v));
+              ok(msg === '', `#1985: surfaces.${mode}.${key} = ${JSON.stringify(v)} is still accepted (got: "${msg.slice(0, 120)}")`);
+            }
+          }
+          // The inverse band's palette form: an off-ramp step names the nearest on THAT palette; an on-ramp one is accepted.
+          const off = refusal(withSurf(mode, 'inverseBase', { palette: 'primary', step: 901 }));
+          ok(off.includes(`surfaces.${mode}.inverseBase`) && off.includes('primary ramp') && off.includes('the nearest step is 900.'),
+            `#1985: surfaces.${mode}.inverseBase = { palette: 'primary', step: 901 } is refused, naming the nearest primary step 900 (got: "${off.slice(0, 140)}")`);
+          ok(refusal(withSurf(mode, 'inverseBase', { palette: 'primary', step: 900 })) === '',
+            `#1985: surfaces.${mode}.inverseBase = { palette: 'primary', step: 900 } is still accepted`);
+        }
+      }
     }
 
     // (a6) THE OVERRIDE ASSUMPTION, ASSERTED (#979).

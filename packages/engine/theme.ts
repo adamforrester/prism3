@@ -3009,17 +3009,24 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       }
     }
     for (const key of ['inverseBase', 'inverseSecondary', 'inverseTertiary'] as const) checkSurfacePalette(sf?.[key], `${mode}.${key}`);
-    // The four TIERS (#1972) are checked here as well as in the schema, because the schema alone does not
-    // hold: `json-schema-lite` skips `allOf`/`oneOf`, so `'grey'` passes it, and the resolver would snap
-    // it to a step nobody chose. A tier names white, black, or a real step on its palette's ramp.
-    for (const key of ['secondary', 'tertiary', 'inverseSecondary', 'inverseTertiary'] as const) {
+    // EVERY SURFACE ANCHOR is checked here, as well as in the schema, because the schema alone does not hold:
+    // `json-schema-lite` skips `allOf`/`oneOf`, so `'grey'` passes it, and the resolver would snap it, or an
+    // off-ramp step, to a step nobody chose. A surface names white, black, or a real step on its palette's ramp.
+    // The four tiers got this in #1972; `base` and `inverseBase` in #1985 (owner, 2026-10-03, option A: a typo
+    // must never silently pick a color). Off the ramp, the message names the nearest real step.
+    for (const key of ['base', 'inverseBase', 'secondary', 'tertiary', 'inverseSecondary', 'inverseTertiary'] as const) {
       const spec: unknown = sf?.[key];
       if (spec == null || spec === 'white' || spec === 'black') continue;
       const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : palettes.find((p) => p.role === 'neutral');
       const num = typeof spec === 'object' ? (spec as SurfaceStep).step : spec;
-      if (typeof num !== 'number' || !pal?.steps.some((s) => s.num === num)) {
-        throw new Error(`surfaces.${mode}.${key}: ${JSON.stringify(spec)} is not a surface. Use 'white', 'black', or a step on the ${pal?.palette ?? 'neutral'} ramp (${(pal?.steps ?? []).map((s) => s.num).join(', ')}).`);
+      const steps = (pal?.steps ?? []).map((st) => st.num);
+      if (typeof num === 'number' && steps.includes(num)) continue;
+      const ramp = `a step on the ${pal?.palette ?? 'neutral'} ramp (${steps.join(', ')})`;
+      if (typeof num === 'number' && Number.isFinite(num) && steps.length) {
+        const nearest = steps.reduce((a, b) => (Math.abs(b - num) < Math.abs(a - num) ? b : a));
+        throw new Error(`surfaces.${mode}.${key}: ${JSON.stringify(spec)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use 'white', 'black', or ${ramp}.`);
       }
+      throw new Error(`surfaces.${mode}.${key}: ${JSON.stringify(spec)} is not a surface. Use 'white', 'black', or ${ramp}.`);
     }
     if (sf?.secondary !== undefined) {
       notes.push(`surfaces: the ${mode} second tier is ${surfaceLabel(sf.secondary)}, not the default — ${sf.floorStep !== undefined ? `the contrast floor stays at neutral.${sf.floorStep}` : 'the contrast floor moves with it'}.`);
