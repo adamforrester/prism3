@@ -1,6 +1,6 @@
 ## (2026-10-03) — UI redesign S4f: Color › Surfaces & fills — the owner's QA rebuild (Background rows, Scrim, Fields preview, white grounds, the lock, gradients, marks)
 
-**STATUS: PR #2040, branch `ui/s4f-surfaces-rebuild`, cut from `origin/main` at `c8825795` (S4e, #2001), with `main` merged in at `af875310` (S5.3 #2019, #2031) and again at `243d201f` (the shared styling pass #2041, the engine's #1985/#2035, the fold #2039).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. Builds the owner's QA decisions of 2026-10-02 for Color › Surfaces & fills (QA-B1, B3, B6, B7, B10, B12 to B16, QA-I10's Surfaces half, QA-I2 extended), #2016 (Q80) and #1971 (Q81).
+**STATUS: PR #2040, branch `ui/s4f-surfaces-rebuild`, cut from `origin/main` at `c8825795` (S4e, #2001), with `main` merged in at `af875310` (S5.3 #2019, #2031) again at `243d201f` (the shared styling pass #2041, the engine's #1985/#2035, the fold #2039), and at `d0a306fb` (S6.3, #2036).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. Builds the owner's QA decisions of 2026-10-02 for Color › Surfaces & fills (QA-B1, B3, B6, B7, B10, B12 to B16, QA-I10's Surfaces half, QA-I2 extended), #2016 (Q80) and #1971 (Q81).
 
 ### What the user sees on Color › Surfaces & fills
 
@@ -32,6 +32,14 @@
 ### A6 (owner, 2026-10-03): the scrim over a checkerboard
 
 The scrim preview stays on the page color, and the scrim's wash now sits over the chrome's existing transparency checkerboard (`.p3-checker`, built from `--p3-fill-2` and `--p3-bg-page`, the one Palettes' alpha swatches use): in the levers, the swatch is the checkerboard with the wash filling it (`.p3-scrim-wash`); in the preview, the Scrim card (now drawn in `sections/scrim.ts`, so the Style guide's own scrim card is untouched) is the checkerboard under the wash and the modal panel. No raw color and no new string. `test:chrome` reads it from the render, both chrome themes, Light and Dark previewed: the element under the wash paints a gradient of two colors or more, and the wash on it is translucent and covers it. QA-B14's "no gradient in the levers" now counts linear and radial gradients only (the engine's two kinds), so the checkerboard's conic pattern is not a gradient preview; mutation (g)'s bar is still caught. Mutation, both `p3-checker` classes removed: `✗ A6 web light, previewing light: the scrim's swatch in the levers draws its wash over a checkered ground — read {"found":true,"checkered":false,"image":"none","wash":"rgba(0, 0, 0, 0.4)",…}`, and the preview card's twin, in each theme and mode.
+
+### The merge of S6.3 (#2036)
+
+- **`preview/follow-edit.ts`:** `PREVIEW_HEADING` keeps S6.3's `'Scale limits': 'Scale'` (Scrim and Fields need no row); the header comment names both.
+- **`preview/sections/index.ts`:** exports the union: Scrim and Fields, with S6.3's Scale, Weights and styles, Line height and letter spacing and Building blocks. `type-ramp` and `type-fluid` stay retired.
+- **`test-shell-imports.ts`:** `MUST_SCAN` and the marker list carry both sides' files (S6.3's value picker, type-scale, line-spacing, building-blocks; S4f's scrim, fields, badge-marks).
+- **`test-chrome.mjs`:** section 22 keeps every arm from both sides. Row kinds are the union: S6.3's size, weight, line height and letter spacing rows, and S4f's `background-row`. S6.3's new swapped-order arm (the mono line is a token path and the label is not) reads only names that have a token, as the below-label and mono arms do; the floor's token-less name is held by its own arm. No section number collided: the S4f arms are inside section 18.
+- **Equivalence, argued rather than re-run:** between the last equivalence baseline (`243d201f`, 1,092/1,092) and `d0a306fb`, S6.3 changed nothing in the Surfaces & fills write path. There is no engine source change (only `packages/engine/lint-ramp-steps.ts`, a lint that is not bundled), and no change to `state/fills-input.ts`, `state/store.ts`, `domains/color-fills.ts`, `persist-local.ts`, `write-adapter.ts`, `ui/step-picker.ts` or `ui/lever-kit.ts` (`git diff --stat 243d201f d0a306fb` over those paths). This branch's only source change since that run is A6, which changes a read-only swatch's markup and writes nothing.
 
 ### The merge of the shared styling pass (#2041)
 
