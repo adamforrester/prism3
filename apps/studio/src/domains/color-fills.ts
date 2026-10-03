@@ -3,25 +3,29 @@
  * V10, R2, R5; S4c, the owner's decisions Q22 to Q30; S4d, Q44 to Q50).
  *
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`: the intro and jump links to each section (Q49);
- * **Background fills** (the page and the inverse band step in the step picker, Q45, the contrast floor and the
- * band palette as selects, one set for the mode the preview shows, Q22; since S4e the four background tiers too,
- * #1972, each naming its token, Q41, in the step picker, Q45, with Auto); **Foreground** (the neutral ladder,
+ * **Background fills** (one set for the mode the preview shows, Q22, as rows in the Foreground rows' pattern since
+ * S4f, QA-B1: under "Default background fills" Primary, Secondary, Tertiary and the contrast floor with its own info
+ * text, QA-B3, QA-B6; under "Inverse background fills" the inverse fill's palette select, then Inverse primary,
+ * secondary and tertiary; each row names its token, Q41, and opens the step picker, Q45); **Scrim** (S4f, QA-B10:
+ * the scrim's read-only row, out of Background fills); **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
  * that opens the step picker under the row, with the ratio on it; then the subtle fills, the on-color inks and
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
  * primary text editor, owner decision Q20; no link row, Q28: links are edited on Interactive only); **Border**
- * (page and inverse, the focus rings read-only, #1966); **Icon** (every icon role, locked to its text role while
- * icons match text, with the note and the button that unpairs them, Q50, and once unpaired the note and the
- * button that pairs them again, Q61); **Fields** (a row per `field.*` role,
- * page and inverse, Q29); **Gradients** (the switch, then an editor per gradient with a 44px bar and editable
- * stops). A section's inverse rows sit under the preview's "Inverse" sub-heading. Every lever is shown (R2:
- * this page shows every lever). Last, the way on to Interactive.
+ * (page and inverse, the focus rings read-only, #1966); **Icon** (the icon contrast lever's block, as Color ›
+ * Interactive drew it, holding the note and the button that unpairs icons, Q50, or pairs them again, Q61, with a
+ * padlock that says which, QA-I10, QA-B12; then every icon role, locked to its text role while icons match text);
+ * **Fields** (a row per `field.*` role, page and inverse, Q29); **Gradients** (the switch at the top right of its
+ * header, then an editor per gradient with editable stops and no bar of its own, QA-B13 to QA-B16). A section's
+ * inverse rows sit under the preview's "Inverse" sub-heading. Every lever is shown (R2: this page shows every
+ * lever). Last, the way on to Interactive.
  *
  * WRITES. Every write goes through `state/fills-input.ts`. Each control writes what the S4a page's control
  * for that mode wrote, byte for byte on the persisted brand: since S4c the surface controls write the
  * previewed mode's `surfaces` key, where S4a drew a Light group and a Dark group. The Fields rows are new
- * writes (`setRoleOverride`, the one `field.fill` always had), and so are S4d's rows. The Page and band step
- * pickers write what the selects they replace wrote (Q45). Where this page differs from concept v6, it is
+ * writes (`setRoleOverride`, the one `field.fill` always had), and so are S4d's rows. The Primary (was Page) and
+ * band step pickers write what the selects they replace wrote (Q45), and since S4f the contrast floor's picker
+ * writes what its select wrote. Where this page differs from concept v6, it is
  * by the owner's decision (`docs/superpowers/ui-redesign/decisions-2026-10-01-qa.md`):
  *   · every control edits the mode the preview shows (Q19, Q22), not light only as v6's R5 had it;
  *   · the options are the legacy page's: every neutral step for the page and the floor, the inverse band as
@@ -37,21 +41,26 @@ import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setS
 import { isDerived } from '../state/verdict';
 import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
-  iconOverrideCount, iconsPaired, inputGradientCss, lockedTo, neutralStepOptions, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
+  iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
   SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
-import { DOMAINS, type PageData, type Section } from '../shell/pages';
+import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { infoTip, inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'fills')!;
 /** The page the Continue button opens: the next Color sub-page, by the store's page key. */
 const NEXT = { label: 'Interactive', page: 'interactive' } as const;
+
+/** The contrast floor row's info text (S4f, the owner's QA-B6, APPROVED). */
+const FLOOR_INFO = 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.';
+/** The contrast floor row's `data-role`: it sets a setting, not a token, so it names the setting. */
+const FLOOR_ROW = 'surfaces.floorStep';
 
 /** Something drawn that search can hide and a refusal can mark. */
 type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock; refmark?: HTMLElement };
@@ -80,10 +89,15 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     rebuild();
   };
 
-  // ── Background fills: the page, the contrast floor and the inverse band, for the previewed mode ─────
+  // ── Background fills: the page, its tiers, the contrast floor and the inverse fill, for the previewed mode ──
   // One set of controls (owner decision Q22), where S4a drew a Light group and a Dark group: each control
   // writes `surfaces.<the previewed mode>`, as that mode's group did. A mode with no surfaces of its own (a
   // derived or a custom mode) shows the ones it is drawn from, disabled, with the line the rows use.
+  // S4f (the owner's QA-B1, QA-B3, QA-B6, QA-B7): the controls are rows in the Foreground rows' pattern, a swatch,
+  // the name with its token under it, then the step picker, under two sub-headings at the rows' sub-heading size:
+  // "Default background fills" (Primary, which was "Page", Secondary, Tertiary and the contrast floor, with its own
+  // info text) and "Inverse background fills" (the inverse fill's palette, then its three tiers). Every control
+  // writes exactly what the control it replaces wrote (the floor's step picker the floor select's value).
   const surfaces = (): Item[] => {
     // The lever's name is the section's (owner decision Q26), not the manifest's "Page surfaces": the block
     // heads the section, as Gradients' does. Its info text is the owner's (approved 2026-10-02), for this page
@@ -92,139 +106,181 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       label: 'Background fills',
       desc: 'The page, its tiers and the inverse fill for the mode the preview shows.',
     });
-    const opts = neutralStepOptions();
     const { source: m, editable } = surfaceSourceOf(currentMode);
-    const sel = (id: string, label: string, role: string, options: { v: string; l: string }[], cur: string, on: (v: string) => void, token?: string): HTMLElement => {
-      const f = h('div', 'p3-field');
-      const lab = token ? tokenField(id, token, label) : h('label', 'p3-field-label', label);
-      lab.htmlFor = id;
-      const s = selectField(id, `${label}, ${modeLabel(currentMode)}`, role, on);
-      s.set(options, cur);
-      s.select.disabled = !editable;
-      f.append(lab, s.el);
-      return f;
-    };
-    /** A field that sets a token: its name, then the token under it, as a fill row shows its role (QA-B2). */
-    const tokenField = (id: string, token: string, label: string): HTMLLabelElement => tokenLabel(token, label, id) as HTMLLabelElement;
-    /** A control that opens the step picker (owner decision Q45: the Page and the band step use the rows' swatch
-     *  panel, not a native select). `key` is the picker's slot in `openRole`; the picker draws under the group. */
-    const pickButton = (id: string, hk: string, key: string, name: string, now: string): HTMLButtonElement => {
-      const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), hk);
-      btn.type = 'button';
-      btn.id = id;
-      btn.setAttribute('aria-expanded', String(openRole === key && editable));
-      btn.setAttribute('aria-label', `${name}, ${modeLabel(currentMode)}: ${now}. Pick a step`);
-      btn.append(h('span', 'p3-btn-label', now), glyph('chev'));
-      btn.disabled = !editable;
-      btn.onclick = () => {
-        const opening = openRole !== key;
-        openRole = opening ? key : null;
-        render();
-        if (opening) pickers.get(key)?.();
-      };
-      return btn;
-    };
-    let surfacePicker: HTMLElement | null = null;
-    const openPicker = (key: string, btnId: string, o: Omit<StepPickerOpts, 'modeLabel' | 'onClose'>): void => {
-      if (openRole !== key || !editable) return;
-      const pk = stepPicker({ ...o, modeLabel: modeLabel(currentMode), onClose: () => { openRole = null; render(); root.querySelector<HTMLElement>(`#${btnId}`)?.focus(); } });
-      surfacePicker = pk.el;
-      pickers.set(key, pk.focusCurrent);
-    };
     const roles = rolesIn(m);
     const cur = brandState.surfaces?.[m];
-    const grp = hook(h('div', 'p3-modegroup'), 'surfaces-group');
-    grp.dataset.mode = m;
-    const d = derivedLine();
-    grp.append(d ?? (editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.')));
-    const grid = h('div', 'p3-fieldgrid');
-    // Page: white, black, or a neutral step, in the step picker (Q45). No Auto: an unset base reads as the mode's
-    // default. The pick writes the key exactly as the select wrote its value (`setSurfaceBase`).
     const nPal = theme.roleToPalette.neutral;
-    const baseKey = pageKeyOf(cur?.base ?? (m === 'dark' ? 'black' : 'white'));
-    const baseNow = baseKey === 'white' ? 'White' : baseKey === 'black' ? 'Black' : `${nPal} ${baseKey}`;
-    const pf = h('div', 'p3-field');
-    pf.append(tokenField('p3-surf-base', SURFACE_TOKENS.base, 'Page'), pickButton('p3-surf-base', 'surface-base-pick', 'surface:base', 'Page', baseNow));
-    grid.append(pf);
-    openPicker('surface:base', 'p3-surf-base', {
-      role: SURFACE_TOKENS.base, palettes: [{ palette: nPal, steps: pageSteps() }], current: { palette: nPal, step: baseKey },
-      against: null, overridden: false, auto: false,
-      onPick: (_p, step) => edit('surfaces', () => setSurfaceBase(m, step)), onAuto: () => {},
-    });
-    /** A background tier (#1972): its token and name (Q41), and a button that opens the step picker (Q45). Unset,
-     *  it reads Auto and the step the engine derived (the ladder's own); a pick writes the input, and Return to
-     *  Auto clears it. The tier's palettes are the picker's: the page tiers the Page's (White, the neutral steps,
-     *  Black), the inverse tiers every palette the Inverse fill can draw from, browsed in the picker's own
-     *  palette select (a palette is chosen by picking a step on it, so choosing one writes nothing by itself). */
-    const tierField = (into: HTMLElement, tier: PageTier | InverseTier, label: string, hk: string, palettes: StepPickerOpts['palettes'],
-      write: (palette: string, step: string | undefined) => void): void => {
+    const named = (s: { palette: string; step: string }): string => (s.step === 'white' ? 'White' : s.step === 'black' ? 'Black' : `${s.palette} ${s.step}`);
+    const rampOf = (p: string): StepPickerOpts['palettes'][number] => ({ palette: p, steps: (theme.palettes.find((x) => x.palette === p)?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })) });
+    /** One background row (QA-B1): the swatch, the name with its token under it (a `label` for the button, so the
+     *  control is named by what it sets), the button that opens the step picker (owner decision Q45), and the
+     *  picker under the row while it is open. `key` is the picker's slot in `openRole`. `info` adds the row's own
+     *  info button beside its name, its note drawn under the row (QA-B6). */
+    const surfRow = (o: { key: string; id: string; hk: string; label: string; token: string | null; rowRole: string; hex: string; now: string;
+      info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
+      const wrap = h('div', 'p3-fillrow-wrap');
+      // A row with its own info text (the contrast floor) is a wide row: its Auto label names the tier it follows, too
+      // long to share a line with the name, so the button takes the line under it (as the floor's select took the
+      // field's full width before S4f).
+      const row = hook(h('div', o.info ? 'p3-fillrow p3-fillrow-wide' : 'p3-fillrow'), 'surface-row');
+      row.dataset.role = o.rowRole;
+      const sw = h('span', 'p3-fill-sw');
+      sw.dataset.content = '';
+      sw.style.background = o.hex;
+      // The name with its token under it is the shared `tokenLabel` (QA-B2, #2041), a `label` for the button. A row with
+      // its own info button (the contrast floor, a setting with no token) keeps a wrapper: its label first, the button
+      // beside it.
+      let nm: HTMLElement;
+      let tip: HTMLElement | null = null;
+      if (o.info || !o.token) {
+        const lab = h('label', 'p3-fill-label', o.label);
+        lab.htmlFor = o.id;
+        nm = h('div', 'p3-fill-name');
+        const line = h('div', 'p3-fill-nameline');
+        line.append(lab);
+        if (o.info) {
+          const t = infoTip(`p3-tip-${o.id}`, o.label, o.info);
+          tip = t.tip;
+          line.append(t.button);
+        }
+        nm.append(line);
+      } else nm = tokenLabel(o.token, o.label, o.id);
+      const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), o.hk);
+      btn.type = 'button';
+      btn.id = o.id;
+      const open = openRole === o.key && editable;
+      btn.setAttribute('aria-expanded', String(open));
+      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.now}. Pick a step`);
+      btn.append(h('span', 'p3-btn-label', o.now), glyph('chev'));
+      btn.disabled = !editable;
+      btn.onclick = () => {
+        const opening = openRole !== o.key;
+        openRole = opening ? o.key : null;
+        render();
+        if (opening) pickers.get(o.key)?.();
+      };
+      row.append(sw, nm, btn);
+      wrap.append(row);
+      if (tip) wrap.append(tip);
+      if (open) {
+        const pk = stepPicker({ role: o.token ?? o.label, ...o.picker, modeLabel: modeLabel(currentMode),
+          onClose: () => { openRole = null; render(); root.querySelector<HTMLElement>(`#${o.id}`)?.focus(); } });
+        wrap.append(pk.el);
+        pickers.set(o.key, pk.focusCurrent);
+      }
+      return wrap;
+    };
+    /** A background tier (#1972): unset, it reads Auto and the step the engine derived (the ladder's own); a pick
+     *  writes the input, and Return to Auto clears it. The page tiers pick from the Page's steps (White, the neutral
+     *  steps, Black), the inverse tiers from every palette the inverse fill can draw from, browsed in the picker's
+     *  own palette select (a palette is chosen by picking a step on it, so choosing one writes nothing by itself). */
+    const tierRow = (tier: PageTier | InverseTier, label: string, hk: string, palettes: StepPickerOpts['palettes'],
+      write: (palette: string, step: string | undefined) => void): HTMLElement => {
       const token = SURFACE_TOKENS[tier];
-      const id = `p3-surf-${tier}`;
       const set = tierOf(m, tier);
       const res = roles[token];
       const at = stepOfPath(res?.path);
       const fixed = res?.path?.split('.').pop() ?? '';
-      const named = (s: { palette: string; step: string }): string => (s.step === 'white' ? 'White' : s.step === 'black' ? 'Black' : `${s.palette} ${s.step}`);
-      const now = set ? named(set) : `Auto · ${at ? named(at) : fixed}`;
-      const f = h('div', 'p3-field');
-      f.dataset.tier = tier;
-      f.append(tokenField(id, token, label), pickButton(id, hk, `surface:${tier}`, label, now));
-      into.append(f);
-      openPicker(`surface:${tier}`, id, {
-        role: token, palettes,
-        current: set ?? (at ? { palette: at.palette, step: at.step } : fixed === 'white' || fixed === 'black' ? { palette: nPal, step: fixed } : null),
-        against: null, overridden: set != null,
-        onPick: (p, step) => edit('surfaces', () => write(p, step)), onAuto: () => edit('surfaces', () => write(nPal, undefined)),
+      return surfRow({
+        key: `surface:${tier}`, id: `p3-surf-${tier}`, hk, label, token, rowRole: token, hex: res?.hex ?? '#ffffff',
+        now: set ? named(set) : `Auto · ${at ? named(at) : fixed}`,
+        picker: {
+          palettes,
+          current: set ?? (at ? { palette: at.palette, step: at.step } : fixed === 'white' || fixed === 'black' ? { palette: nPal, step: fixed } : null),
+          against: null, overridden: set != null,
+          onPick: (p, step) => edit('surfaces', () => write(p, step)), onAuto: () => edit('surfaces', () => write(nPal, undefined)),
+        },
       });
     };
+    const grp = hook(h('div', 'p3-modegroup'), 'surfaces-group');
+    grp.dataset.mode = m;
+    const d = derivedLine();
+    grp.append(d ?? (editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.')));
+
+    // ── Default background fills ──
+    const def = hook(h('div', 'p3-fillrows'), 'surface-default-rows');
+    def.append(h('h4', 'p3-rows-sub p3-rows-sub-first', 'Default background fills'));
+    // Primary (QA-B3: "Page" was its name; it is `background.primary`): white, black, or a neutral step, in the step
+    // picker (Q45). No Auto: an unset base reads as the mode's default. A pick writes the key exactly as the Page
+    // control wrote it (`setSurfaceBase`).
+    const baseKey = pageKeyOf(cur?.base ?? (m === 'dark' ? 'black' : 'white'));
+    def.append(surfRow({
+      key: 'surface:base', id: 'p3-surf-base', hk: 'surface-base-pick', label: 'Primary', token: SURFACE_TOKENS.base, rowRole: SURFACE_TOKENS.base,
+      hex: roles[SURFACE_TOKENS.base]?.hex ?? '#ffffff', now: baseKey === 'white' ? 'White' : baseKey === 'black' ? 'Black' : `${nPal} ${baseKey}`,
+      picker: {
+        palettes: [{ palette: nPal, steps: pageSteps() }], current: { palette: nPal, step: baseKey },
+        against: null, overridden: false, auto: false,
+        onPick: (_p, step) => edit('surfaces', () => setSurfaceBase(m, step)), onAuto: () => {},
+      },
+    }));
     for (const [tier, label] of [['secondary', 'Secondary'], ['tertiary', 'Tertiary']] as const) {
-      tierField(grid, tier, label, `surface-${tier}-pick`, [{ palette: nPal, steps: pageSteps() }], (_p, step) => setSurfaceTier(m, tier, step));
+      def.append(tierRow(tier, label, `surface-${tier}-pick`, [{ palette: nPal, steps: pageSteps() }], (_p, step) => setSurfaceTier(m, tier, step)));
     }
-    // Contrast floor: Auto names the floor the engine derives, and the tier when it is that tier's step (`floorAutoLabel`).
-    const ff = sel('p3-surf-floor', 'Contrast floor', 'surface-floor',
-      [{ v: '', l: floorAutoLabel(m) }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
-      cur?.floorStep == null ? '' : String(cur.floorStep), (v) => edit('surfaces', () => setSurfaceFloor(m, v)));
-    // The full width, so its Auto label reads whole.
-    ff.classList.add('p3-field-wide');
-    grid.append(ff);
-    // Inverse band: a palette, then a step in it (#898). The palette stays a select: the step picker shows one
-    // palette's steps, and choosing a band palette is its own write (it seeds the darkest step). The step is the
-    // step picker on the band's palette (Q45), writing what the step select wrote, Auto included.
+    // The contrast floor, as a row (QA-B1), with its own info text (QA-B6, APPROVED). It is a setting, not a token,
+    // so the row names none. Auto names the floor the engine derives, and the tier when it is that tier's step
+    // (`floorAutoLabel`, S4e). A step writes what the floor select wrote for it (`setSurfaceFloor`, the step's
+    // number), and Return to Auto what its Auto option wrote (`''`, which unsets `floorStep`).
+    const floorSteps = stepsOf(nPal);
+    const floorKey = cur?.floorStep == null ? null : floorSteps.find((s) => Number(s) === Number(cur.floorStep)) ?? String(cur.floorStep);
+    const autoFloor = stepOfPath(`palette.${roles['foreground.brand']?.against ?? ''}`);
+    const floorAt = floorKey != null ? { palette: nPal, step: floorKey } : autoFloor && autoFloor.palette === nPal ? autoFloor : null;
+    def.append(surfRow({
+      key: 'surface:floor', id: 'p3-surf-floor', hk: 'surface-floor-pick', label: 'Contrast floor', token: null, rowRole: FLOOR_ROW,
+      hex: (floorAt && stepHex(floorAt.palette, floorAt.step)) ?? roles[SURFACE_TOKENS.secondary]?.hex ?? '#ffffff',
+      now: floorKey != null ? `${nPal} ${floorKey}` : floorAutoLabel(m),
+      info: FLOOR_INFO,
+      picker: {
+        role: 'Contrast floor', palettes: [rampOf(nPal)], current: floorAt,
+        against: null, overridden: floorKey != null,
+        onPick: (_p, step) => edit('surfaces', () => setSurfaceFloor(m, step)), onAuto: () => edit('surfaces', () => setSurfaceFloor(m, '')),
+      },
+    }));
+
+    // ── Inverse background fills ──
+    const inv = hook(h('div', 'p3-fillrows'), 'surface-inverse-rows');
+    inv.append(h('h4', 'p3-rows-sub', 'Inverse background fills'));
+    // The inverse fill's palette first (#898; Q55: it stays a select). Choosing one is its own write: it seeds the
+    // darkest step (`setBandPalette`).
     const band = bandOf(m);
-    const bf = h('div', 'p3-field p3-field-wide');
-    const bl = tokenField('p3-surf-band', SURFACE_TOKENS.inverseBase, 'Inverse fill');
-    const pair = h('div', 'p3-fieldpair');
+    const pf = h('div', 'p3-field');
+    const pl = h('label', 'p3-field-label', 'Inverse fill palette');
+    pl.htmlFor = 'p3-surf-band';
     const ps = selectField('p3-surf-band', `Inverse fill palette, ${modeLabel(currentMode)}`, 'surface-band-palette', (v) => edit('surfaces', () => setBandPalette(m, v)));
     ps.set(bandPalettes().map((p) => ({ v: p, l: p === nPal ? 'Neutral' : p })), band.palette);
     ps.select.disabled = !editable;
+    pf.append(pl, ps.el);
+    inv.append(pf);
+    // Inverse primary: the step on the fill's palette (Q45), writing what the step control wrote, Auto included.
     const curSteps = stepsOf(band.palette);
-    const bandAuto = band.palette === nPal ? stepOfPath(roles['inverse.background.primary']?.path)?.step ?? '' : String(curSteps[curSteps.length - 1] ?? '');
+    const bandAuto = band.palette === nPal ? stepOfPath(roles[SURFACE_TOKENS.inverseBase]?.path)?.step ?? '' : String(curSteps[curSteps.length - 1] ?? '');
     // The stored step is a number (`50`); the ramp's key is padded (`050`).
     const bandKey = band.step == null ? null : curSteps.find((s) => Number(s) === Number(band.step)) ?? band.step;
-    const bandNow = bandKey == null ? `Auto · ${band.palette} ${bandAuto}` : `${band.palette} ${bandKey}`;
-    pair.append(ps.el, pickButton('p3-surf-bandstep', 'surface-band-step-pick', 'surface:band', 'Inverse fill step', bandNow));
-    bf.append(bl, pair);
-    grid.append(bf);
-    openPicker('surface:band', 'p3-surf-bandstep', {
-      role: SURFACE_TOKENS.inverseBase,
-      palettes: [{ palette: band.palette, steps: (theme.palettes.find((p) => p.palette === band.palette)?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })) }],
-      current: { palette: band.palette, step: bandKey ?? bandAuto },
-      against: null, overridden: bandKey != null,
-      onPick: (_p, step) => edit('surfaces', () => setBandStep(m, step)), onAuto: () => edit('surfaces', () => setBandStep(m, undefined)),
-    });
-    const bandSteps = bandPalettes().map((p) => ({ palette: p, steps: (theme.palettes.find((x) => x.palette === p)?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })) }));
-    // The two inverse tiers share a row, as the Inverse fill's palette and step do, so each token reads whole.
-    const ip = h('div', 'p3-fieldpair p3-field-wide');
-    grid.append(ip);
+    inv.append(surfRow({
+      key: 'surface:band', id: 'p3-surf-bandstep', hk: 'surface-band-step-pick', label: 'Inverse primary', token: SURFACE_TOKENS.inverseBase, rowRole: SURFACE_TOKENS.inverseBase,
+      hex: roles[SURFACE_TOKENS.inverseBase]?.hex ?? '#000000', now: bandKey == null ? `Auto · ${band.palette} ${bandAuto}` : `${band.palette} ${bandKey}`,
+      picker: {
+        palettes: [rampOf(band.palette)], current: { palette: band.palette, step: bandKey ?? bandAuto },
+        against: null, overridden: bandKey != null,
+        onPick: (_p, step) => edit('surfaces', () => setBandStep(m, step)), onAuto: () => edit('surfaces', () => setBandStep(m, undefined)),
+      },
+    }));
+    const bandSteps = bandPalettes().map(rampOf);
     for (const [tier, label] of [['inverseSecondary', 'Inverse secondary'], ['inverseTertiary', 'Inverse tertiary']] as const) {
-      tierField(ip, tier, label, `surface-${tier === 'inverseSecondary' ? 'inverse-secondary' : 'inverse-tertiary'}-pick`, bandSteps, (p, step) => setInverseTier(m, tier, p, step));
+      inv.append(tierRow(tier, label, `surface-${tier === 'inverseSecondary' ? 'inverse-secondary' : 'inverse-tertiary'}-pick`, bandSteps, (p, step) => setInverseTier(m, tier, p, step)));
     }
-    grp.append(grid);
-    if (surfacePicker) grp.append(surfacePicker);
+    grp.append(def, inv);
     b.ctl.append(grp);
-    const sc = scrimRow();
-    if (sc) b.ctl.append(sc);
-    return [{ el: b.el, said: `${b.said} page secondary tertiary contrast floor inverse fill ${Object.values(SURFACE_TOKENS).join(' ')} scrim ${SCRIM_ROLE}`, key: 'surfaces', block: b }];
+    return [{ el: b.el, said: `${b.said} default inverse background fills primary secondary tertiary contrast floor inverse fill palette ${Object.values(SURFACE_TOKENS).join(' ')}`, key: 'surfaces', block: b }];
+  };
+
+  /** The Scrim section (S4f, QA-B10): the scrim's read-only row, out of Background fills into its own section, as the
+   *  preview's Scrim section is. */
+  const scrim = (): Item[] => {
+    const r = scrimRow();
+    if (!r) return [];
+    const wrap = h('div', 'p3-fillrow-wrap');
+    wrap.append(r);
+    return [{ el: wrap, said: `scrim ${SCRIM_ROLE}`, key: 'scrim' }];
   };
 
   /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the
@@ -238,11 +294,14 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const { primitive, opacity } = washReadOf(r);
     const el = hook(h('div', 'p3-fillrow'), 'scrim-row');
     el.dataset.role = SCRIM_ROLE;
-    const sw = h('span', 'p3-fill-sw');
-    sw.dataset.content = '';
+    // The owner's A6 (2026-10-03): the wash sits over the chrome's transparency checkerboard (`p3-checker`, Palettes'
+    // alpha swatches), so the swatch reads as translucent, in either chrome theme.
+    const sw = hook(h('span', 'p3-fill-sw p3-checker'), 'scrim-swatch');
+    const wsh = hook(h('span', 'p3-scrim-wash'), 'scrim-wash');
+    wsh.dataset.content = '';
     const n = parseInt(r.hex.slice(1), 16);
-    const wash = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
-    sw.style.background = `linear-gradient(${wash}, ${wash}), ${roles['background.primary']?.hex ?? '#ffffff'}`;
+    wsh.style.background = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
+    sw.append(wsh);
     const nm = tokenLabel(SCRIM_ROLE, 'Scrim');
     const read = hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), 'scrim-readout');
     read.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
@@ -387,24 +446,38 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
    *  that each say which text role they follow. Unpaired, the rows edit, and the note and its button say the
    *  other way: "Pair icons with text" re-pairs through `pairIcons`, as every control that sets `iconContrast` to
    *  `'text'` does, writing at once with no icon override to lose and otherwise asking first, in place, in
-   *  `PAIR_ICONS_CONFIRM`'s words (Q52, Q60). Cancel writes nothing. */
+   *  `PAIR_ICONS_CONFIRM`'s words (Q52, Q60). Cancel writes nothing.
+   *
+   *  S4f (the owner's QA-I10 and QA-B12): the note and its button sit in the icon contrast lever's own block, as
+   *  Color › Interactive drew that lever (its name and info button, the info text Interactive's Icons copy,
+   *  `ICONS_DESC`, APPROVED), at the top of the section. The button carries a padlock that says the state: shut
+   *  while icons are paired (the rows are locked to their text), open while they are not. The glyph is decorative;
+   *  the button keeps its words as its name, and the note beside it says the state in words. */
   const icon = (): Item[] => {
-    const lead: HTMLElement[] = [];
-    if (!iconsPaired()) {
-      const note = hook(h('div', 'p3-icon-pair'), 'icons-unpaired');
-      const pair = hook(h('button', 'p3-btn p3-btn-page'), 'icons-pair');
-      pair.type = 'button';
-      pair.append(h('span', 'p3-btn-label', 'Pair icons with text'));
-      // Disabled in a derived mode, as Unpair is (owner decision Q59).
-      pair.disabled = isDerived(currentMode);
-      pair.onclick = () => {
+    const b = leverBlock('iconContrast', { desc: ICONS_DESC });
+    const paired = iconsPaired();
+    const note = hook(h('div', 'p3-icon-pair'), paired ? 'icons-paired' : 'icons-unpaired');
+    const btn = hook(h('button', 'p3-btn p3-btn-page p3-icon-lock'), paired ? 'icons-unpair' : 'icons-pair');
+    btn.type = 'button';
+    btn.dataset.locked = String(paired);
+    btn.append(glyph(paired ? 'lock' : 'unlock'), h('span', 'p3-btn-label', paired ? 'Unpair icons from text' : 'Pair icons with text'));
+    // Disabled in a derived mode, as every control on this page is (owner decisions Q56, Q59): HC and wireframe
+    // follow Light and Dark, so the pairing is edited there.
+    btn.disabled = isDerived(currentMode);
+    note.append(h('p', 'p3-icon-pair-note', paired
+      ? 'Icons follow their text color. Unpair them to set icons on their own.'
+      : 'Icons are set on their own. Pair them to follow their text color again.'), btn);
+    if (paired) {
+      btn.onclick = () => edit('icons', () => unpairIcons());
+      confirmPair = false;
+    } else {
+      btn.onclick = () => {
         if (!iconOverrideCount()) { edit('icons', () => pairIcons()); return; }
         confirmPair = true;
         render();
       };
-      note.append(h('p', 'p3-icon-pair-note', 'Icons are set on their own. Pair them to follow their text color again.'), pair);
       const n = iconOverrideCount();
-      if (confirmPair && n && !pair.disabled) {
+      if (confirmPair && n && !btn.disabled) {
         note.append(inlineConfirm('icons-pair-confirm', {
           title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
           onConfirm: () => { confirmPair = false; edit('icons', () => pairIcons()); },
@@ -412,38 +485,33 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
           back: () => root.querySelector<HTMLElement>('[data-p3="icons-pair"], [data-p3="icons-unpair"]'),
         }));
       } else confirmPair = false;
-      lead.push(note);
     }
-    if (iconsPaired()) {
-      const note = hook(h('div', 'p3-icon-pair'), 'icons-paired');
-      const unpair = hook(h('button', 'p3-btn p3-btn-page'), 'icons-unpair');
-      unpair.type = 'button';
-      unpair.append(h('span', 'p3-btn-label', 'Unpair icons from text'));
-      // Disabled in a derived mode, as every control on this page is (owner decisions Q56, Q59): HC and wireframe
-      // follow Light and Dark, so the pairing is edited there.
-      unpair.disabled = isDerived(currentMode);
-      unpair.onclick = () => edit('icons', () => unpairIcons());
-      note.append(h('p', 'p3-icon-pair-note', 'Icons follow their text color. Unpair them to set icons on their own.'), unpair);
-      lead.push(note);
-    }
-    return rows('icon', ICON_ROWS, lead);
+    b.ctl.append(note);
+    const [box, ...rest] = rows('icon', ICON_ROWS);
+    // The lever block heads the section's box, above the line that says which mode the rows edit: the pairing is
+    // brand-wide, the rows are the previewed mode's.
+    box.el.prepend(b.el);
+    return [box, { el: b.el, said: b.said, key: 'icons', block: b }, ...rest];
   };
   const fields = (): Item[] => rows('fields', FIELD_ROWS);
 
   // ── Gradients: the switch, then an editor per gradient (v6: stops are editable) ─────────────────
+  // S4f (the owner's QA-B13 to QA-B16): the switch sits at the top right of the block's header; the levers draw no
+  // gradient of their own (the preview pane shows each one); each gradient is set apart from the next by a divider
+  // with room on both sides, and Add gradient by its own divider and more room above it.
   const gradients = (): Item[] => {
     const b = leverBlock('gradients', { forId: 'p3-gradients-switch' });
     const on = !!brandState.gradients;
     const sw = switchButton('p3-gradients-switch', 'Gradients', 'gradients-switch', { on: 'On', off: 'Off: no gradients emitted' },
       (v) => edit('gradients', () => setGradientsOn(v)));
     sw.set(on);
+    b.el.querySelector('.p3-lever-head')?.append(sw.el);
     // Read-only in a derived mode (owner decision Q59): every lever on the page is, brand-wide ones included, under
     // the line the rows use. Gradients are brand-wide, so the line says where they are edited.
     const d = derivedLine();
     if (d) b.ctl.append(d);
-    b.ctl.append(sw.el);
     if (on) {
-      const list = h('div', 'p3-list');
+      const list = hook(h('div', 'p3-glist'), 'gradient-list');
       const palNames = theme.palettes.map((p) => p.palette);
       readGradients().forEach((g, gi) => {
         const card = hook(h('div', 'p3-gedit'), 'gradient-editor');
@@ -468,9 +536,6 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         rm.append(glyph('x'));
         rm.onclick = () => edit('gradients', () => removeGradient(gi));
         top.append(nf, rm);
-        const bar = hook(h('div', 'p3-gbar'), 'gradient-bar');
-        bar.dataset.content = '';
-        bar.style.background = inputGradientCss(g);
         const set = h('div', 'p3-fieldgrid');
         const field = (label: string, id: string, ctl: HTMLElement): HTMLElement => {
           const f = h('div', 'p3-field');
@@ -493,11 +558,10 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
           range.id = `p3-g-angle-${gi}`;
           range.min = '0'; range.max = '360'; range.step = '5'; range.value = String(angle);
           range.setAttribute('aria-valuetext', `${angle} degrees`);
-          // The bar and the label follow the drag; the brand is written once, when the drag ends.
+          // The label follows the drag; the brand is written once, when the drag ends.
           range.addEventListener('input', () => {
             al.textContent = `Angle · ${range.value}°`;
             range.setAttribute('aria-valuetext', `${range.value} degrees`);
-            bar.style.background = inputGradientCss({ ...g, angle: Number(range.value) });
           });
           range.addEventListener('change', () => edit('gradients', () => editGradient(gi, (gg) => { gg.angle = Number(range.value); })));
           af.append(al, range);
@@ -556,21 +620,24 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         as.append(glyph('plus'), h('span', 'p3-btn-label', 'Add stop'));
         as.onclick = () => edit('gradients', () => addStop(gi));
         stops.append(as);
-        card.append(top, bar, set, stops);
+        card.append(top, set, stops);
         list.append(card);
       });
       const add = hook(h('button', 'p3-btn p3-addrow'), 'gradient-add');
       add.type = 'button';
       add.append(glyph('plus'), h('span', 'p3-btn-label', 'Add gradient'));
       add.onclick = () => edit('gradients', () => addGradient());
-      list.append(add);
+      const addRow = hook(h('div', 'p3-gadd'), 'gradient-add-row');
+      addRow.append(add);
+      list.append(addRow);
       b.ctl.append(list);
     }
-    if (d) for (const c of b.ctl.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>('button, input, select')) c.disabled = true;
+    // The switch is in the header, so the whole block is read, less its info button (it opens help, edits nothing).
+    if (d) for (const c of b.el.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>('button, input, select')) if (c.getAttribute('data-p3') !== 'lever-info') c.disabled = true;
     return [{ el: b.el, said: `${b.said} stops`, key: 'gradients', block: b }];
   };
 
-  const ROWS: Record<string, () => Item[]> = { surfaces, foreground, fills, text, border, icon, fields, gradients };
+  const ROWS: Record<string, () => Item[]> = { surfaces, scrim, foreground, fills, text, border, icon, fields, gradients };
 
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {

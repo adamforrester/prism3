@@ -125,7 +125,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts',
   // S6.3: the value picker, and the Type preview's Scale, Line height and letter spacing, and Building blocks sections.
   // (S6.3 retired S6.1's type-ramp.ts and type-fluid.ts, folded into Scale.)
-  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts'];
+  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts',
+  // S4f: Surfaces & fills' Scrim and Fields sections, and the badge marks' theme.
+  'src/preview/sections/scrim.ts', 'src/preview/sections/fields.ts', 'src/preview/badge-marks.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -431,8 +433,15 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     imports(src, file).some((i) => i.spec.endsWith('preview/sections/index') || i.spec === './sections/index');
   ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
   ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
-  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')) && /\bCOLOR_SECTIONS\b/.test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')),
-    'both the Style guide and Surfaces & fills draw COLOR_SECTIONS');
+  // The Style guide draws the five as `COLOR_SECTIONS`. Since S4f Surfaces & fills draws each of the five by its
+  // shared renderer, by name in code (it hands Background its own description and grounds two of them on white,
+  // #1971), with the Scrim and Fields sections between them; a copy of its own fails the title check below.
+  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')), 'the Style guide draws COLOR_SECTIONS');
+  for (const fn of ['backgroundSection', 'foregroundSection', 'textColorSection', 'borderSection', 'iconSection', 'scrimSection', 'fieldsSection']) {
+    ok(new RegExp(`\\b${fn}\\(`).test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')), `src/preview/surfaces.ts draws Surfaces & fills' section through the shared ${fn}()`);
+  }
+  const ownSurf = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Scrim', 'Fields'].filter((t) => new RegExp(`palSection\\(\\s*'${t}'`).test(surfSrc));
+  ok(ownSurf.length === 0, `src/preview/surfaces.ts draws none of the shared sections itself${ownSurf.length ? ` — it defines ${ownSurf.join(', ')} (palSection): Surfaces & fills would drift from the shared module` : ''}`);
   for (const t of SECTION_TITLES) {
     const own = new RegExp(`palSection\\(\\s*'${t}'`).test(mainSrc);
     ok(!own, `src/main.ts draws no "${t}" section of its own${own ? ` — main.ts defines its own "${t}" section (palSection('${t}', …)): the Style guide would drift from Surfaces & fills` : ''}`);
@@ -478,8 +487,15 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     imports(src, file).some((i) => i.spec.endsWith('preview/sections/index') || i.spec === './sections/index');
   ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
   ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
-  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')) && /\bCOLOR_SECTIONS\b/.test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')),
-    'both the Style guide and Surfaces & fills draw COLOR_SECTIONS');
+  // The Style guide draws the five as `COLOR_SECTIONS`. Since S4f Surfaces & fills draws each of the five by its
+  // shared renderer, by name in code (it hands Background its own description and grounds two of them on white,
+  // #1971), with the Scrim and Fields sections between them; a copy of its own fails the title check below.
+  ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')), 'the Style guide draws COLOR_SECTIONS');
+  for (const fn of ['backgroundSection', 'foregroundSection', 'textColorSection', 'borderSection', 'iconSection', 'scrimSection', 'fieldsSection']) {
+    ok(new RegExp(`\\b${fn}\\(`).test(surfSrc.replace(/^\s*(\/\/|\*).*$/gm, '')), `src/preview/surfaces.ts draws Surfaces & fills' section through the shared ${fn}()`);
+  }
+  const ownSurf = ['Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Scrim', 'Fields'].filter((t) => new RegExp(`palSection\\(\\s*'${t}'`).test(surfSrc));
+  ok(ownSurf.length === 0, `src/preview/surfaces.ts draws none of the shared sections itself${ownSurf.length ? ` — it defines ${ownSurf.join(', ')} (palSection): Surfaces & fills would drift from the shared module` : ''}`);
   for (const t of SECTION_TITLES) {
     const own = new RegExp(`palSection\\(\\s*'${t}'`).test(mainSrc);
     ok(!own, `src/main.ts draws no "${t}" section of its own${own ? ` — main.ts defines its own "${t}" section (palSection('${t}', …)): the Style guide would drift from Surfaces & fills` : ''}`);
@@ -496,7 +512,8 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-scale', 'line-spacing', 'building-blocks', 'type-sample', 'faces']) {
+  // S4f: Surfaces & fills' Scrim (QA-B10) and Fields (#2016) sections, each its own module and marker.
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-scale', 'line-spacing', 'building-blocks', 'type-sample', 'faces', 'scrim', 'fields']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }

@@ -362,6 +362,11 @@
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
+/* QA-I2, on Surfaces & fills (S4f): a ratio badge's mark in the chrome's status icon colors, a pass in the success
+   icon and a miss in the danger icon, from the chrome theme `preview/badge-marks.ts` stamps on the mark (the one that
+   contrasts most with the ground under it). An unstamped mark (no theme reaches 3:1 there) keeps the badge's ink. */
+.p3-marks .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
+.p3-marks .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }
 
 /* ── narrow (Q7): one column, one sticky top row, the tabs as a select ───────────────────── */
 .p3-frame[data-w="narrow"] .p3-head { display: contents; }
@@ -752,7 +757,13 @@
 .p3-pick-ratio[data-below="true"] { color: var(--p3-bad-text); }
 .p3-pick-ratio[data-below="true"] .p3-ico { color: var(--p3-bad-icon); }
 .p3-btn.p3-pick[aria-expanded="true"] { border-color: var(--p3-ctl-edge); }
-.p3-gedit { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* S4f (QA-B15, QA-B16): the gradients list. Each gradient is set apart from the next by its divider with a step
+   more room on both sides than S4a gave it, and Add gradient by a divider of its own and more room above it. */
+.p3-glist { display: grid; }
+.p3-gedit { display: grid; gap: var(--p3-space-150); padding-block: var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-gadd { padding-top: var(--p3-space-400); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* QA-B13: the gradients switch at the top right of its lever's header. */
+.p3-lever-head > .p3-switch { margin-inline-start: auto; }
 .p3-gbar { height: var(--p3-gbar-h); border-radius: var(--p3-radius-lg); outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 .p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
@@ -764,6 +775,17 @@
 .p3-rows-sub[hidden], .p3-icon-pair[hidden] { display: none; }
 .p3-icon-pair { display: grid; gap: var(--p3-space-100); justify-items: start; }
 .p3-icon-pair-note { margin: 0; line-height: var(--p3-lh-cozy); }
+/* S4f: the Background fills sub-headings (QA-B7) at the rows' sub-heading size; the first opens the block, so it
+   takes no divider. The contrast floor row's name and its info button share a line (QA-B6). */
+.p3-rows-sub.p3-rows-sub-first { margin-top: 0; padding-top: 0; border-top: none; }
+/* A6 (owner, 2026-10-03): the scrim's wash fills its swatch, over the swatch's checkerboard (`.p3-checker`). */
+.p3-scrim-wash { display: block; width: 100%; height: 100%; border-radius: inherit; }
+/* The preview's scrim card: the same checkerboard under the wash, the card's size and corners kept. */
+.p3-legacy-card .sg-scrimcard.p3-checker { background-size: var(--p3-space-150) var(--p3-space-150); }
+.p3-fill-nameline { display: flex; align-items: center; gap: var(--p3-space-050); min-width: 0; }
+.p3-fillrow.p3-fillrow-wide { grid-template-columns: auto minmax(0, 1fr); }
+.p3-fillrow-wide > .p3-pick { grid-column: 2; justify-self: start; max-width: 100%; }
+.p3-fillrow-wide > .p3-pick .p3-btn-label { white-space: normal; text-align: start; }
 .p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-jump[hidden] { display: none; }
 .p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */
@@ -805,8 +827,7 @@
    drawn on. A mark it does not stamp (no theme reaches 3:1 there, as on a mid-gray page) keeps the badge's ink. */
 .p3-ipv .sg-tlab { min-width: 0; }
 .p3-ipv .sg-foothint { flex-wrap: wrap; max-width: 100%; }
-.p3-ipv .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
-.p3-ipv .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }
+/* The marks' colors are the shared `.p3-marks` rule (S4f), which the card also carries. */
 
 /* ── Type (S6.2): the library, Add face with its type-ahead, the face for each text type ──────────── */
 .p3-facehead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-150); }
