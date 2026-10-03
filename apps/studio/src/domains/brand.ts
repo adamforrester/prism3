@@ -34,7 +34,7 @@ import {
 import { verdictOf } from '../state/verdict';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
-import { checkRow, inlineConfirm, leverBlock, leverOf, selectField, setText, stateLine, subLine, textField, toggleChip, type LeverBlock } from '../ui/lever-kit';
+import { addRowButton, checkRow, inlineConfirm, leverBlock, leverOf, selectField, setText, stateLine, subLine, textField, toggleChip, type LeverBlock } from '../ui/lever-kit';
 
 const PAGE = DOMAINS.find((d) => d.id === 'brand') as PageData;
 const plural = (n: number, one: string): string => `${n} ${n === 1 ? one : `${one}s`}`;
@@ -223,14 +223,12 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       });
     });
     const addRow = h('div', 'p3-cmadd');
-    const add = hook(h('button', 'p3-btn p3-btn-page'), 'custom-mode-add');
-    add.type = 'button';
-    add.append(glyph('plus'), h('span', 'p3-btn-label', 'Add custom mode'));
-    add.onclick = () => {
+    // The full-width dashed add row every growing list ends on (the owner's QA-R1): the same write and focus move.
+    const add = addRowButton('custom-mode-add', 'Add custom mode', () => {
       edit('customModes', () => { addCustomMode(); });
       const names = root.querySelectorAll<HTMLInputElement>('[data-p3="custom-mode-name"]');
       names[names.length - 1]?.focus();
-    };
+    });
     addRow.append(add, h('span', 'p3-sub', 'Copies light or dark, then takes its own overrides.'));
     cl.append(addRow);
     cb.ctl.append(cl);
