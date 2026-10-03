@@ -15,8 +15,8 @@
  *   3. THE SCRIM'S READ-OUT: the primitive and opacity its read-only row prints, per mode.
  * S4d (owner decisions Q44 to Q50) adds:
  *   4. A HOME FOR EVERY ROLE (Q20, Q49): every Surfaces & fills role the emission carries is a row, one of the
- *      two grounds the Background fills controls set, or read-only by a reason this test declares literally
- *      (the washes, the tier grounds waiting on #1972, the focus rings waiting on #1966). Q49's list is written
+ *      grounds the Background fills controls set (six since S4e: the four tiers are levers, #1972), or read-only
+ *      by a reason this test declares literally (the washes, the focus rings waiting on #1966). Q49's list is written
  *      out by family, so a dropped row fails by its role.
  *   5. THE NEW ROWS' PALETTES AND WRITES: as (1), for each of them, in light and dark.
  *   6. THE ICON LOCK (Q50): paired, each icon row is locked to its text twin, by the engine's own rule restated
@@ -24,6 +24,13 @@
  *      Unpair writes `iconContrast: '3:1'` and nothing else, and unlocks every row; re-pairing clears every
  *      icon override (Q52), and the confirm's body is singular for one override, plural otherwise (Q60).
  *   7. THE PAGE PICKER (Q45): each of its choices writes byte for byte what the select's option wrote.
+ * S4e (#1972, the engine's #1987) adds:
+ *   8. THE BACKGROUND TIERS: each control writes its `surfaces.<mode>` input (a literal), never an override, and
+ *      the engine resolves the tier to the step written (the emission's hex); Auto clears it byte for byte; an
+ *      override on a tier is still refused; and a Secondary pick re-derives a floor-gated role against it.
+ *   9. THE FLOOR'S AUTO LABEL names the engine's floor (`foreground.brand.against`, resolved here with the
+ *      brand's `floorStep` removed), saying it follows `background.secondary` only when the floor IS that tier's
+ *      step: literal labels, ladder-end Pages in Light and Dark, and a sweep of every Page choice per brand.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). The role list is read from the COMMITTED EMISSION
  * (`packages/engine/out/prism3.tokens.json`), never from the module, and is also written out here as a
@@ -214,20 +221,21 @@ for (const fam of FILLS_FAMILIES) {
   leaves(tokens[ROOT].color.inverse?.[fam], ['inverse', fam], emittedFills);
 }
 const fillsRoles = emittedFills.filter((e) => !INTERACTIVES.test(e.role));
-/** The two grounds, set by the Background fills controls, not by an override (the engine refuses one). */
+/** The six grounds, set by the Background fills controls, not by an override (the engine refuses one). The four
+ *  tiers became levers in S4e, when the engine's #1987 gave them inputs (#1972). Literal. */
 const LEVER_ROLES: Record<string, string> = {
   'background.primary': 'Page, surfaces.<mode>.base',
   'inverse.background.primary': 'Inverse band, surfaces.<mode>.inverseBase',
+  'background.secondary': 'Secondary, surfaces.<mode>.secondary',
+  'background.tertiary': 'Tertiary, surfaces.<mode>.tertiary',
+  'inverse.background.secondary': 'Inverse secondary, surfaces.<mode>.inverseSecondary',
+  'inverse.background.tertiary': 'Inverse tertiary, surfaces.<mode>.inverseTertiary',
 };
 /** Read-only, each with its declared reason. Literal. */
 const VEILS = ['dark.subtle', 'dark.medium', 'dark.strong', 'dark.clear', 'light.subtle', 'light.medium', 'light.strong', 'light.clear'].map((v) => `veil.${v}`);
 const READ_ONLY: Record<string, string> = {
   'scrim.default': 'a wash: no ramp step to swap in (a read-only row)',
   ...Object.fromEntries(VEILS.map((v) => [v, 'a wash: no ramp step to swap in'])),
-  'background.secondary': 'a tier ground, waiting on its engine input (#1972)',
-  'background.tertiary': 'a tier ground, waiting on its engine input (#1972)',
-  'inverse.background.secondary': 'a tier ground, waiting on its engine input (#1972)',
-  'inverse.background.tertiary': 'a tier ground, waiting on its engine input (#1972)',
   'border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
   'inverse.border.focus': 'the focus ring, customizable in #1966 (a read-only row)',
 };
@@ -241,6 +249,13 @@ ok(homeless.length === 0, `every Surfaces & fills role the engine emits is a row
 ok(twoHomes.length === 0, `no Surfaces & fills role has two homes (a row and a lever, two rows, a row and a read-only reason)${twoHomes.length ? ` — two homes: ${twoHomes.join(', ')}` : ''}`);
 const unemitted = ALL_ROWS.filter((r) => !fillsRoles.some((e) => e.role === r.role)).map((r) => r.role);
 ok(unemitted.length === 0, `every row names an emitted Surfaces & fills role${unemitted.length ? ` — not emitted: ${unemitted.join(', ')}` : ''}`);
+// A lever role is a control's token: the engine declares an input for it (`GROUND_INPUT`) and the page has a
+// control naming it (`SURFACE_TOKENS`). Two sources, neither the other: a tier dropped from either fails by name.
+for (const role of Object.keys(LEVER_ROLES)) {
+  const field = LEVER_ROLES[role].split('surfaces.<mode>.')[1];
+  ok(GROUND_INPUT[role] === field && (F.SURFACE_TOKENS as Record<string, string>)[field] === role,
+    `${role} is a lever: the engine's input is surfaces.<mode>.${field} (GROUND_INPUT says ${GROUND_INPUT[role]}), and a Background fills control names it (SURFACE_TOKENS.${field} is ${(F.SURFACE_TOKENS as Record<string, string>)[field]})`);
+}
 const declaredGone = [...Object.keys(LEVER_ROLES), ...Object.keys(READ_ONLY)].filter((r) => !fillsRoles.some((e) => e.role === r));
 ok(declaredGone.length === 0, `every declared lever and read-only role is still emitted${declaredGone.length ? ` — gone: ${declaredGone.join(', ')}` : ''}`);
 ok(JSON.stringify([...F.FOCUS_ROLES]) === JSON.stringify(['border.focus', 'inverse.border.focus']), `the read-only focus rows are border.focus and inverse.border.focus (${JSON.stringify(F.FOCUS_ROLES)})`);
@@ -507,6 +522,143 @@ for (const v of selectValues) {
 }
 const differs = selectValues.filter((_, i) => viaSelect[i] !== viaPicker[i]);
 ok(differs.length === 0, `every Page choice writes byte for byte what its select option wrote (${selectValues.length}/${selectValues.length})${differs.length ? ` — differs: ${differs.join(', ')}` : ''}`);
+
+// ── 8. S4e: the background tiers are controls writing their engine inputs (#1972, the engine's #1987) ───
+console.log('\n8. The background tiers: each writes its surfaces input, never an override; Auto clears it (oracle: literals, the engine)');
+/** Each case: the write, the persisted `surfaces.<mode>` it must leave (LITERAL, typed here), and the role the
+ *  engine must then resolve to the step written, read against the committed emission's hex for that step. */
+type TierCase = { name: string; mode: 'light' | 'dark'; write: () => void; clear: () => void; want: Record<string, unknown>; role: string; palette: string; step: string };
+const TIER_CASES: TierCase[] = [
+  { name: 'Secondary, neutral 200, Light', mode: 'light', write: () => F.setSurfaceTier('light', 'secondary', '200'), clear: () => F.setSurfaceTier('light', 'secondary', undefined),
+    want: { base: 'white', secondary: 200 }, role: 'background.secondary', palette: 'neutral', step: '200' },
+  { name: 'Tertiary, neutral 050, Light', mode: 'light', write: () => F.setSurfaceTier('light', 'tertiary', '050'), clear: () => F.setSurfaceTier('light', 'tertiary', undefined),
+    want: { base: 'white', tertiary: 50 }, role: 'background.tertiary', palette: 'neutral', step: '050' },
+  { name: 'Secondary, neutral 800, Dark', mode: 'dark', write: () => F.setSurfaceTier('dark', 'secondary', '800'), clear: () => F.setSurfaceTier('dark', 'secondary', undefined),
+    want: { secondary: 800 }, role: 'background.secondary', palette: 'neutral', step: '800' },
+  { name: 'Inverse secondary, neutral 100, Dark', mode: 'dark', write: () => F.setInverseTier('dark', 'inverseSecondary', 'neutral', '100'), clear: () => F.setInverseTier('dark', 'inverseSecondary', 'neutral', undefined),
+    want: { inverseSecondary: 100 }, role: 'inverse.background.secondary', palette: 'neutral', step: '100' },
+  { name: 'Inverse tertiary, primary 300, Dark', mode: 'dark', write: () => F.setInverseTier('dark', 'inverseTertiary', 'primary', '300'), clear: () => F.setInverseTier('dark', 'inverseTertiary', 'primary', undefined),
+    want: { inverseTertiary: { palette: 'primary', step: 300 } }, role: 'inverse.background.tertiary', palette: 'primary', step: '300' },
+  { name: 'Inverse tertiary, primary 800, Light', mode: 'light', write: () => F.setInverseTier('light', 'inverseTertiary', 'primary', '800'), clear: () => F.setInverseTier('light', 'inverseTertiary', 'primary', undefined),
+    want: { base: 'white', inverseTertiary: { palette: 'primary', step: 800 } }, role: 'inverse.background.tertiary', palette: 'primary', step: '800' },
+];
+for (const c of TIER_CASES) {
+  const other = c.mode === 'light' ? 'dark' : 'light';
+  reset();
+  const base0 = allModes();
+  c.write();
+  ok(JSON.stringify(store.brandState.surfaces?.[c.mode]) === JSON.stringify(c.want) && JSON.stringify(store.brandState.surfaces?.[other]) === JSON.stringify(prism3.surfaces?.[other]),
+    `${c.name}: writes surfaces.${c.mode} = ${JSON.stringify(c.want)}, surfaces.${other} as loaded (wrote ${JSON.stringify(store.brandState.surfaces)})`);
+  ok(store.brandState.overrides === undefined, `${c.name}: writes no override (overrides ${JSON.stringify(store.brandState.overrides)})`);
+  const hex = String(tokens[ROOT].core.palette[c.palette]?.[c.step]?.$value ?? '').toLowerCase();
+  let all: ReturnType<typeof resolveAllModes> | null = null;
+  try { all = allModes(); } catch { /* reported below */ }
+  const got = all ? roleIn(all, c.role, c.mode) : undefined;
+  ok(!!got && got.path === `${ROOT}.core.palette.${c.palette}.${c.step}` && got.hex?.toLowerCase() === hex,
+    `${c.name}: the engine takes it and resolves ${c.role} in ${c.mode} to ${c.palette} ${c.step}, the emitted ${hex} (resolved ${got?.path} ${got?.hex})`);
+  // The tier written is the only tier moved: its page/inverse twin and its sibling stay where they were.
+  const twins = ['background.secondary', 'background.tertiary', 'inverse.background.secondary', 'inverse.background.tertiary'].filter((r) => r !== c.role);
+  const moved = all ? twins.filter((r) => roleIn(all!, r, c.mode)?.path !== roleIn(base0, r, c.mode)?.path) : twins;
+  ok(moved.length === 0, `${c.name}: no other tier moves in ${c.mode}${moved.length ? ` — moved: ${moved.join(', ')}` : ''}`);
+  store.rebuild();
+  const read = F.tierOf(c.mode, (Object.keys(c.want).find((k) => k !== 'base')) as F.PageTier | F.InverseTier);
+  ok(JSON.stringify(read) === JSON.stringify({ palette: c.palette, step: c.step }), `${c.name}: the control reads it back as ${c.palette} ${c.step} (read ${JSON.stringify(read)})`);
+  c.clear();
+  ok(pristine(), `${c.name}: Auto clears the input, the brand byte-identical to the one loaded (surfaces ${JSON.stringify(store.brandState.surfaces)})`);
+}
+// White and Black are the page tiers' fixed choices, written as words, as the Page writes them.
+reset();
+F.setSurfaceTier('dark', 'tertiary', 'black');
+F.setSurfaceTier('light', 'secondary', 'white');
+ok(JSON.stringify(store.brandState.surfaces) === JSON.stringify({ light: { base: 'white', secondary: 'white' }, dark: { tertiary: 'black' } }) && takes(),
+  `White and Black write as words, and the engine takes them (${JSON.stringify(store.brandState.surfaces)})`);
+// The override on a tier stays refused (the engine's #1987, untouched here): an override written straight into the
+// brand, the way no control on this page writes one, is refused naming the input.
+for (const [role, field] of [['background.secondary', 'secondary'], ['inverse.background.tertiary', 'inverseTertiary']]) {
+  let msg = '';
+  try { const b = structuredClone(prism3); b.overrides = { light: { [role]: { palette: 'neutral', step: '100' } } }; resolveAllModes(brandTheme(b)); } catch (e) { msg = (e as Error).message; }
+  ok(msg.includes(`'${role}' is a GROUND`) && msg.includes(field), `an override on ${role} is still refused, naming surfaces.<mode>.${field} — ${msg ? msg.slice(0, 90) : 'it was ACCEPTED'}`);
+}
+
+// ── 9. The contrast floor's Auto label names the ENGINE's floor (S4e review) ─────────────────────────
+console.log("\n9. The contrast floor's Auto label: the engine's floor, and the tier only when the floor is the tier's step (oracle: literals, the engine's foreground.brand.against)");
+/** The engine's Auto floor in `mode`, read here, never through the module: `foreground.brand`'s `against` and
+ *  `background.secondary`'s step, resolved by the engine from the working brand with `floorStep` removed (the
+ *  brand Auto would leave). */
+const engineFloor = (mode: 'light' | 'dark'): { against?: string; secondary?: string } => {
+  const b = structuredClone(store.brandState);
+  delete (b.surfaces?.[mode] as { floorStep?: number } | undefined)?.floorStep;
+  const roles = resolveAllModes(brandTheme(b)).find((m) => m.mode === mode)?.roles as Record<string, { path?: string; against?: string } | undefined>;
+  return { against: roles['foreground.brand']?.against, secondary: roles['background.secondary']?.path?.replace(/^[^.]+\.core\.(palette\.)?/, '') };
+};
+/** Each case: a brand, a mode, the surfaces edit, the label (LITERAL), and the engine floor and tier it must name
+ *  (LITERAL, checked against the engine). A ladder-end Page in each scheme: Light's Black and 950, whose second
+ *  tier snaps to black while the floor stays neutral 950; Dark's White and 050, whose tier snaps to white while
+ *  the floor stays neutral 050 or 025. */
+type FloorCase = { brand: string; mode: 'light' | 'dark'; edit: () => void; label: string; floor: string; secondary: string; what: string };
+const FLOOR_CASES: FloorCase[] = [
+  { brand: 'prism3', mode: 'light', edit: () => {}, label: 'Auto · follows background.secondary (neutral 050)', floor: 'neutral.050', secondary: 'neutral.050', what: 'Page White (as loaded)' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceBase('light', '200'), label: 'Auto · follows background.secondary (neutral 250)', floor: 'neutral.250', secondary: 'neutral.250', what: 'Page neutral 200' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceBase('light', 'black'), label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black (a ladder end)' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceBase('light', '950'), label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page neutral 950 (a ladder end)' },
+  { brand: 'prism3', mode: 'dark', edit: () => {}, label: 'Auto · follows background.secondary (neutral 900)', floor: 'neutral.900', secondary: 'neutral.900', what: 'Page Black (as loaded)' },
+  { brand: 'prism3', mode: 'dark', edit: () => F.setSurfaceBase('dark', '300'), label: 'Auto · follows background.secondary (neutral 250)', floor: 'neutral.250', secondary: 'neutral.250', what: 'Page neutral 300' },
+  { brand: 'prism3', mode: 'dark', edit: () => F.setSurfaceBase('dark', 'white'), label: 'Auto · neutral 050', floor: 'neutral.050', secondary: 'white', what: 'Page White (a ladder end)' },
+  { brand: 'prism3', mode: 'dark', edit: () => F.setSurfaceBase('dark', '050'), label: 'Auto · neutral 025', floor: 'neutral.025', secondary: 'white', what: 'Page neutral 050 (a ladder end)' },
+  { brand: 'harbor', mode: 'light', edit: () => F.setSurfaceBase('light', 'black'), label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black (a ladder end)' },
+  { brand: 'harbor', mode: 'dark', edit: () => F.setSurfaceBase('dark', 'white'), label: 'Auto · neutral 050', floor: 'neutral.050', secondary: 'white', what: 'Page White (a ladder end)' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceTier('light', 'secondary', '200'), label: 'Auto · follows background.secondary (neutral 200)', floor: 'neutral.200', secondary: 'neutral.200', what: 'Secondary at neutral 200' },
+  // With a `floorStep` set the engine's floor is that step; the Auto option names the floor Auto would restore.
+  { brand: 'prism3', mode: 'light', edit: () => { F.setSurfaceTier('light', 'secondary', '200'); F.setSurfaceFloor('light', '100'); }, label: 'Auto · follows background.secondary (neutral 200)', floor: 'neutral.200', secondary: 'neutral.200', what: 'Secondary at neutral 200, floorStep 100 set' },
+  { brand: 'prism3', mode: 'light', edit: () => { F.setSurfaceBase('light', 'black'); F.setSurfaceFloor('light', '100'); }, label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black, floorStep 100 set' },
+];
+for (const c of FLOOR_CASES) {
+  reset((exampleBrands as Record<string, BrandInput>)[c.brand]);
+  c.edit();
+  store.rebuild();
+  const eng = engineFloor(c.mode);
+  const label = F.floorAutoLabel(c.mode);
+  ok(eng.against === c.floor && eng.secondary === c.secondary && label === c.label,
+    `${c.brand} ${c.mode === 'light' ? 'Light' : 'Dark'}, ${c.what}: the engine's Auto floor is ${c.floor} (foreground.brand.against ${eng.against}), background.secondary ${c.secondary} (${eng.secondary}), and the floor's Auto reads ${JSON.stringify(c.label)} (read ${JSON.stringify(label)})`);
+}
+// The last case still has floorStep 100 set: the engine measures against neutral.100, which the Auto option does not name.
+const fbSet = roleIn(allModes(), 'foreground.brand', 'light') as { against?: string } | undefined;
+ok(fbSet?.against === 'neutral.100', `with floorStep 100 set, the engine's live floor is neutral.100 (${fbSet?.against}), not what the Auto option names`);
+// Every Page choice, both modes, every corpus brand: the label names the engine's floor, in the form the engine's
+// own two reads imply (the floor IS the tier → "follows"; otherwise the floor alone). The plain form's Page choices
+// are written out, so a choice that moves between forms fails by name.
+const PLAIN_FORM: Record<'light' | 'dark', string[]> = { light: ['950', 'black'], dark: ['white', '025', '050'] };
+for (const brand of ['prism3', 'aurora', 'harbor']) {
+  for (const mode of ['light', 'dark'] as const) {
+    const wrong: string[] = [], plain: string[] = [];
+    let n = 0;
+    reset((exampleBrands as Record<string, BrandInput>)[brand]);
+    for (const { key } of F.pageSteps()) {
+      reset((exampleBrands as Record<string, BrandInput>)[brand]);
+      F.setSurfaceBase(mode, key);
+      store.rebuild();
+      n++;
+      const eng = engineFloor(mode);
+      const shown = (eng.against ?? '').split('.').join(' ');
+      const want = eng.against === eng.secondary ? `Auto · follows background.secondary (${shown})` : `Auto · ${shown}`;
+      if (eng.against !== eng.secondary) plain.push(key);
+      const got = F.floorAutoLabel(mode);
+      if (got !== want) wrong.push(`${key}: ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+    }
+    ok(n > 20 && wrong.length === 0 && JSON.stringify(plain) === JSON.stringify(PLAIN_FORM[mode]),
+      `${brand} ${mode}: each of the ${n} Page choices names the engine's floor; the floor is not the tier for ${JSON.stringify(plain)} (want ${JSON.stringify(PLAIN_FORM[mode])})${wrong.length ? ` — wrong: ${wrong.join('; ')}` : ''}`);
+  }
+}
+
+// A Secondary pick re-derives a floor-gated role against it (option A).
+reset();
+const textSecBefore = roleIn(allModes(), 'text.secondary', 'light') as { path?: string; against?: string } | undefined;
+F.setSurfaceTier('light', 'secondary', '200');
+store.rebuild();
+const textSec = roleIn(allModes(), 'text.secondary', 'light') as { path?: string; against?: string } | undefined;
+ok(textSecBefore?.against === 'neutral.050' && textSec?.against === 'neutral.200' && textSec.path !== textSecBefore.path,
+  `Secondary at neutral 200: the engine re-derives the floor-gated text.secondary against neutral.200 (against ${textSecBefore?.against} → ${textSec?.against}, ${textSecBefore?.path} → ${textSec?.path})`);
+ok(F.floorAutoLabel('dark') === 'Auto · follows background.secondary (neutral 900)', `and Dark's floor Auto is untouched (read ${JSON.stringify(F.floorAutoLabel('dark'))})`);
 
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);

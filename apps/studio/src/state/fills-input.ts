@@ -27,9 +27,15 @@
  * and `unpairIcons` writes the lever's other value, exactly as the lever's own control does. Two roles stay
  * read-only by declared reason: the focus rings (#1966). The page and the band step keep their writes; only
  * their control became the step picker (Q45).
+ *
+ * WHAT S4e ADDS (#1972). The four background tiers, `background.secondary`/`.tertiary` and their inverse twins,
+ * were read-only rows waiting on an engine input; the engine's #1987 made them `surfaces.<mode>.secondary`,
+ * `.tertiary`, `.inverseSecondary` and `.inverseTertiary`, and refuses an override on any of them. So their
+ * writes are surface writes, like the Page's and the band's, never `setRoleOverride`: `setSurfaceTier` (the
+ * page's type) and `setInverseTier` (the band's type). Auto clears the input, pruning as an override clears.
  */
-import type { GradientInput } from '@prism3/engine/theme';
-import { BUILTIN_MODES } from '@prism3/engine/modes';
+import { brandTheme, type GradientInput } from '@prism3/engine/theme';
+import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
 import { brandState, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
@@ -76,7 +82,19 @@ export const surfaceSourceOf = (mode: string): { source: SurfaceMode; editable: 
  *  which the engine paints as `background.primary`; the inverse band writes `inverseBase`, painted as
  *  `inverse.background.primary` (#956). The controls name it, so the lever lines up with the preview. The
  *  contrast floor is a setting, not a token, and is not here. */
-export const SURFACE_TOKENS = { base: 'background.primary', inverseBase: 'inverse.background.primary' } as const;
+export const SURFACE_TOKENS = {
+  base: 'background.primary', inverseBase: 'inverse.background.primary',
+  // The second and third tiers of both ladders (#1972): inputs since the engine's #1987, so their controls write
+  // `surfaces.<mode>.<field>`, never an `overrides` entry (the engine refuses one, naming the input).
+  secondary: 'background.secondary', tertiary: 'background.tertiary',
+  inverseSecondary: 'inverse.background.secondary', inverseTertiary: 'inverse.background.tertiary',
+} as const;
+/** The page's tiers: the page's own type (`base`'s): white, black or a neutral step. */
+export const PAGE_TIERS = ['secondary', 'tertiary'] as const;
+export type PageTier = typeof PAGE_TIERS[number];
+/** The inverse fill's tiers: `inverseBase`'s type, a neutral step or `{ palette, step }` on a band palette. */
+export const INVERSE_TIERS = ['inverseSecondary', 'inverseTertiary'] as const;
+export type InverseTier = typeof INVERSE_TIERS[number];
 /** The scrim (owner decision, 2026-10-02): a read-only row in Background fills, the role the preview's Background
  *  section ends on. It is a translucent wash (`<ns>.black-alpha.<n>`), so it has no ramp step to pick: the row
  *  reads out its primitive and its opacity, as the legacy Interactive page's wash read-out (`washSourceRead`
@@ -107,6 +125,33 @@ export const pageKeyOf = (base: string | number): string =>
 /** The page surface: `white`, `black` or a neutral step (the select's value, or the picker's key). */
 export const setSurfaceBase = (mode: SurfaceMode, v: string): void => {
   setPath(brandState, `surfaces.${mode}.base`, v === 'white' || v === 'black' ? v : Number(v));
+};
+/** The contrast floor's Auto option, in `mode`: the floor the ENGINE derives with no `floorStep`, read off the
+ *  resolved theme (`foreground.brand`'s `against`, the floor every floor-gated role is measured on). With nothing
+ *  declared that is `background.secondary`'s step, and the option says it follows the tier; at the ladder's ends it
+ *  is not (Page Black in Light: the tier snaps to black, the floor stays neutral 950), and the option names the
+ *  floor alone. While a `floorStep` is set the engine's floor is that step, so the Auto floor is read off the brand
+ *  with it removed: the option says what Auto would restore. Display only; it writes nothing. */
+export const floorAutoLabel = (mode: SurfaceMode): string => {
+  const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
+  const floor = roles['foreground.brand']?.against;
+  if (!floor) return 'Auto';
+  const shown = (s: string): string => s.split('.').join(' ');
+  const sec = stepOfPath(roles[SURFACE_TOKENS.secondary]?.path);
+  const secKey = sec ? `${sec.palette}.${sec.step}` : roles[SURFACE_TOKENS.secondary]?.path?.split('.').pop();
+  return floor === secKey ? `Auto · follows ${SURFACE_TOKENS.secondary} (${shown(floor)})` : `Auto · ${shown(floor)}`;
+};
+/** `mode`'s roles as the engine resolves them with `surfaces.<mode>.floorStep` removed: the brand Auto would leave.
+ *  One extra resolve per theme, only while a floor is set, cached by the theme object as `resolvedModes` is. */
+let autoFloor: { theme: unknown; mode: string; roles: Record<string, FillRole | undefined> } | null = null;
+const autoFloorRoles = (mode: SurfaceMode): Record<string, FillRole | undefined> => {
+  if (autoFloor && autoFloor.theme === theme && autoFloor.mode === mode) return autoFloor.roles;
+  const b = structuredClone(brandState);
+  delete (b.surfaces?.[mode] as { floorStep?: number } | undefined)?.floorStep;
+  let roles: Record<string, FillRole | undefined> = {};
+  try { roles = (resolveAllModes(brandTheme(b)).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, FillRole | undefined>; } catch { /* the option reads plain Auto */ }
+  autoFloor = { theme, mode, roles };
+  return roles;
 };
 /** The contrast floor: a neutral step, or `''` for Auto. */
 export const setSurfaceFloor = (mode: SurfaceMode, v: string): void => {
@@ -146,6 +191,42 @@ export const setBandPalette = (mode: SurfaceMode, pal: string): void => {
 export const setBandStep = (mode: SurfaceMode, step: string | undefined): void => {
   const { palette } = bandOf(mode);
   writeBand(mode, step == null ? undefined : palette === theme.roleToPalette.neutral ? Number(step) : { palette, step: Number(step) });
+};
+
+// ── the background tiers (#1972, the engine's #1987) ─────────────────────────────────────────────────
+
+/** Clear `surfaces.<mode>.<field>`: the key deleted, and an emptied mode and an emptied `surfaces` pruned, so
+ *  Auto leaves a brand byte-identical to one never edited (the tier is then the ladder's own step again). */
+const clearSurface = (mode: SurfaceMode, field: string): void => {
+  const sf = brandState.surfaces as Record<string, Record<string, unknown> | undefined> | undefined;
+  const forMode = sf?.[mode];
+  if (!sf || !forMode) return;
+  delete forMode[field];
+  if (!Object.keys(forMode).length) delete sf[mode];
+  if (!Object.keys(sf).length) delete (brandState as { surfaces?: unknown }).surfaces;
+};
+/** A page tier (`secondary`, `tertiary`): a picker key (`'white'`, `'black'`, a neutral step's key), written as
+ *  the Page writes its key (`setSurfaceBase`); `undefined` is Auto and clears the input. */
+export const setSurfaceTier = (mode: SurfaceMode, tier: PageTier, v: string | undefined): void => {
+  if (v === undefined) return clearSurface(mode, tier);
+  setPath(brandState, `surfaces.${mode}.${tier}`, v === 'white' || v === 'black' ? v : Number(v));
+};
+/** An inverse tier (`inverseSecondary`, `inverseTertiary`): a step on `palette`, written as the Inverse fill's
+ *  step is (`setBandStep`): a neutral step a bare number, another palette `{ palette, step }`; `undefined` is
+ *  Auto and clears the input. */
+export const setInverseTier = (mode: SurfaceMode, tier: InverseTier, palette: string, step: string | undefined): void => {
+  if (step === undefined) return clearSurface(mode, tier);
+  setPath(brandState, `surfaces.${mode}.${tier}`, palette === theme.roleToPalette.neutral ? Number(step) : { palette, step: Number(step) });
+};
+/** A tier as the input holds it, as a picker reads it: its palette and step key, or null when unset (Auto).
+ *  `'white'` and `'black'` read as themselves on the neutral palette. */
+export const tierOf = (mode: SurfaceMode, tier: PageTier | InverseTier): { palette: string; step: string } | null => {
+  const cur = brandState.surfaces?.[mode]?.[tier];
+  if (cur == null) return null;
+  const palette = typeof cur === 'object' ? cur.palette : theme.roleToPalette.neutral;
+  if (cur === 'white' || cur === 'black') return { palette, step: cur };
+  const num = typeof cur === 'object' ? cur.step : cur;
+  return { palette, step: stepsOf(palette).find((k) => Number(k) === Number(num)) ?? String(num) };
 };
 
 // ── role overrides (legacy `setFillOverride`) ────────────────────────────────────────────────────────

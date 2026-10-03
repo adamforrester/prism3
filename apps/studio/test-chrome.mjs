@@ -366,7 +366,8 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
  *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
  *  controls, for the previewed mode (owner decision Q22). */
 const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor"]',
-  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
+  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
+  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
@@ -2817,11 +2818,18 @@ for (const host of ['web', 'figma']) {
     subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
     // The token a surface control names, read off the label its select is named by (`for`), so it is the
     // control's own label and not text elsewhere in the block.
-    tokens: Object.fromEntries(['surface-base-pick', 'surface-band-palette', 'surface-floor'].map((hk) => {
+    tokens: Object.fromEntries(['surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-palette', 'surface-inverse-secondary-pick',
+      'surface-inverse-tertiary-pick', 'surface-floor'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
     })),
+    // The four tiers' names under their tokens (S4e, DRAFT copy pending the owner).
+    tierNames: ['surface-secondary-pick', 'surface-tertiary-pick', 'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick'].map((hk) => {
+      const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
+      const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
+      return lab?.querySelector('.p3-field-label')?.textContent ?? null;
+    }),
     // The Inverse fill control's own name, under its token (the owner's rename of "band" to "fill", 2026-10-02).
     inverseName: (() => {
       const sel = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-band-palette"]');
@@ -2831,8 +2839,13 @@ for (const host of ['web', 'figma']) {
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
-  const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
+  // S4e (#1972, Q41): the four tiers name the tokens their inputs set.
+  const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-secondary-pick': 'background.secondary', 'surface-tertiary-pick': 'background.tertiary',
+    'surface-band-palette': 'inverse.background.primary', 'surface-inverse-secondary-pick': 'inverse.background.secondary',
+    'surface-inverse-tertiary-pick': 'inverse.background.tertiary', 'surface-floor': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
+  ok(JSON.stringify(copy.tierNames) === JSON.stringify(['Secondary', 'Tertiary', 'Inverse secondary', 'Inverse tertiary']),
+    `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (S4e, draft) — read ${JSON.stringify(copy.tierNames)}`);
   ok(copy.inverseName === 'Inverse fill', `${host}: the inverse.background.primary control is named "Inverse fill" (the owner's rename, 2026-10-02) — read ${JSON.stringify(copy.inverseName)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
@@ -2860,7 +2873,7 @@ for (const host of ['web', 'figma']) {
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   // The Background fills info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this page
   // and not the engine manifest's description, which stays as it is for MCP and the emission. Literal.
-  const SURFACES_TIP = 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.';
+  const SURFACES_TIP = 'The page, its tiers and the inverse fill for the mode the preview shows.';
   ok(copy.surfacesTip === SURFACES_TIP, `${host}: the Background fills info text is the owner's — read ${JSON.stringify(copy.surfacesTip)}`);
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);

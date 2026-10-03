@@ -4,7 +4,8 @@
  *
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`: the intro and jump links to each section (Q49);
  * **Background fills** (the page and the inverse band step in the step picker, Q45, the contrast floor and the
- * band palette as selects, one set for the mode the preview shows, Q22); **Foreground** (the neutral ladder,
+ * band palette as selects, one set for the mode the preview shows, Q22; since S4e the four background tiers too,
+ * #1972, each naming its token, Q41, in the step picker, Q45, with Auto); **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
  * that opens the step picker under the row, with the ratio on it; then the subtle fills, the on-color inks and
  * the inverse fills, Q49); **Text color** (the same rows for the text inks, page and inverse: the permanent,
@@ -35,10 +36,11 @@
 import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
-  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
+  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, inputGradientCss, lockedTo, neutralStepOptions, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, setSurfaceBase, setSurfaceFloor, stepHex, stepOfPath, stepsOf, surfaceSourceOf, unpairIcons, washReadOf, type FillRow,
+  SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
@@ -88,7 +90,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
     const b = leverBlock('surfaces', {
       label: 'Background fills',
-      desc: 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.',
+      desc: 'The page, its tiers and the inverse fill for the mode the preview shows.',
     });
     const opts = neutralStepOptions();
     const { source: m, editable } = surfaceSourceOf(currentMode);
@@ -155,11 +157,42 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       against: null, overridden: false, auto: false,
       onPick: (_p, step) => edit('surfaces', () => setSurfaceBase(m, step)), onAuto: () => {},
     });
-    // Contrast floor: Auto names the floor it derived, read off a bold fill's `against`.
-    const autoFloor = roles['foreground.brand']?.against;
-    grid.append(sel('p3-surf-floor', 'Contrast floor', 'surface-floor',
-      [{ v: '', l: autoFloor ? `Auto · ${autoFloor.replace('.', ' ')}` : 'Auto' }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
-      cur?.floorStep == null ? '' : String(cur.floorStep), (v) => edit('surfaces', () => setSurfaceFloor(m, v))));
+    /** A background tier (#1972): its token and name (Q41), and a button that opens the step picker (Q45). Unset,
+     *  it reads Auto and the step the engine derived (the ladder's own); a pick writes the input, and Return to
+     *  Auto clears it. The tier's palettes are the picker's: the page tiers the Page's (White, the neutral steps,
+     *  Black), the inverse tiers every palette the Inverse fill can draw from, browsed in the picker's own
+     *  palette select (a palette is chosen by picking a step on it, so choosing one writes nothing by itself). */
+    const tierField = (into: HTMLElement, tier: PageTier | InverseTier, label: string, hk: string, palettes: StepPickerOpts['palettes'],
+      write: (palette: string, step: string | undefined) => void): void => {
+      const token = SURFACE_TOKENS[tier];
+      const id = `p3-surf-${tier}`;
+      const set = tierOf(m, tier);
+      const res = roles[token];
+      const at = stepOfPath(res?.path);
+      const fixed = res?.path?.split('.').pop() ?? '';
+      const named = (s: { palette: string; step: string }): string => (s.step === 'white' ? 'White' : s.step === 'black' ? 'Black' : `${s.palette} ${s.step}`);
+      const now = set ? named(set) : `Auto · ${at ? named(at) : fixed}`;
+      const f = h('div', 'p3-field');
+      f.dataset.tier = tier;
+      f.append(tokenField(id, token, label), pickButton(id, hk, `surface:${tier}`, label, now));
+      into.append(f);
+      openPicker(`surface:${tier}`, id, {
+        role: token, palettes,
+        current: set ?? (at ? { palette: at.palette, step: at.step } : fixed === 'white' || fixed === 'black' ? { palette: nPal, step: fixed } : null),
+        against: null, overridden: set != null,
+        onPick: (p, step) => edit('surfaces', () => write(p, step)), onAuto: () => edit('surfaces', () => write(nPal, undefined)),
+      });
+    };
+    for (const [tier, label] of [['secondary', 'Secondary'], ['tertiary', 'Tertiary']] as const) {
+      tierField(grid, tier, label, `surface-${tier}-pick`, [{ palette: nPal, steps: pageSteps() }], (_p, step) => setSurfaceTier(m, tier, step));
+    }
+    // Contrast floor: Auto names the floor the engine derives, and the tier when it is that tier's step (`floorAutoLabel`).
+    const ff = sel('p3-surf-floor', 'Contrast floor', 'surface-floor',
+      [{ v: '', l: floorAutoLabel(m) }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
+      cur?.floorStep == null ? '' : String(cur.floorStep), (v) => edit('surfaces', () => setSurfaceFloor(m, v)));
+    // The full width, so its Auto label reads whole.
+    ff.classList.add('p3-field-wide');
+    grid.append(ff);
     // Inverse band: a palette, then a step in it (#898). The palette stays a select: the step picker shows one
     // palette's steps, and choosing a band palette is its own write (it seeds the darkest step). The step is the
     // step picker on the band's palette (Q45), writing what the step select wrote, Auto included.
@@ -185,12 +218,19 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       against: null, overridden: bandKey != null,
       onPick: (_p, step) => edit('surfaces', () => setBandStep(m, step)), onAuto: () => edit('surfaces', () => setBandStep(m, undefined)),
     });
+    const bandSteps = bandPalettes().map((p) => ({ palette: p, steps: (theme.palettes.find((x) => x.palette === p)?.steps ?? []).map((s) => ({ key: s.key, hex: s.hex })) }));
+    // The two inverse tiers share a row, as the Inverse fill's palette and step do, so each token reads whole.
+    const ip = h('div', 'p3-fieldpair p3-field-wide');
+    grid.append(ip);
+    for (const [tier, label] of [['inverseSecondary', 'Inverse secondary'], ['inverseTertiary', 'Inverse tertiary']] as const) {
+      tierField(ip, tier, label, `surface-${tier === 'inverseSecondary' ? 'inverse-secondary' : 'inverse-tertiary'}-pick`, bandSteps, (p, step) => setInverseTier(m, tier, p, step));
+    }
     grp.append(grid);
     if (surfacePicker) grp.append(surfacePicker);
     b.ctl.append(grp);
     const sc = scrimRow();
     if (sc) b.ctl.append(sc);
-    return [{ el: b.el, said: `${b.said} page contrast floor inverse fill ${SURFACE_TOKENS.base} ${SURFACE_TOKENS.inverseBase} scrim ${SCRIM_ROLE}`, key: 'surfaces', block: b }];
+    return [{ el: b.el, said: `${b.said} page secondary tertiary contrast floor inverse fill ${Object.values(SURFACE_TOKENS).join(' ')} scrim ${SCRIM_ROLE}`, key: 'surfaces', block: b }];
   };
 
   /** The scrim, read-only (owner decision, 2026-10-02): a fill row's swatch, name and role, and in place of the
