@@ -1824,12 +1824,19 @@ for (const brand of BRANDS) {
     ok(note === 0, `S4d ${brand}: loads unpaired, so no Unpair note is drawn (${note})`);
   }
   const rows1 = await iconRowsAt(page);
-  // The seven that keep their text's 4.5:1 floor under "3:1" follow their text under both lever values (#1982).
-  const FOLLOW_ALWAYS = ['icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info'];
+  // The nineteen that follow their text under both lever values: the seven that keep their text's 4.5:1 floor
+  // under "3:1" (#1982), and tertiary and the -subtle inks, page and inverse, whose text is held to the same 3:1
+  // floor as an icon (#2024). A literal typed here; 12 rows stay editable.
+  const FOLLOW_ALWAYS = [
+    'icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info',
+    'icon.tertiary', 'inverse.icon.tertiary',
+    'icon.brand-subtle', 'icon.success-subtle', 'icon.warning-subtle', 'icon.danger-subtle', 'icon.info-subtle',
+    'inverse.icon.brand-subtle', 'inverse.icon.success-subtle', 'inverse.icon.warning-subtle', 'inverse.icon.danger-subtle', 'inverse.icon.info-subtle',
+  ];
   const still = rows1.filter((r) => !FOLLOW_ALWAYS.includes(r.role) && (r.disabled || /^Follows/.test(r.text)));
-  ok(rows1.length === 31 && still.length === 0, `S4d ${brand}: unpaired, every icon row but the seven is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
+  ok(rows1.length === 31 && FOLLOW_ALWAYS.length === 19 && still.length === 0, `S4d ${brand}: unpaired, every icon row but the nineteen is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
   const loose = FOLLOW_ALWAYS.filter((role) => { const r = rows1.find((x) => x.role === role); return !r || !r.disabled || r.text !== `Follows ${ICON_TWIN(role)}`; });
-  ok(loose.length === 0, `S4d ${brand}: #1982 unpaired, the seven stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
+  ok(loose.length === 0, `S4d ${brand}: #1982/#2024 unpaired, the nineteen stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
     await previewMode(page, m);
     const row = `[data-p3="levers-pane"] .p3-fillrow[data-role="${role}"]`;
