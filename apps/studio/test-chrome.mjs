@@ -4679,7 +4679,9 @@ const readNames = (page) => page.evaluate(() => [...document.querySelectorAll('[
   const lab = n.querySelector('.p3-fill-label'), tok = n.querySelector('.p3-fill-tok');
   const L = lab?.getBoundingClientRect(), T = tok?.getBoundingClientRect();
   const kind = n.closest('[data-p3="family-row"]') ? 'type-family' : n.closest('[data-p3="face-row"]') ? 'type-face' : n.closest('[data-p3="interactive-levers"]') ? 'interactive-row'
-    : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
+    // S4f (QA-B1): Background fills' controls are rows now, inside the surfaces lever; a name in a `.p3-field` is the
+    // shape they had before.
+    : n.closest('[data-p3="lever-surfaces"] .p3-fillrow') ? 'background-row' : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
   return { kind, role: n.closest('.p3-fillrow')?.dataset.role ?? null, token: tok?.textContent ?? null, label: lab?.textContent ?? null, below: !!L && !!T && T.top >= L.bottom - 0.5,
     labTop: L ? Math.round(L.top) : null, tokTop: T ? Math.round(T.top) : null, tokFont: tok ? getComputedStyle(tok).fontFamily : null };
 }));
@@ -4758,9 +4760,10 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
       }, place));
     }
     // QA-B2: each row type is represented, and in each the token sits below its label, in mono.
-    const kinds = ['fill-row', 'fill-field', 'interactive-row', 'type-family', 'type-face'];
+    // S4f: Surfaces & fills' Background fills controls, which were fields, are rows (QA-B1): that kind is required in their place.
+    const kinds = ['fill-row', 'background-row', 'interactive-row', 'type-family', 'type-face'];
     const missing = kinds.filter((k) => !names.some((n) => n.kind === k));
-    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Surfaces & fills fields, Interactive rows, Type families and faces) — missing ${JSON.stringify(missing)}`);
+    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Background fills rows, Interactive rows, Type families and faces) — missing ${JSON.stringify(missing)}`);
     // S4f: Background fills' rows (QA-B1), the Scrim row (QA-B10) and the Fields rows are among those read, by token.
     const S4F_TOKENS = ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary', 'inverse.background.secondary',
       'inverse.background.tertiary', 'scrim.default', 'field.fill', 'field.border.rest', 'inverse.field.placeholder'];
@@ -4773,7 +4776,8 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     const above = names.filter((n) => n.token !== null && !n.below);
     ok(names.length >= 20 && above.length === 0,
       `QA-B2: ${where}: in every row type the token sits below its label, so the label is read first (${names.length} read)${above.length ? ` — ${JSON.stringify(above.slice(0, 3))}` : ''}`);
-    const notMono = names.filter((n) => !/JetBrains Mono|P3 Chrome Mono/.test(n.tokFont ?? ''));
+    // The contrast floor row has no token (held above), so there is no token font to read.
+    const notMono = names.filter((n) => n.token !== null && !/JetBrains Mono|P3 Chrome Mono/.test(n.tokFont ?? ''));
     ok(notMono.length === 0, `QA-B2: ${where}: every token under a label is set in the chrome's mono${notMono.length ? ` — ${JSON.stringify(notMono.slice(0, 2))}` : ''}`);
     // QA-B5, QA-B18: selects and step-picker buttons, each page represented.
     const placesWith = (k) => [...new Set(ctls.filter((c) => c.kind === k).map((c) => c.place))];
