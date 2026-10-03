@@ -3798,9 +3798,11 @@ console.log(`\nItalic chips, through the exported DTCG (S6.3)\n${'='.repeat(78)}
   };
   const WORDS = { upright: 'Upright', both: 'Upright + italic', only: 'Italic only' };
   const SAYS = { upright: 'no italic style', both: 'an italic twin for each upright style', only: 'fontStyle italic with no upright style' };
+  const CHIP = { both: '[data-p3="italic-choice-both"]', only: '[data-p3="italic-choice-only"]', upright: '[data-p3="italic-choice-upright"]' };
   for (const chip of ['both', 'only', 'upright']) {
-    await hooks.click(page.locator(`[data-p3="italic-row"][data-group="${G}"] [data-p3="italic-choice-${chip}"]`));
-    await page.waitForFunction(({ g, c }) => document.querySelector(`[data-p3="italic-row"][data-group="${g}"] [data-p3="italic-choice-${c}"]`)?.getAttribute('aria-checked') === 'true', { g: G, c: chip }, { timeout: 5000 }).catch(() => {});
+    const sel = `[data-p3="italic-row"][data-group="${G}"] ${CHIP[chip]}`;
+    await hooks.click(page.locator(sel));
+    await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'true', sel, { timeout: 5000 }).catch(() => {});
     const ls = await exported();
     ok(!!ls && RULE[chip](ls), `italics chip "${WORDS[chip]}" on ${G} exports ${SAYS[chip]} (${ls ? ls.map((l) => `${l.key.split('.').slice(2).join('.')}${l.italic ? '*' : ''}`).join(' ') : 'no export'})`);
   }

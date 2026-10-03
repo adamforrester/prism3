@@ -3747,7 +3747,7 @@ for (const host of ['web', 'figma']) {
       return {
         blocks: ['lever-typography-typeface-library', 'lever-typography-families'].map((hk) => pane.querySelectorAll(`[data-p3="${hk}"]`).length),
         fams, lib, tabs: pane.querySelectorAll('.pvseg').length + document.querySelectorAll('[data-p3="legacy-page"] .pvseg').length,
-        lent: pane.querySelectorAll('[data-p3="type-lent"], .p3-legacy-card').length,
+        lent: pane.querySelectorAll('.p3-legacy-card').length,
         leverCopy: [lsec?.querySelector('.p3-lsec-title')?.textContent ?? null, lsec?.querySelector('.p3-lsec-desc')?.textContent ?? null],
         previewCopy: [prev?.querySelector('.psec-t')?.textContent ?? null, prev?.querySelector('.psec-d')?.textContent ?? null],
         source: document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null,
@@ -4048,7 +4048,8 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="weight-pick"][data-role="strong"]'));
     const refused = await page.evaluate(() => { const b = document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="300"]'); return { off: b?.getAttribute('aria-disabled'), why: b?.querySelector('.p3-vpick-why')?.textContent ?? null }; });
     ok(refused.off === 'true' && refused.why === 'Lighter than emphasis (500). Weights stay in order.', `Q65: the strong weight's 300 is offered disabled with its reason (${JSON.stringify(refused)})`);
-    await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="300"]'));
+    // force: Playwright holds an aria-disabled button not actionable; the point is that a click on it writes nothing.
+    await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="300"]'), { force: true });
     await page.waitForTimeout(80);
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'Q65: clicking a disabled weight writes nothing');
     await close();
@@ -4107,6 +4108,7 @@ for (const host of ['web', 'figma']) {
     await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(pLight), 'Q54: previewing Dark, body one step looser writes the same bytes as from Light');
     await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('0');
+    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '0');
     await chooseMode(page, 'light');
     // The floors: caption 10 then back unsets; size 8 shows its warning, then back.
     await hooks.click(page.locator('[data-p3="caption-floor-10"]'));
@@ -4131,7 +4133,9 @@ for (const host of ['web', 'figma']) {
     await page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]').fill('');
     await page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]').evaluate((e) => e.blur());
     await page.waitForFunction(() => document.querySelector('[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice-only"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
-    ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: every edit undone, the persisted brand is the one loaded');
+    const pEnd = await persisted(page);
+    // Against the brand after the nudge was undone: a zero nudge leaves `leadingShift: {}` (the legacy bytes).
+    ok(JSON.stringify(pEnd) === JSON.stringify(pZero), `type: every edit after the nudge undone, the persisted brand is the one it was${JSON.stringify(pEnd) === JSON.stringify(pZero) ? '' : ` — typography ${JSON.stringify(pEnd?.typography)}, modeLevers ${JSON.stringify(pEnd?.modeLevers)}; was ${JSON.stringify(pZero?.typography)}`}`);
     ok(errors.length === 0, `type S6.3 edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
