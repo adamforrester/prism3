@@ -405,7 +405,7 @@ const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namesp
 /** Type in the two panes (S6.2): the controls its levers must render, by hook (Faces: the library's Add face, the
  *  face for each text type, Show advanced; the way on to Shape). The lent legacy region is `INSPECT_LEGACY`'s. */
 const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-input"]', '[data-p3="face-add"]', '[data-p3="family-select"]',
-  '[data-p3="type-advanced"]', '[data-p3="type-continue"]'];
+  '[data-p3="family-all-apply"]', '[data-p3="scale-advanced"]', '[data-p3="type-continue"]'];
 /** Each moved place's levers, by place. */
 const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
   'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS };
@@ -3995,7 +3995,7 @@ console.log(`\nType (S6.2, S6.3)\n${'='.repeat(78)}`);
 const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Font families', 'Scale', 'Weights and styles', 'Line height and letter spacing', 'Building blocks'];
 /** Open every Show advanced on Type (Font families', Scale's and the page's), so the S6.3 levers are drawn. */
 const openTypeAdvanced = async (page) => {
-  for (const hk of ['type-advanced', 'scale-advanced', 'type-sections-advanced']) {
+  for (const hk of ['scale-advanced', 'type-sections-advanced']) {
     const sel = `[data-p3="${hk}"]`;
     await hooks.need(page, sel);
     if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
@@ -4101,13 +4101,17 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(r.leverCopy) === JSON.stringify(FACES_COPY) && JSON.stringify(r.previewCopy) === JSON.stringify(r.leverCopy),
       `Q23: ${host}: the Faces lever section and the preview's Faces section have one heading and description — levers ${JSON.stringify(r.leverCopy)}, preview ${JSON.stringify(r.previewCopy)}`);
     ok(r.source === 'On this device', `${host}: before the host sends a font list, the library's availability reads "On this device" (${r.source})`);
-    // Show advanced (Q64, Q69): closed, it holds Apply to all; open, Apply to all is there.
-    const before = await page.evaluate(() => ({ all: !!document.querySelector('[data-p3="family-all-apply"]'), label: document.querySelector('[data-p3="type-advanced"]')?.textContent?.trim() }));
-    await hooks.click(page.locator('[data-p3="type-advanced"]'));
-    await hooks.need(page, '[data-p3="family-all-apply"]');
-    const after = await page.evaluate(() => ({ all: !!document.querySelector('[data-p3="family-all-apply"]'), label: document.querySelector('[data-p3="type-advanced"]')?.textContent?.trim(), expanded: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-expanded') }));
-    ok(!before.all && before.label === 'Show 2 advanced' && after.all && after.expanded === 'true' && after.label === 'Hide 2 advanced',
-      `Q64: ${host}: Apply to all sits behind "Show 2 advanced" (${JSON.stringify({ before, after })})`);
+    // The owner (2026-10-03, #2036): "Font families should not be advanced, that's a major brand lever." Apply to all
+    // and the remove button are drawn without any fold: Font families' section holds no Show advanced, and Apply to
+    // all sits in no fold's body.
+    const fam = await page.evaluate(() => {
+      const sec = document.querySelector('#p3-lsec-type-0');
+      const all = document.querySelector('[data-p3="family-all-apply"]');
+      return { title: sec?.querySelector('.p3-lsec-title')?.textContent ?? null, folds: sec ? sec.querySelectorAll('.p3-advrow, [aria-controls^="p3-advb"]').length : -1,
+        all: !!all && sec?.contains(all), inFold: !!all?.closest('.p3-advbody') };
+    });
+    ok(fam.title === 'Font families' && fam.folds === 0 && fam.all && !fam.inFold,
+      `owner (2026-10-03): ${host}: Font families sits outside Show advanced: Apply to all is drawn in it, in no fold (${JSON.stringify(fam)})`);
     // S6.3: the other two folds, so the scans below read every lever on the page.
     await openTypeAdvanced(page);
     // The owner's rule (2026-10-02): never "face" as a word in visible copy, on the levers (the lent region, the
@@ -4191,7 +4195,6 @@ for (const host of ['web', 'figma']) {
     await hooks.need(page, '[data-p3="face-add-error"]');
     const dup = await page.evaluate(() => document.querySelector('[data-p3="face-add-error"]')?.textContent);
     ok(dup === 'Roboto is already in the library.' && JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '["Roboto"]', `type: a duplicate by slug is refused, nothing written ("${dup}")`);
-    await hooks.click(page.locator('[data-p3="type-advanced"]'));
     await hooks.click(page.locator('[data-p3="face-row"][data-slug="roboto"] [data-p3="face-remove"]'));
     await page.waitForFunction(() => !document.querySelector('[data-p3="face-row"][data-slug="roboto"]'), null, { timeout: 5000 }).catch(() => {});
     ok(JSON.stringify((await persisted(page))?.typography?.typefaceLibrary) === '[]', `type: Show advanced's remove takes the unused face out (the legacy bytes, [] left) (${JSON.stringify((await persisted(page))?.typography?.typefaceLibrary)})`);
@@ -4231,7 +4234,7 @@ for (const host of ['web', 'figma']) {
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Type ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Type is disabled, the advanced sections included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['family-select', 'face-add-input', 'face-add', 'type-advanced', 'type-scale-compact', 'type-size-desktop', 'type-size-mobile',
+      for (const hk of ['family-select', 'face-add-input', 'face-add', 'family-all-apply', 'type-scale-compact', 'type-size-desktop', 'type-size-mobile',
         'type-fluid', 'type-min-viewport', 'type-ceiling', 'title-floor-16', 'caption-floor-10', 'size-floor-8', 'weight-pick', 'weight-cell', 'link-cell',
         'italic-choice-only', 'pin-cut-input', 'lh-pick', 'ls-pick', 'nudge-lh', 'nudge-ls'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Type is among those held disabled`);
@@ -4339,7 +4342,7 @@ for (const host of ['web', 'figma']) {
           fluid: pane.querySelector('[data-p3="lever-typography-responsive"] .p3-lever-name')?.textContent ?? null,
           layout: pane.querySelector('[data-p3="type-fluid-layout"]')?.textContent?.trim() ?? null,
         },
-        folds: ['type-advanced', 'scale-advanced', 'type-sections-advanced'].map((hk) => document.querySelector(`[data-p3="${hk}"]`)?.textContent?.trim()),
+        folds: ['scale-advanced', 'type-sections-advanced'].map((hk) => document.querySelector(`[data-p3="${hk}"]`)?.textContent?.trim()),
         names: {
           weight: nameOf(pane.querySelector('[data-p3="weight-row"][data-role="strong"]')),
           lh: nameOf(pane.querySelector('[data-p3="lh-row"][data-key="normal"]')),
@@ -4358,7 +4361,7 @@ for (const host of ['web', 'figma']) {
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 2 advanced', 'Hide 1 advanced', 'Hide 12 advanced']), `${host}: the three Show advanced folds, open, read Hide 2, Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 12 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 12 advanced (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -4471,6 +4474,16 @@ for (const host of ['web', 'figma']) {
     ok(warn === '8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative.', `type: the 8px size floor shows its warning ("${warn}")`);
     await hooks.click(page.locator('[data-p3="size-floor-10"]'));
     await page.waitForFunction(() => !document.querySelector('[data-p3="size-floor-warn"]'));
+    // B8b (owner, 2026-10-03): under the Compact scale the 16px smallest title is disabled, with the approved reason;
+    // back on Default it is live again. Nothing is written by the disabled chip.
+    await hooks.click(page.locator('[data-p3="type-scale-compact"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-compact"]')?.getAttribute('aria-checked') === 'true');
+    const f16 = await page.evaluate(() => { const b = document.querySelector('[data-p3="title-floor-16"]'); return { off: b?.disabled, why: b?.title }; });
+    ok(f16.off === true && f16.why === 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
+      `B8b: under the Compact scale the 16px smallest title is disabled with its reason (${JSON.stringify(f16)})`);
+    await hooks.click(page.locator('[data-p3="type-scale-default"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-default"]')?.getAttribute('aria-checked') === 'true');
+    ok((await page.evaluate(() => document.querySelector('[data-p3="title-floor-16"]')?.disabled)) === false, 'B8b: back on the Default scale the 16px smallest title is selectable again');
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');

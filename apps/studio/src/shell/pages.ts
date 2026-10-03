@@ -42,7 +42,7 @@ export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, bo
 export const FACES_DESC = 'The font families in the brand, and the family each text type uses.';
 /** The Type sections' copy (S6.3), each shared by the levers section and the preview section that pairs with it
  *  (owner decision Q23; Scale limits pairs with the preview's Scale, `PREVIEW_HEADING` in `preview/follow-edit.ts`).
- *  DRAFT: pending the owner's approval. */
+ *  APPROVED (owner, 2026-10-03, #2036). */
 export const SCALE_DESC = 'The size of each heading style on desktop and mobile, and the scale they step along.';
 export const SCALE_LIMITS_DESC = 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.';
 export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';

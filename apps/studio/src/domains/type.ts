@@ -3,8 +3,8 @@
  *
  * WHAT IT DRAWS: the intro; **Font families** (S6.2): the typeface library, each family by its token first and its
  * name under it (owner decision Q68), whether it is available here and what uses it, Add font family (in the plugin,
- * a type-ahead over the fonts this Figma can load) and a spelling note; the family for each text type; behind its
- * Show advanced (Q64), Apply to all and the remove button on a family nothing uses. **Scale** (S6.3): the three
+ * a type-ahead over the fonts this Figma can load) and a spelling note; the family for each text type; Apply to all,
+ * and the remove button on a family nothing uses (always shown: the owner keeps Font families out of Show advanced). **Scale** (S6.3): the three
  * scale chips, a chip the engine would refuse disabled with the reason and Release pinned sizes; behind its Show
  * advanced, **Individual sizes**, a Desktop and a Mobile control for each heading size, side by side (Q63 option
  * A); the #1802 line naming a style the preview uses that the brand does not make (Q72). Behind the page's Show
@@ -99,7 +99,7 @@ export const TYPE_COPY = {
 } as const;
 /** The S6.3 controls' copy, in the owner's plain words (Q70: step, line height, letter spacing, weight, text type,
  *  font style, swap, one step looser or tighter, Light; never "face", Q77, or "column", Q53). Every string here
- *  is DRAFT, pending the owner, except where marked APPROVED. */
+ *  is APPROVED (owner, 2026-10-03, #2036). */
 export const S63 = {
   groupName: (g: string): string => `${g[0].toUpperCase()}${g.slice(1)}`,
   weightName: (r: string): string => `${r[0].toUpperCase()}${r.slice(1)}`,
@@ -128,6 +128,7 @@ export const S63 = {
   notAboveMobile: (name: string, px: number): string => `Below ${name} on mobile (${px}px). Sizes stay in order.`,
   notBelowMobile: (name: string, px: number): string => `Above ${name} on mobile (${px}px). Sizes stay in order.`,
   overDesktop: (px: number): string => `Larger than its desktop size, ${px}px.`,
+  underMobile: (px: number): string => `Smaller than its mobile size, ${px}px.`,
   // Scale limits
   fluidLabel: 'Headings scale between mobile and desktop',   // APPROVED (Q70)
   fluidTip: 'Display, title and eyebrow sizes shrink smoothly from desktop to mobile between these two screen widths. Body text keeps one size.',
@@ -138,6 +139,8 @@ export const S63 = {
   ceilingTip: 'The largest display size the brand makes. Display sizes above it are left out.',
   titleFloorLabel: 'Smallest title size',
   titleFloorTip: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
+  /** The 16px chip's reason under Compact: the approved info text's second sentence (owner, B8b). */
+  titleFloorCompact: 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
   captionFloorLabel: 'Smallest caption size',
   captionFloorTip: '10px adds a fine-print caption, for dense legal, footer or product details.',
   sizeFloorLabel: 'Smallest type size',
@@ -190,8 +193,6 @@ const FACE_NAME: Record<string, string> = {
   display: 'Display family', title: 'Title family', body: 'Body family', label: 'Label family',
   caption: 'Caption family', eyebrow: 'Eyebrow family', code: 'Code family',
 };
-/** How many controls Show advanced holds (Q64): Apply to all, and the remove button on an unused face. */
-const ADVANCED_COUNT = 2;
 const NONE = '__none__';   // a sentinel no font family can be called (the legacy page's)
 
 /** Something drawn that search can hide and a refusal can mark. */
@@ -201,7 +202,6 @@ type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock };
 export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
   const root = hook(h('div', 'p3-levers-body'), 'type-levers');
   host.replaceChildren(root);
-  let advOpen = false;
   /** Scale's own Show advanced (Individual sizes), and the page's (the advanced sections). */
   let scaleAdvOpen = false;
   let secAdvOpen = false;
@@ -258,8 +258,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       stat.title = st.title;
       if (!st.ok) stat.dataset.bad = 'true';
       row.append(name, stat);
-      // Show advanced (Q64): a face nothing uses, staged in the library, can be removed. Brand-wide: any editable mode.
-      if (advOpen && !by.length && inLibrary(tf.name)) {
+      // A family nothing uses, staged in the library, can be removed (always shown, owner 2026-10-03). Brand-wide.
+      if (!by.length && inLibrary(tf.name)) {
         const rm = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon'), 'face-remove');
         rm.type = 'button';
         rm.setAttribute('aria-label', TYPE_COPY.remove(tf.name));
@@ -612,6 +612,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const upper = i > 0 ? { px: desk[i - 1], v: live[i - 1].variant } : null;
         const lower = i + 1 < desk.length ? { px: desk[i + 1], v: live[i + 1].variant } : null;
         const ov = light ? brandSizePin(g, r.variant) : modeSizePin(mode, g, r.variant);
+        const mPinned = fluid ? viewportPin(g, r.variant, 'mobile') : undefined;
         const dKey = `size:${g}.${r.variant}:desktop`;
         const dId = `p3-size-${g}-${r.variant}-d`;
         const dNow = !light && ov === undefined ? S63.autoLight(`${base[i]}px`) : `${desk[i]}px`;
@@ -646,7 +647,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
             v: px, label: `${px}px`, sample: sample(px),
             refuse: px < floor ? S63.belowFloor(S63.groupName(g), floor)
               : lower && px <= lower.px ? S63.notAbove(`${g}.${lower.v}`, lower.px)
-                : upper && px >= upper.px ? S63.notBelow(`${g}.${upper.v}`, upper.px) : undefined,
+                : upper && px >= upper.px ? S63.notBelow(`${g}.${upper.v}`, upper.px)
+                  // A mobile size set individually may not end up larger than the desktop size (the engine refuses it).
+                  : light && mPinned !== undefined && px < mPinned ? S63.underMobile(mPinned) : undefined,
           })),
           reset: light ? { label: S63.followScale, enabled: ov !== undefined } : { label: S63.toAuto, enabled: ov !== undefined },
           onPick: (px) => edit('typography.sizes', () => setSizePin(light ? null : mode, g, r.variant, px)),
@@ -754,9 +757,15 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       out.push({ el: b.el, said: b.said, key, block: b });
     };
     // The title floor. 16px under the Compact scale is the engine's refusal (Compact already places a title at
-    // 16px); the chip stays live, as the legacy toggle did, and the refusal surfaces like any other (#388).
+    // 16px), so the chip is disabled there with that reason (owner, B8b, 2026-10-03), as a clashing scale chip is.
+    // A brand that arrives with both set keeps its 16px chip live, so it can move back to 18px.
+    const floor16 = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
     chips('typography.titleFloor', S63.titleFloorLabel, S63.titleFloorTip, 'title-floor', [{ v: '18', l: '18px' }, { v: '16', l: '16px' }],
-      (getPath(brandState, 'typography.titleFloor') ?? 18) === 16 ? '16' : '18', (v) => setTitleFloor(v === '16'));
+      floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'));
+    if (getPath(brandState, 'typography.typeScale') === 'compact' && !floor16) {
+      const chip = el.querySelector<HTMLButtonElement>('[data-p3="title-floor-16"]');
+      if (chip) { chip.disabled = true; chip.title = S63.titleFloorCompact; }
+    }
     chips('typography.captionFloor', S63.captionFloorLabel, S63.captionFloorTip, 'caption-floor', [{ v: '11', l: '11px' }, { v: '10', l: '10px' }],
       (getPath(brandState, 'typography.captionFloor') ?? 11) === 10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11));
     const eight = (getPath(brandState, 'typography.sizeFloor') ?? 10) === 8;
@@ -1048,21 +1057,11 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const fams = families();
     el.append(fams[0].el);
     out.push(...fams);
-    // Show advanced, at the end of Faces: the two controls it holds are both Faces' (Q64).
-    const row = h('div', 'p3-advrow');
-    const btn = hook(h('button', 'p3-btn p3-btn-page'), 'type-advanced');
-    btn.type = 'button';
-    btn.id = 'p3-adv-type';
-    btn.setAttribute('aria-expanded', String(advOpen));
-    btn.setAttribute('aria-controls', 'p3-advb-type');
-    btn.append(glyph(advOpen ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${advOpen ? 'Hide' : 'Show'} ${ADVANCED_COUNT} advanced`));
-    btn.onclick = () => { advOpen = !advOpen; render(); };
-    const body = h('div', 'p3-advbody');
-    body.id = 'p3-advb-type';
-    body.hidden = !advOpen;
-    if (advOpen) { const a = applyAll(); body.append(a.el); out.push(a); }
-    row.append(btn, body);
-    el.append(row);
+    // Apply to all, at the end of Font families, always shown: the owner (2026-10-03, #2036) keeps Font families out of
+    // Show advanced, "a major brand lever". It and the remove button were behind S6.2's fold (Q64).
+    const a = applyAll();
+    el.append(a.el);
+    out.push(a);
     return { el, items: out };
   };
 

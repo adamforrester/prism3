@@ -2252,29 +2252,26 @@ for (const brand of BRANDS) {
   // displaying the value the engine had refused. Every assertion here is on a page that is NOT the
   // Color page, which is the whole point — a check run on Palettes would have passed on the defect.
   //
-  // THE REPRO: `typeScale: 'compact'` plus `titleFloor: 16` is a real engine refusal (compact already
-  // shifts title.xs to 16px, so the floor would duplicate a rung). The ORDER is load-bearing and is
-  // the reason this is a drive rather than a state injection: the shape CARDS trial-build before they
-  // enable, so with the floor already on, Compact is correctly disabled and no throw is reachable. The
-  // toggle does not trial-build. So: floor off, pins released, shape to Compact, then floor on — which
-  // is the sequence a designer performs, and the only one that reaches the engine's refusal.
+  // THE REPRO (UI redesign S6.3, re-pointed when the 16px title floor became disabled under Compact, owner B8b): a
+  // display size set individually, then the largest display size lowered below it. The engine refuses the pinned
+  // size (`typography.sizes.display.md`: that size is trimmed by `displayCeiling`), and the ceiling select does not
+  // trial-build its options, so the refusal is reachable. The ORDER is load-bearing: pin first, then the ceiling,
+  // which is the sequence a designer performs. The picker and the scale chips refuse in place, so this is the one
+  // edit on Type that still reaches the engine's refusal.
   //
-  // Brand-agnostic on purpose. The two corpus brands start on opposite sides of this (aurora ships the
-  // floor on and pinned sizes; harbor does not), so a fixed click list would exercise one and silently
-  // no-op on the other.
-  // S6.3: the title floor is Scale limits' 18px / 16px chips, the scale Scale's chips (Type's levers).
+  // Brand-agnostic on purpose: pins are released first, and the pinned value is the first one the picker offers.
   await gotoType(page);
-  const floorOn = () => page.evaluate(() => document.querySelector('[data-p3="title-floor-16"]')?.getAttribute('aria-checked') === 'true');
-  if (await floorOn()) {
-    await hooks.click(page.locator('[data-p3="title-floor-18"]'));
-    await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.getAttribute('aria-checked') === 'true');
-  }
   const release = page.locator('[data-p3="type-scale-release"]');
   if (await release.count()) { await hooks.click(release); await hooks.need(page, '[data-p3="type-scale"]'); }
-  const compact = page.locator('[data-p3="type-scale-compact"]');
-  ok(!(await compact.isDisabled()), `${brand}: with the title floor released, the Compact scale is selectable`);
-  await hooks.click(compact);
-  await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-compact"]')?.getAttribute('aria-checked') === 'true');
+  const ceiling0 = await page.locator('[data-p3="type-ceiling"]').inputValue();
+  const mdBtn = page.locator('[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]');
+  await hooks.click(mdBtn);
+  await hooks.need(page, '[data-p3="value-picker"]');
+  const mdTo = await page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+  ok(!!mdTo, `${brand}: display md's desktop size offers another value to pin (${mdTo})`);
+  if (mdTo) await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${mdTo}"]`));
+  await page.waitForFunction(() => document.querySelector('[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]')?.getAttribute('data-set') === 'true', null, { timeout: 5000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="value-picker-close"]'));
 
   const errState = () => page.evaluate(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
@@ -2283,7 +2280,7 @@ for (const brand of BRANDS) {
   const clean = await errState();
   ok(clean.present && !clean.shown, `${brand}: the error surface is mounted and quiet before the refused edit`);
 
-  await hooks.click(page.locator('[data-p3="title-floor-16"]'));
+  await page.locator('[data-p3="type-ceiling"]').selectOption('sm');
   // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
   // loudly as the defect it is rather than passing on a measurement taken too early.
   const surfaced = await page.waitForFunction(() => {
@@ -2292,7 +2289,7 @@ for (const brand of BRANDS) {
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(surfaced, `${brand}: an engine throw raised on Type SURFACES (#388's defect path)`);
   const raised = await errState();
-  ok(/titleFloor/.test(raised.text), `${brand}: the bar names what the engine refused — "${raised.text.slice(0, 90)}"`);
+  ok(/displayCeiling/.test(raised.text), `${brand}: the bar names what the engine refused — "${raised.text.slice(0, 90)}"`);
 
   // THE GENERALIZATION, not just the instance: the surface belongs to the view, so navigating to a
   // third page must not lose it. A page-local bar would vanish here, which is the state #388 described
@@ -2304,7 +2301,7 @@ for (const brand of BRANDS) {
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
   await gotoType(page);
-  await hooks.click(page.locator('[data-p3="title-floor-18"]'));
+  await page.locator('[data-p3="type-ceiling"]').selectOption(ceiling0);
   const cleared = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display === 'none';

@@ -31,7 +31,7 @@ const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
 /** A lever section's heading and description, from the page data the levers draw them from (Q23). */
 const copyOf = (title: string): { title: string; desc: string } => ({ title, desc: PAGE.sections.find((x) => x.title === title)?.desc ?? '' });
 /** The read-only Building blocks section (owner decision Q73): its heading (the scope's, Q73) and description
- *  (DRAFT, pending the owner). */
+ *  (APPROVED, owner, 2026-10-03). */
 export const BUILDING_BLOCKS = { title: 'Building blocks', desc: 'The fixed size, line height and letter spacing steps every brand shares. Read-only.' };
 
 /** Mount the Type preview into `host`. Subscriptions are released through `cleanups`. */

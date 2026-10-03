@@ -9,7 +9,7 @@ import type { Theme } from '@prism3/engine/theme';
 import { emToPercentLabel } from '../../em-percent';
 import { el, hook, palSection, specimen, subHead, type SgCtx } from './kit';
 
-/** The specimens' words. DRAFT, as the section's copy is. */
+/** The specimens' words. APPROVED (owner, 2026-10-03), as the section's copy is. */
 const LH_TEXT = 'Line height sets the space between the lines of a paragraph, so a long passage reads evenly.';
 const LS_TEXT = 'Letter spacing';
 
