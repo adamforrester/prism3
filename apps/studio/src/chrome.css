@@ -767,22 +767,38 @@
 .p3-jump[hidden] { display: none; }
 .p3-jump-link { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); text-decoration: underline; text-underline-offset: var(--p3-space-025); }
 .p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
-.p3-icols { display: grid; gap: var(--p3-space-300); }
+/* S5.3 (the owner's QA-I7): more room between button sets, one step up the spacing scale from S5.2's. */
+.p3-icols { display: grid; gap: var(--p3-space-500); }
 .p3-icol { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-icol[hidden], .p3-irow-group[hidden], .p3-icol-add[hidden] { display: none; }
 .p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
 .p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
 .p3-irow-group { display: grid; gap: var(--p3-space-100); }
-.p3-irow-states { display: grid; gap: var(--p3-space-100); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-irow-states { display: grid; gap: var(--p3-space-100); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
 .p3-irow-states:empty { display: none; }
 .p3-pick-read { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); white-space: nowrap; }
-.p3-icol-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; }
+/* The add row (S5.3, QA-I4): set apart from the last button set by more than the sets are from each other; the
+   dashed Add button set, then the color select with the add and Cancel once it is clicked. */
+.p3-icol-add { display: grid; gap: var(--p3-space-100); margin-top: var(--p3-space-200); }
+.p3-icol-addform { display: grid; gap: var(--p3-space-050); }
+.p3-icol-addrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--p3-space-100); align-items: center; }
+/* The link state selects (S5.3, QA-I9): one to a line, the panel's full width, so no option label is cut. */
+.p3-fieldgrid.p3-irungs { grid-template-columns: minmax(0, 1fr); }
 /* Q24: a Color preview's section container on the levers panel's gray. The section keeps `styles.css`'s
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
-/* Long option labels (Disabled contrast) wrap onto a second row rather than run past the panel. */
+/* Long option labels (Outline hover) wrap onto a second row rather than run past the panel. */
 .p3-ilevers .p3-choice { flex-wrap: wrap; }
+/* The Interactive preview (S5.3). QA-I1: a treatment label's foot line (its token and ratio badge) wraps inside the
+   label column instead of running under the buttons beside it. QA-I2: a ratio badge's mark takes the chrome's
+   status icon colors, a pass in the success icon and a miss in the danger icon; the badge keeps its own ink and
+   edge. The preview stamps each mark with the chrome theme whose icon color contrasts most with the ground it is
+   drawn on. A mark it does not stamp (no theme reaches 3:1 there, as on a mid-gray page) keeps the badge's ink. */
+.p3-ipv .sg-tlab { min-width: 0; }
+.p3-ipv .sg-foothint { flex-wrap: wrap; max-width: 100%; }
+.p3-ipv .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
+.p3-ipv .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }
 
 /* ── Type (S6.2): the library, Add face with its type-ahead, the face for each text type ──────────── */
 .p3-facehead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-150); }
