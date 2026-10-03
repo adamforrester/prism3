@@ -181,6 +181,24 @@
  *   row`; the columns reordered → `… the levers draw the columns in the owner's order …`; a jump link aimed at the
  *   wrong group → `… the jump link "Neutral" resolves to its own column group (neutral) …`.
  *
+ * S4f ADDS (section 18; the owner's QA of 2026-10-02 on Color › Surfaces & fills, #2016, #1971):
+ *   · BACKGROUND FILLS AS ROWS (QA-B1, QA-B3, QA-B7): its seven rows by role, in order, each a swatch, its name with
+ *     its token, and its step picker, Primary first (was "Page"), the contrast floor a row with no token; the two
+ *     APPROVED sub-headings; the floor's APPROVED info text (QA-B6); the icon contrast block's info text, Interactive's
+ *     Icons description (QA-I10). All literal.
+ *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
+ *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
+ *   · #1971 (Q81): Background and Foreground on white (literal `#ffffff`) with no badge, every other section on the
+ *     emission's `background.primary` with its badges; Q23 pairs for Background fills, Scrim and Fields.
+ *   · THE LOCK (QA-B12): the pairing button's padlock is the shut shackle while paired and the open one while not
+ *     (path data literal), aria-hidden, the button named by its words.
+ *   · GRADIENTS (QA-B13 to QA-B16): the switch in its block's header at the top right; no element in the levers paints
+ *     a gradient of two colors or more; 24px or more each side of a gradient's divider, and Add gradient's own divider.
+ *   · MARKS (QA-I2): a Page sweep, Light and Dark, every Page the picker offers: each mark themed reads 3:1 or more on
+ *     its composited ground in that theme's status icon color, and no worse than the other theme; an unthemed mark is
+ *     the badge's ink, only where neither theme reaches 3:1.
+ *   S4f mutations, each failing by name: see `docs/progress/pending/ui-s4f-surfaces-rebuild.md`.
+ *
  * THE Q4 TRIAL (section 15, its own commit, for the owner's decision): an edit to a Palettes lever scrolls the
  * preview to the palette it changes; focusing a lever, scrolling the levers and changing the mode do not.
  * Mutation: the trigger moved from the edit to focus → `Q4: focusing a lever does not move the preview (…)`.
@@ -365,7 +383,7 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
 /** Color › Surfaces & fills in the two panes (S4a): the controls its levers must render, by hook. The page draws
  *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
  *  controls, for the previewed mode (owner decision Q22). */
-const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor"]',
+const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor-pick"]',
   '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
   '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
@@ -2650,9 +2668,20 @@ console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the specimen roots the default theme's Surfaces &
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
-const EXPECT_FILLS_SPECIMENS = ['Background', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Gradients'];
+const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Fields', 'Gradients'];
+/** #1971 (owner decision Q81, S4f): the sections that are themselves grounds, Background and Foreground, sit in WHITE
+ *  containers and carry no ratio badge; every other section checks contrast against the page and sits on its color.
+ *  Literal, the owner's word: white, `#ffffff`, in every mode. Scrim (QA-B10) and Fields (#2016) are S4f's. */
+const FILLS_WHITE_SECTIONS = ['Background', 'Foreground'];
+const WHITE = '#ffffff';
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
-const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]']];
+const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
+  // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
+  ['iconContrast', '[data-p3="lever-icon-contrast"]']];
+/** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
+ *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
+const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
+  'inverse.background.primary', 'inverse.background.secondary', 'inverse.background.tertiary'];
 /** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
  *  tiers and the text inks). Literal; each must render its row once. No link row (S4c, owner decision Q28:
  *  links are edited on Interactive only), so a `text.link.default` row fails below as an unlisted row. */
@@ -2721,6 +2750,7 @@ const fillsGrounds = (page) => page.evaluate(() => {
   const grounds = [...(host?.querySelectorAll('.sg-ground') ?? [])];
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
     sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })),
+    badges: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelectorAll('[data-p3="ratio-badge"]').length])),
     levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
 });
 /** Q24 (S4c): each section container in the preview takes the levers panel's gray. EXPECTED from the TOKEN, not
@@ -2743,9 +2773,16 @@ for (const host of ['web', 'figma']) {
       const want = EMITTED[mode];
       for (const name of EXPECT_FILLS_SPECIMENS) {
         const r = g.roots.find((x) => x.name === name);
-        ok(!!r && r.root && r.ground === want, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on background.primary ${want}${
-          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        // #1971: Background and Foreground on white, the rest on the page.
+        const white = FILLS_WHITE_SECTIONS.includes(name);
+        const on = white ? WHITE : want;
+        ok(!!r && r.root && r.ground === on, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on ${white ? `white ${WHITE} (#1971)` : `background.primary ${want}`}${
+          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== on ? ` — ${r.ground === g.card && !white ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
       }
+      // #1971: no ratio badge in a section that is a ground; at least one in each section on the page that grades a role.
+      const badgesBy = g.badges;
+      for (const name of FILLS_WHITE_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
+      for (const name of ['Text color', 'Border', 'Icon', 'Fields']) ok(badgesBy[name] > 0, `#1971 surfaces & fills ${where}: the ${name} section, on the page, shows its contrast badges — ${badgesBy[name]} drawn`);
       const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
       ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
@@ -2770,14 +2807,23 @@ for (const host of ['web', 'figma']) {
     strayRows: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
     fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
     scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
-      controls: document.querySelectorAll(`[data-p3="levers-pane"] [data-p3="scrim-row"] :is(${q})`).length },
+      controls: document.querySelectorAll(`[data-p3="levers-pane"] [data-p3="scrim-row"] :is(${q})`).length,
+      // QA-B10: which lever section holds it, by that section's own title.
+      section: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-row"]')?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+      inBackground: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lsec')].filter((x) => x.querySelector('.p3-lsec-title')?.textContent === 'Background fills')
+        .some((x) => !!x.querySelector('[data-p3="scrim-row"], [data-role="scrim.default"]') || x.textContent.includes('scrim.default')) },
+    // QA-B1: Background fills' rows, in order, each with its name, its token and its picker.
+    surfRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-surfaces"] [data-p3="surface-row"]')].map((r) => ({
+      role: r.dataset.role, label: r.querySelector('.p3-fill-label')?.textContent ?? null, token: r.querySelector('.p3-fill-tok')?.textContent ?? null,
+      swatch: !!r.querySelector('.p3-fill-sw'), pick: r.querySelector('.p3-pick')?.getAttribute('data-p3') ?? null })),
+    surfSubs: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-surfaces"] .p3-rows-sub')].map((n) => n.textContent),
     // Q50: the icon rows, as drawn while the default theme's icons match text.
     icons: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')].map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })),
     pairNote: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"] p')?.textContent ?? null,
     unpair: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]')?.textContent ?? null,
     focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll(q).length })),
     jumps: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="fills-jump-link"]')].map((a) => ({ text: a.textContent, to: document.querySelector(a.getAttribute('href'))?.querySelector('.p3-lsec-title')?.textContent ?? null })),
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES], DERIVED_CONTROL_QUERY]);
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...SURFACE_ROW_ROLES, ...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES], DERIVED_CONTROL_QUERY]);
   // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
   // alias and that primitive's alpha.
   const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
@@ -2785,9 +2831,24 @@ for (const host of ['web', 'figma']) {
   const scrimAlpha = OUT[OUT_ROOT]?.core?.palette?.[scrimPal]?.[scrimStep]?.$extensions?.prism3?.alpha;
   const wantScrim = `${scrimPal} ${scrimStep} · ${Math.round(scrimAlpha * 100)}%`;
   ok(c.scrim.rows === 1 && c.scrim.controls === 0 && c.scrim.read === wantScrim,
-    `${host}: Background fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
+    `${host}: Surfaces & fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
+  ok(c.scrim.section === 'Scrim' && !c.scrim.inBackground,
+    `${host}: QA-B10: the scrim is in its own Scrim section, not in Background fills — in ${JSON.stringify(c.scrim.section)}${c.scrim.inBackground ? ', and still drawn inside Background fills' : ''}`);
+  // QA-B1, QA-B3, QA-B7 (APPROVED): the two sub-headings, then the rows in the Foreground rows' pattern (a swatch, the name
+  // with its token under it, the step picker), the page tiers named Primary (was "Page"), Secondary, Tertiary, then the
+  // contrast floor (no token: a setting); the inverse fill's three tiers. The inverse names are the brief's (DRAFT).
+  const WANT_SURF_ROWS = [
+    ['background.primary', 'Primary', 'background.primary', 'surface-base-pick'], ['background.secondary', 'Secondary', 'background.secondary', 'surface-secondary-pick'],
+    ['background.tertiary', 'Tertiary', 'background.tertiary', 'surface-tertiary-pick'], ['surfaces.floorStep', 'Contrast floor', null, 'surface-floor-pick'],
+    ['inverse.background.primary', 'Inverse primary', 'inverse.background.primary', 'surface-band-step-pick'],
+    ['inverse.background.secondary', 'Inverse secondary', 'inverse.background.secondary', 'surface-inverse-secondary-pick'],
+    ['inverse.background.tertiary', 'Inverse tertiary', 'inverse.background.tertiary', 'surface-inverse-tertiary-pick'],
+  ].map(([role, label, token, pick]) => ({ role, label, token, swatch: true, pick }));
+  ok(JSON.stringify(c.surfRows) === JSON.stringify(WANT_SURF_ROWS), `${host}: QA-B1/QA-B3: Background fills draws its rows in the Foreground pattern, Primary first — read ${JSON.stringify(c.surfRows)}`);
+  ok(JSON.stringify(c.surfSubs) === JSON.stringify(['Default background fills', 'Inverse background fills']),
+    `${host}: QA-B7: Background fills' sub-sections are "Default background fills" and "Inverse background fills" — read ${JSON.stringify(c.surfSubs)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
-  for (const r of [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  for (const r of [...SURFACE_ROW_ROLES, ...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
   // The focus rings (S4d, #1966): read-only rows, no control.
   ok(JSON.stringify(c.focus) === JSON.stringify([{ role: 'border.focus', controls: 0 }, { role: 'inverse.border.focus', controls: 0 }]), `${host}: Border shows border.focus and inverse.border.focus read-only — read ${JSON.stringify(c.focus)}`);
   // Q50, paired (the default theme's iconContrast is "text"): every icon row is disabled and says which text role it
@@ -2797,7 +2858,7 @@ for (const host of ['web', 'figma']) {
   ok(c.icons.length === ICON_ROW_ROLES.length && badLock.length === 0, `${host}: paired, each of the ${ICON_ROW_ROLES.length} icon rows is locked and reads "Follows text.X"${badLock.length ? ` — not: ${badLock.slice(0, 4).map((r) => `${r} ${JSON.stringify(c.icons.find((x) => x.role === r))}`).join(', ')}` : ''}`);
   ok(c.pairNote === 'Icons follow their text color. Unpair them to set icons on their own.' && c.unpair === 'Unpair icons from text', `${host}: the Icon section's note and button are the approved copy — read ${JSON.stringify([c.pairNote, c.unpair])}`);
   // Jump links (Q49): one per section, each to its own section, in order.
-  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 8, `${host}: a jump link to each of the 8 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
+  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 9, `${host}: a jump link to each of the 9 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
   ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
   // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
   const copy = await page.evaluate(() => ({
@@ -2818,39 +2879,58 @@ for (const host of ['web', 'figma']) {
     subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
     // The token a surface control names, read off the label its select is named by (`for`), so it is the
     // control's own label and not text elsewhere in the block.
-    tokens: Object.fromEntries(['surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-palette', 'surface-inverse-secondary-pick',
-      'surface-inverse-tertiary-pick', 'surface-floor'].map((hk) => {
+    tokens: Object.fromEntries(['surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-step-pick', 'surface-band-palette', 'surface-inverse-secondary-pick',
+      'surface-inverse-tertiary-pick', 'surface-floor-pick'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
     })),
-    // The four tiers' names under their tokens (S4e, DRAFT copy pending the owner).
+    // The four tiers' names over their tokens (S4e, APPROVED with #2001), read off the label each picker is named by.
     tierNames: ['surface-secondary-pick', 'surface-tertiary-pick', 'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
-      return lab?.querySelector('.p3-field-label')?.textContent ?? null;
+      return lab?.querySelector('.p3-fill-label')?.textContent ?? null;
     }),
-    // The Inverse fill control's own name, under its token (the owner's rename of "band" to "fill", 2026-10-02).
+    // The inverse fill's palette select, by its own label (the owner's rename of "band" to "fill", 2026-10-02; S4f DRAFT).
     inverseName: (() => {
       const sel = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-band-palette"]');
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
-      return lab?.querySelector('.p3-field-label')?.textContent ?? null;
+      return lab?.textContent ?? null;
+    })(),
+    // QA-B6: the contrast floor row's own info text, the toggletip its info button controls.
+    floorTip: (() => {
+      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-row"][data-role="surfaces.floorStep"] [data-p3="lever-info"]');
+      const id = info?.getAttribute('aria-controls');
+      return id ? document.getElementById(id)?.textContent ?? null : null;
+    })(),
+    // QA-I10: the icon contrast block's info text, its toggletip.
+    iconTip: (() => {
+      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="lever-icon-contrast"] [data-p3="lever-info"]');
+      const id = info?.getAttribute('aria-controls');
+      return id ? document.getElementById(id)?.textContent ?? null : null;
     })(),
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
   // S4e (#1972, Q41): the four tiers name the tokens their inputs set.
+  // S4f (QA-B1): Inverse primary's step picker names inverse.background.primary; the palette select above it names none.
   const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-secondary-pick': 'background.secondary', 'surface-tertiary-pick': 'background.tertiary',
-    'surface-band-palette': 'inverse.background.primary', 'surface-inverse-secondary-pick': 'inverse.background.secondary',
-    'surface-inverse-tertiary-pick': 'inverse.background.tertiary', 'surface-floor': null };
+    'surface-band-step-pick': 'inverse.background.primary', 'surface-band-palette': null, 'surface-inverse-secondary-pick': 'inverse.background.secondary',
+    'surface-inverse-tertiary-pick': 'inverse.background.tertiary', 'surface-floor-pick': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
   ok(JSON.stringify(copy.tierNames) === JSON.stringify(['Secondary', 'Tertiary', 'Inverse secondary', 'Inverse tertiary']),
-    `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (S4e, draft) — read ${JSON.stringify(copy.tierNames)}`);
-  ok(copy.inverseName === 'Inverse fill', `${host}: the inverse.background.primary control is named "Inverse fill" (the owner's rename, 2026-10-02) — read ${JSON.stringify(copy.inverseName)}`);
+    `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (#2001, approved) — read ${JSON.stringify(copy.tierNames)}`);
+  ok(copy.inverseName === 'Inverse fill palette', `${host}: the inverse fill's palette select is named "Inverse fill palette" (S4f, draft; "fill", the owner's rename) — read ${JSON.stringify(copy.inverseName)}`);
+  ok(copy.floorTip === 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.',
+    `${host}: QA-B6: the contrast floor's info text is the owner's — read ${JSON.stringify(copy.floorTip)}`);
+  ok(copy.iconTip === 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.',
+    `${host}: QA-I10: the icon contrast block carries Interactive's Icons description (ICONS_DESC) — read ${JSON.stringify(copy.iconTip)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
-    titles: ['Background fills', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
-    'Background fills': 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.',
+    titles: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
+    'Background fills': 'The base page planes and their inverse counterparts.',
+    Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
     Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
@@ -2863,13 +2943,18 @@ for (const host of ['web', 'figma']) {
   const FG_LABELS = [['foreground.primary', 'Primary'], ['foreground.secondary', 'Secondary'], ['foreground.tertiary', 'Tertiary'],
     ['inverse.foreground.primary', 'Primary'], ['inverse.foreground.secondary', 'Secondary'], ['inverse.foreground.tertiary', 'Tertiary']];
   ok(JSON.stringify(copy.fgLabels) === JSON.stringify(FG_LABELS), `${host}: the Foreground section's rows are labeled Primary, Secondary, Tertiary (Q44) — read ${JSON.stringify(copy.fgLabels)}`);
-  ok(JSON.stringify(copy.subs) === JSON.stringify(['Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']), `${host}: Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
+  // S4f (QA-B7): Background fills' two sub-headings come first, the APPROVED words.
+  ok(JSON.stringify(copy.subs) === JSON.stringify(['Default background fills', 'Inverse background fills', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']),
+    `${host}: Background fills heads its two groups (QA-B7), and Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
-  // Q23: the levers' Foreground and Text color descriptions are the preview sections' own, read off both sides
-  // as rendered, so an edit to one side alone fails here as well as against the literal above.
-  for (const t of ['Foreground', 'Text color']) ok(copy.previewDescs[t] === FILLS_COPY[t], `${host}: the preview's ${t} description is the one the levers copy (Q23) — read ${JSON.stringify(copy.previewDescs[t])}`);
+  for (const t of ['Background fills', 'Scrim', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  // Q23: the levers' descriptions are the preview sections' own, read off both sides as rendered, so an edit to one
+  // side alone fails here as well as against the literal above. Background fills pairs with the preview's
+  // Background (Q26's rename); since S4f Scrim (QA-B10) and Fields (#2016) have preview sections of their own.
+  for (const [t, pv] of [['Background fills', 'Background'], ['Scrim', 'Scrim'], ['Foreground', 'Foreground'], ['Text color', 'Text color'], ['Border', 'Border'], ['Icon', 'Icon'], ['Fields', 'Fields']]) {
+    ok(copy.previewDescs[pv] === FILLS_COPY[t], `${host}: the preview's ${pv} description is the one the levers' ${t} copies (Q23) — read ${JSON.stringify(copy.previewDescs[pv])}`);
+  }
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   // The Background fills info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this page
   // and not the engine manifest's description, which stays as it is for MCP and the emission. Literal.
@@ -2936,8 +3021,9 @@ for (const host of ['web', 'figma']) {
     step: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]')?.getAttribute('aria-label') ?? null,
     palette: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-palette"]')?.getAttribute('aria-label') ?? null,
   }));
-  ok(/^Inverse fill step, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
-    `${host}: the inverse.background.primary controls' accessible names say "Inverse fill" (Q58) — read ${JSON.stringify(fillNames)}`);
+  // S4f: the step picker is the Inverse primary row's, named by its visible label (WCAG 2.5.3); the palette select says "fill".
+  ok(/^Inverse primary, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
+    `${host}: the inverse.background.primary controls' accessible names are "Inverse primary" and "Inverse fill palette" (Q58) — read ${JSON.stringify(fillNames)}`);
   // Light, the proof the read below sees controls that CAN be enabled: the Unpair button is, and most controls are.
   const light = await fillsControls(page);
   const lightUnpair = light.find((c) => c.hook === 'icons-unpair');
@@ -3143,6 +3229,137 @@ for (const host of ['web', 'figma']) {
   ok(a?.iconContrast === 'text' && a?.overrides === undefined,
     `Q61: Pair icons on Surfaces & fills writes iconContrast "text" and clears the icon override (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
   ok(errors.length === 0, `Q61 re-pair with an override: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// =============================================================================================
+// S4f (the owner's QA of 2026-10-02 on Surfaces & fills): the lock on the icon pairing button follows the state
+// (QA-B12); the gradients switch in its block's header (QA-B13), no gradient drawn in the levers (QA-B14), room around
+// the gradients' dividers (QA-B15, QA-B16); and the badge marks (QA-I2) read on whatever Page the brand sets.
+// THE ORACLES: the padlock's two shackles are literals typed here; "a gradient drawn" is any element in the levers whose
+// computed background is a CSS gradient, read from the render, whatever its hook; the marks are held to the composited
+// ground each is drawn on, computed HERE, and to the chrome themes' own success and danger icon colors, read off probe
+// elements stamped with each theme, never off the module that picks.
+// =============================================================================================
+{
+  /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`), by their path data. Literal. */
+  const SHUT = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2';
+  const OPEN = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7';
+  for (const host of ['web', 'figma']) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    await goPlace(page, 'color-fills');
+    const lock = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="icons-unpair"], [data-p3="icons-pair"])');
+      const svg = b?.querySelector('svg');
+      return { hook: b?.getAttribute('data-p3') ?? null, name: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label'),
+        hidden: svg?.getAttribute('aria-hidden') ?? null, shackle: svg?.querySelectorAll('path')[0]?.getAttribute('d') ?? null,
+        drawn: svg ? Math.round(svg.getBoundingClientRect().width) : 0, inBlock: !!b?.closest('[data-p3="lever-icon-contrast"]') };
+    });
+    const p0 = await lock();
+    ok(p0.hook === 'icons-unpair' && p0.shackle === SHUT && p0.hidden === 'true' && p0.name === 'Unpair icons from text' && p0.label === null && p0.drawn > 0 && p0.inBlock,
+      `${host} QA-B12: paired, the pairing button draws the shut padlock, decorative, beside its words, in the icon contrast block — read ${JSON.stringify(p0)}`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]'), null, { timeout: 5000 }).catch(() => {});
+    const p1 = await lock();
+    ok(p1.hook === 'icons-pair' && p1.shackle === OPEN && p1.hidden === 'true' && p1.name === 'Pair icons with text' && p1.label === null && p1.drawn > 0,
+      `${host} QA-B12: unpaired, the pairing button draws the open padlock, decorative, beside its words — read ${JSON.stringify(p1)}`);
+    // Gradients (QA-B13, QA-B14, QA-B15, QA-B16).
+    const gr = await page.evaluate(() => {
+      const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-gradients"]');
+      const head = blk?.querySelector('.p3-lever-head');
+      const sw = blk?.querySelector('[data-p3="gradients-switch"]');
+      const hb = head?.getBoundingClientRect(), sb = sw?.getBoundingClientRect();
+      // A gradient DRAWN is a CSS gradient between two colors or more: the scrim's swatch lays its one wash over the page
+      // as a single-color gradient (a composite, not a gradient preview), and is not one.
+      const colors = (bg) => new Set((bg.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi) ?? []).map((x) => x.replace(/\s+/g, '')));
+      const painted = [...document.querySelectorAll('[data-p3="levers-pane"] *')].filter((n) => { const bg = getComputedStyle(n).backgroundImage; return /gradient\(/.test(bg) && colors(bg).size >= 2; })
+        .map((n) => n.getAttribute('data-p3') ?? n.className?.baseVal ?? n.className);
+      const eds = [...(blk?.querySelectorAll('[data-p3="gradient-editor"]') ?? [])];
+      const box = (n) => n.getBoundingClientRect();
+      // Room on each side of a divider: from the last control of one gradient to the next's divider, and from that
+      // divider to the next gradient's first control. Then from Add gradient's divider down to the button.
+      const ctl = (e) => [...e.querySelectorAll('input, select, button')].filter((x) => box(x).height > 0);
+      const sides = eds.slice(1).map((e, i) => {
+        const prevCtl = ctl(eds[i]), line = box(e).top, first = ctl(e)[0];
+        return { above: Math.round(line - Math.max(...prevCtl.map((x) => box(x).bottom))), below: Math.round(box(first).top - line) };
+      });
+      const addRow = blk?.querySelector('[data-p3="gradient-add-row"]'), add = blk?.querySelector('[data-p3="gradient-add"]');
+      const last = eds[eds.length - 1];
+      return {
+        inHead: !!sw && sw.closest('.p3-lever-head') === head, right: hb && sb ? Math.round(hb.right - sb.right) : null, top: hb && sb ? Math.round(sb.top - hb.top) : null,
+        painted, n: eds.length, sides,
+        addLine: addRow ? getComputedStyle(addRow).borderTopStyle : null,
+        addAbove: addRow && add ? Math.round(box(add).top - box(addRow).top) : null,
+        addBelowLast: addRow && last ? Math.round(box(addRow).top - Math.max(...ctl(last).map((x) => box(x).bottom))) : null,
+      };
+    });
+    ok(gr.inHead && gr.right !== null && gr.right <= 1 && gr.top !== null && gr.top <= 12, `${host} QA-B13: the gradients switch sits at the top right of its block's header — read ${JSON.stringify({ inHead: gr.inHead, right: gr.right, top: gr.top })}`);
+    ok(gr.painted.length === 0, `${host} QA-B14: the levers draw no gradient (the preview shows them)${gr.painted.length ? ` — drawn by ${gr.painted.join(', ')}` : ''}`);
+    // S4a gave 8px above a divider and 12px under it; QA-B16 asks for more on both sides: 24px (the scale's 300) each.
+    ok(gr.n >= 2 && gr.sides.length === gr.n - 1 && gr.sides.every((x) => x.above >= 24 && x.below >= 24),
+      `${host} QA-B16: each gradient is set apart from the next by its divider, 24px or more on both sides — read ${JSON.stringify(gr.sides)} (${gr.n} gradients)`);
+    ok(gr.addLine === 'solid' && gr.addAbove >= 32 && gr.addBelowLast >= 24,
+      `${host} QA-B15: Add gradient has its own divider, with more room above the button (${gr.addAbove}px) than the gradients have (24px), and room below the last gradient (${gr.addBelowLast}px) — divider ${gr.addLine}`);
+    ok(errors.length === 0, `${host} S4f lock and gradients: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
+}
+// QA-I2 on Surfaces & fills: a Page sweep. Every Page the picker offers in Light and in Dark (white, every neutral step,
+// black), and every ratio badge's mark in the preview: a mark stamped with a chrome theme is drawn in that theme's
+// success (pass) or danger (miss) icon color, at 3:1 or more against the ground it is ACTUALLY on, and that theme reads
+// at least as well there as the other; a mark left unstamped is in the badge's own ink, and only where neither theme
+// reaches 3:1. Both kinds of ground must be met (a stamped mark on a light ground and on a dark one), or the sweep proves nothing.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const MARKS = () => {
+    const card = document.querySelector('[data-p3="preview-body"] [data-p3="surfaces-style-guide"]');
+    const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+    const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+    const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+    const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    // The themes' icon colors, from probe elements stamped with each theme, as computed colors.
+    const theme = (t) => { const s = document.createElement('span'); s.dataset.theme = t; card.append(s); s.style.color = 'var(--p3-ok-icon)'; const ok = parse(getComputedStyle(s).color); s.style.color = 'var(--p3-bad-icon)'; const bad = parse(getComputedStyle(s).color); s.remove(); return { ok, bad }; };
+    const T = { light: theme('light'), dark: theme('dark') };
+    return [...card.querySelectorAll('.sg-ratio-mk')].map((mk) => {
+      const kind = mk.closest('[data-below="true"]') ? 'bad' : 'ok';
+      const g = groundOf(mk);
+      const col = parse(getComputedStyle(mk).color);
+      const badge = parse(getComputedStyle(mk.closest('.sg-ratio')).color);
+      const best = Math.max(ratio(T.light[kind], g), ratio(T.dark[kind], g));
+      return { kind, stamped: mk.dataset.theme ?? null, r: ratio(col, g), best, other: mk.dataset.theme ? ratio(T[mk.dataset.theme === 'light' ? 'dark' : 'light'][kind], g) : null,
+        themed: mk.dataset.theme ? Math.abs(ratio(col, T[mk.dataset.theme][kind]) - 1) < 0.01 : null, ink: Math.abs(ratio(col, badge) - 1) < 0.01, dark: lum(g) < 0.18 };
+    });
+  };
+  let states = 0, stamped = 0, fallback = 0, onDark = 0, onLight = 0;
+  const bad = [];
+  for (const mode of ['light', 'dark']) {
+    await showMode(page, mode);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-base-pick"]'));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const steps = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
+    ok(steps.length >= 12 && steps.includes('white') && steps.includes('black'), `QA-I2 sweep: previewing ${mode}, the Page picker offers white, the neutral steps and black (${steps.length})`);
+    for (const st of steps) {
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${st}"]`));
+      await page.waitForFunction((k) => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] [aria-pressed="true"]')?.dataset.step === k, st, { timeout: 5000 }).catch(() => {});
+      const ms = await page.evaluate(MARKS);
+      states++;
+      for (const m of ms) {
+        if (m.stamped) {
+          stamped++; if (m.dark) onDark++; else onLight++;
+          if (!(m.themed && m.r >= 3 && m.r + 1e-6 >= m.other)) bad.push(`${mode} Page ${st}: a ${m.kind} mark themed ${m.stamped} reads ${m.r.toFixed(2)}:1 on its ground (the other theme ${m.other?.toFixed(2)}:1, drawn in its theme's color: ${m.themed})`);
+        } else {
+          fallback++;
+          if (!(m.ink && m.best < 3)) bad.push(`${mode} Page ${st}: a ${m.kind} mark left unthemed ${m.ink ? '' : 'is not in the badge ink, and '}where a theme reaches ${m.best.toFixed(2)}:1`);
+        }
+      }
+    }
+    await page.keyboard.press('Escape');
+  }
+  console.log(`  QA-I2 sweep: ${states} Page states, ${stamped} themed marks (${onLight} on light grounds, ${onDark} on dark), ${fallback} in the badge ink`);
+  ok(states >= 24 && stamped > 0 && onDark > 0 && onLight > 0, `QA-I2 sweep: the Page sweep met themed marks on light and on dark grounds (${states} states, ${onLight} light, ${onDark} dark)`);
+  ok(bad.length === 0, `QA-I2 sweep: every badge mark on Surfaces & fills reads at 3:1 or more in the better chrome theme's status icon color, or keeps the badge's ink where neither theme reaches 3:1${bad.length ? ` — ${bad.slice(0, 3).join(' | ')} (${bad.length} in all)` : ''}`);
+  ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
@@ -3939,7 +4156,7 @@ for (const { w, h } of WIDTHS) {
 console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembered scroll\n${'='.repeat(78)}`);
 {
   /** The lever section → the preview section it reveals, as the owner decided them (typed, not imported). */
-  const PAIRS_FILLS = { 'Background fills': 'Background', Foreground: 'Foreground', 'Foreground fills': 'Foreground', 'Text color': 'Text color', Border: 'Border', Icon: 'Icon', Gradients: 'Gradients' };
+  const PAIRS_FILLS = { 'Background fills': 'Background', Scrim: 'Scrim', Foreground: 'Foreground', 'Foreground fills': 'Foreground', 'Text color': 'Text color', Border: 'Border', Icon: 'Icon', Fields: 'Fields', Gradients: 'Gradients' };
   /** `motion.transition.default` of the default theme: `motion.duration.normal` and `motion.easing.standard`. */
   const MOTION = { dur: '200ms', ease: 'cubic-bezier(0.2, 0, 0, 1)' };
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -3983,7 +4200,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     await setTop('preview-body', 0);
     const a0 = await sec(PAIRS_FILLS.Border);
     ok(a0.found && !a0.inView, `QA-B9: on Surfaces & fills the preview's Border section starts below the fold, so the reveal can move (${JSON.stringify(a0)})`);
-    await hooks.click(page.locator('#p3-lsec-fills-4 [data-p3="fill-pick"]').first());
+    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
     const opened = await sec(PAIRS_FILLS.Border);
     ok(opened.top === 0, `QA-B9: opening a step picker is not an edit, and does not move the preview (scrollTop ${opened.top}, was 0)`);
@@ -3994,6 +4211,26 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(between(fa.tops) >= 2, `QA-B9: without reduced motion the Surfaces & fills reveal glides through positions on its way (${between(fa.tops)} in-between over ${fa.tops.length} frames, ${fa.tops[0]} → ${fa.tops[fa.tops.length - 1]})`);
     ok(fa.ms >= 120 && fa.ms <= 800, `QA-B9: the glide lasts about the default transition's ${MOTION.dur} (${fa.ms}ms from first move to settled)`);
     ok(a1.view === 'surfaces' && a1.place === 'color-fills', `QA-B9: an edit on Surfaces & fills never changes the preview's page or view (V1) — ${a1.place} / ${a1.view}`);
+
+    // (b2) #2016 (Q80): Fields has a preview section now, so a field step picked eases the preview's Fields section into
+    // view, as Border's does. Section 8 of the levers is Fields (Background fills, Scrim, Foreground, Foreground fills,
+    // Text color, Border, Icon, Fields), read by its title so a reorder fails here by name.
+    await page.keyboard.press('Escape');
+    await setTop('preview-body', 0);
+    const f0 = await sec(PAIRS_FILLS.Fields);
+    const fieldsSec = await page.evaluate(() => [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].find((x) => x.querySelector('.p3-lsec-title')?.textContent === 'Fields')?.id ?? null);
+    ok(f0.found && !f0.inView && !!fieldsSec, `#2016: on Surfaces & fills the preview draws a Fields section, below the fold, and the levers a Fields section (${JSON.stringify(f0)}, levers #${fieldsSec})`);
+    if (fieldsSec) {
+      await hooks.click(page.locator(`#${fieldsSec} [data-p3="fill-pick"]`).nth(1));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
+      await frames('preview');
+      const f1 = await sec(PAIRS_FILLS.Fields);
+      ok(lands(f1), `#2016: editing a Fields step on Surfaces & fills brings the preview's Fields section into view (top at ${f1.rel}px, scrollTop ${f1.top}, in view ${f1.inView})`);
+      await page.keyboard.press('Escape');
+    }
+    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
 
     // (c) Under reduced motion it lands at once: in place when the edit returns, and no frame between.
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -4008,7 +4245,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
 
     // (d) Focusing a lever (by Tab and by focus()), and changing the mode, never move the preview.
     await setTop('preview-body', 0);
-    await page.locator('#p3-lsec-fills-5 [data-p3="icons-unpair"], #p3-lsec-fills-5 [data-p3="icons-pair"]').first().focus();
+    await page.locator('#p3-lsec-fills-6 [data-p3="icons-unpair"], #p3-lsec-fills-6 [data-p3="icons-pair"]').first().focus();
     await page.keyboard.press('Tab');
     await page.keyboard.press('Shift+Tab');
     const d1 = await frames('preview');
@@ -4038,11 +4275,11 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       }, i);
       return { f, j };
     };
-    const ja = await jumpTo(4);
-    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-4', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
+    const ja = await jumpTo(5);
+    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-5', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
     ok(between(ja.f.tops) >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${between(ja.f.tops)} in-between over ${ja.f.tops.length} frames)`);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    const jb = await jumpTo(3);
+    const jb = await jumpTo(4);
     ok(Math.abs(jb.j.rel) <= 2 && between(jb.f.tops) === 0, `QA-B17: under reduced motion a jump link lands at once (top at ${jb.j.rel}px, frames ${JSON.stringify([...new Set(jb.f.tops)])})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
 
