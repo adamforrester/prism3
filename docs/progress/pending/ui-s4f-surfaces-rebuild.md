@@ -29,6 +29,10 @@
 - **The icon rows' locks read `lockedTo()`, as before.** The rebuild moved only the pairing control; every icon row is still drawn by the shared `row()`, whose lock and "Follows text.X" come from `lockedTo()` in `state/fills-input.ts`, never a list here. So #2031's wider `ALWAYS_FOLLOWS` (19 locked, 12 editable while unpaired) reaches these rows with no change. The padlock follows `iconsPaired()`, the state its button toggles.
 - **Folded-in nit (orchestrator, from #2001):** `test-fills-input.ts`'s floor-label case labelled prism3 Dark as "Page Black (as loaded)", but the engine resolves that page to `neutral.950` (the committed emission's `background.primary` in dark). The case's name now says so; its expected values are unchanged and still computed independently.
 
+### A6 (owner, 2026-10-03): the scrim over a checkerboard
+
+The scrim preview stays on the page color, and the scrim's wash now sits over the chrome's existing transparency checkerboard (`.p3-checker`, built from `--p3-fill-2` and `--p3-bg-page`, the one Palettes' alpha swatches use): in the levers, the swatch is the checkerboard with the wash filling it (`.p3-scrim-wash`); in the preview, the Scrim card (now drawn in `sections/scrim.ts`, so the Style guide's own scrim card is untouched) is the checkerboard under the wash and the modal panel. No raw color and no new string. `test:chrome` reads it from the render, both chrome themes, Light and Dark previewed: the element under the wash paints a gradient of two colors or more, and the wash on it is translucent and covers it. QA-B14's "no gradient in the levers" now counts linear and radial gradients only (the engine's two kinds), so the checkerboard's conic pattern is not a gradient preview; mutation (g)'s bar is still caught. Mutation, both `p3-checker` classes removed: `✗ A6 web light, previewing light: the scrim's swatch in the levers draws its wash over a checkered ground — read {"found":true,"checkered":false,"image":"none","wash":"rgba(0, 0, 0, 0.4)",…}`, and the preview card's twin, in each theme and mode.
+
 ### The merge of the shared styling pass (#2041)
 
 - **`domains/color-fills.ts`.** `main` restyled the OLD Background fills code (`sel`, `tokenField` over the new `tokenLabel`, `pickButton`, `openPicker`). S4f's `surfRow`/`tierRow` replace all four, so they are dropped (no caller is left), and the import is the union in use (`infoTip` and `tokenLabel`). Each Background row's name and token is now `tokenLabel(token, label, id)`, the one place QA-B2's order lives. The contrast floor row has an info button and no token, so it keeps its own wrapper: its label first, the info button beside it.
@@ -66,9 +70,9 @@ The section-18 and section-21 mutations ran against a scratch slice of `test-chr
 
 ### Copy
 
-**APPROVED, as built:** "Default background fills", "Inverse background fills", "Primary", the floor tooltip, "Scrim" and its description, "Fields" and its description, `ICONS_DESC`, the Q52/Q60/Q61 strings.
+**APPROVED (owner, 2026-10-03), as built:** "Default background fills", "Inverse background fills", "Primary", the floor tooltip, "Scrim" and its description, "Fields" and its description, `ICONS_DESC`, the Q52/Q60/Q61 strings.
 
-**DRAFT (new visible strings, pending the owner):**
+**APPROVED (owner, 2026-10-03), the strings first shipped as draft:**
 
 - "Inverse fill palette" (the palette select's visible label; it was the select's accessible name already)
 - "Inverse primary" (the brief's name for the `inverse.background.primary` row, which was "Inverse fill")
@@ -76,7 +80,7 @@ The section-18 and section-21 mutations ran against a scratch slice of `test-chr
 - The Fields preview's state names "Rest", "Hover", "Filled", its sample texts "Placeholder" and "Entered text", and its sub-headings "Base" and "Inverse" (the Background section's own words)
 - The accessible names "Primary, ‹mode›: … Pick a step" and "Inverse primary, ‹mode›: … Pick a step" (was "Page, …" and "Inverse fill step, …")
 
-### Design calls, for owner review
+### Design calls (owner, 2026-10-03: all OK, the "Background fills" line kept)
 
 - The floor row's control is the step picker (the row pattern), and the row is wide: its button sits under the name.
 - The "Background fills" lever name line stays above the two new sub-headings, because it carries the approved info text.
