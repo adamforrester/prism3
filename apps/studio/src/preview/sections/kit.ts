@@ -276,5 +276,20 @@ export const ground = (c: SgCtx, sec: HTMLElement, surf: SgSurface): HTMLElement
   return sec;
 };
 
+/** A section's specimens on WHITE, not on the brand's page (S4f, the owner's #1971, Q81): the grounds other colors
+ *  are measured against (Surfaces & fills' Background and Foreground sections) need no page under them, and carry
+ *  no ratio badge. The ground is still the section's specimen root (`data-p3="specimen"`), painted `#ffffff`, the
+ *  owner's word, in every mode; nothing is re-scoped, so the section's own ink, lines and pills keep the light-pinned
+ *  host's, which are made for a white ground. */
+export const WHITE_GROUND = '#ffffff';
+export const whiteGround = (sec: HTMLElement): HTMLElement => {
+  const g = hook(el('div', 'sg-ground'), 'specimen');
+  const head = sec.querySelector('.psec-head');
+  while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
+  g.style.background = WHITE_GROUND;
+  sec.append(g);
+  return sec;
+};
+
 /** The five semantic families the Foreground and Icon sections draw, in the Style guide's order. */
 export const SEM: ReadonlyArray<readonly [string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];

@@ -12,6 +12,8 @@ import { disabledSection } from './disabled';
 import { BUILT_IN_SECTION_COLUMNS, interactiveSection, type InteractiveSectionOptions } from './interactive';
 import { linksSection } from './links';
 import { focusRingSection } from './focus-ring';
+import { scrimSection } from './scrim';
+import { fieldsSection } from './fields';
 import { weightsByFaceSection } from './weights-by-face';
 import { typeRampSection, TYPE_GROUP_BLURB } from './type-ramp';
 import { paintTypeFluid } from './type-fluid';
@@ -28,6 +30,9 @@ export { linksSection };
 /** The Focus ring section (UI redesign S4c), shared so Color › Surfaces & fills can draw it after Border
  *  (owner decision Q30). Read-only. */
 export { focusRingSection };
+/** Color › Surfaces & fills' Scrim and Fields sections (UI redesign S4f: QA-B10; #2016, Q80), shared modules so each
+ *  carries its own marker. Only Surfaces & fills draws them; the Style guide's Background keeps its scrim. */
+export { scrimSection, fieldsSection };
 /** The legacy Typography Preview tab's sections and Layout's fluid read-out (UI redesign S6.1), shared so the
  *  Type page draws the same code. Read-only. (Its Typefaces table retired in S6.2, folded into Faces.) */
 export { weightsByFaceSection, typeRampSection, TYPE_GROUP_BLURB, paintTypeFluid };

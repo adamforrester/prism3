@@ -82,6 +82,23 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   };
 };
 
+/** An info button and the toggletip it opens, as a lever's head draws them, for a control INSIDE a lever that has
+ *  its own note (S4f, QA-B6: Surfaces & fills' contrast floor row). The same classes and the same hook as the
+ *  lever's (`lever-info`): it opens help and edits nothing. The caller places the tip. */
+export const infoTip = (id: string, label: string, text: string): { button: HTMLButtonElement; tip: HTMLElement } => {
+  const button = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-info'), 'lever-info');
+  button.type = 'button';
+  button.setAttribute('aria-label', `About ${label}`);
+  button.setAttribute('aria-expanded', 'false');
+  button.setAttribute('aria-controls', id);
+  button.append(glyph('info'));
+  const tip = h('p', 'p3-tip', text);
+  tip.id = id;
+  tip.hidden = true;
+  button.onclick = () => { const open = tip.hidden; tip.hidden = !open; button.setAttribute('aria-expanded', String(open)); };
+  return { button, tip };
+};
+
 /** A plain note under a control (`hint`), or a warning. */
 export const stateLine = (text: string, kind: 'hint' | 'warn' = 'hint'): HTMLElement => {
   const p = h('p', kind === 'hint' ? 'p3-state p3-state-hint' : 'p3-state p3-state-warn');
