@@ -793,9 +793,9 @@
 /* The Interactive preview (S5.3). QA-I1: a treatment label's foot line (its token and ratio badge) wraps inside the
    label column instead of running under the buttons beside it. QA-I2: a ratio badge's mark takes the chrome's
    status icon colors, a pass in the success icon and a miss in the danger icon; the badge keeps its own ink and
-   edge. The preview stamps each mark with the chrome theme whose icon colors suit the ground it sits on, so the
-   mark clears 3:1 on a light page and on a dark one. */
+   edge. The preview stamps each mark with the chrome theme whose icon color contrasts most with the ground it is
+   drawn on. A mark it does not stamp (no theme reaches 3:1 there, as on a mid-gray page) keeps the badge's ink. */
 .p3-ipv .sg-tlab { min-width: 0; }
 .p3-ipv .sg-foothint { flex-wrap: wrap; max-width: 100%; }
-.p3-ipv .sg-ratio-mk { color: var(--p3-ok-icon); }
-.p3-ipv .sg-ratio-no .sg-ratio-mk { color: var(--p3-bad-icon); }
+.p3-ipv .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
+.p3-ipv .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }

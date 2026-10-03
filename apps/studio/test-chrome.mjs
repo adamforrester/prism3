@@ -3663,7 +3663,7 @@ const readMarks = (page) => page.evaluate(() => {
   return [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="ratio-badge"]')].flatMap((b) => {
     const mk = b.querySelector('.sg-ratio-mk');
     if (!mk) return [];
-    return [{ role: b.dataset.role, below: b.dataset.below === 'true', color: hex(parse(getComputedStyle(mk).color)), ground: hex(groundOf(mk)) }];
+    return [{ role: b.dataset.role, below: b.dataset.below === 'true', color: hex(parse(getComputedStyle(mk).color)), ground: hex(groundOf(mk)), ink: hex(parse(getComputedStyle(b).color)) }];
   });
 });
 const lumHex = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
@@ -3735,6 +3735,20 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     await page.keyboard.press('Escape');
     const a3 = await addState();
     ok(a3.open && !a3.select && a3.focus === 'column-add-open' && await stored() === before, `QA-I4: Escape in the add form does what Cancel does (${JSON.stringify(a3)})`);
+    // The last color left to add: Add button set gives way to the hint, and focus must not drop to the page body. It
+    // lands on the new set's group, as that set's jump link would put it.
+    await hooks.click(page.locator('[data-p3="column-add-open"]'));
+    await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+    await hooks.click(page.locator('[data-p3="column-promote"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+    const lastAdd = await page.evaluate(() => ({
+      hint: !!document.querySelector('[data-p3="column-promote-hint"]'), body: document.activeElement === document.body,
+      focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null, column: document.activeElement?.dataset?.column ?? null,
+    }));
+    ok(lastAdd.hint && !lastAdd.body && lastAdd.focus === 'interactive-column' && lastAdd.column === 'accent',
+      `QA-I4: adding the last color left keeps focus off the page body, on the new set's group (${JSON.stringify(lastAdd)})`);
+    await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
 
     // QA-I8: the switch, its captions, its writes, and the chips only while it is off.
     const dis = () => page.evaluate(() => {
@@ -3796,6 +3810,50 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     ok(errors.length === 0, `S5.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S5.3 levers: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// QA-I2 on every page lightness: Page swept down prism3's neutral ladder in Light, through the mid-grays where neither
+// chrome theme's icon color reaches 3:1. THE ORACLE is the render (each mark's computed color and the composited
+// ground under it) and the status tokens from the token tree, never the page's own choice (docs/34). Each mark either
+// clears 3:1 on its ground, or, only where neither theme's token for it reaches 3:1 there, keeps the badge's own ink,
+// as origin/main drew every mark.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-base-pick"]'));
+    const steps = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]').evaluateAll((bs) => bs.map((b) => b.dataset.step));
+    await page.keyboard.press('Escape');
+    ok(steps.length >= 10, `QA-I2 sweep: the Page picker offers the neutral ladder (${steps.length} steps: ${steps.join(', ')})`);
+    let lowest = Infinity, lowestAt = '', fallbacks = 0, points = 0, grounds = new Set();
+    const bad = [];
+    for (const step of steps) {
+      await goPlace(page, 'color-fills');
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-base-pick"]'));
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${step}"]`));
+      await page.keyboard.press('Escape');
+      await goPlace(page, 'color-interactive');
+      const marks = await readMarks(page);
+      points++;
+      let fellBack = false;
+      for (const m of marks) {
+        grounds.add(m.ground);
+        const r = ratioHex(m.color, m.ground);
+        const tokens = m.below ? STATUS.bad : STATUS.ok;
+        const reach = Math.max(...tokens.map((t) => ratioHex(t, m.ground)));
+        if (r < lowest) { lowest = r; lowestAt = `Page ${step}, ${m.role}${m.below ? ' (miss)' : ''} ${m.color} on ${m.ground}`; }
+        if (r >= NONTEXT_MIN) continue;
+        if (reach < NONTEXT_MIN && m.color === m.ink) { fellBack = true; continue; }
+        bad.push(`Page ${step}: ${m.role} ${m.color} on ${m.ground} ${r.toFixed(2)}:1 (a status token reaches ${reach.toFixed(2)}:1; badge ink ${m.ink})`);
+      }
+      if (fellBack) fallbacks++;
+      ok(marks.length >= 20, `QA-I2 sweep, Page ${step}: the preview draws its marks (${marks.length})`);
+    }
+    ok(bad.length === 0, `QA-I2 sweep: on every Page step each mark clears ${NONTEXT_MIN}:1 on its ground, or keeps the badge's ink where neither theme's token can${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
+    console.log(`  QA-I2 sweep: ${points} Page steps, ${grounds.size} grounds, lowest mark ${lowest.toFixed(2)}:1 (${lowestAt}), ${fallbacks} step(s) with a mark on the badge-ink fallback`);
+    ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `QA-I2 sweep: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
 // QA-I1 and QA-I9, as drawn: both hosts, both chrome themes, at 1280 and 800. No treatment label's foot line (its

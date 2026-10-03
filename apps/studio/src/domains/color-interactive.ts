@@ -50,7 +50,7 @@ import { paletteRefOptions } from '../levers/controls';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { addRowButton, choice, inlineConfirm, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
@@ -364,7 +364,15 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
         const go = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote');
         go.type = 'button';
         go.append(glyph('plus'), h('span', 'p3-btn-label', BUTTON_SET_COPY.add));
-        go.onclick = () => { adding = false; edit('interactivePalettes', () => addAccent(s.select.value)); reopen(); };
+        // After the add, focus goes back to Add button set. When that color was the last one to add, the button gives
+        // way to the hint, so focus goes to the new set's group instead, as its jump link does.
+        go.onclick = () => {
+          const v = s.select.value;
+          adding = false;
+          edit('interactivePalettes', () => addAccent(v));
+          const back = root.querySelector<HTMLElement>('[data-p3="column-add-open"]') ?? root.querySelector<HTMLElement>(`#${idOf(v)}`);
+          back?.focus();
+        };
         // "Cancel" is the inline confirm's word (`inlineConfirm`, `ui/lever-kit.ts`), reused.
         const cancel = hook(h('button', 'p3-btn p3-btn-page'), 'column-promote-cancel');
         cancel.type = 'button';

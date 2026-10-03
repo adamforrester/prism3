@@ -11,17 +11,25 @@ helper in `ui/lever-kit.ts`. No engine change and no emitted artifact moves, so 
   `.p3-ipv .sg-tlab { min-width: 0 }`). The buttons did not move.
 - **QA-I2, the badge marks.** A pass mark draws in the chrome's success icon color, a miss mark in its danger icon
   color. The badge keeps its ink and edge. The marks sit on the brand's page, or on the inverse fill in an Inverse
-  row, and either can be light or dark. So the preview stamps each mark with the chrome theme (`data-theme`) made
-  for a ground of that lightness. Then `--p3-ok-icon` and `--p3-bad-icon` resolve to the light theme's values on a
-  light ground and to the dark theme's values on a dark one. Measured at 3:1 or better on every ground, Light, Dark,
-  HC light and HC dark.
+  row, and either can be light, dark or in between.
+  - **How the color is chosen.** For each mark, the preview reads the composited ground the mark is drawn on. It
+    compares the light and dark chrome themes' icon colors (success for a pass, danger for a miss) against that
+    ground. It then stamps the mark with the theme that contrasts more (`data-theme`).
+  - **Fallback.** If neither theme reaches 3:1, the mark gets no stamp and keeps the badge's own ink, which is what
+    `main` drew.
+  - **Review fix.** The first version picked a theme only by whether the ground was light or dark. On a mid-gray
+    page (prism3, Page at neutral 500) that measured 1.18:1, where `main` had 4.26:1.
+  - **Measured.** At 3:1 or better on every ground in Light, Dark, HC light and HC dark. Page was also swept down the
+    neutral ladder.
 - **QA-I3.** The line beside Hover and Pressed is dashed.
 - **QA-I4, Add button set.** `addRowButton` in `ui/lever-kit.ts` draws the full-width dashed add button on the
   existing `.p3-addrow` rule, which is what Gradients' Add gradient already wears. Brand's Add custom mode and
   Gradients' Add gradient are not converted here. On Interactive, the add row is a dashed "Add button set". Clicking
   it shows the select "Color for the new button set" (now a visible label), the add, and Cancel. Cancel and Escape
-  write nothing and put the dashed button back, focused. The add row sits 16px further from the last set than the
-  sets sit from each other.
+  write nothing and put the dashed button back, focused. After an add, focus returns to Add button set. When the color
+  added was the last one left, the button gives way to the hint, so focus moves to the new set's group, as its jump
+  link does (a review fix: it used to drop to the page body). The add row sits 16px further from the last set than
+  the sets sit from each other.
 - **QA-I5.** The strict switch sits with the page-wide settings, after Outline hover and above the button sets.
   Its approved caption is unchanged.
 - **QA-I6.** The neutral emphasis chips open the Neutral button set, under its heading. In `pages.ts`, the button
@@ -65,6 +73,17 @@ helper in `ui/lever-kit.ts`. No engine change and no emitted artifact moves, so 
 
   (c) ran alone, because it stops the S5.3 case before (a) and (e) are reached. (a) and (e) ran together, as did
   (b) and (d).
+- **Review fixes, proved the same way.**
+  - **The Page sweep.** `test:chrome` sets prism3's Page to each of the 22 neutral steps in Light. It reads every
+    mark's computed color and the composited ground under it, and checks each mark against the status tokens from
+    the token tree. A mark must clear 3:1, or keep the badge's ink, and the ink is allowed only where neither
+    theme's token reaches 3:1.
+  - **Sweep results.** The lowest mark is 3.04:1 (Page 750, a pass mark on `#37383a`). No step used the fallback:
+    on prism3's ladder, one of the two themes always reaches 3:1, so the fallback path is not exercised by this
+    sweep.
+  - **The last add.** A check holds that adding the last color leaves focus on the new set's group, not on the
+    body.
+  - **Mutations:** see the sweep and focus mutations below.
 
 ### DRAFT copy
 
