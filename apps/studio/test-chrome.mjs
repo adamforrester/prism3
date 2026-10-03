@@ -4738,8 +4738,8 @@ const PICK_SEL = ['fill-pick', 'int-pick', 'surface-base-pick', 'surface-seconda
   'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick'].map((x) => `button[data-p3="${x}"]`).join(', ');
 const readControls = (page) => page.evaluate((PICKS) => {
   const pane = document.querySelector('[data-p3="levers-pane"]');
-  // The chrome's selects: Type's lent legacy region (the earlier page's own controls, until S6.3) is not chrome.
-  const sels = [...pane.querySelectorAll('select')].filter((s) => s.offsetParent && !s.closest('[data-p3="type-lent"]')).map((s) => {
+  // The chrome's selects. (Type's lent legacy region was excluded until S6.3 replaced it; every select is chrome now.)
+  const sels = [...pane.querySelectorAll('select')].filter((s) => s.offsetParent).map((s) => {
     const r = s.getBoundingClientRect();
     const caret = s.parentElement?.querySelector(':scope > svg');
     const c = caret?.getBoundingClientRect();
