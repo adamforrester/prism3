@@ -470,18 +470,21 @@ export const GROUND_INPUT: Record<string, string> = {
  * THE TWIN MAP IS READ OFF THE TREE, not listed: a twin is the swapped path IF this mode's tree has it, so a
  * family added later is covered the day it emits both halves, and a role absent in this mode carries nothing.
  *
- * THREE CASES, split by whether the icon is a value twin regardless of the lever (owner, 2026-10-02):
+ * FOUR CASES, split by whether the icon follows its text regardless of the lever (owner, 2026-10-02 and -03):
  *   - `(inverse.)interactive.*` — the control's glyph is minted as the label's value twin (#1471) under BOTH
  *     `iconContrast` values, and #1617's requirement is that it always matches its label. Carried always.
  *   - `(inverse.)text.primary` and `text.on-<status>` (#1982) — the seven inks whose floor the lever does not
  *     set: `primary` is the most extreme neutral at `primaryMin`, and an `on-<status>` ink is `onColor` on its
  *     solid fill at `onMin`, for text and icon alike. Under `'3:1'` the icon keeps its text's floor and value,
  *     so it follows its text there too. Carried always.
- *   - every other pair — the icon's floor is the lever's under `iconContrast: '3:1'` and it derives its own
+ *   - `(inverse.)text.tertiary` and `(inverse.)text.<status>-subtle` (#2024, owner 2026-10-03) — their text is
+ *     held to the same 3:1 floor as an icon, so the same rule #1982 applied holds: under `'3:1'` the icon
+ *     follows its text. Carried always. (#1982 had left them out because their icon's floor still comes from
+ *     the lever; the owner's decision is that the equal floor is what decides.)
+ *   - every other pair: `(inverse.)text.secondary` and the bold `(inverse.)text.<status>`. Under
+ *     `iconContrast: '3:1'` the icon's floor is the lever's and sits below its text's, and it derives its own
  *     value, so carrying the label there would override that choice. Carried only when icons match text
- *     (`'text'`). Tertiary and the `-subtle` inks belong here even where their two floors happen to be equal
- *     (3:1 in the standard modes, 4.5:1 in HC): the icon's floor still comes from the lever, so the set is
- *     named by derivation, not by comparing floors (#1982).
+ *     (`'text'`).
  *
  * Only the post-derivation layer needs this. The pre-derivation `ovRgb` / `asGround` path substitutes
  * overrides only at GROUND reads, and no `icon` role is a ground (nothing is contrast-measured against a
@@ -490,7 +493,7 @@ export const GROUND_INPUT: Record<string, string> = {
  * and the final contrast sweep warns for it exactly as it does for the label.
  */
 const TEXT_SEGMENT = /(^|\.)text\./;
-const ALWAYS_TWINNED = /^(?:(?:inverse\.)?interactive\.|(?:inverse\.)?text\.primary$|text\.on-[^.]+$)/;
+const ALWAYS_TWINNED = /^(?:(?:inverse\.)?interactive\.|(?:inverse\.)?text\.(?:primary|tertiary|(?:brand|success|warning|danger|info)-subtle)$|text\.on-[^.]+$)/;
 export function withIconTwins(
   ov: ModeOverrides | undefined, roles: Record<string, unknown>, iconContrast: Theme['iconContrast'],
 ): ModeOverrides | undefined {

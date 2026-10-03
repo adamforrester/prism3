@@ -1114,26 +1114,29 @@ for (const b of brands) {
   }
 }
 
-// IT-03 (#1982, owner, 2026-10-02) — under `iconContrast: '3:1'` the SEVEN icon roles whose floor the lever does
-// not set follow their text: `icon.primary`, `inverse.icon.primary`, `icon.on-brand|success|warning|danger|info`.
-// The pairs are written out here, not derived, so the gate does not share the carry's own pattern (docs/34).
+// IT-03 (#1982, owner, 2026-10-02; widened #2024, owner, 2026-10-03) — under `iconContrast: '3:1'` NINETEEN icon
+// roles follow their text: the seven whose floor the lever does not set (`icon.primary`, `inverse.icon.primary`,
+// `icon.on-brand|success|warning|danger|info`), and the twelve whose text is held to the same 3:1 floor as an icon
+// (`(inverse.)icon.tertiary` and `(inverse.)icon.<status>-subtle`). The other twelve keep their own derived icon:
+// `(inverse.)icon.secondary` and the bold `(inverse.)icon.<status>`. Both sets are written out here, not derived,
+// so the gate does not share the carry's own pattern (docs/34).
 // EXPECTED is read off the TEXT token of the same tree, never off the icon. Only light and dark take overrides;
 // the other modes are generate-only, so there the seven are held equal by derivation alone. In light and dark a
 // text override on each of the seven must leave the icon equal to the text, and a precondition per cell proves
 // the comparison is not vacuous: the overridden text differs from the icon's own derived value under '3:1', so
 // an icon left uncarried cannot pass by matching. Promises:
-//   (1a) each of the seven equals its text in every mode the brand emits, under '3:1', with no override;
-//   (1b) each of the seven equals its text in light and dark, under '3:1', with the text overridden;
-//   (2) `text.secondary` does not carry under '3:1' (its icon floor is the lever's 3:1, #1982's own example);
-//   (3) neither do `text.tertiary` nor `text.success-subtle`, whose two floors are EQUAL (3:1, 4.5:1 in HC) but
-//       whose icon floor still comes from the lever — the set is named by derivation, not by comparing floors;
+//   (1a) each of the nineteen equals its text in every mode the brand emits, under '3:1', with no override;
+//   (1b) each of the nineteen equals its text in light and dark, under '3:1', with the text overridden;
+//   (2), (3) none of the twelve editable pairs carries under '3:1': `(inverse.)text.secondary` (its icon floor
+//       is the lever's 3:1, #1982's own example) and the bold `(inverse.)text.<status>`. Until #2024, arm (3)
+//       pinned tertiary and `-subtle` here; the owner decided they follow their text;
 //   (4) the dark mode carries under 'text' too (#1973): a dark `text.brand` override moves dark `icon.brand`,
 //       and light keeps its derived value.
 //   (5) under '3:1' an explicit icon override still wins over the carried text, for `icon.primary` and
 //       `icon.on-brand`, in light and dark (#2020); EXPECTED is the icon override's own step, never the text.
-// BY-NAME MUTATIONS: (a) drop the seven from `ALWAYS_TWINNED` → `IT-03: under '3:1' <icon> follows <text>
-// in <mode>` for every (1b) cell; (b) carry whenever the icon's floor equals its text's (#1982's first suggestion)
-// → arm (3); (c) carry every pair under '3:1' → arms (2) and (3); (d) run the carry in light only → arm (1b)
+// BY-NAME MUTATIONS: (a) drop any of the nineteen from `ALWAYS_TWINNED` → `IT-03: under '3:1' <icon> follows
+// <text> in <mode>` for its (1b) cells; (b) add `icon.secondary` → arm (2); (c) carry every pair under '3:1' →
+// arms (2) and (3); (d) run the carry in light only → arm (1b)
 // in dark, and arm (4); (e) the explicit icon override always loses to the carried text → arm (5). Arm (1a)
 // holds the derivation, which the carry does not touch.
 {
@@ -1144,7 +1147,21 @@ for (const b of brands) {
     ['icon.on-brand', 'text.on-brand'], ['icon.on-success', 'text.on-success'], ['icon.on-warning', 'text.on-warning'],
     ['icon.on-danger', 'text.on-danger'], ['icon.on-info', 'text.on-info'],
   ];
-  const NOT_CARRIED: Array<[string, string]> = [['icon.secondary', 'text.secondary'], ['icon.tertiary', 'text.tertiary'], ['icon.success-subtle', 'text.success-subtle']];
+  // #2024: the twelve whose text is held to the same 3:1 floor as an icon.
+  const TWELVE: Array<[string, string]> = [
+    ['icon.tertiary', 'text.tertiary'], ['inverse.icon.tertiary', 'inverse.text.tertiary'],
+    ['icon.brand-subtle', 'text.brand-subtle'], ['icon.success-subtle', 'text.success-subtle'], ['icon.warning-subtle', 'text.warning-subtle'],
+    ['icon.danger-subtle', 'text.danger-subtle'], ['icon.info-subtle', 'text.info-subtle'],
+    ['inverse.icon.brand-subtle', 'inverse.text.brand-subtle'], ['inverse.icon.success-subtle', 'inverse.text.success-subtle'],
+    ['inverse.icon.warning-subtle', 'inverse.text.warning-subtle'], ['inverse.icon.danger-subtle', 'inverse.text.danger-subtle'],
+    ['inverse.icon.info-subtle', 'inverse.text.info-subtle'],
+  ];
+  const FOLLOW = [...SEVEN, ...TWELVE];
+  // The editable twelve: secondary and the bold status inks, page and inverse.
+  const NOT_CARRIED: Array<[string, string]> = [
+    ['icon.secondary', 'text.secondary'], ['inverse.icon.secondary', 'inverse.text.secondary'],
+    ...['brand', 'success', 'warning', 'danger', 'info'].flatMap((st) => [[`icon.${st}`, `text.${st}`], [`inverse.icon.${st}`, `inverse.text.${st}`]] as Array<[string, string]>),
+  ];
   const base = brandTheme(inp as any);
   const baseModes = resolveAllModes(base);
   const neutralPal = base.roleToPalette.neutral;
@@ -1154,17 +1171,17 @@ for (const b of brands) {
   // One pin per mode: a mid neutral step whose hex is none of this arm's derived icon values in that mode.
   const pinFor = (m: string) => {
     const R = baseOf(m);
-    const taken = new Set([...SEVEN, ...NOT_CARRIED].flatMap(([i, t]) => [R[i]?.hex?.toLowerCase(), R[t]?.hex?.toLowerCase()]));
+    const taken = new Set([...FOLLOW, ...NOT_CARRIED].flatMap(([i, t]) => [R[i]?.hex?.toLowerCase(), R[t]?.hex?.toLowerCase()]));
     const free = nSteps.filter((s) => !taken.has(hex(s.rgb).toLowerCase()));
     return free[Math.floor(free.length / 2)];
   };
   const OV_MODES = ['light', 'dark'];
   const pins = Object.fromEntries(OV_MODES.map((m) => [m, pinFor(m)]));
-  ok(OV_MODES.every((m) => modeNames.includes(m) && !!pins[m]) && modeNames.every((m) => [...SEVEN, ...NOT_CARRIED].every(([i, t]) => !!baseOf(m)[i] && !!baseOf(m)[t])),
-    `IT-03: the brand emits all seven pairs and the three uncarried ones in every mode, with a free neutral pin in light and dark (precondition; modes ${modeNames.join(', ')})`);
+  ok(FOLLOW.length === 19 && NOT_CARRIED.length === 12 && OV_MODES.every((m) => modeNames.includes(m) && !!pins[m]) && modeNames.every((m) => [...FOLLOW, ...NOT_CARRIED].every(([i, t]) => !!baseOf(m)[i] && !!baseOf(m)[t])),
+    `IT-03: the brand emits all nineteen following pairs and the twelve editable ones in every mode, with a free neutral pin in light and dark (precondition; modes ${modeNames.join(', ')})`);
 
   // (1a) by derivation, in every mode
-  for (const m of modeNames) for (const [i, t] of SEVEN) {
+  for (const m of modeNames) for (const [i, t] of FOLLOW) {
     ok(baseOf(m)[i].hex.toLowerCase() === baseOf(m)[t].hex.toLowerCase(),
       `IT-03: under '3:1' ${i} derives equal to ${t} in ${m} (icon ${baseOf(m)[i].hex}, text ${baseOf(m)[t].hex})`);
   }
@@ -1173,8 +1190,8 @@ for (const b of brands) {
   const treeOf = (t: ReturnType<typeof brandTheme>) => Object.fromEntries(resolveAllModes(t).map((x) => [x.mode, x.roles as Record<string, IRole>]));
 
   // (1b) an override on the text carries, in light and dark
-  const over = treeOf(brandTheme({ ...inp, overrides: overridesFor(SEVEN) } as any));
-  for (const m of OV_MODES) for (const [i, t] of SEVEN) {
+  const over = treeOf(brandTheme({ ...inp, overrides: overridesFor(FOLLOW) } as any));
+  for (const m of OV_MODES) for (const [i, t] of FOLLOW) {
     const text = over[m][t].hex.toLowerCase();
     ok(text !== baseOf(m)[i].hex.toLowerCase(),
       `IT-03: the ${t} override in ${m} lands off ${i}'s own derived value, so the next check can fail (precondition; ${text})`);

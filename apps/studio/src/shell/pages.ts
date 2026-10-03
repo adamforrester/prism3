@@ -29,7 +29,9 @@
 
 /** The Links copy (S5.2), shared by the levers' Links section and the preview's (owner decision Q23). APPROVED. */
 export const LINKS_DESC = 'The link color in each state, on the page and on the inverse fill.';
-/** The Icons copy (S5.2), shared by the levers' Icons section and the preview's (Q23). APPROVED. */
+/** The Icons copy (S5.2), APPROVED. Interactive no longer draws an Icons section, levers or preview (the owner's
+ *  QA-I10, 2026-10-02); the owner's answer gives this description to Surfaces & fills' Icon section, which a
+ *  separate change restyles, so it stays here for that change to read. */
 export const ICONS_DESC = 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.';
 /** The Disabled copy, the Style guide's own, shared by the shared Disabled section and the levers' (Q23, Q51). */
 export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
@@ -141,7 +143,9 @@ export const DOMAINS = [
           // S4d (Q49, Q50): the borders and the icons, page and inverse, as rows, headed and described as the preview's
           // Border and Icon sections are (Q23). The Icon section's rows are locked while icons match text.
           { title: 'Border', desc: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.', rows: [{ ctl: 'border', schemaOnly: ['overrides'] }] },
-          { title: 'Icon', desc: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.', rows: [{ ctl: 'icon', schemaOnly: ['overrides'] }] },
+          // `iconContrast` is homed here since S5.3 (the owner's QA-I10): Interactive dropped its icon contrast control,
+          // and this section's Unpair and Pair buttons are the control that writes it now.
+          { title: 'Icon', desc: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.', rows: [{ ctl: 'icon', keys: ['iconContrast'], schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4c): every field role, page and inverse, as rows (owner decision Q29, #1962).
           { title: 'Fields', desc: FIELDS_DESC, rows: [{ ctl: 'fields', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
@@ -153,23 +157,26 @@ export const DOMAINS = [
       {
         id: 'interactive', label: 'Interactive', home: 'interactive', intro: 'How actions, links and disabled states draw from the palettes, and the floors they meet.',
         roles: ['interactive', 'inverse.interactive', 'text.link', 'icon.link', 'inverse.text.link', 'inverse.icon.link', 'disabled', 'inverse.disabled'],
-        // NOT CONCEPT V6'S (S5.2, owner decision Q51): the sections are the preview's, Interactive, Disabled,
-        // Links and Icons. v6's Actions and Interactive palettes are Interactive; its Legibility splits into
-        // Disabled and Icons.
+        // NOT CONCEPT V6'S (S5.2, owner decision Q51): the sections are the preview's, Interactive, Disabled and
+        // Links. v6's Actions and Interactive palettes are Interactive; its Legibility splits into Disabled and
+        // Icons, and S5.3 removed Icons (the owner's QA-I10): `iconContrast` is homed on Surfaces & fills' Icon.
         sections: [
           {
             title: 'Interactive', desc: BUTTON_SETS_DESC, rows: [
+              // The page-wide settings first, the strict switch with them (S5.3, the owner's QA-I5).
               { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
               { ctl: 'enum', keys: ['outlineInteraction'], drive: 'action' },
-              { ctl: 'enum', keys: ['neutralEmphasis'], drive: 'neutral' },
-              // S5.2: every per-column color is a row here (owner decision Q33), so the row also edits overrides.
-              { ctl: 'interactivePalettes', keys: ['interactivePalettes'], schemaOnly: ['modeAnchors', 'overrides'], drive: 'action' },
               { ctl: 'toggle', keys: ['strictInteractiveContrast'], drive: 'inverse' },
+              // S5.2: every per-column color is a row here (owner decision Q33), so the row also edits overrides.
+              // S5.3: the row also draws `neutralEmphasis`, at the top of the Neutral button set (the owner's QA-I6).
+              { ctl: 'interactivePalettes', keys: ['interactivePalettes', 'neutralEmphasis'], schemaOnly: ['modeAnchors', 'overrides'], drive: 'action' },
             ],
           },
           {
+            // S5.3 (the owner's QA-I8): the disabled contrast is the "Full contrast" switch, and the floor chips show
+            // only while it is off.
             title: 'Disabled', desc: DISABLED_DESC, rows: [
-              { ctl: 'enum', keys: ['disabledStrategy'], drive: 'disabled' },
+              { ctl: 'disabledSwitch', keys: ['disabledStrategy'], drive: 'disabled' },
               { ctl: 'disabledMin', keys: ['disabledMin'], drive: 'disabled' },
             ],
           },
@@ -184,7 +191,6 @@ export const DOMAINS = [
               { ctl: 'linkFamilies', schemaOnly: ['overrides'], drive: 'link' },
             ],
           },
-          { title: 'Icons', desc: ICONS_DESC, rows: [{ ctl: 'enum', keys: ['iconContrast'], drive: 'icon' }] },
         ],
         // S5.2: moved. Its levers are `domains/color-interactive.ts`, its preview `preview/interactive.ts`.
         status: 'new',

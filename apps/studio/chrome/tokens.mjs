@@ -218,7 +218,7 @@ export const fontVarsCss = (alias = {}) => CHROME_FONTS.map(([n, family, , stack
 // ── raw-value scan ─────────────────────────────────────────────────────────────────────────────
 export const RAW = [
   [/#[0-9a-f]{3,8}\b/gi, 'raw hex color'],
-  [/\b(rgba?|hsla?|oklch|oklab|lab|lch|color)\(/gi, 'raw color function'],
+  [/\b(rgba?|hsla?|hwb|oklch|oklab|lab|lch|color)\(/gi, 'raw color function'],
   [/(?<![\w-])-?\d*\.?\d+(px|rem|em|pt|vh|vw|ch)\b/gi, 'raw length'],
   [/(?<![\w-])\d*\.?\d+(ms|s)\b/gi, 'raw duration'],
   // T5: no shadows anywhere. Elevation is carried by the background/foreground roles and hairlines.
@@ -243,6 +243,35 @@ export function scanRaw(text, where, errors) {
 //     string inside `image-set()` that is not one (`image-set("https://…" 1x)` needs no `url(`).
 // Values only: selectors, property names and quoted strings are not read for color names, so
 // `.p3-tan` or `white-space` is not a color.
+//
+// EVERY NESTING LEVEL (#1927). The CSS ships unlowered, so `.a { color: red; & .b { … } }` is a real rule,
+// and its `color: red` sits in a block that is not innermost. Reading only innermost `{ … }` blocks missed
+// it. The scan now walks the braces: a block's declarations are what sits between `;` and `}` at that level,
+// and a rule's prelude (its selector, or `@media (…)`) is the text before a `{`, so it is never read as one.
+//
+// PROPERTY-AWARE, so that reading more does not refuse more. A few properties take a CUSTOM IDENTIFIER,
+// never a color, and an identifier may spell one (`grid-area: tan`, `animation-name: gold`). Their values
+// are not read for color names. The list is short on purpose; every other property is read, so an
+// unfamiliar one fails closed.
+export const IDENT_VALUED_PROPS = new Set([
+  'grid-area', 'grid-row', 'grid-row-start', 'grid-row-end', 'grid-column', 'grid-column-start', 'grid-column-end',
+  'grid-template-areas', 'animation-name', 'animation', 'view-transition-name', 'container-name', 'container',
+  'counter-reset', 'counter-increment', 'counter-set', 'list-style-type', 'font-family', 'anchor-name',
+  'position-anchor', 'scroll-timeline-name', 'view-timeline-name', 'timeline-scope', 'transition-property', 'will-change',
+]);
+/** Every `property: value` declaration in `code` (comments and strings already out), at every nesting level. */
+export function declarations(code) {
+  const out = [];
+  let buf = '';
+  let depth = 0;
+  for (const ch of code) {
+    if (ch === '{') { buf = ''; depth++; }                               // `buf` was a prelude: a selector or an at-rule
+    else if (ch === '}') { if (depth > 0 && buf.includes(':')) out.push(buf); buf = ''; depth = Math.max(0, depth - 1); }
+    else if (ch === ';') { if (depth > 0 && buf.includes(':')) out.push(buf); buf = ''; }
+    else buf += ch;
+  }
+  return out.map((d) => { const i = d.indexOf(':'); return [d.slice(0, i).trim().toLowerCase(), d.slice(i + 1)]; });
+}
 export const CSS_NAMED_COLORS = new Set([
   'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black', 'blanchedalmond',
   'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse', 'chocolate', 'coral',
@@ -274,17 +303,12 @@ export function scanRawStrict(text, where, errors) {
   for (const set of code.matchAll(/(?:-webkit-)?image-set\(([^;{}]*)/gi)) {
     for (const s of set[1].matchAll(/(["'])(?!data:)[^"']*\1/g)) errors.push(`${where}: image-set() source that is not a data: URI ${s[0]}`);
   }
-  // Declaration values: the innermost `{ … }` blocks, split into `property: value`.
-  for (const block of code.matchAll(/\{([^{}]*)\}/g)) {
-    for (const decl of block[1].split(';')) {
-      const i = decl.indexOf(':');
-      if (i < 0) continue;
-      const value = decl.slice(i + 1).replace(/(["'])[^"']*\1/g, '""');
-      for (const id of value.matchAll(/(?<![\w-])[a-z][a-z0-9-]*/gi)) {
-        const k = id[0].toLowerCase();
-        if (k === 'currentcolor') errors.push(`${where}: currentColor "${id[0]}"`);
-        else if (CSS_NAMED_COLORS.has(k)) errors.push(`${where}: named color "${id[0]}"`);
-      }
+  // Declaration values, at every nesting level (strings blanked first, so a `;` or `{` inside one is inert).
+  for (const [prop, value] of declarations(code.replace(/(["'])(?:(?!\1)[^\\\n]|\\.)*\1/g, '""'))) {
+    for (const id of value.matchAll(/(?<![\w-])[a-z][a-z0-9-]*/gi)) {
+      const k = id[0].toLowerCase();
+      if (k === 'currentcolor') errors.push(`${where}: currentColor "${id[0]}" (${prop})`);
+      else if (CSS_NAMED_COLORS.has(k) && !IDENT_VALUED_PROPS.has(prop)) errors.push(`${where}: named color "${id[0]}" (${prop})`);
     }
   }
 }

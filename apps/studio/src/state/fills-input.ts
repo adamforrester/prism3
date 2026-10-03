@@ -363,6 +363,10 @@ export const PAIR_ICONS_CONFIRM = {
 const ALWAYS_FOLLOWS: ReadonlySet<string> = new Set([
   'icon.primary', 'inverse.icon.primary',
   'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info',
+  // #2024 (owner, 2026-10-03): text held to the same 3:1 floor as an icon follows the engine's carry too.
+  'icon.tertiary', 'inverse.icon.tertiary',
+  'icon.brand-subtle', 'icon.success-subtle', 'icon.warning-subtle', 'icon.danger-subtle', 'icon.info-subtle',
+  'inverse.icon.brand-subtle', 'inverse.icon.success-subtle', 'inverse.icon.warning-subtle', 'inverse.icon.danger-subtle', 'inverse.icon.info-subtle',
 ]);
 /** The text role an icon row is locked to in `mode`, or null when the row is editable. Locked while paired, and
  *  always for the `ALWAYS_FOLLOWS` rows, unless the icon carries its own override in that mode: the engine applies

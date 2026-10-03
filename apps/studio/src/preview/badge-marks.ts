@@ -11,9 +11,8 @@
  * 3:1 (WCAG 1.4.11's non-text floor, a mid-tone ground), the mark is not stamped and keeps the badge's own ink, as
  * before. `chrome.css` paints a stamped mark (`.p3-marks .sg-ratio-mk[data-theme]`).
  *
- * THE SAME RULE AS COLOR › INTERACTIVE'S (#2019, S5.3), written as a module so the two can share it: #2019 carries
- * its own copy inside `preview/interactive.ts` (it was open, unmerged, when this landed). Unifying them is moving
- * that preview onto `themeBadgeMarks` and its `.p3-ipv` rule onto `.p3-marks`; the algorithm is the same, line for line.
+ * ONE RULE, TWO PREVIEWS. Color › Interactive's preview (#2019, S5.3) wrote it first, inside `preview/interactive.ts`;
+ * S4f lifted it here, unchanged line for line, and both previews call `themeBadgeMarks` on a card carrying `p3-marks`.
  */
 import { contrast, hexToRgb } from '@prism3/engine/color';
 import { h } from '../shell/dom';

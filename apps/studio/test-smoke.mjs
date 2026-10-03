@@ -1512,7 +1512,8 @@ const chooseMode = async (page, mode) => {
 // 1d. Color › Interactive — moved to the two panes (UI redesign S5.2), on its own hooks
 // =============================================================================================
 // Its preview draws the Style guide's Interactive section (with the Text row, Q32, and every column, Q39) and
-// Disabled section from the SAME modules the Style guide draws them with, then Links and Icons. Per corpus
+// Disabled section from the SAME modules the Style guide draws them with, then Links (no Icons since S5.3, the
+// owner's QA-I10: the icon contrast control left the page, and the preview's sections match the levers'). Per corpus
 // brand and per mode, against the brand's COMMITTED EMISSION, never the page:
 //   · every section ground is a specimen root on the emission's `background.primary` (listed by name);
 //   · the shared sections' roots carry the marker only their modules stamp (Interactive, Disabled, Links);
@@ -1521,8 +1522,8 @@ const chooseMode = async (page, mode) => {
 //   · every ratio badge prints the ratio THIS FILE computes from the two emitted hexes, and marks its floor.
 console.log(`\nColor › Interactive — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 const SG_INTERACTIVE = '[data-p3="preview-body"] [data-p3="interactive-style-guide"]';
-/** The preview's specimen roots, by title, in order. Literal (S5.2). */
-const EXPECT_INTERACTIVE_ROOTS = ['Interactive', 'Disabled', 'Links', 'Icons'];
+/** The preview's specimen roots, by title, in order. Literal (S5.2; Icons gone in S5.3, QA-I10). */
+const EXPECT_INTERACTIVE_ROOTS = ['Interactive', 'Disabled', 'Links'];
 /** The shared sections Color › Interactive draws, by title, with the marker each module stamps. Literal. */
 const EXPECT_INTERACTIVE_MARKER = { Interactive: 'interactive', Disabled: 'disabled', Links: 'links' };
 /** The Text row's ink per column, as drawn: [column name, [rest, hover, pressed] computed colors]. */
@@ -1567,7 +1568,8 @@ for (const brand of BRANDS) {
       if (!want) continue;
       if (rgbHex(n.css) !== want) offPaint.push(`${n.role} ${n.prop} is ${rgbHex(n.css) ?? n.css} (emitted ${want})`);
     }
-    ok(got.paint.length >= 25 && offPaint.length === 0, `${where}: every painted link, icon and card is its emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
+    // Floor 22: the links and the disabled cards. It was 25 until S5.3 took the Icons section's three cards out (QA-I10).
+    ok(got.paint.length >= 22 && offPaint.length === 0, `${where}: every painted link and card is its emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
     // Paired specimens (#1652), as the sweep holds them on the Style guide.
     const probe = await page.evaluate(LEGIBILITY_PROBE, SG_INTERACTIVE);
     assertParsed(where, probe.unparsed);
@@ -1873,12 +1875,19 @@ for (const brand of BRANDS) {
     ok(note === 0, `S4d ${brand}: loads unpaired, so no Unpair note is drawn (${note})`);
   }
   const rows1 = await iconRowsAt(page);
-  // The seven that keep their text's 4.5:1 floor under "3:1" follow their text under both lever values (#1982).
-  const FOLLOW_ALWAYS = ['icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info'];
+  // The nineteen that follow their text under both lever values: the seven that keep their text's 4.5:1 floor
+  // under "3:1" (#1982), and tertiary and the -subtle inks, page and inverse, whose text is held to the same 3:1
+  // floor as an icon (#2024). A literal typed here; 12 rows stay editable.
+  const FOLLOW_ALWAYS = [
+    'icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info',
+    'icon.tertiary', 'inverse.icon.tertiary',
+    'icon.brand-subtle', 'icon.success-subtle', 'icon.warning-subtle', 'icon.danger-subtle', 'icon.info-subtle',
+    'inverse.icon.brand-subtle', 'inverse.icon.success-subtle', 'inverse.icon.warning-subtle', 'inverse.icon.danger-subtle', 'inverse.icon.info-subtle',
+  ];
   const still = rows1.filter((r) => !FOLLOW_ALWAYS.includes(r.role) && (r.disabled || /^Follows/.test(r.text)));
-  ok(rows1.length === 31 && still.length === 0, `S4d ${brand}: unpaired, every icon row but the seven is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
+  ok(rows1.length === 31 && FOLLOW_ALWAYS.length === 19 && still.length === 0, `S4d ${brand}: unpaired, every icon row but the nineteen is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
   const loose = FOLLOW_ALWAYS.filter((role) => { const r = rows1.find((x) => x.role === role); return !r || !r.disabled || r.text !== `Follows ${ICON_TWIN(role)}`; });
-  ok(loose.length === 0, `S4d ${brand}: #1982 unpaired, the seven stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
+  ok(loose.length === 0, `S4d ${brand}: #1982/#2024 unpaired, the nineteen stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
     await previewMode(page, m);
     const row = `[data-p3="levers-pane"] .p3-fillrow[data-role="${role}"]`;
@@ -2770,13 +2779,13 @@ ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip group
 // manifest's options and labels (oracle: the committed `schema/lever-manifest.json`), exactly one checked and
 // it is the brand's stored value (read from the persisted brand, a store the chip does not paint), a click
 // writes, ArrowRight writes the next, each chip a >= 24px target, and at 380 the chips stay inside the panel.
-// The reduced disabled floor is four chips, 3, 3.5, 4 and 4.5 (owner decision Q37), disabled under Full.
+// The reduced disabled floor is four chips, 3, 3.5, 4 and 4.5 (owner decision Q37), drawn only while the Full
+// contrast switch is off (S5.3, the owner's QA-I8). Since S5.3 the disabled contrast is that switch, not chips, and
+// the icon contrast chips left the page (QA-I10), so two enum levers are chips here.
 console.log(`\nLever chips on Color › Interactive (S5.2)\n${'='.repeat(78)}`);
 const INTERACTIVE_CHIPS = [
   { key: 'outlineInteraction', group: '[data-p3="lever-outline-interaction"]' },
   { key: 'neutralEmphasis', group: '[data-p3="lever-neutral-emphasis"]' },
-  { key: 'iconContrast', group: '[data-p3="lever-icon-contrast"]' },
-  { key: 'disabledStrategy', group: '[data-p3="lever-disabled-strategy"]' },
 ];
 const DISABLED_MIN_CHIPS = [['3', '3:1'], ['3.5', '3.5:1'], ['4', '4:1'], ['4.5', '4.5:1']];
 const readNewChips = (sel) => {
@@ -2822,10 +2831,13 @@ const readNewChips = (sel) => {
     await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, next], { timeout: 5000 }).catch(() => {});
     ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight writes ${next} to the brand, and focus stays in the group (${await page.evaluate((s) => !!document.activeElement?.closest(s), c.group)})`);
   }
-  // The reduced floor (Q37): four chips, written as numbers; disabled, none checked, and said so under Full.
+  // The reduced floor (Q37): four chips, written as numbers, drawn while the Full contrast switch is off (QA-I8),
+  // and not drawn while it is on.
   const dm = '[data-p3="lever-disabled-min"]';
-  await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="reduced"]'));
-  await page.waitForFunction((s) => !document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
+  const fullSwitch = '[data-p3="disabled-full-switch"]';
+  const fullOn = () => page.evaluate((s) => document.querySelector(s)?.getAttribute('aria-checked'), fullSwitch);
+  if (await fullOn() === 'true') await hooks.click(page.locator(fullSwitch));
+  await page.waitForFunction((s) => !!document.querySelector(`${s} button`) && !document.querySelector(`${s} button`).disabled, dm, { timeout: 5000 }).catch(() => {});
   const r0 = await page.evaluate(readNewChips, dm);
   ok(JSON.stringify(r0.values) === JSON.stringify(DISABLED_MIN_CHIPS.map(([v]) => v)) && JSON.stringify(r0.labels) === JSON.stringify(DISABLED_MIN_CHIPS.map(([, l]) => l)) && r0.disabled.every((d) => !d),
     `${brand} / Interactive / disabledMin: under Reduced, four chips ${r0.labels.join(', ')}, all enabled (Q37)`);
@@ -2840,12 +2852,13 @@ const readNewChips = (sel) => {
     const wrote = await persistedAt(page, 'disabledMin');
     ok(wrote === f, `${brand} / Interactive / disabledMin: ${f}:1 writes the number ${f} (wrote ${JSON.stringify(wrote)})`);
   }
-  await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="full"]'));
-  await page.waitForFunction((s) => !!document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
+  await hooks.click(page.locator(fullSwitch));
+  await page.waitForFunction((s) => !document.querySelector(s), dm, { timeout: 5000 }).catch(() => {});
   const r1 = await page.evaluate(readNewChips, dm);
-  const note = await page.evaluate((s) => document.querySelector(`${s} .p3-lever-state`)?.textContent ?? '', dm);
-  ok(r1.disabled.every(Boolean) && r1.checked.length === 0 && note === 'Full fixes the disabled floor at 4.5:1, so this has no effect.',
-    `${brand} / Interactive / disabledMin: under Full, every chip is disabled, none is checked, and the lever says why ("${note}")`);
+  const on = await fullOn();
+  hooks.absent(ok, { seen: on === 'true', state: 'the Full contrast switch, on' }, r1.found === 0,
+    `${brand} / Interactive / disabledMin: under Full contrast the floor chips are not drawn (QA-I8) — ${r1.found} drawn, switch ${on}`);
+  ok((await persistedAt(page, 'disabledStrategy')) === 'full', `${brand} / Interactive / disabledStrategy: the Full contrast switch on writes "full" (wrote ${JSON.stringify(await persistedAt(page, 'disabledStrategy'))})`);
   // At 380 the page's chips stay inside the panel (long labels wrap onto a second row).
   await page.setViewportSize({ width: 380, height: 900 });
   const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);

@@ -15,9 +15,9 @@
  * WHICH PREVIEW SECTION A LEVER SECTION PAIRS WITH: the Q23 heading pair. A lever section is headed and
  * described as the preview section it drives (owner decision Q23), and `test:chrome` reads those pairs against
  * the rendered preview, so the pairing is already a held contract. The shared-section markers (`sections/kit.ts`) were
- * the other candidate; they were not used because two of the preview's sections (Interactive's Icons and
- * Surfaces & fills' Gradients) are drawn outside `sections/` and carry no marker, and only `sections/` may
- * write one (`test-shell-imports.ts`). Two lever headings were renamed away from their preview section by the
+ * the other candidate; they were not used because a preview section can be drawn outside `sections/` and carry
+ * no marker (Surfaces & fills' Gradients; Interactive's Icons was another until S5.3 removed it), and only
+ * `sections/` may write one (`test-shell-imports.ts`). Two lever headings were renamed away from their preview section by the
  * owner (Q26: "Background fills"; Q44: "Foreground fills", the fills the Foreground section draws), and
  * `PREVIEW_HEADING` names their pair. Scrim and Fields (S4f) are headed as their preview sections are, so they
  * need no row. A lever section with no preview section reveals nothing.

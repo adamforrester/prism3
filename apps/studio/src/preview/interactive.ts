@@ -4,9 +4,15 @@
  * WHAT IT SHOWS, in the legacy Style guide's markup (owner direction for the Color previews, as S4a's
  * Surfaces & fills): the Style guide's **Interactive** section, drawn by the SAME code the Style guide draws
  * it with (`preview/sections/interactive.ts`), with every column the brand ships, accents included (owner
- * decision Q39), and the Text row (Q32); the shared **Disabled** section; **Links**, the link role in each
- * state on the page and on the inverse fill; and **Icons**, the icon inks the icon contrast floor moves. Every
- * token chip carries its ratio badge (owner decision Q5).
+ * decision Q39), and the Text row (Q32); the shared **Disabled** section; and **Links**, the link role in each
+ * state on the page and on the inverse fill. Every token chip carries its ratio badge (owner decision Q5).
+ * No Icons section (S5.3, the owner's QA-I10): the icon contrast control left the levers, so the preview's
+ * sections still match the levers' one for one (Q23).
+ *
+ * THE BADGE MARKS (S5.3, QA-I2): a pass in the chrome's success icon color, a miss in its danger icon color
+ * (`chrome.css`, `.p3-marks`; the rule is `badge-marks.ts`, shared with Surfaces & fills since S4f). The marks sit on the brand's page, or on its inverse fill in an Inverse row, and either
+ * can be light or dark, so each mark carries the chrome theme (`data-theme`) whose icon colors are made for a ground
+ * of that lightness: the light theme's on a light ground, the dark theme's on a dark one.
  *
  * LEGACY MARKUP IN A LIGHT-PINNED HOST, SPECIMENS ON THE BRAND'S PAGE (plan §9.1), as `preview/surfaces.ts`:
  * each section's ground is a specimen root painted with the brand's own `background.primary` for the mode the
@@ -18,14 +24,11 @@
 import { brandState, currentMode, rp, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { h, hook } from '../shell/dom';
-import { ICONS_DESC, LINKS_DESC } from '../shell/pages';
+import { LINKS_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { BUILT_IN_SECTION_COLUMNS, disabledSection, interactiveSection, linksSection } from './sections/index';
-import { iconCard } from './sections/cards';
-import { SG_SURFACES, ground, oppositeOf, palSection, sgContext, type SgRole } from './sections/kit';
-
-/** The Icons section's copy (S5.2, APPROVED): `ICONS_DESC` in `shell/pages.ts`, shared with the levers (Q23). */
-export { ICONS_DESC };
+import { SG_SURFACES, ground, oppositeOf, sgContext, type SgRole } from './sections/kit';
+import { themeBadgeMarks } from './badge-marks';
 
 /** Every column the brand ships, in the levers' order: Primary, Neutral, Destructive, then each accent by
  *  its column name, named as the levers name it. */
@@ -37,7 +40,7 @@ export const previewColumns = (): ReadonlyArray<readonly [string, string]> => [
 /** Mount the Interactive preview into `host`. Subscriptions are released through `cleanups`. */
 export const mountInteractivePreview = (host: HTMLElement, cleanups: (() => void)[]): void => {
   const stack = hook(h('div', 'p3-stack p3-preview-stack'), 'interactive-preview');
-  const card = hook(h('div', 'p3-legacy-card'), 'interactive-style-guide');
+  const card = hook(h('div', 'p3-legacy-card p3-ipv p3-marks'), 'interactive-style-guide');
   card.dataset.theme = 'light';
   stack.append(card);
   host.replaceChildren(stack);
@@ -53,18 +56,17 @@ export const mountInteractivePreview = (host: HTMLElement, cleanups: (() => void
     const page = SG_SURFACES[0];
     // Only columns the engine resolved are drawn (an accent whose palette is gone resolves nothing).
     const columns = previewColumns().filter(([, col]) => !!c.role(cur, `interactive.${col}.fill.rest`));
-    const icons = palSection('Icons', ICONS_DESC);
-    icons.append(c.grid(3, ['icon.primary', 'icon.secondary', 'icon.brand'].map((k) => iconCard(c, k))));
     const secs = [
       interactiveSection(c, { method: theme.outlineInteraction, surface: page.key, columns }),
       disabledSection(c),
       linksSection(c, LINKS_DESC),
-      icons,
     ];
     // Q24: each section's container on the levers panel's gray. A class in the chrome's scope, beside the
     // legacy one, so `styles.css` keeps everything else about the section.
     for (const s of secs) s.classList.add('p3-sgsec');
     card.replaceChildren(...secs.map((s) => ground(c, s, page)));
+    // QA-I2: the badge marks, themed by the ground under each (`badge-marks.ts`, shared with Surfaces & fills since S4f).
+    themeBadgeMarks(card);
   };
   cleanups.push(subscribe('brand', paint), subscribe('mode', paint));
   paint();

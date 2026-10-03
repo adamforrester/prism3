@@ -19,7 +19,8 @@
  * WHAT `main.ts` NOW IMPORTS FROM HERE instead of defining: `palSection`, `subHead`, `tokenPillSpan`,
  * `isInversePath`, `withInverseBadge`, `colorPath`, `specimen` and `SPECIMEN`. One copy, so a section and
  * the rest of the legacy pages cannot disagree on a pill or a section head. S5.1 moved `specimenPair`,
- * `SPECIMEN_PAIR` and `legibleInkOn` here with the Disabled and Interactive sections, their only readers.
+ * `SPECIMEN_PAIR` and `legibleInkOn` here with the Disabled and Interactive sections, their readers then; since S5.3
+ * Color › Interactive's preview (`preview/interactive.ts`) also reads `legibleInkOn`, to theme its badge marks.
  *
  * THE SHARED-SECTION MARKER (`data-sg-section`, follow-up to #1951). Each section module (the five, from
  * S5.1 Disabled and Interactive, and from S4c the Focus ring) stamps
