@@ -1148,8 +1148,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
    role and its text. The colors are painted inline at the render site (`preview/sections/fields.ts`). */
 .sg-fcard{justify-content:space-between}
 .sg-field{align-self:stretch;margin-top:auto;border:1px solid;border-radius:var(--r-sm)}
-.sg-field-fill{padding:8px 10px;border-radius:var(--r-sm)}
-.sg-field-t{font-size:13px;line-height:1.4}
+.sg-field-fill{padding:8px 10px;border-radius:var(--r-sm);min-width:0}
+.sg-field-t{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:1.4}
 .sg-ico svg{width:26px;height:26px;display:block}
 .sg-lab{font-weight:640;font-size:14px;line-height:1.2}
 .sg-sub{font-size:12px;opacity:.9}
