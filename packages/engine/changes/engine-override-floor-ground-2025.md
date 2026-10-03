@@ -1,4 +1,0 @@
----
-engine: minor
----
-An override is re-rated against its real ground when that ground is a palette step (#2025). A floor-measured role (foreground.*, text.link.*, icon.link.*, interactive.<c>.fill.*) names the contrast floor, a ramp step such as neutral.050, as its ground. The override pass looked that ground up among roles only and fell back to the page base, so an overridden floor role recorded its contrast on the page, a shortfall that existed only on the floor raised no warning, and the #1510 link clamp cleared the page instead of the floor. Across a sweep of every link override on six corpus brands, 4,810 link values were emitted below their contract on the floor (worst 2.66:1), each recording a ratio that cleared it. The ground is now read off the theme's ramps. Minor, not patch: no committed artifact moves, because no corpus brand overrides a floor-measured role, but a brand that does now emits a different link value and may gain a warning.

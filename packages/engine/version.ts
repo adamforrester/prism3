@@ -2744,6 +2744,17 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.224.0 — folded 2026-10-03 from 2 change notes, newest merge first.
+ *
+ * [engine-override-floor-ground-2025 · minor · 38e40092] An override is re-rated against its real ground when that ground is a palette step (#2025). A floor-measured role (foreground.*, text.link.*, icon.link.*, interactive.<c>.fill.*) names the contrast floor, a ramp step such as neutral.050, as its ground. The override pass looked that ground up among roles only and fell back to the page base, so an overridden floor role recorded its contrast on the page, a shortfall that existed only on the floor raised no warning, and the #1510 link clamp cleared the page instead of the floor. Across a sweep of every link override on six corpus brands, 4,810 link values were emitted below their contract on the floor (worst 2.66:1), each recording a ratio that cleared it. The ground is now read off the theme's ramps. Minor, not patch: no committed artifact moves, because no corpus brand overrides a floor-measured role, but a brand that does now emits a different link value and may gain a warning.
+ *
+ * [engine-2024-icons-follow-text · minor · af875310] Under iconContrast '3:1', tertiary and -subtle icons follow their text too (#2024, owner 2026-10-03). The
+ * always-carried set in withIconTwins (ALWAYS_TWINNED) gains (inverse.)text.tertiary and
+ * (inverse.)text.<status>-subtle, whose text is held to the same 3:1 floor as an icon: the rule #1982 applied.
+ * That makes 19 icons follow their text while unpaired; the other 12, (inverse.)icon.secondary and the bold
+ * (inverse.)icon.<status>, still derive and edit on their own. An explicit icon override still wins.
+ * Interactive icons were already carried (#1617). No token path moves, so CONTRACT_VERSION does not.
+ *
  * 0.223.0 — folded 2026-10-02 from 1 change note, newest merge first.
  *
  * [engine-icon-floor-follows-text-1982 · minor · 41fb2431] Under iconContrast '3:1', the seven icon roles that keep a 4.5:1 floor now follow their text (#1982):
@@ -4479,7 +4490,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.223.0';
+export const ENGINE_VERSION = '0.224.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
