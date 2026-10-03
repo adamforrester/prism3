@@ -8,7 +8,7 @@
 //
 // Zero dependencies, no network. Nothing here reads a file.
 
-import { TILE_VARS, C, D, T } from './tokens.mjs';
+import { TILE_VARS, C, D, T, E } from './tokens.mjs';
 
 // The tile's map, plus v6's layering and edge roles. A v6 row may name a different token per theme,
 // because IA-2 and B1 are orderings and thresholds, not one role: the same ladder position lands on a
@@ -120,9 +120,11 @@ export const PRODUCT_VARS = [
   ['step-w', 'core.dimension.72', 'core.dimension.72', D, 'the step picker\'s smallest step (V9)'],
   // S4a: concept v6's 44px gradient bar in the levers (its `gbar2`), which says which gradient a card edits.
   ['gbar-h', 'core.dimension.44', 'core.dimension.44', D, 'the gradient editor\'s bar (V8)'],
-  // QA-B9, QA-B17: the eased scroll's duration, the default transition's (`motion.transition.default` pairs
-  // `motion.duration.normal` with the default easing role, which the mockup's `ease` row already maps).
-  ['dur-normal', 'motion.duration.normal', 'motion.duration.normal', T, 'the eased scroll of the edit-reveal and the jump links'],
+  // QA-B9, QA-B17: the eased scroll's duration and curve, both read from the one composite the engine emits for
+  // them, `motion.transition.default` (its `duration` and `timingFunction` members), so the two cannot drift apart
+  // (the shared styling pass; #2015 read `motion.duration.normal` and the mockup's `ease` row separately).
+  ['transition-dur', 'motion.transition.default#duration', 'motion.transition.default#duration', T, 'the eased scroll of the edit-reveal and the jump links'],
+  ['transition-ease', 'motion.transition.default#timingFunction', 'motion.transition.default#timingFunction', E, 'the eased scroll\'s curve'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -154,8 +156,10 @@ export const SHELL_VARS = [
   // S11 (owner decision #4 on #1956): a running write's spinner, its delay and turn, and the reduced turn.
   'dur-fast', 'dur-spin', 'dur-spin-reduced',
   // QA-B9, QA-B17: the edit-reveal's and the jump links' eased scroll, on the default transition's duration and
-  // curve (\`preview/follow-edit.ts\`).
-  'dur-normal', 'ease',
+  // curve (\`preview/follow-edit.ts\`), from the composite.
+  'transition-dur', 'transition-ease',
+  // QA-B11: the fill rows' swatch, as tall as a row's label and token (the mockup's 40px swatch row).
+  'swatch-h',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
