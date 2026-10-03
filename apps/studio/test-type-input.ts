@@ -22,6 +22,7 @@ import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as T from './src/state/type-input';
 import { knownWeightsOf } from './src/ui/fonts';
+import { typeSamplePicks, TYPE_SAMPLE_DISPLAY } from './src/preview/sections/type-sample';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -238,6 +239,25 @@ ok(JSON.stringify(playfair) === '[400,500,600,700,800,900]', `knownWeightsOf("Pl
   const faces = Object.values(tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].core.font.typeface as Record<string, { $value: string }>).map((t) => t.$value);
   const unknown = faces.filter((f) => !knownWeightsOf(f));
   ok(faces.length >= 3 && unknown.length === 0, `every face the prism3 default theme emits is a known family (${faces.join(', ')})${unknown.length ? ` — unknown: ${unknown.join(', ')}` : ''}`);
+}
+
+console.log('\n10. The type sample\'s display line (#1942, owner decisions Q67, Q76): display.md.strong, else the largest display style');
+// No corpus brand lacks `display.md.strong`, so the fallback is fed here: the prism3 typography with every
+// `display.md.*` style taken out, which leaves sm, lg, xl, 2xl and 3xl. EXPECTED is worked out by hand from the
+// default theme's display ramp: 3xl is 160px, the largest, and `display.3xl.emphasis` is its first style at that
+// size. Then the same check against the largest size the remaining styles carry, read off them here.
+{
+  reset();
+  const full = engine();
+  ok(TYPE_SAMPLE_DISPLAY === 'display.md.strong' && typeSamplePicks(full)[0]?.path === 'display.md.strong',
+    `with display.md.strong emitted, the sample opens with it (drew ${typeSamplePicks(full)[0]?.path})`);
+  const noMd = { ...full, composites: full.composites.filter((c) => !c.path.startsWith('display.md.')) };
+  const displays = noMd.composites.filter((c) => c.group === 'display' && !c.italic && !c.link);
+  const sizes = [...new Set(displays.map((c) => c.sizePx))];
+  const pick = typeSamplePicks(noMd)[0];
+  ok(sizes.length >= 4, `the fixture keeps several display sizes once display.md is gone (${sizes.join(', ')}px)`);
+  ok(pick?.path === 'display.3xl.emphasis' && pick.sizePx === 160 && pick.sizePx === Math.max(...sizes),
+    `with no display.md.strong, the sample opens with the largest display style by size, display.3xl.emphasis at 160px — drew ${pick?.path} at ${pick?.sizePx}px`);
 }
 
 console.log(`\n${executed - failed}/${executed} type-input assertions passed.`);
