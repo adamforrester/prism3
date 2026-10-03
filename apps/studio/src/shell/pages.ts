@@ -40,6 +40,13 @@ export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, bo
 /** The Faces copy (S6.2), shared by the Type levers' Faces section and the preview's Faces section (Q23). DRAFT:
  *  pending the owner's approval. */
 export const FACES_DESC = 'The font families in the brand, and the family each text type uses.';
+/** The Type sections' copy (S6.3), each shared by the levers section and the preview section that pairs with it
+ *  (owner decision Q23; Scale limits pairs with the preview's Scale, `PREVIEW_HEADING` in `preview/follow-edit.ts`).
+ *  APPROVED (owner, 2026-10-03, #2036). */
+export const SCALE_DESC = 'The size of each heading style on desktop and mobile, and the scale they step along.';
+export const SCALE_LIMITS_DESC = 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.';
+export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';
+export const SPACING_DESC = 'The step each line height and letter spacing name uses, and how far each text type moves from it.';
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -192,9 +199,11 @@ export const DOMAINS = [
     id: 'type', label: 'Type', home: 'type', intro: 'Font families per text type, then the heading scale they sit on.',
     sections: [
       { title: 'Font families', desc: FACES_DESC, rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }, { ctl: 'families', keys: ['typography.families'] }] },
-      { title: 'Scale', rows: [{ ctl: 'typeScale', keys: ['typography.typeScale'] }] },
+      // S6.3: Individual sizes sits in Scale behind its Show advanced (Q63, Q64); the brand-wide sizes, the mobile
+      // pins and each mode's sizes are schema inputs, not manifest levers.
+      { title: 'Scale', desc: SCALE_DESC, rows: [{ ctl: 'typeScale', keys: ['typography.typeScale'] }, { ctl: 'sizes', schemaOnly: ['typography.sizes', 'typography.sizeOverrides'] }] },
       {
-        title: 'Scale limits', advanced: true, rows: [
+        title: 'Scale limits', desc: SCALE_LIMITS_DESC, advanced: true, rows: [
           { ctl: 'responsive', keys: ['typography.responsive'] },
           { ctl: 'displayCeiling', keys: ['typography.displayCeiling'] },
           { ctl: 'titleFloor', keys: ['typography.titleFloor'] },
@@ -203,15 +212,25 @@ export const DOMAINS = [
         ],
       },
       {
-        title: 'Weights and styles', advanced: true, rows: [
+        title: 'Weights and styles', desc: WEIGHTS_DESC, advanced: true, rows: [
           { ctl: 'weightRoles', keys: ['typography.weightRoles'] },
           { ctl: 'weights', keys: ['typography.weights', 'typography.links'] },
           { ctl: 'italics', keys: ['typography.italics', 'typography.italicDefault'] },
+          // S6.3: Pin a font cut (Q64), a schema input.
+          { ctl: 'facePins', schemaOnly: ['typography.faces'] },
+        ],
+      },
+      // S6.3, NOT CONCEPT V6'S (owner decision Q64, C3: keep every legacy control): the line height and letter
+      // spacing bindings, each mode's swaps, and each text type's nudges. Schema inputs, not manifest levers.
+      {
+        title: 'Line height and letter spacing', desc: SPACING_DESC, advanced: true, rows: [
+          { ctl: 'lineHeights', schemaOnly: ['typography.lineHeights'] },
+          { ctl: 'letterSpacings', schemaOnly: ['typography.letterSpacings'] },
+          { ctl: 'nudges', schemaOnly: ['typography.leadingShift', 'typography.trackingShift'] },
         ],
       },
     ],
-    // S6.2: moved. Its levers are `domains/type.ts` (Faces, then the legacy Text styles controls lent until S6.3),
-    // its preview `preview/type.ts`.
+    // S6.2: moved; S6.3 retired the lent legacy region. Its levers are `domains/type.ts`, its preview `preview/type.ts`.
     status: 'new',
     legacy: [],
   },

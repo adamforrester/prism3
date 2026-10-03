@@ -62,8 +62,8 @@ import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeve
  *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
  *  compile error. Each mount subscribes to the store and hands back its cleanups. */
 const NEW_PAGES: Record<NewPageKey, {
-  /** `lend`: as the preview's, for a levers pane that still draws a legacy region (S6.2: Type's "Scale and
-   *  weights", until S6.3). */
+  /** `lend`: as the preview's (S6.2: Type's levers read the host's font list through it; S6.3 retired the
+   *  legacy "Scale and weights" region it also lent). */
   readonly levers: (host: HTMLElement, cleanups: (() => void)[], lend: PageLends) => void;
   /** `lend`: the legacy renderers `main.ts` lends a preview until its slice replaces them (S3: Brand's
    *  Style guide), as Inspect is lent its two legacy views. */
@@ -145,8 +145,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
-  /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview; S6.2: Type's
-   *  "Scale and weights", to its levers). */
+  /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
+   *  list (S6.2, Type). */
   readonly lend: PageLends;
 }): Frame => {
   const { host } = opts;

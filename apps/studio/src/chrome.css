@@ -817,6 +817,48 @@
 .p3-faceadd { display: grid; gap: var(--p3-space-100); }
 .p3-faceadd-row, .p3-famrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-famrow > .p3-selwrap:only-child { grid-column: 1 / -1; }
+/* ── Type (S6.3): Individual sizes, the weights matrix, the italic chips, the pins, line height and letter spacing,
+   and the value picker's list (ui/value-picker.ts) ─────────────────────────────────────────────────── */
+.p3-tscale-clash { display: grid; gap: var(--p3-space-100); justify-items: start; }
+.p3-tsizes { display: grid; gap: var(--p3-space-100); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-tsizes-head, .p3-tsizes-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--p3-space-150); align-items: center; }
+.p3-tsizes-row[data-off="true"] .p3-fill-label { color: var(--p3-text-2); }
+.p3-tsizes-cells { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--p3-space-100); }
+.p3-tweight, .p3-tspace, .p3-tpin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: center; }
+.p3-tspace-ctl { display: grid; gap: var(--p3-space-050); min-width: 0; }
+.p3-titalic { display: grid; gap: var(--p3-space-100); }
+.p3-titalic .p3-choice { flex-wrap: wrap; }
+.p3-tnudge { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: start; }
+.p3-tnudge-set { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
+.p3-wmatrix { display: grid; gap: var(--p3-space-050); overflow-x: auto; }
+.p3-wmatrix-row { display: grid; grid-auto-flow: column; grid-template-columns: minmax(var(--p3-step-w), 2fr); grid-auto-columns: minmax(var(--p3-hit-min), 1fr); gap: var(--p3-space-050); align-items: center; justify-items: center; }
+.p3-wmatrix-row > :first-child { justify-self: stretch; }
+.p3-wmatrix-head > .p3-field-label { overflow-wrap: anywhere; text-align: center; }
+.p3-wmatrix-head > .p3-field-label:first-child { text-align: left; }
+.p3-btn.p3-mcheck { min-height: var(--p3-hit-min); min-width: var(--p3-hit-min); padding: 0; justify-content: center; }
+.p3-btn.p3-mcheck > .p3-ico { visibility: hidden; }
+.p3-btn.p3-mcheck[aria-checked="true"] { border-color: var(--p3-ctl-edge); }
+.p3-btn.p3-mcheck[aria-checked="true"] > .p3-ico { visibility: visible; color: var(--p3-text); }
+.p3-btn.p3-mcheck[aria-disabled="true"] { border-style: dashed; cursor: not-allowed; }
+.p3-btn.p3-pick[data-set="true"] { border-color: var(--p3-ctl-edge); }
+/* A picker button whose value is long ("Auto: follows Light (160px)") wraps inside its cell rather than run past it. */
+:is(.p3-tsizes-cells, .p3-tweight, .p3-tspace-ctl) > .p3-btn.p3-pick { min-width: 0; white-space: normal; }
+.p3-btn.p3-deplink { justify-self: start; text-decoration: underline; text-underline-offset: var(--p3-space-025); }
+.p3-vpick-list { display: grid; gap: var(--p3-space-050); max-height: calc(var(--p3-ctl-h) * 9); overflow-y: auto; }
+.p3-vpick {
+  display: grid; grid-template-columns: minmax(var(--p3-step-w), auto) minmax(0, 1fr); gap: var(--p3-space-050) var(--p3-space-150);
+  align-items: center; padding: var(--p3-space-075) var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-field-edge);
+  border-radius: var(--p3-radius-lg); background: var(--p3-bg-page); color: var(--p3-text); cursor: pointer; text-align: left;
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12);
+}
+.p3-vpick:hover { border-color: var(--p3-field-edge-hover); }
+.p3-vpick:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-vpick[aria-pressed="true"] { border: var(--p3-bw-thick) solid var(--p3-ctl-edge); padding: calc(var(--p3-space-075) - var(--p3-bw-hairline)) calc(var(--p3-space-100) - var(--p3-bw-hairline)); font-weight: var(--p3-fw-emphasis); }
+.p3-vpick[aria-disabled="true"] { border-style: dashed; cursor: not-allowed; }
+.p3-vpick-key { display: flex; align-items: center; gap: var(--p3-space-050); font-family: var(--p3-font-mono); }
+.p3-vpick-sample { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text); line-height: var(--p3-lh-compact); }
+.p3-vpick-sample[data-wrap="true"] { white-space: normal; }
+.p3-vpick-why { grid-column: 1 / -1; color: var(--p3-text-2); }
 /* The type-ahead (#113): page DOM under the field, so it scrolls and takes the chrome's theme in Figma's iframe. */
 .p3-combo { position: relative; min-width: 0; }
 .p3-combo-list {
