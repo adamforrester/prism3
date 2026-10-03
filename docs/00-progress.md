@@ -7,6 +7,544 @@
 
 ---
 
+## (2026-10-03) — An override is re-rated against its real ground when that ground is a palette step (#2025)
+
+**STATUS: PR open from `engine/override-floor-ground-2025`.** Engine, plus one Studio test fixture. ENGINE minor via `packages/engine/changes/engine-override-floor-ground-2025.md`. No emitted artifact moves, and `CONTRACT_VERSION` is unchanged.
+
+**How it was found.** While fixing #1986, `lint-ratio-truth` started recomputing ratios measured against a palette step. It surfaced 22 rows in its own override sweep, all in light, all against `neutral.050`. Each overridden floor role recorded its contrast on white: for example, `foreground.brand` at `neutral.500` records 4.56 and measures 3.76 on `#e9e9ea`. The #1986 gate PR waits on this one.
+
+**The diagnosis.** The post-derivation override pass in `modes.ts` set `againstRgb = rgbByRole.get(existing.against) ?? baseRgb`. A floor-measured role (`foreground.*`, links, `interactive.<c>.fill.*`) names the contrast floor, a ramp step, as its `against`. That step is never a role, so the lookup always missed and the ratio was taken on the page base. Three things followed from that one line:
+- the recorded ratio was false;
+- a shortfall that existed only on the floor raised no warning;
+- the #1510 link clamp, which reads the same `againstRgb`, cleared the page instead of the floor.
+
+**The fix.** The fix is a `stepRgbOf` that resolves `<palette>.<step>` on the theme's ramps, tried after `rgbByRole` and before the page fallback. The fallback stays for a ground that is neither a role nor a step. None exists today, because `lint-ratio-truth` arm C (after #1986) fails on one.
+
+**The link clamp, measured.** A throwaway probe (not committed) overrode every link role in light and dark to every step of every ramp, on the six corpus brands built from an input (NB is a fixture with no input to override). That gave 31,200 cases, 15,600 of them measured against a step.
+- Before the fix, **4,810** were emitted below their contract on the real floor, worst 2.66:1, and every one recorded a ratio that cleared it.
+- After the fix, **0** are.
+
+**Suites.**
+- `test.ts` gains FO-01. Its expected values are literal hexes (`#e9e9ea` floor, `#ffffff` page, pinned as a precondition) and the shared `contrast` primitive. Nothing is imported from the engine's ground lookup or from the gate's helper. FO-01 asserts that:
+  - an overridden `foreground.brand` records its contrast on the floor;
+  - a pick short of its bar on the floor only (`neutral.400`: 2.71 on the floor, 3.28 on the page) is warned, and a clearing pick is not;
+  - a link override, both one that clears the page only and one below both, is clamped to 4.5:1 on the floor.
+- L-06's `groundRgbOf` had the same blindness, falling through to `background.primary` for a step ground. It now reads the step off the brand's ramp.
+
+- Studio's near-floor fixture (`apps/studio/test-verdict-count.ts`, #1930) was built on the bug. It put `text.tertiary` at `neutral.350`, "about 2.82:1 against neutral.050", but 2.82 is that step on white. On the floor it is 2.32, more than the 0.5 the fixture exists to sit within, so #1930's loosened-threshold mutation no longer failed. The fixture now pins `neutral.400`, which is 2.70 on the floor (`#8d8e90` on `#e9e9e9`). The mutation, `r.ratio + 1e-9 < r.min - 0.5` in `src/state/verdict.ts`, fails by name again: `near-floor fixture: the bar reads "1 of 884 below floor, 1 mode" — read "All 884 pairs at or above floor"`. The owner approved this one-line edit in `apps/studio` as fallout of the engine fix.
+
+**Mutation.** Reverting to `?? baseRgb` fails four FO-01 arms by name:
+- `FO-01: an overridden foreground.brand under the neutral.050 floor records its contrast on #e9e9ea (records 4.56, measures 3.76 on the floor, 4.56 on the page)`;
+- the floor-only warning arm;
+- both clamp arms.
+
+**Why minor, not patch.** `regen --check` is clean before and after, so a patch note would pass the gates. The policy, though, is minor for any behavior change, and this is one. A brand that overrides a floor-measured link now emits a different hex, and a floor-only shortfall now warns. Regen is clean only because no corpus brand takes that path.
+
+**Trap for whoever re-verifies this.** A test that picks its link step against `background.primary` is not measuring the link's ground. Read the step off `against`, and resolve it on the ramp when it is not a role. L-06 did this wrong for as long as the engine did, which is why neither caught the other.
+
+---
+
+## (2026-10-03) — under '3:1', tertiary and subtle icons follow their text (#2024)
+
+**Status:** ENGINE `0.224.0` (`engine: minor` change note), CONTRACT unchanged (`token-contract
+--check`). `regen` moves no committed artifact: the carry acts only on overrides, and no example brand
+overrides a tertiary or `-subtle` text role.
+
+### What changed
+
+The owner decided (2026-10-03) the question #2018 left open. Under `iconContrast: '3:1'`, `icon.tertiary`,
+`inverse.icon.tertiary` and the ten `-subtle` icons, page and inverse, follow their text, like the seven #2018
+covered. Their text is held to the same 3:1 floor as an icon, which is the rule #1982 applied. That gives
+**19 locked and 12 editable** while unpaired. The 12 editable are `(inverse.)icon.secondary` and the bold
+`(inverse.)icon.<status>`. Interactive icons were already carried (#1617).
+
+- **Engine:** `ALWAYS_TWINNED` in `withIconTwins` (`modes.ts`) gains `(inverse.)text.tertiary` and
+  `(inverse.)text.<status>-subtle`. An explicit icon override still wins (IT-03 arm 5).
+- **Studio:** `ALWAYS_FOLLOWS`, the set `lockedTo` reads in `state/fills-input.ts`, gains the twelve, so those
+  rows lock as "Follows text.X" while unpaired. No new strings. Nothing else in that file changed.
+
+### Two lists, held together by a test rather than merged
+
+#2023 did not make the engine and Studio share one list. It added a sync arm (`test-fills-input.ts` 6b) that
+derives the expected set from the engine's OUTPUT and checks Studio's locks against it. So this extends the
+two lists that exist and adds no third, and 6b is what catches either side moving alone: each one-sided
+mutation below fails it by name.
+
+### Measured first
+
+Under `'3:1'`, each of the twelve icons already DERIVES equal to its text, with no override: 144 cells across
+prism3, aurora and harbor in every mode, 0 different. So "Follows text.X" is true before any edit, and IT-03
+(1a) now holds all nineteen by derivation as well as (1b) by carry.
+
+### Tests and mutations
+
+Expected sets are literals in each suite: IT-03's `FOLLOW` (19) and `NOT_CARRIED` (12), and the 19 in
+`test-fills-input` and `test:smoke`.
+
+| Mutation | Fails |
+|---|---|
+| engine drops `inverse.text.tertiary` | `IT-03: under '3:1' inverse.icon.tertiary follows inverse.text.tertiary in light` / `in dark`; 6b `locked but not carried: inverse.icon.tertiary` |
+| engine adds `text.secondary` | `IT-03: under '3:1' a text.secondary override does not carry to icon.secondary in light` (and dark, and inverse); 6b `carried but editable: icon.secondary, inverse.icon.secondary` |
+| Studio drops `inverse.icon.info-subtle` | `#1982/#2024 unpaired, inverse.icon.info-subtle stays locked …`; 6b; the aurora arm; `S4d prism3/aurora/harbor: … not locked: inverse.icon.info-subtle` |
+| Studio adds `icon.secondary` | `unpaired, every icon row but the nineteen edits (12 editable) — still locked: icon.secondary`; 6b `locked but not carried: icon.secondary`; the aurora arm |
+
+---
+
+## (2026-10-03) — S5.3: the Interactive page polish (the owner's QA-I1 to QA-I10)
+
+**STATUS: branch `ui/s53-interactive-polish`, pushed, no PR yet.** UI only: Color › Interactive, plus one reusable
+helper in `ui/lever-kit.ts`. No engine change and no emitted artifact moves, so ENGINE stays at 0.224.0 and
+`CONTRACT_VERSION` is unchanged. QA-I11 and QA-I12 belong to other lanes and are not in this change.
+
+### What changed
+
+- **QA-I1, the badge overlap.** A treatment label's foot line (its token and ratio badge) did not wrap, so it ran
+  out of its 120px column and under the first button. It wraps now, inside the column (`.p3-ipv .sg-foothint`,
+  `.p3-ipv .sg-tlab { min-width: 0 }`). The buttons did not move.
+- **QA-I2, the badge marks.** A pass mark draws in the chrome's success icon color, a miss mark in its danger icon
+  color. The badge keeps its ink and edge. The marks sit on the brand's page, or on the inverse fill in an Inverse
+  row, and either can be light, dark or in between.
+  - **How the color is chosen.** For each mark, the preview reads the composited ground the mark is drawn on. It
+    compares the light and dark chrome themes' icon colors (success for a pass, danger for a miss) against that
+    ground. It then stamps the mark with the theme that contrasts more (`data-theme`).
+  - **Fallback.** If neither theme reaches 3:1, the mark gets no stamp and keeps the badge's own ink, which is what
+    `main` drew.
+  - **Review fix.** The first version picked a theme only by whether the ground was light or dark. On a mid-gray
+    page (prism3, Page at neutral 500) that measured 1.18:1, where `main` had 4.26:1.
+  - **Measured.** At 3:1 or better on every ground in Light, Dark, HC light and HC dark. Page was also swept down the
+    neutral ladder.
+- **QA-I3.** The line beside Hover and Pressed is dashed.
+- **QA-I4, Add button set.** `addRowButton` in `ui/lever-kit.ts` draws the full-width dashed add button on the
+  existing `.p3-addrow` rule, which is what Gradients' Add gradient already wears. Brand's Add custom mode and
+  Gradients' Add gradient are not converted here. On Interactive, the add row is a dashed "Add button set". Clicking
+  it shows the select "Color for the new button set" (now a visible label), the add, and Cancel. Cancel and Escape
+  write nothing and put the dashed button back, focused. After an add, focus returns to Add button set. When the color
+  added was the last one left, the button gives way to the hint, so focus moves to the new set's group, as its jump
+  link does (a review fix: it used to drop to the page body). The add row sits 16px further from the last set than
+  the sets sit from each other.
+- **QA-I5.** The strict switch sits with the page-wide settings, after Outline hover and above the button sets.
+  Its approved caption is unchanged.
+- **QA-I6.** The neutral emphasis chips open the Neutral button set, under its heading. In `pages.ts`, the button
+  sets row now carries the `neutralEmphasis` key, because that row draws it.
+- **QA-I7.** The gap between button sets is `space.500` (40px), up from `space.300` (24px).
+- **QA-I8, the Disabled switch.** "Full contrast" is a switch. On writes `'full'` and off writes `'reduced'`, the
+  two values the segmented control wrote. The captions are the approved "Disabled controls keep full contrast." and
+  "Disabled controls drop to the floor you pick." The four floor chips are drawn only while the switch is off.
+- **QA-I9.** The three link state selects each take a line at the panel's full width, so "Auto: tuned walk" is
+  not cut.
+- **QA-I10.** The icon contrast control is gone from Interactive, and so is the preview's Icons section. The lever
+  sections and the preview's sections still match one for one (Q23): Interactive, Disabled, Links. `iconContrast`
+  is homed on Surfaces & fills' Icon row in `pages.ts` (`test-pages.ts` needs one home per manifest key). Its Unpair
+  and Pair buttons are now the control that writes it. Surfaces & fills' UI is untouched. `ICONS_DESC` stays
+  exported, because the owner's answer gives it to Surfaces & fills' Icon section, which another change restyles.
+
+### Proof
+
+- **Equivalence.** A driver ran origin/main's build and this branch's build in lockstep on prism3, aurora and
+  harbor, in Light and Dark. It drove every kept control: the action palette (every option), outline hover,
+  neutral emphasis, the strict switch, the disabled switch against the segmented chips (including Full with a
+  floor set), each floor chip, the link palette (every option and Auto), each link rung, every row's picker (a pick,
+  then Auto), and add and remove a button set. It also compared the new Cancel against doing nothing. After each
+  edit it compared the raw persisted brand: **938/938 byte-identical.** Only prism3 has a palette to add, so the
+  add and remove steps ran on prism3 only.
+- **Suites.** `test:chrome` section 19b holds each QA item against a literal, and section 19 and the Q52 re-pair
+  case follow the removals. The Q52 case now drives Surfaces & fills' Pair button. `test:smoke` drops Icons from the
+  preview roots and the two chip groups that are no longer chips, and drives the floor chips through the switch.
+- **Mutations**, each after a `wip:` commit, each failing by name in `test:chrome`:
+  - **(a)** The switch writes `'reduced'` when it turns on. This fails `QA-I8: switching Full contrast on writes
+    disabledStrategy "full", as the segmented control did (wrote "reduced")`.
+  - **(b)** The chips are drawn under Full. This fails `QA-I8: under Full contrast the floor chips are not shown
+    (4 shown)`.
+  - **(c)** The add form starts open. This fails `QA-I4: before Add button set is clicked, the color select is not
+    shown`.
+  - **(d)** The Icons section is put back on Interactive. This fails `QA-I10: Interactive draws no icon contrast
+    control and no Icons section (1 lever-icon-contrast, Icons title true)`, and also `test-pages`'s `no manifest
+    lever has two homes`.
+  - **(e)** The miss mark's CSS rule is dropped. This fails `QA-I2 (light): a failing mark is the danger icon token
+    (#a82e2e or #e34b49) — interactive.primary.text.rest #19693f`.
+
+  (c) ran alone, because it stops the S5.3 case before (a) and (e) are reached. (a) and (e) ran together, as did
+  (b) and (d).
+- **Review fixes, proved the same way.**
+  - **The Page sweep.** `test:chrome` sets prism3's Page to each of the 22 neutral steps in Light. It reads every
+    mark's computed color and the composited ground under it, and checks each mark against the status tokens from
+    the token tree. A mark must clear 3:1, or keep the badge's ink, and the ink is allowed only where neither
+    theme's token reaches 3:1.
+  - **Sweep results.** The lowest mark is 3.04:1 (Page 750, a pass mark on `#37383a`). On 9 of the 22 steps, at
+    least one mark used the badge-ink fallback, and every fallback mark still measured above 3:1. The arm also
+    fails if no step falls back, so the fallback branch cannot go unexercised.
+  - **The last add.** A check holds that adding the last color leaves focus on the new set's group, not on the
+    body.
+  - **Mutations.**
+    - Picking the theme by the light-or-dark guess alone fails `QA-I2 sweep: on every Page step each mark clears
+      3:1 …`.
+    - Dropping the focus move fails `QA-I4: adding the last color left keeps focus off the page body …`.
+
+### DRAFT copy
+
+None. Every visible string is approved or reused: "Add button set", "Color for the new button set", "Cancel" (the
+inline confirm's word), "Full contrast" and its two captions, and the Full note "At 4.5:1 a disabled label reads like
+body text. The disabled cue rests on fill, border and cursor." (#1974).
+
+### Design calls, for the owner
+
+1. QA-I1 was fixed by wrapping the label's foot line, not by right-aligning the buttons. This keeps the Style
+   guide's layout, and it holds at every preview width.
+2. QA-I10 removed the preview's Icons section along with the lever, because a read-only section with no lever
+   section would break Q23.
+3. `iconContrast` is homed on Surfaces & fills' Icon row in the page data.
+4. The add row stays after the last button set, which is below Destructive only when there are no accents.
+5. "Color for the new button set" shows as a visible label above the select, not only as its accessible name.
+6. Under Full, the approved Full note stays under the switch. "Full fixes the disabled floor at 4.5:1, so this has
+   no effect." is gone, because the chips it described are not drawn.
+7. The add form closes when the previewed mode changes, the same way an open step picker closes.
+8. The red and green marks apply on Interactive only (`.p3-ipv`). Surfaces & fills' badges are unchanged.
+
+### Trap for whoever re-verifies this
+
+At 800 and 640, the preview covers the sub-nav's last tab, so a pointer click cannot reach Interactive and the
+suite reaches it by keyboard. The first draft of 19b used `goPlace` at 800 and timed out there.
+
+---
+
+## (2026-10-03) — chrome build checks: [license] and [pairs] can't switch themselves off; the raw scan reads nested rules and hwb() (#1927)
+
+**Status:** `apps/studio/chrome/` only (`esbuild-plugin.mjs`, `tokens.mjs`). No studio source change, no
+engine change, no ENGINE bump. The real build on `main`'s `chrome.css` passes unchanged, with 0 errors.
+
+### A. [license] checks every embedded face against its own literal
+
+The check looped over `notices`, the list the notice writer fills, so a face the writer skipped was a face
+the checker never asked about. On `main`, deleting `notices.push([family, line]);` builds green, with no OFL
+notice in the bundle. It now loops over `CHROME_FONTS`, every face the CSS embeds. It also expects a literal
+per face, `LICENSE_COPYRIGHT`, instead of the writer's `COPYRIGHT_RE`. That pattern was the one definition
+the checker shared with its subject (the second review on the issue): loosening it to `/Copyright/` builds
+green on `main` with a notice reading "Inter: Copyright.". The OFL file is held to the literal too, so a
+swapped font fails and asks for a deliberate update.
+
+### B. A PAIRS or DECORATIVE name with no row fails by name
+
+`if (!mapped.has(fg) || !mapped.has(bg)) continue;` treated "not mapped yet" and "names nothing" alike. A
+name with no row in TILE_VARS, V6_VARS or PRODUCT_VARS (every row the shell reads) now fails. A name with a
+row that SHELL_VARS does not list yet is still skipped, legitimately.
+
+**The issue's own mutation no longer isolates the hole on `main`**, because PAIRS has grown since it was filed:
+`text` now also pairs with `bar-bg`, `fill-1` and `levers-bg`, and neutral 500 fails those too, so `main`
+goes red anyway. The hole is shown instead by the typo plus an impossible 21:1 floor on that pair, with no
+color change. `main` skips the misspelt pair and builds green; the fix fails naming `--p3-bg-pgae`.
+
+### C. The strict raw scan reads every nesting level, and hwb()
+
+- **Nesting.** Only the innermost `{ … }` blocks were read. A declaration INSIDE a nested rule was therefore
+  already caught; one BESIDE a nested rule (`.a { color: red; & .b { … } }`) was not. `declarations()` now
+  walks the braces and reads every level; a rule's prelude (selector, `@media (…)`) is never read as one.
+- **Property-aware**, so reading more refuses no more: `IDENT_VALUED_PROPS` lists the properties whose
+  values are custom identifiers (`grid-area: tan`, `animation-name: gold`), which are not read for color
+  names. The list is short; every other property is read, so an unfamiliar one fails closed.
+- **`hwb(`** joins RAW's color functions. No mockup uses it, so their builds do not move.
+- **`RAW_CANARIES`**: the scan now checks itself on every build, against literal must-flag and must-pass
+  cases. `main`'s `chrome.css` carries no nested declaration and no `hwb()`, so without them a scan that
+  lost either reach would pass it unchanged.
+
+### Mutations
+
+| Mutation | Fixed checks | `main`'s checks |
+|---|---|---|
+| A1: delete `notices.push([family, line]);` | `[license] the bundled CSS carries no license notice for Inter …`, and JetBrains Mono | exit 0 |
+| A2: `COPYRIGHT_RE` loosened to `/Copyright/` | the same two `[license]` lines | exit 0 |
+| B′: `bg-page` → `bg-pgae` on the body-text pair, floor 21 | `[pairs] PAIRS names --p3-bg-pgae, which no row … defines (text on bg-pgae, body text on the page)` | exit 0 |
+| B: the issue's mutation (typo + dark text.primary → neutral 500) | the `bg-pgae` line, plus the other `text` pairs | red, on the other pairs only |
+| C1b: `.p3-mutation-probe { color: red; & .b { … } }` in `chrome.css` | `[raw] … named color "red" (color)` | exit 0 |
+| C2: `color: hwb(0 0% 0%)` in `chrome.css` | `[raw] … raw color function "hwb("` | exit 0 |
+| C3: the scanner back to innermost-only | `[raw] self-check: the strict scan no longer flags a named color beside a nested rule …` | n/a |
+| C4: `hwb` dropped from RAW | `[raw] self-check: the strict scan no longer flags an hwb() color …` | n/a |
+
+### Decided, filed as #2027
+
+System colors only inside `@media (forced-colors: active)`; `color-mix(…)` only over `var(--…)` tokens. Today's
+`chrome.css` uses neither.
+
+### Found, not fixed (out of scope): filed as #2028 and #2029
+
+- The plugin's `assertNoAbsolutePath` (`apps/plugin/build.mjs`) scans the embedded base64 font data, which could by chance contain `/tmp/x`,
+  `/var/x` or `/root`. Fixed output passes today; a font swap could trip it with a confusing message.
+  Excluding `data:` URIs from that scan would avoid it.
+- `regen --check` deletes and restores `packages/engine/out`; a chrome build that reads `out/` during that
+  window fails with `[map] cannot load the default theme…`. Only a regen and a build run by hand at the same
+  time can hit it (`verify.ts` and CI run one step at a time).
+
+---
+
+## (2026-10-03) — UI redesign S4e: Color › Surfaces & fills — the background tiers become controls (#1972)
+
+**STATUS: branch `ui/s4e-bg-tiers`, on `origin/main` at `0a8318bf` (which carries the engine's #1987).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. Closes the Studio half of #1972: the four background tiers were read-only rows "pending #1972" in S4d (owner decision Q49); #1987 gave them engine inputs, so they are now levers.
+
+### What the user sees on Color › Surfaces & fills
+
+**Background fills** gains four controls, for the previewed mode (Q22), each naming its token as Page does (Q41), each the step picker (Q45):
+
+- `background.secondary` "Secondary" and `background.tertiary` "Tertiary", after Page, with Page's choices (White, every neutral step, Black). They write `surfaces.<mode>.secondary` / `.tertiary` as Page writes `base` (a step as a number, White and Black as words).
+- `inverse.background.secondary` "Inverse secondary" and `inverse.background.tertiary` "Inverse tertiary", on one row under Inverse fill. Their picker lists every palette the Inverse fill can draw from (`bandPalettes()`), in the picker's own palette select, and writes `surfaces.<mode>.inverseSecondary` / `.inverseTertiary` as the band step is written (a neutral step a bare number, another palette `{ palette, step }`).
+- Unset, each reads "Auto · ‹the step the engine derived›". Return to Auto clears the input, pruning an emptied mode and an emptied `surfaces`, so the brand is byte-identical to the one loaded. No control writes an `overrides` entry: the engine refuses one on these four (#1987).
+- **Contrast floor**: its Auto option names the floor the engine derives with no `floorStep`, read off `foreground.brand`'s `against` in the resolved theme for the previewed mode. When that floor is `background.secondary`'s step it reads "Auto · follows background.secondary (‹step›)"; otherwise "Auto · ‹step›". While a `floorStep` is set, the engine's floor is that step, so the label is read off the brand with `floorStep` removed (one extra resolve, cached per theme, only while a floor is set): the Auto option names what Auto would restore. The floor field takes the full width so the label reads whole.
+- In HC light, HC dark and wireframe the four are disabled with the rest (Q59).
+
+### The decisions inside this, and why
+
+- **The inverse tiers have no palette select of their own.** The Inverse fill keeps its outer palette select because choosing a band palette is its own write (it seeds the darkest step). A tier palette select that writes would need a seed rule nobody has decided; the step picker already carries a palette select that only browses, so a tier's palette is chosen by picking a step on it. Held for the owner below.
+- **The floor label reads the engine's Auto floor, not the tier (review fix).** The first cut read `background.secondary`'s step, on the claim that under option A the Auto floor is the second tier, always. It is not, at the ladder's ends: with nothing declared, `modes.ts` sets the floor to `defFloor` (white page 50, black page 950, otherwise one step past the page), while the tier is `surfAt(base ± 50)`, which snaps to pure white or black past the ramp. So prism3 Light with Page Black labelled the floor "follows background.secondary (black)" while the engine measured every floor-gated role against neutral 950. Measured on every Page choice (22 per mode: White, 20 neutral steps, Black), on prism3, aurora and harbor alike: the floor is not the tier for Light Page **950 and Black** (floor neutral 950, tier black) and Dark Page **White, 025 and 050** (floor neutral 050, 025 and 025, tier white), 5 of 44 per brand. The label now reads `foreground.brand.against` and says "follows" only when that IS the tier's resolved step. Reading the live `against` alone would be wrong the other way while a `floorStep` is set (it is then the set step, not what Auto restores), so in that case the label resolves the brand with `floorStep` removed. Display only: `floorAutoLabel` builds a string from a `structuredClone`, writes nothing, and the Auto option's value stays `''`.
+- **The page tiers offer neutral only; the inverse tiers keep every band palette** (owner, 2026-10-03: the palette select inside the step picker stays). Nothing held either before this; now `test:smoke` does.
+- **Layout.** At the levers' width a third-column field cuts `inverse.background.secondary` to "inverse.background.secon…", hiding the one word that tells the two apart. The two inverse tiers share a `p3-fieldpair` row (the Inverse fill's pair), which fits both tokens whole at 1440.
+
+### Proof
+
+- **Equivalence (the controls that existed):** the same edits on Page (White, Black, two steps), the floor (three steps and Auto), the band step (two steps and Auto), every band palette and back, a non-neutral band step, in Dark then Light, driven on `origin/main`'s bundle and on this one (the two differing files swapped in at bundle time, the rest identical). **94 of 94 persisted brands byte-identical** across prism3 (32), aurora (32), harbor (30); 23, 23 and 22 distinct states; 0 page errors. The driver was a scratch script, not committed.
+- **`test-fills-input`** 933 → 983. (4) The four tiers move from the read-only list to the levers, with literal reasons; each lever role is asserted against two sources, the engine's `GROUND_INPUT` and the page's `SURFACE_TOKENS`. (8) Six tier writes, Light and Dark, page and inverse, neutral and `primary`: each persisted `surfaces.<mode>` is a literal, no override is written, the engine resolves the tier to the step written (the committed emission's hex), no other tier moves, the control reads it back, and Auto is byte-identical to the brand loaded. White and Black write as words. An override on `background.secondary` and on `inverse.background.tertiary` is still refused, naming the input. The floor's Auto label, literal, before and after a Secondary pick at neutral 200, the engine re-deriving `text.secondary` against `neutral.200`, and with `floorStep` 100 set (engine floor `neutral.100`, Auto still naming the tier).
+- **`test:smoke`** 3,727 → 3,769. The S4c surface loop drives the four tiers in Dark and Light on each corpus brand (persisted `surfaces.<mode>.<field>` against the option picked, the other mode held) and checks them disabled in HC. New S4e block per corpus brand, in Light: before, the floor's Auto label and `text.secondary`'s picker name the step the committed emission aliases for `background.secondary`; after a Secondary pick at 200, the persisted brand carries `secondary: 200` and the overrides it had, the floor's Auto label reads "(neutral 200)", and `text.secondary` is measured against `neutral.200`; Return to Auto restores the loaded surfaces and the label.
+- **Review additions.** `test-fills-input` 983 → 1,008, a new section (9): thirteen literal cases, each holding the label AND the engine's own Auto floor (`foreground.brand.against`, resolved in the test by `brandTheme`/`resolveAllModes` with `floorStep` removed, never through `floorAutoLabel`) and `background.secondary`'s resolved step to literals: prism3 Light Page White, neutral 200, Black, 950; Dark Page Black, neutral 300, White, 050; harbor Light Black and Dark White; Secondary at 200 with and without `floorStep` 100; Page Black with `floorStep` 100 (plus the engine's live floor `neutral.100`, which the label does not name). Then a sweep of all 22 Page choices × Light, Dark × prism3, aurora, harbor: each label equals the form the engine's two reads imply, and the plain-form choices equal the literal `{ light: [950, black], dark: [white, 025, 050] }`. `test:smoke` 3,826 (after the merge of main): per corpus brand, the Secondary and Tertiary pickers' palette select offers exactly `["neutral"]` (and the emission draws `background.secondary` on neutral); the inverse tiers' pickers offer the Inverse fill's own palette select's list, neutral and primary among them; and at Light Page Black and Dark Page White the rendered floor Auto option reads "Auto · neutral 950" / "Auto · neutral 050", cross-checked against the floor text.secondary's picker hint names (the engine's `against`, through another control).
+- **Review equivalence.** No write path changed: the diff touches `floorAutoLabel` (a string, from a clone) and an info-text literal. Re-checked: reading both modes' Auto labels after a Page edit, a floor edit, and both, on each corpus brand and mode, leaves `brandState` byte-identical (18/18, scratch script).
+- **`test:chrome`** 12,156, all passing: the four hooks are classified as page controls, each tier names its token, and the four draft names, literal, on web and figma.
+
+### Mutations (each after a `wip:` commit, restored with `git checkout -- <file>`, studio and plugin rebuilt)
+
+| Mutation | Failure |
+|---|---|
+| (a) Secondary writes an override (`setRoleOverride`) instead of the input | unit, 14: `✗ Secondary, neutral 200, Light: writes no override (overrides {"light":{"background.secondary":{"palette":"neutral","step":"200"}}})` and the engine-resolution, read-back and floor-label arms; smoke, 6 per brand: `✗ S4e harbor: the Secondary pick persists surfaces.light.secondary = 200 and no override`, `✗ S4e harbor: the floor-gated text.secondary re-derives against neutral.200 — read "neutral.100"`, and the S4c tier arms (the engine refuses the override, so every later edit in that session is refused too) |
+| (b) Auto writes nothing (`clearSurface` returns early) | unit, 6: `✗ Secondary, neutral 200, Light: Auto clears the input, the brand byte-identical to the one loaded (surfaces {"light":{"base":"white","secondary":200}})`, one per case; smoke, 2 per brand: `✗ S4e prism3: Return to Auto clears surfaces.light.secondary, the surfaces as loaded — persisted {"light":{"base":"white","secondary":200}}`, `✗ S4e prism3: and the floor's Auto label is back to … — read "… (neutral 200)"` |
+| (c) the inverse tertiary control writes `surfaces.<mode>.tertiary` | unit, 10: `✗ Inverse tertiary, primary 300, Dark: writes surfaces.dark = {"inverseTertiary":{"palette":"primary","step":300}} … (wrote … "dark":{"tertiary":…})`, `✗ … no other tier moves in dark — moved: background.secondary, background.tertiary, …`; smoke, 2 per brand: `✗ S4c prism3: previewing dark, the inverse-tertiary control writes surfaces.dark.inverseTertiary = 250 …` |
+| (e, review) the floor's Auto label reverted to the Secondary-only read | unit, 13: `✗ prism3 Light, Page Black (a ladder end): the engine's Auto floor is neutral.950 (foreground.brand.against neutral.950), background.secondary black (black), and the floor's Auto reads "Auto · neutral 950" (read "Auto · follows background.secondary (black)")`, the other ladder-end cases, and the six sweeps (`✗ prism3 dark: … wrong: white: "Auto · follows background.secondary (white)", want "Auto · neutral 050"; …`); smoke, 2 per brand: `✗ S4e prism3: light, Page black (a ladder end): the floor's Auto reads "Auto · neutral 950", the floor text.secondary is measured on — read "Auto · follows background.secondary (black)", against "neutral.950", base "black"` and the Dark Page White twin |
+| (f, review) Secondary's picker also offers `primary` | smoke, 1 per brand: `✗ S4e prism3: the secondary picker offers the neutral palette only (the emission draws background.secondary on neutral) — read ["neutral","primary"]` |
+| (d) the floor's Auto label ignores Secondary (reads `foreground.primary`, the step one past the page) | unit, 2: `✗ Secondary at neutral 200: the floor's Auto reads "Auto · follows background.secondary (neutral 200)" (read "… (neutral 050)")`, `✗ with floorStep 100 set, … Auto still names the tier it would restore`; smoke, 1 per brand: `✗ S4e harbor: the floor's Auto label follows the pick: … — read "… (neutral 100)"` |
+
+### Traps
+
+- **Each corpus brand has its own root.** A path read as `${ROOT}.core.palette.…` with prism3's root (`pds3`) misses harbor's (`hds`): the first run of the floor sweep failed on every harbor and aurora Page that way. The test strips any `<root>.core.(palette.)` prefix.
+- **The floor sweep costs.** 132 Page states are resolved twice each; `test-fills-input` now runs in 40 to 44 s here.
+- **A refused override poisons the session.** Under mutation (a) the engine refuses the override, the persisted brand keeps the last valid input, but the in-memory brand keeps the override, so every later edit in that smoke session is refused too: the S4c arms after it fail as collateral. The S4e arms are the named ones.
+- **Return to Auto is disabled when nothing was written.** The S4e smoke checks it is enabled before clicking (through the hook guard, which refuses a bare `.click`), so a pick that wrote no input fails by name instead of timing out.
+- **The equivalence bundles** were built from this worktree with `origin/main`'s two changed files swapped in at load time (`fills-input.ts`, `color-fills.ts`); the engine is the same at both refs, so nothing else differs.
+
+### Owner copy (APPROVED 2026-10-02)
+
+- **The four controls' names:** "Secondary", "Tertiary", "Inverse secondary", "Inverse tertiary", under the tokens `background.secondary`, `background.tertiary`, `inverse.background.secondary`, `inverse.background.tertiary`.
+- **The floor's Auto label (2026-10-03, review):** "Auto · follows background.secondary (‹step›)" when the engine's Auto floor is that tier's step, e.g. "Auto · follows background.secondary (neutral 050)"; otherwise "Auto · ‹step›", e.g. "Auto · neutral 950".
+- **The Background fills info text (2026-10-03, review)** is "The page, its tiers and the inverse fill for the mode the preview shows." It drops the first cut's "The contrast floor follows background.secondary.", which the ladder ends show is not always true, and replaces S4c's "The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page." `test:chrome` holds the rendered toggletip to the literal.
+
+### Design calls, for owner review
+
+- **The inverse tiers' palette** is chosen in the picker (a pick on another palette writes `{ palette, step }`), with no outer palette select. If the owner wants the Inverse fill's outer select for each tier, it needs a seed rule (the band seeds its darkest step).
+- **Layout:** the floor full width; the two inverse tiers on one row.
+
+---
+
+## (2026-10-03) — The icons Studio locks while unpaired are tied to the icons the engine carries, and the seven's explicit override is pinned (#2020)
+
+**STATUS: PR open from `test/icon-follow-sync-2020`.** Test only: no engine or Studio source change, so no ENGINE bump, no change note and no freeze exception. `CONTRACT_VERSION` is unchanged. No new strings. Two gaps from the orchestrator's review of #2018.
+
+**Gap 1: two lists of one set.** The engine carries a text override to its icon under '3:1' through a pattern, `ALWAYS_TWINNED` in `modes.ts`, whose `text.on-*` branch is open-ended. Studio locks the matching rows through a fixed list, `ALWAYS_FOLLOWS` in `apps/studio/src/state/fills-input.ts`. A new `text.on-*` role would be carried by the engine and still edit in Studio, and nothing would notice.
+- **The test.** In `test-fills-input.ts`, section 6b resolves prism3 under '3:1' with an override on every text role in light and dark: 61 per mode. Each override lands off its icon twin's own derived value, which a precondition checks by name. EXPECTED is every page or inverse icon whose resolved value then equals its overridden text. It comes from the engine's output, never from either list (docs/34).
+- **What it compares.** Studio's side is the set of `ICON_ROWS` that `lockedTo` locks, read per mode after loading that brand unpaired. `ALWAYS_FOLLOWS` is not exported, and exporting it would be a source change. Reading it through `lockedTo` checks what the page actually does.
+- **Scope.** The engine side is scoped to the `icon.` and `inverse.icon.` families by prefix, not to the rows, so an engine icon with no row still counts. The interactive glyphs are carried too, but they belong to Color › Interactive.
+
+**Gap 2: an explicit override, under '3:1'.** The only arms that caught "an explicit icon override always loses" were IT-01 and IT-02, both under 'text' or for interactive pairs.
+- **The arm.** IT-03 arm (5) in `test.ts` sets, under '3:1', an explicit `icon.primary` and an explicit `icon.on-brand` override over their text's override, in light and dark.
+- **EXPECTED.** The icon override's own step, with a precondition that it differs from the text.
+
+**Mutations, each failing by name:**
+- `icon.tertiary` added to `ALWAYS_FOLLOWS` only → `#2020: under '3:1' in light` and `in dark` ("locked but not carried: icon.tertiary"), plus the existing unpaired and aurora arms;
+- `ALWAYS_TWINNED` widened with tertiary only → the same two `#2020` arms ("carried but editable: icon.tertiary, inverse.icon.tertiary");
+- the explicit icon override always losing (`out[iconPath] = ref` unconditionally) → the four IT-03 (5) cells, plus IT-01 and IT-02.
+
+**Unchanged on purpose.** Whether tertiary and the `-subtle` icons should also follow their text under '3:1' is still with the owner. Today they don't. IT-03 (3) and the new 6b both pin that, and 6b fails the moment one side changes without the other.
+
+**Trap for whoever re-verifies this.** Some text overrides can land on their icon twin's derived hex by chance. The test then moves that override one neutral step along and resolves again, up to three passes. The precondition fails by name if one is still vacuous.
+
+---
+
+## (2026-10-03) — UI redesign S6.2: Type › Faces in the two panes, the type sample on Type and the Style guide, Playfair Display in the known-weights list
+
+**STATUS: branch `ui/s62-type-faces`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The second of S6's three PRs (S6.1, #1992, moved Type's writes into `state/type-input.ts` and shared the Typography Preview tab's sections). The spec is the S6 scoping report (§3, §4, §6 "S6.2", option (b), and its traps) and the owner's decisions of 2026-10-02 (Q62–Q75, with Q22–Q24, Q41, Q45, Q53, Q57–Q59). Copy marked APPROVED there is used verbatim; every other new string is DRAFT and listed below for the owner.
+
+**What the user sees.** Type is the fifth page in the two panes; the legacy Typography page and its four-tab bar (Primitives · Semantics · Text styles · Preview) are gone, and with them the Typography row of the Pages menu. Interactive's Continue to Type opens it.
+- **The levers panel.** The intro (v6's, "category" → "text type", Q70). **Font families** ("The font families in the brand, and the family each text type uses.", shared with the preview's Faces section, Q23): the **Typeface library**, each face by its token first in mono (`font.typeface.<slug>`) and its name under it (Q68), what uses it, and whether it is available (the legacy `faceStatus` words: on this device on the web, in this Figma once the plugin's host has sent its fonts); **Add face** (in the plugin, the type-ahead over the host's families, #113, now chrome rather than legacy markup) with the refusals `addLibraryFace` returns; a spelling note; then **Face for each text type**, one select per text type, `font.family.<type>` first and "Body face" under it (Q68), code's "None — no code styles" (Q75), and a line naming any bound face that is not available. **Show 2 advanced** (Q64, Q69) holds Apply to all and the remove button on a face nothing uses.
+- **The face selects edit the mode the preview shows** (Q22, Q62 option A): Light writes `typography.families.<type>`; Dark writes `modeLevers.dark.families.<type>`, shown as "Auto: follows Light (‹face›)" until set, with Return to Auto. A derived mode (HC light, HC dark, wireframe) is read-only, every control on the page, the lent region included (Q59, Q74), under S4a's derived line. The library is brand-wide, so a face is added and removed from any editable mode. Apply to all wrote the Light faces on the legacy page and still does, so it is offered while previewing Light.
+- **Scale and weights (temporary, lent).** Below Faces, the legacy page's other controls, drawn by `main.ts` and lent to the levers (`PageLends.typeStyles`, S3's `lend` pattern), pinned light: the Text styles tab (heading sizes and shapes, the ceiling and title floor, individual sizes, what each text type is made of, the font-style pins), the Semantics tab's weights, line heights and letter spacings with their per-mode tables, and the Primitives tab's fixed ladders. Nothing stops working until S6.3 replaces them.
+- **The preview**, in the Style guide's markup, each section on the brand's page color in a container on the levers panel's gray (Q24), the previewed mode only (Q66): the **Type sample** (#1942), **Faces** (each text type's token, face, availability and specimen; the library with what uses each face), then the lifted **Weight roles by face**, **The full type ramp** (one mode's column) and the fluid read-out under "Headings scale between mobile and desktop" (Q70's words).
+- **The type sample, shared, and first in Brand's Style guide, before Background** (Q67): one large display style, then a title, body, label and caption, each labeled with its token (`type.title.md.strong`), the text "The quick brown fox jumps over the lazy dog". The display style is `type.display.md.strong` (64px in the default theme), not the largest (3xl is 160px); a brand that emits no `display.md.strong` gets its largest display style. The owner approved that size (Q76, 2026-10-02). It is held in one constant, `TYPE_SAMPLE_DISPLAY` in `preview/sections/type-sample.ts`. Each line is set as the composite resolves in the previewed mode (face, weight, size, line height, letter spacing, case, and the italic default where a text type has one).
+- **#1727 part 2:** Playfair Display (400–900, each with an italic) joins `KNOWN_WEIGHTS` in `ui/fonts.ts`, so "Weight roles by face" flags its weights instead of "? unknown family". Part 1 (italic headings preview upright) is not in this PR.
+
+### Diagnosis and structure
+
+- **New modules:** `domains/type.ts` (the levers), `preview/type.ts` (the preview), `preview/sections/type-sample.ts` (shared, `data-sg-section="type-sample"`), `preview/sections/faces.ts` (`data-sg-section="faces"`). `preview/sections/typefaces.ts` is retired with the Preview tab: Faces folds it. `shell/frame.ts`: `NEW_PAGES.type`, and the levers mount takes `lend` as the preview's does. `PageLends` gains `typeStyles` (the lent region) and `fonts` (the host's font list; the new page subscribes to `fonts` itself, so `main.ts` drops its own `fonts` subscription, whose only reader was the legacy library).
+- **Writes are S6.1's**, unchanged: `setFamily`, `setAllFamilies`, `addLibraryFace`, `removeLibraryFace`.
+- **The lent region repaints by store subscription.** Its legacy controls still commit through `applyFull()` or `apply()`; both rebuild, which notifies `brand`, and the Type page redraws the region. The one control that redrew the legacy page for view state alone (the individual-sizes toggle) calls the region's own repaint. Focus is kept by position among the region's controls, and the levers pane keeps its scroll.
+
+### Retired from `main.ts`
+
+`renderTypographyPage`, `TYPE_TABS` and the tab state, `renderTypePreview`, `renderTypefaceLibrary` (with the combobox), `renderTypefaceBindings`, and the `typography` rows in `NAV`, `PAGE_COPY`, `PAGE_RENDERERS` and `pageHasModeVaryingControl`. `pageOfLever` homes the `type` group on `type`.
+
+**Behavior-neutral, measured.** An equivalence driver (scratch, not committed) drove every kept legacy Faces control, Light and Dark, on each corpus brand (prism3, aurora, harbor), on `origin/main`'s legacy page (`375fabdb`) and on the new page: each text type's face moved and moved back in Light and in Dark, code to None and back, a Dark override kept while its Light face moved, Apply to all, Add face (a new face, a duplicate refused, a trimmed name) and Remove. **92/92 persisted brands byte-identical after each edit**, the select option values identical on both sides, 0 page errors.
+
+### Owner copy and design answers (2026-10-02), applied
+
+**Approved: all six design calls below, and all the copy, with the owner's rule: never "face" as a word in visible copy.** Use "font family", or "family" for short where it reads naturally, and "typeface" where more precision is needed. Code, identifiers, hooks, CSS classes and the `data-sg-section="faces"` marker are unchanged. The sample's display size, `display.md.strong`, is approved too (Q76).
+
+**Copy APPROVED, used verbatim:**
+- Section (levers and preview, Q23): "Font families", described "The font families in the brand, and the family each text type uses."
+- Page intro: "Font families per text type, then the heading scale they sit on."
+- Library lever: "Typeface library"; info text "The font families this brand can use. A family is in the library while a text type uses it, or once you add it."; column label "Family"; "Used by ‹types›"; "Not used".
+- Add: placeholder "Font family name"; field name "Add a font family to the library"; button "Add font family"; remove "Remove ‹family› from the library"; the empty refusal "Give the font family a name." (`state/type-input.ts`).
+- Spelling note, web: "Type the name exactly as the font names itself. A name this device lacks still saves, and the preview shows a fallback." Plugin: "Pick one of the ‹n› fonts this Figma can load, or type any name. A name not on the list still saves, but its text styles can’t apply here."
+- Families lever: "Font family for each text type"; info text "Each text type’s font.family token names one family from the library. Swapping the family keeps every reference to the token."; the plain names "Display family", "Title family", "Body family", "Label family", "Caption family", "Eyebrow family", "Code family".
+- Dark's Auto: "Auto: follows Light (‹family›)".
+- Availability lines: web "Not installed on this device: ‹families›. The preview shows a fallback."; plugin "Not in this Figma: ‹families›. Text styles using it can’t apply."
+- Show advanced: "Set every text type to", "Choose a font family…", "Apply to all", "Code keeps its own font family.", and, outside Light, "Apply to all sets the Light font families. Preview Light to use it."
+- The lent section: "Scale and weights" and "The heading scale, weights, line height and letter spacing, as the earlier Type page drew them."
+- "Continue to Shape".
+- Type sample: heading "Type sample", description "A few of the brand’s text styles, set in its font families. Each line is named by its token."
+- Font families preview: sub-headings "Font family for each text type" and "Typeface library"; column heads "Token", "Family", "Availability", "Specimen", "Used by".
+- Fluid read-out description: "Each heading that scales, from its mobile size to its desktop size."
+
+**The rule applied beyond those strings** (visible on the Type page; the lent legacy region and a lifted preview section):
+- Preview section "Weight roles by face" → "Weight roles by font family"; its description "…whether each face actually ships that weight…" → "…whether each font family actually ships that weight…".
+- Lent "What each category is made of": "The face is shown for context and set on Semantics." → "The font family is shown for context and set on Semantics."; "…it only overrides values (face, weight numerics, sizes, rungs)…" → "…(font family, weight numerics, sizes, rungs)…"; its column head "Face" → "Family".
+- Lent "Pin a font cut": "The face is fixed to the category’s bound family;" → "The font family is fixed to the one the category binds;"; its column head "Face" → "Family"; "No pinnable slots yet — bind a face to a category on Semantics first." → "No pinnable slots yet — bind a font family to a category on Semantics first."
+
+**Design calls, approved:**
+- **The lent region holds more than the Text styles tab:** the Semantics tab's weights, line heights and letter spacings and the Primitives tab's read-only ladders too, in build order. They keep the legacy one-column-per-mode tables (#416) until S6.3, so they edit every mode at once while Font families edits the previewed mode.
+- **In a derived mode the lent region is disabled in place,** not replaced by the generated note (Q59).
+- **Show advanced sits at the end of Font families,** not at the foot of the page.
+- **Apply to all is offered previewing Light only;** it writes the Light families, as the legacy page did.
+- **A "Return to Auto" button beside an overridden Dark select,** as well as the select's Auto option.
+- **The fluid read-out is in the Type preview** while the Responsive controls stay on Layout until S6.3.
+- Still open for S6.3's copy pass: the lifted preview copy names "the Semantics tab" and "rungs".
+
+### Tests
+
+- **Counts** (against `origin/main` `375fabdb`): `test:smoke` 3,760 → 4,049; `test:chrome` 12,031 → 12,899; `test:verdict` 231 → 232.
+- **`test-pages`**: `MOVED` gains `type`. **`test-type-input`** 63 → 68: Playfair Display's weights, literal, and every face the prism3 emission ships is a known family (read from `out/prism3.tokens.json`); and the type sample's display line: `display.md.strong` when emitted, and, fed the prism3 typography with every `display.md.*` style taken out (no corpus brand lacks it), the largest display style by size, `display.3xl.emphasis` at 160px, literal. **`test-shell-imports`** 149 → 157: the four new modules scanned, the Type preview draws its five shared pieces, the Style guide draws the type sample through the shared module, `main.ts` carries no copy of the sample.
+- **`test:chrome`**: Type in `NEW_PAGES`; section 20: specimen roots by name on `background.primary` in every mode, both hosts and both themes; Q24's gray containers; the two Faces levers once; each text type's select named by its token first, in mono, with its plain name (Q68), on the emission's face; code's "None — no code styles" (Q75); library faces by token first; the four-tab bar gone; the lent region drawn; Show 2 advanced; Q23's Faces heading and description read off both sides; Light and Dark writes read back from the persisted brand (Q22); Add face, the duplicate refusal, Remove; Q59 in HC light, HC dark and wireframe, every control disabled, lent ones included, on a floor of 40; the chrome probe at 1280, 640 and 380. Sections 4 (#1031, now on the lent region's fields) and 8 move to the new page.
+- **`test:smoke`**: section 1f rewritten for the moved page, per brand × mode against the emission: the five sections in order, each a specimen root on the emission's `background.primary`, their markers; the type sample's five lines, the display line `type.display.md.strong` (or the largest display style), each line's first computed face equal to the emission's `core.font.family.<type>` (alias followed to the typeface), at its emitted size; the Faces section's faces; the ramp in Light. The Style guide carries the `type-sample` marker FIRST, before Background, with the same sample check per mode. #388, #1639/#1681, #1296 and #1467 move to the lent region on the new page (`gotoType`). The Pages menu floor is 4, and it no longer offers Typography.
+- **`test:verdict` P2** moves to the Type page's `typeface-source`, and adds the type-ahead over the host's families. **`audit:modes`**: the menu offers Size & radius and no Typography.
+
+- **The owner's "face" rule, held:** `test:chrome` section 20 scans the Type page's rendered levers (lent region and toggletips included) and preview, on both hosts, for `\bfaces?\b` in every text node, option, aria-label, title and placeholder, with token pills taken out.
+
+**Mutations, each after a `wip:` commit, restored with `git checkout -- <file>`, each failing by name:**
+- The type sample's display line set in the body face (`type-sample.ts`, `font.family.body` for the display line): smoke `type sample: prism3 / Type / light: display line is set in Playfair Display (core.font.family.display) — drew Inter`, the same on the Style guide (`prism3 / Style guide / light`), in every mode, and aurora's with Clash Display (16 brand × mode × page states; harbor's display face is its body face, so it cannot tell).
+- The face select writing the brand value while previewing Dark (`setFamily('light', …)` in `domains/type.ts`): chrome `previewing Dark, body face writes modeLevers.dark.families.body and not the brand value — wrote modeLevers undefined, typography.families.body "JetBrains Mono"`.
+- Add face accepting a duplicate slug (the clash check dropped from `addLibraryFace`): unit `addLibraryFace("inter") refuses: a category binds Inter, nothing written` and `addLibraryFace("roboto") refuses once Roboto is staged: "Roboto is already in the library."`.
+- Playfair Display removed from `KNOWN_WEIGHTS`: unit `knownWeightsOf("Playfair Display") is [400,500,600,700,800,900] (#1727 part 2) — read null` and `every face the prism3 default theme emits is a known family (Playfair Display, Inter, JetBrains Mono) — unknown: Playfair Display`.
+- The largest-display fallback picking the first display style instead (`typeSamplePicks` in `type-sample.ts`): unit `with no display.md.strong, the sample opens with the largest display style by size, display.3xl.emphasis at 160px — drew display.sm.emphasis at 48px`.
+- "Add face" put back on the add button (the owner's "face" rule): chrome `owner rule: web: no "face" or "faces" in the Type page's visible copy, levers and preview, token pills aside — found "Add face"`, and the same for `figma`.
+
+### The #1993 glyph exemption, kept and reworded
+
+`chrome/glyphs.mjs`' `NOT_CHROME` entry for `preview/sections/weights-by-face.ts` said the section was drawn only by the legacy Typography page and that the entry would go when a new page drew it. The first half is no longer true: the Type preview draws it. The exemption itself still holds, measured: the section is drawn inside the light-pinned legacy card, in `styles.css`'s device stack (a ○ mark's computed `font-family` is `-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif`, where the chrome's tab reads `"P3 Chrome UI", system-ui, sans-serif`), never in the embedded chrome face the check guards. So the entry stays, reworded to say that and to point at #1993, which stays open for when the section is drawn in the chrome face (re-subset Inter, or draw ● ○ as shapes). The `[glyphs]` check passes (`glyphGaps()` → 0, and the studio build).
+
+### Traps
+
+- **The lent region repaints on every `brand`,** where the legacy page repainted only its volatile region on `apply()` (#831). The link, nudge and pin controls therefore read a fresh set on a second click; that is S6.3's #831 fix arriving early for this region, and it is outside the Faces equivalence driver's scope.
+- **A paired specimen claims an engine role PAIR** (`specimenPair`): `text.primary` on `background.primary` is not one, and the smoke suite's #1652 check refuses it. The type sample and Faces specimens are plain specimens marked with the ink role they paint (`c.painted`), so the swatch check reads their color against the emission.
+
+---
+
+## (2026-10-03) — the "main.ts keeps no Type writes" guard matches what is written, not how (#1996)
+
+**Status:** test-only (`apps/studio/test-shell-imports.ts`). No studio source change, no freeze exception, no
+engine change.
+
+### What changed
+
+S6.1's guard held that `main.ts` keeps no Type input writes, by matching three spellings of one. Two more
+passed it, each measured by pasting it into `main.ts` (149/149 green): a direct nullish-assign write,
+`(brandState.typography ??= {}).sizes…`, and the generic per-mode swap without its `easings` guard,
+`setModeLever(m, `${modeField}.${s.key}`, …)`.
+
+The guard now reads `main.ts`'s AST, with a type checker over the one file so each identifier resolves to its
+own declaration, and states the rule about the write's target, three ways:
+
+1. **Direct:** nothing lands on `brandState.typography`, whether by any assignment operator, `delete`,
+   `++`/`--`, `Object.assign`, a mutating method, or one alias deep.
+2. **Keyed:** each `setPath(brandState, K)` and `setModeLever(M, K)` key is resolved statically: a literal, a
+   template's literal head, or a head narrowed by an enclosing `if (X === 'lit')`, which is how line 3621's
+   `easings` swap passes. A Type key fails. A key that does not resolve must be on `UNRESOLVED_OK`, by
+   function and key text, each with its reason. An entry that no longer names a write fails too.
+3. **Fed:** the generic lever renderer writes whatever lever it is handed, and the lever manifest does carry
+   `typography.*` keys. So no Type lever (a `typography.*` key literal, `leversFor('typography')`, or a
+   variable built from either) may reach `renderControl` or its wrappers. This is what makes rule 2's
+   `renderControl:lever.key` entry true rather than asserted.
+
+The Type mode fields are literals, and every member of the engine's `ModeLevers` type must be classified as
+Type or not, so a new per-mode field fails until someone decides.
+
+### Review fixes (orchestrator, at `e0cf60a4`)
+
+- **`csSlider` and `csPicker` are in rule 3's set.** Their `UNRESOLVED_OK` entries said "every caller passes a
+  literal spacing or radius key", and nothing checked it: `csSlider('typography.baseSize', …)` in `main.ts`
+  passed 152/152, although it ends in `setPath(brandState, key, …)`. The entries now rest on rule 3, and the
+  mutation fails by name.
+- **An alias of `brandState` itself is followed** (`const bs = brandState; bs.typography.x = v`, and
+  `setPath(bs, 'typography.…')`). Only aliases of `brandState.typography` were. One helper now splices an
+  alias's initializer onto the chain, and the keyed and `Object.assign` checks use it too.
+
+### What was checked, not assumed
+
+`main.ts` names three Type lever keys today (`typography.typeScale`, `.displayCeiling`, `.titleFloor`). All
+three are reads, for the current value and the options; their writes go through `state/type-input.ts`
+(`setTypeScale`, `setDisplayCeiling`, `setTitleFloor`). So the guard's claim holds on `main`, now checked.
+
+### Mutations
+
+| Pasted into `main.ts` | Fails |
+|---|---|
+| `(brandState.typography ??= {}).sizes = …` (the issue's first) | `src/main.ts writes nothing into brandState.typography itself — line 1684 …` |
+| the per-mode swap without its `easings` guard (the issue's second) | `every keyed write … resolves to a non-Type key, or is listed … — unresolved and unlisted: line 3621 …` |
+| an alias write, `const tt = brandState.typography; tt.titleFloor = 16` | rule 1, `… tt.titleFloor = 16` |
+| `setPath(brandState, 'typography.typeScale', …)` | rule 2 |
+| `renderControl(ceil)`, a Type lever to the generic renderer | rule 3 |
+| `csSlider('typography.baseSize', …)` / `csPicker('typography.typeScale', …)` (review) | rule 3, each by name |
+| `const bs = brandState; bs.typography.titleFloor = 16` / `setPath(bs, 'typography.typeScale', …)` (review) | rule 1 / rule 2 |
+
+The first two pass `main`'s guard, 149/149: the control.
+
+**A trap for whoever extends this:** an alias tracked by NAME was the first version, and it was wrong. An
+unrelated `l` elsewhere in the file tainted every `l`, so `renderControl(l, …)` failed on a non-Type lever.
+Identifiers resolve through the checker now.
+
+---
+
+## (2026-10-02) — Studio scroll behavior: an edit eases the preview to its section on every new page, the jump links ease under "Jump to:", and each page keeps its scroll (QA-B9, QA-B17, QA-I11)
+
+**STATUS: branch `ui/scroll-follow`, pushed for review; no PR yet.** UI only, scroll behavior only. No engine change and no emitted artifact moves, so ENGINE stays at 0.224.0 and `CONTRACT_VERSION` is unchanged. No brand byte is written: the diff adds no write path (no `brandState`, `persist`, setter or `rebuild()` call that was not there), so one edit persists the same brand with and without it, and the write equivalence suites (`test-fills-input.ts`, `test-interactive-input.ts`) are untouched and still pass.
+
+**What changed.**
+- **QA-B9, the edit-reveal on every new page.** `preview/follow-edit.ts` held Palettes' Q4 trial; it now also holds a generic section reveal. A capture listener on the levers pane (installed once by the frame) records which lever section each interaction is in; it records only. An edit handler turns the record into a note (`noteSectionEdit()`, before `rebuild()`), and the frame, subscribed to `brand` after the page's preview, takes the note and scrolls the preview body to the paired section. Surfaces & fills and Interactive call it from their `edit()` (and the gradient rename, which rebuilds without `edit()`). Only the preview body scrolls: never a tab, a page or a view (V1). Focus, scrolling and the mode write no note, so they move nothing.
+- **Pairing: the Q23 heading pairs, not the `data-sg-section` markers.** The heading pair is already a held contract (`test:chrome` reads each lever heading and description against the rendered preview section). The markers were the other candidate, but Interactive's Icons and Surfaces & fills' Gradients are drawn outside `sections/` and carry none, and only `sections/` may write one. The two headings the owner renamed away from their preview section are a two-row table, `PREVIEW_HEADING`: "Background fills" → Background (Q26), "Foreground fills" → Foreground (Q44). Fields has no preview section, so a Fields edit reveals nothing.
+- **Eased on the Studio's own motion tokens.** The chrome shipped one duration (`--p3-dur-fast`, the spinner's) and no easing. The scroll uses the default theme's `motion.transition.default` pair: `--p3-dur-normal` (`motion.duration.normal`, 200ms; a new `PRODUCT_VARS` row) and `--p3-ease` (`motion.easing-role.default` → `standard`, `cubic-bezier(0.2, 0, 0, 1)`; the mockup's existing `ease` row, now in `SHELL_VARS`). `chrome.css` sets them on the two panes as `--p3-scroll-dur` / `--p3-scroll-ease`, which `follow-edit.ts` reads and steps with `requestAnimationFrame` along the curve. `scrollTo({ behavior: 'smooth' })` takes neither a duration nor a curve. A value it cannot read jumps rather than inventing a curve. A viewer who scrolls mid-glide takes over.
+- **Reduced motion jumps**, in one `instant` step. `instant` rather than `auto` on every step, the trial's rationale: `auto` would defer to CSS `scroll-behavior`.
+- **Palettes** keeps its rule (reveal only when the palette is not wholly visible) on the same eased scroll. A section reveal also leaves the preview alone when the section already fills the view, so an edit does not yank a viewer reading inside a tall section back to its top.
+- **QA-B17, the jump links.** Both pages' jump links (Surfaces & fills' sections, Interactive's button sets) ease the same way, with the same reduced-motion jump, to where `scrollIntoView({ block: 'start' })` put them. They carry the visible label "Jump to:" (APPROVED), first in the links. No label was drawn before. The landmarks keep their accessible names, "Sections on this page" and "Button sets".
+- **QA-I11, scroll memory.** The frame saves both panes' `scrollTop` per page as it releases the panes and puts them back, with no glide, when the page is mounted again. A page not yet visited opens at its top. Session only, held in the frame: a reload starts afresh, and so does anything that remounts the frame (the start screen). A brand switch from the bar's menu keeps it; the owner allowed either. A restore writes no note, so it never triggers a reveal. A glide in flight and any pending note are dropped when the page is released.
+
+**Design calls (conservative, each reusing a pattern; for the owner to overturn).** The duration and curve are the engine's own default transition, 200ms standard, rather than the faster spinner duration the chrome already shipped. A revealed section lands where Palettes' reveal lands its palette, the preview stack's top padding under the body's top (32px). A section already filling the view is left alone. Fields reveals nothing. The label sits first inside each jump-link row, on the links' line, in inherited ink (one layout rule, no new color).
+
+**Copy.** "Jump to:" is APPROVED. There is no other new visible string.
+
+**Suites.** `test:chrome` gains section 20 (QA-B9, B17, I11): both panes read the default transition; a Border step on Surfaces & fills and the icon contrast and link palette on Interactive, each from the top of the preview, land their section in view after the glide, by bounding box, through in-between positions, over about 200ms; under emulated reduced motion the position is reached when the edit returns, with no frame between; opening a picker, focusing (Tab, Shift+Tab) and changing the mode move nothing; no edit changes the preview's page or view; a jump link lands its section at the top of the levers pane, glides, and jumps under reduced motion; both labels read "Jump to:" and both landmarks keep their names; Surfaces & fills' two scroll positions come back within 2px after Palettes, with no glide, and Palettes keeps its own. The Q4 section's `scrollTo` recorder now expects stepped `instant` positions (and exactly one under reduced motion) where it expected one `smooth` call.
+
+Mutations, each run after a `wip:` commit against the full `test:chrome`, each failing by name:
+- the reveal no-ops on Surfaces & fills (drop `noteSectionEdit()` from its `edit()`) → `QA-B9: editing a Border step on Surfaces & fills brings the preview's Border section into view … (top at 3737px, scrollTop 0, in view false)`;
+- reduced motion ignored → `QA-B9: under reduced motion the reveal lands at once, with no frame between`, `QA-B17: under reduced motion a jump link lands at once`, and Q4's `under reduced motion the reveal asks for one instant scroll`;
+- focusing moves the preview (a `focusin` reveal on the levers pane) → `QA-B9: focusing a lever on Surfaces & fills does not move the preview`, and `opening a step picker is not an edit, and does not move the preview`;
+- no restore → `QA-I11: back on Surfaces & fills, both panes are where they were (levers 239, was 700; preview 300, was 900)`. Without the restore, a pane's position leaked from one page to the next, which is what the restore's top-of-page default for an unvisited page also fixes;
+- the label reads "Jump to" → `QA-B17: on Surfaces & fills the jump links' visible label reads "Jump to:"` and its Interactive twin.
+
+**Follow-up: Type (#2013).** Type's levers need one line, `noteSectionEdit()` in `domains/type.ts`'s `edit()` (plus its import); the frame already reveals any page's note. On #2013 only the Faces section has a Q23 pair in the preview. Scale, Scale limits and Weights and styles have none (the preview draws Type sample, Weight roles by face, The full type ramp and the fluid read-out), so until the owner pairs them they reveal nothing. Which preview section each should reveal is a design call, held.
+
+**Trap for whoever re-verifies this.** Sample the glide per animation frame, not after a fixed wait: a 200ms glide has settled before a `waitForTimeout` of any useful length returns, and the "in view" check then passes with reduced motion ignored. Section 20 samples every frame until ten in a row hold still, and asserts the in-between positions directly.
+
+---
+
 ## (2026-10-02) — Under '3:1', the seven icons that keep a 4.5:1 floor follow their text (#1982)
 
 **STATUS: PR open from `engine/icon-floor-follows-text-1982`.** Engine, plus one condition in Studio under a scoped freeze exception (Color › Surfaces & fills, `lockedTo` in `apps/studio/src/state/fills-input.ts`; nothing else under `apps/studio/src`). An `engine: minor` change note. No path moves, so `CONTRACT_VERSION` is unchanged, and no committed artifact moves: no corpus brand under '3:1' carries a text override on these. No new strings: "Follows ‹token›" is approved copy.

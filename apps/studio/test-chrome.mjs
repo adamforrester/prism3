@@ -181,6 +181,27 @@
  *   row`; the columns reordered → `… the levers draw the columns in the owner's order …`; a jump link aimed at the
  *   wrong group → `… the jump link "Neutral" resolves to its own column group (neutral) …`.
  *
+ * S5.3 ADDS (section 19b; the owner's QA on Color › Interactive, evening 2026-10-02), and section 19 follows it: the
+ * Icons section is gone from the levers and the preview (QA-I10), so 9 keys, 3 specimen sections; Add button set
+ * opens its form first (QA-I4); the Q52 re-pair case drives Surfaces & fills' Pair button, its lever gone.
+ *   · THE LEVERS, web light 1280: the strict switch with the page-wide settings, above the button sets (QA-I5); the
+ *     neutral emphasis opening the Neutral set (QA-I6); no icon contrast control and no Icons section (QA-I10); the
+ *     dashed connector (QA-I3); sets at least 40px apart (`space.500`, QA-I7) and the add row further still; Add button
+ *     set a full-width dashed button, the color select shown only after it is clicked, Cancel and Escape writing
+ *     nothing (QA-I4); the Disabled "Full contrast" switch, its APPROVED captions, its writes ("full" and "reduced",
+ *     the segmented control's), and the floor chips only while it is off (QA-I8).
+ *   · THE BADGE MARKS (QA-I2), Light, Dark, HC light and HC dark: every mark is the chrome's success icon token, or its
+ *     danger icon token for a miss, read from the token tree (`chrome/tokens.mjs`), never from the page's variables,
+ *     and clears 3:1 on its composited ground. A miss is forced through the levers' picker so the arm is never empty.
+ *   · AS DRAWN, both hosts, both themes, 1280 and 800: no treatment label's token or badge box intersects a button
+ *     column (QA-I1); each link state select fills its line, `scrollWidth <= clientWidth`, and its widest option fits
+ *     inside its padding (QA-I9). Screenshots `s53-*` when a directory is given.
+ *   S5.3 mutations (each after a `wip:` commit): the switch writing "reduced" when on → `QA-I8: switching Full contrast
+ *   on writes disabledStrategy "full" …`; the chips drawn under Full → `QA-I8: under Full contrast the floor chips are
+ *   not shown`; the select drawn before Add → `QA-I4: before Add button set is clicked, the color select is not shown`;
+ *   the Icons lever back → `QA-I10: Interactive draws no icon contrast control …`; the miss mark rule dropped →
+ *   `QA-I2 (light): a failing mark is the danger icon token …`.
+ *
  * THE Q4 TRIAL (section 15, its own commit, for the owner's decision): an edit to a Palettes lever scrolls the
  * preview to the palette it changes; focusing a lever, scrolling the levers and changing the mode do not.
  * Mutation: the trigger moved from the edit to focus → `Q4: focusing a lever does not move the preview (…)`.
@@ -273,6 +294,7 @@ import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
+import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
@@ -366,7 +388,8 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
  *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
  *  controls, for the previewed mode (owner decision Q22). */
 const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor"]',
-  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
+  '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
+  '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
   '[data-p3="gradient-interpolation"]', '[data-p3="gradient-stop-palette"]', '[data-p3="gradient-stop-step"]', '[data-p3="gradient-stop-position"]',
   '[data-p3="gradient-stop-add"]', '[data-p3="gradient-add"]', '[data-p3="fills-continue"]'];
@@ -2816,11 +2839,18 @@ for (const host of ['web', 'figma']) {
     subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
     // The token a surface control names, read off the label its select is named by (`for`), so it is the
     // control's own label and not text elsewhere in the block.
-    tokens: Object.fromEntries(['surface-base-pick', 'surface-band-palette', 'surface-floor'].map((hk) => {
+    tokens: Object.fromEntries(['surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-palette', 'surface-inverse-secondary-pick',
+      'surface-inverse-tertiary-pick', 'surface-floor'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
     })),
+    // The four tiers' names under their tokens (S4e, DRAFT copy pending the owner).
+    tierNames: ['surface-secondary-pick', 'surface-tertiary-pick', 'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick'].map((hk) => {
+      const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
+      const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
+      return lab?.querySelector('.p3-field-label')?.textContent ?? null;
+    }),
     // The Inverse fill control's own name, under its token (the owner's rename of "band" to "fill", 2026-10-02).
     inverseName: (() => {
       const sel = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-band-palette"]');
@@ -2830,8 +2860,13 @@ for (const host of ['web', 'figma']) {
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
-  const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-band-palette': 'inverse.background.primary', 'surface-floor': null };
+  // S4e (#1972, Q41): the four tiers name the tokens their inputs set.
+  const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-secondary-pick': 'background.secondary', 'surface-tertiary-pick': 'background.tertiary',
+    'surface-band-palette': 'inverse.background.primary', 'surface-inverse-secondary-pick': 'inverse.background.secondary',
+    'surface-inverse-tertiary-pick': 'inverse.background.tertiary', 'surface-floor': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
+  ok(JSON.stringify(copy.tierNames) === JSON.stringify(['Secondary', 'Tertiary', 'Inverse secondary', 'Inverse tertiary']),
+    `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (S4e, draft) — read ${JSON.stringify(copy.tierNames)}`);
   ok(copy.inverseName === 'Inverse fill', `${host}: the inverse.background.primary control is named "Inverse fill" (the owner's rename, 2026-10-02) — read ${JSON.stringify(copy.inverseName)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
@@ -2859,7 +2894,7 @@ for (const host of ['web', 'figma']) {
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   // The Background fills info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this page
   // and not the engine manifest's description, which stays as it is for MCP and the emission. Literal.
-  const SURFACES_TIP = 'The page and the inverse fill for the mode the preview shows. The contrast floor moves with the page.';
+  const SURFACES_TIP = 'The page, its tiers and the inverse fill for the mode the preview shows.';
   ok(copy.surfacesTip === SURFACES_TIP, `${host}: the Background fills info text is the owner's — read ${JSON.stringify(copy.surfacesTip)}`);
   ok(c.strayLevers.length === 0, `${host}: every lever block on Surfaces & fills is one of its ${FILLS_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
   ok(c.strayRows.length === 0, `${host}: every override row on Surfaces & fills is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
@@ -2943,9 +2978,10 @@ for (const host of ['web', 'figma']) {
   ok(errors.length === 0, `${host} S4d owner copy and derived modes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
-// Q52: re-pairing icons with text from Color › Interactive's icon contrast lever (#1974, its Icons section) clears
-// every icon override, page and inverse, in every mode, asking first when there are any, in the plural for two and
-// the singular for one (Q60); the lever stays on "3:1" until Pair icons. THE ORACLE is the brand the web host persists after every edit (`prism3:brandInput`), read
+// Q52: re-pairing icons with text clears every icon override, page and inverse, in every mode, asking first when
+// there are any, in the plural for two and the singular for one (Q60); icons stay unpaired until Pair icons. Driven
+// from Surfaces & fills' "Pair icons with text" (Q61) since S5.3: Interactive's icon contrast lever, where this
+// case began (#1974), is gone (the owner's QA-I10). THE ORACLE is the brand the web host persists after every edit (`prism3:brandInput`), read
 // before and after; what Pair leaves is a literal typed here. The dialog's words are the APPROVED copy, literal.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -2962,30 +2998,29 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
     await page.waitForFunction(() => !document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
   };
-  const pairRadio = () => page.locator('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][data-value="text"]');
+  const pairBtn = () => page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]');
+  const paired = () => page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]'), null, { timeout: 5000 }).catch(() => {});
   const dialog = () => page.evaluate(() => {
     const d = document.querySelectorAll('[data-p3="icons-pair-confirm"]');
     const el = d[0];
     return { n: d.length, title: el?.querySelector('.p3-confirm-title')?.textContent ?? null, body: [...(el?.querySelectorAll('.p3-confirm-line') ?? [])].map((x) => x.textContent),
       go: el?.querySelector('[data-p3="icons-pair-confirm-go"]')?.textContent ?? null, cancel: el?.querySelector('[data-p3="icons-pair-confirm-cancel"]')?.textContent ?? null,
-      checked: document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value ?? null };
+      unpaired: !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]') };
   });
-  // Ask to re-pair on the lever, waiting for the dialog without requiring it, so a re-pair that asks nothing fails
-  // below by name rather than at a hook wait.
+  // Ask to re-pair, waiting for the dialog without requiring it, so a re-pair that asks nothing fails below by name
+  // rather than at a hook wait.
   const askPair = async () => {
-    await goPlace(page, 'color-interactive');
-    await hooks.click(pairRadio());
+    await hooks.click(pairBtn());
     await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
   };
   // No icon overrides: no dialog, and iconContrast is "text" again.
   await unpair();
   ok(JSON.parse(await stored() ?? 'null')?.input?.iconContrast === '3:1', 'Q52 setup: Unpair persisted iconContrast "3:1"');
-  await goPlace(page, 'color-interactive');
-  await hooks.click(pairRadio());
-  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  await hooks.click(pairBtn());
+  await paired();
   const d0 = await dialog();
   const s0 = JSON.parse(await stored() ?? 'null')?.input;
-  hooks.absent(ok, { seen: d0.checked !== null, state: 'the icon contrast lever' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
+  hooks.absent(ok, { seen: await page.evaluate(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"]')), state: 'the Icon section' }, d0.n === 0, `Q52: re-pairing with no icon overrides asks nothing (${d0.n} dialog(s))`);
   ok(s0?.iconContrast === 'text' && s0?.overrides === undefined, `Q52: re-pairing with no icon overrides writes iconContrast "text" (${JSON.stringify(s0?.iconContrast)}, overrides ${JSON.stringify(s0?.overrides)})`);
   // Two icon overrides, one page and one inverse, and a text override that must survive.
   // inverse.icon.secondary, not inverse.icon.primary: under "3:1" the primary row stays locked to its text (#1982).
@@ -3000,20 +3035,20 @@ for (const host of ['web', 'figma']) {
     `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
   await askPair();
   const d1 = await dialog();
-  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
-  ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, the lever still on "3:1" — read ${JSON.stringify(d1)}`);
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', unpaired: true };
+  ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, icons still unpaired — read ${JSON.stringify(d1)}`);
   ok(await stored() === before, 'Q52: the dialog open, nothing is written yet');
   if (d1.n !== 1) ok(false, 'Q52: Cancel and Pair icons NOT REACHED: re-pairing with 2 icon overrides drew no dialog');
   else {
     // Cancel: nothing changes, byte for byte.
     await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
     const d2 = await dialog();
-    ok(d2.n === 0 && d2.checked === '3:1' && await stored() === before, `Q52: Cancel closes the dialog and changes nothing (${d2.n} dialog(s), lever on ${JSON.stringify(d2.checked)}, brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
+    ok(d2.n === 0 && d2.unpaired && await stored() === before, `Q52: Cancel closes the dialog and changes nothing (${d2.n} dialog(s), icons ${d2.unpaired ? 'unpaired' : 'PAIRED'}, brand ${await stored() === before ? 'unchanged' : 'CHANGED'})`);
     // Pair: iconContrast "text", every icon override gone, the text override kept.
-    await hooks.click(pairRadio());
+    await hooks.click(pairBtn());
     await hooks.need(page, '[data-p3="icons-pair-confirm"]');
     await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
-    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+    await paired();
     const a = JSON.parse(await stored() ?? 'null')?.input;
     ok(a?.iconContrast === 'text' && JSON.stringify(a?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
       `Q52: Pair icons writes iconContrast "text" and clears icon.brand and inverse.icon.secondary, keeping text.brand (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
@@ -3026,10 +3061,10 @@ for (const host of ['web', 'figma']) {
     `Q60 setup: one icon override and the text override persisted (${JSON.stringify(b1?.overrides)})`);
   await askPair();
   const d3 = await dialog();
-  const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', checked: '3:1' };
-  ok(JSON.stringify(d3) === JSON.stringify(WANT1), `Q60: re-pairing with 1 icon override asks first, the body singular, the lever still on "3:1" — read ${JSON.stringify(d3)}`);
+  const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', unpaired: true };
+  ok(JSON.stringify(d3) === JSON.stringify(WANT1), `Q60: re-pairing with 1 icon override asks first, the body singular, icons still unpaired — read ${JSON.stringify(d3)}`);
   if (d3.n === 1) await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
-  await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="true"]')?.dataset.value === 'text', null, { timeout: 5000 }).catch(() => {});
+  await paired();
   const a1 = JSON.parse(await stored() ?? 'null')?.input;
   ok(a1?.iconContrast === 'text' && JSON.stringify(a1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
     `Q60: Pair icons with 1 icon override writes iconContrast "text" and clears icon.brand, keeping text.brand (iconContrast ${JSON.stringify(a1?.iconContrast)}, overrides ${JSON.stringify(a1?.overrides)})`);
@@ -3215,11 +3250,14 @@ for (const { w, h } of WIDTHS) {
 // =============================================================================================
 console.log(`\nColor › Interactive (S5.2)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the preview's specimen roots, each a section on the
- *  brand's page color. Literal: the shared Interactive and Disabled sections (Q32), Links and Icons. */
-const EXPECT_INTERACTIVE_SPECIMENS = ['Interactive', 'Disabled', 'Links', 'Icons'];
-/** The manifest keys v6 homes on Interactive, with their hooks. R2: every lever on this page is shown. */
+ *  brand's page color. Literal: the shared Interactive and Disabled sections (Q32), and Links. No Icons section
+ *  since S5.3 (the owner's QA-I10). */
+const EXPECT_INTERACTIVE_SPECIMENS = ['Interactive', 'Disabled', 'Links'];
+/** The manifest keys v6 homes on Interactive, with their hooks. R2: every lever on this page is shown (the floor
+ *  chips, `disabledMin`, while the Full contrast switch is off, which it is on the example brands). `iconContrast`
+ *  left in S5.3 (QA-I10). */
 const INTERACTIVE_LEVERS = ['actionPalette', 'outlineInteraction', 'neutralEmphasis', 'interactivePalettes', 'strictInteractiveContrast',
-  'linkPalette', 'linkStateRungs', 'iconContrast', 'disabledStrategy', 'disabledMin'].map((k) => [k, `[data-p3="${kebabHook(k)}"]`]);
+  'linkPalette', 'linkStateRungs', 'disabledStrategy', 'disabledMin'].map((k) => [k, `[data-p3="${kebabHook(k)}"]`]);
 /** The columns the default theme ships, in the owner's order (Q33): Primary, Neutral, Destructive. */
 const INTERACTIVE_COLUMNS = [['primary', 'Primary'], ['neutral', 'Neutral'], ['destructive', 'Destructive']];
 /** Every row a column draws under the default theme's outline hover (overlay-neutral: the overlay wash, no
@@ -3463,6 +3501,7 @@ for (const host of ['web', 'figma']) {
     const s2 = await persisted(page);
     ok(s1 === true && s2 && !('strictInteractiveContrast' in s2), `interactive: the strict switch writes true, and off unsets the key (${s1}, then ${JSON.stringify(s2?.strictInteractiveContrast)})`);
     // An accent column: promoted, it is last in the levers, the jump links and the preview; removed, it is gone.
+    await hooks.click(page.locator('[data-p3="column-add-open"]'));
     await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
     await hooks.click(page.locator('[data-p3="column-promote"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
@@ -3488,12 +3527,11 @@ const EXPECT_INTERACTIVE_SECTIONS = [
   ['Interactive', 'Each button set is a full set of fill, text, border and state colors.'],
   ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
   ['Links', 'The link color in each state, on the page and on the inverse fill.'],
-  ['Icons', 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.'],
 ];
 /** Which section each lever sits in (Q51), by hook. */
 const EXPECT_LEVER_SECTION = [['actionPalette', 'Interactive'], ['outlineInteraction', 'Interactive'], ['neutralEmphasis', 'Interactive'],
   ['interactivePalettes', 'Interactive'], ['strictInteractiveContrast', 'Interactive'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
-  ['linkPalette', 'Links'], ['linkStateRungs', 'Links'], ['iconContrast', 'Icons']];
+  ['linkPalette', 'Links'], ['linkStateRungs', 'Links']];
 const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
 /** Every mode on the page by its picker: a radio where they fit, else the select of the same modes. */
@@ -3515,10 +3553,10 @@ const chooseAnyMode = async (page, mode) => {
       return {
         sections: secs.map((s) => [s.querySelector('.p3-lsec-title')?.textContent, s.querySelector('.p3-lsec-desc')?.textContent ?? null]),
         leverIn: Object.fromEntries([...pane.querySelectorAll('.p3-lever')].map((n) => [n.getAttribute('data-p3'), n.closest('[data-p3="lever-section"]')?.querySelector('.p3-lsec-title')?.textContent])),
-        preview: { Links: prev('Links'), Icons: prev('Icons'), Disabled: prev('Disabled'), Interactive: prev('Interactive') },
+        preview: { Links: prev('Links'), Disabled: prev('Disabled'), Interactive: prev('Interactive') },
+        previewTitles: [...document.querySelectorAll('[data-p3="interactive-style-guide"] .psec-t')].map((n) => n.textContent),
         landmark: pane.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label'),
-        add: pane.querySelector('[data-p3="column-promote"]')?.textContent?.trim() ?? null,
-        select: pane.querySelector('[data-p3="column-promote-select"]')?.getAttribute('aria-label') ?? null,
+        add: pane.querySelector('[data-p3="column-add-open"]')?.textContent?.trim() ?? null,
         // The button sets lever's info toggletip, the text its own info button controls (`aria-controls`).
         setsTip: (() => {
           const info = pane.querySelector('[data-p3="lever-interactive-palettes"] [data-p3="lever-info"]');
@@ -3533,9 +3571,12 @@ const chooseAnyMode = async (page, mode) => {
       };
     });
     ok(JSON.stringify(copy.sections) === JSON.stringify(EXPECT_INTERACTIVE_SECTIONS),
-      `Q51: Interactive's lever sections are the preview's, Interactive, Disabled, Links, Icons, with their approved copy — drew ${JSON.stringify(copy.sections)}`);
+      `Q51: Interactive's lever sections are the preview's, Interactive, Disabled, Links, with their approved copy — drew ${JSON.stringify(copy.sections)}`);
+    // Q23 and QA-I10 (S5.3): the preview's sections are the levers' sections, one for one, Icons in neither.
+    ok(JSON.stringify(copy.previewTitles) === JSON.stringify(EXPECT_INTERACTIVE_SECTIONS.map(([t]) => t)),
+      `Q23: the Interactive preview's sections are the levers' sections, Icons in neither (QA-I10) — the preview drew ${JSON.stringify(copy.previewTitles)}`);
     for (const [key, sec] of EXPECT_LEVER_SECTION) ok(copy.leverIn[kebabHook(key)] === sec, `Q51: the ${key} lever sits in ${sec} (sits in ${copy.leverIn[kebabHook(key)]})`);
-    for (const t of ['Links', 'Icons', 'Disabled']) {
+    for (const t of ['Links', 'Disabled']) {
       const want = EXPECT_INTERACTIVE_SECTIONS.find(([n]) => n === t)[1];
       ok(copy.preview[t] === want, `Q23: the preview's ${t} description is the levers' ("${copy.preview[t]}")`);
     }
@@ -3544,13 +3585,14 @@ const chooseAnyMode = async (page, mode) => {
     // The button sets lever's info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this
     // page; the engine's description (which says "columns") stays as MCP and the emission read it. Literal.
     ok(copy.setsTip === 'Add a button set from any brand color on Palettes. Each set gets fill, text, border and state colors in every mode.', `Q53: the button sets lever's info text is the owner's — read ${JSON.stringify(copy.setsTip)}`);
-    ok(copy.add === 'Add button set' && copy.select === 'Color for the new button set', `Q53: the add row reads "Add button set" on a select named "Color for the new button set" (${JSON.stringify([copy.add, copy.select])})`);
+    ok(copy.add === 'Add button set', `Q53: the add row reads "Add button set" (${JSON.stringify(copy.add)})`);
     const stray = ['column', 'band', 'muted'].filter((w) => new RegExp(`\\b${w}`, 'i').test(copy.visible.replace(/\b(?:interactive|inverse)\.[\w.-]+/g, '')));
     ok(stray.length === 0, `Q53, Q57, Q58: no "column", "band" or "muted" in the page's visible copy, labels and titles (the manifest's lever descriptions aside)${stray.length ? ` — found ${stray.join(', ')}` : ''}`);
 
     // Q54: a button set is added and removed in every editable mode, and the write is mode-independent: added while
     // previewing Dark, the persisted brand is byte-identical to the same add from Light.
     const addSet = async () => {
+      await hooks.click(page.locator('[data-p3="column-add-open"]'));
       await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
       await hooks.click(page.locator('[data-p3="column-promote"]'));
       await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
@@ -3569,7 +3611,7 @@ const chooseAnyMode = async (page, mode) => {
     ok(!hint.select && hint.hint === ADD_SET_HINT, `Q53: with nothing left to add, the hint reads "${ADD_SET_HINT}" (${JSON.stringify(hint)})`);
     const lightRemoved = await removeSet();
     await chooseAnyMode(page, 'dark');
-    const darkCtl = await page.evaluate(() => { const b = document.querySelector('[data-p3="column-promote"]'); return { add: !!b && b.getClientRects().length > 0 && !b.disabled }; });
+    const darkCtl = await page.evaluate(() => { const b = document.querySelector('[data-p3="column-add-open"]'); return { add: !!b && b.getClientRects().length > 0 && !b.disabled }; });
     ok(darkCtl.add, `Q54: previewing Dark, Add button set is shown and enabled (${JSON.stringify(darkCtl)})`);
     const fromDark = await addSet();
     ok(fromDark === fromLight, `Q54: a button set added previewing Dark persists the same JSON as the same add from Light — Light ${fromLight}, Dark ${fromDark}`);
@@ -3601,7 +3643,7 @@ const chooseAnyMode = async (page, mode) => {
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Interactive is disabled (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['action-palette-select', 'link-palette-select', 'strict-contrast-switch', 'disabled-min-chips-3', 'link-rung-hover', 'column-promote', 'int-pick'])
+      for (const hk of ['action-palette-select', 'link-palette-select', 'strict-contrast-switch', 'disabled-full-switch', 'disabled-min-chips-3', 'neutral-emphasis-chips-subtle', 'link-rung-hover', 'column-add-open', 'int-pick'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among those held disabled`);
     }
     await chooseAnyMode(page, 'light');
@@ -3611,6 +3653,295 @@ const chooseAnyMode = async (page, mode) => {
   } catch (e) {
     ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+// =============================================================================================
+// 19b. S5.3: the Interactive page polish (the owner's QA, evening 2026-10-02: QA-I1 to QA-I10)
+// =============================================================================================
+console.log(`\nColor › Interactive polish (S5.3)\n${'='.repeat(78)}`);
+/** THE ORACLE for the badge marks (QA-I2): the chrome's status icon tokens, read from the token tree the chrome is
+ *  built from (`chrome/tokens.mjs` over the committed emission), for each chrome theme. Never the page's own
+ *  `--p3-*` variables: the renderer is the subject. */
+const STATUS = (() => {
+  const m = loadModes();
+  const hx = (tree, p) => String(resolveToken(tree, P(p)).value).toLowerCase();
+  return { ok: [hx(m.light, 'color.icon.success'), hx(m.dark, 'color.icon.success')], bad: [hx(m.light, 'color.icon.danger'), hx(m.dark, 'color.icon.danger')] };
+})();
+ok(STATUS.ok.every((x) => /^#[0-9a-f]{6}$/.test(x)) && STATUS.bad.every((x) => /^#[0-9a-f]{6}$/.test(x)) && STATUS.ok[0] !== STATUS.bad[0],
+  `QA-I2 oracle: the success and danger icon tokens resolve per chrome theme (ok ${STATUS.ok.join(' / ')}, bad ${STATUS.bad.join(' / ')})`);
+/** QA-I7: the gap between two button sets, at least `space.500` (40px), one step past S5.2's `space.300` (24px). */
+const SET_GAP_MIN = 40;
+/** QA-I8, APPROVED verbatim: the switch's label and its caption in each state. */
+const DISABLED_COPY = { label: 'Full contrast', on: 'Disabled controls keep full contrast.', off: 'Disabled controls drop to the floor you pick.' };
+/** QA-I8: the two values the segmented control it replaces wrote, the manifest's option values, literal. */
+const DISABLED_WRITES = { on: 'full', off: 'reduced' };
+/** Every badge mark in the Interactive preview: its computed color, whether it marks a miss, and the composited
+ *  ground under it. */
+const readMarks = (page) => page.evaluate(() => {
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ?? { r: 255, g: 255, b: 255, a: 1 }; };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  return [...document.querySelectorAll('[data-p3="interactive-style-guide"] [data-p3="ratio-badge"]')].flatMap((b) => {
+    const mk = b.querySelector('.sg-ratio-mk');
+    if (!mk) return [];
+    return [{ role: b.dataset.role, below: b.dataset.below === 'true', color: hex(parse(getComputedStyle(mk).color)), ground: hex(groundOf(mk)), ink: hex(parse(getComputedStyle(b).color)) }];
+  });
+});
+const lumHex = (hx) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; const n = (i) => parseInt(hx.slice(i, i + 2), 16); return 0.2126 * f(n(1)) + 0.7152 * f(n(3)) + 0.0722 * f(n(5)); };
+const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+// The levers: the order of the page-wide settings (QA-I5), the neutral emphasis in the Neutral set (QA-I6), no Icons
+// (QA-I10), the dashed connector (QA-I3), the spacing between sets (QA-I7), the add flow (QA-I4) and the Disabled
+// switch (QA-I8), each against a literal written above or here. THE ORACLE for a write is the persisted brand.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-interactive');
+    const stored = () => page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+    const lay = await page.evaluate((iconHook) => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const sec = pane.querySelector('[data-p3="lever-section"]');
+      const top = [...sec.children].filter((n) => n.matches('.p3-lever')).map((n) => n.getAttribute('data-p3'));
+      const neutral = pane.querySelector('[data-p3="interactive-column"][data-column="neutral"]');
+      const kids = neutral ? [...neutral.children] : [];
+      const groups = [...pane.querySelectorAll('[data-p3="interactive-column"]')].map((g) => g.getBoundingClientRect());
+      const add = pane.querySelector('[data-p3="column-add"]')?.getBoundingClientRect();
+      const states = pane.querySelector('[data-p3="int-row-states"]');
+      return {
+        top,
+        neutralFirst: kids.findIndex((n) => n.matches('[data-p3="lever-neutral-emphasis"]')),
+        neutralRows: kids.findIndex((n) => n.matches('.p3-fillrows')),
+        icons: pane.querySelectorAll(`[data-p3="${iconHook}"]`).length,
+        iconsTitle: [...pane.querySelectorAll('.p3-lsec-title')].some((t) => /^Icons?$/.test(t.textContent)),
+        dashed: states ? getComputedStyle(states).borderLeftStyle : null,
+        gaps: groups.slice(1).map((r, i) => r.top - groups[i].bottom),
+        addGap: add && groups.length ? add.top - groups[groups.length - 1].bottom : null,
+      };
+    }, kebabHook('iconContrast'));
+    ok(JSON.stringify(lay.top) === JSON.stringify(['lever-action-palette', 'lever-outline-interaction', 'lever-strict-interactive-contrast', 'lever-interactive-palettes']),
+      `QA-I5: the strict switch sits with the page-wide settings, above the button sets — Interactive draws ${JSON.stringify(lay.top)}`);
+    ok(lay.neutralFirst === 1 && lay.neutralRows > lay.neutralFirst, `QA-I6: the neutral emphasis opens the Neutral button set, under its heading and above its rows (at ${lay.neutralFirst}, rows at ${lay.neutralRows})`);
+    hooks.absent(ok, { seen: lay.top.length > 0, state: "Interactive's levers" }, lay.icons === 0 && !lay.iconsTitle,
+      `QA-I10: Interactive draws no icon contrast control and no Icons section (${lay.icons} ${kebabHook('iconContrast')}, Icons title ${lay.iconsTitle})`);
+    ok(lay.dashed === 'dashed', `QA-I3: the line beside Hover and Pressed under a rest row is dashed (border-left-style ${lay.dashed})`);
+    ok(lay.gaps.length >= 2 && lay.gaps.every((g) => g >= SET_GAP_MIN - 0.5), `QA-I7: button sets stand at least ${SET_GAP_MIN}px apart (${lay.gaps.map((g) => g.toFixed(1)).join(', ')})`);
+    ok(lay.addGap !== null && lay.addGap > Math.max(...lay.gaps) + 0.5, `QA-I4: Add button set stands further from the last set than the sets stand from each other (${lay.addGap?.toFixed(1)} vs ${Math.max(...lay.gaps).toFixed(1)})`);
+
+    // QA-I4: the color select only after Add button set is clicked; Cancel and Escape write nothing.
+    const addState = () => page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const shown = (n) => !!n && n.getClientRects().length > 0;
+      const open = pane.querySelector('[data-p3="column-add-open"]');
+      const box = pane.querySelector('[data-p3="column-add"]');
+      return {
+        box: !!box, open: shown(open), openText: open?.textContent?.trim() ?? null, openDashed: open ? getComputedStyle(open).borderTopStyle : null,
+        openFull: open && box ? Math.abs(open.getBoundingClientRect().width - box.getBoundingClientRect().width) <= 1 : false,
+        select: shown(pane.querySelector('[data-p3="column-promote-select"]')), go: shown(pane.querySelector('[data-p3="column-promote"]')),
+        label: [...pane.querySelectorAll('[data-p3="column-add-form"] label')].map((l) => l.textContent),
+        focus: document.activeElement?.getAttribute('data-p3') ?? null,
+      };
+    });
+    const before = await stored();
+    const a0 = await addState();
+    hooks.absent(ok, { seen: a0.box, state: 'the add row' }, !a0.select && !a0.go, `QA-I4: before Add button set is clicked, the color select is not shown (${JSON.stringify(a0)})`);
+    ok(a0.openText === 'Add button set' && a0.openDashed === 'dashed' && a0.openFull, `QA-I4: Add button set is a full-width dashed button (${JSON.stringify(a0)})`);
+    await hooks.click(page.locator('[data-p3="column-add-open"]'));
+    const a1 = await addState();
+    ok(!a1.open && a1.select && a1.go && a1.focus === 'column-promote-select' && JSON.stringify(a1.label) === JSON.stringify(['Color for the new button set']),
+      `QA-I4: clicked, Add button set gives way to the select, labeled "Color for the new button set" and focused, and the add (${JSON.stringify(a1)})`);
+    ok(await stored() === before, 'QA-I4: opening the add form writes nothing');
+    await hooks.click(page.locator('[data-p3="column-promote-cancel"]'));
+    const a2 = await addState();
+    ok(a2.open && !a2.select && a2.focus === 'column-add-open' && await stored() === before, `QA-I4: Cancel puts Add button set back, focused, and writes nothing (${JSON.stringify(a2)})`);
+    await hooks.click(page.locator('[data-p3="column-add-open"]'));
+    await page.keyboard.press('Escape');
+    const a3 = await addState();
+    ok(a3.open && !a3.select && a3.focus === 'column-add-open' && await stored() === before, `QA-I4: Escape in the add form does what Cancel does (${JSON.stringify(a3)})`);
+    // The last color left to add: Add button set gives way to the hint, and focus must not drop to the page body. It
+    // lands on the new set's group, as that set's jump link would put it.
+    await hooks.click(page.locator('[data-p3="column-add-open"]'));
+    await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
+    await hooks.click(page.locator('[data-p3="column-promote"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+    const lastAdd = await page.evaluate(() => ({
+      hint: !!document.querySelector('[data-p3="column-promote-hint"]'), body: document.activeElement === document.body,
+      focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null, column: document.activeElement?.dataset?.column ?? null,
+    }));
+    ok(lastAdd.hint && !lastAdd.body && lastAdd.focus === 'interactive-column' && lastAdd.column === 'accent',
+      `QA-I4: adding the last color left keeps focus off the page body, on the new set's group (${JSON.stringify(lastAdd)})`);
+    await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
+    await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+
+    // QA-I8: the switch, its captions, its writes, and the chips only while it is off.
+    const dis = () => page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const sw = pane.querySelector('[data-p3="disabled-full-switch"]');
+      const lever = sw?.closest('.p3-lever');
+      return {
+        label: lever?.querySelector('.p3-lever-name')?.textContent ?? null, on: sw?.getAttribute('aria-checked') ?? null,
+        caption: pane.querySelector('[data-p3="disabled-full-caption"]')?.textContent ?? null,
+        chips: [...pane.querySelectorAll('[data-p3="disabled-min-chips"] [role="radio"]')].filter((b) => b.getClientRects().length > 0).length,
+      };
+    });
+    const d0 = await dis();
+    ok(d0.label === DISABLED_COPY.label && d0.on === 'false' && d0.caption === DISABLED_COPY.off && d0.chips === 4,
+      `QA-I8: the Disabled control is the "${DISABLED_COPY.label}" switch, off on prism3, captioned "${DISABLED_COPY.off}", the four floor chips shown (${JSON.stringify(d0)})`);
+    await hooks.click(page.locator('[data-p3="disabled-full-switch"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="disabled-full-switch"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const w1 = await persisted(page);
+    const d1 = await dis();
+    ok(w1?.disabledStrategy === DISABLED_WRITES.on, `QA-I8: switching Full contrast on writes disabledStrategy "${DISABLED_WRITES.on}", as the segmented control did (wrote ${JSON.stringify(w1?.disabledStrategy)})`);
+    ok(d1.on === 'true' && d1.caption === DISABLED_COPY.on, `QA-I8: on, the caption reads "${DISABLED_COPY.on}" (${JSON.stringify(d1)})`);
+    hooks.absent(ok, { seen: d1.on === 'true', state: 'the Full contrast switch, on' }, d1.chips === 0, `QA-I8: under Full contrast the floor chips are not shown (${d1.chips} shown)`);
+    await hooks.click(page.locator('[data-p3="disabled-full-switch"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="disabled-full-switch"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).catch(() => {});
+    const w2 = await persisted(page);
+    const d2 = await dis();
+    ok(w2?.disabledStrategy === DISABLED_WRITES.off && d2.chips === 4 && d2.caption === DISABLED_COPY.off,
+      `QA-I8: switching it off writes disabledStrategy "${DISABLED_WRITES.off}" and shows the four chips again (wrote ${JSON.stringify(w2?.disabledStrategy)}, ${JSON.stringify(d2)})`);
+    await hooks.click(page.locator('[data-p3="disabled-min-chips-4"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="disabled-min-chips-4"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.disabledMin === 4, `QA-I8: with the switch off, a floor chip writes disabledMin (${JSON.stringify((await persisted(page))?.disabledMin)})`);
+
+    // QA-I2: every mark in the preview is the success or danger icon token, by what it marks, and clears 3:1 on
+    // its ground. A miss is forced in Light and in Dark through the levers' own picker, so the arm is never empty.
+    for (const [mode, step] of [['light', 'first'], ['dark', 'last']]) {
+      await chooseMode(page, mode);
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="int-pick"][data-role="interactive.primary.text.rest"]'));
+      const steps = page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]');
+      await hooks.click(step === 'first' ? steps.first() : steps.last());
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="interactive-style-guide"] [data-p3="ratio-badge"][data-below="true"]'), null, { timeout: 5000 }).catch(() => {});
+      const marks = await readMarks(page);
+      const misses = marks.filter((m) => m.below);
+      const passes = marks.filter((m) => !m.below);
+      ok(misses.length >= 1 && passes.length >= 20, `QA-I2 (${mode}): the preview draws a forced miss and its passes (${misses.length} misses, ${passes.length} passes)`);
+      const redOff = misses.filter((m) => !STATUS.bad.includes(m.color));
+      ok(misses.length >= 1 && redOff.length === 0, `QA-I2 (${mode}): a failing mark is the danger icon token (${STATUS.bad.join(' or ')})${redOff.length ? ` — ${redOff.slice(0, 3).map((m) => `${m.role} ${m.color}`).join(', ')}` : ''}`);
+      const greenOff = passes.filter((m) => !STATUS.ok.includes(m.color));
+      ok(greenOff.length === 0, `QA-I2 (${mode}): a passing mark is the success icon token (${STATUS.ok.join(' or ')})${greenOff.length ? ` — ${greenOff.slice(0, 3).map((m) => `${m.role} ${m.color}`).join(', ')}` : ''}`);
+      const low = marks.filter((m) => ratioHex(m.color, m.ground) < NONTEXT_MIN);
+      ok(low.length === 0, `QA-I2 (${mode}): every mark clears ${NONTEXT_MIN}:1 on its ground${low.length ? ` — ${low.slice(0, 3).map((m) => `${m.role} ${m.color} on ${m.ground} ${ratioHex(m.color, m.ground).toFixed(2)}:1`).join(', ')}` : ''}`);
+    }
+    for (const mode of ['hc-light', 'hc-dark']) {
+      await chooseMode(page, mode);
+      const marks = await readMarks(page);
+      const low = marks.filter((m) => ratioHex(m.color, m.ground) < NONTEXT_MIN || !(m.below ? STATUS.bad : STATUS.ok).includes(m.color));
+      ok(marks.length >= 20 && low.length === 0, `QA-I2 (${mode}): ${marks.length} marks, each its status token and clear of ${NONTEXT_MIN}:1 on its ground${low.length ? ` — ${low.slice(0, 3).map((m) => `${m.role} ${m.color} on ${m.ground}`).join(', ')}` : ''}`);
+    }
+    ok(errors.length === 0, `S5.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S5.3 levers: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// QA-I2 on every page lightness: Page swept down prism3's neutral ladder in Light, through the mid-grays where neither
+// chrome theme's icon color reaches 3:1. THE ORACLE is the render (each mark's computed color and the composited
+// ground under it) and the status tokens from the token tree, never the page's own choice (docs/34). Each mark either
+// clears 3:1 on its ground, or, only where neither theme's token for it reaches 3:1 there, keeps the badge's own ink,
+// as origin/main drew every mark.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-base-pick"]'));
+    const steps = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]').evaluateAll((bs) => bs.map((b) => b.dataset.step));
+    await page.keyboard.press('Escape');
+    ok(steps.length >= 10, `QA-I2 sweep: the Page picker offers the neutral ladder (${steps.length} steps: ${steps.join(', ')})`);
+    let lowest = Infinity, lowestAt = '', fallbacks = 0, points = 0, grounds = new Set();
+    const bad = [];
+    for (const step of steps) {
+      await goPlace(page, 'color-fills');
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-base-pick"]'));
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${step}"]`));
+      await page.keyboard.press('Escape');
+      await goPlace(page, 'color-interactive');
+      const marks = await readMarks(page);
+      points++;
+      let fellBack = false;
+      for (const m of marks) {
+        grounds.add(m.ground);
+        const r = ratioHex(m.color, m.ground);
+        const tokens = m.below ? STATUS.bad : STATUS.ok;
+        const reach = Math.max(...tokens.map((t) => ratioHex(t, m.ground)));
+        if (r < lowest) { lowest = r; lowestAt = `Page ${step}, ${m.role}${m.below ? ' (miss)' : ''} ${m.color} on ${m.ground}`; }
+        // Where neither theme's token reaches 3:1, the mark must be the base fallback, the badge's own ink.
+        if (reach < NONTEXT_MIN) {
+          if (m.color === m.ink) { fellBack = true; continue; }
+          bad.push(`Page ${step}: ${m.role} ${m.color} on ${m.ground} is not the badge ink ${m.ink}, and no status token reaches 3:1 there (best ${reach.toFixed(2)}:1)`);
+          continue;
+        }
+        if (r >= NONTEXT_MIN) continue;
+        bad.push(`Page ${step}: ${m.role} ${m.color} on ${m.ground} ${r.toFixed(2)}:1 (a status token reaches ${reach.toFixed(2)}:1; badge ink ${m.ink})`);
+      }
+      if (fellBack) fallbacks++;
+      ok(marks.length >= 20, `QA-I2 sweep, Page ${step}: the preview draws its marks (${marks.length})`);
+    }
+    ok(fallbacks >= 1, `QA-I2 sweep: the ladder reaches a page where no status token clears ${NONTEXT_MIN}:1, so the fallback is exercised (${fallbacks} step(s))`);
+    ok(bad.length === 0, `QA-I2 sweep: on every Page step each mark clears ${NONTEXT_MIN}:1 on its ground, or keeps the badge's ink where neither theme's token can${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
+    console.log(`  QA-I2 sweep: ${points} Page steps, ${grounds.size} grounds, lowest mark ${lowest.toFixed(2)}:1 (${lowestAt}), ${fallbacks} step(s) with a mark on the badge-ink fallback`);
+    ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `QA-I2 sweep: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// QA-I1 and QA-I9, as drawn: both hosts, both chrome themes, at 1280 and 800. No treatment label's foot line (its
+// token and badge) reaches into the buttons beside it, by bounding box; every link state select fills its line and
+// shows its longest option uncut.
+for (const w of [1280, 800]) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+      const where = `${host} ${theme} ${w}`;
+      try {
+        if (w < 1280) {
+          // As at 640 (below): the preview covers the sub-nav's last tab, so the keyboard reaches Interactive.
+          await hooks.click(page.locator('[data-p3="tab-color"]'));
+          await page.locator('[data-p3="color-sub-interactive"]').focus();
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
+          await page.evaluate(() => document.fonts.ready);
+        } else await goPlace(page, 'color-interactive');
+        const g = await page.evaluate((rungSels) => {
+          const boxOf = (n) => { const rs = [n, ...n.querySelectorAll('*')].map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0); return rs.length ? { l: Math.min(...rs.map((r) => r.left)), r: Math.max(...rs.map((r) => r.right)), t: Math.min(...rs.map((r) => r.top)), b: Math.max(...rs.map((r) => r.bottom)) } : null; };
+          const hit = (a, b) => a && b && a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+          const rows = [...document.querySelectorAll('[data-p3="interactive-style-guide"] .sg-trow')];
+          const over = rows.flatMap((row) => {
+            const lab = row.querySelector('.sg-tlab');
+            const bs = row.querySelector('[data-p3="style-guide-buttons"]');
+            const L = lab ? boxOf(lab) : null;
+            return bs && [...bs.children].some((c) => hit(L, boxOf(c))) ? [`${row.closest('[data-p3="style-guide-palette"]')?.querySelector('.sg-rn')?.textContent}/${lab.firstChild?.textContent}`] : [];
+          });
+          const pane = document.querySelector('[data-p3="levers-pane"]');
+          const rung = ([st, sel]) => {
+            const s = pane.querySelector(sel);
+            const ctl = s?.closest('.p3-lever-ctl');
+            if (!s || !ctl) return { st, missing: true };
+            const cs = getComputedStyle(s);
+            const probe = document.createElement('span');
+            probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${cs.font}`;
+            document.body.append(probe);
+            const widest = Math.max(...[...s.options].map((o) => { probe.textContent = o.textContent; return probe.getBoundingClientRect().width; }));
+            probe.remove();
+            const room = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            return { st, fill: s.getBoundingClientRect().width >= ctl.getBoundingClientRect().width - 1, scroll: s.scrollWidth <= s.clientWidth, widest: Math.round(widest), room: Math.round(room) };
+          };
+          return { rows: rows.length, over, rungs: rungSels.map(rung) };
+        }, [['hover', '[data-p3="link-rung-hover"]'], ['pressed', '[data-p3="link-rung-pressed"]'], ['visited', '[data-p3="link-rung-visited"]']]);
+        ok(g.rows >= 12 && g.over.length === 0, `QA-I1 ${where}: no treatment label's token or badge overlaps the buttons beside it (${g.rows} rows)${g.over.length ? ` — overlaps in ${g.over.join(', ')}` : ''}`);
+        for (const r of g.rungs) {
+          ok(!r.missing && r.fill && r.scroll && r.widest <= r.room,
+            `QA-I9 ${where}: the ${r.st} link state select fills its line and shows its longest option uncut (${JSON.stringify(r)})`);
+        }
+        if (SHOTS) {
+          await page.screenshot({ path: join(SHOTS, `s53-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
+          await page.locator('[data-p3="lever-link-state-rungs"]').scrollIntoViewIfNeeded();
+          await page.screenshot({ path: join(SHOTS, `s53-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-links.png`) });
+        }
+        ok(errors.length === 0, `S5.3 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `S5.3 drawn ${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
 }
 // The chrome on Interactive: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane
 // when narrow), and once with a picker open.
@@ -4308,27 +4639,22 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     const e2 = await page.evaluate(() => Math.round(document.querySelector('[data-p3="preview-body"]').scrollTop));
     ok(Math.abs(e2 - 300) <= 2, `QA-I11: each page keeps its own place: Palettes' preview is back at 300 (${e2})`);
 
-    // (b) Interactive: the icon contrast floor, with the preview at its top, eases the Icons section into view.
+    // (b) Interactive: a link palette edit, with the preview at its top, eases the Links section into view. (S5.3,
+    // QA-I10, removed Interactive's icon contrast control and its Icons section; Links is the section below the fold.)
     await goPlace(page, 'color-interactive');
     await setTop('preview-body', 0);
-    const b0 = await sec('Icons');
-    ok(b0.found && !b0.inView, `QA-B9: on Interactive the preview's Icons section starts below the fold, so the reveal can move (${JSON.stringify(b0)})`);
-    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="lever-icon-contrast"] [role="radio"][aria-checked="false"]').first());
+    const b0 = await sec('Links');
+    ok(b0.found && !b0.inView, `QA-B9: on Interactive the preview's Links section starts below the fold, so the reveal can move (${JSON.stringify(b0)})`);
+    const lk = page.locator('[data-p3="levers-pane"] [data-p3="link-palette-select"]');
+    const opts = await lk.evaluate((s) => [...s.options].filter((o) => !o.selected && !o.disabled).map((o) => o.value));
+    await lk.selectOption(opts[0]);
     const fb = await frames('preview');
-    const b1 = await sec('Icons');
-    ok(lands(b1), `QA-B9: editing the icon contrast on Interactive brings the preview's Icons section into view, its top ${b1.pad}px under the body's or the preview at its end (top at ${b1.rel}px, scrollTop ${b1.top} of ${b1.max})`);
+    const b1 = await sec('Links');
+    ok(lands(b1), `QA-B9: editing the link palette on Interactive brings the preview's Links section into view, its top ${b1.pad}px under the body's or the preview at its end (top at ${b1.rel}px, scrollTop ${b1.top} of ${b1.max})`);
     ok(between(fb.tops) >= 2, `QA-B9: without reduced motion the Interactive reveal glides through positions on its way (${between(fb.tops)} in-between over ${fb.tops.length} frames)`);
     ok(b1.view === 'interactive' && b1.place === 'color-interactive', `QA-B9: an edit on Interactive never changes the preview's page or view (V1) — ${b1.place} / ${b1.view}`);
     const ilab = await page.evaluate(() => ({ text: document.querySelector('[data-p3="interactive-jump"] [data-p3="jump-label"]')?.textContent ?? null, name: document.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label') ?? null }));
     ok(ilab.text === 'Jump to:' && ilab.name === 'Button sets', `QA-B17: on Interactive the jump links' visible label reads "Jump to:", and the landmark keeps "Button sets" (${JSON.stringify(ilab)})`);
-    // A Links edit from the top of the preview: the Links section, on Interactive's own preview.
-    await setTop('preview-body', 0);
-    const lk = page.locator('[data-p3="levers-pane"] [data-p3="link-palette-select"]');
-    const opts = await lk.evaluate((s) => [...s.options].filter((o) => !o.selected && !o.disabled).map((o) => o.value));
-    await lk.selectOption(opts[0]);
-    await frames('preview');
-    const b2 = await sec('Links');
-    ok(lands(b2) && b2.view === 'interactive', `QA-B9: editing the link palette on Interactive brings the preview's Links section into view, on the same page (top at ${b2.rel}px, ${b2.view})`);
     // (g) Type (S6.3): an edit in a Type lever section eases the preview to the section it pairs with (Q23): the
     // type scale to Scale; a limit (the caption floor) to Scale too, its pair by the scope (§3); a weight tick to
     // Weights and styles. Pairs typed here.

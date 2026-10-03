@@ -1471,7 +1471,8 @@ const chooseMode = async (page, mode) => {
 // 1d. Color › Interactive — moved to the two panes (UI redesign S5.2), on its own hooks
 // =============================================================================================
 // Its preview draws the Style guide's Interactive section (with the Text row, Q32, and every column, Q39) and
-// Disabled section from the SAME modules the Style guide draws them with, then Links and Icons. Per corpus
+// Disabled section from the SAME modules the Style guide draws them with, then Links (no Icons since S5.3, the
+// owner's QA-I10: the icon contrast control left the page, and the preview's sections match the levers'). Per corpus
 // brand and per mode, against the brand's COMMITTED EMISSION, never the page:
 //   · every section ground is a specimen root on the emission's `background.primary` (listed by name);
 //   · the shared sections' roots carry the marker only their modules stamp (Interactive, Disabled, Links);
@@ -1480,8 +1481,8 @@ const chooseMode = async (page, mode) => {
 //   · every ratio badge prints the ratio THIS FILE computes from the two emitted hexes, and marks its floor.
 console.log(`\nColor › Interactive — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 const SG_INTERACTIVE = '[data-p3="preview-body"] [data-p3="interactive-style-guide"]';
-/** The preview's specimen roots, by title, in order. Literal (S5.2). */
-const EXPECT_INTERACTIVE_ROOTS = ['Interactive', 'Disabled', 'Links', 'Icons'];
+/** The preview's specimen roots, by title, in order. Literal (S5.2; Icons gone in S5.3, QA-I10). */
+const EXPECT_INTERACTIVE_ROOTS = ['Interactive', 'Disabled', 'Links'];
 /** The shared sections Color › Interactive draws, by title, with the marker each module stamps. Literal. */
 const EXPECT_INTERACTIVE_MARKER = { Interactive: 'interactive', Disabled: 'disabled', Links: 'links' };
 /** The Text row's ink per column, as drawn: [column name, [rest, hover, pressed] computed colors]. */
@@ -1526,7 +1527,8 @@ for (const brand of BRANDS) {
       if (!want) continue;
       if (rgbHex(n.css) !== want) offPaint.push(`${n.role} ${n.prop} is ${rgbHex(n.css) ?? n.css} (emitted ${want})`);
     }
-    ok(got.paint.length >= 25 && offPaint.length === 0, `${where}: every painted link, icon and card is its emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
+    // Floor 22: the links and the disabled cards. It was 25 until S5.3 took the Icons section's three cards out (QA-I10).
+    ok(got.paint.length >= 22 && offPaint.length === 0, `${where}: every painted link and card is its emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
     // Paired specimens (#1652), as the sweep holds them on the Style guide.
     const probe = await page.evaluate(LEGIBILITY_PROBE, SG_INTERACTIVE);
     assertParsed(where, probe.unparsed);
@@ -1571,8 +1573,11 @@ const previewMode = async (page, m) => {
 };
 // S4d (owner decision Q45): the Page and the band step are step pickers; the floor and the band palette stay selects.
 const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
-  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]' };
-const PICKED = new Set(['base', 'band-step']);
+  'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]',
+  // S4e (#1972): the four background tiers, step pickers writing their own inputs.
+  secondary: '[data-p3="levers-pane"] [data-p3="surface-secondary-pick"]', tertiary: '[data-p3="levers-pane"] [data-p3="surface-tertiary-pick"]',
+  'inverse-secondary': '[data-p3="levers-pane"] [data-p3="surface-inverse-secondary-pick"]', 'inverse-tertiary': '[data-p3="levers-pane"] [data-p3="surface-inverse-tertiary-pick"]' };
+const PICKED = new Set(['base', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
 const SURF = (k) => SURF_HOOKS[k];
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1586,7 +1591,8 @@ for (const brand of BRANDS) {
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
     await previewMode(page, m);
-    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4]]) {
+    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4],
+      ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
       let v;
       if (PICKED.has(k)) {
@@ -1615,7 +1621,7 @@ for (const brand of BRANDS) {
   const derived = modes.find((m) => m.startsWith('hc-'));
   if (derived) {
     await previewMode(page, derived);
-    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), ['base', 'floor', 'band-palette', 'band-step'].map(SURF));
+    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
     ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
   }
   // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
@@ -1681,6 +1687,106 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 
+// 1e. S4e: a Secondary pick moves the contrast floor with it (#1972, the engine's #1987, option A). Per corpus brand,
+//     in Light. EXPECTED: before the pick, the floor's Auto option and the floor-gated text.secondary's picker name
+//     the step the COMMITTED EMISSION aliases for background.secondary in light; after it, the literal step picked
+//     (neutral 200), in the floor's Auto label and as text.secondary's ground; the persisted brand carries
+//     `surfaces.light.secondary: 200` and the overrides it carried before; Return to Auto removes the key. Then
+//     (the review): the page tiers' pickers offer neutral only and the inverse tiers the Inverse fill's palettes,
+//     and at a ladder-end Page in Light and in Dark the floor's Auto label names the engine's floor alone.
+console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await hooks.click(page.locator('[data-p3="tab-color"]'));
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
+  await previewMode(page, 'light');
+  const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const root = Object.keys(emission)[0];
+  const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
+  const wasStep = (/\.neutral\.([0-9]+)\}$/.exec(wasAlias) ?? [])[1] ?? null;
+  const floorAuto = () => page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor"] option[value=""]')?.textContent ?? null);
+  const TEXT_SEC = '[data-p3="levers-pane"] [data-p3="text-rows"] .p3-fillrow[data-role="text.secondary"] [data-p3="fill-pick"]';
+  const groundOf = async () => {
+    await hooks.click(page.locator(TEXT_SEC));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const hint = await page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] .p3-picker-hint')?.textContent ?? '');
+    await page.keyboard.press('Escape');
+    return (/against ([a-z0-9-]+\.[0-9]+)/.exec(hint) ?? [])[1] ?? hint;
+  };
+  const brandRaw = () => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+  const before = await inputAt(page);
+  const autoBefore = await floorAuto(), groundBefore = await groundOf();
+  ok(wasStep !== null && wasStep !== '200' && autoBefore === `Auto · follows background.secondary (neutral ${wasStep})` && groundBefore === `neutral.${wasStep}`,
+    `S4e ${brand}: before, the floor's Auto follows background.secondary at the emission's neutral ${wasStep}, and text.secondary is measured on neutral.${wasStep} — read ${JSON.stringify(autoBefore)}, ${JSON.stringify(groundBefore)}`);
+  const raw0 = await brandRaw();
+  await hooks.click(page.locator(SURF('secondary')));
+  await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="200"]'));
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw0, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const after = await inputAt(page);
+  ok(after?.surfaces?.light?.secondary === 200 && JSON.stringify(after?.overrides) === JSON.stringify(before?.overrides) && JSON.stringify(after?.surfaces?.dark) === JSON.stringify(before?.surfaces?.dark),
+    `S4e ${brand}: the Secondary pick persists surfaces.light.secondary = 200 and no override — persisted surfaces ${JSON.stringify(after?.surfaces)}, overrides ${JSON.stringify(after?.overrides)}`);
+  const autoAfter = await floorAuto(), groundAfter = await groundOf();
+  ok(autoAfter === 'Auto · follows background.secondary (neutral 200)', `S4e ${brand}: the floor's Auto label follows the pick: "Auto · follows background.secondary (neutral 200)" — read ${JSON.stringify(autoAfter)}`);
+  ok(groundAfter === 'neutral.200', `S4e ${brand}: the floor-gated text.secondary re-derives against neutral.200 — read ${JSON.stringify(groundAfter)} (was ${groundBefore})`);
+  const raw1 = await brandRaw();
+  await hooks.click(page.locator(SURF('secondary')));
+  // Bounded: with nothing to return (a pick that wrote no input), Return to Auto is disabled, and the check below says so.
+  const autoBtn = page.locator('[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
+  await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-auto"]');
+  if (await autoBtn.isEnabled()) await hooks.click(autoBtn);
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, raw1, { timeout: 5000 }).catch(() => {});
+  await page.keyboard.press('Escape');
+  const cleared = await inputAt(page);
+  ok(!('secondary' in (cleared?.surfaces?.light ?? {})) && JSON.stringify(cleared?.surfaces) === JSON.stringify(before?.surfaces),
+    `S4e ${brand}: Return to Auto clears surfaces.light.secondary, the surfaces as loaded — persisted ${JSON.stringify(cleared?.surfaces)} (loaded ${JSON.stringify(before?.surfaces)})`);
+  const autoBack = await floorAuto();
+  ok(autoBack === autoBefore, `S4e ${brand}: and the floor's Auto label is back to ${JSON.stringify(autoBefore)} — read ${JSON.stringify(autoBack)}`);
+  // The page tiers draw on the neutral palette only (S4e review): their pickers' palette select offers neutral and
+  // nothing else, the palette the committed emission aliases background.secondary to. The inverse tiers keep every
+  // palette the Inverse fill can draw on (owner, 2026-10-03: the picker's palette select stays), read off the
+  // Inverse fill's own palette select. EXPECTED: literal 'neutral', and the emission's alias.
+  const wasPalette = (/\.palette\.([a-z0-9-]+)\.[0-9]+\}$/.exec(wasAlias) ?? [])[1] ?? null;
+  const pickerPalettes = async (k) => {
+    await hooks.click(page.locator(SURF(k)));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-palette"]');
+    const vals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-palette"] option')].map((o) => o.value));
+    await page.keyboard.press('Escape');
+    return vals;
+  };
+  const bandPals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-band-palette"] option')].map((o) => o.value));
+  for (const k of ['secondary', 'tertiary']) {
+    const pals = await pickerPalettes(k);
+    ok(wasPalette === 'neutral' && JSON.stringify(pals) === JSON.stringify(['neutral']),
+      `S4e ${brand}: the ${k} picker offers the neutral palette only (the emission draws background.secondary on ${wasPalette}) — read ${JSON.stringify(pals)}`);
+  }
+  for (const k of ['inverse-secondary', 'inverse-tertiary']) {
+    const pals = await pickerPalettes(k);
+    ok(pals.includes('neutral') && pals.includes('primary') && JSON.stringify(pals) === JSON.stringify(bandPals),
+      `S4e ${brand}: the ${k} picker still offers the Inverse fill's palettes ${JSON.stringify(bandPals)} — read ${JSON.stringify(pals)}`);
+  }
+  // The floor's Auto label names the ENGINE's floor (S4e review). At a ladder end the second tier snaps to black
+  // (Light, Page Black) or white (Dark, Page White) while the floor stays a neutral step, so the label names the
+  // floor alone. EXPECTED: the literal label, and the floor the engine measures the floor-gated text.secondary on
+  // (its picker's hint), the two read through different controls.
+  for (const [m, pageKey, want] of [['light', 'black', 'Auto · neutral 950'], ['dark', 'white', 'Auto · neutral 050']]) {
+    await previewMode(page, m);
+    const rawP = await brandRaw();
+    await hooks.click(page.locator(SURF('base')));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${pageKey}"]`));
+    await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawP, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    const persisted = (await inputAt(page))?.surfaces?.[m]?.base;
+    const label = await floorAuto(), ground = await groundOf();
+    ok(persisted === pageKey && label === want && `Auto · ${String(ground).split('.').join(' ')}` === want,
+      `S4e ${brand}: ${m}, Page ${pageKey} (a ladder end): the floor's Auto reads ${JSON.stringify(want)}, the floor text.secondary is measured on — read ${JSON.stringify(label)}, against ${JSON.stringify(ground)}, base ${JSON.stringify(persisted)}`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `S4e ${brand}: 0 console errors across the Secondary and Page edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
 // 1e. S4d: the icon rows' lock (owner decision Q50; the engine's #1968), and an edit in each section S4d added
 //     reaching the exported tokens (Q44, Q49). Per corpus brand. EXPECTED: whether a brand loads paired is its
 //     example input's `iconContrast`, written here per brand (literal); the text role an icon row follows is the
@@ -1725,12 +1831,19 @@ for (const brand of BRANDS) {
     ok(note === 0, `S4d ${brand}: loads unpaired, so no Unpair note is drawn (${note})`);
   }
   const rows1 = await iconRowsAt(page);
-  // The seven that keep their text's 4.5:1 floor under "3:1" follow their text under both lever values (#1982).
-  const FOLLOW_ALWAYS = ['icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info'];
+  // The nineteen that follow their text under both lever values: the seven that keep their text's 4.5:1 floor
+  // under "3:1" (#1982), and tertiary and the -subtle inks, page and inverse, whose text is held to the same 3:1
+  // floor as an icon (#2024). A literal typed here; 12 rows stay editable.
+  const FOLLOW_ALWAYS = [
+    'icon.primary', 'inverse.icon.primary', 'icon.on-brand', 'icon.on-success', 'icon.on-warning', 'icon.on-danger', 'icon.on-info',
+    'icon.tertiary', 'inverse.icon.tertiary',
+    'icon.brand-subtle', 'icon.success-subtle', 'icon.warning-subtle', 'icon.danger-subtle', 'icon.info-subtle',
+    'inverse.icon.brand-subtle', 'inverse.icon.success-subtle', 'inverse.icon.warning-subtle', 'inverse.icon.danger-subtle', 'inverse.icon.info-subtle',
+  ];
   const still = rows1.filter((r) => !FOLLOW_ALWAYS.includes(r.role) && (r.disabled || /^Follows/.test(r.text)));
-  ok(rows1.length === 31 && still.length === 0, `S4d ${brand}: unpaired, every icon row but the seven is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
+  ok(rows1.length === 31 && FOLLOW_ALWAYS.length === 19 && still.length === 0, `S4d ${brand}: unpaired, every icon row but the nineteen is enabled and edits${still.length ? ` — still locked: ${still.slice(0, 3).map((r) => r.role).join(', ')}` : ''}`);
   const loose = FOLLOW_ALWAYS.filter((role) => { const r = rows1.find((x) => x.role === role); return !r || !r.disabled || r.text !== `Follows ${ICON_TWIN(role)}`; });
-  ok(loose.length === 0, `S4d ${brand}: #1982 unpaired, the seven stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
+  ok(loose.length === 0, `S4d ${brand}: #1982/#2024 unpaired, the nineteen stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
     await previewMode(page, m);
     const row = `[data-p3="levers-pane"] .p3-fillrow[data-role="${role}"]`;
@@ -2623,13 +2736,13 @@ ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip group
 // manifest's options and labels (oracle: the committed `schema/lever-manifest.json`), exactly one checked and
 // it is the brand's stored value (read from the persisted brand, a store the chip does not paint), a click
 // writes, ArrowRight writes the next, each chip a >= 24px target, and at 380 the chips stay inside the panel.
-// The reduced disabled floor is four chips, 3, 3.5, 4 and 4.5 (owner decision Q37), disabled under Full.
+// The reduced disabled floor is four chips, 3, 3.5, 4 and 4.5 (owner decision Q37), drawn only while the Full
+// contrast switch is off (S5.3, the owner's QA-I8). Since S5.3 the disabled contrast is that switch, not chips, and
+// the icon contrast chips left the page (QA-I10), so two enum levers are chips here.
 console.log(`\nLever chips on Color › Interactive (S5.2)\n${'='.repeat(78)}`);
 const INTERACTIVE_CHIPS = [
   { key: 'outlineInteraction', group: '[data-p3="lever-outline-interaction"]' },
   { key: 'neutralEmphasis', group: '[data-p3="lever-neutral-emphasis"]' },
-  { key: 'iconContrast', group: '[data-p3="lever-icon-contrast"]' },
-  { key: 'disabledStrategy', group: '[data-p3="lever-disabled-strategy"]' },
 ];
 const DISABLED_MIN_CHIPS = [['3', '3:1'], ['3.5', '3.5:1'], ['4', '4:1'], ['4.5', '4.5:1']];
 const readNewChips = (sel) => {
@@ -2675,10 +2788,13 @@ const readNewChips = (sel) => {
     await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, next], { timeout: 5000 }).catch(() => {});
     ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight writes ${next} to the brand, and focus stays in the group (${await page.evaluate((s) => !!document.activeElement?.closest(s), c.group)})`);
   }
-  // The reduced floor (Q37): four chips, written as numbers; disabled, none checked, and said so under Full.
+  // The reduced floor (Q37): four chips, written as numbers, drawn while the Full contrast switch is off (QA-I8),
+  // and not drawn while it is on.
   const dm = '[data-p3="lever-disabled-min"]';
-  await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="reduced"]'));
-  await page.waitForFunction((s) => !document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
+  const fullSwitch = '[data-p3="disabled-full-switch"]';
+  const fullOn = () => page.evaluate((s) => document.querySelector(s)?.getAttribute('aria-checked'), fullSwitch);
+  if (await fullOn() === 'true') await hooks.click(page.locator(fullSwitch));
+  await page.waitForFunction((s) => !!document.querySelector(`${s} button`) && !document.querySelector(`${s} button`).disabled, dm, { timeout: 5000 }).catch(() => {});
   const r0 = await page.evaluate(readNewChips, dm);
   ok(JSON.stringify(r0.values) === JSON.stringify(DISABLED_MIN_CHIPS.map(([v]) => v)) && JSON.stringify(r0.labels) === JSON.stringify(DISABLED_MIN_CHIPS.map(([, l]) => l)) && r0.disabled.every((d) => !d),
     `${brand} / Interactive / disabledMin: under Reduced, four chips ${r0.labels.join(', ')}, all enabled (Q37)`);
@@ -2693,12 +2809,13 @@ const readNewChips = (sel) => {
     const wrote = await persistedAt(page, 'disabledMin');
     ok(wrote === f, `${brand} / Interactive / disabledMin: ${f}:1 writes the number ${f} (wrote ${JSON.stringify(wrote)})`);
   }
-  await hooks.click(page.locator('[data-p3="lever-disabled-strategy"] button[role="radio"][data-value="full"]'));
-  await page.waitForFunction((s) => !!document.querySelector(`${s} button`)?.disabled, dm, { timeout: 5000 }).catch(() => {});
+  await hooks.click(page.locator(fullSwitch));
+  await page.waitForFunction((s) => !document.querySelector(s), dm, { timeout: 5000 }).catch(() => {});
   const r1 = await page.evaluate(readNewChips, dm);
-  const note = await page.evaluate((s) => document.querySelector(`${s} .p3-lever-state`)?.textContent ?? '', dm);
-  ok(r1.disabled.every(Boolean) && r1.checked.length === 0 && note === 'Full fixes the disabled floor at 4.5:1, so this has no effect.',
-    `${brand} / Interactive / disabledMin: under Full, every chip is disabled, none is checked, and the lever says why ("${note}")`);
+  const on = await fullOn();
+  hooks.absent(ok, { seen: on === 'true', state: 'the Full contrast switch, on' }, r1.found === 0,
+    `${brand} / Interactive / disabledMin: under Full contrast the floor chips are not drawn (QA-I8) — ${r1.found} drawn, switch ${on}`);
+  ok((await persistedAt(page, 'disabledStrategy')) === 'full', `${brand} / Interactive / disabledStrategy: the Full contrast switch on writes "full" (wrote ${JSON.stringify(await persistedAt(page, 'disabledStrategy'))})`);
   // At 380 the page's chips stay inside the panel (long labels wrap onto a second row).
   await page.setViewportSize({ width: 380, height: 900 });
   const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);

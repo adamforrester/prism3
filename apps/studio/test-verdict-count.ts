@@ -109,14 +109,14 @@ if (twoTheme) {
   ok(JSON.stringify(per) === JSON.stringify(TWO_MODES_PER), `two-mode fixture: each mode's line — read ${JSON.stringify(per)}`);
 }
 
-// A failure just under its floor (#1930). `text.tertiary` re-pointed at neutral.350 in Light: its floor is
-// 3:1 against neutral.050, and it lands a fraction under (about 2.82:1, measured once by hand and checked
+// A failure just under its floor (#1930). `text.tertiary` re-pointed at neutral.400 in Light: its floor is
+// 3:1 against neutral.050, and it lands a fraction under (about 2.70:1, measured once by hand and checked
 // below from the engine's own resolved record, never from the verdict module). Nothing else is measured
 // against `text.tertiary`, and no other mode carries an override. Its icon twin is pinned at its own derived step,
 // neutral.450 (3.18:1), for the same reason as above (#1968). So: 1 failure, in Light, 1 mode.
 const NEAR_LINE = '1 of 884 below floor, 1 mode';
 const near = structuredClone(input) as BrandInput;
-near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '350' }, 'icon.tertiary': { palette: 'neutral', step: '450' } } } as BrandInput['overrides'];
+near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '400' }, 'icon.tertiary': { palette: 'neutral', step: '450' } } } as BrandInput['overrides'];
 let nearTheme;
 try { nearTheme = brandTheme(near); } catch (e) { nearTheme = null; ok(false, `a near-floor fixture resolves — threw ${(e as Error).message}`); }
 if (nearTheme) {
