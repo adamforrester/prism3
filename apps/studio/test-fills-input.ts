@@ -27,8 +27,10 @@
  * S4e (#1972, the engine's #1987) adds:
  *   8. THE BACKGROUND TIERS: each control writes its `surfaces.<mode>` input (a literal), never an override, and
  *      the engine resolves the tier to the step written (the emission's hex); Auto clears it byte for byte; an
- *      override on a tier is still refused; the floor's Auto label names `background.secondary` and its step,
- *      and a Secondary pick re-derives a floor-gated role against it.
+ *      override on a tier is still refused; and a Secondary pick re-derives a floor-gated role against it.
+ *   9. THE FLOOR'S AUTO LABEL names the engine's floor (`foreground.brand.against`, resolved here with the
+ *      brand's `floorStep` removed), saying it follows `background.secondary` only when the floor IS that tier's
+ *      step: literal labels, ladder-end Pages in Light and Dark, and a sweep of every Page choice per brand.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). The role list is read from the COMMITTED EMISSION
  * (`packages/engine/out/prism3.tokens.json`), never from the module, and is also written out here as a
@@ -508,23 +510,85 @@ for (const [role, field] of [['background.secondary', 'secondary'], ['inverse.ba
   ok(msg.includes(`'${role}' is a GROUND`) && msg.includes(field), `an override on ${role} is still refused, naming surfaces.<mode>.${field} — ${msg ? msg.slice(0, 90) : 'it was ACCEPTED'}`);
 }
 
-// The contrast floor's Auto option follows the second tier (option A). Literal labels, and the engine's own floor.
+// ── 9. The contrast floor's Auto label names the ENGINE's floor (S4e review) ─────────────────────────
+console.log("\n9. The contrast floor's Auto label: the engine's floor, and the tier only when the floor is the tier's step (oracle: literals, the engine's foreground.brand.against)");
+/** The engine's Auto floor in `mode`, read here, never through the module: `foreground.brand`'s `against` and
+ *  `background.secondary`'s step, resolved by the engine from the working brand with `floorStep` removed (the
+ *  brand Auto would leave). */
+const engineFloor = (mode: 'light' | 'dark'): { against?: string; secondary?: string } => {
+  const b = structuredClone(store.brandState);
+  delete (b.surfaces?.[mode] as { floorStep?: number } | undefined)?.floorStep;
+  const roles = resolveAllModes(brandTheme(b)).find((m) => m.mode === mode)?.roles as Record<string, { path?: string; against?: string } | undefined>;
+  return { against: roles['foreground.brand']?.against, secondary: roles['background.secondary']?.path?.replace(/^[^.]+\.core\.(palette\.)?/, '') };
+};
+/** Each case: a brand, a mode, the surfaces edit, the label (LITERAL), and the engine floor and tier it must name
+ *  (LITERAL, checked against the engine). A ladder-end Page in each scheme: Light's Black and 950, whose second
+ *  tier snaps to black while the floor stays neutral 950; Dark's White and 050, whose tier snaps to white while
+ *  the floor stays neutral 050 or 025. */
+type FloorCase = { brand: string; mode: 'light' | 'dark'; edit: () => void; label: string; floor: string; secondary: string; what: string };
+const FLOOR_CASES: FloorCase[] = [
+  { brand: 'prism3', mode: 'light', edit: () => {}, label: 'Auto · follows background.secondary (neutral 050)', floor: 'neutral.050', secondary: 'neutral.050', what: 'Page White (as loaded)' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceBase('light', '200'), label: 'Auto · follows background.secondary (neutral 250)', floor: 'neutral.250', secondary: 'neutral.250', what: 'Page neutral 200' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceBase('light', 'black'), label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black (a ladder end)' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceBase('light', '950'), label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page neutral 950 (a ladder end)' },
+  { brand: 'prism3', mode: 'dark', edit: () => {}, label: 'Auto · follows background.secondary (neutral 900)', floor: 'neutral.900', secondary: 'neutral.900', what: 'Page Black (as loaded)' },
+  { brand: 'prism3', mode: 'dark', edit: () => F.setSurfaceBase('dark', '300'), label: 'Auto · follows background.secondary (neutral 250)', floor: 'neutral.250', secondary: 'neutral.250', what: 'Page neutral 300' },
+  { brand: 'prism3', mode: 'dark', edit: () => F.setSurfaceBase('dark', 'white'), label: 'Auto · neutral 050', floor: 'neutral.050', secondary: 'white', what: 'Page White (a ladder end)' },
+  { brand: 'prism3', mode: 'dark', edit: () => F.setSurfaceBase('dark', '050'), label: 'Auto · neutral 025', floor: 'neutral.025', secondary: 'white', what: 'Page neutral 050 (a ladder end)' },
+  { brand: 'harbor', mode: 'light', edit: () => F.setSurfaceBase('light', 'black'), label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black (a ladder end)' },
+  { brand: 'harbor', mode: 'dark', edit: () => F.setSurfaceBase('dark', 'white'), label: 'Auto · neutral 050', floor: 'neutral.050', secondary: 'white', what: 'Page White (a ladder end)' },
+  { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceTier('light', 'secondary', '200'), label: 'Auto · follows background.secondary (neutral 200)', floor: 'neutral.200', secondary: 'neutral.200', what: 'Secondary at neutral 200' },
+  // With a `floorStep` set the engine's floor is that step; the Auto option names the floor Auto would restore.
+  { brand: 'prism3', mode: 'light', edit: () => { F.setSurfaceTier('light', 'secondary', '200'); F.setSurfaceFloor('light', '100'); }, label: 'Auto · follows background.secondary (neutral 200)', floor: 'neutral.200', secondary: 'neutral.200', what: 'Secondary at neutral 200, floorStep 100 set' },
+  { brand: 'prism3', mode: 'light', edit: () => { F.setSurfaceBase('light', 'black'); F.setSurfaceFloor('light', '100'); }, label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black, floorStep 100 set' },
+];
+for (const c of FLOOR_CASES) {
+  reset((exampleBrands as Record<string, BrandInput>)[c.brand]);
+  c.edit();
+  store.rebuild();
+  const eng = engineFloor(c.mode);
+  const label = F.floorAutoLabel(c.mode);
+  ok(eng.against === c.floor && eng.secondary === c.secondary && label === c.label,
+    `${c.brand} ${c.mode === 'light' ? 'Light' : 'Dark'}, ${c.what}: the engine's Auto floor is ${c.floor} (foreground.brand.against ${eng.against}), background.secondary ${c.secondary} (${eng.secondary}), and the floor's Auto reads ${JSON.stringify(c.label)} (read ${JSON.stringify(label)})`);
+}
+// The last case still has floorStep 100 set: the engine measures against neutral.100, which the Auto option does not name.
+const fbSet = roleIn(allModes(), 'foreground.brand', 'light') as { against?: string } | undefined;
+ok(fbSet?.against === 'neutral.100', `with floorStep 100 set, the engine's live floor is neutral.100 (${fbSet?.against}), not what the Auto option names`);
+// Every Page choice, both modes, every corpus brand: the label names the engine's floor, in the form the engine's
+// own two reads imply (the floor IS the tier → "follows"; otherwise the floor alone). The plain form's Page choices
+// are written out, so a choice that moves between forms fails by name.
+const PLAIN_FORM: Record<'light' | 'dark', string[]> = { light: ['950', 'black'], dark: ['white', '025', '050'] };
+for (const brand of ['prism3', 'aurora', 'harbor']) {
+  for (const mode of ['light', 'dark'] as const) {
+    const wrong: string[] = [], plain: string[] = [];
+    let n = 0;
+    reset((exampleBrands as Record<string, BrandInput>)[brand]);
+    for (const { key } of F.pageSteps()) {
+      reset((exampleBrands as Record<string, BrandInput>)[brand]);
+      F.setSurfaceBase(mode, key);
+      store.rebuild();
+      n++;
+      const eng = engineFloor(mode);
+      const shown = (eng.against ?? '').split('.').join(' ');
+      const want = eng.against === eng.secondary ? `Auto · follows background.secondary (${shown})` : `Auto · ${shown}`;
+      if (eng.against !== eng.secondary) plain.push(key);
+      const got = F.floorAutoLabel(mode);
+      if (got !== want) wrong.push(`${key}: ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+    }
+    ok(n > 20 && wrong.length === 0 && JSON.stringify(plain) === JSON.stringify(PLAIN_FORM[mode]),
+      `${brand} ${mode}: each of the ${n} Page choices names the engine's floor; the floor is not the tier for ${JSON.stringify(plain)} (want ${JSON.stringify(PLAIN_FORM[mode])})${wrong.length ? ` — wrong: ${wrong.join('; ')}` : ''}`);
+  }
+}
+
+// A Secondary pick re-derives a floor-gated role against it (option A).
 reset();
-ok(F.floorAutoLabel('light') === 'Auto · follows background.secondary (neutral 050)', `prism3 Light: the floor's Auto reads "Auto · follows background.secondary (neutral 050)" (read ${JSON.stringify(F.floorAutoLabel('light'))})`);
 const textSecBefore = roleIn(allModes(), 'text.secondary', 'light') as { path?: string; against?: string } | undefined;
 F.setSurfaceTier('light', 'secondary', '200');
 store.rebuild();
-ok(F.floorAutoLabel('light') === 'Auto · follows background.secondary (neutral 200)', `Secondary at neutral 200: the floor's Auto reads "Auto · follows background.secondary (neutral 200)" (read ${JSON.stringify(F.floorAutoLabel('light'))})`);
 const textSec = roleIn(allModes(), 'text.secondary', 'light') as { path?: string; against?: string } | undefined;
 ok(textSecBefore?.against === 'neutral.050' && textSec?.against === 'neutral.200' && textSec.path !== textSecBefore.path,
   `Secondary at neutral 200: the engine re-derives the floor-gated text.secondary against neutral.200 (against ${textSecBefore?.against} → ${textSec?.against}, ${textSecBefore?.path} → ${textSec?.path})`);
 ok(F.floorAutoLabel('dark') === 'Auto · follows background.secondary (neutral 900)', `and Dark's floor Auto is untouched (read ${JSON.stringify(F.floorAutoLabel('dark'))})`);
-// An explicit floor still wins in the engine; the Auto option keeps saying what Auto would restore.
-F.setSurfaceFloor('light', '100');
-store.rebuild();
-const fb = roleIn(allModes(), 'foreground.brand', 'light') as { against?: string } | undefined;
-ok(fb?.against === 'neutral.100' && F.floorAutoLabel('light') === 'Auto · follows background.secondary (neutral 200)',
-  `with floorStep 100 set, the engine's floor is neutral.100 (${fb?.against}) and Auto still names the tier it would restore (${JSON.stringify(F.floorAutoLabel('light'))})`);
 
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);

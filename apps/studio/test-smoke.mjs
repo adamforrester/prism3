@@ -1618,7 +1618,9 @@ for (const brand of BRANDS) {
 //     in Light. EXPECTED: before the pick, the floor's Auto option and the floor-gated text.secondary's picker name
 //     the step the COMMITTED EMISSION aliases for background.secondary in light; after it, the literal step picked
 //     (neutral 200), in the floor's Auto label and as text.secondary's ground; the persisted brand carries
-//     `surfaces.light.secondary: 200` and the overrides it carried before; Return to Auto removes the key.
+//     `surfaces.light.secondary: 200` and the overrides it carried before; Return to Auto removes the key. Then
+//     (the review): the page tiers' pickers offer neutral only and the inverse tiers the Inverse fill's palettes,
+//     and at a ladder-end Page in Light and in Dark the floor's Auto label names the engine's floor alone.
 console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1668,8 +1670,47 @@ for (const brand of BRANDS) {
     `S4e ${brand}: Return to Auto clears surfaces.light.secondary, the surfaces as loaded — persisted ${JSON.stringify(cleared?.surfaces)} (loaded ${JSON.stringify(before?.surfaces)})`);
   const autoBack = await floorAuto();
   ok(autoBack === autoBefore, `S4e ${brand}: and the floor's Auto label is back to ${JSON.stringify(autoBefore)} — read ${JSON.stringify(autoBack)}`);
+  // The page tiers draw on the neutral palette only (S4e review): their pickers' palette select offers neutral and
+  // nothing else, the palette the committed emission aliases background.secondary to. The inverse tiers keep every
+  // palette the Inverse fill can draw on (owner, 2026-10-03: the picker's palette select stays), read off the
+  // Inverse fill's own palette select. EXPECTED: literal 'neutral', and the emission's alias.
+  const wasPalette = (/\.palette\.([a-z0-9-]+)\.[0-9]+\}$/.exec(wasAlias) ?? [])[1] ?? null;
+  const pickerPalettes = async (k) => {
+    await hooks.click(page.locator(SURF(k)));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker-palette"]');
+    const vals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-palette"] option')].map((o) => o.value));
+    await page.keyboard.press('Escape');
+    return vals;
+  };
+  const bandPals = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-band-palette"] option')].map((o) => o.value));
+  for (const k of ['secondary', 'tertiary']) {
+    const pals = await pickerPalettes(k);
+    ok(wasPalette === 'neutral' && JSON.stringify(pals) === JSON.stringify(['neutral']),
+      `S4e ${brand}: the ${k} picker offers the neutral palette only (the emission draws background.secondary on ${wasPalette}) — read ${JSON.stringify(pals)}`);
+  }
+  for (const k of ['inverse-secondary', 'inverse-tertiary']) {
+    const pals = await pickerPalettes(k);
+    ok(pals.includes('neutral') && pals.includes('primary') && JSON.stringify(pals) === JSON.stringify(bandPals),
+      `S4e ${brand}: the ${k} picker still offers the Inverse fill's palettes ${JSON.stringify(bandPals)} — read ${JSON.stringify(pals)}`);
+  }
+  // The floor's Auto label names the ENGINE's floor (S4e review). At a ladder end the second tier snaps to black
+  // (Light, Page Black) or white (Dark, Page White) while the floor stays a neutral step, so the label names the
+  // floor alone. EXPECTED: the literal label, and the floor the engine measures the floor-gated text.secondary on
+  // (its picker's hint), the two read through different controls.
+  for (const [m, pageKey, want] of [['light', 'black', 'Auto · neutral 950'], ['dark', 'white', 'Auto · neutral 050']]) {
+    await previewMode(page, m);
+    const rawP = await brandRaw();
+    await hooks.click(page.locator(SURF('base')));
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${pageKey}"]`));
+    await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, rawP, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    const persisted = (await inputAt(page))?.surfaces?.[m]?.base;
+    const label = await floorAuto(), ground = await groundOf();
+    ok(persisted === pageKey && label === want && `Auto · ${String(ground).split('.').join(' ')}` === want,
+      `S4e ${brand}: ${m}, Page ${pageKey} (a ladder end): the floor's Auto reads ${JSON.stringify(want)}, the floor text.secondary is measured on — read ${JSON.stringify(label)}, against ${JSON.stringify(ground)}, base ${JSON.stringify(persisted)}`);
+  }
   const errs = drain();
-  ok(errs.length === 0, `S4e ${brand}: 0 console errors across the Secondary edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  ok(errs.length === 0, `S4e ${brand}: 0 console errors across the Secondary and Page edits${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 

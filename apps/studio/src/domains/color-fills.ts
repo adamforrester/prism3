@@ -90,7 +90,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
     const b = leverBlock('surfaces', {
       label: 'Background fills',
-      desc: 'The page, its tiers and the inverse fill for the mode the preview shows. The contrast floor follows background.secondary.',
+      desc: 'The page, its tiers and the inverse fill for the mode the preview shows.',
     });
     const opts = neutralStepOptions();
     const { source: m, editable } = surfaceSourceOf(currentMode);
@@ -186,7 +186,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     for (const [tier, label] of [['secondary', 'Secondary'], ['tertiary', 'Tertiary']] as const) {
       tierField(grid, tier, label, `surface-${tier}-pick`, [{ palette: nPal, steps: pageSteps() }], (_p, step) => setSurfaceTier(m, tier, step));
     }
-    // Contrast floor: Auto names the floor it derived and the tier it follows (#1987, option A; `floorAutoLabel`).
+    // Contrast floor: Auto names the floor the engine derives, and the tier when it is that tier's step (`floorAutoLabel`).
     const ff = sel('p3-surf-floor', 'Contrast floor', 'surface-floor',
       [{ v: '', l: floorAutoLabel(m) }, ...opts.map((o) => ({ v: String(o.value), l: o.label }))],
       cur?.floorStep == null ? '' : String(cur.floorStep), (v) => edit('surfaces', () => setSurfaceFloor(m, v)));

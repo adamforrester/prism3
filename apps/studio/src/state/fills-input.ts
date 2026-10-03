@@ -34,8 +34,8 @@
  * writes are surface writes, like the Page's and the band's, never `setRoleOverride`: `setSurfaceTier` (the
  * page's type) and `setInverseTier` (the band's type). Auto clears the input, pruning as an override clears.
  */
-import type { GradientInput } from '@prism3/engine/theme';
-import { BUILTIN_MODES } from '@prism3/engine/modes';
+import { brandTheme, type GradientInput } from '@prism3/engine/theme';
+import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
 import { brandState, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
@@ -126,16 +126,32 @@ export const pageKeyOf = (base: string | number): string =>
 export const setSurfaceBase = (mode: SurfaceMode, v: string): void => {
   setPath(brandState, `surfaces.${mode}.base`, v === 'white' || v === 'black' ? v : Number(v));
 };
-/** The contrast floor's Auto option, in `mode`. With no `floorStep`, the engine carries the floor on the second
- *  tier (#1987, option A: a declared `secondary` moves it; unset, the tier and the default floor are one step), so
- *  Auto names `background.secondary` and the step it resolves to. Read off the TIER, not off the floor a bold
- *  fill is measured against: while a `floorStep` is set the floor is that step, and the Auto option still says
- *  what Auto would restore. DRAFT copy, pending the owner. */
+/** The contrast floor's Auto option, in `mode`: the floor the ENGINE derives with no `floorStep`, read off the
+ *  resolved theme (`foreground.brand`'s `against`, the floor every floor-gated role is measured on). With nothing
+ *  declared that is `background.secondary`'s step, and the option says it follows the tier; at the ladder's ends it
+ *  is not (Page Black in Light: the tier snaps to black, the floor stays neutral 950), and the option names the
+ *  floor alone. While a `floorStep` is set the engine's floor is that step, so the Auto floor is read off the brand
+ *  with it removed: the option says what Auto would restore. Display only; it writes nothing. */
 export const floorAutoLabel = (mode: SurfaceMode): string => {
-  const path = rolesIn(mode)[SURFACE_TOKENS.secondary]?.path;
-  if (!path) return 'Auto';
-  const at = stepOfPath(path);
-  return `Auto · follows ${SURFACE_TOKENS.secondary} (${at ? `${at.palette} ${at.step}` : path.split('.').pop()})`;
+  const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
+  const floor = roles['foreground.brand']?.against;
+  if (!floor) return 'Auto';
+  const shown = (s: string): string => s.split('.').join(' ');
+  const sec = stepOfPath(roles[SURFACE_TOKENS.secondary]?.path);
+  const secKey = sec ? `${sec.palette}.${sec.step}` : roles[SURFACE_TOKENS.secondary]?.path?.split('.').pop();
+  return floor === secKey ? `Auto · follows ${SURFACE_TOKENS.secondary} (${shown(floor)})` : `Auto · ${shown(floor)}`;
+};
+/** `mode`'s roles as the engine resolves them with `surfaces.<mode>.floorStep` removed: the brand Auto would leave.
+ *  One extra resolve per theme, only while a floor is set, cached by the theme object as `resolvedModes` is. */
+let autoFloor: { theme: unknown; mode: string; roles: Record<string, FillRole | undefined> } | null = null;
+const autoFloorRoles = (mode: SurfaceMode): Record<string, FillRole | undefined> => {
+  if (autoFloor && autoFloor.theme === theme && autoFloor.mode === mode) return autoFloor.roles;
+  const b = structuredClone(brandState);
+  delete (b.surfaces?.[mode] as { floorStep?: number } | undefined)?.floorStep;
+  let roles: Record<string, FillRole | undefined> = {};
+  try { roles = (resolveAllModes(brandTheme(b)).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, FillRole | undefined>; } catch { /* the option reads plain Auto */ }
+  autoFloor = { theme, mode, roles };
+  return roles;
 };
 /** The contrast floor: a neutral step, or `''` for Auto. */
 export const setSurfaceFloor = (mode: SurfaceMode, v: string): void => {
