@@ -50,7 +50,7 @@ import { paletteRefOptions } from '../levers/controls';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { addRowButton, choice, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
@@ -176,8 +176,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     if (nested) el.dataset.nested = 'true';
     const sw = h('span', 'p3-fill-sw');
     sw.dataset.content = '';
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', r.role));
+    const nm = tokenLabel(r.role, label);
     const wrap = h('div', 'p3-fillrow-wrap');
     const said = `${r.group} ${label} ${r.role}`.toLowerCase();
 

@@ -2907,7 +2907,7 @@ for (const host of ['web', 'figma']) {
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
     })),
-    // The four tiers' names over their tokens (S4e, APPROVED with #2001), read off the label each picker is named by.
+    // The four tiers' names, their tokens under them (S4e; QA-B2 puts the name first).
     tierNames: ['surface-secondary-pick', 'surface-tertiary-pick', 'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
@@ -4262,8 +4262,8 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
-// Represented, on both hosts: the two Faces levers once; every text type's select by its token, the token FIRST in
-// mono with its plain name under it (Q68); the library's faces by token first; code's None (Q75, literal); Light's
+// Represented, on both hosts: the two Faces levers once; every text type's select by its plain name FIRST, its token
+// under it in mono (QA-B2, which reversed Q68's token-first order); the library's faces by name first, token under; code's None (Q75, literal); Light's
 // selects on the emission's faces; the four-tab bar gone; the lent legacy region drawn; Show advanced holding Apply
 // to all and the remove button; Q23's Faces copy the same in the levers and the preview.
 for (const host of ['web', 'figma']) {
@@ -4278,10 +4278,11 @@ for (const host of ['web', 'figma']) {
         const sel = row.querySelector('[data-p3="family-select"]');
         return { group: row.dataset.group, first: name?.firstElementChild?.className ?? null, tok: name?.querySelector('.p3-fill-tok')?.textContent ?? null,
           tokFont: name?.querySelector('.p3-fill-tok') ? getComputedStyle(name.querySelector('.p3-fill-tok')).fontFamily : null,
-          label: name?.querySelector('.p3-field-label')?.textContent ?? null, labelFor: name?.getAttribute('for') === sel?.id,
+          label: name?.querySelector('.p3-fill-label')?.textContent ?? null, labelFor: name?.getAttribute('for') === sel?.id,
           value: sel?.selectedOptions[0]?.textContent ?? null, options: sel ? [...sel.options].map((o) => o.textContent) : [] };
       });
-      const lib = [...pane.querySelectorAll('[data-p3="face-row"]')].map((row) => ({ slug: row.dataset.slug, first: row.querySelector('.p3-fill-name')?.firstElementChild?.textContent ?? null }));
+      const lib = [...pane.querySelectorAll('[data-p3="face-row"]')].map((row) => ({ slug: row.dataset.slug, first: row.querySelector('.p3-fill-name')?.firstElementChild?.className ?? null,
+        tok: row.querySelector('.p3-fill-name .p3-fill-tok')?.textContent ?? null }));
       const lsec = pane.querySelector('[data-p3="lever-section"]');
       const prev = [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].find((x) => x.querySelector('.psec-t')?.textContent === 'Font families');
       return {
@@ -4297,13 +4298,13 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(r.fams.map((f) => f.group)) === JSON.stringify(TYPE_FACES.map(([g]) => g)), `${host}: a face select per text type, in order — drew ${JSON.stringify(r.fams.map((f) => f.group))}`);
     for (const [g, label] of TYPE_FACES) {
       const f = r.fams.find((x) => x.group === g);
-      ok(!!f && f.first === 'p3-fill-tok' && f.tok === `font.family.${g}` && f.label === label && f.labelFor && /JetBrains Mono|P3 Chrome Mono/.test(f.tokFont ?? ''),
-        `Q68: ${host}: the ${g} select is named by its token first, font.family.${g} in mono, then "${label}" — read ${JSON.stringify(f && { first: f.first, tok: f.tok, label: f.label, labelFor: f.labelFor, font: f.tokFont })}`);
+      ok(!!f && f.first === 'p3-fill-label' && f.tok === `font.family.${g}` && f.label === label && f.labelFor && /JetBrains Mono|P3 Chrome Mono/.test(f.tokFont ?? ''),
+        `QA-B2: ${host}: the ${g} select is named "${label}" first, then font.family.${g} in mono — read ${JSON.stringify(f && { first: f.first, tok: f.tok, label: f.label, labelFor: f.labelFor, font: f.tokFont })}`);
       ok(f?.value === (g === 'code' ? TYPE_FACE_OF('code') : TYPE_FACE_OF(g)), `${host}: in Light the ${g} select shows the emission's face ${TYPE_FACE_OF(g)} (shows ${f?.value})`);
     }
     const code = r.fams.find((x) => x.group === 'code');
     ok(!!code && code.options.includes('None — no code styles'), `Q75: ${host}: code's select offers "None — no code styles" (${JSON.stringify(code?.options)})`);
-    ok(r.lib.length >= 3 && r.lib.every((x) => x.first === `font.typeface.${x.slug}`), `Q68: ${host}: every library face is named by its token first (${JSON.stringify(r.lib)})`);
+    ok(r.lib.length >= 3 && r.lib.every((x) => x.first === 'p3-fill-label' && x.tok === `font.typeface.${x.slug}`), `QA-B2: ${host}: every library face is named first, its token under it (${JSON.stringify(r.lib)})`);
     ok(r.tabs === 0, `${host}: the four-tab bar (Primitives · Semantics · Text styles · Preview) is gone (${r.tabs} drawn)`);
     ok(r.lent.every(Boolean), `${host}: the lent region draws the legacy heading sizes, the text-type table and the font-style pins (${JSON.stringify(r.lent)})`);
     ok(JSON.stringify(r.leverCopy) === JSON.stringify(FACES_COPY) && JSON.stringify(r.previewCopy) === JSON.stringify(r.leverCopy),
@@ -4636,6 +4637,198 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(errors.length === 0, `QA-B9/B17/I11: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 22. The shared styling pass (the owner's QA, evening 2026-10-02: QA-B2, B5, B8, B11, B18, I12, R1), read from the RENDERED layout on both hosts and in both chrome themes.
+//
+//     Independence (docs/34): every length and color the page is held to is read here from the token tree the
+//     chrome is built from (`chrome/tokens.mjs` over the committed emission): `space.300` for the row gap,
+//     `core.dimension.40` for the swatch, `core.font.size.12` for the row text, and `color.inverse.background.primary`
+//     with `color.inverse.text.primary` for Continue, per chrome theme. Never the page's `--p3-*` variables, never
+//     `chrome.css`. Which controls count as a row's name, a select or a step-picker button is read by element and
+//     hook (`select`, a step-picker button by its hook, the `.p3-fill-name` block), and each page must REPRESENT each
+//     row type, so an empty page cannot pass. The 16px caret allowance and the 0.5px tolerance are literals here.
+//
+//     Mutations this fails by name: the token back above the label → `QA-B2: … the token sits below its label …`;
+//     a pick button's caret back after its text → `QA-B5: … every select and step-picker button has its caret within
+//     16px of its right edge …`; the row gap back to 150 → `QA-B8: … rows stand space.300 apart …`; the swatch at 32 →
+//     `QA-B11: … every swatch is 40×40 …`; Continue back to the ghost button → `QA-I12: … Continue is the filled
+//     primary button …`.
+// =============================================================================================
+console.log(`\nShared styling (QA-B2, B5, B8, B11, B18, I12, R1)\n${'='.repeat(78)}`);
+/** THE ORACLE: the chrome's own tokens, per chrome theme, from the token tree the chrome is built from. */
+const STYLE = (() => {
+  const m = loadModes();
+  const v = (tree, p) => String(resolveToken(tree, P(p)).value).toLowerCase();
+  const px = (s) => (s.endsWith('rem') ? parseFloat(s) * 16 : parseFloat(s));
+  const rgb = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
+  return {
+    rowGap: px(v(m.light, 'space.300')), swatch: px(v(m.light, 'core.dimension.40')), rowText: px(v(m.light, 'core.font.size.12')),
+    fill: { light: rgb(v(m.light, 'color.inverse.background.primary')), dark: rgb(v(m.dark, 'color.inverse.background.primary')) },
+    ink: { light: rgb(v(m.light, 'color.inverse.text.primary')), dark: rgb(v(m.dark, 'color.inverse.text.primary')) },
+  };
+})();
+ok(STYLE.rowGap === 24 && STYLE.swatch === 40 && STYLE.rowText === 12 && /^rgb\(/.test(STYLE.fill.light) && STYLE.fill.light !== STYLE.fill.dark,
+  `shared styling oracle: space.300, core.dimension.40 and core.font.size.12 resolve to px, and the inverse fill per theme (${JSON.stringify(STYLE)})`);
+/** A caret is within this many px of its control's right edge (the task's allowance, literal). */
+const CARET_EDGE = 16;
+/** Every `.p3-fill-name` in the levers pane: where its label and its token sit, and which row type it is in. */
+const readNames = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fill-name')].filter((n) => n.offsetParent).map((n) => {
+  const lab = n.querySelector('.p3-fill-label'), tok = n.querySelector('.p3-fill-tok');
+  const L = lab?.getBoundingClientRect(), T = tok?.getBoundingClientRect();
+  const kind = n.closest('[data-p3="family-row"]') ? 'type-family' : n.closest('[data-p3="face-row"]') ? 'type-face' : n.closest('[data-p3="interactive-levers"]') ? 'interactive-row'
+    : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
+  return { kind, role: n.closest('.p3-fillrow')?.dataset.role ?? null, token: tok?.textContent ?? null, label: lab?.textContent ?? null, below: !!L && !!T && T.top >= L.bottom - 0.5,
+    labTop: L ? Math.round(L.top) : null, tokTop: T ? Math.round(T.top) : null, tokFont: tok ? getComputedStyle(tok).fontFamily : null };
+}));
+/** Every select and step-picker button drawn in the levers pane: height, font size, alignment and where its caret is. */
+/** The step-picker buttons, by hook (literal, so the hook guard reads them). */
+const PICK_SEL = ['fill-pick', 'int-pick', 'surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-step-pick',
+  'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick', 'surface-floor-pick'].map((x) => `button[data-p3="${x}"]`).join(', ');
+const readControls = (page) => page.evaluate((PICKS) => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  // The chrome's selects: Type's lent legacy region (the earlier page's own controls, until S6.3) is not chrome.
+  const sels = [...pane.querySelectorAll('select')].filter((s) => s.offsetParent && !s.closest('[data-p3="type-lent"]')).map((s) => {
+    const r = s.getBoundingClientRect();
+    const caret = s.parentElement?.querySelector(':scope > svg');
+    const c = caret?.getBoundingClientRect();
+    const cs = getComputedStyle(s);
+    return { kind: 'select', hook: s.getAttribute('data-p3'), h: +r.height.toFixed(2), fs: parseFloat(cs.fontSize), align: cs.textAlign,
+      caretGap: c ? +(r.right - c.right).toFixed(2) : null, textStart: null };
+  });
+  const picks = [...pane.querySelectorAll(PICKS)].filter((b) => b.offsetParent).map((b) => {
+    const r = b.getBoundingClientRect();
+    const svgs = b.querySelectorAll(':scope > svg');
+    const caret = svgs[svgs.length - 1]?.getBoundingClientRect();
+    const label = b.querySelector(':scope > span');
+    const lr = label?.getBoundingClientRect();
+    return { kind: 'pick', hook: b.getAttribute('data-p3'), h: +r.height.toFixed(2), fs: label ? parseFloat(getComputedStyle(label).fontSize) : null,
+      align: label ? getComputedStyle(label).textAlign : null, caretGap: caret ? +(r.right - caret.right).toFixed(2) : null,
+      textStart: lr ? +(lr.left - r.left - parseFloat(getComputedStyle(b).borderLeftWidth) - parseFloat(getComputedStyle(b).paddingLeft)).toFixed(2) : null };
+  });
+  return [...sels, ...picks];
+}, PICK_SEL);
+/** The vertical gaps between consecutive rows in each row list: [list, gap]. */
+const readRowGaps = (page) => page.evaluate(() => {
+  const out = [];
+  /** Consecutive visible nodes; with `isRow`, only neighbors that are both rows (a sub-heading between two breaks the pair). */
+  const pairs = (list, nodes, isRow = () => true) => { const v = nodes.filter((n) => n.offsetParent); for (let i = 1; i < v.length; i++) if (isRow(v[i - 1]) && isRow(v[i])) out.push([list, +(v[i].getBoundingClientRect().top - v[i - 1].getBoundingClientRect().bottom).toFixed(2)]); };
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  // Surfaces & fills: a section's rows, each a row and the picker under it when open (none open here).
+  // S4f: Background fills' two row lists (QA-B1) and the Fields rows join them.
+  for (const box of pane.querySelectorAll('[data-p3="surface-default-rows"], [data-p3="surface-inverse-rows"], [data-p3="foreground-rows"], [data-p3="text-rows"], [data-p3="border-rows"], [data-p3="field-rows"]')) pairs(box.getAttribute('data-p3'), [...box.children], (n) => !!n.querySelector(':scope > .p3-fillrow'));
+  // Interactive: a set's rest rows, and the state rows under each.
+  const g = pane.querySelector('[data-p3="int-row-group"]');
+  if (g) {
+    const rest = g.querySelector(':scope > :first-child'), states = g.querySelector('[data-p3="int-row-states"]');
+    if (rest && states) pairs('interactive rest → states', [rest, states]);
+    if (states) pairs('interactive states', [...states.children]);
+    const col = g.parentElement;
+    pairs('interactive groups', [...col.querySelectorAll(':scope > [data-p3="int-row-group"]')]);
+  }
+  // Type: the font family rows.
+  const fr = pane.querySelector('[data-p3="family-rows"]');
+  if (fr) pairs('type families', [...fr.querySelectorAll(':scope > [data-p3="family-row"]')]);
+  return out;
+});
+for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light'], ['figma', 'dark']]) {
+  const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+  const where = `${host} ${theme}`;
+  try {
+    const names = [], ctls = [], gaps = [], swatches = [], nexts = [];
+    for (const place of ['color-fills', 'color-interactive', 'type', 'brand']) {
+      await goPlace(page, place);
+      // Brand draws a select only for a custom mode's base: add one, so the page is represented.
+      if (place === 'brand') {
+        await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+        await hooks.need(page, '[data-p3="custom-mode-base"]');
+      }
+      names.push(...(await readNames(page)).map((n) => ({ ...n, place })));
+      ctls.push(...(await readControls(page)).map((c) => ({ ...c, place })));
+      gaps.push(...(await readRowGaps(page)).map(([l, g]) => ({ list: `${place} ${l}`, g })));
+      swatches.push(...await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fill-sw')].filter((n) => n.offsetParent)
+        .map((n) => { const r = n.getBoundingClientRect(); return [+r.width.toFixed(2), +r.height.toFixed(2)]; })));
+      nexts.push(await page.evaluate((p) => {
+        const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="fills-continue"], [data-p3="interactive-continue"], [data-p3="type-continue"], [data-p3="brand-continue"])');
+        if (!b) return { place: p, found: false };
+        const cs = getComputedStyle(b), lab = b.querySelector('span');
+        return { place: p, found: true, bg: cs.backgroundColor, ink: getComputedStyle(lab ?? b).color, edge: cs.borderTopColor, text: b.textContent };
+      }, place));
+    }
+    // QA-B2: each row type is represented, and in each the token sits below its label, in mono.
+    const kinds = ['fill-row', 'fill-field', 'interactive-row', 'type-family', 'type-face'];
+    const missing = kinds.filter((k) => !names.some((n) => n.kind === k));
+    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Surfaces & fills fields, Interactive rows, Type families and faces) — missing ${JSON.stringify(missing)}`);
+    // S4f: Background fills' rows (QA-B1), the Scrim row (QA-B10) and the Fields rows are among those read, by token.
+    const S4F_TOKENS = ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary', 'inverse.background.secondary',
+      'inverse.background.tertiary', 'scrim.default', 'field.fill', 'field.border.rest', 'inverse.field.placeholder'];
+    const notRead = S4F_TOKENS.filter((t) => !names.some((n) => n.place === 'color-fills' && n.token === t));
+    ok(notRead.length === 0, `QA-B2: ${where}: Surfaces & fills' Background fills, Scrim and Fields rows are read as name-and-token rows${notRead.length ? ` — not read: ${notRead.join(', ')}` : ''}`);
+    // The contrast floor row is a setting with no token (S4f): the one name drawn without one, by role.
+    const tokenless = names.filter((n) => n.token === null);
+    ok(tokenless.every((n) => n.role === 'surfaces.floorStep') && tokenless.length <= 1,
+      `QA-B2: ${where}: only the contrast floor row draws a name with no token under it — read ${JSON.stringify(tokenless.map((n) => [n.place, n.role, n.label]))}`);
+    const above = names.filter((n) => n.token !== null && !n.below);
+    ok(names.length >= 20 && above.length === 0,
+      `QA-B2: ${where}: in every row type the token sits below its label, so the label is read first (${names.length} read)${above.length ? ` — ${JSON.stringify(above.slice(0, 3))}` : ''}`);
+    const notMono = names.filter((n) => !/JetBrains Mono|P3 Chrome Mono/.test(n.tokFont ?? ''));
+    ok(notMono.length === 0, `QA-B2: ${where}: every token under a label is set in the chrome's mono${notMono.length ? ` — ${JSON.stringify(notMono.slice(0, 2))}` : ''}`);
+    // QA-B5, QA-B18: selects and step-picker buttons, each page represented.
+    const placesWith = (k) => [...new Set(ctls.filter((c) => c.kind === k).map((c) => c.place))];
+    ok(placesWith('select').length === 4 && placesWith('pick').length === 2 && ctls.some((c) => c.hook === 'custom-mode-base'),
+      `QA-B5: ${where}: selects are read on all four pages and step-picker buttons on Surfaces & fills and Interactive (selects on ${JSON.stringify(placesWith('select'))}, picks on ${JSON.stringify(placesWith('pick'))})`);
+    const hs = [...new Set(ctls.map((c) => c.h))];
+    ok(ctls.length >= 20 && Math.max(...hs) - Math.min(...hs) <= 0.5,
+      `QA-B5: ${where}: every select and step-picker button in a levers pane has one height (${ctls.length} read, heights ${JSON.stringify(hs)})${hs.length > 1 ? ` — e.g. ${JSON.stringify(ctls.filter((c) => c.h !== hs[0]).slice(0, 2))}` : ''}`);
+    const farCaret = ctls.filter((c) => c.caretGap === null || c.caretGap > CARET_EDGE || c.caretGap < 0);
+    ok(farCaret.length === 0, `QA-B5: ${where}: every select and step-picker button has its caret within ${CARET_EDGE}px of its right edge${farCaret.length ? ` — ${JSON.stringify(farCaret.slice(0, 3))}` : ''}`);
+    const centered = ctls.filter((c) => !['left', 'start'].includes(c.align) || (c.textStart !== null && Math.abs(c.textStart) > 0.5));
+    ok(centered.length === 0, `QA-B5: ${where}: every select's and step-picker button's text is set from the left${centered.length ? ` — ${JSON.stringify(centered.slice(0, 3))}` : ''}`);
+    const bigText = ctls.filter((c) => c.fs !== STYLE.rowText);
+    ok(bigText.length === 0, `QA-B18: ${where}: row select and step-picker button text is ${STYLE.rowText}px (core.font.size.12)${bigText.length ? ` — ${JSON.stringify(bigText.slice(0, 3))}` : ''}`);
+    // QA-B8: the gap between consecutive rows, in each row list.
+    const lists = [...new Set(gaps.map((x) => x.list.split(' ')[0]))];
+    const offGap = gaps.filter((x) => Math.abs(x.g - STYLE.rowGap) > 0.5);
+    ok(lists.length === 3 && gaps.length >= 10 && offGap.length === 0,
+      `QA-B8: ${where}: rows stand space.300 (${STYLE.rowGap}px) apart on Surfaces & fills, Interactive and Type (${gaps.length} gaps on ${JSON.stringify(lists)})${offGap.length ? ` — ${JSON.stringify(offGap.slice(0, 3))}` : ''}`);
+    // QA-B11: every swatch, 40 × 40.
+    const offSw = swatches.filter(([w, h]) => Math.abs(w - STYLE.swatch) > 0.5 || Math.abs(h - STYLE.swatch) > 0.5);
+    ok(swatches.length >= 20 && offSw.length === 0, `QA-B11: ${where}: every swatch is ${STYLE.swatch}×${STYLE.swatch} (core.dimension.40; ${swatches.length} read)${offSw.length ? ` — ${JSON.stringify(offSw.slice(0, 3))}` : ''}`);
+    // QA-I12: Continue, on each page, is the filled primary button: the inverse fill, its edge and its ink.
+    const offNext = nexts.filter((n) => !n.found || n.bg !== STYLE.fill[theme] || n.edge !== STYLE.fill[theme] || n.ink !== STYLE.ink[theme]);
+    ok(nexts.length === 4 && offNext.length === 0,
+      `QA-I12: ${where}: Continue is the filled primary button on every levers page (fill ${STYLE.fill[theme]}, ink ${STYLE.ink[theme]})${offNext.length ? ` — ${JSON.stringify(offNext)}` : ''}`);
+    // QA-R1: Add custom mode is the dashed add row, the list's full width, beside Interactive's (one helper).
+    const add = await page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="custom-mode-add"]');
+      const ctl = b?.closest('.p3-lever-ctl');
+      if (!b || !ctl) return null;
+      const cs = getComputedStyle(b);
+      return { styles: [cs.borderTopStyle, cs.borderRightStyle, cs.borderBottomStyle, cs.borderLeftStyle], w: +b.getBoundingClientRect().width.toFixed(2), full: +ctl.getBoundingClientRect().width.toFixed(2), bg: cs.backgroundColor, text: b.textContent };
+    });
+    ok(!!add && add.styles.every((s) => s === 'dashed') && Math.abs(add.w - add.full) <= 0.5 && add.bg === 'rgba(0, 0, 0, 0)' && add.text === 'Add custom mode',
+      `QA-R1: ${where}: Add custom mode is a dashed add row, the list's full width, unfilled — read ${JSON.stringify(add)}`);
+    ok(errors.length === 0, `shared styling: ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `shared styling ${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// QA-R1's behavior, on the studio: the add row still adds a mode and moves focus to its name.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    const before = await page.locator('[data-p3="custom-mode-row"]').count();
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await page.waitForFunction((n) => document.querySelectorAll('[data-p3="custom-mode-row"]').length === n + 1, before);
+    const foc = await page.evaluate(() => document.activeElement?.getAttribute('data-p3'));
+    ok(foc === 'custom-mode-name', `QA-R1: the add row adds a custom mode and moves focus to its name (${before} → ${before + 1} rows, focus on ${foc})`);
+
+    ok(errors.length === 0, `QA-R1: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `QA-R1: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
 

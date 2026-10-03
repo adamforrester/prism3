@@ -914,11 +914,17 @@ for (const b of brands) {
   // link derivation) — so this works for the page family and the inverse band alike.
   const groundRgbOf = (roles: Record<string, LRole | undefined> | undefined, key: string): RGB => {
     const against = roles?.[key]?.against;
-    const gHex = (against && roles?.[against]?.hex) || roles?.['background.primary']?.hex || '#ffffff';
+    // A floor-measured link names a PALETTE STEP (`neutral.050`), not a role (#2025): read its hex off
+    // the brand's own ramp, as data. Falling through to the page here measured the floor links on white.
+    const gHex = (against && (roles?.[against]?.hex ?? stepHexOf(against))) || roles?.['background.primary']?.hex || '#ffffff';
     return hexToRgb(gHex);
   };
 
   const base = brandTheme(inp as any);
+  const stepHexOf = (ref: string): string | undefined => {
+    const dot = ref.lastIndexOf('.');
+    return base.palettes.find((p) => p.palette === ref.slice(0, dot))?.steps.find((s) => s.key === ref.slice(dot + 1))?.hex;
+  };
   const actionPal = base.roleToPalette.action;
   const actSteps = (base.palettes.find((p) => p.palette === actionPal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
   const baseLight = rolesOf(base, 'light')!, baseDark = rolesOf(base, 'dark')!;
@@ -967,6 +973,63 @@ for (const b of brands) {
   const gRatio = gLight['text.link.default']?.ratio ?? 0;
   ok(gRatio >= 4.5, `L-06: a sub-floor absolute link override is CLAMPED to clear its 4.5:1 floor (emitted ${gRatio.toFixed(2)}:1 for step ${gStep}, raw pick ${sub.key})`);
   ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
+}
+
+// FO-01 (#2025) — an OVERRIDE is re-rated against its real ground when that ground is a PALETTE STEP.
+// A floor-measured role (`foreground.*`, links, `interactive.<c>.fill.*`) names its ground as a ramp
+// step — `neutral.050`, the contrast floor — not a role. The override pass looked `against` up among
+// ROLES only and fell back to the page base, so an overridden floor role recorded its contrast on white,
+// raised no warning for a shortfall that exists only on the floor, and clamped a link (#1510) to clear
+// white rather than the floor it sits on (4,810 sub-4.5:1 link emissions across the corpus sweep).
+// EXPECTED is authored HERE as literals: the sparsest brand's light floor is `#e9e9ea` and its page is
+// `#ffffff` (pinned as a precondition below, so a ramp change fails loudly rather than moving the
+// target), and every ratio is recomputed with the shared `contrast` primitive from those two hexes. No
+// engine ground lookup is imported, and neither is lint-ratio-truth's (docs/34). BY-NAME MUTATION:
+// revert modes.ts's override `againstRgb` to `rgbByRole.get(existing.against) ?? baseRgb` → (1), (2)
+// and (3) fail by name.
+{
+  const FLOOR = '#e9e9ea', PAGE = '#ffffff';
+  type ORole = { hex: string; path?: string; ratio: number; min: number; against: string };
+  type OMode = { mode: string; roles: Record<string, ORole>; warnings?: Array<{ role: string; against?: string }> };
+  const lightOf = (input: BrandInput): OMode => resolveAllModes(brandTheme(input)).find((m) => m.mode === 'light') as unknown as OMode;
+  const withOv = (role: string, step: string): BrandInput =>
+    ({ ...MINIMAL_BRAND, overrides: { light: { [role]: { palette: 'neutral', step } } } } as BrandInput);
+  const onRgb = (fg: string, bg: string) => contrast(hexToRgb(fg), hexToRgb(bg));
+  const base = brandTheme(MINIMAL_BRAND);
+  const neutral = (base.palettes.find((p) => p.palette === 'neutral')?.steps ?? []) as Array<{ key: string; hex: string }>;
+  const baseL = lightOf(MINIMAL_BRAND);
+  ok(baseL.roles['foreground.brand']?.against === 'neutral.050' && neutral.find((s) => s.key === '050')?.hex.toLowerCase() === FLOOR
+    && baseL.roles['background.primary']?.hex.toLowerCase() === PAGE,
+    `FO-01: the sparsest brand's light floor is neutral.050 at ${FLOOR} under a ${PAGE} page (precondition)`);
+
+  // (1) the recorded ratio is the contrast on the floor, not on the page.
+  const o1 = lightOf(withOv('foreground.brand', '500')).roles['foreground.brand'];
+  ok(Math.abs(o1.ratio - onRgb(o1.hex, FLOOR)) < 1e-9,
+    `FO-01: an overridden foreground.brand under the neutral.050 floor records its contrast on ${FLOOR} (records ${o1.ratio.toFixed(2)}, measures ${onRgb(o1.hex, FLOOR).toFixed(2)} on the floor, ${onRgb(o1.hex, PAGE).toFixed(2)} on the page)`);
+  ok(Math.abs(onRgb(o1.hex, FLOOR) - onRgb(o1.hex, PAGE)) > 0.1, 'FO-01: the floor and the page give different ratios for the pick (non-vacuous)');
+
+  // (2) the floor-short warning: a step that clears foreground.brand's bar on the page but not on the
+  // floor must be warned; a step that clears it on both must not be.
+  const min = baseL.roles['foreground.brand'].min;
+  const short = neutral.filter((s) => onRgb(s.hex, PAGE) >= min && onRgb(s.hex, FLOOR) < min).pop();
+  const clear = neutral.filter((s) => onRgb(s.hex, FLOOR) >= min)[0];
+  ok(!!short && !!clear, `FO-01: the neutral ramp has a step short of ${min}:1 only on the floor, and one clearing it there (precondition)`);
+  const warnedIn = (m: OMode) => new Set((m.warnings ?? []).filter((w) => w.against == null).map((w) => w.role));
+  ok(warnedIn(lightOf(withOv('foreground.brand', short.key))).has('foreground.brand'),
+    `FO-01: an override short of its ${min}:1 bar on the floor only (neutral.${short.key}: ${onRgb(short.hex, FLOOR).toFixed(2)} on ${FLOOR}, ${onRgb(short.hex, PAGE).toFixed(2)} on ${PAGE}) is warned`);
+  ok(!warnedIn(lightOf(withOv('foreground.brand', clear.key))).has('foreground.brand'),
+    `FO-01: an override that clears its bar on the floor (neutral.${clear.key}) is not warned (control)`);
+
+  // (3) the #1510 link clamp clears 4.5:1 on the floor, for a pick that already clears the page (the
+  // clamp used to leave it alone) and for one below both.
+  const linkOnPageOnly = neutral.filter((s) => onRgb(s.hex, PAGE) >= 4.5 && onRgb(s.hex, FLOOR) < 4.5).pop();
+  const linkBelowBoth = neutral[0];
+  ok(!!linkOnPageOnly && onRgb(linkBelowBoth.hex, PAGE) < 4.5, 'FO-01: the neutral ramp has a link pick clearing 4.5:1 on the page only, and one below it on both (precondition)');
+  for (const s of [linkOnPageOnly, linkBelowBoth]) {
+    const l = lightOf(withOv('text.link.default', s.key)).roles['text.link.default'];
+    ok(l.against === 'neutral.050' && onRgb(l.hex, FLOOR) >= 4.5,
+      `FO-01: a text.link.default override at neutral.${s.key} is clamped to clear 4.5:1 on the floor ${FLOOR} (emitted ${l.hex} at ${onRgb(l.hex, FLOOR).toFixed(2)})`);
+  }
 }
 
 // IT-01 (#1617) — an outline / text control's GLYPH follows its LABEL under a per-mode override. The
@@ -4544,6 +4607,38 @@ arm: {
         try { brandTheme(withTier(b, 'dark', { inverseTertiary: { palette: status, step: 300 } })); } catch (e) { statusBand = (e as Error).message; }
         ok(statusBand.includes('surfaces.dark.inverseTertiary') && statusBand.includes('STATUS'),
           `bg-tiers: validation — brandTheme refuses a status palette on surfaces.dark.inverseTertiary (got: "${statusBand.slice(0, 100)}")`);
+      }
+
+      // #1985 (owner, 2026-10-03, option A): `base` and `inverseBase` are held to the same check, so a typo never
+      // silently picks a color. Measured before the change: across every corpus brand, fixture, gate case and
+      // the Studio unit suites, no base or inverseBase relied on snapping or an unknown keyword (1,688 resolved,
+      // 0 off the ramp). EXPECTED is typed here: the refused values, the key the message must name, and the
+      // nearest real step, which is the neutral ramp's own arithmetic (25 … 950 in 50s), written out.
+      {
+        const b = MINIMAL_BRAND;
+        const withSurf = (mode: 'light' | 'dark', key: string, v: unknown): BrandInput =>
+          ({ ...b, surfaces: { [mode]: { [key]: v } } } as BrandInput);
+        const refusal = (input: BrandInput): string => { try { brandTheme(input); return ''; } catch (e) { return (e as Error).message; } };
+        const REFUSED: Array<[unknown, string | null]> = [['grey', null], [333, '350'], [1234, '950'], ['300', null]];
+        for (const mode of ['light', 'dark'] as const) {
+          for (const key of ['base', 'inverseBase']) {
+            for (const [v, nearest] of REFUSED) {
+              const msg = refusal(withSurf(mode, key, v));
+              ok(msg.includes(`surfaces.${mode}.${key}`) && msg.includes('ramp') && (nearest === null || msg.includes(`the nearest step is ${nearest}.`)),
+                `#1985: surfaces.${mode}.${key} = ${JSON.stringify(v)} is refused by name${nearest ? `, naming the nearest step ${nearest}` : ''} (got: "${msg.slice(0, 140)}")`);
+            }
+            for (const v of [350, 'white', 'black']) {
+              const msg = refusal(withSurf(mode, key, v));
+              ok(msg === '', `#1985: surfaces.${mode}.${key} = ${JSON.stringify(v)} is still accepted (got: "${msg.slice(0, 120)}")`);
+            }
+          }
+          // The inverse band's palette form: an off-ramp step names the nearest on THAT palette; an on-ramp one is accepted.
+          const off = refusal(withSurf(mode, 'inverseBase', { palette: 'primary', step: 901 }));
+          ok(off.includes(`surfaces.${mode}.inverseBase`) && off.includes('primary ramp') && off.includes('the nearest step is 900.'),
+            `#1985: surfaces.${mode}.inverseBase = { palette: 'primary', step: 901 } is refused, naming the nearest primary step 900 (got: "${off.slice(0, 140)}")`);
+          ok(refusal(withSurf(mode, 'inverseBase', { palette: 'primary', step: 900 })) === '',
+            `#1985: surfaces.${mode}.inverseBase = { palette: 'primary', step: 900 } is still accepted`);
+        }
       }
     }
 

@@ -107,6 +107,18 @@ export const stateLine = (text: string, kind: 'hint' | 'warn' = 'hint'): HTMLEle
 };
 export const subLine = (text: string): HTMLElement => h('p', 'p3-sub', text);
 
+/** A control's name and the token it sets (the owner's QA-B2, 2026-10-02): the label first, so it is read first,
+ *  and the token under it, in mono. Every fill row, every Surfaces & fills field and every Type family row draws
+ *  its name through this one helper, so the order is decided once. It reverses #1980's "token first" (and Type's
+ *  Q68 order with it). A `forId` makes it the control's `<label>`. */
+export const tokenLabel = (token: string, label: string, forId?: string): HTMLElement => {
+  const l = h(forId ? 'label' : 'div', 'p3-fill-name');
+  if (forId && l instanceof HTMLLabelElement) l.htmlFor = forId;
+  l.dataset.role = token;
+  l.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', token));
+  return l;
+};
+
 /** The jump links' visible label (QA-B17, APPROVED copy). The links' landmark keeps its own accessible name. */
 export const JUMP_TO = 'Jump to:';
 /** The label, drawn first in a page's jump links. */

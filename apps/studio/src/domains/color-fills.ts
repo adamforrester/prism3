@@ -49,7 +49,7 @@ import {
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { infoTip, inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -127,22 +127,24 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       const sw = h('span', 'p3-fill-sw');
       sw.dataset.content = '';
       sw.style.background = o.hex;
-      const lab = h('label', o.info ? 'p3-fill-label' : 'p3-fill-name');
-      lab.htmlFor = o.id;
-      let nm: HTMLElement = lab;
+      // The name with its token under it is the shared `tokenLabel` (QA-B2, #2041), a `label` for the button. A row with
+      // its own info button (the contrast floor, a setting with no token) keeps a wrapper: its label first, the button
+      // beside it.
+      let nm: HTMLElement;
       let tip: HTMLElement | null = null;
-      if (o.info) {
-        lab.textContent = o.label;
-        const t = infoTip(`p3-tip-${o.id}`, o.label, o.info);
-        tip = t.tip;
+      if (o.info || !o.token) {
+        const lab = h('label', 'p3-fill-label', o.label);
+        lab.htmlFor = o.id;
         nm = h('div', 'p3-fill-name');
         const line = h('div', 'p3-fill-nameline');
-        line.append(lab, t.button);
+        line.append(lab);
+        if (o.info) {
+          const t = infoTip(`p3-tip-${o.id}`, o.label, o.info);
+          tip = t.tip;
+          line.append(t.button);
+        }
         nm.append(line);
-      } else {
-        lab.append(h('b', 'p3-fill-label', o.label));
-        if (o.token) lab.append(h('span', 'p3-fill-tok', o.token));
-      }
+      } else nm = tokenLabel(o.token, o.label, o.id);
       const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), o.hk);
       btn.type = 'button';
       btn.id = o.id;
@@ -297,8 +299,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const n = parseInt(r.hex.slice(1), 16);
     const wash = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
     sw.style.background = `linear-gradient(${wash}, ${wash}), ${roles['background.primary']?.hex ?? '#ffffff'}`;
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', 'Scrim'), h('span', 'p3-fill-tok', SCRIM_ROLE));
+    const nm = tokenLabel(SCRIM_ROLE, 'Scrim');
     const read = hook(h('span', 'p3-fill-read', `${primitive} · ${opacity}%`), 'scrim-readout');
     read.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
     el.append(sw, nm, read);
@@ -340,8 +341,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const sw = h('span', 'p3-fill-sw');
     sw.dataset.content = '';
     sw.style.background = transparent ? groundHex : res.hex;
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', r.label), h('span', 'p3-fill-tok', r.role));
+    const nm = tokenLabel(r.role, r.label);
     const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), 'fill-pick');
     btn.type = 'button';
     btn.id = `p3-pick-${r.role.replace(/\./g, '-')}`;
@@ -406,8 +406,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const sw = h('span', 'p3-fill-sw');
     sw.dataset.content = '';
     sw.style.background = res.hex;
-    const nm = h('div', 'p3-fill-name');
-    nm.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', role));
+    const nm = tokenLabel(role, label);
     const at = stepOfPath(res.path);
     el.append(sw, nm, hook(h('span', 'p3-fill-read', at ? `${at.palette} ${at.step}` : (res.path ?? '')), 'focus-readout'));
     const wrap = h('div', 'p3-fillrow-wrap');

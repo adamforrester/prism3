@@ -283,7 +283,7 @@
 .p3-preview-body { grid-area: pbody; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-bg-page); }
 /* QA-B9, QA-B17: the two panes' eased scroll (an edit's reveal, a jump link) glides on the default transition's
    duration and curve. A scroll takes no CSS curve, so `preview/follow-edit.ts` reads these and steps it. */
-:is(.p3-levers, .p3-preview-body) { --p3-scroll-dur: var(--p3-dur-normal); --p3-scroll-ease: var(--p3-ease); }
+:is(.p3-levers, .p3-preview-body) { --p3-scroll-dur: var(--p3-transition-dur); --p3-scroll-ease: var(--p3-transition-ease); }
 /* The two panes scroll, so a keyboard can focus them; their ring sits inside their edge (S2). */
 :is(.p3-levers, .p3-preview-body):focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: calc(-1 * var(--p3-focus-width)); }
 
@@ -573,6 +573,10 @@
 .p3-advbody { display: grid; gap: var(--p3-space-200); justify-self: stretch; }
 .p3-nextrow { display: flex; }
 .p3-btn.p3-btn-page:hover { border-color: var(--p3-field-edge-hover); }
+/* QA-I12: Continue, at the foot of every levers page, is a primary (filled) button, in Apply Theme's inverse fill. */
+.p3-btn.p3-next { background-color: var(--p3-inv-bg); color: var(--p3-inv-text); border-color: var(--p3-inv-bg); }
+.p3-btn.p3-next:hover { background-color: var(--p3-inv-bg-2); border-color: var(--p3-inv-bg-2); }
+.p3-btn.p3-next .p3-ico { color: var(--p3-inv-text); }
 
 /* ── Brand (S3): Identity, Personality, Modes ──────────────────────────────────────────────── */
 /* v5 answer 4: Brand name and Token namespace side by side at every width, 380 included; the notes span both. */
@@ -619,7 +623,8 @@
 .p3-cmrow > .p3-text-input { flex: 1 1 var(--p3-step-w); width: auto; }
 .p3-cmrow > .p3-selwrap { flex: 1 1 var(--p3-step-w); }
 .p3-cm-based { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
-.p3-cmadd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-150); }
+/* QA-R1: Add custom mode is the full-width dashed add row; its note sits under it, as Interactive's add form does. */
+.p3-cmadd { display: grid; gap: var(--p3-space-100); }
 /* A confirm drawn in place (concept v6's confirm dialog): the dialog's edge on the page ground. */
 .p3-confirm {
   display: grid; gap: var(--p3-space-150); padding: var(--p3-space-200); border-radius: var(--p3-radius-xl);
@@ -721,24 +726,31 @@
 .p3-modegroup { display: grid; gap: var(--p3-space-150); }
 /* A field that names its token has a two-line label, so the fields share their bottom edge, not their top. */
 .p3-modegroup .p3-fieldgrid { align-items: end; }
-.p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--p3-step-w) * 2), 1fr)); gap: var(--p3-space-150) var(--p3-space-200); }
+/* QA-B8: rows stand spacing 300 apart, in every row list (fields, fill rows, Interactive's sets, Type's families). */
+.p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--p3-step-w) * 2), 1fr)); gap: var(--p3-space-300) var(--p3-space-200); }
 .p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
 .p3-field-wide { grid-column: 1 / -1; }
 .p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fieldpair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p3-space-100); }
-.p3-fillrows { display: grid; gap: var(--p3-space-100); }
+.p3-fillrows { display: grid; gap: var(--p3-space-300); }
 .p3-fillrows[hidden], .p3-fillrow-wrap[hidden] { display: none; }
 .p3-fillrow-wrap { display: grid; gap: var(--p3-space-100); }
 .p3-fillrow-wrap[data-refused="true"] { outline: var(--p3-bw-thick) solid var(--p3-bad-icon); outline-offset: var(--p3-space-075); border-radius: var(--p3-radius-lg); }
-.p3-fillrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3-space-150); align-items: center; }
+.p3-fillrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--p3-space-200); align-items: center; }
+/* QA-B11: the swatch is as tall as the label and its token (40), and the row's spacing is one step up (150 → 200). */
 .p3-fill-sw {
-  display: block; flex: none; width: var(--p3-hit-min); height: var(--p3-hit-min); border-radius: var(--p3-radius-md);
+  display: block; flex: none; width: var(--p3-swatch-h); height: var(--p3-swatch-h); border-radius: var(--p3-radius-md);
   outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
 }
 .p3-fill-name { display: grid; gap: var(--p3-space-025); min-width: 0; }
 .p3-fill-label { font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
-.p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); }
+.p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); justify-content: flex-start; padding: 0 var(--p3-space-150) 0 var(--p3-space-200); }
+/* QA-B5: the step's words take the room and start at the left, so the ratio and the caret sit at the far right. */
+.p3-btn.p3-pick > .p3-btn-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+/* QA-B5, QA-B18: every select and step-picker button in the levers pane is one control: the field's height (40),
+   12px text set from the left, and the caret at the far right (the select's sits where the button's does). */
+.p3-levers :is(.p3-select, .p3-btn.p3-pick) { min-height: var(--p3-ctl-h); font-size: var(--p3-fs-12); text-align: left; }
 /* A read-only row's value in place of the picker: the scrim's primitive and opacity (S4c). */
 .p3-fill-read { color: var(--p3-text-2); font-size: var(--p3-fs-14); white-space: nowrap; }
 .p3-pick-ratio { display: inline-flex; align-items: center; gap: var(--p3-space-025); color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
@@ -757,8 +769,8 @@
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
 .p3-num-input { min-width: 0; }
 /* S4d: a group's sub-heading inside a section's rows (the preview's "Inverse"), the Icon section's pairing note,
-   and the jump links to each section (Q49). The jump rules are Color › Interactive's (S5.2), the same lines, so
-   the two pages draw one control. */
+   and the jump links to each section (Q49). Color › Interactive's jump links (S5.2) take these same rules, once,
+   so the two pages draw one control. */
 .p3-rows-sub { margin: var(--p3-space-150) 0 0; padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
 .p3-rows-sub[hidden], .p3-icon-pair[hidden] { display: none; }
 .p3-icon-pair { display: grid; gap: var(--p3-space-100); justify-items: start; }
@@ -780,20 +792,16 @@
 /* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }
 
-/* ── Color › Interactive (S5.2): jump links, the column groups, rows grouped under their rest row ──── */
-.p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
-.p3-jump[hidden] { display: none; }
-.p3-jump-link { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); text-decoration: underline; text-underline-offset: var(--p3-space-025); }
-.p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+/* ── Color › Interactive (S5.2): the column groups, rows grouped under their rest row (its jump links are above) ── */
 /* S5.3 (the owner's QA-I7): more room between button sets, one step up the spacing scale from S5.2's. */
 .p3-icols { display: grid; gap: var(--p3-space-500); }
-.p3-icol { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-icol { display: grid; gap: var(--p3-space-300); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-icol[hidden], .p3-irow-group[hidden], .p3-icol-add[hidden] { display: none; }
 .p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
 .p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
-.p3-irow-group { display: grid; gap: var(--p3-space-100); }
-.p3-irow-states { display: grid; gap: var(--p3-space-100); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
+.p3-irow-group { display: grid; gap: var(--p3-space-300); }
+.p3-irow-states { display: grid; gap: var(--p3-space-300); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
 .p3-irow-states:empty { display: none; }
 .p3-pick-read { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); white-space: nowrap; }
 /* The add row (S5.3, QA-I4): set apart from the last button set by more than the sets are from each other; the
