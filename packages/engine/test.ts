@@ -1129,10 +1129,13 @@ for (const b of brands) {
 //       whose icon floor still comes from the lever — the set is named by derivation, not by comparing floors;
 //   (4) the dark mode carries under 'text' too (#1973): a dark `text.brand` override moves dark `icon.brand`,
 //       and light keeps its derived value.
+//   (5) under '3:1' an explicit icon override still wins over the carried text, for `icon.primary` and
+//       `icon.on-brand`, in light and dark (#2020); EXPECTED is the icon override's own step, never the text.
 // BY-NAME MUTATIONS: (a) drop the seven from `ALWAYS_TWINNED` → `IT-03: under '3:1' <icon> follows <text>
 // in <mode>` for every (1b) cell; (b) carry whenever the icon's floor equals its text's (#1982's first suggestion)
 // → arm (3); (c) carry every pair under '3:1' → arms (2) and (3); (d) run the carry in light only → arm (1b)
-// in dark, and arm (4). Arm (1a) holds the derivation, which the carry does not touch.
+// in dark, and arm (4); (e) the explicit icon override always loses to the carried text → arm (5). Arm (1a)
+// holds the derivation, which the carry does not touch.
 {
   const inp = { id: 'it03', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, iconContrast: '3:1' };
   type IRole = { hex: string };
@@ -1196,6 +1199,24 @@ for (const b of brands) {
     `IT-03 (#1973): a dark text.brand override carries to dark icon.brand (icon ${dk.dark['icon.brand'].hex}, text ${dk.dark['text.brand'].hex})`);
   ok(dk.light['icon.brand'].hex === tBase.light['icon.brand'].hex && dk.light['text.brand'].hex === tBase.light['text.brand'].hex,
     `IT-03 (#1973): and light keeps its derived text.brand and icon.brand (icon ${dk.light['icon.brand'].hex}, derived ${tBase.light['icon.brand'].hex})`);
+
+  // (5) #2020 — under '3:1' an explicit icon override still beats the carried text, for the seven as well
+  const OWN: Array<[string, string]> = [['icon.primary', 'text.primary'], ['icon.on-brand', 'text.on-brand']];
+  const iconPin = (m: string) => {
+    const R = baseOf(m), t = hex(pins[m].rgb).toLowerCase();
+    const free = nSteps.filter((s) => { const h = hex(s.rgb).toLowerCase(); return h !== t && OWN.every(([i]) => h !== R[i].hex.toLowerCase()); });
+    return free[Math.floor(free.length / 3)];
+  };
+  const iPins = Object.fromEntries(OV_MODES.map((m) => [m, iconPin(m)]));
+  const own = treeOf(brandTheme({ ...inp, overrides: Object.fromEntries(OV_MODES.map((m) => [m, Object.fromEntries(OWN.flatMap(([i, t]) =>
+    [[t, { palette: neutralPal, step: pins[m].key }], [i, { palette: neutralPal, step: iPins[m].key }]]))])) } as any));
+  for (const m of OV_MODES) for (const [i, t] of OWN) {
+    const want = hex(iPins[m].rgb).toLowerCase();
+    ok(!!iPins[m] && want !== own[m][t].hex.toLowerCase(),
+      `IT-03: the explicit ${i} override in ${m} differs from the ${t} override, so the next check can fail (precondition; icon ${want}, text ${own[m][t].hex})`);
+    ok(own[m][i].hex.toLowerCase() === want,
+      `IT-03: under '3:1' an explicit ${i} override beats the carried ${t} in ${m} (icon ${own[m][i].hex}, its override ${want}, text ${own[m][t].hex})`);
+  }
 }
 
 // L-07 (#1496) — the `linkPalette` LEVER. Links may point at a palette INDEPENDENTLY of the action

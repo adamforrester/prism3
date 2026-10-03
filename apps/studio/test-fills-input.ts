@@ -419,6 +419,76 @@ const labelOf = (role: string): string | undefined => ALL_ROWS.find((r) => r.rol
 ok(labelOf('icon.brand-subtle') === 'Brand, subtle' && labelOf('text.brand-subtle') === 'Brand ink, subtle' && labelOf('inverse.icon.danger-subtle') === 'Danger, subtle',
   `the subtle rows say "subtle" (Q57): ${JSON.stringify([labelOf('icon.brand-subtle'), labelOf('text.brand-subtle'), labelOf('inverse.icon.danger-subtle')])}`);
 
+// ── 6b. #2020: the icons Studio keeps locked while unpaired are the icons the engine carries ──────────────
+// Studio's fixed set (`ALWAYS_FOLLOWS`, read through `lockedTo`, since the set itself is not exported) and the
+// engine's pattern (`ALWAYS_TWINNED`, open-ended over `text.on-*`) are two lists of the same thing. A role one
+// of them names and the other does not is a row that says "Follows" while the engine does not carry it, or one
+// that edits while the engine overrides it from its text. EXPECTED comes from neither list: prism3 under '3:1'
+// with an override on EVERY text role in light and dark, each landing off its icon twin's own derived value,
+// then every page or inverse icon whose resolved value equals its overridden text. The scope is the `icon.` and
+// `inverse.icon.` families by prefix, not the rows, so an engine icon with no row still counts. The interactive
+// glyphs are carried too, but they belong to Color › Interactive, not to this page.
+console.log('\n6b. The icons locked while unpaired are the icons the engine carries under "3:1" (oracle: the engine, #2020)');
+{
+  const OV_MODES = ['light', 'dark'];
+  const input31 = { ...structuredClone(prism3), iconContrast: '3:1' } as BrandInput;
+  const theme31 = brandTheme(structuredClone(input31));
+  const neutralPal = theme31.roleToPalette.neutral;
+  const steps = (theme31.palettes.find((p) => p.palette === neutralPal)?.steps ?? []) as Array<{ key: string }>;
+  const base31 = resolveAllModes(theme31);
+  const rolesOf = (all: ReturnType<typeof resolveAllModes>, m: string) => (all.find((x) => x.mode === m)?.roles ?? {}) as Record<string, { hex?: string } | undefined>;
+  const lc = (h?: string) => (h ?? '').toLowerCase();
+  const isText = (r: string) => /(^|\.)text(\.|$)/.test(r);
+  // A neutral step per text role, cycled so neighbors differ.
+  const overrides: Record<string, Record<string, { palette: string; step: string }>> = {};
+  let probe = base31;
+  for (const m of OV_MODES) {
+    const B = rolesOf(base31, m);
+    const texts = Object.keys(B).filter(isText);
+    overrides[m] = {};
+    texts.forEach((t, k) => { overrides[m][t] = { palette: neutralPal, step: steps[(k % (steps.length - 2)) + 1].key }; });
+  }
+  // Resolve, then move any text whose override landed on its twin's derived hex one step along, and resolve
+  // again; the precondition below fails by name if a pass leaves one there.
+  for (let pass = 0; pass < 3; pass++) {
+    probe = resolveAllModes(brandTheme({ ...structuredClone(input31), overrides: structuredClone(overrides) } as BrandInput));
+    let moved = 0;
+    for (const m of OV_MODES) {
+      const B = rolesOf(base31, m), P = rolesOf(probe, m);
+      for (const t of Object.keys(overrides[m])) {
+        const i = t.replace(/(^|\.)text(\.|$)/, '$1icon$2');
+        if (!B[i] || lc(P[t]?.hex) !== lc(B[i]?.hex)) continue;
+        const at = steps.findIndex((x) => x.key === overrides[m][t].step);
+        overrides[m][t] = { palette: neutralPal, step: steps[(at + 1) % steps.length].key };
+        moved++;
+      }
+    }
+    if (!moved) break;
+  }
+  const carried: Record<string, string[]> = {};
+  const vacuous: string[] = [];
+  for (const m of OV_MODES) {
+    const B = rolesOf(base31, m), P = rolesOf(probe, m);
+    carried[m] = [];
+    for (const i of Object.keys(P).filter((r) => /^(inverse\.)?icon\./.test(r))) {
+      const t = i.replace(/(^|\.)icon\./, '$1text.');
+      if (!(t in overrides[m])) continue;
+      if (lc(P[t]?.hex) === lc(B[i]?.hex)) { vacuous.push(`${i} in ${m}`); continue; }
+      if (lc(P[i]?.hex) === lc(P[t]?.hex)) carried[m].push(i);
+    }
+    carried[m].sort();
+  }
+  ok(vacuous.length === 0 && OV_MODES.every((m) => Object.keys(overrides[m]).length > 20),
+    `#2020 precondition: every text role is overridden in light and dark, each off its icon twin's own derived value, so an uncarried icon cannot match by chance (${OV_MODES.map((m) => `${m} ${Object.keys(overrides[m]).length}`).join(', ')})${vacuous.length ? ` — vacuous: ${vacuous.join(', ')}` : ''}`);
+  reset(input31);
+  for (const m of OV_MODES) {
+    const locked = F.ICON_ROWS.filter((r) => F.lockedTo(m, r) !== null).map((r) => r.role).sort();
+    const onlyEngine = carried[m].filter((r) => !locked.includes(r)), onlyStudio = locked.filter((r) => !carried[m].includes(r));
+    ok(!F.iconsPaired() && carried[m].length > 0 && onlyEngine.length === 0 && onlyStudio.length === 0,
+      `#2020: under '3:1' in ${m}, the icons Studio keeps locked are exactly the icons the engine carries (${carried[m].length} carried, ${locked.length} locked)${onlyEngine.length ? ` — carried but editable: ${onlyEngine.join(', ')}` : ''}${onlyStudio.length ? ` — locked but not carried: ${onlyStudio.join(', ')}` : ''}`);
+  }
+}
+
 // ── 7. S4d: the Page step picker's choices are the select's (owner decision Q45) ─────────────────────
 console.log('\n7. The Page and band step pickers write what the selects wrote');
 reset();
