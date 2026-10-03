@@ -241,10 +241,10 @@ const syncErrorBar = (): void => {
   }
   // `hidden`, not an inline `display`: the bar sits in the frame's notices row, which is chrome, and the
   // chrome carries no runtime inline values (`test:chrome`).
-  globalErrHost.hidden = !lastError;
+  globalErrHost.hidden = !lastError && !restoreFailure;
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
-  if (lastError && restoreRefusal) globalErrHost.textContent = `This file's saved brand didn't resolve: ${restoreRefusal} Apply Theme and Prune stale are off until a brand resolves. Load an example or import a design.md to continue.`;
+  if (restoreFailure) globalErrHost.textContent = RESTORE_BAR[restoreFailure.kind](restoreFailure.reason);
   else if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -621,12 +621,23 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and what
   // dirtiness is measured against (#722).
   // #1989: a restore the engine refuses in RESOLUTION leaves `lastGoodInput` on the boot demo, so Apply and
-  // Prune go off until a brand resolves (`restoreRefusal`). `loadBrand` renders once, before this can know
+  // Prune go off until a brand resolves (`restoreFailure`). `loadBrand` renders once, before this can know
   // the outcome, so a refusal renders again with the writes off and the bar saying why.
   if (effect === 'loadBrand' && m.kind === 'restore-input') {
     loadBrand(m.input as BrandInput, { kind: 'file' });
-    if (lastError) { restoreRefusal = lastError; build(); }
+    if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
   }
+  // #1994: the two restores that load nothing. `reduce` dropped a blob `brandTheme` refuses with no effect,
+  // so its reason is read again here; an unreadable one arrives as the host's own message. Only while
+  // nothing has been chosen (the #1197 guard below, by identity): once a designer has picked a brand, the
+  // writes post THAT brand, not the demo, and turning them off would be wrong.
+  const unchosen = provenance === bootProvenance;
+  if (unchosen && m.kind === 'restore-input' && effect !== 'loadBrand') {
+    let reason: string | null = null;
+    try { brandTheme(m.input as BrandInput); } catch (e) { reason = (e as Error).message; }
+    if (reason !== null) { restoreFailure = { kind: 'rejected', reason, brand: failedBrandOf(m.input) }; build(); }
+  }
+  if (unchosen && m.kind === 'restore-input-error') { restoreFailure = { kind: 'unreadable', reason: m.message, brand: null }; build(); }
   // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
   // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
   // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
@@ -5365,6 +5376,8 @@ const loadBrand = (input: BrandInput, origin: Origin): void => {
   // `loadInput` sets the page before it resolves the new brand, so the `page` subscriber must not
   // render mid-load: the `build()` below is the one render, against the resolved brand.
   loading = true;
+  // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
+  if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
   try { loadInput(input, origin); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   build();
@@ -5388,8 +5401,12 @@ const slug = (): string => String(lastGoodInput.id || 'brand').trim().replace(/\
 // download, no feedback) — and design.md serialized the failing state into a brief its own
 // importer rejects. The last-good input/theme is always valid and is exactly what the ramps +
 // preview already show (the errbar tells the user the current edit is what's unresolved).
-/** Export the last-good brand as design.md — round-trips straight back into Import. */
-const exportDesignMd = (): void => download(`${slug()}.design.md`, toDesignMd(lastGoodInput), 'text/markdown');
+/** The brand Export design.md writes: the last-good one, except after a failed restore (#1994), when it is
+ *  the file's brand that failed (the brand worth rescuing), and null where nothing readable arrived. */
+const briefInput = (): BrandInput | null => (restoreFailure ? restoreFailure.brand : lastGoodInput);
+const briefSlug = (): string => { const b = briefInput(); return String(b?.id || 'brand').trim().replace(/\s+/g, '-') || 'brand'; };
+/** Export the brief as design.md — round-trips straight back into Import. */
+const exportDesignMd = (): void => { const b = briefInput(); if (b) download(`${briefSlug()}.design.md`, toDesignMd(b), 'text/markdown'); };
 
 /** Export the resolved DTCG token tree (buildTree) of the last-good theme, namespaced under `root`,
  *  shaped by the dialog's settings (#723).
@@ -5764,6 +5781,7 @@ const renderExportDialog = (): HTMLElement => {
     list.textContent = files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`;
     list.title = files.join('\n');
     right.append(list);
+    if (restoreFailure) right.append(hook(el('p', 'exdlg-sdesc', TOKENS_NONE), 'export-restore-note'));
     right.append(el('div', 'exdlg-cap', 'A few tokens, shaped by these settings'));
     // One block PER FILE, with the name above it — not the file texts concatenated. The split setting
     // makes the sample several documents (3 for the 6-token sample), and joined with a newline they read
@@ -5781,9 +5799,13 @@ const renderExportDialog = (): HTMLElement => {
   } else {
     // The brief has no settings, so there is nothing for a preview to demonstrate — and an empty right
     // column would read as something that failed to load. One sentence about what the file is for.
-    right.append(el('div', 'exdlg-cap', 'You get 1 file'));
-    right.append(el('p', 'exdlg-files', `${slug()}.design.md`));
+    if (briefInput()) {
+      right.append(el('div', 'exdlg-cap', 'You get 1 file'));
+      right.append(el('p', 'exdlg-files', `${briefSlug()}.design.md`));
+    }
     right.append(el('p', 'exdlg-sdesc', 'A handful of anchors — the color, the type, the few decisions this brand is built from. The engine regrows the rest.'));
+    // #1994: say whose brand this is when it is not the one on screen, or why there is none to export.
+    if (restoreFailure) right.append(hook(el('p', 'exdlg-sdesc', restoreFailure.brand ? BRIEF_IS_FAILED : BRIEF_NONE), 'export-restore-note'));
   }
   body.append(right);
 
@@ -5793,6 +5815,9 @@ const renderExportDialog = (): HTMLElement => {
   const foot = el('div', 'exdlg-foot');
   const go = hook(el('button', 'exdlg-go') as HTMLButtonElement, 'dialog-confirm');
   go.textContent = exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens';
+  if (exportArtifact === 'design-md' && !briefInput()) { go.disabled = true; go.title = BRIEF_NONE; }
+  // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
+  if (exportArtifact === 'dtcg' && restoreFailure) { go.disabled = true; go.title = TOKENS_NONE; }
   go.onclick = () => {
     exportMenuOpen = false; renderBar();
     if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
@@ -5865,7 +5890,7 @@ const renderPruneDialog = (): HTMLElement => {
   cancel.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
   const del = hook(el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement, 'dialog-confirm');
   // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
-  if (restoreRefusal) { del.disabled = true; del.title = RESTORE_OFF_HINT; }
+  if (restoreFailure) { del.disabled = true; del.title = RESTORE_OFF_HINT; }
   del.onclick = () => { setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true); };
   foot.append(cancel, del);
   dlg.append(foot);
@@ -6043,7 +6068,12 @@ const SHORT = { clean: 'Clean', failed: 'Failed', noTheme: 'No theme', notRestor
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 /** The boot read-back's result (#722): the seed pill's words and the restore refusal (#480) as its body,
  *  under a short verdict. The unrecoverable case says both halves, and is not styled as a failure: #721
- *  requires it not read as one. */
+ *  requires it not read as one. A read-back whose checks pass reads "Clean" even when the saved brand was
+ *  not restored, the refusal in its details; "Not restored" is only for a refusal with nothing checked
+ *  (the owner's approved copy, #1990). A failed restore on its own does not make the row bad: a "Clean"
+ *  or "No theme" read-back after one is a normal row, not counted as needing attention and not opening the
+ *  drawer (the owner's calls on #2008 and #2009), since the plugin's error bar already says the saved brand
+ *  did not load. Only "Not restored", "Failed" and mismatches are bad. */
 const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null => {
   const o = host.seedOutcome;
   const err = host.restoreError;
@@ -6055,9 +6085,9 @@ const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
       : [isUnrecoverable(o) ? `${o.detail} — knobs not stored in this file, so these are defaults` : o.detail, o.contractOk];
   const verdict = o.state === 'error' ? SHORT.failed
     : o.state === 'absent' ? SHORT.noTheme
-      : o.contractOk ? (err ? SHORT.notRestored : SHORT.clean)
+      : o.contractOk ? SHORT.clean
         : o.failed > 0 ? plural(o.failed, 'mismatch', 'mismatches') : SHORT.failed;
-  return { state: ok && !err ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
+  return { state: ok ? 'ok' : 'bad', ref: `${err ?? ''}\n${text}`, verdict, summary: [refused, text].filter(Boolean).join(' · ') };
 };
 /** Prune stale's short verdict: what the preview found, or what the delete removed. */
 const pruneShort = (v: { ok: boolean; applied: boolean; count: number }): string =>
@@ -6118,9 +6148,40 @@ const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentR
  * those are their only callers, so a guard there could never fire and no test could tell it was gone. The
  * prune dialog's Delete is disabled the same way, because a host preview can open that dialog at any time.
  */
-let restoreRefusal: string | null = null;
-subscribe('brand', () => { if (!lastError) restoreRefusal = null; });
-const RESTORE_OFF_HINT = "Off until a brand resolves. This file's saved brand did not, and writing now would put the demo brand over it.";
+/**
+ * #1994 widened this to the two other ways a restore fails, and each keeps the demo on screen with the
+ * writes posting it:
+ *   - `rejected`: `brandTheme` refuses the blob, so `reduce` drops it and nothing loads (silent before).
+ *   - `unreadable`: the host could not deserialize it (`restore-input-error`, #480). No brand arrives at all.
+ * In both, the DEMO is what is loaded and its edits rebuild cleanly, so "the first rebuild that resolves"
+ * cannot be what turns the writes back on: a demo edit would, and Apply would post it over the file. They
+ * clear when a brand LOADS, in `loadBrand` (the one caller of `loadInput`), and on nothing else: an `origin`
+ * subscriber also heard "New brand" (`clearOrigin`), which loads nothing, and dropped the error bar and the
+ * Export rescue with it (review of #2007). `unresolved` keeps #1989's rule, since
+ * there `brandState` is the file's own brand and a rebuild that resolves is that brand, fixed.
+ *
+ * `brand` is what Export design.md writes in this state: the file's brand that failed, never the demo, and
+ * null where nothing readable arrived, which turns that export off with the reason.
+ */
+type RestoreFailure = { kind: 'unresolved' | 'rejected' | 'unreadable'; reason: string; brand: BrandInput | null };
+let restoreFailure: RestoreFailure | null = null;
+subscribe('brand', () => { if (restoreFailure?.kind === 'unresolved' && !lastError) restoreFailure = null; });
+/** The file's failed brand as a design.md, or null when it cannot be written as one. */
+const failedBrandOf = (input: unknown): BrandInput | null => {
+  try { toDesignMd(input as BrandInput); return input as BrandInput; } catch { return null; }
+};
+const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
+const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
+const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
+/** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
+ *  rebuild that resolves also ends it; the other two end only when a brand loads. */
+const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
+  unresolved: (r) => `This file's saved brand didn't resolve: ${r} Apply Theme and Prune stale are off until a brand resolves. Load an example or import a design.md to continue.`,
+  rejected: (r) => `This file's saved brand didn't resolve: ${r} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`,
+  unreadable: (r) => `This file's saved brand couldn't be read: ${r} Apply Theme and Prune stale are off until a brand loads. Load an example or import a design.md to continue.`,
+};
+/** The tooltip on every write that is off after a failed restore: one wording for every kind (owner). */
+const RESTORE_OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.";
 
 /** Apply Theme. The previous run's detail is stale the instant a new write starts, so it collapses with
  *  the state. */
@@ -6153,10 +6214,10 @@ const PRUNE_HINT = 'Removes the styles, modes and variables this config no longe
  *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
  *  so its busy label is the item's own. */
 const figmaActions = (): FigmaAction[] => [
-  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: !!restoreRefusal,
-    ...(restoreRefusal ? { hint: RESTORE_OFF_HINT } : {}), run: runApply },
+  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: !!restoreFailure,
+    ...(restoreFailure ? { hint: RESTORE_OFF_HINT } : {}), run: runApply },
   { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
-    disabled: pruneBlocked() || !!restoreRefusal, hint: restoreRefusal ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
+    disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
   { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage('components') },
   { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
@@ -6232,7 +6293,7 @@ function renderBar(): void {
     setBusy(applyBtn, applyBusy());
     // Off, natively, while the file's brand does not resolve (#1989): unlike busy, nothing is running that
     // focus should wait on. The reason is the error bar's, and the tooltip's.
-    if (restoreRefusal) { applyBtn.disabled = true; applyBtn.title = RESTORE_OFF_HINT; }
+    if (restoreFailure) { applyBtn.disabled = true; applyBtn.title = RESTORE_OFF_HINT; }
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
     applyBtn.onclick = runApply;
 

@@ -45,7 +45,8 @@ import { paletteRefOptions } from '../levers/controls';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, inlineConfirm, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { choice, inlineConfirm, jumpLabel, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type PickerPalette } from '../ui/step-picker';
 
 /** The button sets lever's info text (owner-approved, 2026-10-02). */
@@ -105,6 +106,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   const edit = (key: string, write: () => void): void => {
     lastEdited = key;
     write();
+    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
     rebuild();
   };
 
@@ -455,6 +457,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   const jumps = (): HTMLElement => {
     const nav = hook(h('nav', 'p3-jump'), 'interactive-jump');
     nav.setAttribute('aria-label', BUTTON_SET_COPY.landmark);
+    nav.append(jumpLabel());
     for (const [col, , name] of columnsInOrder()) {
       if (!rolesIn(currentMode)[`interactive.${col}.fill.rest`]) continue;
       const a = hook(h('a', 'p3-jump-link', name), 'interactive-jump-link');
@@ -463,7 +466,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       a.onclick = (e) => {
         e.preventDefault();
         const to = root.querySelector<HTMLElement>(`#${idOf(col)}`);
-        to?.scrollIntoView({ block: 'start' });
+        if (to) scrollToStart(to);   // QA-B17: eased, and at once under reduced motion
         to?.focus({ preventScroll: true });
       };
       nav.append(a);

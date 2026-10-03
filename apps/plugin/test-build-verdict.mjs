@@ -1022,6 +1022,210 @@ for (const how of ['pointer', 'focus']) {
   await page.close();
 }
 
+// ── #1990: every approved short verdict, by literal, from a driven host message ─────────────────────
+//
+// The owner's copy for Read-back and Prune stale (approved on #1956): "Clean", "N mismatch(es)", "Failed",
+// "No theme", "Not restored"; "N stale", "Removed N", "Clean", "Failed". A read-back whose checks pass
+// reads "Clean" even when the saved brand was not restored, the refusal in its details; "Not restored" is
+// only for a refusal with nothing checked. EXPECTED is each literal written here.
+//
+// MUTATIONS, each failing here by name:
+//   · the contract-passing read-back with a restore refusal back to "Not restored" → `#1990 a read-back whose checks pass reads "Clean" …`.
+//   · any one short word changed in `SHORT`, or `Removed ${n}` → its own `#1990 …` arm.
+{
+  const readOp = (page, k) => page.evaluate((key) => {
+    const row = document.querySelector(`[data-p3="activity-op"][data-op="${key}"]`);
+    const sum = row?.querySelector('[data-p3="op-summary"]');
+    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, summary: sum?.textContent ?? null };
+  }, k);
+  const until = (page, k, want) => page.waitForFunction(([key, w]) => document.querySelector(`[data-p3="activity-op"][data-op="${key}"] [data-p3="op-verdict"]`)?.textContent === w, [k, want], { timeout: 5000 }).catch(() => {});
+  const REFUSAL = 'saved brand data is from an older shape';
+
+  // A restore refusal with no read-back yet: nothing was checked.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'readback', 'Not restored');
+    const nr = await readOp(page, 'readback');
+    ok(nr.verdict === 'Not restored' && (nr.summary ?? '').includes(REFUSAL),
+      `#1990 a restore refusal with nothing checked reads "Not restored", the reason in details — verdict ${JSON.stringify(nr.verdict)}, summary ${JSON.stringify(nr.summary)}`);
+    // The read-back then lands and its checks pass.
+    await post(page, { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 });
+    await until(page, 'readback', 'Clean');
+    const cl = await readOp(page, 'readback');
+    ok(cl.verdict === 'Clean' && (cl.summary ?? '').includes('Saved brand not restored') && (cl.summary ?? '').includes(REFUSAL),
+      `#1990 a read-back whose checks pass reads "Clean" when the saved brand was not restored, which its details say — verdict ${JSON.stringify(cl.verdict)}, summary ${JSON.stringify(cl.summary)}`);
+    ok(errors.length === 0, `#1990 not restored: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'seed-info', ok: true, present: false, summary: '', failed: 0 });
+    await until(page, 'readback', 'No theme');
+    ok((await readOp(page, 'readback')).verdict === 'No theme', `#1990 a file with no Prism3 theme reads "No theme" — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+    await post(page, { type: 'seed-info', ok: false, present: false, summary: 'read-back failed: host threw', failed: 0 });
+    await until(page, 'readback', 'Failed');
+    ok((await readOp(page, 'readback')).verdict === 'Failed', `#1990 a read-back that threw reads "Failed" — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+    await post(page, { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars', failed: 0 });
+    await until(page, 'readback', 'Clean');
+    await post(page, { type: 'seed-info', ok: false, present: true, summary: 'Existing theme — FAILED (no count from this host)', failed: 0 });
+    await until(page, 'readback', 'Failed');
+    ok((await readOp(page, 'readback')).verdict === 'Failed', `#1990 a failing contract with no count reads "Failed" (the fallback) — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+    await post(page, { type: 'seed-info', ok: false, present: true, summary: 'Existing theme — FAILED: declaredModes', failed: 1 });
+    await until(page, 'readback', '1 mismatch');
+    ok((await readOp(page, 'readback')).verdict === '1 mismatch', `#1990 one failed check reads "1 mismatch" — ${JSON.stringify((await readOp(page, 'readback')).verdict)}`);
+
+    await post(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale variables' });
+    await until(page, 'prune', 'Removed 3');
+    ok((await readOp(page, 'prune')).verdict === 'Removed 3', `#1990 a prune delete reads "Removed 3" — ${JSON.stringify((await readOp(page, 'prune')).verdict)}`);
+    await post(page, { type: 'prune-result', ok: false, applied: true, count: 0, summary: 'prune failed: host threw' });
+    await until(page, 'prune', 'Failed');
+    ok((await readOp(page, 'prune')).verdict === 'Failed', `#1990 a failed prune reads "Failed" — ${JSON.stringify((await readOp(page, 'prune')).verdict)}`);
+    await post(page, { type: 'prune-result', ok: true, applied: false, count: 0, summary: 'Nothing stale' });
+    await until(page, 'prune', 'Clean');
+    ok((await readOp(page, 'prune')).verdict === 'Clean', `#1990 a prune preview that finds nothing reads "Clean" — ${JSON.stringify((await readOp(page, 'prune')).verdict)}`);
+    ok(errors.length === 0, `#1990 short verdicts: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
+// ── #2008, #2009: a failed restore on its own does not make a read-back row bad ──────────────────────
+//
+// The owner's calls (option a on #2008, and #2009): a read-back that reads "Clean" (#1990) or "No theme"
+// after the saved brand could not be restored draws as a normal row. It is not counted as needing
+// attention and does not open the drawer; the plugin's error bar already says the saved brand did not
+// load. Only "Not restored", "Failed" and mismatches are bad rows. Each verdict is driven in both orders
+// the two host messages can land in. Controls prove the probe can see a bad row: a failing check, and a
+// read-back that threw, after the same refusal still count and open the drawer, and so does the refusal
+// on its own ("Not restored"). EXPECTED is each value written here.
+//
+// MUTATIONS: the row's state back to `ok && !err` → `#2008 … is a normal row …`, `#2008 … is not
+// counted …` and `#2008 … does not open the drawer …`, for "Clean" and "No theme" in both orders; back to
+// #2008's first cut, `ok && (!err || o.state === 'present')` → the same three for "No theme" only; the
+// state pinned to `'ok'` → `#2008 control: …` (and S11's own failing read-back arms); the early return
+// for a refusal with nothing checked set to `state: 'ok'` → `#2008 control: a failed restore on its own …`.
+{
+  const REFUSAL = 'saved brand data is from an older shape';
+  const CLEAN = { type: 'seed-info', ok: true, present: true, summary: 'Existing theme: 268 color vars, modes light', failed: 0 };
+  const NO_THEME = { type: 'seed-info', ok: true, present: false, summary: '', failed: 0 };
+  const read = (page) => page.evaluate(() => {
+    const row = document.querySelector('[data-p3="activity-op"][data-op="readback"]');
+    return {
+      state: row?.dataset.state ?? null,
+      verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
+      count: document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count')?.textContent ?? '',
+      open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open ?? null,
+    };
+  });
+  const until = (page, w) => page.waitForFunction((want) => document.querySelector('[data-p3="activity-op"][data-op="readback"] [data-p3="op-verdict"]')?.textContent === want, w, { timeout: 5000 }).catch(() => {});
+  const closeDrawer = async (page) => {
+    if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open) === 'true') {
+      await hooks.click(page.locator('[data-p3="activity-toggle"]'), { timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'false', null, { timeout: 3000 }).catch(() => {});
+  };
+  for (const [want, msg] of [['Clean', CLEAN], ['No theme', NO_THEME]]) {
+    const check = (r, how) => {
+      ok(r.verdict === want && r.state === 'ok',
+        `#2008 a "${want}" read-back after a failed restore is a normal row (${how}) — verdict ${JSON.stringify(r.verdict)}, state ${r.state}`);
+      ok(!/attention/.test(r.count), `#2008 a "${want}" read-back after a failed restore is not counted as needing attention (${how}) — count ${JSON.stringify(r.count)}`);
+      ok(r.open === 'false', `#2008 a "${want}" read-back after a failed restore does not open the drawer (${how}) — open ${r.open}`);
+    };
+    // The refusal first, then the read-back. The refusal alone is "Not restored", a bad row, and opens the drawer.
+    {
+      const { page, errors } = await openPanel();
+      await post(page, { type: 'restore-input-error', message: REFUSAL });
+      await until(page, 'Not restored');
+      await closeDrawer(page);
+      await post(page, msg);
+      await until(page, want);
+      await page.waitForTimeout(200);
+      check(await read(page), 'refusal first');
+      ok(errors.length === 0, `#2008 "${want}", refusal first: no console errors (${errors.slice(0, 2).join(' · ')})`);
+      await page.close();
+    }
+    // The read-back first, then the refusal.
+    {
+      const { page, errors } = await openPanel();
+      await post(page, msg);
+      await until(page, want);
+      await closeDrawer(page);
+      await post(page, { type: 'restore-input-error', message: REFUSAL });
+      await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="readback"] [data-p3="op-summary"]')?.textContent ?? '').includes('Saved brand not restored'), null, { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(200);
+      check(await read(page), 'read-back first');
+      ok(errors.length === 0, `#2008 "${want}", read-back first: no console errors (${errors.slice(0, 2).join(' · ')})`);
+      await page.close();
+    }
+  }
+  // Controls: a failing check, and a read-back that threw, after the same refusal are still bad rows,
+  // counted, and open the drawer.
+  for (const [want, msg, what] of [['1 mismatch', { ...CLEAN, ok: false, failed: 1 }, 'a failing check'], ['Failed', { type: 'seed-info', ok: false, present: false, summary: 'read-back failed: host threw', failed: 0 }, 'a read-back that threw']]) {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'Not restored');
+    await closeDrawer(page);
+    await post(page, msg);
+    await until(page, want);
+    await page.waitForTimeout(200);
+    const r = await read(page);
+    ok(r.verdict === want && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
+      `#2008 control: ${what} after a failed restore is still a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
+    ok(errors.length === 0, `#2008 control, ${what}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  // Control: a refusal on its own, with no read-back after it, is "Not restored": a bad row, counted, and
+  // it opens the drawer.
+  {
+    const { page, errors } = await openPanel();
+    await closeDrawer(page);
+    await post(page, { type: 'restore-input-error', message: REFUSAL });
+    await until(page, 'Not restored');
+    await page.waitForTimeout(200);
+    const r = await read(page);
+    ok(r.verdict === 'Not restored' && r.state === 'bad' && /1 needs attention/.test(r.count) && r.open === 'true',
+      `#2008 control: a failed restore on its own is "Not restored", a bad row, counted, and opens the drawer — verdict ${JSON.stringify(r.verdict)}, state ${r.state}, count ${JSON.stringify(r.count)}, open ${r.open}`);
+    ok(errors.length === 0, `#2008 control, a failed restore on its own: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
+// ── #1990: the busy spinner waits before it draws ───────────────────────────────────────────────────
+//
+// The spinner is CSS only (`chrome.css` `.p3-spin`): the "…" holds for three of the fast duration, then the
+// arc fades in, so a quick write never flashes a spinner. Both halves are pinned: the computed delay (and
+// that it sits inside the engine spinner's 200 to 500 ms anti-flash wait), and what is drawn before and
+// after it, read off the busy Apply during an agent's run (no host message arrives in between, so
+// `renderBar` does not re-mint the control and restart the delay).
+//
+// MUTATIONS: the delay removed from `.p3-spin::before` → `#1990 the spinner's arc waits …`; the arc drawn
+// before its fade (base `opacity: 1`) → `#1990 the arc is not drawn at once …`; the arc never shown →
+// `#1990 … and is drawn after the delay`. Removing the delay alone does not fail the at-start arm: with no
+// delay the fast fade is over before the first read.
+{
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'agent-started', id: 'sp1', cmd: 'apply-theme' });
+  const sel = '[data-p3="apply-to-figma"] .p3-spin';
+  await page.waitForSelector(sel, { timeout: 5000 }).catch(() => {});
+  const probe = () => page.evaluate((q) => {
+    const n = document.querySelector(q);
+    if (!n) return null;
+    const ms = (t) => t.split(',').map((x) => x.trim()).map((x) => x.endsWith('ms') ? parseFloat(x) : parseFloat(x) * 1000);
+    const b = getComputedStyle(n, '::before');
+    return { delays: ms(b.animationDelay), names: b.animationName, opacity: Number(b.opacity) };
+  }, sel);
+  const early = await probe();
+  await page.waitForTimeout(900);
+  const late = await probe();
+  const delay = early?.delays[0] ?? 0;
+  ok(!!early && /p3-spin-show/.test(early.names) && delay >= 200 && delay <= 500,
+    `#1990 the spinner's arc waits before it fades in, inside the 200 to 500 ms anti-flash window — delay ${delay} ms, animations ${early?.names}`);
+  ok(!!early && early.opacity === 0, `#1990 the arc is not drawn at once — opacity at start ${early?.opacity}`);
+  ok(!!late && late.opacity === 1, `#1990 … and is drawn after the delay — opacity at 900 ms ${late?.opacity}`);
+  ok(errors.length === 0, `#1990 spinner: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #1890: a bad verdict opens its row in the Activity drawer, and the drawer stays in view ─────────
 //
 // HISTORY. This arm began as an ordering check: a verdict invalidated `host` (the bar) and then
@@ -1212,6 +1416,271 @@ for (const how of ['pointer', 'focus']) {
     `#1989 control: Apply Theme then posts once, and posts the restored brand rather than the demo — posted ${JSON.stringify(posted)}`);
   ok(errors.length === 0, `#1989 refused restore: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
+}
+
+// ── #1994: every failed restore keeps the writes off, and Export rescues the file's brand ───────────────
+//
+// #1989 turned Apply Theme, Prune stale and the prune dialog's Delete off for a restore the engine refuses
+// in resolution. Two other failures left the boot demo loaded with the writes live: a blob `brandTheme`
+// rejects (dropped silently) and one the host cannot read (`restore-input-error`, #480). In both, the DEMO is
+// what is loaded and its edits rebuild cleanly, so a demo edit must not turn the writes back on; only a brand
+// LOADING does. Export design.md in a failed state writes the file's brand that failed, or is off with the
+// reason when nothing readable arrived.
+//
+// EXPECTED is written here: brand ids, the words on screen, the mode the rejected blob names. ACTUAL is the
+// built panel's DOM, the UI → plugin messages, and the downloaded file. Each scenario has its own panel.
+//
+// MUTATIONS, each run against the built bundle and each failing here by name:
+//   · the `rejected` dispatch removed → `#1994 rejected: … Apply Theme, Prune stale and Delete are off …`
+//     and the bar and no-post arms.
+//   · the `unreadable` dispatch removed → `#1994 unreadable: …` the same three.
+//   · `rejected`/`unreadable` cleared by a rebuild instead of a load → `#1994 rejected: a demo edit does not
+//     turn the writes back on …`.
+//   · Export back to `lastGoodInput` → `#1994 rejected: Export design.md writes the file's brand that failed …`.
+//   · Export left enabled with nothing readable → `#1994 unreadable: Export design.md is off …`.
+//   · the "nothing chosen yet" guard removed → `#1994 guard: an unreadable restore after a brand was chosen …`.
+//   · Design tokens left enabled after a failed restore (#2007) → `#2007 <kind>: Export's Design tokens is off …`,
+//     one per failure.
+//   · a load not clearing `rejected` → `#2007 rejected: choosing an example … turns the writes back on …`.
+//   · `rejected`/`unreadable` cleared on any `origin` change again (so "New brand" clears them) → `#2007 New brand: …`.
+//   · the late-restore guard applied to `unreadable` only → `#2007 guard: a rejected restore after a brand was chosen …`.
+//   · `rejected`'s bar back to "until a brand resolves", or the tooltip back to the old wording → `#2007 rejected: the
+//     bar says the writes are off "until a brand loads" …`.
+{
+  const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
+  const capture = (page) => page.evaluate(() => {
+    window.__writes = [];
+    window.addEventListener('message', (e) => {
+      const m = e.data && e.data.pluginMessage;
+      if (m && (m.type === 'apply-theme' || m.type === 'prune')) window.__writes.push({ type: m.type, id: m.input?.id ?? null });
+    });
+  });
+  const writes = (page) => page.evaluate(() => window.__writes.slice());
+  const read = async (page) => {
+    await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
+    const r = await page.evaluate(() => {
+      const bar = document.querySelector('[data-p3="error-bar"]');
+      return {
+        bar: bar && !bar.hidden ? bar.textContent : null,
+        apply: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
+        menuApply: document.querySelector('[data-p3="figma-option-apply"]')?.disabled ?? null,
+        menuPrune: document.querySelector('[data-p3="figma-option-prune"]')?.disabled ?? null,
+      };
+    });
+    await page.keyboard.press('Escape');
+    return r;
+  };
+  const allOff = (r) => r.apply === true && r.menuApply === true && r.menuPrune === true;
+  const allOn = (r) => r.apply === false && r.menuApply === false && r.menuPrune === false;
+  /** Every way to the two writes, forced, plus a host prune preview's Delete; returns what was posted. */
+  const tryWrites = async (page) => {
+    await post(page, { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]'), null, { timeout: 5000 }).catch(() => {});
+    const deleteOff = await page.evaluate(() => document.querySelector('[data-p3="dialog-confirm"]')?.disabled ?? null);
+    await hooks.click(page.locator('[data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="figma-option-apply"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { force: true, timeout: 4000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    return { deleteOff, posted: await writes(page) };
+  };
+  /** Open Export on Brand brief: the Download button's state, the note, and (if enabled) the file. */
+  const exportBrief = async (page) => {
+    await hooks.click(page.locator('[data-p3="export-open"]'), { timeout: 4000 }).catch(() => {});
+    // Anchored: the dialog's import slot reads "↑ Brand brief…" too, and a loose match is refused as ambiguous.
+    await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Brand brief$/ }), { timeout: 4000 }).catch(() => {});
+    const st = await page.evaluate(() => ({
+      off: document.querySelector('[data-p3="export-dialog"] [data-p3="dialog-confirm"]')?.disabled ?? null,
+      note: document.querySelector('[data-p3="export-restore-note"]')?.textContent ?? null,
+    }));
+    let file = null;
+    if (st.off === false) {
+      const [dl] = await Promise.all([
+        page.waitForEvent('download', { timeout: 5000 }).catch(() => null),
+        hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { timeout: 4000 }).catch(() => {}),
+      ]);
+      file = dl ? { name: dl.suggestedFilename(), text: await readFile(await dl.path(), 'utf8').catch(() => '') } : null;
+    } else {
+      await page.keyboard.press('Escape');
+      await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 }).catch(() => {});
+    }
+    return { ...st, file };
+  };
+  /** Open Export on Design tokens and FORCE its Download: its state, the note, and whether a file arrived.
+   *  Forced, so a disabled button that still downloaded would be caught rather than skipped. */
+  const exportTokensTry = async (page) => {
+    await hooks.click(page.locator('[data-p3="export-open"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Design tokens$/ }), { timeout: 4000 }).catch(() => {});
+    const st = await page.evaluate(() => ({
+      off: document.querySelector('[data-p3="export-dialog"] [data-p3="dialog-confirm"]')?.disabled ?? null,
+      note: document.querySelector('[data-p3="export-restore-note"]')?.textContent ?? null,
+    }));
+    const [dl] = await Promise.all([
+      page.waitForEvent('download', { timeout: 2500 }).catch(() => null),
+      hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {}),
+    ]);
+    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 }).catch(() => {});
+    return { ...st, file: dl ? dl.suggestedFilename() : null };
+  };
+  const tokensOff = (t) => t.off === true && t.file === null && (t.note ?? '').includes("these tokens would be the demo brand's");
+  /** Choose an example from the brand menu, answering the overwrite confirm when edits are at risk. */
+  const chooseExample = async (page) => {
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
+    const name = await page.locator('[data-p3="brand-menu-example"]').first().textContent().catch(() => null);
+    await hooks.click(page.locator('[data-p3="brand-menu-example"]').first(), { timeout: 4000 }).catch(() => {});
+    // After a demo edit there are edits to lose, so the choice asks first (#1033); answering it is the load.
+    if (await page.locator('[data-p3="overwrite-replace"]').count()) await hooks.click(page.locator('[data-p3="overwrite-replace"]'), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    return (name ?? '').trim();
+  };
+
+  // 1. A brand refused in resolution (#1989's case), turned back on by an EXAMPLE CHOICE, menu Prune included.
+  {
+    const { page, errors } = await openPanel();
+    await capture(page);
+    await post(page, { type: 'restore-input', input: { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } } });
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const off = await read(page);
+    ok(allOff(off), `#1994 unresolved: Apply Theme, menu Apply and menu Prune are off after the refused restore — ${JSON.stringify(off)}`);
+    const ex = await exportBrief(page);
+    ok(ex.off === false && !!ex.file && ex.file.name === 'refused-brand.design.md' && ex.file.text.includes('background.secondary'),
+      `#1994 unresolved: Export design.md writes the file's brand that failed, not the demo — file ${JSON.stringify(ex.file?.name ?? null)}, keeps the override ${!!ex.file?.text.includes('background.secondary')}`);
+    const tk = await exportTokensTry(page);
+    ok(tokensOff(tk), `#2007 unresolved: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
+    const example = await chooseExample(page);
+    const on = await read(page);
+    ok(on.bar === null && allOn(on),
+      `#1994 unresolved: choosing an example from the brand menu turns Apply Theme, menu Apply and menu Prune back on, and clears the bar — ${JSON.stringify(on)}`);
+    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
+    const posted = await writes(page);
+    ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === example,
+      `#1994 unresolved: after the example choice, Apply posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
+    ok(errors.length === 0, `#1994 unresolved: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+
+  // 2. A blob `brandTheme` rejects: dropped silently before.
+  {
+    const { page, errors } = await openPanel();
+    await capture(page);
+    await post(page, { type: 'restore-input', input: { ...base, id: 'rejected-brand', modes: ['light', 'bogus'] } });
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const off = await read(page);
+    ok((off.bar ?? '').includes("This file's saved brand didn't resolve") && (off.bar ?? '').includes("'bogus'"),
+      `#1994 rejected: the error bar says the file's brand did not resolve and names the refused mode — read ${JSON.stringify((off.bar ?? '').slice(0, 140))}`);
+    // Owner copy by kind: only a LOAD ends this one, so the bar says "loads", and the tooltip is the one wording.
+    const hint = await page.evaluate(() => document.querySelector('[data-p3="apply-to-figma"]')?.title ?? null);
+    ok((off.bar ?? '').includes('are off until a brand loads.') && hint === "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it.",
+      `#2007 rejected: the bar says the writes are off "until a brand loads", and the tooltip is the one approved wording — bar ${JSON.stringify((off.bar ?? '').slice(-110))}, tooltip ${JSON.stringify(hint)}`);
+    ok(allOff(off), `#1994 rejected: Apply Theme, Prune stale and Delete are off — ${JSON.stringify(off)}`);
+    const t = await tryWrites(page);
+    ok(t.deleteOff === true && t.posted.length === 0,
+      `#1994 rejected: nothing reaches the plugin, the prune dialog's Delete included — Delete off ${t.deleteOff}, posted ${JSON.stringify(t.posted)}`);
+    // A demo EDIT rebuilds cleanly, and must not turn the writes back on: only a brand loading does.
+    await gotoRail(page, '[data-p3="rail-page-motion"]').catch(() => {});
+    const tempo = page.locator('[data-p3="lever-motion-personality-tempo"] input:not(:checked)').first();
+    const edited = await tempo.count() > 0;
+    if (edited) await hooks.click(tempo, { force: true, timeout: 4000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    const after = await read(page);
+    ok(edited && allOff(after),
+      `#1994 rejected: a demo edit does not turn the writes back on — edited ${edited}, ${JSON.stringify(after)}`);
+    const ex = await exportBrief(page);
+    ok(ex.off === false && !!ex.file && ex.file.name === 'rejected-brand.design.md' && ex.file.text.includes('bogus')
+      && (ex.note ?? '').includes("This is the file's saved brand"),
+      `#1994 rejected: Export design.md writes the file's brand that failed, and says so — file ${JSON.stringify(ex.file?.name ?? null)}, names bogus ${!!ex.file?.text.includes('bogus')}, note ${JSON.stringify(ex.note)}`);
+    const tk = await exportTokensTry(page);
+    ok(tokensOff(tk), `#2007 rejected: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
+    // A LOAD is what turns them back on (review of #2007: untested for this kind until now).
+    const example = await chooseExample(page);
+    const on = await read(page);
+    ok(on.bar === null && allOn(on), `#2007 rejected: choosing an example (${JSON.stringify(example)}) turns the writes back on and clears the bar — ${JSON.stringify(on)}`);
+    await page.evaluate(() => { window.__writes = []; });
+    await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
+    const posted = await writes(page);
+    ok(posted.length === 1 && posted[0].type === 'apply-theme' && posted[0].id === example,
+      `#2007 rejected: after the example choice, Apply posts that example once — chose ${JSON.stringify(example)}, posted ${JSON.stringify(posted)}`);
+    ok(errors.length === 0, `#1994 rejected: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+
+  // 3. A blob the host cannot read (#480).
+  {
+    const { page, errors } = await openPanel();
+    await capture(page);
+    await post(page, { type: 'restore-input-error', message: 'saved with a newer Prism3 (v9); this plugin reads up to v3.' });
+    await page.waitForFunction(() => /couldn't be read/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const off = await read(page);
+    ok((off.bar ?? '').includes("This file's saved brand couldn't be read") && (off.bar ?? '').includes('newer Prism3 (v9)'),
+      `#1994 unreadable: the error bar says the file's brand couldn't be read, with the host's reason — read ${JSON.stringify((off.bar ?? '').slice(0, 140))}`);
+    ok(allOff(off), `#1994 unreadable: Apply Theme, Prune stale and Delete are off — ${JSON.stringify(off)}`);
+    const t = await tryWrites(page);
+    ok(t.deleteOff === true && t.posted.length === 0,
+      `#1994 unreadable: nothing reaches the plugin, the prune dialog's Delete included — Delete off ${t.deleteOff}, posted ${JSON.stringify(t.posted)}`);
+    const ex = await exportBrief(page);
+    ok(ex.off === true && (ex.note ?? '').includes('Nothing to export'),
+      `#1994 unreadable: Export design.md is off, with the reason — Download disabled ${ex.off}, note ${JSON.stringify(ex.note)}`);
+    const tk = await exportTokensTry(page);
+    ok(tokensOff(tk), `#2007 unreadable: Export's Design tokens is off, with the reason, and a forced click downloads nothing — ${JSON.stringify(tk)}`);
+    const example = await chooseExample(page);
+    const on = await read(page);
+    ok(on.bar === null && allOn(on), `#1994 unreadable: choosing an example (${JSON.stringify(example)}) turns the writes back on — ${JSON.stringify(on)}`);
+    ok(errors.length === 0, `#1994 unreadable: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+
+  // 5. "New brand" is not a load (review of #2007). It puts the start screen up and loads nothing, so the
+  //    failure must survive it: the start screen keeps the error bar saying why. Export is not on the start
+  //    screen, and every way off it loads a brand, which is what then ends the failure (checked last).
+  {
+    const { page, errors } = await openPanel();
+    await capture(page);
+    await post(page, { type: 'restore-input', input: { ...base, id: 'rejected-brand', modes: ['light', 'bogus'] } });
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="brand-menu-new"]'), { timeout: 4000 }).catch(() => {});
+    await hooks.need(page, '[data-p3="start-screen"]', { timeout: 5000 }).catch(() => {});
+    const onStart = await page.evaluate(() => {
+      const b = document.querySelector('[data-p3="error-bar"]');
+      return { start: !!document.querySelector('[data-p3="start-screen"]'), bar: b && b.checkVisibility() ? b.textContent : null };
+    });
+    ok(onStart.start && (onStart.bar ?? '').includes("This file's saved brand didn't resolve"),
+      `#2007 New brand: the start screen still says the file's brand did not resolve — "New brand" loads nothing, so the failure stands — start screen ${onStart.start}, bar ${JSON.stringify((onStart.bar ?? '').slice(0, 80))}`);
+    await hooks.click(page.locator('[data-p3="start-example"]').first(), { timeout: 4000 }).catch(() => {});
+    await page.waitForFunction(() => document.querySelector('[data-p3="apply-to-figma"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+    const on = await read(page);
+    ok(on.bar === null && allOn(on), `#2007 New brand: leaving the start screen with an example is a load, and turns the writes back on — ${JSON.stringify(on)}`);
+    ok(errors.length === 0, `#2007 New brand: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+
+  // 4. The guard: once a designer has chosen a brand, a late unreadable restore is not a reason to turn
+  //    the writes off. They post the chosen brand, not the demo.
+  {
+    const { page, errors } = await openPanel();
+    const example = await chooseExample(page);
+    await post(page, { type: 'restore-input-error', message: 'saved with a newer Prism3 (v9); this plugin reads up to v3.' });
+    await page.waitForTimeout(500);
+    const st = await read(page);
+    ok(!!example && allOn(st) && !/couldn't be read/.test(st.bar ?? ''),
+      `#1994 guard: an unreadable restore after a brand was chosen leaves the writes on — chose ${JSON.stringify(example)}, ${JSON.stringify(st)}`);
+    await post(page, { type: 'restore-input', input: { ...base, id: 'late-rejected', modes: ['light', 'bogus'] } });
+    await page.waitForTimeout(500);
+    const st2 = await read(page);
+    ok(allOn(st2) && !/didn't resolve/.test(st2.bar ?? ''),
+      `#2007 guard: a rejected restore after a brand was chosen leaves the writes on too — ${JSON.stringify(st2)}`);
+    // CONTROL for the no-download arms above: with nothing failed, the same forced click does download.
+    const tk = await exportTokensTry(page);
+    ok(tk.off === false && !!tk.file && tk.note === null,
+      `#2007 control: with no failed restore, Design tokens is on and the same click downloads a file — ${JSON.stringify(tk)}`);
+    ok(errors.length === 0, `#1994 guard: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
 }
 
 await browser.close();
