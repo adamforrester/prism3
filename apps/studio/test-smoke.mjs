@@ -1190,7 +1190,9 @@ ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesSt
 //   · the five sections draw, in order, the token chips the Style guide has always drawn (literal), on
 //     Surfaces & fills AND on the Style guide itself, so a change to a shared section shows on both.
 // S4f: Surfaces & fills also draws Scrim (QA-B10, out of Background) and Fields (#2016), each with its own marker and
-// chips (literal); Background and Foreground sit on white with no badge (#1971), every other section on the page; the
+// chips (literal); Background and Foreground carry no badge (#1971), and every section sits on the page except Foreground,
+// which sits on the contrast floor (the emission's own `against` for foreground.brand, resolved to its hex) under a line
+// naming that step (#1971, the grounds the owner confirmed 2026-10-03); the
 // Fields section paints every opaque field role, page and inverse, held to its emitted hex; and each levers section
 // is described as the preview section it pairs with (Q23), Scrim and Fields included.
 console.log(`\nColor › Surfaces & fills — the moved page, against each brand's emission\n${'='.repeat(78)}`);
@@ -1225,9 +1227,15 @@ const EXPECT_FILLS_CHIPS = {
   Scrim: ['scrim.default'],
   Fields: [...fieldChips('', 'text.primary'), ...fieldChips('inverse.', 'inverse.text.primary')],
 };
-/** #1971 (Q81): on Surfaces & fills the grounds themselves, Background and Foreground, sit on WHITE with no ratio
- *  badge; every other section sits on the page. Literal, the owner's word. */
-const FILLS_WHITE = ['Background', 'Foreground'];
+/** #1971 (Q81): on Surfaces & fills the grounds themselves, Background and Foreground, carry no ratio badge. Literal. */
+const FILLS_GROUNDS = ['Background', 'Foreground'];
+/** #1971 (owner, 2026-10-03): the section that sits on the CONTRAST FLOOR, the step `foreground.*` is measured against,
+ *  rather than on the page; every other section, Background included, sits on the page. Literal. Its ground's hex is
+ *  the EMISSION's: `foreground.brand`'s `against` in the mode, resolved as a role or a palette step from the committed
+ *  tree, never from the studio's resolver. */
+const FILLS_ON_FLOOR = ['Foreground'];
+/** The line naming the floor inside that section's ground (DRAFT copy, held for the owner). Literal. */
+const floorLabel = (step) => `On the contrast floor (${step})`;
 /** Roles whose swatch must be among those checked, one or more per section, so an empty read fails by name. */
 const MUST_PAINT = ['background.primary', 'inverse.background.primary', 'foreground.brand', 'text.on-brand', 'text.primary', 'border.secondary', 'icon.primary', 'icon.on-brand'];
 /** #2016: the Fields section's own painted roles, every opaque field role page and inverse, each held to its emitted hex
@@ -1252,6 +1260,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
     shared: s.getAttribute('data-sg-section'),
     root: s.querySelector('.sg-ground')?.getAttribute('data-p3') === 'specimen',
     ground: hex(getComputedStyle(s.querySelector('.sg-ground') ?? s).backgroundColor),
+    groundLabel: s.querySelector('.sg-ground [data-p3="ground-label"]')?.textContent ?? null,
     chips: [...s.querySelectorAll('.sg-ground [data-p3="token-pill"]')].map((p) => p.textContent.replace(/^color\./, '').replace(/!$/, '')),
     badges: s.querySelectorAll('[data-p3="ratio-badge"]').length,
   }));
@@ -1376,7 +1385,7 @@ const checkSwatches = (where, got, emission, mode, modes) => {
   ok(oppCells > 0, `${where}: the swatch check read the Text color section's second column (${oppCells} cell(s) held to ${opp})`);
 };
 const floor2 = (r) => Math.floor(r * 100) / 100;
-let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0;
+let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0, floorDiffers = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const emission = await loadEmission(brand);
@@ -1397,16 +1406,28 @@ for (const brand of BRANDS) {
     ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
     const got = await readSections(page, SG_FILLS);
     const page0 = emission?.role('background.primary', mode)?.hex;
+    // #1971: the contrast floor, from the emission: what foreground.brand is measured against in this mode, as a hex.
+    const floorStep = emission?.role('foreground.brand', mode)?.against ?? null;
+    const floor0 = floorStep ? (emission.role(floorStep, mode)?.hex ?? palOf(floorStep)) : null;
+    ok(!!page0 && !!floor0, `${where}: the emission names this mode's background.primary (${page0}) and the contrast floor foreground.brand is measured against (${floorStep} ${floor0})`);
+    if (floor0 && floor0 !== page0) floorDiffers++;
     for (const name of expectRoots ?? []) {
       const s = got.sections.find((x) => x.name === name);
-      // #1971: Background and Foreground on white, every other section on the page.
-      const want = FILLS_WHITE.includes(name) ? '#ffffff' : page0;
-      ok(!!s && s.root && s.ground === want, `${where}: section ${name} is a specimen root on ${FILLS_WHITE.includes(name) ? 'white #ffffff (#1971)' : `the emission's background.primary ${page0}`}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== want ? ` — on ${s.ground}` : ''}`);
+      // #1971: Foreground on the contrast floor, every other section (Background included) on the page.
+      const onFloor = FILLS_ON_FLOOR.includes(name);
+      const want = onFloor ? floor0 : page0;
+      ok(!!s && s.root && s.ground === want, `${where}: section ${name} is a specimen root on ${onFloor ? `the emission's contrast floor ${floorStep} ${floor0} (#1971)` : `the emission's background.primary ${page0}`}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== want ? ` — on ${s.ground}` : ''}`);
+    }
+    // #1971: the floor's section names its ground, by the emission's step; no other section carries the line.
+    for (const name of expectRoots ?? []) {
+      const s = got.sections.find((x) => x.name === name);
+      const want = FILLS_ON_FLOOR.includes(name) && floorStep ? floorLabel(floorStep) : null;
+      ok((s?.groundLabel ?? null) === want, `${where}: section ${name} ${want ? `names its ground "${want}"` : 'carries no ground label'}${(s?.groundLabel ?? null) !== want ? ` — read ${JSON.stringify(s?.groundLabel ?? null)}` : ''}`);
     }
     const unlisted = got.sections.filter((x) => !(expectRoots ?? []).includes(x.name)).map((x) => x.name);
     ok(unlisted.length === 0, `${where}: every section drawn is a listed specimen root${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
     // #1971: the grounds carry no ratio badge.
-    for (const name of FILLS_WHITE) {
+    for (const name of FILLS_GROUNDS) {
       const n = got.sections.find((x) => x.name === name)?.badges ?? -1;
       ok(n === 0, `${where}: the ${name} section shows no contrast badge (#1971) — ${n} drawn`);
     }
@@ -1454,8 +1475,8 @@ for (const brand of BRANDS) {
     ok(offBadge.length === 0, `${where}: every ratio badge prints the emitted pair's ratio and marks its floor${offBadge.length ? ` — ${offBadge.slice(0, 3).join(' | ')}` : ''}`);
     // Q46: the Text color section's token column carries the pill alone; its badges are per column, below.
     const tcTokens = new Set(got.tcRows.map((t) => t.role));
-    // #1971: the white sections carry none, held above; every other chip of a graded role carries its badge.
-    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role) || FILLS_WHITE.includes(c.section)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
+    // #1971: the ground sections carry none, held above; every other chip of a graded role carries its badge.
+    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role) || FILLS_GROUNDS.includes(c.section)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
     ok(noBadge.length === 0, `${where}: every chip of a role measured against another carries its ratio badge${noBadge.length ? ` — no badge: ${[...new Set(noBadge)].slice(0, 5).join(', ')}` : ''}`);
     // Q46: every text token graded in a column's mode carries exactly one badge in that column, its own, and the
     // token column carries none. Which roles are graded is the emission's (an \`against\` other than itself).
@@ -1493,6 +1514,8 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 ok(fillsStates >= BRANDS.length * 2, `the Surfaces & fills sweep visited ${fillsStates} brand × mode states (floor ${BRANDS.length * 2})`);
+// #1971: the floor check can tell the floor from the page only where they differ; the corpus must give it such a cell.
+ok(floorDiffers > 0, `the Surfaces & fills sweep met a contrast floor that differs from the page in ${floorDiffers} brand × mode state(s), so a Foreground on the page fails`);
 ok(sgStates >= BRANDS.length * 2, `the Style guide sweep visited ${sgStates} brand × mode states (floor ${BRANDS.length * 2})`);
 console.log(`  ${fillsStates} + ${sgStates} states, ${fillsPaint} swatches and ${fillsBadges} ratio badges checked against the emissions.`);
 

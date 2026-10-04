@@ -193,8 +193,11 @@
  *     Icons description (QA-I10). All literal.
  *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
  *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
- *   · #1971 (Q81): Background and Foreground on white (literal `#ffffff`) with no badge, every other section on the
- *     emission's `background.primary` with its badges; Q23 pairs for Background fills, Scrim and Fields.
+ *   · #1971 (Q81): Background and Foreground with no badge, every other section with its badges; Q23 pairs for
+ *     Background fills, Scrim and Fields. The grounds (the owner, 2026-10-03, #1971's follow-up): every section on the
+ *     emission's `background.primary` for the previewed mode, except Foreground, on the emission's contrast floor
+ *     (`foreground.brand`'s `against` in that mode, resolved from the committed tree, `EMITTED_FLOOR`), with a line
+ *     inside its ground naming that step.
  *   · THE LOCK (QA-B12): the pairing button's padlock is the shut shackle while paired and the open one while not
  *     (path data literal), aria-hidden, the button named by its words.
  *   · GRADIENTS (QA-B13 to QA-B16): the switch in its block's header at the top right; no element in the levers paints
@@ -2871,11 +2874,45 @@ console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
 const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Fields', 'Gradients'];
-/** #1971 (owner decision Q81, S4f): the sections that are themselves grounds, Background and Foreground, sit in WHITE
- *  containers and carry no ratio badge; every other section checks contrast against the page and sits on its color.
- *  Literal, the owner's word: white, `#ffffff`, in every mode. Scrim (QA-B10) and Fields (#2016) are S4f's. */
-const FILLS_WHITE_SECTIONS = ['Background', 'Foreground'];
-const WHITE = '#ffffff';
+/** #1971 (owner decision Q81, S4f): the sections that are themselves grounds, Background and Foreground, carry no
+ *  ratio badge; every other section checks contrast against the page and carries its badges. Literal. */
+const FILLS_GROUND_SECTIONS = ['Background', 'Foreground'];
+/** #1971 (owner, 2026-10-03): the grounds follow the previewed mode. Every section sits on the page, Background
+ *  included, except these, which sit on the CONTRAST FLOOR: the step `foreground.*` is measured against. Literal. */
+const FILLS_FLOOR_SECTIONS = ['Foreground'];
+/** The line naming the floor inside that section's ground (DRAFT copy, held for the owner). Literal. */
+const FLOOR_LABEL = (step) => `On the contrast floor (${step})`;
+/** The contrast floor per mode, from the COMMITTED emission, never the studio's resolver: `foreground.brand`'s
+ *  `against` in the mode's tree (the base, or the base under the mode's overlay), resolved as a role or a palette
+ *  step to its hex. */
+const EMITTED_FLOOR = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const treeFor = (mode) => {
+    if (mode === 'light') return base;
+    const t = structuredClone(base);
+    const ov = JSON.parse(readFileSync(join(out, `prism3.${mode}.overlay.tokens.json`), 'utf8'));
+    const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+    put(ov, t);
+    return t;
+  };
+  const resolveHex = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? resolveHex(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => {
+    const t = treeFor(m);
+    const step = leafAt(t, `${root}.color.foreground.brand`)?.$extensions?.prism3?.against ?? null;
+    const hex = step ? (resolveHex(t, `${root}.color.${step}`) ?? resolveHex(t, `${root}.core.palette.${step}`)) : null;
+    return [m, { step, hex }];
+  }));
+})();
+ok(Object.values(EMITTED_FLOOR).every((x) => /^#[0-9a-f]{6}$/.test(x.hex ?? '')), `the oracle resolved the contrast floor for every mode from the emission (${JSON.stringify(EMITTED_FLOOR)})`);
+ok(Object.entries(EMITTED_FLOOR).some(([m, x]) => x.hex !== EMITTED[m]), `the oracle's contrast floor differs from the page in at least one mode, so a Foreground on the page can fail (${JSON.stringify(EMITTED_FLOOR)} vs ${JSON.stringify(EMITTED)})`);
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
 const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
@@ -2953,6 +2990,7 @@ const fillsGrounds = (page) => page.evaluate(() => {
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
     sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })),
     badges: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelectorAll('[data-p3="ratio-badge"]').length])),
+    labels: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelector('.sg-ground [data-p3="ground-label"]')?.textContent ?? null])),
     levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
 });
 /** Q24 (S4c): each section container in the preview takes the levers panel's gray. EXPECTED from the TOKEN, not
@@ -2973,17 +3011,21 @@ for (const host of ['web', 'figma']) {
       const where = `${host} ${theme} 1280, previewing ${mode}`;
       const g = await fillsGrounds(page);
       const want = EMITTED[mode];
+      const floor = EMITTED_FLOOR[mode];
       for (const name of EXPECT_FILLS_SPECIMENS) {
         const r = g.roots.find((x) => x.name === name);
-        // #1971: Background and Foreground on white, the rest on the page.
-        const white = FILLS_WHITE_SECTIONS.includes(name);
-        const on = white ? WHITE : want;
-        ok(!!r && r.root && r.ground === on, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on ${white ? `white ${WHITE} (#1971)` : `background.primary ${want}`}${
-          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== on ? ` — ${r.ground === g.card && !white ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        // #1971: Foreground on the contrast floor, the rest (Background included) on the page.
+        const onFloor = FILLS_FLOOR_SECTIONS.includes(name);
+        const on = onFloor ? floor.hex : want;
+        ok(!!r && r.root && r.ground === on, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on ${onFloor ? `the contrast floor ${floor.step} ${floor.hex} (#1971)` : `background.primary ${want}`}${
+          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== on ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        // #1971: the floor's section names its ground by the emission's step; no other section carries that line.
+        const label = onFloor ? FLOOR_LABEL(floor.step) : null;
+        ok((g.labels[name] ?? null) === label, `#1971 surfaces & fills ${where}: the ${name} section ${label ? `names its ground "${label}"` : 'carries no ground label'}${(g.labels[name] ?? null) !== label ? ` — read ${JSON.stringify(g.labels[name] ?? null)}` : ''}`);
       }
       // #1971: no ratio badge in a section that is a ground; at least one in each section on the page that grades a role.
       const badgesBy = g.badges;
-      for (const name of FILLS_WHITE_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
+      for (const name of FILLS_GROUND_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
       for (const name of ['Text color', 'Border', 'Icon', 'Fields']) ok(badgesBy[name] > 0, `#1971 surfaces & fills ${where}: the ${name} section, on the page, shows its contrast badges — ${badgesBy[name]} drawn`);
       const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
       ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
