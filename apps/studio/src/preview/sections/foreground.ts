@@ -4,8 +4,10 @@
 import { SEM, palSection, subHead, type SgCtx } from './kit';
 import { surfaceCard } from './cards';
 
-export const foregroundSection = (c: SgCtx): HTMLElement => {
-  const secFg = palSection('Foreground', 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
+export const foregroundSection = (c: SgCtx, fills?: { readonly desc: string }): HTMLElement => {
+  // Surfaces & fills (#1971) draws this section on the contrast floor, not the page, so it hands its own description
+  // (`FOREGROUND_FILLS_DESC`); the Style guide draws it on the page with the sentence below, as before.
+  const secFg = palSection('Foreground', fills?.desc ?? 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
   secFg.dataset.sgSection = 'foreground';   // the shared-section marker (`kit.ts`'s header)
   secFg.append(subHead('Neutral'), c.grid(3, ([['Primary', 'foreground.primary'], ['Secondary', 'foreground.secondary'], ['Tertiary', 'foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(c, k, n, 'text.primary'))));
   // Inverse: bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page band.

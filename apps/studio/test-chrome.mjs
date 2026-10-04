@@ -193,7 +193,8 @@
  *     Icons description (QA-I10). All literal.
  *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
  *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
- *   · #1971 (Q81): Background and Foreground with no badge, every other section with its badges; Q23 pairs for
+ *   · #1971 (Q81): Background with no badge, every other section with its badges (Foreground's since GR2, the owner,
+ *     2026-10-04: each bold fill's badge prints its emitted hex against the emitted floor); Q23 pairs for
  *     Background fills, Scrim and Fields. The grounds (the owner, 2026-10-03, #1971's follow-up): every section on the
  *     emission's `background.primary` for the previewed mode, except Foreground, on the emission's contrast floor
  *     (`foreground.brand`'s `against` in that mode, resolved from the committed tree, `EMITTED_FLOOR`), with a line
@@ -2880,13 +2881,21 @@ console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
 const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Fields', 'Gradients'];
-/** #1971 (owner decision Q81, S4f): the sections that are themselves grounds, Background and Foreground, carry no
- *  ratio badge; every other section checks contrast against the page and carries its badges. Literal. */
-const FILLS_GROUND_SECTIONS = ['Background', 'Foreground'];
+/** #1971 (owner decision Q81, S4f): the page planes, Background, carry no ratio badge; every other section carries its
+ *  badges, Foreground included since it sits on the floor it is measured against (GR2, owner 2026-10-04). Literal. */
+const FILLS_GROUND_SECTIONS = ['Background'];
+/** GR2: the Foreground roles measured against the contrast floor, each badged in the Foreground section. Literal. */
+const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'];
+/** WCAG 2 contrast of two hexes, computed here (the oracle side), never read from the studio. */
+const wcagHex = (a, b) => {
+  const lum = (hx) => { const f = (i) => { const x = parseInt(hx.slice(i, i + 2), 16) / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(1) + 0.7152 * f(3) + 0.0722 * f(5); };
+  const x = lum(a), y = lum(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+};
 /** #1971 (owner, 2026-10-03): the grounds follow the previewed mode. Every section sits on the page, Background
  *  included, except these, which sit on the CONTRAST FLOOR: the step `foreground.*` is measured against. Literal. */
 const FILLS_FLOOR_SECTIONS = ['Foreground'];
-/** The line naming the floor inside that section's ground (DRAFT copy, held for the owner). Literal. */
+/** The line naming the floor inside that section's ground (APPROVED, owner 2026-10-04, GR1). Literal. */
 const FLOOR_LABEL = (step) => `On the contrast floor (${step})`;
 /** The contrast floor per mode, from the COMMITTED emission, never the studio's resolver: `foreground.brand`'s
  *  `against` in the mode's tree (the base, or the base under the mode's overlay), resolved as a role or a palette
@@ -2914,7 +2923,12 @@ const EMITTED_FLOOR = (() => {
     const t = treeFor(m);
     const step = leafAt(t, `${root}.color.foreground.brand`)?.$extensions?.prism3?.against ?? null;
     const hex = step ? (resolveHex(t, `${root}.color.${step}`) ?? resolveHex(t, `${root}.core.palette.${step}`)) : null;
-    return [m, { step, hex }];
+    // GR2: each bold fill's emitted hex and what it is measured against, for its badge's expected ratio.
+    // A mode's overlay carries only the leaves whose VALUE varies, so a fill whose hex is the same in every mode keeps
+    // its per-mode `against` on the base leaf (`$extensions.prism3.modes.<mode>`), read first.
+    const againstIn = (path) => leafAt(base, path)?.$extensions?.prism3?.modes?.[m]?.against ?? leafAt(t, path)?.$extensions?.prism3?.against ?? null;
+    const fills = Object.fromEntries(FLOOR_BADGED.map((sem) => [sem, { hex: resolveHex(t, `${root}.color.foreground.${sem}`), against: againstIn(`${root}.color.foreground.${sem}`) }]));
+    return [m, { step, hex, fills }];
   }));
 })();
 ok(Object.values(EMITTED_FLOOR).every((x) => /^#[0-9a-f]{6}$/.test(x.hex ?? '')), `the oracle resolved the contrast floor for every mode from the emission (${JSON.stringify(EMITTED_FLOOR)})`);
@@ -2996,6 +3010,8 @@ const fillsGrounds = (page) => page.evaluate(() => {
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
     sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })),
     badges: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelectorAll('[data-p3="ratio-badge"]').length])),
+    fgBadges: [...(host?.querySelectorAll('.psec') ?? [])].filter((x) => x.querySelector('.psec-t')?.textContent === 'Foreground')
+      .flatMap((x) => [...x.querySelectorAll('[data-p3="ratio-badge"]')].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '' }))),
     labels: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelector('.sg-ground [data-p3="ground-label"]')?.textContent ?? null])),
     levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
 });
@@ -3033,6 +3049,15 @@ for (const host of ['web', 'figma']) {
       const badgesBy = g.badges;
       for (const name of FILLS_GROUND_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
       for (const name of ['Text color', 'Border', 'Icon', 'Fields']) ok(badgesBy[name] > 0, `#1971 surfaces & fills ${where}: the ${name} section, on the page, shows its contrast badges — ${badgesBy[name]} drawn`);
+      // GR2: Foreground, on the floor, badges each bold fill; each prints the emitted fill against the emitted floor.
+      const offFloor = FLOOR_BADGED.flatMap((sem) => {
+        const role = `foreground.${sem}`, b = g.fgBadges.find((x) => x.role === role), e = floor.fills[sem];
+        if (!b) return [`${role}: no badge drawn`];
+        if (!e?.hex || e.against !== floor.step) return [`${role}: the emission measures it against ${e?.against}, not the floor ${floor.step}`];
+        const r = wcagHex(e.hex, floor.hex);
+        return Math.abs(parseFloat(b.text) - Math.floor(r * 100) / 100) <= 0.011 ? [] : [`${role} prints ${b.text}, the emitted ${e.hex} on the floor ${floor.hex} measures ${r.toFixed(3)}:1`];
+      });
+      ok(offFloor.length === 0, `#1971 GR2 surfaces & fills ${where}: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor${offFloor.length ? ` — ${offFloor.join(' | ')}` : ''}`);
       const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
       ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
@@ -3182,7 +3207,8 @@ for (const host of ['web', 'figma']) {
     'Background fills': 'The base page planes and their inverse counterparts.',
     Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
-    Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
+    // #1971 GR3 (APPROVED, owner 2026-10-04): the preview's Foreground sits on the contrast floor, so its sentence (and the levers', Q23) says so.
+    Foreground: 'Content surfaces and fills, shown on the contrast floor their text is checked against: the neutral and inverse steps, and bold and subtle status fills, each with its text.',
     Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
     'Text color': 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.',
     Icon: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.',
