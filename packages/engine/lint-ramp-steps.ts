@@ -118,7 +118,8 @@ const HERE = import.meta.dirname;
  *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`), and
  *  S6.1, which moved the typography group list with the Type writes (`state/type-input.ts`,
  *  `TYPE_GROUP_ORDER` and `BULK_CATS`), and S6.3, which moved every Type control to the new page
- *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`). A file
+ *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`), and S9.1,
+ *  which moved the elevation ramp with its specimen (`preview/sections/shadow-ramp.ts`, `SHADOW_STEPS`). A file
  *  is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name.
  *
  *  S7 (Shape) RETIRED `RADIUS_STEPS`, this gate's first subject, and listed the files that replaced it. The radius
@@ -133,7 +134,7 @@ const HERE = import.meta.dirname;
  *  `radius.ts`, say) is discovered and reads UNCLASSIFIED, by name, rather than slipping past a scan that never
  *  read the file. */
 const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts',
-  '../../apps/studio/src/domains/shape.ts', '../../apps/studio/src/state/shape-input.ts', '../../apps/studio/src/preview/shape.ts',
+  '../../apps/studio/src/preview/sections/shadow-ramp.ts', '../../apps/studio/src/domains/shape.ts', '../../apps/studio/src/state/shape-input.ts', '../../apps/studio/src/preview/shape.ts',
   '../../apps/studio/src/preview/sections/radius.ts', '../../apps/studio/src/preview/sections/control-heights.ts', '../../apps/studio/src/preview/sections/spacing.ts',
   '../../apps/studio/src/preview/sections/shape-building-blocks.ts', '../../apps/studio/src/preview/sections/radius-sample.ts'];
 /** The files, for a failure message: every one of them, so the message names where the scan looked. */

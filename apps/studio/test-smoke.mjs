@@ -2079,6 +2079,49 @@ ok(perModeDensityKnobs >= BRANDS.length && perModeDensityMissing.length === 0,
   `per-mode density: every per-mode Density lever (${perModeDensityKnobs} met, floor ${BRANDS.length}) says "${PER_MODE_DENSITY_SENTENCE}"${perModeDensityMissing.length ? ` — MISSING: ${perModeDensityMissing.slice(0, 3).join(' | ')}` : ''}`);
 
 // =============================================================================================
+// 1h. Depth & motion's preview pieces, shared (UI redesign S9.1)
+// =============================================================================================
+// The legacy Elevation and Motion pages draw their read-only pieces from `preview/sections/` (the Depth & motion
+// page, S9.2, draws the same code). Per corpus brand, in Light and Dark: each piece is the shared module's (its
+// root carries the marker only that module stamps), each marker is drawn exactly once, and the tint read-out, a
+// block inside the Shadow section rather than a section, carries `shadow-tint`. A piece `main.ts` draws for itself,
+// by any spelling, carries no marker and fails here by name. Literal.
+console.log(`\nDepth & motion's preview pieces — the shared sections on the legacy Elevation and Motion pages\n${'='.repeat(78)}`);
+const EXPECT_ELEVATION_MARKER = { 'Elevation ramp': 'shadow-ramp' };
+const EXPECT_MOTION_MARKER = { 'Duration ramp': 'duration-ramp', Easing: 'motion-curves', Springs: 'springs', Motion: 'motion-transitions' };
+let depthMotionStates = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  for (const mode of ['Light', 'Dark']) {
+    for (const [rail, expect, extra] of [
+      ['[data-p3="rail-page-elevation"]', EXPECT_ELEVATION_MARKER, ['shadow-tint']],
+      ['[data-p3="rail-page-motion"]', EXPECT_MOTION_MARKER, []],
+    ]) {
+      await gotoRail(page, rail);
+      await selectMode(page, mode);
+      const where = `${brand} / ${hooks.role(rail).slice('rail-page-'.length)} / ${mode}`;
+      depthMotionStates++;
+      const got = await readSections(page, '[data-p3="legacy-frame"]');
+      checkSharedMarkers(where, got, expect);
+      const marks = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section]')].map((n) => n.getAttribute('data-sg-section')));
+      for (const key of [...Object.values(expect), ...extra]) {
+        const n = marks.filter((m) => m === key).length;
+        ok(n === 1, `${where}: data-sg-section="${key}" is drawn exactly once — drawn ${n} time(s)`);
+      }
+      if (extra.includes('shadow-tint')) {
+        const inShadow = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-frame"] .psec')]
+          .some((sec) => sec.querySelector('.psec-t')?.textContent === 'Shadow' && !!sec.querySelector('[data-sg-section="shadow-tint"] .sh-tintfill')));
+        ok(inShadow, `${where}: the tint read-out is the shared module's (data-sg-section="shadow-tint"), inside the Shadow section`);
+      }
+      const errs = drain();
+      ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    }
+  }
+  await ctx.close();
+}
+ok(depthMotionStates >= BRANDS.length * 4, `the Depth & motion sweep visited ${depthMotionStates} brand × page × mode states (floor ${BRANDS.length * 4})`);
+
+// =============================================================================================
 // 2. The controls — driven, not merely rendered
 // =============================================================================================
 // A page that loads clean proves the renderer runs. It proves nothing about what the controls DO,

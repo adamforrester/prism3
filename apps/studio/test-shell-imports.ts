@@ -126,6 +126,10 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S6.3: the value picker, and the Type preview's Scale, Line height and letter spacing, and Building blocks sections.
   // (S6.3 retired S6.1's type-ramp.ts and type-fluid.ts, folded into Scale.)
   'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts',
+  // S9.1: the Elevation and Motion writes, and the two legacy pages' read-only pieces, shared.
+  'src/state/depth-motion-input.ts', 'src/preview/sections/shadow-ramp.ts', 'src/preview/sections/shadow-tint.ts',
+  'src/preview/sections/duration-ramp.ts', 'src/preview/sections/motion-curves.ts', 'src/preview/sections/springs.ts',
+  'src/preview/sections/motion-transitions.ts',
   // S7: Shape (its levers, its preview, its writes), the generated "used by" index, and the Shape preview's sections and
   // the Style guide's radius sample.
   'src/domains/shape.ts', 'src/preview/shape.ts', 'src/state/shape-input.ts', 'src/preview/used-by.ts',
@@ -501,7 +505,8 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const writers = allSrc.filter((f) => MARKER.test(readFileSync(f, 'utf8'))).map((f) => f.slice(SRC.length + 1));
   const strays = writers.filter((f) => !join(SRC, f).startsWith(SECTIONS_DIR));
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
-  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-scale', 'line-spacing', 'building-blocks', 'type-sample', 'faces']) {
+  for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-scale', 'line-spacing', 'building-blocks', 'type-sample', 'faces',
+    'shadow-ramp', 'shadow-tint', 'duration-ramp', 'motion-curves', 'springs', 'motion-transitions']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
@@ -592,10 +597,9 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     /** A variable-key write that is not Type, by `<enclosing function>:<key text>`, and why. */
     const UNRESOLVED_OK: Record<string, string> = {
       'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
-      'renderPerModeSelect:key': 'its callers are PER_MODE_SELECTS, the radius, density and tempo selects',
+      'renderPerModeSelect:key': 'its default write; its callers are PER_MODE_SELECTS, the radius and density selects (tempo passes its own write, S9.1)',
       'csSlider:key': 'Size & radius sliders; rule 3 holds that no caller passes a Type key',
       'csPicker:key': 'Size & radius pickers; rule 3 holds that no caller passes a Type key',
-      'renderShadowEditor:path': 'the shadow editor; `path` is built from `shadow.`',
     };
     // A one-file program, so an identifier resolves to ITS declaration through the checker. Matching variables by
     // name was wrong the first time: an unrelated `l` elsewhere in the file tainted every `l`.
@@ -688,9 +692,18 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
       return null;
     };
     const direct: string[] = [], keyed: string[] = [], unresolved: string[] = [];
+    // The Depth & motion writes (UI redesign S9.1), held by the same visitor: no write into `brandState.shadow` or
+    // `brandState.motionPersonality`, and no keyed write on `shadow.*`, `motionPersonality.*` or the mode fields
+    // `tempo`, `easings` and `shadow`. Literal: the legacy pages' write targets, as the scoping report lists them.
+    const DEPTH_PATH_ROOTS = new Set(['shadow', 'motionPersonality']);
+    const DEPTH_MODE_FIELDS = new Set(['tempo', 'easings', 'shadow']);
+    const isDepthTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && DEPTH_PATH_ROOTS.has(c[1]); };
+    const depthDirect: string[] = [], depthKeyed: string[] = [];
     const seenOk = new Set<string>();
     const visit = (n: ts.Node): void => {
       if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isTypeTarget(n.left)) direct.push(at(n));
+      if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isDepthTarget(n.left)) depthDirect.push(at(n));
+      if (ts.isDeleteExpression(n) && isDepthTarget(n.expression)) depthDirect.push(at(n));
       if (ts.isDeleteExpression(n) && isTypeTarget(n.expression)) direct.push(at(n));
       if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
         && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isTypeTarget(n.operand)) direct.push(at(n));
@@ -711,6 +724,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
             const seg = pre.split('.')[0];
             const isType = keyedCall === 'path' ? seg === 'typography' : TYPE_MODE_FIELDS.has(seg);
             if (isType) keyed.push(at(n));
+            if (keyedCall === 'path' ? DEPTH_PATH_ROOTS.has(seg) : DEPTH_MODE_FIELDS.has(seg)) depthKeyed.push(at(n));
           }
         }
       }
@@ -720,6 +734,8 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(direct.length === 0, `src/main.ts writes nothing into brandState.typography itself${direct.length ? ` — ${direct.slice(0, 3).join(' | ')}: the write belongs in state/type-input.ts` : ''}`);
     ok(keyed.length === 0, `src/main.ts makes no keyed Type write (setPath into typography.*, or setModeLever on a Type mode field)${keyed.length ? ` — ${keyed.slice(0, 3).join(' | ')}` : ''}`);
     ok(unresolved.length === 0, `every keyed write in src/main.ts resolves to a non-Type key, or is listed with its reason${unresolved.length ? ` — unresolved and unlisted: ${unresolved.slice(0, 3).join(' | ')}` : ''}`);
+    ok(depthDirect.length === 0, `src/main.ts writes nothing into brandState.shadow or brandState.motionPersonality itself${depthDirect.length ? ` — ${depthDirect.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
+    ok(depthKeyed.length === 0, `src/main.ts makes no keyed Elevation or Motion write (setPath into shadow.* or motionPersonality.*, or setModeLever on tempo, easings or shadow)${depthKeyed.length ? ` — ${depthKeyed.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
     const stale = Object.keys(UNRESOLVED_OK).filter((k) => !seenOk.has(k));
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
@@ -750,6 +766,53 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer, csSlider, csPicker)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
   }
   ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports its Type writes from ./state/type-input');
+}
+
+// ── Depth & motion's preview pieces and writes, out of `main.ts` (UI redesign S9.1) ───────────────────
+// The legacy Elevation and Motion pages draw their read-only pieces from `preview/sections/` (the elevation ramp,
+// the tint read-out, the duration ramp, the curve set, springs and the traced transitions), so the Depth & motion
+// page (S9.2) draws the same code; and every shadow, tempo and easing write goes through
+// `state/depth-motion-input.ts` (the keyed and direct write checks are in the AST arm above). Subject: `main.ts`,
+// read from disk, comments stripped. Oracle: the literal renderer names, each piece's own title or markup as the
+// legacy renderers wrote it, and the literal state writes. A copy pasted back into `main.ts` fails by what it
+// draws; the smoke suite holds each drawn piece to its marker.
+{
+  const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
+  const mainSrc = readFileSync(MAIN, 'utf8');
+  const mainCode = strip(mainSrc);
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  for (const [fn, file, what] of [
+    ['shadowRampSection', 'shadow-ramp', 'the elevation ramp'],
+    ['shadowTintReadout', 'shadow-tint', 'the tint read-out'],
+    ['durationRampSection', 'duration-ramp', 'the duration ramp'],
+    ['motionCurvesSection', 'motion-curves', 'the curve set'],
+    ['springsSection', 'springs', 'the Springs section'],
+    ['motionTransitionsSection', 'motion-transitions', 'the traced transitions'],
+  ] as const) {
+    ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
+    ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports ${what} from ./${file}`);
+  }
+  const OWN: Array<[RegExp, string]> = [
+    [/palSection\(\s*'Elevation ramp'|'sh-list'|'sh-card'/, "its own elevation ramp (palSection('Elevation ramp', …) or the sh-list markup)"],
+    [/'sh-tintout'|'sh-tintblock'|In a shadow · 12%/, "its own tint read-out (the sh-tintout markup or \"In a shadow · 12%\")"],
+    [/palSection\(\s*'Duration ramp'|'mo-ms-strip'|'mo-ramp-foot'/, "its own duration ramp (palSection('Duration ramp', …) or the mo-ms-strip markup)"],
+    [/subHead\(\s*'The curve set'|'mo-ez-strip'|'mo-ez-card'/, "its own curve set (subHead('The curve set') or the mo-ez-strip markup)"],
+    [/palSection\(\s*'Springs'|'mo-spring-grid'/, "its own Springs section (palSection('Springs', …) or the mo-spring-grid markup)"],
+    [/palSection\(\s*'Motion'|'mo-grid'|'mo-stage'|createElementNS\(/, "its own traced transitions (palSection('Motion', …), the mo-grid markup, or an SVG stage)"],
+  ];
+  for (const [re, what] of OWN) {
+    const m = re.exec(mainCode);
+    ok(!m, `src/main.ts draws no Depth & motion preview piece of its own: ${what.split(' (')[0].replace(/^its own /, '')}${m ? ` — main.ts carries ${what}, found "${m[0]}": the Depth & motion page would drift from the legacy ones` : ''}`);
+  }
+  // The generic renderers write whatever key they are handed (`renderControl`'s default is `setPath(brandState,
+  // lever.key, …)`), so the AST arm cannot see a depth lever that reaches one without its state write. The two
+  // that do are named here, with the write each must carry. Literal.
+  for (const [re, what] of [
+    [/renderControl\(\s*softness\s*,\s*apply\s*,\s*\([^)]*\)\s*=>\s*\{\s*setShadowSoftness\('light'/, "Elevation's softness knob passes setShadowSoftness('light', …) to renderControl"],
+    [/leverSection\(\s*'Tempo'[^;]*setTempo\('light'/, "Motion's Tempo section passes setTempo('light', …) to leverSection"],
+    [/renderPerModeSelect\(\s*lever\s*,\s*'tempo'[^;]*setTempo\(currentMode/, "the per-mode tempo select passes setTempo(currentMode, …) to renderPerModeSelect"],
+  ] as const) ok(re.test(mainCode), `src/main.ts: ${what}`);
+  ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/depth-motion-input'), 'src/main.ts imports its Elevation and Motion writes from ./state/depth-motion-input');
 }
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
