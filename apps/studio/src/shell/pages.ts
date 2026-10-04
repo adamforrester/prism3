@@ -37,6 +37,14 @@ export const ICONS_DESC = 'The icon color set by the icon contrast floor: matche
 export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
 /** The Interactive levers section's intro (owner decision Q53, APPROVED). */
 export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, border and state colors.';
+/** Surfaces & fills' Background copy (S4f), shared by the levers' Background fills section and the preview's
+ *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
+ *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
+export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse counterparts.';
+/** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
+export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
+/** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
+export const FIELDS_DESC = 'Form field fills, borders and text, in every state.';
 /** The Faces copy (S6.2), shared by the Type levers' Faces section and the preview's Faces section (Q23). DRAFT:
  *  pending the owner's approval. */
 export const FACES_DESC = 'The font families in the brand, and the family each text type uses.';
@@ -123,9 +131,10 @@ export const DOMAINS = [
         legacy: [],
       },
       {
-        // The intro and the Background fills and Fields copy are the owner's (Q26, Q27, Q29). Background fills'
-        // description and "Text color" are the preview sections' own (Q23: a lever heading and description match
-        // the preview section); Background fills took the preview's full sentence once the scrim had a row.
+        // The intro and the Background fills, Scrim and Fields copy are the owner's (Q26, Q27, Q29, QA-B10). Background
+        // fills' description and "Text color" are the preview sections' own (Q23: a lever heading and description match
+        // the preview section); since S4f the scrim has its own section, levers and preview, so Background fills is
+        // back to the Q26 intro.
         // Foreground and Text color take the preview's heading and description verbatim too (Q23, the owner's
         // approval of 2026-10-02): `preview/sections/foreground.ts` and `text-color.ts`. `test:chrome` reads
         // each against the rendered preview section, so an edit to one side alone fails.
@@ -133,7 +142,10 @@ export const DOMAINS = [
         // `field` and `inverse.field` moved here from Interactive with the Fields section (owner decision Q29).
         roles: ['text', 'icon', 'background', 'foreground', 'border', 'scrim', 'veil', 'inverse', 'field', 'inverse.field'],
         sections: [
-          { title: 'Background fills', desc: 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.', rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
+          // S4f (QA-B10): the scrim left Background fills for its own read-only section, so Background fills' description
+          // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
+          { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
+          { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
           // Foreground description (Q23). The fills keep Foreground fills.
           { title: 'Foreground', desc: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.', rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
@@ -149,7 +161,7 @@ export const DOMAINS = [
           // and this section's Unpair and Pair buttons are the control that writes it now.
           { title: 'Icon', desc: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.', rows: [{ ctl: 'icon', keys: ['iconContrast'], schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4c): every field role, page and inverse, as rows (owner decision Q29, #1962).
-          { title: 'Fields', desc: 'Form field fills, borders and text, in every state.', rows: [{ ctl: 'fields', schemaOnly: ['overrides'] }] },
+          { title: 'Fields', desc: FIELDS_DESC, rows: [{ ctl: 'fields', schemaOnly: ['overrides'] }] },
           { title: 'Gradients', rows: [{ ctl: 'gradients', keys: ['gradients'] }] },
         ],
         // S4a: moved. Its levers are `domains/color-fills.ts`, its preview `preview/surfaces.ts`.

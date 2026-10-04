@@ -1143,6 +1143,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-scrimcard{padding:0;overflow:hidden}
 .sg-scrimdim{width:100%;flex:1;display:flex;align-items:center;justify-content:center}
 .sg-scrimpanel{border-radius:var(--r-sm);padding:14px 20px;box-shadow:0 6px 18px rgba(0,0,0,.22)}
+/* Surfaces & fills' Fields section (UI redesign S4f, #2016): a field on its ground, its border role around its fill
+   role and its text. The colors are painted inline at the render site (`preview/sections/fields.ts`). */
+.sg-fcard{justify-content:space-between}
+.sg-field{align-self:stretch;margin-top:auto;border:1px solid;border-radius:var(--r-sm)}
+.sg-field-fill{padding:8px 10px;border-radius:var(--r-sm);min-width:0}
+.sg-field-t{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:1.4}
 .sg-ico svg{width:26px;height:26px;display:block}
 .sg-lab{font-weight:640;font-size:14px;line-height:1.2}
 .sg-sub{font-size:12px;opacity:.9}

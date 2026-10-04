@@ -1189,6 +1189,10 @@ ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesSt
 //     exactly when that ratio is under the emission's `min`; a graded role's chip with no badge fails;
 //   · the five sections draw, in order, the token chips the Style guide has always drawn (literal), on
 //     Surfaces & fills AND on the Style guide itself, so a change to a shared section shows on both.
+// S4f: Surfaces & fills also draws Scrim (QA-B10, out of Background) and Fields (#2016), each with its own marker and
+// chips (literal); Background and Foreground sit on white with no badge (#1971), every other section on the page; the
+// Fields section paints every opaque field role, page and inverse, held to its emitted hex; and each levers section
+// is described as the preview section it pairs with (Q23), Scrim and Fields included.
 console.log(`\nColor › Surfaces & fills — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 /** The token chips each shared section draws, in order. Literal: the Style guide's sections as `main.ts` drew
  *  them before the lift (UI redesign S4a), which both pages must keep drawing. */
@@ -1206,11 +1210,32 @@ const EXPECT_SECTION_CHIPS = {
   Icon: ['icon.primary', 'icon.secondary', 'icon.tertiary', ...SEM5.map((s) => `icon.${s}`), ...SEM5.map((s) => `icon.on-${s}`)],
 };
 /** The specimen roots each corpus brand's Surfaces & fills preview draws: the five sections, and Gradients
- *  where the brand ships gradients (harbor ships none). Literal, per brand. */
+ *  where the brand ships gradients (harbor ships none). Literal, per brand. S4f adds Scrim (QA-B10) and Fields
+ *  (#2016, Q80). */
 const FIVE = Object.keys(EXPECT_SECTION_CHIPS);
-const EXPECT_FILLS_ROOTS = { prism3: [...FIVE, 'Focus ring', 'Gradients'], aurora: [...FIVE, 'Focus ring', 'Gradients'], harbor: [...FIVE, 'Focus ring'] };
+const FILLS_SECTIONS = [...FIVE, 'Scrim', 'Fields', 'Focus ring'];
+const EXPECT_FILLS_ROOTS = { prism3: [...FILLS_SECTIONS, 'Gradients'], aurora: [...FILLS_SECTIONS, 'Gradients'], harbor: FILLS_SECTIONS };
+/** S4f: Surfaces & fills draws Background WITHOUT the scrim, which has its own section there (QA-B10), and the Fields
+ *  section (#2016): each state's border role, then its text role (the placeholder, or the ground's primary ink once
+ *  filled), with the fill on the rest field, page then inverse. Literal. The Style guide keeps `EXPECT_SECTION_CHIPS`. */
+const fieldChips = (p, ink) => [`${p}field.border.rest`, `${p}field.placeholder`, `${p}field.fill`, `${p}field.border.hover`, `${p}field.placeholder`, `${p}field.border.rest`, ink];
+const EXPECT_FILLS_CHIPS = {
+  ...EXPECT_SECTION_CHIPS,
+  Background: EXPECT_SECTION_CHIPS.Background.filter((r) => r !== 'scrim.default'),
+  Scrim: ['scrim.default'],
+  Fields: [...fieldChips('', 'text.primary'), ...fieldChips('inverse.', 'inverse.text.primary')],
+};
+/** #1971 (Q81): on Surfaces & fills the grounds themselves, Background and Foreground, sit on WHITE with no ratio
+ *  badge; every other section sits on the page. Literal, the owner's word. */
+const FILLS_WHITE = ['Background', 'Foreground'];
 /** Roles whose swatch must be among those checked, one or more per section, so an empty read fails by name. */
 const MUST_PAINT = ['background.primary', 'inverse.background.primary', 'foreground.brand', 'text.on-brand', 'text.primary', 'border.secondary', 'icon.primary', 'icon.on-brand'];
+/** #2016: the Fields section's own painted roles, every opaque field role page and inverse, each held to its emitted hex
+ *  by the swatch check. Literal. (The fills are transparent by default: no opaque hex, so not listed.) */
+const MUST_PAINT_FIELDS = ['field.border.rest', 'field.border.hover', 'field.placeholder', 'inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.field.placeholder'];
+/** Q23 on Surfaces & fills: each levers section and the preview section it is described as, by title. Background fills
+ *  and Foreground fills are the owner's renames (Q26, Q44); Scrim and Fields are S4f's. Literal. */
+const FILLS_Q23 = [['Background fills', 'Background'], ['Scrim', 'Scrim'], ['Foreground', 'Foreground'], ['Text color', 'Text color'], ['Border', 'Border'], ['Icon', 'Icon'], ['Fields', 'Fields']];
 /** A palette step's emitted hex (`neutral.050` → `core.palette.neutral.050`), for an `against` that names one. */
 const emittedPalette = async (brand) => {
   const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
@@ -1228,6 +1253,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
     root: s.querySelector('.sg-ground')?.getAttribute('data-p3') === 'specimen',
     ground: hex(getComputedStyle(s.querySelector('.sg-ground') ?? s).backgroundColor),
     chips: [...s.querySelectorAll('.sg-ground [data-p3="token-pill"]')].map((p) => p.textContent.replace(/^color\./, '').replace(/!$/, '')),
+    badges: s.querySelectorAll('[data-p3="ratio-badge"]').length,
   }));
   const paint = [...(host?.querySelectorAll('[data-sg-role]') ?? [])].map((n) => {
     const cs = getComputedStyle(n);
@@ -1236,7 +1262,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
     // is derived from that, never from the `data-sg-mode` the section writes about itself (read below for
     // the failure message only).
     const grid = n.parentElement?.classList.contains('sg-tcg') ? n.parentElement : null;
-    return { role: n.dataset.sgRole, prop: n.dataset.sgPaint, claims: n.dataset.sgMode ?? null,
+    return { role: n.dataset.sgRole, prop: n.dataset.sgPaint, claims: n.dataset.sgMode ?? null, section: n.closest('.psec')?.querySelector('.psec-t')?.textContent ?? null,
       col: grid ? [...grid.children].indexOf(n) % 3 : null,
       css: n.dataset.sgPaint === 'background' ? cs.backgroundColor : n.dataset.sgPaint === 'border' ? cs.borderTopColor : n.dataset.sgPaint === 'outline' ? cs.outlineColor : cs.color };
   });
@@ -1254,7 +1280,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
   const chipsWithBadge = [...(host?.querySelectorAll('.sg-pills') ?? [])].flatMap((w) => [...w.querySelectorAll('[data-p3="token-pill"]')].map((p) => {
     const role = p.textContent.replace(/^color\./, '').replace(/!$/, '');
     let n = p.closest('[data-p3="token-pill-wrap"]') ?? p; n = n.nextElementSibling;
-    return { role, badge: n?.getAttribute('data-p3') === 'ratio-badge' && n.dataset.role === role };
+    return { role, badge: n?.getAttribute('data-p3') === 'ratio-badge' && n.dataset.role === role, section: w.closest('.psec')?.querySelector('.psec-t')?.textContent ?? null };
   }));
   return { sections, paint, badges, chipsWithBadge, tcRows };
 }, hostSel);
@@ -1316,7 +1342,7 @@ const EXPECT_SHARED_MARKER = { Background: 'background', Foreground: 'foreground
 const EXPECT_SG_ONLY_MARKER = { Disabled: 'disabled', Interactive: 'interactive' };
 /** The Focus ring, shared since S4c (`sections/focus-ring.ts`): Surfaces & fills draws it after Border (owner
  *  decision Q30); the Style guide does not. Literal. */
-const EXPECT_FILLS_ONLY_MARKER = { 'Focus ring': 'focus-ring' };
+const EXPECT_FILLS_ONLY_MARKER = { 'Focus ring': 'focus-ring', Scrim: 'scrim', Fields: 'fields' };
 const checkSharedMarkers = (where, got, expect = EXPECT_SHARED_MARKER) => {
   for (const [name, key] of Object.entries(expect)) {
     const s = got.sections.find((x) => x.name === name);
@@ -1373,11 +1399,29 @@ for (const brand of BRANDS) {
     const page0 = emission?.role('background.primary', mode)?.hex;
     for (const name of expectRoots ?? []) {
       const s = got.sections.find((x) => x.name === name);
-      ok(!!s && s.root && s.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== page0 ? ` — on ${s.ground}` : ''}`);
+      // #1971: Background and Foreground on white, every other section on the page.
+      const want = FILLS_WHITE.includes(name) ? '#ffffff' : page0;
+      ok(!!s && s.root && s.ground === want, `${where}: section ${name} is a specimen root on ${FILLS_WHITE.includes(name) ? 'white #ffffff (#1971)' : `the emission's background.primary ${page0}`}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== want ? ` — on ${s.ground}` : ''}`);
     }
     const unlisted = got.sections.filter((x) => !(expectRoots ?? []).includes(x.name)).map((x) => x.name);
     ok(unlisted.length === 0, `${where}: every section drawn is a listed specimen root${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
-    for (const [name, chips] of Object.entries(EXPECT_SECTION_CHIPS)) {
+    // #1971: the grounds carry no ratio badge.
+    for (const name of FILLS_WHITE) {
+      const n = got.sections.find((x) => x.name === name)?.badges ?? -1;
+      ok(n === 0, `${where}: the ${name} section shows no contrast badge (#1971) — ${n} drawn`);
+    }
+    // #2016: the Fields section paints every opaque field role, page and inverse (the swatch check below holds each to its hex).
+    const fieldsPaint = new Set(got.paint.filter((n) => n.section === 'Fields').map((n) => n.role));
+    const unpaintedFields = MUST_PAINT_FIELDS.filter((r) => !fieldsPaint.has(r));
+    ok(unpaintedFields.length === 0, `${where}: the Fields section draws each field role as a field, page and inverse${unpaintedFields.length ? ` — not drawn: ${unpaintedFields.join(', ')}` : ''}`);
+    // Q23: each levers section's description is the preview section's it is paired with, both read as rendered.
+    const q23 = await page.evaluate(() => ({
+      levers: Object.fromEntries([...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].map((n) => [n.querySelector('.p3-lsec-title')?.textContent, n.querySelector('.p3-lsec-desc')?.textContent ?? null])),
+      preview: Object.fromEntries([...document.querySelectorAll('[data-p3="preview-body"] [data-p3="section-head"]')].map((n) => [n.querySelector('[data-p3="section-title"]')?.textContent, n.querySelector('[data-p3="section-description"]')?.textContent ?? null])),
+    }));
+    const offQ23 = FILLS_Q23.filter(([l, pv]) => !q23.levers[l] || q23.levers[l] !== q23.preview[pv]).map(([l, pv]) => `${l} ${JSON.stringify(q23.levers[l])} vs ${pv} ${JSON.stringify(q23.preview[pv])}`);
+    ok(offQ23.length === 0, `${where}: each levers section is described as its preview section is (Q23), Scrim and Fields included${offQ23.length ? ` — ${offQ23.join(' | ')}` : ''}`);
+    for (const [name, chips] of Object.entries(EXPECT_FILLS_CHIPS)) {
       const s = got.sections.find((x) => x.name === name);
       ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
     }
@@ -1385,6 +1429,7 @@ for (const brand of BRANDS) {
     // position says it shows.
     checkSwatches(where, got, emission, mode, modes);
     checkSharedMarkers(where, got, { ...EXPECT_SHARED_MARKER, ...EXPECT_FILLS_ONLY_MARKER });
+    for (const r of MUST_PAINT_FIELDS) ok(got.paint.some((n) => n.role === r), `${where}: the swatch check read ${r}`);
     // The Focus ring (S4c, owner decision Q30): its two rings were read by the swatch check above, which held
     // each outline to the emission's border.focus in this mode.
     const rings = got.paint.filter((n) => n.prop === 'outline' && n.role === 'border.focus').length;
@@ -1409,7 +1454,8 @@ for (const brand of BRANDS) {
     ok(offBadge.length === 0, `${where}: every ratio badge prints the emitted pair's ratio and marks its floor${offBadge.length ? ` — ${offBadge.slice(0, 3).join(' | ')}` : ''}`);
     // Q46: the Text color section's token column carries the pill alone; its badges are per column, below.
     const tcTokens = new Set(got.tcRows.map((t) => t.role));
-    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
+    // #1971: the white sections carry none, held above; every other chip of a graded role carries its badge.
+    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role) || FILLS_WHITE.includes(c.section)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
     ok(noBadge.length === 0, `${where}: every chip of a role measured against another carries its ratio badge${noBadge.length ? ` — no badge: ${[...new Set(noBadge)].slice(0, 5).join(', ')}` : ''}`);
     // Q46: every text token graded in a column's mode carries exactly one badge in that column, its own, and the
     // token column carries none. Which roles are graded is the emission's (an \`against\` other than itself).
@@ -1566,13 +1612,14 @@ const previewMode = async (page, m) => {
   await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${m}"]`));
   await page.waitForFunction((mm) => document.querySelector(`[data-p3="mode-option"][data-mode="${mm}"]`)?.getAttribute('aria-checked') === 'true', m);
 };
-// S4d (owner decision Q45): the Page and the band step are step pickers; the floor and the band palette stay selects.
-const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor"]',
+// S4d (owner decision Q45): the Page (Primary since S4f, QA-B3) and the band step are step pickers; the band palette stays
+// a select. S4f (QA-B1): the contrast floor is a row, its control the step picker, writing what its select wrote.
+const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"]', floor: '[data-p3="levers-pane"] [data-p3="surface-floor-pick"]',
   'band-palette': '[data-p3="levers-pane"] [data-p3="surface-band-palette"]', 'band-step': '[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]',
   // S4e (#1972): the four background tiers, step pickers writing their own inputs.
   secondary: '[data-p3="levers-pane"] [data-p3="surface-secondary-pick"]', tertiary: '[data-p3="levers-pane"] [data-p3="surface-tertiary-pick"]',
   'inverse-secondary': '[data-p3="levers-pane"] [data-p3="surface-inverse-secondary-pick"]', 'inverse-tertiary': '[data-p3="levers-pane"] [data-p3="surface-inverse-tertiary-pick"]' };
-const PICKED = new Set(['base', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
+const PICKED = new Set(['base', 'floor', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
 const SURF = (k) => SURF_HOOKS[k];
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1700,7 +1747,9 @@ for (const brand of BRANDS) {
   const root = Object.keys(emission)[0];
   const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
   const wasStep = (/\.neutral\.([0-9]+)\}$/.exec(wasAlias) ?? [])[1] ?? null;
-  const floorAuto = () => page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor"] option[value=""]')?.textContent ?? null);
+  // The floor's Auto label: since S4f the floor's picker button reads it while no floor is set (each read below is with
+  // the floor on Auto, as the brand loads).
+  const floorAuto = () => page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor-pick"] .p3-btn-label')?.textContent ?? null);
   const TEXT_SEC = '[data-p3="levers-pane"] [data-p3="text-rows"] .p3-fillrow[data-role="text.secondary"] [data-p3="fill-pick"]';
   const groundOf = async () => {
     await hooks.click(page.locator(TEXT_SEC));
