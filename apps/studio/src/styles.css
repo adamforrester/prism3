@@ -660,7 +660,36 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mo-coldesc{font-size:11.5px;color:var(--muted)}
 .mo-replay{margin-top:14px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:7px 14px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .mo-replay:hover{border-color:var(--ink);color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.mo-dot{animation:none!important;left:88.636%!important;top:11.364%!important}}
+/* S9.2: the Depth & motion preview's traces never play by themselves under reduced motion (owner decision D9 A); Play
+   plays them once on request. So the old rule that froze every dot at its end under reduced motion is gone: it would
+   have swallowed the one play the viewer asked for. */
+/* S9.2: the Depth & motion preview (preview/depth.ts). Each block sits inside its section's specimen ground, so its
+   ink is the brand's (--ink, --ink2) and its edges the brand's lines. */
+.dm-block{margin-top:22px}
+.dm-block:first-child{margin-top:0}
+.dm-block .sub-lab{margin:0 0 6px}
+.dm-desc{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--ink2)}
+.dm-sub{margin-top:18px}
+.dm-sub .sub-lab{margin:0 0 6px}
+.dm-block .sh-list{background:none;padding:18px 6px 6px;margin-top:0;gap:30px}
+.dm-block .sh-apart{margin-top:6px;padding-top:18px;border-top:1px dashed var(--line2);border-radius:0}
+.dm-block .sh-card{border-radius:10px}
+.dm-block .sh-lab{color:var(--ink)}
+.sh-css{font-size:10px;color:var(--ink2);max-width:150px;text-align:center;line-height:1.4;word-break:break-word}
+.dm-block .sh-tintcap{color:var(--ink2)}
+.dm-block .sh-tintnote{color:var(--ink2)}
+.dm-block .mo-toolbar{justify-content:flex-start;align-items:center;gap:14px;padding-top:0;margin:0 0 6px}
+.dm-block .mo-replay{margin-top:0}
+.dm-block .mo-slowmo{color:var(--ink2)}
+.mo-ramp-dur{min-width:150px}
+.mo-bar{display:block;height:6px;margin-top:4px;border-radius:3px;background:var(--ink2)}
+.mo-spin{display:flex;align-items:flex-start;gap:12px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2)}
+.mo-spin .mo-ramp-foot{margin-top:0;flex-wrap:wrap}
+.mo-spin .dm-desc{margin:4px 0 0}
+.mo-spin-loop{flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--ink)}
+.mo-ez-roles{display:flex;flex-wrap:wrap;gap:4px}
+.mo-ez-role{font-size:10.5px;line-height:1.4;padding:1px 6px;border:1px solid var(--line2);border-radius:999px;color:var(--ink2)}
+.dm-block .mo-ramp-note,.dm-block .mo-meta,.dm-block .mo-coldesc,.dm-block .mo-ez-bez,.dm-block .mo-spring-nums{color:var(--ink2)}
 .radius-spec{margin-bottom:8px}
 .rad-list{display:flex;flex-wrap:wrap;gap:24px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .rad-cell{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}
@@ -1448,6 +1477,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .shp-shape.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .shp-bar{width:112px;border:1px solid transparent}
 .shp-panel{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;border:1px solid transparent;margin-top:14px;max-width:520px}
+.shp-pills{display:flex;flex-wrap:wrap;gap:6px}
 .shp-items{display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px}
 .shp-item{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .shp-field{width:180px;border:1px solid transparent}

@@ -256,8 +256,6 @@
 /* ── the legacy frame (D1) ───────────────────────────────────────────────────────────────── */
 /* No background: the legacy page draws on the legacy body's ground, as it always has. */
 .p3-legacy { display: block; }
-.p3-switchrow { display: flex; padding: var(--p3-space-300) var(--p3-space-300) 0; }
-.p3-switchrow:empty { display: none; }
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
@@ -397,9 +395,8 @@
 .p3-frame[data-w="narrow"] .p3-search[data-open="true"] { flex: 1 1 auto; }
 .p3-frame[data-w="narrow"] .p3-nav:has(.p3-search[data-open="true"]) .p3-domrow { display: none; }
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] :is(.p3-subnav, .p3-switchrow) .p3-seg { display: flex; width: 100%; }
+.p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
 .p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-switchrow { padding: var(--p3-space-150) var(--p3-space-150) 0; }
 .p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
   grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
@@ -741,6 +738,12 @@
 .p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
 .p3-field-wide { grid-column: 1 / -1; }
 .p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+/* Depth & motion (S9.2): a slider's name with its readout on one line; a per-mode control's Auto line or its Return to
+   Auto, one shown; a curve drawn in a value picker row (D10), stroked in the row's ink. */
+.p3-slider-head { display: flex; align-items: baseline; gap: var(--p3-space-100); }
+.p3-autorow { display: flex; align-items: center; flex-wrap: wrap; gap: var(--p3-space-100); }
+.p3-autorow > [hidden] { display: none; }
+.p3-curve { display: block; width: var(--p3-ctl-h); height: var(--p3-ctl-h); }
 .p3-fieldpair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p3-space-100); }
 .p3-fillrows { display: grid; gap: var(--p3-space-300); }
 .p3-fillrows[hidden], .p3-fillrow-wrap[hidden] { display: none; }

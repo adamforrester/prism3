@@ -1,17 +1,17 @@
-/** Springs — three generated presets, shown because they are real emitted tokens with no other home (UI redesign
- *  S9.1, lifted from `main.ts`'s `renderSpringsSection`, unchanged in output). Not editable (the engine fixes
- *  them), and deliberately not animated: a spring is damping+stiffness, and faking one with a cubic-bezier trace
- *  would be showing a different curve than the token names. The legacy Motion page draws it; the Depth & motion
- *  page (S9.2) will draw the same code (owner decision D7).
+/** Springs: three generated presets, shown because they are real emitted tokens with no other home (UI redesign S9.1
+ *  lifted the legacy `renderSpringsSection` here; S9.2 drew it in the Depth & motion preview's Motion section, owner
+ *  decision D7 A). Not editable (the engine fixes them), and deliberately not animated: a spring is damping and
+ *  stiffness, and faking one with a cubic-bezier trace would show a different curve than the token names.
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="springs"`, `kit.ts`'s header).
- *  WHAT IT IS HANDED. The resolved springs (`theme.motion.spring`). Nothing here reads the session. */
+ *  WHAT IT IS HANDED. The resolved springs (`theme.motion.spring`) and the block's copy. Nothing here reads the session. */
 import type { Theme } from '@prism3/engine/theme';
-import { el, palSection, tokenPillWrapping } from './kit';
+import { el, hook, subHead, tokenPillWrapping } from './kit';
 
-export const springsSection = (spring: Theme['motion']['spring']): HTMLElement => {
-  const wrap = palSection('Springs', 'Three generated spring presets for platforms that animate with physics rather than a duration + curve. Read-only — stated as damping and stiffness, the two numbers a consumer needs.');
+export const springsSection = (spring: Theme['motion']['spring'], copy: { title: string; desc: string }): HTMLElement => {
+  const wrap = hook(el('div', 'dm-block'), 'depth-springs');
   wrap.dataset.sgSection = 'springs';   // the shared-section marker (`kit.ts`'s header)
+  wrap.append(subHead(copy.title), el('p', 'dm-desc', copy.desc));
   const grid = el('div', 'mo-spring-grid');
   for (const [name, s] of Object.entries(spring)) {
     const card = el('div', 'mo-spring-card');
