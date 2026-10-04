@@ -183,7 +183,9 @@ const BANNED_WORD = /\b(simply|easy|obviously)\b/gi;
 // immediately following the match; a false positive here is fixed by widening this set, never by
 // dropping "just" from BANNED_WORD.
 const JUST = /\bjust\b/gi;
-const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right)\b/i;
+// `now` (UI redesign S8.2): "Built just now" is the time sense, a moment ago, the same exactly/barely reading as "just
+// below"; it carries no judgment of the reader.
+const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right|now)\b/i;
 
 // ---- Rule 3: filler — §2's "please note, note that" row.
 const FILLER = /\b(please\s+note|note\s+that)\b/gi;

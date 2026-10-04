@@ -25,11 +25,13 @@
  */
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
-import type { ComponentDef } from '@prism3/engine/component-schema';
+import { densitySpacingKeys, type ComponentDef } from '@prism3/engine/component-schema';
+import { sizeRefPx, componentSizes } from '@prism3/engine/scale';
 import { planTargets, defForTarget, SWAP_TARGET } from '../plugin/src/build-deps';
 import { COMPONENT_CATALOG_DATA } from './src/state/component-catalog-data';
 import { catalogOf, buildableSets, unbuildableSets, CATALOG_SWAP_TARGET, type CatalogEntry } from './src/state/component-catalog';
 import { computeCatalog, render } from './gen-component-catalog';
+import { chosenOf, setsView, SETS_COPY } from './src/preview/sections/component-sets';
 
 let failed = 0;
 let executed = 0;
@@ -105,6 +107,52 @@ ok(!calls.includes('planted-declared'), 'a definition declaring notStandalone is
 ok(planted[1].buildable === false && planted[1].reason === null && planted[1].nests.length === 0, 'a definition the projector cannot build is not offered, with a null reason');
 ok(planted[2].buildable && planted[2].members === 432, 'the rest of the list is unaffected');
 ok(JSON.stringify(unbuildableSets(planted).map((e) => e.id)) === '["planted-declared","planted-thrower"]', 'unbuildableSets lists both, in definition order');
+
+console.log('\n5. The spacing each set states (UI redesign S8.2): its density-following keys and their comfortable steps');
+// Oracle: the schema's own `densitySpacingKeys` (the expansion `applySpacingDensity` builds with) and the definition's
+// `tokens`, read here; the catalog restates the expansion so the web bundle never carries the schema module.
+for (const d of componentDefs) {
+  const e = by(d.id);
+  const want = densitySpacingKeys(d).map((key) => ({ key, ref: String(d.tokens[key]) }));
+  ok(JSON.stringify(e?.spacing) === JSON.stringify(want), `${d.id}: states ${want.length} density-following spacing key(s), as the schema expands them — the catalog says ${e?.spacing.length ?? 'nothing'}`);
+}
+ok(JSON.stringify(by('button')?.spacing.find((x) => x.key === 'size.medium.padding-x')) === '{"key":"size.medium.padding-x","ref":"space.200"}',
+  `button: medium padding-x is space.200 at comfortable (${JSON.stringify(by('button')?.spacing.find((x) => x.key === 'size.medium.padding-x'))})`);
+
+console.log('\n6. What the Components page says of each set (setsView, S8.2), and what it offers for building (G4, G9)');
+// The px are the space ladder's own (8px base: space.200 = 16, space.150 = 12, space.100 = 8, space.075 = 6), typed
+// here; density moves each step one along the ladder (compact: 16 → 12).
+const spacePx = sizeRefPx(componentSizes('comfortable', 8));
+const last = new Map<string, boolean>([['button', true], ['tag', false]]);
+const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true, lastOf: (id) => last.get(id) });
+const v = (id: string) => view.find((x) => x.id === id);
+ok(v('button')?.parts === '432 parts' && v('icon')?.parts === '44 components' && v('spinner')?.parts === '4 components',
+  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 432 parts, 44 components, 4 components)`);
+ok(v('button')?.contains === 'Contains Icon, FocusRing, Spinner' && v('focus-ring')?.contains === 'Contains no other set',
+  `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
+ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-x-visual 12 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-x-visual 12 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-x-visual 16 · padding-y 8 · gap 12']),
+  `spacing at comfortable: Button's three sizes in px (${JSON.stringify(v('button')?.spacing)})`);
+const compact = setsView(committed, { density: 'compact', spacePx, plugin: true, lastOf: () => undefined }).find((x) => x.id === 'button');
+ok(compact?.spacing[1] === 'Medium: padding-x 12 · padding-x-visual 8 · padding-y 6 · gap 6',
+  `spacing at compact: one step down the ladder, gaps floored at 4 (${JSON.stringify(compact?.spacing[1])})`);
+ok(JSON.stringify(v('focus-ring')?.spacing) === '[]', 'a set whose spacing follows no density states none');
+ok(v('button')?.last === SETS_COPY.built && v('tag')?.last === SETS_COPY.problems && v('badge')?.last === SETS_COPY.notBuilt,
+  `G9: this session's result per set — Button "${v('button')?.last}", Tag "${v('tag')?.last}", Badge "${v('badge')?.last}"`);
+ok(SETS_COPY.built === 'Built just now' && SETS_COPY.problems === 'Built with problems' && SETS_COPY.notBuilt === 'Not built in this session',
+  'G9: the three result lines read the drafted words');
+const web = setsView(committed, { density: 'comfortable', spacePx, plugin: false, lastOf: (id) => last.get(id) });
+ok(web.every((x) => x.last === null), 'the web states no build result: nothing builds there');
+ok(view.every((x) => x.offered === committed.find((e) => e.id === x.id)?.buildable), 'every set that builds is offered, and only those');
+// G4, on the planted catalog (section 4): listed, with its reason, and never offered.
+const pv = setsView(planted, { density: 'comfortable', spacePx, plugin: true, lastOf: () => true });
+ok(pv.length === 3 && pv[0].offered === false && pv[1].offered === false,
+  `G4: a set that can't be built is listed and not offered — planted-declared offered ${pv[0].offered}, planted-thrower offered ${pv[1].offered}`);
+ok(pv[0].reason === "Can't be built yet: it binds no geometry of its own." && pv[1].reason === "Can't be built yet: the Figma build can't read its definition yet",
+  `G4: each says why, the definition's own words with the id lead stripped, or the page's (${JSON.stringify(pv[0].reason)}, ${JSON.stringify(pv[1].reason)})`);
+ok(pv[0].parts === null && pv[0].last === null, 'G4: a set that can\'t be built states no part count and no build result');
+ok(chosenOf(pv, 'planted-declared') === 'button' && chosenOf(pv, null) === 'button' && chosenOf(pv.slice(0, 2), 'planted-declared') === null,
+  `G4: the Build button never names a set that can't be built (chose ${chosenOf(pv, 'planted-declared')}, then ${chosenOf(pv.slice(0, 2), 'planted-declared')} with none offered)`);
+ok(chosenOf(view, 'tag') === 'tag', 'the chosen set holds while it is offered');
 
 console.log(`\n${executed - failed}/${executed} component catalog assertions passed.`);
 if (failed) process.exit(1);

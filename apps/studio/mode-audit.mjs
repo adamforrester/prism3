@@ -154,6 +154,30 @@ await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: BR
 await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
 await page.waitForTimeout(1000);
 
+// NOTHING TO AUDIT SINCE UI REDESIGN S8.2, RECORDED BY NAME. This audit walks the legacy pages through the Pages menu
+// and diffs each one's mode strip. S8.2 moved the web's last legacy page (Size & radius, the Button options) to the
+// Components tab, whose levers edit the mode the preview shows (Q22), and the web's Pages menu went with it (owner
+// decision G19 A): there is no legacy page, no mode strip and no mode-scope badge left on the web to measure. #1912's
+// last KNOWN_BADGE_GAPS row (Buttons) left with the page. S8.3, which merges right after S8.2, deletes this audit and its
+// CI step (#1897) in the five places the plan names. Until then the run says so and exits clean ONLY when the top bar
+// rendered and offers no Pages menu (read by its accessible name, without a hook): a Pages menu that comes back runs the
+// audit below as before, and a bar that never rendered fails. The hook guard is not reported on this path, because
+// every hook below names a legacy surface this run, by its own check, never reaches.
+{
+  const top = await page.evaluate(() => ({ bar: !!document.querySelector('[data-p3="top-bar"]'),
+    pages: [...document.querySelectorAll('button')].filter((b) => b.getAttribute('aria-label') === 'Pages').length }));
+  if (!top.bar) {
+    console.log('   ✗ the top bar never rendered, so whether a Pages menu is offered was not measured');
+    await browser.close(); server.close(); process.exit(1);
+  }
+  if (top.pages === 0) {
+    console.log(`\nMode-sensitivity audit — brand '${BRAND}': NOTHING TO AUDIT. The web offers no Pages menu and so no legacy page `
+      + 'with a mode strip (UI redesign S8.2); this audit and its CI step are deleted in S8.3 (#1897), and #1912\'s Buttons row '
+      + 'left with the page.');
+    await browser.close(); server.close(); process.exit(0);
+  }
+}
+
 /** A mode tab by its visible mode name, exactly — the text a designer clicks. */
 const modeTab = (name) => page.locator('[data-p3="mode-tab"]')
   .filter({ has: page.locator('[data-p3="mode-tab-name"]', { hasText: new RegExp(`^${name}$`) }) }).first();

@@ -704,15 +704,46 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
 .sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
 .sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
-/* #1667 button-layout specimen — geometry only, in the page ink. `.btnl-pinned` is Locked to edges: the icon
-   is out of flow at the visual padding, and the button pads that side by padding + icon + gap (set inline). */
-.btnl-list{display:flex;flex-direction:column;gap:18px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+/* #1667 button-layout specimen. Since UI redesign S8.2 the buttons are drawn in the brand's action colors (set
+   inline, G7) directly on the section's ground, the brand's page; `--ink`/`--panel` below are only the fallback.
+   `.btnl-pinned` is Locked to edges: the icon is out of flow at the visual padding, and the button pads that side
+   by padding + icon + gap (set inline). */
+.btnl-list{display:flex;flex-direction:column;gap:18px;padding:8px 0 0;margin-top:6px}
 .btnl-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 .btnl-lab{flex:0 0 100%;font-size:11px;color:var(--muted)}
 .btnl-btn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;max-width:100%;background:var(--ink);color:var(--panel);font-weight:600;white-space:nowrap}
 .btnl-icon{flex:none;border-radius:2px;background:currentColor;opacity:.7}
 .btnl-label{flex:none}
 .btnl-icon.btnl-pinned{position:absolute;top:50%;transform:translateY(-50%)}
+/* UI redesign S8.2 — the Components preview's Component sets list, on the section's ground in the ground's own inks
+   (`--ink`, `--muted`, `--line`). A set that can't be built is grayed by its text tier, never by opacity, so its
+   reason stays legible. The Build button is the preview's own control, drawn like Motion's Play. */
+.cset{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.cset-list{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.cset-item{padding:12px 0;border-bottom:1px solid var(--line)}
+.cset-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;font-size:14px;color:var(--ink)}
+label.cset-head{cursor:pointer}
+.cset-radio{align-self:center;width:18px;height:18px;margin:0;accent-color:var(--ink)}
+.cset-name{font-weight:650}
+.cset-parts,.cset-last{font-size:12px;color:var(--muted)}
+.cset-last{margin-left:auto}
+.cset-body{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.cset-radio~.cset-name{margin-left:2px}
+.cset-summary,.cset-meta,.cset-spacing,.cset-reason,.cset-note{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.cset-summary{color:var(--ink2)}
+.cset-spacing{font-size:11.5px}
+.cset-off .cset-name{color:var(--muted);font-weight:560}
+.cset-reason{color:var(--ink2)}
+.cset-buildrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.cset-build{min-height:32px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:6px 14px;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.cset-build:hover{border-color:var(--ink)}
+.cset-build:focus-visible,.cset-radio:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.cset-build[aria-busy="true"]{cursor:progress}
+/* The engine Button's isPending, as the chrome's controls draw it (`pendingLabel`, chrome.css): both labels in one
+   cell, the one not showing held invisible; the spinner takes the button's own ink on the brand's ground. */
+.cset-build[aria-busy="true"] .p3-pend-idle,.cset-build:not([aria-busy="true"]) .p3-pend-busy{visibility:hidden}
+.cset-build .p3-spin::before{border-top-color:currentColor}
+.cset-build:disabled{cursor:not-allowed;color:var(--muted)}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
 .sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
 /* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their

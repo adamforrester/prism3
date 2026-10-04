@@ -43,7 +43,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 /** A session as plain data, with the Map spelled out, so two sessions compare by value. */
-const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles] });
+const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], setBuilds: [...s.setBuilds] });
 
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
@@ -67,7 +67,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null,
-  fileSetupState: null, styleGuideState: null, componentProgress: null, pruneBusy: false, prunePreview: null,
+  fileSetupState: null, styleGuideState: null, componentProgress: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
 }), 'initial session: every slot empty');
 
@@ -109,6 +109,31 @@ for (const c of verdictCases) {
   ok(late.next === verdict.next && late.topics.length === 0, 'component-progress: a late reading after the verdict is dropped and invalidates nothing');
   const idle = step(init, { kind: 'component-progress', phase: 'build', done: 1, total: 2, chunkMs: 0 });
   ok(idle.next === init, 'component-progress: ignored when no build is pending');
+}
+
+// ---- the per-set build ledger (UI redesign S8.2, owner decision G9 A) -----------------------------------------
+// The wire's `component-result` names no set, so the panel remembers the set it posted (`componentDef`) and the
+// verdict that answers that build is recorded against it in `setBuilds`: `true` clean, `false` with problems. The
+// expectations are literals: a set id typed here, the verdict's `ok` typed here.
+//
+// Mutation this fails by name: recording the verdict against nothing (the `own` guard always false) →
+// `G9: a clean verdict for the panel's own build of 'tag' records tag → true`.
+{
+  const posted: HostSession = { ...init, componentState: 'pending', componentDef: 'tag' };
+  const clean = step(posted, { kind: 'component-result', ok: true, headline: '✓ built 45', summary: "set 'Tag'" });
+  ok(same([...clean.next.setBuilds], [['tag', true]]), `G9: a clean verdict for the panel's own build of 'tag' records tag → true (${JSON.stringify([...clean.next.setBuilds])})`);
+  ok(clean.next.componentDef === null, 'G9: the verdict clears the set the panel was building');
+  const second = step({ ...clean.next, componentState: 'pending', componentDef: 'badge' }, { kind: 'component-result', ok: false, headline: '⚠ 20, 1 missed', summary: "set 'Badge'" });
+  ok(same([...second.next.setBuilds], [['tag', true], ['badge', false]]), `G9: a verdict with problems records badge → false and keeps tag's (${JSON.stringify([...second.next.setBuilds])})`);
+  const again = step({ ...second.next, componentState: 'pending', componentDef: 'tag' }, { kind: 'component-result', ok: false, headline: '✗ apply failed', summary: 'x' });
+  ok(again.next.setBuilds.get('tag') === false && again.next.setBuilds.get('badge') === false, 'G9: a later build of the same set replaces its result');
+  // An agent's build (the panel posted nothing): its verdict names no set, so none is recorded.
+  const agentRun = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components' }).next;
+  const byAgent = step(agentRun, { kind: 'component-result', ok: true, headline: '✓ built 432', summary: "set 'Button'" });
+  ok(byAgent.next.setBuilds.size === 0, `G9: an agent's build is not attributed to a set (${JSON.stringify([...byAgent.next.setBuilds])})`);
+  // The panel's request declined behind an agent's run: no build of its own is coming, so it forgets the set.
+  const declined = step({ ...agentRun, componentState: 'pending', componentDef: 'tag' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'busy' });
+  ok(declined.next.componentDef === null && declined.next.componentState === null, 'G9: a declined panel build forgets the set it posted');
 }
 
 // ---- prune-result: the four branches ---------------------------------------------------------------------

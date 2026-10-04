@@ -86,9 +86,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Text field', defs: ['text-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
-        // Badge — placed under Components pending the owner's call (held in the Badge PR).
+        // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).
         { page: 'Badge', defs: ['badge'] },
-        // Tag — placed under Components beside Badge, pending the owner's call (held in the Tag PR). It nests
+        // Tag — under Components beside Badge, owner-decided 2026-10-04 (S8 scope, O1). It nests
         // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Tag', defs: ['tag'] },
       ],

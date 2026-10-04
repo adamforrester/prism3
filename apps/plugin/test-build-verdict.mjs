@@ -19,6 +19,16 @@
  * navigating away and back recovered the button every time, which is exactly why the field report's only
  * known recovery was a restart — nobody tries the rail item while a build looks stuck.
  *
+ * ── UI redesign S8.2: where the build lives now ───────────────────────────────────────────────────
+ *
+ * The build moved from the legacy Components rail page to the Components TAB's preview (owner decision G2 A): the set
+ * is chosen in the set list and built with the Build button under it, whose label names the set ("Build Button") and
+ * which is busy, not disabled, while a build runs (#1956 decision 4). The page has no verdict pill or fraction of its
+ * own any more: the verdict and the live fraction are the Activity drawer's build row, and the page's per-set line says
+ * how this session's build of that set went (G9: "Built just now", "Built with problems", "Not built in this
+ * session"). Every arm below reads those two places. The verdict LITERALS are unchanged: they are the copy under test.
+ * Set up file's one control is the Figma menu's item now (G8 A), and its arm drives that.
+ *
  * ── why this suite is a BROWSER suite, and why it lives here rather than in apps/studio ──────────
  *
  * `apps/studio/src/main.ts` touches `document` at import time, so it has no unit granularity at all
@@ -152,40 +162,48 @@ const browser = await chromium.launch();
 /** Post a main-thread → UI message in the wire shape `bridge-main.ts` puts on the bus. */
 const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
 
+/** The Build button's labels and each set's result line, as drafted (S8.2; owner decisions G2 and G9, copy pending the
+ *  owner). Typed here, never read from the source: they are the words a designer reads. */
+const BUILD_LABEL = 'Build Button';
+const BUSY_LABEL = 'Building…';
+const LAST = { ok: 'Built just now', bad: 'Built with problems', none: 'Not built in this session' };
+
 /** Everything a designer can read about a build, from the rendered DOM only.
  *
- *  Both hosts are read, separately and by their own selectors, because the whole defect was one of them
- *  being right while the other was stale — a probe that took "the first pill on the page" would have
- *  reported the bar's correct verdict and never looked at the button. */
-const readSurfaces = (page) => page.evaluate(() => {
-  const text = (sel) => [...document.querySelectorAll(sel)].map((n) => n.textContent);
+ *  Both places are read, separately and by their own selectors, because the whole of #870 was one of them being right
+ *  while the other was stale. Since UI redesign S8.2 they are the Components tab (its Build button, the chosen set, and
+ *  each set's result line in this session) and the build's row in the Activity drawer, which carries the verdict and
+ *  the live fraction; the page draws no fraction and no verdict pill of its own. */
+const readSurfaces = (page, set = 'button') => page.evaluate((id) => {
   const btn = document.querySelector('[data-p3="components-build"]');
-  const sel = document.querySelector('[data-p3="components-def-picker"]');
-  // UI redesign S11: the build's chrome status is its row in the Activity drawer. Its verdict pill reads
-  // "Running" while the build runs, so a verdict is read only once the row has settled.
+  const busy = btn ? btn.getAttribute('aria-busy') === 'true' : null;
+  const label = btn ? (busy ? btn.querySelector('[data-p3="label-busy"]') : btn.querySelector('[data-p3="label-idle"]'))?.textContent.replace(/^…\s*/, '').trim() ?? null : null;
   const row = document.querySelector('[data-p3="activity-op"][data-op="components"]');
   const pill = row?.querySelector('[data-p3="op-verdict"]');
   const detail = row?.querySelector('[data-p3="op-summary"]') ?? null;
   const drawer = document.querySelector('[data-p3="activity-drawer"]');
+  const preview = document.querySelector('[data-p3="components-style-guide"]');
   return {
-    button: btn ? btn.textContent : null,
-    buttonDisabled: btn ? btn.disabled : null,
-    pickerDisabled: sel ? sel.disabled : null,
-    picker: sel ? sel.value : null,
-    pageVerdict: text('[data-p3="components-row"] [data-p3="status-verdict"]'),
-    pagePending: text('[data-p3="components-row"] [data-p3="status-pill"]'),
+    button: label,
+    busy,
+    picker: document.querySelector('[data-p3="components-def-option"]:checked')?.value ?? null,
+    setLine: preview?.querySelector(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`)?.textContent ?? null,
+    setLines: preview ? preview.querySelectorAll(`[data-p3="component-set"][data-set="${id}"] [data-p3="component-set-last"]`).length : 0,
+    pageFraction: /\d+ of \d+/.test(preview?.textContent ?? ''),
     barVerdict: row && row.dataset.state !== 'running' && pill && !pill.hidden ? [pill.textContent] : [],
     barPending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
     // Shown, read the way the browser decides it: the row's body and the drawer's are hidden with `hidden`.
     detail: detail && detail.checkVisibility() ? detail.textContent : null,
     drawerOpen: drawer?.dataset.open === 'true',
   };
-});
+}, set);
 
-/** A panel on the Components page, one fresh context per scenario.
+/** A panel on the Components tab, one fresh context per scenario.
  *
  *  A shared context would carry the previous scenario's `componentState` — and its localStorage brand —
- *  into the next, so a verdict left over from scenario 1 could satisfy scenario 2's assertion. */
+ *  into the next, so a verdict left over from scenario 1 could satisfy scenario 2's assertion. Every build message the
+ *  panel posts is caught on this window (the UI's `parent.postMessage` lands here), so a scenario can say which set
+ *  was asked for. */
 const openPanel = async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await hooks.watch(page);
@@ -195,17 +213,28 @@ const openPanel = async () => {
   await page.goto(`${ORIGIN}/`, { waitUntil: 'load' });
   // A real condition, not a sleep: the frame is rendered once the app has booted onto a brand.
   await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
-  await gotoRail(page, '[data-p3="rail-page-components"]');
-  await hooks.need(page, '[data-p3="components-build"]');
+  await page.evaluate(() => {
+    window.__builds = [];
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'build-components') window.__builds.push(m.def ?? null); });
+  });
+  await gotoComponents(page);
   return { page, errors };
 };
+/** The Components tab, by its tab hook: its levers, and the Build button its preview draws (S8.2). */
+const gotoComponents = async (page) => {
+  await hooks.click(page.locator('[data-p3="tab-components"]'));
+  await hooks.need(page, '[data-p3="components-levers"]');
+  await hooks.need(page, '[data-p3="components-build"]');
+};
+const builds = (page) => page.evaluate(() => window.__builds);
+const idleAgain = (page) => page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy') !== 'true', null, { timeout: 5000 }).catch(() => {});
 
 /**
- * Click Build and let the first chunk boundary report, so the run is mid-flight in the same way a real
- * one is when the terminal message lands. Returns false if the control could not be clicked.
+ * Choose a set (when one is named), click Build, and let the first chunk boundary report, so the run is mid-flight in
+ * the same way a real one is when the terminal message lands. Returns false if the control could not be clicked.
  *
  * A STUCK CONTROL IS AN ASSERTION HERE, NOT AN EXCEPTION, and that is worth the extra lines. This
- * suite's whole subject is a button that stays disabled, so the defect it exists to catch is EXACTLY
+ * suite's whole subject is a button that stays busy, so the defect it exists to catch is EXACTLY
  * what makes `locator.click()` throw — and an uncaught throw takes the process down mid-run: measured
  * under the mutation that reverts half the fix, the table printed 27 correct named failures and then
  * died on a `TimeoutError` stack, losing the remaining cases and the summary count. A gate that
@@ -213,15 +242,15 @@ const openPanel = async () => {
  * refusal becomes a named failure that the run survives.
  */
 const startBuild = async (page, def, label = 'build') => {
-  if (def) await page.selectOption('[data-p3="components-def-picker"]', def);
+  if (def) await hooks.click(page.locator(`[data-p3="components-def-option"][value="${def}"]`));
   const clicked = await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 })
     .then(() => true, () => false);
   if (!clicked) {
-    const state = await readSurfaces(page);
-    ok(false, `${label}: the Build control could not be clicked — it reads "${state.button}", disabled ${state.buttonDisabled}`);
+    const state = await readSurfaces(page, def ?? 'button');
+    ok(false, `${label}: the Build control could not be clicked — it reads "${state.button}", busy ${state.busy}`);
     return false;
   }
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.disabled === true, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.getAttribute('aria-busy') === 'true', null, { timeout: 4000 }).catch(() => {});
   await post(page, { type: 'component-progress', phase: 'build', done: 24, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /24 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   return true;
@@ -323,38 +352,26 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
 
 // ── the control a designer meets before any build ─────────────────────────────────────────────
 //
-// The zeroth terminating condition is "nothing has terminated yet", and it needs its own assertion
-// because the fix routes the FIRST render through the same `syncComponentRow` as every verdict. That
-// sync judges itself by `row.isConnected` — right for a verdict (writing into a detached row reports a
-// delivery nobody can see) and wrong at mount, when the row is built but not yet inserted. One guard
-// cannot serve both, which is what the `staged` carve-out is for, and getting that wrong shipped a
-// BLANK, enabled button in an intermediate version of this very fix. Every check below opens a panel
-// and would sail past that: they read the button only after a build, by which time the row is attached
-// and the sync writes a correct label over the empty one. So the empty initial button is asserted here,
-// directly, in the words on screen — not inferred from the away-and-back case that also happens to
-// catch it. A defect the author introduced while fixing the reported one is still a defect.
-//
-// The two "nothing yet" checks are ABSENCE checks, so they are only measurements once this same panel has
-// shown that the probe CAN see a fraction and a verdict in the page's row (#1831). The guard counts hook
-// names once per run, so a `status-pill` dropped at the row's render site would leave these reading an
-// empty list and passing. The panel is therefore driven through one build after the fresh reading, and the
-// fresh reading is judged against what the same probe saw then.
+// The zeroth terminating condition is "nothing has terminated yet", and it needs its own assertion: a control that
+// mounted blank, or busy, or naming no set, would sail past every check below, which read the button only after a
+// build. Since S8.2 the button names the chosen set (Button, by default), and each set says it was not built in this
+// session (G9). The proving build after it shows this probe CAN see a busy label and a result, so the fresh reading is
+// a measurement.
 {
   const { page, errors } = await openPanel();
   const fresh = await readSurfaces(page);
-  ok(fresh.button === '⊞ Build set', `a freshly opened panel offers "⊞ Build set" — read "${fresh.button}"`);
-  ok(fresh.buttonDisabled === false, 'a freshly opened panel offers a clickable Build control');
-  ok(fresh.pickerDisabled === false, 'a freshly opened panel offers an enabled def picker');
+  ok(fresh.button === BUILD_LABEL && fresh.busy === false, `a freshly opened panel offers "${BUILD_LABEL}", not busy — read "${fresh.button}", busy ${fresh.busy}`);
+  ok(fresh.picker === 'button', `a freshly opened panel has Button chosen — read ${fresh.picker}`);
+  ok(fresh.setLine === LAST.none, `before any build, Button reads "${LAST.none}" — read ${JSON.stringify(fresh.setLine)}`);
   ok(errors.length === 0, `opening the panel logs no console errors (${errors.slice(0, 2).join(' · ')})`);
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
   const during = await readSurfaces(page);
   await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await idleAgain(page);
   const after = await readSurfaces(page);
-  hooks.absent(ok, { seen: after.pageVerdict.some((t) => (t ?? '').includes('✓ built 648')), state: "a verdict in the page's row, after a build on this panel" },
-    fresh.pageVerdict.length === 0, `no verdict is shown before a build has run — found ${JSON.stringify(fresh.pageVerdict)}`);
-  hooks.absent(ok, { seen: during.pagePending.some((t) => /24 of 648/.test(t ?? '')), state: "a live fraction in the page's row, during a build on this panel" },
-    fresh.pagePending.length === 0, `no progress fraction is shown before a build has run — found ${JSON.stringify(fresh.pagePending)}`);
+  ok(during.button === BUSY_LABEL && during.busy && after.setLine === LAST.ok,
+    `the proving build: the probe sees the busy label, then the result — read "${during.button}" (busy ${during.busy}), then ${JSON.stringify(after.setLine)}`);
+  ok(JSON.stringify(await builds(page)) === '["button"]', `the build posts the chosen set — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
 }
 
@@ -363,51 +380,32 @@ for (const c of CONDITIONS) {
   await startBuild(page, undefined, c.name);
 
   const during = await readSurfaces(page);
-  ok(during.button === '… Building…', `${c.name}: the button reads "… Building…" while in flight`);
-  ok(during.buttonDisabled === true, `${c.name}: the button is disabled while in flight — a second click would post a concurrent build`);
-
-  // BOTH live pills advance, which is the second defect (see the header). Asserted per condition rather
-  // than once, because the pending pills are re-minted by whichever render ran last.
-  ok(
-    during.pagePending.some((t) => /24 of 648/.test(t ?? '')),
-    `${c.name}: the PAGE's pending pill shows the live fraction (was frozen at the placeholder)`,
-  );
-  ok(
-    during.barPending.some((t) => /24 of 648/.test(t ?? '')),
-    `${c.name}: the Activity row shows the live fraction (was frozen at the placeholder)`,
-  );
+  ok(during.button === BUSY_LABEL, `${c.name}: the button reads "${BUSY_LABEL}" while in flight — read "${during.button}"`);
+  ok(during.busy === true, `${c.name}: the button is busy while in flight (aria-busy), so a second click posts no concurrent build`);
+  ok(during.barPending.some((t) => /24 of 648/.test(t ?? '')), `${c.name}: the Activity row shows the live fraction (was frozen at the placeholder)`);
+  // RETIRED, HELD (S8.2): the page's own pending pill, the second surface #870's second defect froze, went with the
+  // legacy row. The drawer row above is the one live fraction; the page shows none, rather than a stale one.
+  hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')), state: 'the live fraction in the Activity row' },
+    !during.pageFraction, `${c.name}: the Components page shows no fraction of its own beside the drawer's`);
 
   await post(page, c.msg);
-  // Wait on the real condition — the label leaving the pending state — with a bounded timeout, so a
+  // Wait on the real condition — the button leaving the busy state — with a bounded timeout, so a
   // regression fails here as a timeout naming this condition rather than as a bare assertion diff.
-  await page
-    .waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 })
-    .catch(() => {});
+  await idleAgain(page);
   const after = await readSurfaces(page);
 
-  // THE ASSERTION #870 IS ABOUT. Stated as the label and enabled-state a designer reads.
-  ok(after.button === '⊞ Build set', `${c.name}: the button returns to "⊞ Build set" — read "${after.button}"`);
-  ok(after.buttonDisabled === false, `${c.name}: the button is clickable again, so another build can be started`);
-  ok(after.pickerDisabled === false, `${c.name}: the def picker is enabled again`);
+  // THE ASSERTION #870 IS ABOUT. Stated as the label and the state a designer reads.
+  ok(after.button === BUILD_LABEL, `${c.name}: the button returns to "${BUILD_LABEL}" — read "${after.button}"`);
+  ok(after.busy === false, `${c.name}: the button is no longer busy, so another build can be started`);
+  ok(after.picker === 'button', `${c.name}: the chosen set holds — read ${after.picker}`);
 
-  // The verdict is VISIBLE on both surfaces, carrying the host's own headline.
-  ok(
-    after.pageVerdict.some((t) => (t ?? '').includes(c.msg.headline)),
-    `${c.name}: the page's row carries the verdict "${c.msg.headline}" — read ${JSON.stringify(after.pageVerdict)}`,
-  );
-  ok(
-    after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline)),
-    `${c.name}: the Activity row carries the verdict "${c.msg.headline}"`,
-  );
+  // The verdict is VISIBLE: the drawer carries the host's own headline, and the set says how its build went (G9).
+  const line = c.msg.ok ? LAST.ok : LAST.bad;
+  ok(after.setLine === line, `${c.name}: the set's line on the page reads "${line}" — read ${JSON.stringify(after.setLine)}`);
+  ok(after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline)), `${c.name}: the Activity row carries the verdict "${c.msg.headline}"`);
 
-  // No pending text survives the verdict, on either surface. This is the other half of "reaches a
-  // visible verdict": a fraction left beside a verdict reads as a build still running.
-  // ABSENCE checks, so each is judged against what the same probe saw during this build (#1831): the
-  // pending pill on that surface was read, and the verdict it should now stand beside has landed.
-  const pageLanded = after.pageVerdict.some((t) => (t ?? '').includes(c.msg.headline));
+  // No pending text survives the verdict. ABSENCE, judged against what the same probe saw during this build (#1831).
   const barLanded = after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline));
-  hooks.absent(ok, { seen: during.pagePending.some((t) => /24 of 648/.test(t ?? '')) && pageLanded, state: "the page's pending pill during the build, then its verdict" },
-    after.pagePending.length === 0, `${c.name}: no stale fraction is left on the page beside the verdict — found ${JSON.stringify(after.pagePending)}`);
   hooks.absent(ok, { seen: during.barPending.some((t) => /24 of 648/.test(t ?? '')) && barLanded, state: "the Activity row's progress during the build, then its verdict" },
     after.barPending.length === 0, `${c.name}: no stale fraction is left in the Activity row beside the verdict`);
 
@@ -439,18 +437,13 @@ for (const c of CONDITIONS) {
 // prevent. So both are driven here rather than one being padded into `CONDITIONS`: what is asserted is that
 // the two verdicts differ ONLY in their number.
 //
-// WHAT IS *NOT* ASSERTED HERE, AND WHY — because the obvious extra check turned out to be one that runs
-// and cannot fire. #483's finding was a verdict computed correctly and then discarded by
-// `text-overflow: ellipsis` at 220px, so "is the count clipped out of the pill" looks like the right
-// question to ask of the rendered DOM. It is not answerable any more: measured on the built bundle, the
-// pill computes to `overflow: visible`, `max-width: none`, `white-space: nowrap` — it GROWS with its text
-// instead of clipping — and the panel opens at 1280×900 (`DEFAULT_SIZE` in `main.ts`), where a
-// deliberately over-budget 78-character headline still renders at 455px inside an 833px row. So
-// `scrollWidth <= clientWidth` is true for every possible headline: added as an arm here, it stayed green
-// under a headline three times the budget, which is a check that cannot fail reporting itself as a pass.
-// The ≤24-char budget is asserted where it can still move — against the function, over a range of counts,
-// in `test-apply-summary.ts`. Left as a note rather than deleted silently: the next person to reach for
-// this measurement should know it was taken.
+// WHERE THE NUMBER IS (S8.2): the Activity row's verdict and its open detail. The page's per-set line says only how the
+// build went ("Built with problems", G9); the count it used to carry was the legacy row's pill, retired with the row.
+//
+// WHAT IS *NOT* ASSERTED HERE, AND WHY: whether the count is clipped out of the pill. #483's finding was a verdict
+// clipped by `text-overflow: ellipsis` at 220px, but the pill grows with its text now (measured: `overflow: visible`,
+// `max-width: none`, `white-space: nowrap`), so `scrollWidth <= clientWidth` is true for every headline and the check
+// cannot fail. The ≤24-char budget is asserted where it can still move, in `test-apply-summary.ts`.
 for (const [n, label] of [[2, 'the small regime — the ordinary client failure'], [648, 'the large regime']]) {
   const { page, errors } = await openPanel();
   await startBuild(page, undefined, label);
@@ -459,60 +452,52 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     type: 'component-result', ok: false, headline,
     summary: `component build failed: in combineAsVariants: The nodes must all have the same parent — ${n} nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (${n} nodes; undo to remove)' on this page. One undo removes the whole build.`,
   });
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await idleAgain(page);
   const after = await readSurfaces(page);
-
-  // THE COUNT, on both surfaces. Asserted as the NUMBER rather than as the whole headline, because the
-  // number is the part a verdict tuned for the dramatic case would drop.
-  ok(after.pageVerdict.some((t) => (t ?? '').includes(String(n))),
-    `${label}: the page's pill states how many nodes were left — read ${JSON.stringify(after.pageVerdict)}`);
   ok(after.barVerdict.some((t) => (t ?? '').includes(String(n))),
-    `${label}: the Activity row states it too, so it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
-
-  // The WHERE is in the detail, and the detail is open without a click: a designer who has to expand a row
-  // to learn that 648 components are sitting on their canvas will not learn it.
-  ok(after.detail !== null && (after.detail ?? '').includes('parked in the frame'),
-    `${label}: the open detail says where the leftovers are`);
-  ok((after.detail ?? '').includes('⚠ Prism3 partial build'),
-    `${label}: ...and names the frame, which is the only pointer the panel can give`);
-  ok((after.detail ?? '').includes('One undo'),
-    `${label}: ...and names the way out, which is one undo because the run is one undo entry`);
-  ok((after.detail ?? '').includes('combineAsVariants'),
-    `${label}: ...with the host's own error still leading, since the cause is what the designer needs`);
+    `${label}: the Activity row states how many nodes were left, and it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
+  ok(after.setLine === LAST.bad, `${label}: the set's line on the page says the build had problems — read ${JSON.stringify(after.setLine)}`);
+  ok(after.detail !== null && (after.detail ?? '').includes('parked in the frame'), `${label}: the open detail says where the leftovers are`);
+  ok((after.detail ?? '').includes('⚠ Prism3 partial build'), `${label}: ...and names the frame, which is the only pointer the panel can give`);
+  ok((after.detail ?? '').includes('One undo'), `${label}: ...and names the way out, which is one undo because the run is one undo entry`);
+  ok((after.detail ?? '').includes('combineAsVariants'), `${label}: ...with the host's own error still leading, since the cause is what the designer needs`);
   ok(errors.length === 0, `${label}: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
 // ── the picker's selection survives its own verdict ───────────────────────────────────────────
 //
-// Not a nicety — it is why the fix is a SYNC rather than a `renderWorkspace()` call. A full page render
-// rebuilds the picker, whose `<option>` carries `selected` for Button, so reporting a verdict would
-// silently reset the selection and the designer's next click would build the wrong set. Measured: a
-// re-render does exactly that, which is what ruled out the one-line repair.
+// Not a nicety — it is why the legacy fix was a SYNC rather than a re-render (#870): a full render rebuilt the picker,
+// whose default was Button, so reporting a verdict would silently reset the selection and the designer's next click
+// would build the wrong set. Since S8.2 the chosen set lives in the Components preview's own state and the verdict
+// touches only the button and the result lines in place; held here: the set chosen is the set posted, the result lands
+// on THAT set's line, and the choice holds through the verdict.
 {
   const { page } = await openPanel();
-  const options = await page.locator('[data-p3="components-def-picker"] option').evaluateAll((ns) => ns.map((n) => n.value));
-  const other = options.find((v) => v !== 'button');
-  ok(other !== undefined, `the picker offers a def other than Button, so this check can mean something (${JSON.stringify(options)})`);
+  const options = await page.locator('[data-p3="components-def-option"]').evaluateAll((ns) => ns.map((n) => n.value));
+  const other = options.find((v) => v === 'tag') ?? options.find((v) => v !== 'button');
+  ok(other !== undefined && options.length >= 20, `the set list offers sets other than Button, so this check can mean something (${options.length} offered)`);
   if (other) {
-    await startBuild(page, other, `the non-default def '${other}'`);
+    await startBuild(page, other, `the non-default set '${other}'`);
+    const posted = await builds(page);
+    ok(JSON.stringify(posted) === JSON.stringify([other]), `the picker's selection is the set posted: '${other}' — posted ${JSON.stringify(posted)}`);
     await post(page, { type: 'component-result', ok: true, headline: '✓ built', summary: `set '${other}'` });
-    await page
-      .waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 })
-      .catch(() => {});
-    const after = await readSurfaces(page);
+    await idleAgain(page);
+    const after = await readSurfaces(page, other);
+    const button = await readSurfaces(page, 'button');
     ok(after.picker === other, `the picker still holds '${other}' after its verdict — read '${after.picker}' (a full re-render would reset it to 'button')`);
-    ok(after.button === '⊞ Build set', `the non-default def's build also reaches a verdict`);
+    ok(after.setLine === LAST.ok && button.setLine === LAST.none, `the verdict lands on '${other}', not on Button — ${other} ${JSON.stringify(after.setLine)}, button ${JSON.stringify(button.setLine)}`);
+    ok(after.busy === false && /^Build /.test(after.button ?? '') && after.button !== BUILD_LABEL, `the non-default set's build also reaches a verdict, and the button still names it — read "${after.button}"`);
   }
   await page.close();
 }
 
 // ── a verdict that arrives while the designer is on another page ───────────────────────────────
 //
-// #483's division of labour, asserted rather than assumed: the build's STATUS lives in the chrome so it
-// survives navigation, while the control is page content. The page's row is detached here, and writing a
-// verdict into a detached row would report a delivery nobody can see — so the chrome must carry it, and
-// returning to the page must show a correct control rather than the "Building…" it left.
+// #483's division of labour, asserted rather than assumed: the build's STATUS lives in the chrome (the Activity
+// drawer) so it survives navigation, while the control is page content. The Components page is released when the
+// designer leaves it, so returning must show a control that is not busy and the set's result, not the "Building…"
+// it left.
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'a verdict arriving off-page');
@@ -520,7 +505,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-palettes"]'));
   await hooks.need(page, '[data-p3="palettes-levers"]');
-  await page.waitForFunction(() => !document.querySelector('[data-p3="components-row"]'));
+  await page.waitForFunction(() => !document.querySelector('[data-p3="components-build"]'));
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   const away = await readSurfaces(page);
@@ -540,33 +525,35 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const landed = await readSurfaces(page);
   ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
 
-  await gotoRail(page, '[data-p3="rail-page-components"]');
-  await hooks.need(page, '[data-p3="components-build"]');
+  await gotoComponents(page);
   const back = await readSurfaces(page);
-  ok(back.button === '⊞ Build set', `returning to the page shows a clickable control, not the "Building…" it was left on — read "${back.button}"`);
-  ok(back.pageVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'returning to the page shows the verdict it missed');
+  ok(back.button === BUILD_LABEL && back.busy === false, `returning to the page shows a control that is not busy, not the "Building…" it was left on — read "${back.button}", busy ${back.busy}`);
+  ok(back.setLine === LAST.ok, `returning to the page shows the set's result it missed — read ${JSON.stringify(back.setLine)}`);
   await page.close();
 }
 
 // ── two builds back to back ───────────────────────────────────────────────────────────────────
 //
 // The loop `docs/40` §7 step 6 ("build it and look at it") actually needs: not one build that resolves,
-// but a second one startable from the resolved state. A fix that cleared the label without re-enabling
+// but a second one startable from the resolved state. A fix that cleared the label without freeing
 // the control would pass every assertion above and still leave the authoring loop blocked.
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'the first of two builds');
-  await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: 'first run' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await post(page, { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: 'first run' });
+  await idleAgain(page);
+  const first = await readSurfaces(page);
   await startBuild(page, undefined, 'the second of two builds');
   const second = await readSurfaces(page);
-  ok(second.button === '… Building…', 'a second build can be started from the resolved state');
-  ok(second.pagePending.some((t) => /24 of 648/.test(t ?? '')), "the second build's progress reports too, rather than the first verdict staying put");
+  ok(second.button === BUSY_LABEL && second.busy, 'a second build can be started from the resolved state');
+  ok(second.barPending.some((t) => /24 of 648/.test(t ?? '')), "the second build's progress reports too, rather than the first verdict staying put");
   await post(page, { type: 'component-result', ok: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="components-build"]')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  await idleAgain(page);
   const done = await readSurfaces(page);
-  ok(done.pageVerdict.some((t) => (t ?? '').includes('✓ 0 new, 648 present')), "the second build's verdict replaces the first, rather than appending beside it");
-  ok(done.pageVerdict.length === 1, `exactly one verdict pill on the page, not one per build — found ${done.pageVerdict.length}`);
+  ok(first.setLine === LAST.bad && done.setLine === LAST.ok, `the second build's result replaces the first on the set's line — first ${JSON.stringify(first.setLine)}, then ${JSON.stringify(done.setLine)}`);
+  ok(done.setLines === 1, `exactly one result line for the set, not one per build — found ${done.setLines}`);
+  ok(done.barVerdict.some((t) => (t ?? '').includes('✓ 0 new, 648 present')), "the drawer's verdict is the second build's");
+  ok(JSON.stringify(await builds(page)) === '["button","button"]', `each build posts once — posted ${JSON.stringify(await builds(page))}`);
   await page.close();
 }
 
@@ -696,39 +683,58 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
-// ── #1845: File setup reaches its verdict on the page's row ──────────────────────────────────────
+// ── #1845: File setup reaches its verdict (RE-HOSTED in S8.2: the Figma menu is its one control) ──────────────
 //
-// The same #870 shape on the third page-row control. Before UI redesign P2 a host verdict became a
-// `Repaint` tag and a switch in `apps/studio/src/main.ts` turned the tag into a call; `test-host-session.ts`
-// asserted the tag list and nothing checked the switch. Changing `case 'fileSetupRow': syncFileSetupRow()`
-// to a bare `break` put #870 back for this button and passed every gate, because no browser suite sent
-// `file-setup-result` (#1845). Since P2 the mapping is a store subscription (`subscribe('host:filesetup', …)`),
-// and this arm is what fails when it goes: the verdict is posted through the real bridge and the row is
-// read back. EXPECTED is authored in the words on screen; nothing reads `fileSetupState` (docs/34 shape 16).
+// The same #870 shape on a third control. Before UI redesign P2 a host verdict became a `Repaint` tag and a switch in
+// `apps/studio/src/main.ts` turned the tag into a call; changing `case 'fileSetupRow': syncFileSetupRow()` to a bare
+// `break` put #870 back for this button and passed every gate, because no browser suite sent `file-setup-result`
+// (#1845). Since S8.2 (owner decision G8 A) Set up file has no page row: its one control is the Figma menu's item, whose
+// busy state reads the host session (`figmaActions`), and its result is the Activity drawer's row. This arm drives the
+// item and posts the verdict through the real bridge, and reads both back. EXPECTED is authored in the words on screen;
+// nothing reads `fileSetupState` (docs/34 shape 16). It also holds G8 on the page: the Components tab draws no Set up
+// file control, read by its words (the page's own hooks are what the proof below names).
 {
   const { page, errors } = await openPanel();
+  const onPage = await page.evaluate(() => {
+    const scope = [document.querySelector('[data-p3="components-levers"]'), document.querySelector('[data-p3="components-style-guide"]')];
+    return { measured: scope.every(Boolean), words: scope.some((n) => /set up file/i.test(n?.textContent ?? '')) };
+  });
+  hooks.absent(ok, { seen: onPage.measured, state: 'the Components levers and preview' }, !onPage.words, 'G8: the Components page draws no Set up file control or words; the Figma menu is its one control');
+  await page.evaluate(() => {
+    window.__setup = 0;
+    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'file-setup') window.__setup++; });
+  });
   const readFs = () => page.evaluate(() => {
-    const btn = document.querySelector('[data-p3="file-setup-button"]');
+    const it = document.querySelector('[data-p3="figma-option-file-setup"]');
+    const busy = it ? it.getAttribute('aria-busy') === 'true' : null;
+    const row = document.querySelector('[data-p3="activity-op"][data-op="filesetup"]');
     return {
-      button: btn ? btn.textContent : null,
-      disabled: btn ? btn.disabled : null,
-      verdict: [...document.querySelectorAll('[data-p3="file-setup-row"] [data-p3="status-verdict"]')].map((n) => n.textContent),
-      pending: [...document.querySelectorAll('[data-p3="file-setup-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
+      item: it ? (busy ? it.querySelector('[data-p3="label-busy"]') : it.querySelector('[data-p3="label-idle"]'))?.textContent.replace(/^…\s*/, '').trim() ?? null : null,
+      busy,
+      state: row?.dataset.state ?? null,
+      verdict: row && row.dataset.state !== 'running' ? [...row.querySelectorAll('[data-p3="op-verdict"]')].map((n) => n.textContent) : [],
+      pending: row ? [...row.querySelectorAll('[data-p3="op-progress"]')].map((n) => n.textContent) : [],
+      posted: window.__setup,
     };
   });
+  const openMenu = async () => { await hooks.click(page.locator('[data-p3="figma-open"]')); await hooks.need(page, '[data-p3="figma-menu"]'); };
+  await openMenu();
   const before = await readFs();
-  ok(before.button === '⊞ Set up file' && before.disabled === false, `#1845 the Components page offers "⊞ Set up file", enabled — read "${before.button}", disabled ${before.disabled}`);
-  const clicked = await hooks.click(page.locator('[data-p3="file-setup-button"]'), { timeout: 4000 }).then(() => true, () => false);
-  ok(clicked, '#1845 the Set up file control can be clicked');
+  ok(before.item === 'Set up file' && before.busy === false, `#1845 the Figma menu offers "Set up file", not busy — read "${before.item}", busy ${before.busy}`);
+  const clicked = await hooks.click(page.locator('[data-p3="figma-option-file-setup"]'), { timeout: 4000 }).then(() => true, () => false);
+  ok(clicked, '#1845 the Set up file item can be clicked');
+  await page.waitForFunction(() => window.__setup > 0, null, { timeout: 3000 }).catch(() => {});
+  await openMenu();
   const pending = await readFs();
-  ok(pending.button === '… Setting up…' && pending.disabled === true, `#1845 a file setup in flight reads "… Setting up…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
-
+  ok(pending.item === 'Setting up…' && pending.busy === true && pending.posted === 1 && pending.state === 'running',
+    `#1845 a file setup in flight reads "Setting up…" in the menu, busy, with its row running — read "${pending.item}", busy ${pending.busy}, posted ${pending.posted}, row ${pending.state}`);
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added, 2 template assets built' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="file-setup-button"]')?.textContent === '⊞ Set up file', null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('[data-p3="figma-option-file-setup"]')?.getAttribute('aria-busy') !== 'true', null, { timeout: 5000 }).catch(() => {});
   const done = await readFs();
-  ok(done.button === '⊞ Set up file' && done.disabled === false, `a file-setup verdict re-enables the Set up file button — read "${done.button}", disabled ${done.disabled}`);
-  ok(done.verdict.length === 1 && done.verdict[0].includes('✓ file set up'), `#1845 exactly one verdict pill on the file-setup row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
-  ok(done.pending.length === 0, `#1845 no pending pill is left on the file-setup row beside the verdict — found ${JSON.stringify(done.pending)}`);
+  ok(done.item === 'Set up file' && done.busy === false, `a file-setup verdict frees the Set up file item — read "${done.item}", busy ${done.busy}`);
+  ok(done.verdict.length === 1 && done.verdict[0].includes('✓ file set up'), `#1845 exactly one verdict on the Set up file row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+  hooks.absent(ok, { seen: pending.state === 'running', state: 'the Set up file row running' },
+    done.pending.length === 0, `#1845 no pending text is left on the Set up file row beside the verdict — found ${JSON.stringify(done.pending)}`);
   ok(errors.length === 0, `#1845 file setup: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -762,7 +768,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 //     lands with no run (a later read-back) → `S11 a clean read-back reads "Clean" and collapses the row …`.
 //   · `HISTORY_MAX` set to 6 → `S11 the history keeps exactly five earlier results …`.
 //   · the hover hold, or the focus hold, removed from the collapse → `S11 the collapse waits while the pointer …` / `… while focus …`.
-//   · the reveal expanding the first row, not the asked one → `S11 clicking it opens the drawer with the Set up file row expanded …`.
+//   · the reveal expanding the first row, not the asked one → `S11 clicking it opens the drawer with the Style guide row expanded …`.
 //   · Read-back's verdict back to the host's sentence → `S11 a failing read-back reads "2 mismatches" …`.
 //   · the page pill's caret dropped → `S11 the page row's verdict keeps its caret …`.
 {
@@ -934,33 +940,36 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // ── S11: a page row's verdict opens the Activity drawer on that operation's row ─────────────────────
 //
 // Two rows, the asked-for one second and neither expanded (both clean, so both collapsed, #483): a reveal
-// that expanded the first row, or every row, cannot pass by coinciding with the target.
+// that expanded the first row, or every row, cannot pass by coinciding with the target. RE-HOSTED in S8.2: Set up
+// file has no page row now (G8 A), so the row clicked is the Style guide page's, the one page row left with a verdict.
 {
   const { page, errors } = await openPanel();
   await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
-  await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: '6 pages added' });
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables drawn' });
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="activity-op"]').length === 2, null, { timeout: 5000 }).catch(() => {});
+  await gotoRail(page, '[data-p3="rail-page-style-guide"]');
+  await hooks.need(page, '[data-p3="style-guide-row"]');
   const before = await page.evaluate(() => ({
     order: [...document.querySelectorAll('[data-p3="activity-op"]')].map((n) => n.dataset.op),
     expanded: [...document.querySelectorAll('[data-p3="activity-op"] [data-p3="op-head"]')].map((n) => n.getAttribute('aria-expanded')),
     open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open,
   }));
-  ok(JSON.stringify(before.order) === '["apply","filesetup"]' && before.expanded.every((e) => e === 'false') && before.open === 'false',
-    `S11 reveal premise: two clean rows, Set up file second, neither expanded, the drawer closed — ${JSON.stringify(before)}`);
-  const pill = page.locator('[data-p3="file-setup-row"] [data-p3="status-verdict"]');
+  ok(JSON.stringify(before.order) === '["apply","styleguide"]' && before.expanded.every((e) => e === 'false') && before.open === 'false',
+    `S11 reveal premise: two clean rows, Style guide second, neither expanded, the drawer closed — ${JSON.stringify(before)}`);
+  const pill = page.locator('[data-p3="style-guide-row"] [data-p3="status-verdict"]');
   const caret = await pill.evaluate((n) => { const c = n.querySelector('.caret'); return c ? { text: c.textContent, hidden: c.getAttribute('aria-hidden'), name: n.getAttribute('aria-label') } : null; }).catch(() => null);
-  ok(caret?.text === '▾' && caret.hidden === 'true' && (caret.name ?? '').startsWith('✓ file set up'),
+  ok(caret?.text === '▾' && caret.hidden === 'true' && (caret.name ?? '').startsWith('✓ style guide: 22 tables'),
     `S11 the page row's verdict keeps its caret (owner decision #5 on #1956), hidden from its name — read ${JSON.stringify(caret)}`);
   const clicked = await hooks.click(pill, { timeout: 4000 }).then(() => true, () => false);
-  ok(clicked, 'S11 the file-setup verdict on the page row can be clicked');
+  ok(clicked, 'S11 the style guide verdict on the page row can be clicked');
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
   const shown = await page.evaluate(() => {
     const head = (k) => document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-head"]`)?.getAttribute('aria-expanded');
-    const sum = document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]');
-    return { open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', expanded: head('filesetup'), other: head('apply'), summary: sum && sum.checkVisibility() ? sum.textContent : null };
+    const sum = document.querySelector('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-summary"]');
+    return { open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', expanded: head('styleguide'), other: head('apply'), summary: sum && sum.checkVisibility() ? sum.textContent : null };
   });
-  ok(shown.open && shown.expanded === 'true' && shown.other === 'false' && (shown.summary ?? '').includes('6 pages added'),
-    `S11 clicking it opens the drawer with the Set up file row expanded, and only that row — open ${shown.open}, expanded ${shown.expanded}, Apply Theme ${shown.other}, summary ${JSON.stringify(shown.summary)}`);
+  ok(shown.open && shown.expanded === 'true' && shown.other === 'false' && (shown.summary ?? '').includes('22 tables drawn'),
+    `S11 clicking it opens the drawer with the Style guide row expanded, and only that row — open ${shown.open}, expanded ${shown.expanded}, Apply Theme ${shown.other}, summary ${JSON.stringify(shown.summary)}`);
   ok(errors.length === 0, `S11 reveal: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -1255,6 +1264,11 @@ for (const how of ['pointer', 'focus']) {
   ok(VERDICTS.length === 4, `#1890 the drawer arm drives all 4 verdict kinds (found ${VERDICTS.length})`);
   for (const { op, msg: v } of VERDICTS) {
     const { page, errors } = await openPanel();
+    // On a legacy page, which scrolls the document under the sticky head this arm measures: the Components page moved to
+    // the two panes in S8.2, whose panes scroll on their own, so the arm moved to the plugin's one legacy page left, the
+    // Style guide, at a height that makes the document scroll.
+    await page.setViewportSize({ width: 1280, height: 480 });
+    await gotoRail(page, '[data-p3="rail-page-style-guide"]');
     // v6 lists an operation only once it has run, so before the verdict the drawer holds no such row: the
     // read below is of the row this verdict made.
     const before = await page.evaluate((k) => ({ drawer: !!document.querySelector('[data-p3="activity-drawer"]'), row: !!document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`) }), op);

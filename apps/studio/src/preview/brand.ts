@@ -24,6 +24,12 @@ export type PageLends = {
   readonly styleGuide: (host: HTMLElement, repaint: () => void) => void;
   /** What the host has said about its fonts (S6.2: Type's library and its type-ahead). Empty on the web. */
   readonly fonts: () => HostFonts;
+  /** The component-set builds (S8.2): whether a build runs now (the panel's or an agent's), each set's result from
+   *  this session (`true` clean, `false` with problems, `undefined` not built), and the build itself, which refuses
+   *  while one runs and for a set that can't be built. The Components page reads them here so it never imports
+   *  `main.ts`; on the web nothing builds, so `busy` is false and `run` posts nothing. It repaints from the `host`
+   *  and `host:components` topics. */
+  readonly sets: { readonly busy: () => boolean; readonly lastOf: (id: string) => boolean | undefined; readonly run: (id: string) => void };
 };
 
 /** Mount the Brand preview into `host`. */

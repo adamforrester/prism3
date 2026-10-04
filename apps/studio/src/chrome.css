@@ -833,6 +833,8 @@
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
 /* Long option labels (Outline hover) wrap onto a second row rather than run past the panel. */
 .p3-ilevers .p3-choice { flex-wrap: wrap; }
+/* Components (S8.2): the Button options' labels ("Attached to label", "Match button size") wrap the same way at 380. */
+.p3-clevers .p3-choice { flex-wrap: wrap; }
 /* The Interactive preview (S5.3). QA-I1: a treatment label's foot line (its token and ratio badge) wraps inside the
    label column instead of running under the buttons beside it. QA-I2: a ratio badge's mark takes the chrome's
    status icon colors, a pass in the success icon and a miss in the danger icon; the badge keeps its own ink and
