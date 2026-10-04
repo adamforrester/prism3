@@ -46,6 +46,13 @@
 .p3-bar-slot { display: contents; }
 .p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
+/* The product mark (studio only, owner 2026-10-04): the logo, then the name, ahead of the brand switcher. Not a
+   control, so no edge. The logo is `styles.css`'s `.logo`, a fixed gradient no rule here may draw. */
+.p3-mark {
+  display: inline-flex; align-items: center; gap: var(--p3-space-100); flex: none; padding-right: var(--p3-space-200);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
+  letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); white-space: nowrap;
+}
 
 /* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
 .p3-btn, .p3-brand {
@@ -370,6 +377,9 @@
   gap: var(--p3-space-075); padding: var(--p3-space-025) var(--p3-space-150);
 }
 .p3-frame[data-w="narrow"] .p3-bar-main { flex-wrap: wrap; gap: var(--p3-space-075); }
+/* Narrow keeps the logo and drops the name; the mark's accessible name still says it. */
+.p3-frame[data-w="narrow"] .p3-mark { padding-right: var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
