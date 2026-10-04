@@ -21,12 +21,12 @@ and tempo on Depth & motion (#800's Dark block, every brand with a Dark mode). E
 with Light's chip checked, so neither passes on a store it never put in that state. Where the rule lives:
 `choice()` in `ui/lever-kit.ts` calls back only for a chip that is not already checked.
 
-**3. Write guards** (`test-shell-imports`, 248 → 252):
+**3. Write guards** (`test-shell-imports`, four new assertions):
 - **`main.ts` makes no Shape write**, held by the AST write arm S6 and S9.1 built: no direct write (any assignment
   operator, `delete`, `++`/`--`, `Object.assign`, or through one alias) into `brandState.density`, `.radiusScale`,
   `.controlShape`, `.baseMd` or `brandState.modeLevers.‹m›.density|radius`; no keyed write (`setPath` into those keys
   or `modeLevers.‹m›.density|radius`, `setModeLever` on `density` or `radius`); and no Shape key literal handed to the
-  generic writers (`renderControl`, `leverControl`, `csLeverStack`, `csSlider`, `csPicker`), whose key reaches
+  generic writers (`renderControl`, `leverControl`, `csLeverStack`; S10 retired `csSlider` and `csPicker`), whose key reaches
   `setPath` as a variable. Oracle: the key names, literal, as #2078 lists them.
 - **`domains/depth.ts` is under the same visitor.** The arm is now a per-file `scan()`; `main.ts` is held to every rule,
   and `domains/depth.ts` to the direct Depth & motion rule. Its keyed writes were already refused (the regex that it
@@ -50,10 +50,10 @@ Dropping it waits for an input change that is breaking for its own reasons.
 |---|---|
 | The label from the px (`r.px >= 128 ? PILL_LABEL : …` in `radius.ts`) | chrome `previewing Wireframe, every radius size is drawn at 0px, as the emission draws wireframe, and reads 0px but for the two pill sizes, which read "Pill" (… round "0px" 0px, capsule "0px" 0px, …)`. Smoke stays green, correctly: it visits the mode strip's Light and Dark, where a pill's px is a pill's. |
 | The chip calls back even when checked (the `aria-checked` guard dropped in `choice()`) | smoke `Auto chip (#2078): prism3: previewing Dark on Auto, choosing the density chip Dark already follows (Light's comfortable) writes nothing — prism3:brandInput changed, modeLevers.dark {"density":"comfortable"}` and, on prism3, aurora and harbor, `… the tempo chip Dark already follows (Light's relaxed) … changed, modeLevers.dark {"tempo":"relaxed"}`: 4 failures, no others |
-| `setPath(brandState, 'density', 'compact')` planted in `main.ts` | shell-imports `src/main.ts makes no keyed Shape write (…) — line 4287: setPath(brandState, 'density', 'compact')` |
+| `setPath(brandState, 'density', 'compact')` planted in `main.ts` | shell-imports `src/main.ts makes no keyed Shape write (…) — line …: setPath(brandState, 'density', 'compact')` |
 | `brandState.modeLevers!.dark!.radius = 2; csLeverStack(['baseMd'])` planted in `main.ts` | shell-imports `src/main.ts writes nothing into a Shape lever itself (…)` and `src/main.ts hands no Shape key to a writer that writes whatever it is handed (…) — csLeverStack(['baseMd'])` |
-| `(brandState as any).shadow = undefined` planted in `domains/depth.ts` | shell-imports `src/domains/depth.ts writes nothing into brandState.shadow or brandState.motionPersonality itself — line 394: …` |
+| `(brandState as any).shadow = undefined` planted in `domains/depth.ts` | shell-imports `src/domains/depth.ts writes nothing into brandState.shadow or brandState.motionPersonality itself — line …: (brandState as any).shadow = undefined` |
 
-**Counts:** `test` shell-imports 248 → 252; `test:smoke` 4,443 with this branch's ten new arms (one Pill arm per
-brand and strip mode, 3 × 2; the density arm; the tempo arm on each of three brands); `test:chrome` 15,132 with its
-two (the Pill arm on each host; the wireframe arm is rewritten, not added).
+**Counts** (measured on the cut from `cb8fea63`, before merging S10 in): `test` shell-imports 248 → 252;
+`test:smoke` 4,443, ten new arms (one Pill arm per brand and strip mode, 3 × 2; the density arm; the tempo arm on each
+of three brands); `test:chrome` 15,132, two new (the Pill arm on each host; the wireframe arm is rewritten, not added).
