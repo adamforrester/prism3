@@ -119,6 +119,46 @@ export const withInverseBadge = (path: string, pill: HTMLElement): HTMLElement =
   wrap.append(badge, pill);
   return wrap;
 };
+/** A token pill with its `inverse` badge where the path carries one: `main.ts`'s `tokenPill`, for the sections. */
+export const tokenPillBadged = (path: string): HTMLElement => withInverseBadge(path, tokenPillSpan(path));
+/** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
+ *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.expressive`).
+ *  (Moved from `main.ts` in UI redesign S9.1 with the Motion sections, its only callers; unchanged.)
+ *
+ *  Deliberately NOT folded into `tokenPill`: `<wbr>` is not inert under `white-space: nowrap` in
+ *  Chromium. Putting it in the shared helper took Layout's breakpoint pills from 0 wrapped to 5 and
+ *  turned Surfaces' 3 elided pills into 3 wrapped ones — measured against `main` with the same sweep,
+ *  which is the only reason it was caught. A shared component is exactly where an "obviously harmless"
+ *  addition does damage out of sight of the page you are working on.
+ *
+ *  `<wbr>` rather than a zero-width space: it contributes nothing to `textContent`, so a path copied
+ *  out of the pill is still the path. Pair with the wrap CSS on the container. */
+export const tokenPillWrapping = (path: string): HTMLElement => {
+  const p = tokenPillSpan(path);
+  p.textContent = '';
+  const segs = path.split('.');
+  segs.forEach((seg, i) => { p.append(i < segs.length - 1 ? `${seg}.` : seg); if (i < segs.length - 1) p.append(el('wbr')); });
+  return withInverseBadge(path, p);
+};
+
+/** Marks a control that changes the VIEW, not a token — a playback speed, a filter, a specimen ground.
+ *  `main.ts`'s `attachModeBadges` skips these when deciding editability, the way it already skips `button`.
+ *  (Moved from `main.ts` in UI redesign S9.1, with the Motion specimen that uses it; unchanged.)
+ *
+ *  WHY AN ATTRIBUTE AND NOT A DECLARED FLAG PER SECTION. #437's editability is measured from the
+ *  rendered DOM precisely so it cannot drift, and #574 is not a reason to give that up — a
+ *  hand-declared `editable: false` on Motion would go stale the day Motion gains a real control. The
+ *  measurement was not wrong, it was measuring a PROXY: presence of a control is not evidence of
+ *  editability, and a view-state control satisfies "the user can change something here" without
+ *  satisfying "the user can change a token here". Marking the exception keeps the measurement, and a
+ *  section that gains a real control still re-badges itself with no map to remember.
+ *
+ *  WHY AN ATTRIBUTE AND NOT THE `.mo-slowmo-sel` CLASS. The badge would then encode one specimen's
+ *  class name, so the second view control would reintroduce the bug — exactly how #575 happened (a
+ *  mapping re-derived at a second site, with no shared name to grep for). This is that shared name. */
+export const VIEW_ONLY = 'data-view-only';
+/** Tag `c` as a view-state control and return it, so it can wrap the control at construction. */
+export const viewOnly = <T extends HTMLElement>(c: T): T => { c.setAttribute(VIEW_ONLY, ''); return c; };
 
 // ── the section context ──────────────────────────────────────────────────────────────────────────────
 

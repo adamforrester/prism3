@@ -22,6 +22,12 @@ import { breakpointsSection } from './breakpoints';
 import { gridSection } from './grid';
 import { containersSection, containerReference } from './containers';
 import { layoutCtx, type LayoutCtx } from './layout-kit';
+import { shadowRampSection } from './shadow-ramp';
+import { shadowTintReadout } from './shadow-tint';
+import { durationRampSection } from './duration-ramp';
+import { motionCurvesSection, motionStageSvg } from './motion-curves';
+import { springsSection } from './springs';
+import { motionTransitionsSection, MOTION_SLOWMO_OPTIONS } from './motion-transitions';
 import type { SgCtx } from './kit';
 
 export { backgroundSection, foregroundSection, textColorSection, borderSection, iconSection };
@@ -43,6 +49,10 @@ export { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY, facesSection }
 /** The Layout preview's sections (UI redesign S10): Breakpoints, Grid and Containers, and the context they draw with.
  *  Read-only. */
 export { breakpointsSection, gridSection, containersSection, containerReference, layoutCtx, type LayoutCtx };
+/** The legacy Elevation and Motion pages' read-only pieces (UI redesign S9.1), shared so the Depth & motion page
+ *  (S9.2) draws the same code: the elevation ramp, the tint read-out, the duration ramp, the curve set, springs and
+ *  the traced transitions. Read-only. */
+export { shadowRampSection, shadowTintReadout, durationRampSection, motionCurvesSection, motionStageSvg, springsSection, motionTransitionsSection, MOTION_SLOWMO_OPTIONS };
 /** The five, in order, by the title each section draws. */
 export const COLOR_SECTIONS: ReadonlyArray<readonly [string, (c: SgCtx) => HTMLElement]> = [
   ['Background', backgroundSection], ['Foreground', foregroundSection], ['Text color', textColorSection], ['Border', borderSection], ['Icon', iconSection],
