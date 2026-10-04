@@ -25,6 +25,11 @@ import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } fr
 
 /** The fallback where no definition binds a size (APPROVED copy, owner, 2026-10-04). */
 export const USED_BY_NONE = 'No component uses this yet.';
+/** The label of the two pill sizes, `radius.round` and `radius.capsule` (APPROVED copy, owner, 2026-10-04, per #1177):
+ *  a pill is height ÷ 2 whatever its px, so the px it is emitted at says nothing a reader can use. Chosen by which
+ *  size it is (the engine marks the two pill sizes on the ladder), never by its px, so wireframe's 0px pills still
+ *  read "Pill". */
+export const PILL_LABEL = 'Pill';
 /** The sub-heading over the four shapes. DRAFT. */
 export const SHAPES_TITLE = 'Control shape';
 
@@ -92,7 +97,7 @@ export const radiusSection = (c: SgCtx, o: {
     const users = radiusUsers(o.shape, `radius.${r.name}`);
     const sw = shapeSample(c, 'shp-sw');
     sw.style.borderRadius = `${r.px}px`;
-    return { hook: 'radius-row', key: r.name, label: `${r.px}px${r.pill ? ' · pill' : ''}`, token: `radius.${r.name}`, who: users.length ? users.join(', ') : USED_BY_NONE, sample: sw };
+    return { hook: 'radius-row', key: r.name, label: r.pill ? PILL_LABEL : `${r.px}px`, token: `radius.${r.name}`, who: users.length ? users.join(', ') : USED_BY_NONE, sample: sw };
   })));
   // The four control shapes, each the radius size it binds, drawn at the medium control height so a pill reads as
   // height ÷ 2 and a rounded corner at its true size against it.
