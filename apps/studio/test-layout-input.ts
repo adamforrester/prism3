@@ -18,7 +18,9 @@
  *   · `setOverride`'s emptied-map delete removed (an emptied map left as `{}`) →
  *     `setGapOverride(gutter, md, auto) on the last entry deletes layout.gutterOverrides`;
  *   · D13's re-keying removed from `commitBreakpoints` (each map left as it was) →
- *     `D13: adding a breakpoint keeps md's 6 columns on the 768px breakpoint, now sm`.
+ *     `D13: adding a breakpoint keeps md's 6 columns on the 768px breakpoint, now sm`;
+ *   · `editBreakpoint`'s two-breakpoint refusal removed (the merge allowed) →
+ *     `D13: at two breakpoints, an edit onto the other's width is refused and the list is unchanged (two to seven)`.
  */
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
@@ -121,6 +123,13 @@ reset({ breakpoints: [0, 480, 768, 1024, 1440, 1920], columnOverrides: { xs: 4, 
 r = L.removeBreakpoint(1);
 ok(J(lay()?.columnOverrides) === J({ sm: 4, '2xl': 16 }) && gridAt(0)?.columns === 4 && gridAt(1920)?.columns === 16,
   `D13: six to five breakpoints renames xs to sm and keeps 2xl, each setting at its width — ${J(lay()?.columnOverrides)}`);
+reset({ breakpoints: [0, 768], columnOverrides: { md: 6 } });
+r = L.editBreakpoint(1, 0);
+ok(r.refused === true && J(lay()?.breakpoints) === J([0, 768]) && J(lay()?.columnOverrides) === J({ md: 6 }) && r.dropped.length === 0,
+  `D13: at two breakpoints, an edit onto the other's width is refused and the list is unchanged (two to seven) — ${J(r)}, ${J(lay())}`);
+reset({ breakpoints: [0, 768, 1024] });
+r = L.editBreakpoint(2, 768);
+ok(!r.refused && J(lay()?.breakpoints) === J([0, 768]), `at three breakpoints the same merge is allowed and leaves two — ${J(lay()?.breakpoints)}`);
 reset();
 for (let i = 0; i < 2; i++) L.addBreakpoint();
 ok(J(lay()?.breakpoints) === J([0, 768, 1024, 1440, 1920, 2176, 2432]) && brandTheme(structuredClone(store.brandState)).layout.breakpoints.at(-1)?.name === '3xl',

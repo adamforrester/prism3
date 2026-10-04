@@ -184,8 +184,16 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
       const id = `p3-bp-${j}`;
       const t = textField(id, 'bp-input', { label: `${names[j]}, px`,
         // A value that is not a width (empty, not a number, below 0) is put back rather than written: the legacy
-        // clean-up would drop the breakpoint, and with it its settings.
-        onCommit: (v, f) => { const n = Number(v.trim()); if (String(px) === v.trim()) return; if (!v.trim() || !Number.isFinite(n) || n < 0) { f.value = String(px); return; } bpEdit(() => editBreakpoint(j, n)); } });
+        // clean-up would drop the breakpoint, and with it its settings. So is an edit the state refuses (at two
+        // breakpoints, one onto the other's width, which would leave one: D13's two to seven).
+        onCommit: (v, f) => {
+          const n = Number(v.trim());
+          if (String(px) === v.trim()) return;
+          if (!v.trim() || !Number.isFinite(n) || n < 0) { f.value = String(px); return; }
+          let refused = false;
+          bpEdit(() => { const r = editBreakpoint(j, n); refused = !!r.refused; return r; });
+          if (refused) f.value = String(px);
+        } });
       t.el.inputMode = 'numeric';
       t.set(String(px));
       const unit = h('span', 'p3-bp-unit', 'px');

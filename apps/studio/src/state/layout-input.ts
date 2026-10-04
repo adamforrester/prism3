@@ -68,7 +68,7 @@ export const namesFor = (floors: readonly number[]): readonly string[] => {
 type Entry = { px: number; from?: number };
 
 /** What a breakpoint change did: the old names whose settings were dropped with their breakpoint. */
-export type BreakpointResult = { readonly dropped: readonly string[] };
+export type BreakpointResult = { readonly dropped: readonly string[]; readonly refused?: boolean };
 
 /** Write the breakpoint list `next` and re-key the three override maps (D13). The legacy clean-up first: an entry
  *  that is not a finite number at least 0 goes, a width already taken keeps its first entry, and the rest are
@@ -113,8 +113,13 @@ export const removeBreakpoint = (i: number): BreakpointResult =>
   commitBreakpoints(breakpointsOf().flatMap((px, j) => (j === i ? [] : [{ px, from: j }])));
 /** Move breakpoint `i` to `px`. It keeps its settings under whatever name it now has; an edit onto another
  *  breakpoint's width merges the two, the first in the old order surviving (the legacy de-duplication). */
-export const editBreakpoint = (i: number, px: number): BreakpointResult =>
-  commitBreakpoints(breakpointsOf().map((x, j) => ({ px: j === i ? px : x, from: j })));
+export const editBreakpoint = (i: number, px: number): BreakpointResult => {
+  const bps = breakpointsOf();
+  // Two to seven (owner decision D13): at two, an edit onto the other breakpoint's width would merge them into one,
+  // so it is refused and nothing is written; the page puts the field's width back.
+  if (bps.length <= MIN_BREAKPOINTS && bps.some((x, j) => j !== i && x === px)) return { dropped: [], refused: true };
+  return commitBreakpoints(bps.map((x, j) => ({ px: j === i ? px : x, from: j })));
+};
 
 /** The base grid column count (the legacy select, `Number`). */
 export const setColumns = (n: number): void => { setPath(brandState, 'layout.columns', n); };

@@ -31,6 +31,13 @@ another's width) is dropped, and the page says "Removed ‹name›: its column, 
 The names come from the engine itself (`namesFor` resolves the boot example with only the breakpoints swapped), never a
 copy of `bpNames`. The engine is unchanged.
 
+**A breakpoint's field, cleared or refused.** Emptying a breakpoint's field (or typing something that is not a width,
+or a negative one) and leaving it puts the breakpoint's previous width back in the field; nothing is written and no
+line is shown (owner-approved). An edit that would merge the last two breakpoints into one (typing the first's 0 into
+the second, at two) is refused the same way: `editBreakpoint` writes nothing and returns `refused`, and the field shows
+its previous width again, so the list never drops below two (D13's two to seven). At three or more, an edit onto
+another's width still merges the two, the first in the old order surviving, and the dropped line says so.
+
 **Equivalence against the legacy writes** (transcribed from `main` `d0a306fb`): 6 bases (prism3, aurora, harbor, and
 each with column, gutter and margin overrides), 476 sequences per base (every single op over every stop and value,
 each override to a value and back to Auto, and 150 random sequences of 1–8 ops: add, remove, edit, duplicate, columns,
@@ -68,6 +75,7 @@ emptying the workspace), which every remaining legacy page still runs through un
 | the Grid readout taken from the base column count (`gridSection`: `String(g.columns)` → `String(ly.baseColumns)`) | smoke `#1532: the per-breakpoint readout equals the engine's EMITTED grid columns [xs:4 sm:8 md:12 lg:12 xl:12 2xl:12] — DIVERGED: xs shows 12, emits 4; sm shows 12, emits 8` (#1532 M1, carried over), and 1i's `‹brand› / Layout / ‹mode›: every breakpoint, grid and container value reads the emission's` |
 | the last gutter override back to Auto leaves `{}` | unit `setGapOverride(gutter, md, auto) on the last entry deletes layout.gutterOverrides` |
 | the first breakpoint's field left editable | chrome `Layout: the first breakpoint is fixed at 0 (web)` and `(figma)` |
+| `editBreakpoint`'s two-breakpoint refusal removed (the merge allowed) | unit `D13: at two breakpoints, an edit onto the other's width is refused and the list is unchanged (two to seven)` and chrome `Layout: at two breakpoints, typing 0 into the second is refused and the field keeps its width (two to seven)` |
 | D13's re-keying removed | unit `D13: adding a breakpoint keeps md's 6 columns on the 768px breakpoint, now sm` (and six more D13 arms) |
 | Responsive type sizing drawn back on Layout | chrome `typography.responsive is drawn on Type only — also on Layout (levers title "Responsive type sizing", …) (web)` and `(figma)` |
 | an off-list column count shown as the first offered value | chrome `#2047: a brand's 10 grid columns (off the offered list) read 10 on the base and 10 on md, as the input says, …` |

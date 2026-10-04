@@ -5361,6 +5361,20 @@ for (const host of ['web', 'figma']) {
     const at2 = await layoutRead(page);
     ok(at2.bpRows.length === 2 && at2.bpRows.every((x) => x.remove === null) && at2.add === LAYOUT_APPROVED.add,
       `Layout: at two breakpoints neither offers Remove, and Add breakpoint is back — ${JSON.stringify(at2.bpRows)}`);
+    // D13's two to seven: at two, typing the first's 0 into the second would merge them into one. Refused: nothing is
+    // written and the field keeps its width, as an emptied or non-number field does.
+    {
+      const before = await layoutPersisted(page);
+      const second = page.locator('[data-p3="bp-row"]').nth(1).locator('[data-p3="bp-input"]');
+      const was = await second.inputValue();
+      await second.fill('0');
+      await second.press('Enter');
+      await page.waitForTimeout(300);
+      const after2 = await layoutPersisted(page);
+      const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="bp-row"] [data-p3="bp-input"]')].map((n) => n.value));
+      ok(JSON.stringify(after2?.breakpoints) === JSON.stringify(before?.breakpoints) && after2?.breakpoints?.length === 2 && shown.length === 2 && shown[1] === was,
+        `Layout: at two breakpoints, typing 0 into the second is refused and the field keeps its width (two to seven) — persisted ${JSON.stringify(after2?.breakpoints)}, fields ${JSON.stringify(shown)}`);
+    }
     // A gutter to a step and back to Auto: the emptied map is deleted.
     const bp0 = at2.bpRows[1].bp;
     await pick('bp-gutter-pick', bp0, '4');
