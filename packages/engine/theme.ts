@@ -1310,9 +1310,9 @@ export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
  * the form controls bind those composites by name. A brand may still ADD weights to either.
  */
 export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
-  label: { role: 'emphasis', why: 'the tag and badge bind type.label.*.emphasis by name, and so does the button unless buttonLabelWeight is \'default\'' },
-  body: { role: 'default', why: 'the text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
-  caption: { role: 'default', why: 'the textarea and field message bind type.caption.md.default by name' },
+  label: { role: 'emphasis', why: 'tags and badges use it, and so do buttons unless their label weight is Default' },
+  body: { role: 'default', why: 'text fields, selects, text areas, and checkbox, radio and switch rows use it' },
+  caption: { role: 'default', why: 'text areas and field messages use it' },
 };
 /**
  * #1752 — the weight role `buttonLabelWeight: 'default'` makes the button label bind, and the category it
