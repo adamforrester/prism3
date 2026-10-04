@@ -141,7 +141,10 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/preview/sections/radius.ts', 'src/preview/sections/control-heights.ts', 'src/preview/sections/spacing.ts',
   'src/preview/sections/shape-building-blocks.ts', 'src/preview/sections/radius-sample.ts',
   // S9.2: Depth & motion (its levers and its preview).
-  'src/domains/depth.ts', 'src/preview/depth.ts'];
+  'src/domains/depth.ts', 'src/preview/depth.ts',
+  // S8.1: the Button option writes, the button specimen, and the component catalog with the web's generated copy.
+  'src/state/button-input.ts', 'src/preview/sections/button-layout.ts', 'src/state/component-catalog.ts',
+  'src/state/component-catalog-data.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -528,7 +531,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(strays.length === 0, `only preview/sections/ writes the shared-section marker${strays.length ? ` — also written by ${strays.join(', ')}` : ''}`);
   // S4f: Surfaces & fills' Scrim (QA-B10) and Fields (#2016) sections, each its own module and marker.
   for (const f of [...SECTION_FILES, 'disabled', 'interactive', 'links', 'focus-ring', 'weights-by-face', 'type-scale', 'line-spacing', 'building-blocks', 'type-sample', 'faces', 'scrim', 'fields',
-    'shadow-ramp', 'shadow-tint', 'duration-ramp', 'motion-curves', 'springs', 'motion-transitions']) {
+    'shadow-ramp', 'shadow-tint', 'duration-ramp', 'motion-curves', 'springs', 'motion-transitions', 'button-layout']) {
     const own = new RegExp(`\\.dataset\\.sgSection\\s*=\\s*'${f}'`).test(readFileSync(join(SRC, 'preview/sections', `${f}.ts`), 'utf8'));
     ok(own, `preview/sections/${f}.ts stamps its own root data-sg-section="${f}"`);
   }
@@ -719,11 +722,19 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     const DEPTH_MODE_FIELDS = new Set(['tempo', 'easings', 'shadow']);
     const isDepthTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && DEPTH_PATH_ROOTS.has(c[1]); };
     const depthDirect: string[] = [], depthKeyed: string[] = [];
+    // The Button option writes (UI redesign S8.1), held by the same visitor: no write onto `brandState.buttonIcons`,
+    // `.buttonContentSize`, `.buttonLabelWeight` or `.buttonMinWidthMultiplier`, and no keyed write on those keys. All
+    // four are brand-wide (no `ModeLevers` field), so there is no mode field to hold. Literal: the levers' keys.
+    const BUTTON_KEYS = new Set(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']);
+    const isButtonTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && BUTTON_KEYS.has(c[1]); };
+    const buttonDirect: string[] = [], buttonKeyed: string[] = [];
     const seenOk = new Set<string>();
     const visit = (n: ts.Node): void => {
       if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isTypeTarget(n.left)) direct.push(at(n));
       if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isDepthTarget(n.left)) depthDirect.push(at(n));
       if (ts.isDeleteExpression(n) && isDepthTarget(n.expression)) depthDirect.push(at(n));
+      if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isButtonTarget(n.left)) buttonDirect.push(at(n));
+      if (ts.isDeleteExpression(n) && isButtonTarget(n.expression)) buttonDirect.push(at(n));
       if (ts.isDeleteExpression(n) && isTypeTarget(n.expression)) direct.push(at(n));
       if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
         && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isTypeTarget(n.operand)) direct.push(at(n));
@@ -745,6 +756,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
             const isType = keyedCall === 'path' ? seg === 'typography' : TYPE_MODE_FIELDS.has(seg);
             if (isType) keyed.push(at(n));
             if (keyedCall === 'path' ? DEPTH_PATH_ROOTS.has(seg) : DEPTH_MODE_FIELDS.has(seg)) depthKeyed.push(at(n));
+            if (keyedCall === 'path' && BUTTON_KEYS.has(seg)) buttonKeyed.push(at(n));
           }
         }
       }
@@ -756,13 +768,16 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(unresolved.length === 0, `every keyed write in src/main.ts resolves to a non-Type key, or is listed with its reason${unresolved.length ? ` — unresolved and unlisted: ${unresolved.slice(0, 3).join(' | ')}` : ''}`);
     ok(depthDirect.length === 0, `src/main.ts writes nothing into brandState.shadow or brandState.motionPersonality itself${depthDirect.length ? ` — ${depthDirect.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
     ok(depthKeyed.length === 0, `src/main.ts makes no keyed Elevation or Motion write (setPath into shadow.* or motionPersonality.*, or setModeLever on tempo, easings or shadow)${depthKeyed.length ? ` — ${depthKeyed.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
+    ok(buttonDirect.length === 0, `src/main.ts writes no Button option onto brandState itself${buttonDirect.length ? ` — ${buttonDirect.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
+    ok(buttonKeyed.length === 0, `src/main.ts makes no keyed Button option write (setPath on buttonIcons, buttonContentSize, buttonLabelWeight or buttonMinWidthMultiplier)${buttonKeyed.length ? ` — ${buttonKeyed.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
     const stale = Object.keys(UNRESOLVED_OK).filter((k) => !seenOk.has(k));
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
     // Rule 3: what the generic renderer is fed.
     // `csSlider`/`csPicker` were fed here too (review of #2017) until S10 retired both with Layout's legacy page;
-    // `leverSection` (S9.2) and `renderPerModeSelect` (S7, S9.2) are gone.
-    const FEEDS = new Set(['renderControl', 'leverControl', 'csLeverStack']);
+    // `leverSection` (S9.2) and `renderPerModeSelect` (S7, S9.2) are gone, and `leverControl` and `csLeverStack` (S8.1:
+    // the Button options call `renderControl` with their state writes).
+    const FEEDS = new Set(['renderControl']);
     /** Does `e` name a Type lever: a `typography.*` key literal, `leversFor('typography')`, or a variable whose
      *  own initializer does (one level, resolved by the checker)? */
     const typeLever = (e: ts.Node, depth = 0): boolean => {
@@ -841,6 +856,50 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(!generic, `src/domains/depth.ts writes only through state/depth-motion-input.ts${generic ? ` — it calls ${generic[1]}() itself` : ''}`);
   for (const w of ['setShadow', 'setTempo', 'setEasingRole'])
     ok(new RegExp(`\\b${w}\\(`).test(leversCode), `src/domains/depth.ts writes through ${w}()`);
+}
+
+// ── the Button options and the component catalog, out of `main.ts` (UI redesign S8.1) ───────────────────────
+// The legacy Size & radius page's Button options write through `state/button-input.ts` (the AST arm above holds that
+// `main.ts` writes no Button option itself), and the page draws the button specimen from
+// `preview/sections/button-layout.ts`, so the Components page (S8.2) writes the same bytes and draws the same code. The
+// catalog is computed by `state/component-catalog.ts`, which imports no definition: the plugin hands it the
+// definitions from its own entry, and the web reads the generated copy. Subject: `main.ts`, the catalog module and
+// the plugin's iframe entry, read from disk, comments stripped. Oracle: the literal setter and renderer names, the
+// specimen's own markup as the legacy renderer wrote it, and the literal module specifiers of the definitions and
+// the projector. `vercel-ignore-check.mjs` holds the same rule on the built web bundle; this holds it in the source,
+// where it fails first.
+{
+  const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
+  const mainSrc = readFileSync(MAIN, 'utf8');
+  const mainCode = strip(mainSrc);
+  const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
+  ok(/\bbuttonLayoutSection\(/.test(mainCode), 'src/main.ts draws the button specimen through the shared buttonLayoutSection()');
+  ok(idx.includes("from './button-layout'"), 'preview/sections/index.ts exports the button specimen from ./button-layout');
+  const own = /'btnl-(list|row|btn)'|BUTTON_SIZES\s*[:=]/.exec(mainCode);
+  ok(!own, `src/main.ts draws no button specimen of its own${own ? ` — it carries "${own[0]}": the specimen belongs in preview/sections/button-layout.ts` : ''}`);
+  // The generic knob writes whatever key it is handed (`renderControl`'s default is `setPath(brandState, lever.key, …)`),
+  // so the AST arm cannot see a Button option that reaches it without its state write. Each setter is named here, in
+  // the table the page hands the knob, and the knob is handed the table's write.
+  for (const [key, setter] of [['buttonIcons', 'setButtonIcons'], ['buttonContentSize', 'setButtonContentSize'],
+    ['buttonLabelWeight', 'setButtonLabelWeight'], ['buttonMinWidthMultiplier', 'setButtonMinWidth']] as const) {
+    ok(new RegExp(`\\[\\s*'${key}'\\s*,\\s*\\([^)]*\\)\\s*=>\\s*${setter}\\(`).test(mainCode), `src/main.ts hands the ${key} knob its write, ${setter}()`);
+  }
+  ok(/renderControl\(\s*l\s*,\s*apply\s*,\s*write\s*\)/.test(mainCode), 'src/main.ts hands each Button option knob the write from its table (renderControl(l, apply, write))');
+  ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/button-input'), 'src/main.ts imports its Button option writes from ./state/button-input');
+  // The catalog: no definition, and no projector, in the studio source a web build reads.
+  const DEF_SPECS = /(^|\/)components(\/index)?$|engine\/components\/|anatomy-figma$/;
+  const catSrc = readFileSync(join(SRC, 'state/component-catalog.ts'), 'utf8');
+  for (const [file, src] of [['src/main.ts', mainSrc], ['src/state/component-catalog.ts', catSrc],
+    ['src/state/component-catalog-data.ts', readFileSync(join(SRC, 'state/component-catalog-data.ts'), 'utf8')]] as const) {
+    const hit = imports(src, file).filter((i) => DEF_SPECS.test(i.spec));
+    ok(hit.length === 0, `${file} imports no component definition or projector at run time${hit.length ? ` — line ${hit[0].line}: '${hit[0].spec}' (the web bundle would carry it)` : ''}`);
+  }
+  ok(/\bcatalogOf\b/.test(strip(catSrc)) && /export const COMPONENT_CATALOG_DATA\b/.test(readFileSync(join(SRC, 'state/component-catalog-data.ts'), 'utf8')),
+    'the catalog module defines catalogOf, and the generated copy exports COMPONENT_CATALOG_DATA');
+  const pluginEntry = readFileSync(join(SRC, '../../plugin/src/ui/entry.ts'), 'utf8');
+  const order = imports(pluginEntry, 'entry.ts').map((i) => i.spec);
+  ok(order.indexOf('./component-catalog') >= 0 && order.indexOf('./component-catalog') < order.indexOf('../../../studio/src/entry'),
+    `the plugin's iframe entry provides the catalog before the studio evaluates (imports ${order.join(', ')})`);
 }
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);

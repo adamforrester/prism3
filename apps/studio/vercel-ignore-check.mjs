@@ -13,6 +13,17 @@
  * slower way to have a stale one.
  *
  * Run: `node apps/studio/vercel-ignore-check.mjs`   (exits non-zero on drift; wired into CI)
+ *
+ * A SECOND QUESTION OF THE SAME METAFILE (UI redesign S8.1): the web bundle carries no component definition. The
+ * definitions (`packages/engine/components/*.ts`) are kept out of the web build on purpose: their prose is about
+ * 35 KB gzip, and the web reads a generated catalog instead (`gen-component-catalog.ts`). Being imported is not
+ * the test, because a module the bundler resolves can still be eliminated; what counts is a definition module that
+ * contributes BYTES to the output (`bytesInOutput`), which is what the web downloads. Until S8.1 three did (Button,
+ * IconButton and Icon, about 76 KB gzip), through an import gated on `PRISM3_HOST` that removed the reference but not
+ * the modules, whose top-level code is not provably side-effect-free. Independent of its subject (docs/34): the
+ * subject is esbuild's output for the web entry; the detector is held to a planted bundle that imports the
+ * definitions, which it must find, so a detector that stopped matching fails by name instead of reporting a clean
+ * web bundle.
  */
 import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
@@ -106,6 +117,32 @@ if (leaked.length) {
   process.exit(1);
 }
 console.log('  ✓ no bundled engine file is on the skip list.');
+
+// ---- THE WEB BUNDLE CARRIES NO COMPONENT DEFINITION (UI redesign S8.1; the header's second question) ---------------
+// A definition module counts when it puts bytes in the output, not when it is merely resolved. The detector is first
+// run on a planted bundle that does import the definitions (the stdin entry below, built the same way), and must find
+// Button there: a pattern or a metafile shape that stopped matching would otherwise read as a clean web bundle.
+const DEF_DIR = /packages\/engine\/components\/[^/]+\.ts$/;
+const defBytes = (meta) => Object.values(meta.outputs).flatMap((o) => Object.entries(o.inputs))
+  .filter(([p, v]) => DEF_DIR.test(p.split('\\').join('/')) && v.bytesInOutput > 0)
+  .map(([p, v]) => [p.slice(p.indexOf('packages/engine/')), v.bytesInOutput]);
+const planted = await build({
+  stdin: { contents: "import { componentDefs } from '@prism3/engine/components/index'; console.log(componentDefs.length);", resolveDir: root, loader: 'ts' },
+  bundle: true, format: 'esm', write: false, metafile: true, logLevel: 'silent', outfile: 'planted.js',
+});
+const plantedDefs = defBytes(planted.metafile);
+if (!plantedDefs.some(([p]) => p === 'packages/engine/components/button.ts')) {
+  console.error(`\n✗ the definition detector does not find packages/engine/components/button.ts in a planted bundle that imports componentDefs (found ${plantedDefs.length} definition module(s)) — it would report the web bundle clean while watching nothing.`);
+  process.exit(1);
+}
+const webDefs = defBytes(res.metafile);
+if (webDefs.length) {
+  console.error(`\n✗ web bundle carries no component definition module — found ${webDefs.map(([p, n]) => `${p} (${n} bytes)`).join(', ')}.`);
+  console.error('  The web reads the generated catalog (apps/studio/gen-component-catalog.ts); a definition belongs in the plugin\'s');
+  console.error('  own entry (apps/plugin/src/ui/), never in apps/studio/src, gated or not.');
+  process.exit(1);
+}
+console.log(`  ✓ web bundle carries no component definition module (the detector finds ${plantedDefs.length} in a planted bundle that imports them).`);
 
 // ---- WHAT THE SCRIPT DECIDES, run for real ---------------------------------------------------------
 // The list above can be right while the decision is wrong: a production path that skips an engine change

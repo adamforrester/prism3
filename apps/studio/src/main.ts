@@ -22,7 +22,7 @@
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
+import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { resolveAllModes } from '@prism3/engine/modes';
@@ -30,9 +30,6 @@ import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
-import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
 import { hostCommit, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
@@ -52,7 +49,13 @@ import {
 } from './preview/sections/kit';
 import {
   COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
+  buttonLayoutSection,
 } from './preview/sections/index';
+// The Button option writes and the reader the button specimen is drawn from (UI redesign S8.1).
+import { buttonLayout, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth } from './state/button-input';
+// The component catalog: the plugin's, computed from the definitions it bundles, or the web's generated copy (S8.1).
+import { buildableSets, unbuildableSets, providedCatalog, type Catalog } from './state/component-catalog';
+import { COMPONENT_CATALOG_DATA } from './state/component-catalog-data';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
@@ -1367,15 +1370,18 @@ const renderGeneratedNote = (): HTMLElement => {
 // (The `renderScreen` scaffold, hero → sections → volatile specimens, went with its last two pages, Elevation and
 // Motion, in UI redesign S9.2.)
 
-// Render one lever's control (the Button options left on Size & radius, which edit every mode).
-const leverControl = (key: string): HTMLElement | null => {
-  const l = leverByKey(key); if (!l) return null;
-  return renderControl(l);
-};
-// Size & radius: each control block sits beside its live preview (#265, shared scaffold with Layout).
-const csLeverStack = (keys: string[]): HTMLElement => {
+// The Button options left on Size & radius, which edit every mode: each lever's generic knob, handed its write from
+// `state/button-input.ts` (UI redesign S8.1), which writes the bytes the knob's default `setPath` wrote (the default
+// included, the slider per step). The Components page (S8.2) writes through the same module.
+const BUTTON_OPTION_WRITES: ReadonlyArray<readonly [string, (v: unknown) => void]> = [
+  ['buttonIcons', (v) => setButtonIcons(v as ButtonIcons)],
+  ['buttonContentSize', (v) => setButtonContentSize(v as ButtonContentSize)],
+  ['buttonLabelWeight', (v) => setButtonLabelWeight(v as ButtonLabelWeight)],
+  ['buttonMinWidthMultiplier', (v) => setButtonMinWidth(v as number)],
+];
+const buttonOptionStack = (): HTMLElement => {
   const stack = el('div', 'cs-ctl-stack');
-  for (const k of keys) { const c = leverControl(k); if (c) stack.append(c); }
+  for (const [k, write] of BUTTON_OPTION_WRITES) { const l = leverByKey(k); if (l) stack.append(renderControl(l, apply, write)); }
   return stack;
 };
 // UI redesign S7 moved Density, radius, Control shape, the spacing steps and the building blocks to the Shape page
@@ -1385,7 +1391,7 @@ const csLeverStack = (keys: string[]): HTMLElement => {
 const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => [
   // The button levers (#1667) are GLOBAL brand levers, so `false`. The labels are the owner's exact words and live
   // in `levers.ts`; this block only groups them beside their specimen.
-  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']), paint: paintButtonLayoutPreview },
+  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: buttonOptionStack(), paint: paintButtonLayoutPreview },
 ]);
 
 // ---- controls-beside-previews pages (docs #264 / #265) --------------------
@@ -1439,84 +1445,20 @@ const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () 
 let sgSurface = 'background.primary';
 
 /**
- * Which defs can actually be materialized, ASKED rather than listed (#804).
+ * Which component sets the Components page offers, and why the rest are not offered: the catalog (UI redesign
+ * S8.1), computed by `state/component-catalog.ts`'s `catalogOf`, whose header carries the reasoning that stood here
+ * (#804's "asked, not listed", #869's declared `notStandalone`, #1623's unit).
  *
- * It projects each def and keeps the ones that do not throw, so the answer is the projector's and not a
- * second copy of it. The alternative — a literal array, or a `!!def.anatomy && !!def.figmaProperties`
- * predicate — is the mistake this very control already made once: `renderComponentsPage` carried the
- * claim *"Button is the only def of the five that has one"*, true when written and false since #734,
- * #741 and #796, because a count in a comment has an expiry date that nothing checks. The plugin's
- * `main.ts` had the twin claim and fixed it the same way (#742/#787). A predicate would rot more slowly
- * and still rot: it restates `figmaAnatomySet`'s preconditions from outside, so a third requirement
- * added there would leave this list confidently wrong.
+ * WHERE IT COMES FROM, PER HOST. The plugin computes it from the definitions it bundles, in its own iframe entry
+ * (`apps/plugin/src/ui/component-catalog.ts`), and provides it before this module evaluates. The web reads the copy
+ * generated at build time (`component-catalog-data.ts`, T1), and never imports the definitions: the import that
+ * stood here, gated on `PRISM3_HOST`, still carried three of them (Button, IconButton and Icon) into the web bundle,
+ * because their modules' top-level code is not provably side-effect-free, so the gate eliminated the reference but not
+ * the modules. `vercel-ignore-check.mjs` now fails by name when a definition module reaches the web bundle.
  *
- * The member count comes free and is worth carrying: it is the only honest per-def cost estimate, since
- * a run is ~162ms per member (#700) and the defs span 4 to 648 — a single "about 105 seconds" note
- * would be wrong by two orders of magnitude for three of the four.
- *
- * The throw is the SIGNAL, not an error to report: `figmaAnatomySet` throws precisely when a def has no
- * `anatomy` or no `figmaProperties`, which is the definition of not-materializable. A def missing here is
- * expected rather than broken, and the page says so instead of listing them as failures.
- *
- * TWO REASONS TO BE MISSING, AND THE SECOND IS NOT A THROW (#869). This comment used to name `focus-ring`
- * and `field-message` as the throwing pair, which was true at #795 and false from the moment #795's own
- * work gave `focus-ring` a `figmaProperties` block: it has projected cleanly ever since — 2 members, 0
- * binding errors — and this filter therefore *offered* it. Building it produced a 100×100 white frame with
- * the right token at 1px, because its members bind no geometry (`notStandalone` on the def has the
- * measurement). So the second reason is a DECLARED one: a def stating `figmaProperties.notStandalone`
- * cannot render standalone and is withheld, quoting its own string. Asking the projector is still right
- * for the first reason and cannot reach the second — a plan that renders nothing is structurally
- * indistinguishable from one that renders, which is why the answer had to be declared rather than
- * inferred. Note what this comment's own history demonstrates: it warns two paragraphs later that a count
- * in a comment expires unchecked, and the same is true of a NAMED LIST. `missing` is derived; the names in
- * this prose are not, and that is the one thing here nothing gates.
- *
- * Computed ONCE at module scope, not per render: the defs are compiled in and brand-invariant, so this
- * cannot change while the app is running.
- *
- * GATED ON `PRISM3_HOST`, WHICH IS ABOUT THE WEB BUNDLE RATHER THAN CORRECTNESS. The control is Figma-only
- * (`commit.isFigma` returns early below), so on web the answer is unused — but the import graph does not
- * know that. Measured: importing `figmaAnatomySet` and `componentDefs` unconditionally put 35KB gzip of
- * projector and every component def into the *web* bundle, a 20% increase over a 140KB baseline, for a
- * control that page can never reach. Behind the define, esbuild eliminates the defs and most of the
- * projector: 147KB. Both fields come from the one gated expression because a second ungated reference to
- * `componentDefs` would defeat it — which is why `missing` is derived here rather than at the call site.
- *
- * It does NOT eliminate all of it: ~18KB of `anatomy-figma.ts` survives, because that module's top-level
- * template constants are not provably side-effect-free. That is why `anatomy-figma.ts`, `component-schema.ts`
- * and `eval.ts` came OFF the exclusion list in `vercel-ignore.sh` in the same PR — a change to any of them
- * can now change the deployed site, so treating them as Figma-only would be a #474 stale deploy. Dead-code
- * elimination is a size optimization, not a dependency boundary.
+ * The web never draws this page (`railNav()` omits it), so the web's copy is unread until S8.2 lists the sets there.
  */
-const COMPONENT_CATALOGUE: {
-  /** `components` marks a def built as separate top-level components (`emitAsComponents`, icon) rather
-   *  than one set of variants, so the picker counts it in the right unit (#1623). */
-  readonly buildable: readonly { id: string; name: string; members: number; components: boolean }[];
-  /** Not offered, each WITH its own reason — see the second-reason paragraph above. `reason` is the def's
-   *  own `notStandalone` string where it declared one, and `null` where the projector threw. */
-  readonly missing: readonly { name: string; reason: string | null }[];
-} =
-  PRISM3_HOST === 'figma'
-    ? (() => {
-        const buildable = componentDefs.flatMap((d) => {
-          // Checked BEFORE projecting, not after: the projection succeeds for exactly the def this
-          // excludes, so a post-hoc filter would spend the work and then discard a valid-looking plan.
-          if (d.figmaProperties?.notStandalone) return [];
-          try {
-            return [{ id: d.id, name: d.name, members: figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).length, components: d.figmaProperties?.emitAsComponents === true }];
-          } catch {
-            return [];
-          }
-        });
-        const ids = new Set(buildable.map((b) => b.id));
-        return {
-          buildable,
-          missing: componentDefs
-            .filter((d) => !ids.has(d.id))
-            .map((d) => ({ name: d.name, reason: d.figmaProperties?.notStandalone ?? null })),
-        };
-      })()
-    : { buildable: [], missing: [] };
+const componentCatalog = (): Catalog => (PRISM3_HOST === 'figma' ? providedCatalog() ?? [] : COMPONENT_CATALOG_DATA);
 
 /** The file-setup button's label (#1558). Placement and wording are a design call the owner confirms at
  *  review, so the one string a reviewer changes lives here rather than inline — "Set up file" or "Scaffold
@@ -1528,13 +1470,13 @@ const FILE_SETUP_LABEL = 'Set up file';
  *
  * THE MOVE IS A DEMOTION. The control sat beside **Apply Theme**, which is the terminal action of
  * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
- * at ~162ms per member (#700) and materializes a fraction of the catalogue, so a slot next to Apply
+ * at ~162ms per member (#700) and materializes a fraction of the catalog, so a slot next to Apply
  * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
  * belongs — see `NAV` for the framing and docs/28 / docs/14 §3.1 for why it is kept runnable at all.
  *
  * "A fraction", not "one of five": the claim here used to be *"Button is the only def of the five that
  * has one"* and the control was named for Button on that basis. It was true when written and false since
- * #734, #741 and #796 — four defs project today. It is now `COMPONENT_CATALOGUE` (derived, above) in both the
+ * #734, #741 and #796 — four defs project today. It is now `componentCatalog()` (derived, above) in both the
  * picker and this prose, which is the same fix the plugin's twin comment took (#742/#787): a count in a
  * comment has an expiry date that nothing checks, so state the property and point at the derivation.
  *
@@ -1624,14 +1566,15 @@ const renderComponentsPage = (host: PageHost): void => {
   sec.append(note);
 
   // WHICH DEFS ARE MISSING, AND WHY, said plainly rather than by omission. A designer who knows the
-  // catalogue has seven components and sees four here would otherwise reasonably read it as a bug. The
+  // catalog has seven components and sees four here would otherwise reasonably read it as a bug. The
   // requirement is ours, not Figma's (#795), which is the honest way to put it.
   //
   // ONE SENTENCE PER REASON, NOT ONE FOR THE GROUP (#869). This block said "a set needs a declared size
   // axis to project" about every absent def, which was one cause stated as the only cause — and by the
   // time #869 was filed it was the wrong cause for the def a designer was most likely to ask about.
   // A def declaring `notStandalone` gets its own string; the rest keep the projector sentence.
-  const { buildable, missing } = COMPONENT_CATALOGUE;
+  const catalog = componentCatalog();
+  const buildable = buildableSets(catalog), missing = unbuildableSets(catalog);
   const declared = missing.filter((m) => m.reason);
   const threw = missing.filter((m) => !m.reason).map((m) => m.name);
   if (threw.length) {
@@ -1649,7 +1592,7 @@ const renderComponentsPage = (host: PageHost): void => {
     const gap = el('p', 'cw-note');
     // The def's own words, verbatim apart from the machine-readable lead. A paraphrase would be a second
     // copy of a claim the def is the authority on, and this page has already had one of those go stale
-    // (see `COMPONENT_CATALOGUE`).
+    // (see `componentCatalog`).
     //
     // The `<id>:` prefix is STRIPPED, and it has to be: the schema requires the string to lead with the
     // def's id so a gate can tell an admission from a mention, and this heading already carries the def's
@@ -1677,7 +1620,7 @@ const renderComponentsPage = (host: PageHost): void => {
   // for a rule identical to one that exists.
   const sel = selectEl('cap');
   for (const b of buildable) {
-    const unit = b.components ? 'component' : 'variant';
+    const unit = b.unit === 'components' ? 'component' : 'variant';
     const opt = el('option', undefined, `${b.name} — ${b.members} ${unit}${b.members === 1 ? '' : 's'}`) as HTMLOptionElement;
     opt.value = b.id;
     if (b.id === 'button') opt.selected = true;
@@ -1888,83 +1831,12 @@ subscribe('host:styleguide', () => syncStyleGuideRow());
 // The radius ramp and the Control shape specimen moved to the Shape preview in UI redesign S7 (`preview/sections/
 // radius.ts`), reading the ladder itself (`theme.dims.radius`) rather than a hand list resolved through `rp.dims`.
 
-/** The button-layout specimen (#1667): per size, a short-label button at its derived minimum width, and two
- *  WIDENED buttons — leading + trailing icons, and trailing only — so "Locked to edges" is visible: the icons
- *  sit at the edges and the label centers in the space between them, which puts a trailing-only label
- *  slightly left of the button's center. The same construction as the Figma build: floor = height ×
- *  multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under "Locked to edges"
- *  each icon absolutely positioned at the visual padding with its side padded by that padding + icon + gap,
- *  so the button still hugs a longer label. Under "One step
- *  smaller" the medium size takes small's label size and icon, and every label takes the weight "Button label
- *  weight" picks (#1752). Geometry and weight only, in the page ink — the
- *  colors are the Colors page's job. Mode-aware: the heights are the mode's own (`sizesByMode`). */
-const BUTTON_SIZES: { size: string; step: string; icon: string; label: string }[] = [
-  { size: 'Small', step: 'sm', icon: 'xs', label: 'sm' },
-  { size: 'Medium', step: 'md', icon: 'sm', label: 'md' },
-  { size: 'Large', step: 'lg', icon: 'md', label: 'lg' },
-];
+/** The button-layout specimen (#1667) lives in `preview/sections/button-layout.ts` (UI redesign S8.1), with its sizes
+ *  (`BUTTON_SIZES`), so the Components page (S8.2) draws the same code. The legacy page hands it the brand's Button
+ *  options, the mode in view and the corner, which is still the base `radius.md` (#2049, fixed in S8.2). */
 const paintButtonLayoutPreview = (into: HTMLElement): void => {
   into.innerHTML = '';
-  const edges = (getPath(brandState, 'buttonIcons') ?? 'attached') === 'edges';
-  const smaller = (getPath(brandState, 'buttonContentSize') ?? 'match') === 'smaller';
-  const mult = Number(getPath(brandState, 'buttonMinWidthMultiplier') ?? DEFAULT_MIN_WIDTH_MULTIPLIER);
-  // #1752 — the label's weight is the brand's number for the role "Button label weight" picks, in the mode in view.
-  const labelRole = (getPath(brandState, 'buttonLabelWeight') ?? 'emphasis') === 'default' ? 'default' : 'emphasis';
-  // Both lists carry every weight role (the engine maps `WEIGHT_ROLE_ORDER`), so the role is always found.
-  const labelWeight = (theme.typography.weightRolesByMode?.[currentMode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)!.value;
-  const sizes = theme.dims.sizesByMode?.[currentMode] ?? theme.dims.sizes;
-  const radius = rp.dims['radius.md'] ?? 4;
-  // Button's spacing is its own spec's (the spacing model): its comfortable `space.*` steps, moved one step for
-  // the brand's density, exactly as the Figma build materializes them. The brand's BASELINE density — a Figma
-  // component binds one space variable per side, so a mode's own density moves its heights, not this.
-  // Read from the data-only `button-spacing.ts`, never from `componentDefs`: an ungated reference to the defs
-  // would pull every def's prose into the web bundle (`COMPONENT_CATALOGUE`).
-  const spacePx = sizeRefPx(theme.dims.sizes);
-  const list = el('div', 'btnl-list');
-  for (const b of BUTTON_SIZES) {
-    const h = sizes.find((x) => x.name === b.step);
-    if (!h) continue;
-    const at = (k: string): number => { const key = `size.${b.size.toLowerCase()}.${k}`; return spacePx(densitySpacingStep(key, (BUTTON_SPACING as Record<string, string>)[key], theme.dims.density)) ?? 0; };
-    const z = { height: h.height, padX: at('padding-x'), padXVisual: at('padding-x-visual'), gap: at('gap') };
-    const off = smaller && b.step === 'md';
-    const iconPx = ICON_SIZES.find((i) => i.name === (off ? 'xs' : b.icon))?.px ?? 16;
-    const labelPx = theme.typography.composites.find((c) => c.group === 'label' && c.variant === (off ? 'sm' : b.label))?.sizePx ?? 14;
-    const floor = buttonMinWidth(z.height, mult);
-    const wide = Math.max(floor, 240);
-    const button = (text: string, lead: boolean, trail: boolean, width?: number): HTMLElement => {
-      const btn = el('div', 'btnl-btn');
-      btn.style.height = `${z.height}px`;
-      btn.style.minWidth = `${floor}px`;
-      btn.style.borderRadius = `${radius}px`;
-      btn.style.gap = `${z.gap}px`;
-      const reserve = z.padXVisual + iconPx + z.gap;
-      btn.style.paddingLeft = `${lead ? (edges ? reserve : z.padXVisual) : z.padX}px`;
-      btn.style.paddingRight = `${trail ? (edges ? reserve : z.padXVisual) : z.padX}px`;
-      if (width !== undefined) btn.style.width = `${width}px`;
-      const glyph = (side: 'left' | 'right'): HTMLElement => {
-        const g = el('span', 'btnl-icon' + (edges ? ' btnl-pinned' : ''));
-        g.style.width = g.style.height = `${iconPx}px`;
-        if (edges) g.style[side] = `${z.padXVisual}px`;
-        return g;
-      };
-      const label = el('span', 'btnl-label', text);
-      label.style.fontSize = `${labelPx}px`;
-      label.style.fontWeight = String(labelWeight);
-      if (lead) btn.append(glyph('left'));
-      btn.append(label);
-      if (trail) btn.append(glyph('right'));
-      return btn;
-    };
-    const row = el('div', 'btnl-row');
-    row.append(
-      el('div', 'btnl-lab mono', `${b.size} · ${z.height}px high · min ${floor}px${off ? ' · small label & icon' : ''}`),
-      button('OK', false, false),
-      button('Continue', true, true, wide),
-      button('Continue', false, true, wide),
-    );
-    list.append(row);
-  }
-  into.append(list);
+  into.append(buttonLayoutSection(buttonLayout(), theme, currentMode, rp.dims['radius.md'] ?? 4));
 };
 
 // The shadow steps (`shadowRampSection`, with `SHADOW_STEPS`) live in `preview/sections/shadow-ramp.ts` (UI redesign
