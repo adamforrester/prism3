@@ -14888,6 +14888,19 @@
             "px": 999
           }
         }
+      },
+      "hairline": {
+        "$type": "dimension",
+        "$value": "{ads.core.dimension.1}",
+        "$description": "radius hairline — 1px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "ads.core.dimension.1",
+            "px": 1,
+            "radiusScale": 2
+          }
+        }
       }
     },
     "border-width": {

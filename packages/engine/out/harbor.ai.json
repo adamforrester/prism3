@@ -7563,6 +7563,12 @@
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "999px"
     },
+    "radius.hairline": {
+      "$description": "radius hairline — 1px",
+      "meaning": "Corner-radius role — hairline",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{hds.core.dimension.1}"
+    },
     "border-width.none": {
       "$description": "border-width none — 0px",
       "meaning": "Border-width role — none",
@@ -10024,7 +10030,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "border-width.hairline"
+        "border-width.hairline",
+        "radius.hairline"
       ]
     },
     "core.dimension.2": {

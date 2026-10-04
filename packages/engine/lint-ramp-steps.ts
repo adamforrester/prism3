@@ -181,6 +181,9 @@ const RAMPS: Ramp[] = [
       xl: 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
       '2xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
       '3xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
+      // #2053: the 1px sentinel is emitted for every brand now. The studio ramp never drew it, even while it was
+      // opt-in; S7 (Shape) redraws the radius controls and renders it there.
+      hairline: 'the 1px sentinel, always emitted since #2053; the studio ramp renders it in S7, Shape (apps/studio/src belongs to the UI redesign lane)',
     },
   },
   {

@@ -658,7 +658,7 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['roleColors off-hue', { primary: { l: 0.5, c: 0.15, h: 150 }, neutral: { hue: 150, chroma: 0.01 }, brandColors: [{ name: 'lime', oklch: { l: 0.7, c: 0.15, h: 135 } }], roleColors: { danger: 'lime', info: 'lime' } }],
   ['interactivePalettes over accentPalette', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], accentPalette: 'accent', interactivePalettes: [{ name: 'accent', palette: 'accent' }] }],
   ['every opt-in at once', { controlShape: 'hairline', gradients: true, buttonLabelWeight: 'default', typography: { sizeFloor: 8, titleFloor: 16, captionFloor: 10, responsive: { fluid: false } }, disabledStrategy: 'full', outlineInteraction: 'solid-tint', neutralEmphasis: 'strong', strictInteractiveContrast: true }],
-  ['radiusHairline, no hover, surfaces', { radiusHairline: true, outlineInteraction: 'none', surfaces: { light: { base: 100, floorStep: 300 }, dark: { floorStep: 800 } } }],
+  ['radiusHairline (retired), no hover, surfaces', { radiusHairline: true, outlineInteraction: 'none', surfaces: { light: { base: 100, floorStep: 300 }, dark: { floorStep: 800 } } }],
   // #1972: a declared second tier, with the floor following it (light) and held by `floorStep` (dark).
   ['declared second tiers', { surfaces: { light: { secondary: 200 }, dark: { secondary: 700, floorStep: 800 } } }],
   ['brand inverse band', { brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.06, h: 250 } }], surfaces: { light: { inverseBase: { palette: 'navy', step: 900 } } } }],
@@ -704,8 +704,9 @@ const PRODUCERS: Producer[] = [
   { id: 'interactive column', re: /^interactive column: '[^']+' on the /, kind: 'site' },
   { id: 'status ramp dropped', re: /^(success|warning|info): rebased by roleColors/, kind: 'site' },
   { id: 'dimensions', re: /^dimensions: \d+px grid/, kind: 'site' },
-  { id: 'radius hairline', re: /^radius: adds radius\.hairline/, kind: 'site' },
-  { id: 'radius hairline via controlShape', re: /^radius: .* controlShape hairline turns it on/, kind: 'fragment' },
+  // #2053: the hairline is always emitted, so its old note (and its controlShape clause) is gone; a brand that
+  // still sets the retired lever is told it changes nothing. Reached by the `radiusHairline, …` sweep input.
+  { id: 'radius hairline retired', re: /^radius: radiusHairline is retired/, kind: 'site' },
   { id: 'motion tempo', re: /^motion: '[^']+' tempo sets the durations/, kind: 'site' },
   { id: 'motion easing per mode', re: /^motion: easing roles use a different curve per mode/, kind: 'site' },
   { id: 'shadow', re: /^shadow: 6 steps \(xs–2xl\) of two layers each, plus a one-layer inset/, kind: 'site' },

@@ -13887,6 +13887,19 @@
             "px": 999
           }
         }
+      },
+      "hairline": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.1}",
+        "$description": "radius hairline — 1px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "nbds.core.dimension.1",
+            "px": 1,
+            "radiusScale": 1
+          }
+        }
       }
     },
     "border-width": {
