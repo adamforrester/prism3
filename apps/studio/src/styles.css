@@ -144,7 +144,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .brandmark{display:flex;align-items:center;gap:11px}
 .logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
 .wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
-.studio{color:var(--muted);font-size:13px;border-left:1px solid var(--line2);padding-left:11px}
 .barmenu-wrap{position:relative}
 .barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
 .barbtn.open,.barbtn:hover{border-color:var(--ink2)}
@@ -1553,8 +1552,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
    containing block, so both panels align to the row's right edge — the one edge that is always
    flush with the viewport gutter, whatever the buttons ahead of them are doing. */
 @media(max-width:640px){#app,.shell{padding:0 16px 72px}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.lab{padding:0 3px}}
-/* The start screen's mark: the descriptor goes first, then the wordmark, as the column narrows. */
-@media(max-width:560px){.studio{display:none}}
+/* The start screen's mark: the wordmark goes as the column narrows, and the logo stays. */
 @media(max-width:380px){.wordmark{display:none}}
 .navmenu{width:300px;max-height:calc(100vh - 130px);overflow-y:auto}
 .nav-item{display:flex;width:100%;text-align:left;border:0;background:none;font:inherit;padding:9px 8px;border-radius:var(--r-xs);cursor:pointer;color:var(--ink2)}

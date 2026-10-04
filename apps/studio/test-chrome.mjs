@@ -40,6 +40,10 @@
  *     the plugin follows Figma's theme live; search (Q3) types in order, keeps its caret, filters, and
  *     closes back to its icon.
  *
+ * THE PRODUCT MARK (owner, 2026-10-04), in section 1, every host × theme × width: the studio's top bar starts with
+ * the mark, once, ahead of the brand switcher; it reads "Prism3 Studio" as text and as its accessible name, is not a
+ * control, and its name is shown wide (measured at 4.5:1) and dropped narrow, the logo kept. The plugin's bar has none.
+ *
  * ── independence (docs/34) ─────────────────────────────────────────────────────────────────────
  *
  * Every color here is read from the RENDER (computed, composited styles), never from `chrome/spec.mjs`'s
@@ -919,6 +923,42 @@ for (const host of ['web', 'figma']) {
       ok(m.theme === (host === 'web' ? 'system' : theme), `${where}: <html data-theme> is "${m.theme}"`);
       check(m, where, column);
       report(m, where);
+      // The product mark (owner, 2026-10-04): the studio's bar starts with the logo and "Prism3 Studio", ahead of
+      // the brand switcher; narrow keeps the logo and drops the name, which the mark's accessible name keeps. The
+      // plugin's bar has none (Figma's title bar names the plugin). Expected values are the literals here.
+      const mk = await page.evaluate(() => {
+        const bar = document.querySelector('[data-p3="top-bar"]');
+        const marks = [...document.querySelectorAll('[data-p3="product-mark"]')];
+        const mark = marks[0] ?? null;
+        const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
+        const box = (n) => { const r = n.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; };
+        const sw = document.querySelector('[data-p3="brand-switcher"]');
+        const name = mark?.querySelector('.p3-mark-name') ?? null;
+        const logo = mark?.querySelector('.logo') ?? null;
+        return {
+          bar: !!bar, n: marks.length, first: !!mark && bar?.firstElementChild === mark,
+          inBar: !!mark && !!bar?.contains(mark),
+          mark: mark ? box(mark) : null, switcher: sw ? box(sw) : null,
+          text: (name?.textContent ?? '').trim(), label: mark?.getAttribute('aria-label') ?? null, role: mark?.getAttribute('role') ?? null,
+          nameShown: vis(name), logoShown: vis(logo), logoHidden: logo?.getAttribute('aria-hidden') === 'true',
+          control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')),
+        };
+      });
+      if (host === 'web') {
+        const ahead = !!mk.mark && !!mk.switcher && (mk.mark.bottom <= mk.switcher.top + 0.5 || mk.mark.right <= mk.switcher.left + 0.5);
+        ok(mk.n === 1 && mk.inBar, `product mark ${where}: the studio's top bar draws the product mark once (${mk.n} found${mk.inBar ? '' : ', none in the top bar'})`);
+        ok(mk.first && ahead, `product mark ${where}: the mark is first in the top bar, ahead of the brand switcher (${JSON.stringify({ first: mk.first, mark: mk.mark, switcher: mk.switcher })})`);
+        ok(mk.text === 'Prism3 Studio' && mk.label === 'Prism3 Studio' && mk.role === 'img', `product mark ${where}: the mark reads "Prism3 Studio", as text and as its accessible name (${JSON.stringify({ text: mk.text, label: mk.label, role: mk.role })})`);
+        ok(mk.logoShown && mk.logoHidden && !mk.control, `product mark ${where}: the logo is drawn and hidden from assistive tech, and the mark is not a control (${JSON.stringify({ logo: mk.logoShown, hidden: mk.logoHidden, control: mk.control })})`);
+        const narrow = column.endsWith('narrow');
+        ok(mk.nameShown === !narrow, `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'})`);
+        if (!narrow) {
+          const t = m.text.find((x) => x.el.startsWith('span.p3-mark-name'));
+          ok(!!t && t.r >= TEXT_MIN, `product mark ${where}: "Prism3 Studio" is measured on the top bar at ${TEXT_MIN}:1 (${t ? `${t.r}:1` : 'not measured'})`);
+        }
+      } else {
+        hooks.absent(ok, { seen: mk.bar, state: 'the plugin\'s top bar' }, mk.n === 0, `product mark ${where}: the plugin's top bar draws no product mark (${mk.n} found)`);
+      }
       for (const t of m.text) lows.text = Math.min(lows.text, t.r);
       for (const e of m.edges) lows.edge = Math.min(lows.edge, e.r);
       for (const c of m.controls) lows.target = Math.min(lows.target, c.w, c.h);
