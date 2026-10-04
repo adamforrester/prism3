@@ -25,7 +25,6 @@ import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@pri
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
-import { previewSpec } from '@prism3/engine/preview';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
@@ -51,7 +50,11 @@ import {
   SG_SURFACES, colorPath, ground as sharedGround, oppositeOf, palSection, sgContext, specimen, subHead,
   tokenPillSpan, withInverseBadge, VIEW_ONLY, type SgRole,
 } from './preview/sections/kit';
-import { COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection } from './preview/sections/index';
+import {
+  COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
+} from './preview/sections/index';
+// The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
+import { brandControlShape } from './state/shape-input';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
@@ -69,7 +72,7 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
-  getPath, setPath, getModeLever, setModeLever, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
+  getPath, setPath, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -104,7 +107,7 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'sizeRadius', label: 'Size & radius', sub: 'Size, density, corner radius' },
+  { key: 'sizeRadius', label: 'Size & radius', sub: 'Button options' },   // S7: the Button options only (D5 B); the sub is DRAFT
   { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
   // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
   // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
@@ -645,9 +648,8 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // which mode they edit, and its Backgrounds, Foreground fills and Text sections went with the legacy page.)
   // (Interactive left the mode bar's pages in UI redesign S5.2: it draws the two panes, where the rows say
   // which mode they edit.)
-  // Size & radius
-  'Corner radius': 'per-mode', 'Density & size': 'per-mode', 'Spacing grid': 'shared',
-  'Primitive scales': 'shared',
+  // (Size & radius' Corner radius, Density & size, Spacing grid and Primitive scales left with the Shape page in UI
+  // redesign S7; its Buttons section has no entry, #1912.)
   // (Elevation and Motion left the mode bar's pages in UI redesign S9.2: Depth & motion draws the two panes, where
   // each control says which mode it edits.)
   // Preview — read-only end to end
@@ -805,34 +807,9 @@ const renderControl = (lever: Lever, commit: () => void = apply, write: (v: unkn
 // The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
 // live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
 
-/** A per-mode enum select with a natural "Auto" (follows the global lever). Shared by the radius and density
- *  controls (tempo's went with the Motion page in UI redesign S9.2) — outside the base mode they edit `modeLevers[mode].<key>` instead of the
- *  global. A hand-authored value that matches no discrete option is surfaced as its own "(custom)" option
- *  rather than silently reading as Auto. `parse` maps the selected string to the stored value. `write` is what a
- *  change writes (`undefined` for Auto); every caller left takes the default. */
-const renderPerModeSelect = (lever: Lever, key: string, opts: [string, string][], globalOf: () => string, parse: (s: string) => unknown, autoNote: string,
-  write: (v: unknown) => void = (v) => { setModeLever(currentMode, key, v); }): HTMLElement => {
-  const cur = getModeLever(currentMode, key);
-  const sel = selectEl('sm fill');
-  sel.append(optionEl('', `Auto — follows global (${globalOf()})`, cur == null));
-  let matched = false;
-  for (const [v, label] of opts) { const on = String(cur) === v; matched ||= on; sel.append(optionEl(v, label, on)); }
-  if (cur != null && !matched) sel.append(optionEl(String(cur), `${cur} (custom)`, true));
-  sel.onchange = () => { write(sel.value === '' ? undefined : parse(sel.value)); applyFull(); };
-  const desc = `${lever.description} — per ${MODE_LABEL[currentMode] ?? currentMode}; “Auto” follows the global ${autoNote}.`;
-  return knob(lever.label, sel, desc);
-};
-const RADIUS_SCALE_OPTS: [string, string][] = [['0', '0 · sharp'], ['0.5', '0.5'], ['1', '1 · default'], ['1.5', '1.5'], ['2', '2 · soft']];
-const DENSITY_OPTS: [string, string][] = [['compact', 'Compact'], ['comfortable', 'Comfortable'], ['spacious', 'Spacious']];
-const renderPerModeRadius = (lever: Lever): HTMLElement =>
-  renderPerModeSelect(lever, 'radius', RADIUS_SCALE_OPTS, () => String(brandState.radiusScale ?? (lever.default as number) ?? 1), Number, 'corner softness');
-const renderPerModeDensity = (lever: Lever): HTMLElement => hook(
-  renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density'), 'per-mode-density');
-/** The levers that carry a per-mode "Auto" select outside the base mode, by lever key. */
-const PER_MODE_SELECTS: Record<string, (lever: Lever) => HTMLElement> = {
-  radiusScale: renderPerModeRadius,
-  density: renderPerModeDensity,
-};
+// `renderPerModeSelect` and `PER_MODE_SELECTS`, the per-mode "Auto — follows global" selects for radius softness,
+// density and tempo, are gone: S7 moved radius and density to Shape and S9.2 tempo to Depth & motion, where each
+// control edits the previewed mode (Q22).
 
 /** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
  *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
@@ -1297,6 +1274,10 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
   // the brand's text styles in its faces, in the previewed mode, inked for the chosen ground.
   host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink })));
+  // The radius sample (UI redesign S7, owner decision D18 B), shared from `preview/sections/`: the brand's radius on a
+  // panel, a field, a button and a tag, in the previewed mode, on the chosen ground. S9 adds the shadow to its panel.
+  host.append(ground(radiusSampleSection(c, { dims: theme.dims, modes: theme.modes, mode: cur, shape: brandControlShape(), copy: RADIUS_SAMPLE, inverse: surf.key.startsWith('inverse.'),
+    shadow: rp.shadows[SAMPLE_SHADOW]?.[cur] })));   // D18 B's shadow half (S9.2): the panel's elevation, for the mode in view
   // The five shared color sections, in the Style guide's order, each on the chosen ground.
   for (const [, section] of COLOR_SECTIONS) host.append(ground(section(c)));
 
@@ -1307,7 +1288,8 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 };
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  sizeRadius: ['Size & radius.', 'Component sizing (control height, driven by density) and corner radius. Both go per-mode outside Light. Each component sets its own padding, and density moves it one step on the spacing scale.'],
+  // UI redesign S7: the page keeps only the Button options, under its own title (owner decision D5 B). The lede is DRAFT.
+  sizeRadius: ['Size & radius.', 'Button icon placement, label size and weight, and minimum width. Density and radius are set on Shape.'],
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
@@ -1431,67 +1413,26 @@ const renderBreakpointsControls = (): HTMLElement => {
 // (The `renderScreen` scaffold, hero → sections → volatile specimens, went with its last two pages, Elevation and
 // Motion, in UI redesign S9.2.)
 
-// Size & radius — component sizing (density) + corner radius; both go per-mode outside Light.
-// Render one lever's control, honouring the per-mode ramp variants (radius and density go per-mode
-// outside Light).
-const leverControl = (key: string, perMode: boolean, commit?: () => void, write?: (v: unknown) => void): HTMLElement | null => {
+// Render one lever's control (the Button options left on Size & radius, which edit every mode).
+const leverControl = (key: string): HTMLElement | null => {
   const l = leverByKey(key); if (!l) return null;
-  // The per-mode variants commit through `applyFull` (see `renderPerModeSelect`).
-  // Outside the base mode these add an "Auto — follows global" entry. A choice set with an Auto
-  // entry stays a select (#1675), so they keep the per-mode selects; chips are the base mode's control.
-  const perModeSelect = perMode ? PER_MODE_SELECTS[key] : undefined;
-  if (perModeSelect) return perModeSelect(l);
-  return renderControl(l, commit, write);
+  return renderControl(l);
 };
-// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid. Each control
-// block sits beside its live preview (#265, shared scaffold with Layout). radius + density stay per-mode
-// outside Light — the controls reuse `leverControl(key, perMode)`, so that semantics is unchanged.
-const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
+// Size & radius: each control block sits beside its live preview (#265, shared scaffold with Layout).
+const csLeverStack = (keys: string[]): HTMLElement => {
   const stack = el('div', 'cs-ctl-stack');
-  for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
+  for (const k of keys) { const c = leverControl(k); if (c) stack.append(c); }
   return stack;
 };
-/** Same shape as `spacingFixedNote`: a read-only scale still gets a control column that says why it is
- *  empty, rather than an empty column that reads as a rendering bug. */
-const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
-  'Nothing to set here. The dimension grid is the fixed 4px-step ladder every geometry token resolves '
-  + 'onto — border widths and icon sizes are named aliases onto it, and radius, spacing and component '
-  + 'sizes land on its steps. Change those on the sections above; this is what they land on.');
-
-/** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
- *  than leaving an empty control column that reads as a rendering bug. */
-const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
-  'The 8px rhythm is fixed for every brand. Changing the base would rename spacing values rather than '
-  + 'unlock them — 4px is still available as space.050 — and the numbered scale only means “n× base” '
-  + 'across brands if the base is the same across brands.');
-
-const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => {
-  const perMode = currentMode !== 'light';
-  return [
-    { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1), the softness dial that scales the whole ramp, and the opt-in 1px hairline the even sub-grid cannot otherwise reach.', controls: csLeverStack(['baseMd', 'radiusScale', 'radiusHairline'], perMode), paint: paintRadiusPreview },
-    // controlShape is a GLOBAL brand lever (not per-mode) — `csLeverStack([…], false)` renders the plain
-    // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
-    // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).
-    { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Boxed is sharp; hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
-    // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
-    // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
-    { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
-    // Per mode, the note says what a mode's own density does and does not move (owner, 2026-09-29, docs/28
-    // §5.4.3); the sentence is the density lever's own, so the knob and the section read the same.
-    { title: 'Density & size', sub: perMode
-      ? 'Component sizing — control height per step. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.'
-      : 'Component sizing — control height per step. The density name stays stable; the heights shift, and each component’s padding and gaps move one step on the spacing scale.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
-    // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
-    // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
-    // which is more use than a section that quietly vanished.
-    { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), stack: true, paint: paintSpacingPreview },
-    // These three scales are emitted, aliased by half the system, and were visible NOWHERE in the
-    // dashboard — a user could only find them in Preview's token list. Nothing here is settable, which
-    // is exactly why they had no home: the page is organized around levers, and a scale with no lever
-    // fell through. Read-only is the point — see what exists, and what the names resolve to.
-    { title: 'Primitive scales', sub: 'The raw grid the geometry aliases resolve onto — fixed for every brand, and read-only. Radius, spacing and component sizes all land on dimension steps.', controls: primitiveScalesNote(), stack: true, paint: paintPrimitivesPreview },
-  ];
-});
+// UI redesign S7 moved Density, radius, Control shape, the spacing steps and the building blocks to the Shape page
+// (`domains/shape.ts`, `preview/shape.ts`). The Button options stay here, under the page's own title (owner decision
+// D5 B), until S8 moves them to Components; the web's Components tab shows this page, and the plugin reaches it
+// through the Pages menu (D4 B).
+const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => [
+  // The button levers (#1667) are GLOBAL brand levers, so `false`. The labels are the owner's exact words and live
+  // in `levers.ts`; this block only groups them beside their specimen.
+  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']), paint: paintButtonLayoutPreview },
+]);
 
 // ---- controls-beside-previews pages (docs #264 / #265) --------------------
 // Layout and Size & radius put each control NEXT TO its own live preview, so a change is visible without
@@ -2041,85 +1982,8 @@ subscribe('host:styleguide', () => syncStyleGuideRow());
 // `TYPE_GROUP_ORDER` lives in `state/type-input.ts`; the Type preview's sections in `preview/sections/` (UI redesign
 // S6.1 to S6.3), drawn by `preview/type.ts`.
 
-/** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
- *  labeled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
- *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads each rung's
- *  px from `rp.dims` (live per lever), with two SENTINELS special-cased: `none` = 0, and `capsule` = a full
- *  pill labeled `full` rather than a literal px (#1177). `capsule` is a 999px "clamp me to a pill" marker,
- *  not a corner anyone reads as 999 — and it is not in `rp.dims` at all (no preview-spec component binds it
- *  until `controlShape: pill`), so printing its stored px would both misrepresent the behaviour and require
- *  a source the ramp does not carry. The CONTROL SHAPE panel below is the specimen that shows what `pill`
- *  actually does; this ramp only needs to name the rung and read as a pill. */
-const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round', 'capsule'];
-const paintRadiusPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const consumers: Record<string, Set<string>> = {};
-  for (const c of previewSpec.components) for (const v of c.variants) {
-    const rref = v.bindings.radius;
-    if (rref?.startsWith('radius.')) (consumers[rref.slice(7)] ??= new Set<string>()).add(c.id);
-  }
-  // D — reflect the current mode's per-mode radius ramp (modeLevers.radius) when it deviates, so the
-  // change is visible here rather than off in the export (the #158 lesson). Falls back to the global.
-  const byMode = theme.dims.radiusByMode?.[currentMode];
-  const list = el('div', 'rad-list');
-  for (const step of RADIUS_STEPS) {
-    // `capsule` is the PILL SENTINEL, special-cased like `none`: it has no meaningful ramp px (its 999
-    // means "clamp to a pill at any height"), and it is absent from `rp.dims`, so it is drawn as a pill
-    // and labeled `full` rather than read as a number (#1177). Every other rung reads `rp.dims` as before.
-    const isCapsule = step === 'capsule';
-    const overridePx = byMode?.find((s) => s.name === step)?.px;
-    const px = step === 'none' ? 0 : (overridePx ?? rp.dims[`radius.${step}`] ?? 0);
-    const cell = el('div', 'rad-cell');
-    const sw = el('div', 'rad-sw');
-    sw.style.borderRadius = isCapsule ? '26px' : `${Math.min(px, 26)}px`;   // cap so `round`/`capsule` read as a pill without overflowing the swatch
-    const cons = [...(consumers[step] ?? [])];
-    const label = isCapsule ? `${step} · full` : `${step} · ${px}px`;
-    cell.append(sw, el('div', 'rad-lab mono', label), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
-    list.append(cell);
-  }
-  into.append(list);
-};
-
-/** The controlShape specimen: four control silhouettes — BOXED (sharp), HAIRLINE (1px), ROUNDED (the
- *  current `radius.md`) and PILL (height ÷ 2) — with the brand's current choice marked. Each names a
- *  RELATIONSHIP to a rung, not a raw radius (#1371). Reuses the `.rad-*` scaffold and the `.rad-sw` swatch
- *  (widened inline into a control bar), so the shape difference reads without new CSS. The lever is global
- *  across pill-able controls (button + icon-button today); the button is the representative silhouette
- *  because it is the control a designer pictures when they say "pill". */
-const paintControlShapePreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const cur = String(getPath(brandState, 'controlShape') ?? 'rounded');
-  const roundedPx = rp.dims['radius.md'] ?? 0;
-  // The bar is 52px tall so the TRUE radius.md renders un-clamped across the whole slider range —
-  // radius.md maxes at 24px (baseMd 12 × radiusScale 2), and 24 < 52/2, so the drawn corner always equals
-  // the caption's px. A shorter bar would clamp a soft-brand corner (a 24px radius on a 32px bar reads as a
-  // near-pill) and the label would then contradict the shape (the nit on the first cut of this preview).
-  // `pill` draws at 999 — the capsule sentinel — which clamps to half the bar and reads as a full pill;
-  // the caption names the rung, not the number. `boxed` is a fixed 0px (radius.none, always present) and
-  // `hairline` a fixed 1px (radius.hairline, the #1362 sentinel), so both are drawn from constants rather
-  // than `rp.dims` — neither is bound by a preview-spec component, so `rp.dims` would fall through to 0
-  // (the #1177 trap `lint-ramp-steps.ts` gates a STEPS list against; this shape list is not one).
-  const shapes = [
-    { key: 'boxed', label: 'Boxed', radiusPx: 0, ref: 'radius.none', note: 'radius.none · 0px, sharp' },
-    { key: 'hairline', label: 'Hairline', radiusPx: 1, ref: 'radius.hairline', note: 'radius.hairline · 1px, fixed' },
-    { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
-    { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
-  ];
-  const list = el('div', 'rad-list rad-shapes');
-  for (const s of shapes) {
-    const on = s.key === cur;
-    // #1477 — the selected card is a class toggle (`.rad-shapes .rad-cell.on`), an INSET ring on a
-    // panel ground per the #439 pattern, not the outset `outline` that collided with the preview.
-    const cell = el('div', 'rad-cell' + (on ? ' on' : ''));
-    const bar = el('div', 'rad-sw');
-    bar.style.width = '112px';
-    bar.style.height = '52px';
-    bar.style.borderRadius = `${s.radiusPx}px`;
-    cell.append(bar, el('div', 'rad-lab mono', `${s.label}${on ? ' · selected' : ''}`), tokenPill(s.ref), el('div', 'rad-cons', s.note));
-    list.append(cell);
-  }
-  into.append(list);
-};
+// The radius ramp and the Control shape specimen moved to the Shape preview in UI redesign S7 (`preview/sections/
+// radius.ts`), reading the ladder itself (`theme.dims.radius`) rather than a hand list resolved through `rp.dims`.
 
 /** The button-layout specimen (#1667): per size, a short-label button at its derived minimum width, and two
  *  WIDENED buttons — leading + trailing icons, and trailing only — so "Locked to edges" is visible: the icons
@@ -2130,7 +1994,7 @@ const paintControlShapePreview = (into: HTMLElement): void => {
  *  so the button still hugs a longer label. Under "One step
  *  smaller" the medium size takes small's label size and icon, and every label takes the weight "Button label
  *  weight" picks (#1752). Geometry and weight only, in the page ink — the
- *  colors are the Colors page's job. Mode-aware like `paintSizePreview`. */
+ *  colors are the Colors page's job. Mode-aware: the heights are the mode's own (`sizesByMode`). */
 const BUTTON_SIZES: { size: string; step: string; icon: string; label: string }[] = [
   { size: 'Small', step: 'sm', icon: 'xs', label: 'sm' },
   { size: 'Medium', step: 'md', icon: 'sm', label: 'md' },
@@ -2203,101 +2067,8 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
 // The shadow steps (`shadowRampSection`, with `SHADOW_STEPS`) live in `preview/sections/shadow-ramp.ts` (UI redesign
 // S9.1), drawn by the Depth & motion preview (S9.2).
 
-/** The control-size preview: the component-size tier (sm→xl) as mini control boxes at their resolved
- *  height, so the DENSITY lever has a visible payoff (the preview components bind the space scale
- *  directly, not `size.*`, so nothing else shows the size tier). Heights only: each component states its
- *  own padding (the spacing model), shown on the button specimen. Mode-aware (D): reflects
- *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier.
- *  Fills a caller-owned node so it repaints beside the density control (#265). */
-const paintSizePreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const byMode = theme.dims.sizesByMode?.[currentMode];
-  const sizes = byMode ?? theme.dims.sizes;
-  const list = el('div', 'sz-list');
-  for (const z of sizes) {
-    const cell = el('div', 'sz-cell');
-    const box = el('div', 'sz-box', z.name);
-    box.style.height = `${z.height}px`;
-    box.style.padding = '0 8px';
-    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px`), tokenPill(`size.${z.name}.height`));
-    list.append(cell);
-  }
-  into.append(list);
-};
-
-/** The spacing preview (#265): the resolved space.* ramp as proportional bars — the spacing rhythm has no
- *  other visible payoff (preview components bind space refs but don't show the ladder). Read-only from
- *  `rp.dims` (no engine change). Derives its steps from the ACTUAL resolved keys (sorted by scale), not a
- *  hardcoded list — the resolved model only carries the steps the preview binds, so a fixed list would
- *  show phantom 0px rows. `space.100` (= 1×) is the rhythm anchor. */
-const paintSpacingPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  // Read the SCALE off the theme, not `rp.dims`. `rp.dims` is consumption-driven — it holds only the
-  // dimension refs the preview COMPONENTS happen to bind — so this specimen rendered whichever four
-  // steps a component used (`space.100/150/200/300`) out of the eighteen the engine emits, under a
-  // heading that says "the spacing rhythm". A scale specimen has to show the scale; which steps some
-  // component consumes is a different question, and not this section's.
-  const steps = theme.dims.space.map((s) => ({ ref: `space.${s.key}`, px: s.px }));
-  const list = el('div', 'sp-list');
-  for (const { ref: k, px } of steps) {
-    const cell = el('div', 'sp-cell');
-    // TRUE px, not a percentage of the pane. The old `Math.max(2, (px/maxPx)*100)%` floored at 2
-    // PERCENT — about 10px — so `space.0` and `space.025` (0px and 2px) drew identically and nothing
-    // in the ramp was to scale. The whole ladder tops out at 96px and this section is now full width,
-    // so the honest rendering fits: 8px is 8px, and 0 is nothing.
-    const bar = el('div', 'sp-bar'); bar.style.width = `${px}px`;
-    if (px === 0) addClass(bar, 'zero');
-    // `tokenPill`, not mono text. The path was already visible here — but Corner radius and
-    // Density & size, on this same page, name theirs with the shared pill, so one of three specimens
-    // was saying the same kind of thing in a different component (doc 26: reuse the kit).
-    const lab = el('div', 'sp-lab');
-    lab.append(tokenPill(k), el('span', 'sp-px mono', `${px}px`));
-    cell.append(lab, bar);
-    list.append(cell);
-  }
-  into.append(list);
-};
-
-/** The three primitive scales that had no home (review, 2026-08-04): `dimension.*` (36), the raw grid
- *  every geometry alias resolves onto; `border-width.*` (4) and `icon.size.*` (5), both named aliases
- *  onto it. All read-only — read off the theme, not `rp.dims`, for the reason the spacing specimen
- *  was fixed: `rp.dims` holds only what preview COMPONENTS bind, which is a different question. */
-const paintPrimitivesPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const scale = (label: string, rows: Array<{ ref: string; px: number }>, wrapCls: string): HTMLElement => {
-    const box = el('div', 'pv-scale');
-    box.append(el('div', 'pv-scale-t', label));
-    const list = el('div', wrapCls);
-    for (const { ref, px } of rows) {
-      const cell = el('div', 'pv-cell');
-      cell.append(tokenPill(ref), el('span', 'sp-px mono', `${px}px`));
-      list.append(cell);
-    }
-    box.append(list);
-    return box;
-  };
-  // border-width and icon.size are ALIASES onto the grid, so they are shown next to it rather than as
-  // separate scales — the point is that they resolve onto the same ladder.
-  const BW: Array<[string, number]> = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4]];
-  // Two columns inside the now-full-width section: the 36-step grid is long and wants its own column,
-  // while border-width (4) and icon size (5) are short alias lists that read better stacked beside it
-  // than strung out underneath a list three times their length.
-  //
-  // The grid uses `pv-rows` — ONE column — for the same reason the alias lists do. It previously had a
-  // wrapping variant of its own, which reflowed 36 steps into three ragged columns and destroyed the
-  // one property the specimen exists to show: that this is a monotonic ladder. A reader checks a scale
-  // by running an eye down it, and wrapping turns "is the next step bigger" into a column-order puzzle.
-  // Long is correct here; the section is a reference, not a summary.
-  const cols = el('div', 'pv-cols');
-  const left = el('div', 'pv-col'); const right = el('div', 'pv-col');
-  left.append(scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-rows'));
-  right.append(
-    scale('Border width', BW.map(([k, px]) => ({ ref: `border-width.${k}`, px })), 'pv-rows'),
-    scale('Icon size', theme.dims.icons.map((i) => ({ ref: `icon.size.${i.name}`, px: i.px })), 'pv-rows'),
-  );
-  cols.append(left, right);
-  into.append(cols);
-};
+// The control heights, the spacing steps and the building blocks moved to the Shape preview in UI redesign S7
+// (`preview/sections/control-heights.ts`, `spacing.ts`, `shape-building-blocks.ts`).
 
 /** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
  *  margin grid, a base-column preview strip, and the container caps as proportional bars. The layout

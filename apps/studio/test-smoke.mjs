@@ -516,7 +516,7 @@ const classifyPair = (p, emission, mode) => {
  *    keeps having to convert into a failure.
  */
 const STATE_NODE_FLOOR = 12;
-const SWEEP_NODE_FLOOR = 6000;   // 8000 until UI redesign S9.2 moved Elevation and Motion out of the legacy sweep (section 1g measures them)
+const SWEEP_NODE_FLOOR = 6000;   // 8000 until UI redesign S9.2 moved Elevation and Motion out of the legacy sweep (section 1h measures them)
 const SWEEP_STATE_FLOOR = 8;
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
@@ -700,7 +700,8 @@ let worstFieldWhere = '';
 let statesVisited = 0;
 // Per-mode density (owner, 2026-09-29, docs/28 §5.4.3): wherever the studio sets a per-mode density, the knob
 // says in one literal sentence that spacing follows the brand's density. Counted, so a sweep that never met the
-// per-mode knob cannot pass silently.
+// per-mode knob cannot pass silently. UI redesign S7 moved the knob to Shape's Density lever, outside this sweep's
+// legacy pages, so section 1g counts it there.
 const PER_MODE_DENSITY_SENTENCE = 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.';
 let perModeDensityKnobs = 0;
 const perModeDensityMissing = [];
@@ -759,10 +760,6 @@ for (const brand of BRANDS) {
       const hasBar = await page.locator('[data-p3="mode-tab"]').count() > 0;
       const where = `${brand} / ${label} / ${mode}`;
       statesVisited++;
-      const densityKnobs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="per-mode-density"]')]
-        .map((k) => k.querySelector('[data-p3="control-description"]')?.textContent ?? ''));
-      perModeDensityKnobs += densityKnobs.length;
-      for (const d of densityKnobs) if (!d.includes(PER_MODE_DENSITY_SENTENCE)) perModeDensityMissing.push(`${where}: ${d.slice(0, 80)}`);
 
       // --- zero console errors -----------------------------------------------------------------
       const errs = drain();
@@ -920,8 +917,8 @@ console.log(`\nBrand — the moved page, the Style guide per mode, the namespace
 const RESERVED_NS = { pds3: 'pds3 is the default theme’s placeholder. Set your brand’s namespace before you export.',
   prism: 'prism is reserved for the shipped catalog. Set your brand’s namespace before you export.' };
 /** The sections the Style guide draws on a ground (its specimen roots), by title, in order. Literal. The type
- *  sample opens it (#1942, owner decision Q67, S6.2). */
-const STYLE_GUIDE_ROOTS = ['Type sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
+ *  sample opens it (#1942, owner decision Q67, S6.2), and the radius sample follows (owner decision D18 B, S7). */
+const STYLE_GUIDE_ROOTS = ['Type sample', 'Radius and shadow sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
 let brandStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -1021,8 +1018,6 @@ console.log(`  ${brandStates} brand × mode states on Brand: the Style guide's t
 // compared to nothing; the state count is what makes "the loop never ran" a failure instead of a
 // silence, and the node total is what catches every state rendering nothing but chrome — which the
 // per-state floor passes 72 times over.
-ok(perModeDensityKnobs > 0 && perModeDensityMissing.length === 0,
-  `per-mode density: every per-mode Density knob (${perModeDensityKnobs} met) says "${PER_MODE_DENSITY_SENTENCE}"${perModeDensityMissing.length ? ` — MISSING: ${perModeDensityMissing.slice(0, 3).join(' | ')}` : ''}`);
 ok(statesVisited >= SWEEP_STATE_FLOOR,
   `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 2 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
@@ -1444,12 +1439,37 @@ for (const brand of BRANDS) {
       ok(JSON.stringify(s?.chips) === JSON.stringify(chips), `${where}: the shared ${name} section draws its ${chips.length} chips in order — drew ${JSON.stringify(s?.chips)}`);
     }
     checkSwatches(where, sg, emission, mode, modes);
-    checkSharedMarkers(where, sg, { ...EXPECT_SHARED_MARKER, ...EXPECT_SG_ONLY_MARKER, 'Type sample': 'type-sample' });
-    // #1942, owner decision Q67: the type sample opens the Style guide, before Background, and every line is set in
-    // its own text type's emitted face, in this mode.
-    ok(sg.sections[0]?.name === 'Type sample' && sg.sections[0]?.shared === 'type-sample' && sg.sections[1]?.name === 'Background',
-      `${where}: the Style guide's first section is the type sample (data-sg-section="type-sample"), then Background — drew ${sg.sections.slice(0, 2).map((x) => `${x.name} [${x.shared}]`).join(', ')}`);
+    checkSharedMarkers(where, sg, { ...EXPECT_SHARED_MARKER, ...EXPECT_SG_ONLY_MARKER, 'Type sample': 'type-sample', 'Radius and shadow sample': 'radius-sample' });
+    // #1942, owner decision Q67: the type sample opens the Style guide, and every line is set in its own text type's
+    // emitted face, in this mode. The radius sample follows it, before Background (owner decision D18 B, S7).
+    ok(sg.sections[0]?.name === 'Type sample' && sg.sections[0]?.shared === 'type-sample' && sg.sections[1]?.name === 'Radius and shadow sample' && sg.sections[2]?.name === 'Background',
+      `${where}: the Style guide's first section is the type sample (data-sg-section="type-sample"), then the radius sample, then Background — drew ${sg.sections.slice(0, 3).map((x) => `${x.name} [${x.shared}]`).join(', ')}`);
     checkTypeSample(`${brand.toLowerCase()} / Style guide / ${mode}`, await readTypeSample(page, '[data-p3="preview-body"] [data-p3="brand-style-guide"]'), typeOracle, mode);
+    // D18 B's shadow half (S9.2): the radius sample's panel draws the emitted `shadow.sm` (the preview spec's Card binding)
+    // for this mode, layer by layer: its color and alpha, offsets, blur and spread, read from the COMPUTED style and
+    // held to the brand's committed emission (the mode's own value where the leaf carries one). The pill names it.
+    {
+      const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+      const leaf = tree[Object.keys(tree).find((k) => !k.startsWith('$'))].shadow?.sm;
+      const want = (leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value ?? []).map((l) => {
+        const hx = l.color.replace('#', ''); const a = hx.length === 8 ? parseInt(hx.slice(6), 16) / 255 : 1;
+        return [parseInt(hx.slice(0, 2), 16), parseInt(hx.slice(2, 4), 16), parseInt(hx.slice(4, 6), 16), Math.round(a * 100) / 100, ...['offsetX', 'offsetY', 'blur', 'spread'].map((k) => parseFloat(l[k]))].join(' ');
+      });
+      const got = await page.evaluate(() => {
+        const p = document.querySelector('[data-p3="brand-style-guide"] [data-sg-section="radius-sample"] [data-p3="radius-sample-panel"]');
+        const cs = p ? getComputedStyle(p).boxShadow : '';
+        const layers = cs && cs !== 'none' ? cs.split(/,(?![^(]*\))/).map((x) => {
+          const c = /rgba?\(([^)]+)\)/.exec(x)?.[1].split(/[,\s/]+/).filter(Boolean).map(Number) ?? [];
+          const n = x.replace(/rgba?\([^)]+\)/, '').trim().split(/\s+/).map(parseFloat);
+          return [c[0], c[1], c[2], Math.round((c[3] ?? 1) * 100) / 100, ...n].join(' ');
+        }) : [];
+        return { found: !!p, layers, pill: !!p?.querySelector('[data-p3="radius-sample-shadow"]') && p.querySelector('[data-p3="radius-sample-shadow"]').textContent === 'shadow.sm' };
+      });
+      // HC light and HC dark are generated from Light and Dark; the emission carries Light's and Dark's shadows.
+      if (mode === 'light' || mode === 'dark') ok(got.found && want.length > 0 && JSON.stringify(got.layers) === JSON.stringify(want) && got.pill,
+        `D18 B: ${where}: the radius sample's panel draws the emitted shadow.sm for this mode, and names it — drew ${JSON.stringify(got.layers)}, the emission ${JSON.stringify(want)}, pill ${got.pill}`);
+      else ok(got.found && got.layers.length > 0 && got.pill, `D18 B: ${where}: the radius sample's panel draws a shadow, and names shadow.sm — drew ${JSON.stringify(got.layers)}, pill ${got.pill}`);
+    }
     hooks.absent(ok, { seen: sg.sections.length >= 5, state: 'the Style guide\'s sections' }, sg.badges.length === 0, `${where}: draws no ratio badge (owner decision Q5: badges on Surfaces & fills only)`);
   }
   await ctx.close();
@@ -1980,7 +2000,114 @@ ok(typePreviewStates >= BRANDS.length * 2, `the Type sweep visited ${typePreview
 ok(typeSampleLines >= BRANDS.length * 2 * 2 * 5, `the type sample check read ${typeSampleLines} lines on the Type preview and the Style guide (floor ${BRANDS.length * 2 * 2 * 5})`);
 
 // =============================================================================================
-// 1g. Depth & motion — moved to the two panes (UI redesign S9.2), its preview against each brand's emission
+// 1g. Shape — moved to the two panes (UI redesign S7), its preview against each brand's emission
+// =============================================================================================
+// The Shape preview draws Density, Radius, Spacing and Building blocks from `preview/sections/`. Per corpus brand and
+// per mode, against the brand's COMMITTED EMISSION, never the page:
+//   · the sections are exactly the listed ones, in order, each a specimen root on the emission's `background.primary`
+//     in that mode, and each carries the marker only its module stamps;
+//   · Radius draws every `radius.*` the emission carries, in its order, each at its emitted px in that mode (the
+//     mode's own value where the leaf carries one) — #1881's done-when, with #2053's hairline;
+//   · Density draws every `size.*.height`, each at its emitted px in that mode, and Building blocks every
+//     `border-width.*` and `icon.size.*` at its emitted px, and Spacing every `space.*`;
+//   · every painted sample is its role's emitted hex in that mode (D2 A);
+//   · in every mode but Light, the Density lever says the decided per-mode sentence (moved from the sweep).
+//
+// Mutation this fails by name: the radius list built from a hand list (`RADIUS_STEPS` without `xl`, `2xl`, `3xl` and
+// `hairline`) → `… Radius draws every radius.* the emission carries — missing radius.xl, …`.
+console.log(`\nShape — the moved page, against each brand's emission\n${'='.repeat(78)}`);
+const SG_SHAPE = '[data-p3="preview-body"] [data-p3="shape-style-guide"]';
+/** The Shape preview's sections, by title, in order, with the marker each module stamps. Literal (owner decision D1 A). */
+const EXPECT_SHAPE_SECTIONS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
+const EXPECT_SHAPE_MARKER = { Density: 'control-heights', Radius: 'radius', Spacing: 'spacing', 'Building blocks': 'shape-building-blocks' };
+/** The dimension tokens the emission carries, by group, each with its px in a mode: the leaf's own, or the mode's
+ *  override where the leaf carries one. From the committed tree, never the page. */
+const emittedDims = async (brand) => {
+  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const root = tree[Object.keys(tree)[0]];
+  const px = (leaf, mode) => leaf?.$extensions?.prism3?.modes?.[mode]?.px ?? leaf?.$extensions?.prism3?.px;
+  const leaves = (node, pick = (v) => v) => Object.entries(node ?? {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k, pick(v)]);
+  return {
+    radius: (mode) => leaves(root.radius).map(([k, v]) => [k, px(v, mode)]),
+    height: (mode) => leaves(root.size, (v) => v.height).map(([k, v]) => [k, px(v, mode)]),
+    // By px: a parsed object lists integer-like keys (`100`) before the rest (`025`), so the tree's own order is lost.
+    space: () => leaves(root.space).map(([k, v]) => [k, px(v)]).sort((a, b) => a[1] - b[1]),
+    border: () => leaves(root['border-width']).map(([k, v]) => [k, px(v)]),
+    icon: () => leaves(root.icon?.size).map(([k, v]) => [k, px(v)]),
+  };
+};
+/** Open Shape through the tab row and wait for its levers. */
+const gotoShape = async (page) => {
+  await hooks.click(page.locator('[data-p3="tab-shape"]'));
+  await hooks.need(page, '[data-p3="shape-levers"]');
+  await hooks.need(page, `${SG_SHAPE} .psec`);
+  await page.evaluate(() => document.fonts.ready);
+};
+let shapeStates = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const emission = await loadEmission(brand);
+  const dims = await emittedDims(brand);
+  await gotoShape(page);
+  const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
+  for (const mode of modes) {
+    await chooseMode(page, mode);
+    const where = `${brand} / Shape / ${mode}`;
+    shapeStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    const got = await readSections(page, SG_SHAPE);
+    ok(JSON.stringify(got.sections.map((x) => x.name)) === JSON.stringify(EXPECT_SHAPE_SECTIONS),
+      `${where}: the preview draws exactly ${EXPECT_SHAPE_SECTIONS.join(', ')}, in order — drew ${got.sections.map((x) => x.name).join(', ')}`);
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    for (const name of EXPECT_SHAPE_SECTIONS) {
+      const x = got.sections.find((y) => y.name === name);
+      ok(!!x && x.root && x.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!x ? ' — not drawn' : !x.root ? ' — not a specimen root' : x.ground !== page0 ? ` — on ${x.ground}` : ''}`);
+    }
+    checkSharedMarkers(where, got, EXPECT_SHAPE_MARKER);
+    // Every painted sample, its role's emitted hex in this mode (D2 A).
+    const offPaint = got.paint.filter((n) => { const want = emission?.role(n.role, mode)?.hex; return !want || rgbHex(n.css) !== want; })
+      .map((n) => `${n.role} ${n.prop} ${rgbHex(n.css) ?? n.css} (emitted ${emission?.role(n.role, mode)?.hex})`);
+    ok(got.paint.length >= 20 && offPaint.length === 0, `${where}: every sample is painted its role's emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
+    // The rows against the emission, by group.
+    const rows = await page.evaluate((sel) => Object.fromEntries(['radius-row', 'height-row', 'space-row', 'border-width-row', 'icon-size-row'].map((hk) =>
+      [hk, [...document.querySelectorAll(`${sel} [data-p3="${hk}"]`)].map((r) => [r.dataset.step, r.querySelector('[data-p3="token-pill"]')?.textContent ?? '',
+        Number(/(\d+(?:\.\d+)?)px/.exec(r.querySelector('[data-p3="shape-row-label"]')?.textContent ?? '')?.[1])])])), SG_SHAPE);
+    const against = (label, hk, prefix, suffix, want) => {
+      const drawn = rows[hk];
+      const missing = want.filter(([k]) => !drawn.some(([s]) => s === k)).map(([k]) => `${prefix}${k}${suffix}`);
+      const extra = drawn.filter(([s]) => !want.some(([k]) => k === s)).map(([s]) => `${prefix}${s}${suffix}`);
+      const order = JSON.stringify(drawn.map(([s]) => s)) === JSON.stringify(want.map(([k]) => k));
+      const off = drawn.filter(([s, tok, v]) => { const w = want.find(([k]) => k === s); return w && (tok !== `${prefix}${s}${suffix}` || v !== w[1]); })
+        .map(([s, tok, v]) => `${tok} reads ${v}px, emitted ${want.find(([k]) => k === s)?.[1]}px`);
+      ok(want.length > 0 && missing.length === 0 && extra.length === 0 && order,
+        `${where}: ${label} draws every ${prefix}*${suffix} the emission carries, in its order (${want.length})${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — extra ${extra.join(', ')}` : ''}${!order && !missing.length && !extra.length ? ` — out of order: ${drawn.map(([s]) => s).join(', ')}` : ''}`);
+      ok(off.length === 0, `${where}: each ${label} row is its emitted value in ${mode}${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
+    };
+    against('Radius', 'radius-row', 'radius.', '', dims.radius(mode));
+    against('Density', 'height-row', 'size.', '.height', dims.height(mode));
+    against('Spacing', 'space-row', 'space.', '', dims.space());
+    against('Building blocks (border widths)', 'border-width-row', 'border-width.', '', dims.border());
+    against('Building blocks (icon sizes)', 'icon-size-row', 'icon.size.', '', dims.icon());
+    // The decided per-mode density sentence, in every mode but Light (the sweep counted it on the legacy page).
+    const sentence = await page.evaluate(() => document.querySelector('[data-p3="levers-pane"] [data-p3="shape-density-mode"]')?.textContent ?? null);
+    if (mode === 'light') hooks.absent(ok, { seen: (await page.locator('[data-p3="lever-density"]').count()) === 1, state: 'Shape\'s Density lever' }, sentence === null, `${where}: in Light the Density lever carries no per-mode sentence`);
+    else {
+      perModeDensityKnobs++;
+      if (sentence !== PER_MODE_DENSITY_SENTENCE) perModeDensityMissing.push(`${where}: ${String(sentence).slice(0, 80)}`);
+    }
+  }
+  await chooseMode(page, 'light');
+  const errs = drain();
+  ok(errs.length === 0, `${brand} / Shape: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+ok(shapeStates >= BRANDS.length * 2, `the Shape sweep visited ${shapeStates} brand × mode states (floor ${BRANDS.length * 2})`);
+ok(perModeDensityKnobs >= BRANDS.length && perModeDensityMissing.length === 0,
+  `per-mode density: every per-mode Density lever (${perModeDensityKnobs} met, floor ${BRANDS.length}) says "${PER_MODE_DENSITY_SENTENCE}"${perModeDensityMissing.length ? ` — MISSING: ${perModeDensityMissing.slice(0, 3).join(' | ')}` : ''}`);
+
+// =============================================================================================
+// 1h. Depth & motion — moved to the two panes (UI redesign S9.2), its preview against each brand's emission
 // =============================================================================================
 // S9.1 lifted the legacy Elevation and Motion pages' read-only pieces into `preview/sections/`; S9.2 retired the two
 // pages, so the Depth & motion preview draws them. Per corpus brand and per mode, against the brand's COMMITTED
@@ -2394,26 +2521,33 @@ for (const brand of BRANDS) {
   // displaying the value the engine had refused. Every assertion here is on a page that is NOT the
   // Color page, which is the whole point — a check run on Palettes would have passed on the defect.
   //
-  // THE REPRO (UI redesign S6.3, re-pointed when the 16px title floor became disabled under Compact, owner B8b): a
-  // display size set individually, then the largest display size lowered below it. The engine refuses the pinned
-  // size (`typography.sizes.display.md`: that size is trimmed by `displayCeiling`), and the ceiling select does not
-  // trial-build its options, so the refusal is reachable. The ORDER is load-bearing: pin first, then the ceiling,
-  // which is the sequence a designer performs. The picker and the scale chips refuse in place, so this is the one
-  // edit on Type that still reaches the engine's refusal.
+  // THE REPRO (#2054, #2055, re-pointed a third time). S6.3 drove this through a display size set individually and
+  // then the largest display size lowered below it. #2044 disabled that ceiling up front, and #2054 and #2055 did the
+  // same for the 18px smallest title and the fluid switch, so the Type page has no control left that makes an edit the
+  // engine refuses. The trigger is now the studio's test-only edit hook, `window.__prism3TestEdit`, defined only on web
+  // and only when the page is opened with `?p3-test-hooks` (entry.ts, step 8). It writes one path and rebuilds, the
+  // two steps a control's edit takes, so the engine's refusal and the bar that shows it are the real ones; only the
+  // control is not. The precondition is a HAND-WRITTEN BRAND INPUT, stored the way the studio stores a brand: the
+  // 16px title floor on, the Default scale, and title 2xs set individually at 16px. The engine takes that brand. The
+  // hook then removes the title floor, which drops title 2xs while a size is still set on it, so the engine refuses
+  // `typography.sizes.title.2xs` ("not enabled by titleFloor"). Undo is a real control: the 16px chip, which puts
+  // the floor back.
   //
-  // Brand-agnostic on purpose: pins are released first, and the pinned value is the first one the picker offers.
+  // Brand-agnostic on purpose: the seed is written over whatever this context's brand is, and put back after.
+  const stored0 = await page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+  ok(!!stored0, `${brand}: the studio has stored this brand, so a hand-written one can be stored in its place`);
+  const seed = JSON.parse(stored0);
+  const ty0 = { ...(seed.input.typography ?? {}) };
+  delete ty0.typeScale;   // Compact refuses the 16px title floor (B8b), so the seed is on the Default scale
+  seed.input.typography = { ...ty0, titleFloor: 16, sizes: { ...(ty0.sizes ?? {}), title: { ...(ty0.sizes?.title ?? {}), '2xs': 16 } } };
+  await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), JSON.stringify(seed));
+  const plainUrl = page.url();
+  const hookUrl = new URL(plainUrl); hookUrl.searchParams.set('p3-test-hooks', '');
+  await page.goto(hookUrl.href);
   await gotoType(page);
-  const release = page.locator('[data-p3="type-scale-release"]');
-  if (await release.count()) { await hooks.click(release); await hooks.need(page, '[data-p3="type-scale"]'); }
-  const ceiling0 = await page.locator('[data-p3="type-ceiling"]').inputValue();
-  const mdBtn = page.locator('[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]');
-  await hooks.click(mdBtn);
-  await hooks.need(page, '[data-p3="value-picker"]');
-  const mdTo = await page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
-  ok(!!mdTo, `${brand}: display md's desktop size offers another value to pin (${mdTo})`);
-  if (mdTo) await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${mdTo}"]`));
-  await page.waitForFunction(() => document.querySelector('[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]')?.getAttribute('data-set') === 'true', null, { timeout: 5000 }).catch(() => {});
-  await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+  ok(await page.evaluate(() => typeof window.__prism3TestEdit === 'function'), `${brand}: the page opened with ?p3-test-hooks has the test edit hook`);
+  ok((await page.locator('[data-p3="title-floor-16"]').getAttribute('aria-checked')) === 'true', `${brand}: the hand-written brand loads with the 16px smallest title`);
+  ok((await page.locator('[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]').getAttribute('data-set')) === 'true', `${brand}: the hand-written brand loads with title 2xs set individually`);
 
   const errState = () => page.evaluate(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
@@ -2422,7 +2556,7 @@ for (const brand of BRANDS) {
   const clean = await errState();
   ok(clean.present && !clean.shown, `${brand}: the error surface is mounted and quiet before the refused edit`);
 
-  await page.locator('[data-p3="type-ceiling"]').selectOption('sm');
+  await page.evaluate(() => window.__prism3TestEdit('typography.titleFloor', undefined));
   // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
   // loudly as the defect it is rather than passing on a measurement taken too early.
   const surfaced = await page.waitForFunction(() => {
@@ -2431,7 +2565,7 @@ for (const brand of BRANDS) {
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(surfaced, `${brand}: an engine throw raised on Type SURFACES (#388's defect path)`);
   const raised = await errState();
-  ok(/displayCeiling/.test(raised.text), `${brand}: the bar names what the engine refused — "${raised.text.slice(0, 90)}"`);
+  ok(/typography\.sizes\.title\.2xs/.test(raised.text), `${brand}: the bar names the field the engine refused — "${raised.text.slice(0, 90)}"`);
 
   // THE GENERALIZATION, not just the instance: the surface belongs to the view, so navigating to a
   // third page must not lose it. A page-local bar would vanish here, which is the state #388 described
@@ -2444,12 +2578,17 @@ for (const brand of BRANDS) {
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
   await gotoType(page);
-  await page.locator('[data-p3="type-ceiling"]').selectOption(ceiling0);
+  await hooks.click(page.locator('[data-p3="title-floor-16"]'));
   const cleared = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display === 'none';
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(cleared, `${brand}: undoing the refused edit clears the bar`);
+  // Put this context's own brand back, so the sections below run on it.
+  await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), stored0);
+  await page.goto(plainUrl);
+  await gotoType(page);
+  ok(await page.evaluate(() => typeof window.__prism3TestEdit === 'undefined'), `${brand}: without ?p3-test-hooks the page has no test edit hook`);
 
   // --- 2e. the weight checkboxes refuse what the engine refuses (#1639, #1681) ----------------------
   // The engine refuses a category with no weight, and a label without `emphasis`. The studio's
@@ -2754,8 +2893,7 @@ const leverOf = (key) => LEVER_MANIFEST.levers.find((l) => l.key === key);
 /** The converted levers, each located by its own literal hook, on the page it lives on. (Tempo left with the Motion page
  *  in UI redesign S9.2: Depth & motion draws it as the levers kit's chips, held in 3c below.) */
 const CHIP_LEVERS = [
-  { key: 'density', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-density"]' },
-  { key: 'controlShape', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-control-shape"]' },
+  // (Density and Control shape left with Shape in UI redesign S7: section 3d holds their new chips.)
   { key: 'buttonIcons', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-icons"]' },
   { key: 'buttonContentSize', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-content-size"]' },
   { key: 'buttonLabelWeight', rail: '[data-p3="rail-page-size-radius"]', group: '[data-p3="lever-button-label-weight"]' },
@@ -3131,6 +3269,58 @@ let easingTrips = 0;
   await ctx.close();
 }
 ok(easingTrips === 2, `both easing round trips reached the export (${easingTrips} of 2)`);
+
+// =============================================================================================
+// 3d. Lever chips on Shape — the new markup (UI redesign S7)
+// =============================================================================================
+// Density and Control shape left the legacy Size & radius page's radio chips (#1675, section 3b) for the levers kit's
+// chips, held as 3c holds Interactive's: the manifest's options and labels (oracle: the committed
+// `schema/lever-manifest.json`), exactly one checked and it is the brand's stored value (read from the persisted brand,
+// a store the chip does not paint), each choice writes its value, ArrowRight writes the next, each chip a >= 24px target.
+console.log(`\nLever chips on Shape (S7)\n${'='.repeat(78)}`);
+const SHAPE_CHIPS = [
+  { key: 'density', group: '[data-p3="lever-density"]' },
+  { key: 'controlShape', group: '[data-p3="lever-control-shape"]' },
+];
+let shapeChipGroups = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoShape(page);
+  for (const c of SHAPE_CHIPS) {
+    const lever = leverOf(c.key);
+    const where = `${brand} / Shape / ${c.key}`;
+    const g = await page.evaluate(readNewChips, c.group);
+    if (!g.found) { ok(false, `${where}: renders a chip group`); continue; }
+    shapeChipGroups++;
+    ok(g.found === 1 && g.tag === 'FIELDSET' && g.legend === lever.label && g.group === lever.label, `${where}: one fieldset whose legend and radio group name the lever ("${g.legend}", "${g.group}", want "${lever.label}")`);
+    ok(JSON.stringify(g.values) === JSON.stringify(lever.options.map((o) => String(o.value))) && JSON.stringify(g.labels) === JSON.stringify(lever.options.map((o) => o.label)),
+      `${where}: offers the manifest's ${lever.options.length} options with its labels (${g.labels.join(', ')})`);
+    const stored = (await persistedAt(page, c.key)) ?? lever.default;
+    ok(g.checked.length === 1 && g.checked[0] === String(stored), `${where}: exactly one chip is checked, the brand's value (${g.checked.join(', ') || 'none'}, stored ${stored})`);
+    ok(g.small === 0, `${where}: every chip is a >= 24px hit target (${g.small} smaller)`);
+    if (brand !== BRANDS[0]) continue;
+    for (const o of lever.options) {
+      const v = String(o.value);
+      if ((await page.evaluate(readNewChips, c.group)).checked[0] === v) continue;
+      await hooks.click(page.locator(`${c.group} button[role="radio"]`).filter({ hasText: o.label }).first());
+      await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, v], { timeout: 5000 }).catch(() => {});
+      ok(String(await persistedAt(page, c.key)) === v, `${where}: choosing "${o.label}" writes ${v} to the brand (wrote ${await persistedAt(page, c.key)})`);
+    }
+    const before = await page.evaluate(readNewChips, c.group);
+    const cur = before.checked[0];
+    const next = before.values[(before.values.indexOf(cur) + 1) % before.values.length];
+    await page.locator(`${c.group} button[role="radio"][data-value="${cur}"]`).focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, next], { timeout: 5000 }).catch(() => {});
+    ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight from ${cur} writes ${next} to the brand`);
+    const foc = await page.evaluate((s) => document.activeElement?.closest(s) !== null && document.activeElement?.dataset.value, c.group);
+    ok(foc === next, `${where}: after the arrow key, focus is on the chip it chose (${foc})`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: rendering and driving Shape's chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+ok(shapeChipGroups >= SHAPE_CHIPS.length * 2, `${shapeChipGroups} Shape chip groups checked (floor ${SHAPE_CHIPS.length * 2}: both levers on at least two brands)`);
 
 // =============================================================================================
 // 4. Overlay surfaces — the brand-menu popover (#1031)

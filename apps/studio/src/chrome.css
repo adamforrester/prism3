@@ -862,6 +862,11 @@
 .p3-vpick-sample { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text); line-height: var(--p3-lh-compact); }
 .p3-vpick-sample[data-wrap="true"] { white-space: normal; }
 .p3-vpick-why { grid-column: 1 / -1; color: var(--p3-text-2); }
+/* Shape (S7): the way to Components under Density, and the base radius picker's sample, a square at the value's
+   radius (its radius is the value, set inline inside the picker's [data-content] sample). */
+.p3-shape-pad { display: grid; gap: var(--p3-space-050); justify-items: start; margin-top: var(--p3-space-100); }
+.p3-btn.p3-shape-reset { justify-self: start; }
+.p3-radius-sample { display: inline-block; width: var(--p3-space-300); height: var(--p3-space-300); border: var(--p3-bw-thick) solid var(--p3-text); vertical-align: middle; }
 /* The type-ahead (#113): page DOM under the field, so it scrolls and takes the chrome's theme in Figma's iframe. */
 .p3-combo { position: relative; min-width: 0; }
 .p3-combo-list {

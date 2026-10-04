@@ -24,6 +24,11 @@ import { durationRampSection, type DurationsCopy } from './duration-ramp';
 import { curveOfRole, motionCurvesSection, motionStageSvg } from './motion-curves';
 import { springsSection } from './springs';
 import { motionTransitionsSection, MOTION_SLOWMO_OPTIONS, type TransitionsCopy } from './motion-transitions';
+import { radiusSection, USED_BY_NONE } from './radius';
+import { controlHeightsSection, buttonHeightLabel } from './control-heights';
+import { spacingSection, SPACING_PREVIEW } from './spacing';
+import { shapeBuildingBlocksSection, SHAPE_BUILDING_BLOCKS } from './shape-building-blocks';
+import { radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW } from './radius-sample';
 import type { SgCtx } from './kit';
 
 export { backgroundSection, foregroundSection, textColorSection, borderSection, iconSection };
@@ -48,6 +53,10 @@ export { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY, facesSection }
  *  transitions in Motion. Read-only. */
 export { shadowRampSection, shadowTintSection, durationRampSection, motionCurvesSection, motionStageSvg, curveOfRole, springsSection, motionTransitionsSection, MOTION_SLOWMO_OPTIONS };
 export type { DurationsCopy, TransitionsCopy };
+/** The Shape preview's sections (UI redesign S7): Density's control heights, Radius, and the read-only Spacing and
+ *  Building blocks. The radius sample is the Style guide's (owner decision D18 B). Read-only. */
+export { radiusSection, USED_BY_NONE, controlHeightsSection, buttonHeightLabel, spacingSection, SPACING_PREVIEW, shapeBuildingBlocksSection, SHAPE_BUILDING_BLOCKS,
+  radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW };
 /** The five, in order, by the title each section draws. */
 export const COLOR_SECTIONS: ReadonlyArray<readonly [string, (c: SgCtx) => HTMLElement]> = [
   ['Background', backgroundSection], ['Foreground', foregroundSection], ['Text color', textColorSection], ['Border', borderSection], ['Icon', iconSection],

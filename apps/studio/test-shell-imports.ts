@@ -130,6 +130,11 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/state/depth-motion-input.ts', 'src/preview/sections/shadow-ramp.ts', 'src/preview/sections/shadow-tint.ts',
   'src/preview/sections/duration-ramp.ts', 'src/preview/sections/motion-curves.ts', 'src/preview/sections/springs.ts',
   'src/preview/sections/motion-transitions.ts',
+  // S7: Shape (its levers, its preview, its writes), the generated "used by" index, and the Shape preview's sections and
+  // the Style guide's radius sample.
+  'src/domains/shape.ts', 'src/preview/shape.ts', 'src/state/shape-input.ts', 'src/preview/used-by.ts',
+  'src/preview/sections/radius.ts', 'src/preview/sections/control-heights.ts', 'src/preview/sections/spacing.ts',
+  'src/preview/sections/shape-building-blocks.ts', 'src/preview/sections/radius-sample.ts',
   // S9.2: Depth & motion (its levers and its preview).
   'src/domains/depth.ts', 'src/preview/depth.ts'];
 
@@ -594,7 +599,6 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     /** A variable-key write that is not Type, by `<enclosing function>:<key text>`, and why. */
     const UNRESOLVED_OK: Record<string, string> = {
       'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
-      'renderPerModeSelect:key': 'its default write; its callers are PER_MODE_SELECTS, the radius and density selects (tempo\'s left with the Motion page, S9.2)',
       'csSlider:key': 'Size & radius sliders; rule 3 holds that no caller passes a Type key',
       'csPicker:key': 'Size & radius pickers; rule 3 holds that no caller passes a Type key',
     };
@@ -739,7 +743,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     // Rule 3: what the generic renderer is fed.
     // `csSlider`/`csPicker` too (review of #2017): each ends in `setPath(brandState, key, …)`, so a Type key handed
     // to either is a Type write, and their `UNRESOLVED_OK` entries rest on this check rather than on a claim.
-    const FEEDS = new Set(['renderControl', 'leverControl', 'leverSection', 'csLeverStack', 'renderPerModeSelect', 'csSlider', 'csPicker']);
+    const FEEDS = new Set(['renderControl', 'leverControl', 'csLeverStack', 'csSlider', 'csPicker']);   // `leverSection` (S9.2) and `renderPerModeSelect` (S7, S9.2) are gone
     /** Does `e` name a Type lever: a `typography.*` key literal, `leversFor('typography')`, or a variable whose
      *  own initializer does (one level, resolved by the checker)? */
     const typeLever = (e: ts.Node, depth = 0): boolean => {

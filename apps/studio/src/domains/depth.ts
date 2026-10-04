@@ -37,7 +37,7 @@ import {
   authoredTint, brandShadowValue, easingOverride, setEasingRole, setShadow, shadowOverride, setTempo, tempoOverride, type ShadowKey,
 } from '../state/depth-motion-input';
 import { noteSectionEdit } from '../preview/follow-edit';
-import { DOMAINS, legacyOf, newPageOf, placeOfTab, type Host, type PageData, type PageKey } from '../shell/pages';
+import { DOMAINS, pageOfTab, type Host, type PageData } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { valuePicker } from '../ui/value-picker';
@@ -72,8 +72,6 @@ export const DEPTH_COPY = {
 const tempoOptions = (): { v: string; l: string }[] => (leverOf('motionPersonality.tempo')?.options ?? []).map((o) => ({ v: String(o.value), l: String(o.label) }));
 const tempoName = (v: string): string => tempoOptions().find((o) => o.v === v)?.l ?? v;
 
-/** The page the Continue button opens: the Layout tab, by the page it shows on this host (its legacy page until S10). */
-const nextPage = (): PageKey => { const p = placeOfTab('layout'); return newPageOf(p) ?? legacyOf(p, HOST)[0]; };
 
 /** A cubic-bezier, drawn: the curve a value picker row shows (D10). Inline SVG, stroked in the row's ink. */
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -355,7 +353,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'depth-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', DEPTH_COPY.next), glyph('chevr'));
-    next.onclick = () => setPage(nextPage());
+    next.onclick = () => setPage(pageOfTab('layout', HOST));   // by tab (S7's pageOfTab): Layout's legacy page until S10
     const nr = h('div', 'p3-nextrow');
     nr.append(next);
     parts.push(nr);

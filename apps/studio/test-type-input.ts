@@ -271,6 +271,91 @@ store.rebuild();
 ok(JSON.stringify([...T.ceilingPx('3xl')]) === '[["sm",48],["md",64],["lg",80],["xl",96],["2xl",128],["3xl",160]]', `ceilingPx(3xl) prices every display rung from one trial build (${JSON.stringify([...T.ceilingPx('3xl')])})`);
 ok(JSON.stringify(T.rowsOf(store.theme, 'display').map((r) => r.variant)) === '["md","sm"]' && JSON.stringify(T.widestRowsOf()?.get('display')?.map((r) => r.variant)) === '["3xl","2xl","xl","lg","md","sm"]',
   'under the md ceiling the live rows are md, sm, and widestRowsOf still lists all six, largest first');
+// #2044: a ceiling below a display size set individually is refused, so the select disables it. EXPECTED from the
+// pins and the ceiling order typed here, never from the module: the refused ceilings are every rung strictly below
+// the largest pinned one. The engine is the second witness: each refused ceiling throws, each other one builds.
+{
+  const ORDER = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+  const below = (pinned: string): string[] => ORDER.slice(0, ORDER.indexOf(pinned));
+  const builds = (c: string): boolean => { try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), displayCeiling: c as never } }); return true; } catch { return false; } };
+  const check = (what: string, pinned: string | null): void => {
+    const want = pinned ? below(pinned) : [];
+    const got = T.ceilingBlocked();
+    ok(JSON.stringify([...got.keys()]) === JSON.stringify(want) && [...got.values()].every((v) => v === pinned),
+      `ceilingBlocked, ${what}: refuses ${JSON.stringify(want)}, each naming ${pinned} (${JSON.stringify([...got])})`);
+    ok(ORDER.every((c) => builds(c) === !want.includes(c)), `ceilingBlocked, ${what}: the engine refuses exactly those ceilings and builds the rest`);
+  };
+  reset();
+  check('no size set', null);
+  T.setSizePin(null, 'display', 'md', 72);
+  check('display md set on desktop', 'md');
+  reset();
+  T.setMobileSize('display', 'md', 40);
+  check('display md set on mobile', 'md');
+  reset();
+  T.setSizePin('dark', 'display', 'md', 72);
+  check('display md set in Dark only', 'md');
+  T.setSizePin(null, 'display', 'lg', 80);
+  check('display md (Dark) and lg (desktop) set: the largest names the reason', 'lg');
+  reset();
+  T.setSizePin(null, 'display', 'sm', 40);
+  check('display sm set: nothing is below it', null);
+  reset();
+}
+// #2054: the 18px title floor is refused while title 2xs is set individually, so its chip is disabled. EXPECTED from
+// the pins typed here, never from the module: blocked exactly when one of them is on title 2xs. The engine is the
+// second witness: on 18px each blocked case throws and each other one builds, and on 16px every case builds.
+{
+  const at18 = (): boolean => { try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), titleFloor: undefined } }); return true; } catch { return false; } };
+  const check = (what: string, want: boolean): void => {
+    ok(T.titleFloorBlocked() === want, `titleFloorBlocked, ${what}: ${want ? 'refuses' : 'offers'} 18px (got ${T.titleFloorBlocked()})`);
+    ok(takes() && at18() === !want, `titleFloorBlocked, ${what}: the engine takes 16px and ${want ? 'refuses' : 'builds'} 18px`);
+  };
+  const on16 = (): void => { reset(); T.setTitleFloor(true); store.rebuild(); };
+  on16();
+  check('nothing set', false);
+  T.setSizePin(null, 'title', 'xl', 36);
+  check('title xl set, not 2xs', false);
+  on16();
+  T.setSizePin(null, 'title', '2xs', 16);
+  check('title 2xs set on desktop', true);
+  on16();
+  T.setMobileSize('title', '2xs', 16);
+  check('title 2xs set on mobile', true);
+  on16();
+  T.setSizePin('dark', 'title', '2xs', 16);
+  check('title 2xs set in Dark only', true);
+  reset();
+}
+// #2055: turning off fluid headings is refused while a mobile size is set individually, so the switch is
+// disabled. EXPECTED from the pins typed here, in the group order typed here (display, title, eyebrow), never from
+// the module. The engine is the second witness: off throws exactly when the list is not empty.
+{
+  const offBuilds = (): boolean => { try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), responsive: { ...structuredClone(store.brandState.typography?.responsive), fluid: false } } }); return true; } catch { return false; } };
+  const minOf = (g: string, v: string): number => store.theme.typography.composites.find((c) => c.group === g && c.variant === v)!.sizeMinPx;
+  const check = (what: string, want: string[]): void => {
+    const got = T.fluidBlocked();
+    ok(JSON.stringify(got) === JSON.stringify(want), `fluidBlocked, ${what}: ${JSON.stringify(want)} (got ${JSON.stringify(got)})`);
+    ok(takes() && offBuilds() === (want.length === 0), `fluidBlocked, ${what}: the engine ${want.length ? 'refuses' : 'builds'} fluid off`);
+  };
+  reset();
+  check('nothing set', []);
+  T.setSizePin(null, 'display', 'md', 72);
+  check('display md set on desktop only', []);
+  reset();
+  store.setPath(store.brandState, 'typography.sizeOverrides.display.md.desktop', 72);
+  check('a desktop endpoint, no mobile one', []);
+  reset();
+  T.setMobileSize('display', 'md', minOf('display', 'md'));
+  check('display md set on mobile', ['display md']);
+  T.setMobileSize('title', 'sm', minOf('title', 'sm'));
+  check('display md and title sm set on mobile', ['display md', 'title sm']);
+  reset();
+  T.setMobileSize('title', 'sm', minOf('title', 'sm'));
+  T.setMobileSize('display', 'md', minOf('display', 'md'));
+  check('title sm set before display md: group order, not the order set', ['display md', 'title sm']);
+  reset();
+}
 reset('harbor');
 T.setFluid(true);
 ok(JSON.stringify(store.brandState.typography) === '{"typeScale":"compact","responsive":{"fluid":true}}', `setFluid(on) on a brand with no responsive input WRITES fluid true (the legacy bytes) (${JSON.stringify(store.brandState.typography)})`);

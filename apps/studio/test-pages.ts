@@ -7,7 +7,10 @@
  *   1. COVERAGE. Every manifest lever has exactly one home row; no row names a key the manifest lacks; a
  *      lever's tier (a section marked `advanced`, or not) follows the manifest's `advanced` flag, except
  *      on the pages that show every lever, `FIRST_CLASS` below (Layout from Q4; Surfaces & fills and
- *      Interactive from V10 and the v6 review's #2).
+ *      Interactive from V10 and the v6 review's #2). A RETIRED lever (the manifest's `deprecated`, from #2053)
+ *      is the exception the other way: it changes nothing, so it has NO home, and a row that places one fails
+ *      (S7: the engine retired `radiusHairline`, and Shape dropped its switch). Which levers are retired is
+ *      read from the manifest, never listed here, so the next retirement needs no edit to this file.
  *   2. HOME VIEWS (V1, V12, IA-1). Every tab without sub-pages and every sub-page declares exactly one
  *      home view, from `VIEWS`; a tab with sub-pages declares none and has no sections of its own; no
  *      section declares one; no home is an Inspect view; and every view is some page's home.
@@ -26,7 +29,10 @@
  * any of them.
  *
  * Mutations this fails by name (each run after a commit):
- *   · `radiusHairline` removed from the data → `manifest keys with no home: radiusHairline`;
+ *   · `radiusHairline` removed from the data → `manifest keys with no home: radiusHairline` (until S7, which
+ *     retired it with the engine's #2053: since S7, `baseMd` removed from Shape → `manifest keys with no home:
+ *     baseMd`, and the hairline switch's row put back → `a retired lever has no home — retired levers placed:
+ *     radiusHairline → Shape › Base radius`);
  *   · a `home` given to the Motion section → `section declares a home view: Depth & motion › Motion`;
  *   · `veil` dropped from Surfaces & fills' roles → `color roles in no Color sub-page's Roles matrix: veil…`;
  *   · `field` put back on Interactive (S4c, owner decision Q29) → `every emitted field.* role (4) belongs to
@@ -48,7 +54,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const manifest = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8')) as { levers: { key: string; advanced?: boolean }[] };
+const manifest = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8')) as { levers: { key: string; advanced?: boolean; deprecated?: string }[] };
 const tokens = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8'));
 
 // ── the decisions, as literals ─────────────────────────────────────────────────────────────────────
@@ -76,8 +82,13 @@ ok(JSON.stringify(colorSubs) === JSON.stringify(IA_COLOR), `Color's sub-pages ar
 
 // ── 1. coverage ────────────────────────────────────────────────────────────────────────────────────
 console.log('\n1. Coverage (oracle: packages/engine/schema/lever-manifest.json)');
-const manifestKeys = manifest.levers.map((l) => l.key);
-ok(manifestKeys.length >= 40, `the manifest lists ${manifestKeys.length} levers (floor 40, so an empty read fails)`);
+const allKeys = manifest.levers.map((l) => l.key);
+ok(allKeys.length >= 40, `the manifest lists ${allKeys.length} levers (floor 40, so an empty read fails)`);
+/** The levers the engine retired (#2053's `Lever.deprecated`), read from the manifest. They change nothing, so a
+ *  page that drew one would draw a control with no effect. */
+const retired = manifest.levers.filter((l) => !!l.deprecated).map((l) => l.key);
+ok(retired.includes('radiusHairline'), `the manifest marks radiusHairline retired (#2053), so the retired-lever arm reads something (${retired.join(', ') || 'none'})`);
+const manifestKeys = allKeys.filter((k) => !retired.includes(k));
 const seen = new Map<string, string[]>();
 const tierWrong: string[] = [];
 for (const p of PAGES) {
@@ -92,7 +103,9 @@ for (const p of PAGES) {
 }
 const missing = manifestKeys.filter((k) => !seen.has(k));
 const dup = [...seen].filter(([, where]) => where.length > 1);
-const unknown = [...seen.keys()].filter((k) => !manifestKeys.includes(k));
+const unknown = [...seen.keys()].filter((k) => !allKeys.includes(k));
+const placedRetired = [...seen].filter(([k]) => retired.includes(k));
+ok(placedRetired.length === 0, `a retired lever has no home${placedRetired.length ? ` — retired levers placed: ${placedRetired.map(([k, w]) => `${k} → ${w.join(' + ')}`).join('; ')}` : ` (${retired.join(', ')} unplaced)`}`);
 ok(missing.length === 0, `every manifest lever has a home${missing.length ? ` — manifest keys with no home: ${missing.join(', ')}` : ` (${manifestKeys.length} placed)`}`);
 ok(dup.length === 0, `no manifest lever has two homes${dup.length ? ` — manifest keys with more than one home: ${dup.map(([k, w]) => `${k} → ${w.join(' + ')}`).join('; ')}` : ''}`);
 ok(unknown.length === 0, `no row names a key the manifest lacks${unknown.length ? ` — homes naming keys the manifest does not have: ${unknown.join(', ')}` : ''}`);
@@ -187,7 +200,7 @@ console.log(`  ${Object.entries(perSub).map(([s, n]) => `${s} ${n}`).join(', ')}
 // ── 4. moved pages (S2 on) ─────────────────────────────────────────────────────────────────────────
 console.log('\n4. Moved pages (plan §4: a slice moves a page by emptying its legacy list)');
 /** The pages the slices have moved so far, literally: a slice that moves one adds it here in the same change. */
-const MOVED = ['brand', 'color/palettes', 'color/fills', 'color/interactive', 'type', 'depth'];
+const MOVED = ['brand', 'color/palettes', 'color/fills', 'color/interactive', 'type', 'shape', 'depth'];
 const legacyEmpty = (p: Page): boolean => (Array.isArray(p.legacy) ? p.legacy.length === 0 : !(p.legacy as { web: unknown[]; figma: unknown[] }).web.length && !(p.legacy as { web: unknown[]; figma: unknown[] }).figma.length);
 for (const p of PAGES) {
   const moved = MOVED.includes(p.key);
