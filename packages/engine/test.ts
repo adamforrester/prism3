@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimen
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
+import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
@@ -1030,6 +1030,74 @@ for (const b of brands) {
     ok(l.against === 'neutral.050' && onRgb(l.hex, FLOOR) >= 4.5,
       `FO-01: a text.link.default override at neutral.${s.key} is clamped to clear 4.5:1 on the floor ${FLOOR} (emitted ${l.hex} at ${onRgb(l.hex, FLOOR).toFixed(2)})`);
   }
+}
+
+// FO-01b (#2034) — FO-01 beyond the sparsest brand's light mode: the DARK floor, a brand whose floor is
+// a DIFFERENT step, an HC mode, and one of the roles #2032's note left unnamed. Same independence as
+// FO-01: every expected value is a literal hex, tied as a precondition to the committed ramp in
+// `out/<brand>.tokens.json` (the emitted primitive, not the engine's ground lookup), and every ratio is
+// the shared `contrast` primitive over two literals. BY-NAME MUTATION: revert `overrideGroundRgb`'s step
+// branch → the prism3/dark, harbor/light and text.brand arms fail by name.
+{
+  const outHex = (file: string, path: string): string | undefined => {
+    let o: any = JSON.parse(readFileSync(resolve(HERE, 'out', file), 'utf8'));
+    for (const k of path.split('.')) o = o?.[k];
+    return typeof o?.$value === 'string' ? o.$value.toLowerCase() : undefined;
+  };
+  const onRgb = (fg: string, bg: string) => contrast(hexToRgb(fg), hexToRgb(bg));
+  type BRole = { hex: string; ratio: number; min: number; against: string };
+  const modeOf = (input: BrandInput, mode: string) => resolveAllModes(brandTheme(input)).find((m) => m.mode === mode)!;
+  const PRISM3 = () => structuredClone(exampleBrands()['prism3']) as BrandInput;
+  const HARBOR = () => structuredClone(exampleBrands()['harbor']) as BrandInput;
+  const ARMS: Array<{ label: string; input: () => BrandInput; mode: 'light' | 'dark'; role: string; step: string; floorRef: string; floor: string; page: string; file: string; path: string }> = [
+    { label: 'prism3/dark (neutral.900 floor)', input: PRISM3, mode: 'dark', role: 'foreground.brand', step: '400', floorRef: 'neutral.900', floor: '#171718', page: '#0d0d0e', file: 'prism3.tokens.json', path: 'pds3.core.palette.neutral.900' },
+    { label: 'harbor/light (neutral.100 floor)', input: HARBOR, mode: 'light', role: 'foreground.brand', step: '500', floorRef: 'neutral.100', floor: '#dcdbdb', page: '#e9e9e8', file: 'harbor.tokens.json', path: 'hds.core.palette.neutral.100' },
+    // One of the roles #2032's change note did not name (#2034 item 3): 6.69 on the page before, 5.51 on the floor now.
+    { label: 'prism3/light text.brand', input: PRISM3, mode: 'light', role: 'text.brand', step: '600', floorRef: 'neutral.050', floor: '#e9e9e9', page: '#ffffff', file: 'prism3.tokens.json', path: 'pds3.core.palette.neutral.050' },
+  ];
+  for (const a of ARMS) {
+    const base = modeOf(a.input(), a.mode).roles as Record<string, BRole>;
+    ok(outHex(a.file, a.path) === a.floor && base[a.role]?.against === a.floorRef && base['background.primary']?.hex.toLowerCase() === a.page,
+      `FO-01b ${a.label}: '${a.role}' is measured on ${a.floorRef} at ${a.floor} (out/${a.file}: ${outHex(a.file, a.path)}) under a ${a.page} page (precondition)`);
+    const o = (modeOf({ ...a.input(), overrides: { [a.mode]: { [a.role]: { palette: 'neutral', step: a.step } } } } as BrandInput, a.mode).roles as Record<string, BRole>)[a.role];
+    ok(Math.abs(o.ratio - onRgb(o.hex, a.floor)) < 1e-9,
+      `FO-01b ${a.label}: '${a.role}' overridden to neutral.${a.step} records its contrast on ${a.floor} (records ${o.ratio.toFixed(2)}, measures ${onRgb(o.hex, a.floor).toFixed(2)} on the floor, ${onRgb(o.hex, a.page).toFixed(2)} on the page)`);
+    ok(Math.abs(onRgb(o.hex, a.floor) - onRgb(o.hex, a.page)) > 0.1, `FO-01b ${a.label}: the floor and the page give different ratios for the pick (non-vacuous)`);
+  }
+  // HC: overrides are refused in a generate-only mode, so the override pass never runs there. What HC
+  // can hold is the same promise by derivation: its floor-measured role records its ratio on the floor
+  // step, not on the HC page (#000000).
+  const hc = modeOf(PRISM3(), 'hc-dark').roles as Record<string, BRole>;
+  const hcFg = hc['foreground.brand'];
+  ok(hcFg?.against === 'neutral.900' && outHex('prism3.tokens.json', 'pds3.core.palette.neutral.900') === '#171718' && hc['background.primary']?.hex.toLowerCase() === '#000000',
+    'FO-01b prism3/hc-dark: foreground.brand is measured on neutral.900 at #171718 under a #000000 page (precondition)');
+  ok(!!hcFg && Math.abs(hcFg.ratio - onRgb(hcFg.hex, '#171718')) < 1e-9 && Math.abs(onRgb(hcFg.hex, '#171718') - onRgb(hcFg.hex, '#000000')) > 0.1,
+    `FO-01b prism3/hc-dark: foreground.brand records its contrast on the floor #171718 (records ${hcFg?.ratio.toFixed(2)}, measures ${hcFg && onRgb(hcFg.hex, '#171718').toFixed(2)} on the floor, ${hcFg && onRgb(hcFg.hex, '#000000').toFixed(2)} on the page)`);
+  let hcThrew = '';
+  try { resolveAllModes(brandTheme({ ...PRISM3(), overrides: { 'hc-dark': { 'foreground.brand': { palette: 'neutral', step: '400' } } } } as BrandInput)); } catch (e) { hcThrew = (e as Error).message; }
+  ok(hcThrew.includes('generate-only'), `FO-01b prism3/hc-dark: an override in an HC mode is refused, so no HC ratio passes through the override pass (threw: "${hcThrew.slice(0, 80)}")`);
+}
+
+// FO-02 (#2034) — the override pass's page FALLBACK is warned, never silent. No input reaches it today
+// (every `against` the engine writes is a role or a ramp step; 5,726 override cases across the corpus
+// measured 0 hits), so it is driven through `overrideGroundRgb` directly, the function the override
+// loop calls, with a ground nothing can resolve. EXPECTED is authored here: the warning names the role
+// and the ground, carries `unresolved: true`, and the page is returned; a role ground and a step ground
+// warn nothing. BY-NAME MUTATION: drop the `warnings.push` in `overrideGroundRgb` → the first arm fails.
+{
+  const t = brandTheme(MINIMAL_BRAND);
+  const ramps = new Map(t.palettes.map((p) => [p.palette, p.steps] as const));
+  const PAGE = hexToRgb('#ffffff'), PICK = hexToRgb('#73767a');
+  const ws: Array<{ role: string; against?: string; unresolved?: true; ratio: number; min: number }> = [];
+  const got = overrideGroundRgb('foreground.brand', 'nowhere.999', 3, PICK, new Map(), ramps, PAGE, ws as any);
+  ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].against === 'nowhere.999' && ws[0].unresolved === true && hex(got) === '#ffffff',
+    `FO-02: an override whose ground is neither a role nor a ramp step falls back to the page AND warns, naming the role and the ground (warnings: ${JSON.stringify(ws)})`);
+  ok(Math.abs((ws[0]?.ratio ?? 0) - contrast(PICK, PAGE)) < 1e-9 && ws[0]?.min === 3, 'FO-02: the unresolved warning records the pick as measured on the page it fell back to, and the role\'s min');
+  const quiet: typeof ws = [];
+  const onRole = overrideGroundRgb('foreground.brand', 'background.secondary', 3, PICK, new Map([['background.secondary', hexToRgb('#e9e9ea')]]), ramps, PAGE, quiet as any);
+  const onStep = overrideGroundRgb('foreground.brand', 'neutral.050', 3, PICK, new Map(), ramps, PAGE, quiet as any);
+  ok(quiet.length === 0 && hex(onRole) === '#e9e9ea' && hex(onStep) === '#e9e9ea',
+    `FO-02: a role ground and a ramp-step ground resolve without a warning (role ${hex(onRole)}, step ${hex(onStep)}, warnings ${quiet.length})`);
 }
 
 // IT-01 (#1617) — an outline / text control's GLYPH follows its LABEL under a per-mode override. The
