@@ -6,7 +6,7 @@
 
 - **The studio's top bar starts with the product mark**: the existing logo (`styles.css`'s `.logo`, the conic-gradient square) and "Prism3 Studio", ahead of the brand switcher. Built in the new chrome (`shell/frame.ts`, `chrome.css`), not the legacy `renderBar`. It goes nowhere, so it is not a control: a `role="img"` with the accessible name "Prism3 Studio", the logo `aria-hidden`. The name is set in `--p3-text` on `--p3-bar-bg`, a pair `chrome/spec.mjs` already declares at 4.5:1, so `lint:contrast` needed no new row.
 - **Narrow**: at the chrome's narrow tier (`data-w="narrow"`, frame width ≤ 560) the bar keeps the logo and drops the name; the accessible name still carries it. The start screen drops its wordmark at 380px; the chrome has no 380 tier and may not hold a raw length for a media query, and at 380 the bar is already wrapping its icon buttons, so the name goes with the bar's other words at the narrow tier.
-- **The plugin's bar draws no mark**: Figma's own title bar names the plugin, and its width is tight. **Pending owner confirmation.**
+- **The plugin's bar draws no mark**: Figma's own title bar names the plugin, and its width is tight. Owner-confirmed on 2026-10-04 (O2).
 - **The plugin is named "Prism3 Studio"** in `apps/plugin/manifest.json`; `id` unchanged (`prism3-theming-plugin`), since Figma keys an installed plugin and its stored data by it. The plugin UI's `<title>` and the studio page's `<title>` (was "Prism3 — web dashboard") say "Prism3 Studio" too.
 - **The start screen's mark** reads logo + "Prism3 Studio" (was "Prism3" + a "Theme studio" descriptor). The descriptor's `.studio` rule and its 560px rule went with it; nothing else on the start screen moved.
 
