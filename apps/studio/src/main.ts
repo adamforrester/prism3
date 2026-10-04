@@ -2799,6 +2799,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host },
+        // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
+        logo: () => el('span', 'logo'),
       });
     }
     chromeHost = frame.head;
@@ -4431,7 +4433,7 @@ const renderStartScreen = (): HTMLElement => {
   const view = hook(el('div', 'startview'), 'start-screen');
   const col = hook(el('div', 'start-col'), 'start-column');
   const mark = el('div', 'start-mark');
-  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
+  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3 Studio'));
   col.append(mark);
   col.append(hook(el('h1', 'start-h', 'Start a new brand.'), 'start-heading'));
   col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));

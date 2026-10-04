@@ -35,6 +35,12 @@
  * result itself, from the host session `main.ts` lends it, so it lends no slot. The plugin's own entry mounts the
  * Agent chip into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
  *
+ * THE PRODUCT MARK (owner, 2026-10-04) starts the studio's top bar: the logo, then "Prism3 Studio", ahead of the
+ * brand switcher. It names the product and goes nowhere, so it is not a control. Its logo is `main.ts`'s, lent
+ * as `logo`: it is `styles.css`'s `.logo`, a fixed conic gradient, and this stylesheet may hold no raw color.
+ * The plugin draws no mark: Figma's own title bar names the plugin, and its width is tight. Narrow keeps the
+ * logo and drops the name, which the mark's accessible name still carries.
+ *
  * NARROW MODE (Q7) is a width class, `data-w="narrow"`, set from the frame's own width, because the chrome
  * stylesheet may not hold a raw length and a media or container query needs one. Under it the tab row
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
@@ -78,6 +84,9 @@ const NEW_PAGES: Record<NewPageKey, {
   type: { levers: mountTypeLevers, preview: mountTypePreview },
   shape: { levers: mountShapeLevers, preview: mountShapePreview },
 };
+
+/** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */
+const PRODUCT_NAME = 'Prism3 Studio';
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
@@ -151,6 +160,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
    *  list (S6.2, Type). */
   readonly lend: PageLends;
+  /** The product logo (`styles.css`'s `.logo`), for the studio's product mark. The plugin draws no mark. */
+  readonly logo: () => HTMLElement;
 }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
@@ -163,6 +174,16 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── the top bar ────────────────────────────────────────────────────────────────────────────────
   const bar = hook(h('div', 'p3-bar'), 'top-bar');
   const barSlot = h('div', 'p3-bar-slot');
+  // The product mark, studio only, first in the bar (owner, 2026-10-04). An image with a name, not a control.
+  if (host === 'web') {
+    const mark = hook(h('div', 'p3-mark'), 'product-mark');
+    mark.setAttribute('role', 'img');
+    mark.setAttribute('aria-label', PRODUCT_NAME);
+    const logo = opts.logo();
+    logo.setAttribute('aria-hidden', 'true');
+    mark.append(logo, h('span', 'p3-mark-name', PRODUCT_NAME));
+    bar.append(mark);
+  }
   bar.append(barSlot);
 
   // The narrow Settings / Preview toggle (Q7). It switches the two panes, so it is hidden while the page
