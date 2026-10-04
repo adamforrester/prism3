@@ -3216,6 +3216,60 @@ ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip group
 }
 
 // =============================================================================================
+// 3b. The Button options on Size & radius: the shared specimen, and the slider writes per step (UI redesign S8.1)
+// =============================================================================================
+// S8.1 lifted the button specimen into `preview/sections/button-layout.ts` and the four Button option writes into
+// `state/button-input.ts`. Held here, on the legacy page that draws both until S8.2:
+//   · per corpus brand, the specimen is the shared module's: exactly one `data-sg-section="button-layout"` on the page,
+//     and it is the specimen's own root (three size rows, each a short and two widened buttons), so a specimen
+//     `main.ts` drew for itself carries no marker and fails by name;
+//   · the minimum-width slider WRITES ON EVERY STEP (the legacy bytes, the S8 report's trap): each `input` event,
+//     with no `change` after it, leaves the dragged value in the persisted brand. Read from `localStorage`, a store
+//     the slider does not paint, and the values are literals on the lever's 0.25 grid.
+// That choosing a chip's DEFAULT writes it (rather than unsetting it) is held by 3b's chip drive above, which checks
+// every option back to the default and reads the value written.
+//
+// Mutation this fails by name: the slider committing on release (`input.onchange` for `input.oninput` in
+// `renderControl`) → `Prism3 / Button minimum width: dragging to 2.5 writes 2.5 on that step (wrote null)`.
+console.log(`\nButton options on Size & radius (S8.1)\n${'='.repeat(78)}`);
+let buttonSpecimens = 0, minWidthSteps = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoRail(page, '[data-p3="rail-page-size-radius"]');
+  const where = `${brand} / Button options`;
+  const spec = await page.evaluate(() => {
+    const lp = document.querySelector('[data-p3="legacy-page"]');
+    const marked = [...(lp?.querySelectorAll('[data-sg-section="button-layout"]') ?? [])];
+    const lists = [...(lp?.querySelectorAll('.btnl-list') ?? [])];
+    const root = marked[0];
+    return { marked: marked.length, lists: lists.length, rootIsList: !!root && root.classList.contains('btnl-list'),
+      rows: root ? root.querySelectorAll(':scope > .btnl-row').length : 0, buttons: root ? root.querySelectorAll('.btnl-btn').length : 0 };
+  });
+  ok(spec.lists === 1 && spec.marked === 1 && spec.rootIsList,
+    `${where}: the button specimen is the shared module's (data-sg-section="button-layout")${spec.lists !== 1 ? ` — ${spec.lists} specimen(s) drawn` : spec.marked !== 1 || !spec.rootIsList ? ` — ${spec.marked} marker(s), on ${spec.rootIsList ? 'the specimen' : 'something other than the specimen'}: drawn by something other than preview/sections/` : ''}`);
+  ok(spec.rows === 3 && spec.buttons === 9, `${where}: the specimen draws three sizes, three buttons each (${spec.rows} rows, ${spec.buttons} buttons)`);
+  if (spec.marked === 1) buttonSpecimens++;
+  if (brand === BRANDS[0]) {
+    const lever = leverOf('buttonMinWidthMultiplier');
+    const sel = `[data-p3="legacy-page"] input[type="range"][min="${lever.min}"][max="${lever.max}"]`;
+    ok((await page.locator(sel).count()) === 1, `${where}: the page draws one Button minimum width slider (${lever.min} to ${lever.max})`);
+    for (const v of [2.5, 2.75, 3, 1, 4, 2.25]) {
+      await page.evaluate(([s, x]) => { const n = document.querySelector(s); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); }, [sel, v]);
+      await page.waitForFunction(([k, x]) => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.[k] === x; } catch { return false; } }, ['buttonMinWidthMultiplier', v], { timeout: 1500 }).catch(() => {});
+      const wrote = await persistedAt(page, 'buttonMinWidthMultiplier');
+      minWidthSteps++;
+      ok(wrote === v, `${brand} / Button minimum width: dragging to ${v} writes ${v} on that step (wrote ${wrote})`);
+    }
+    const label = await page.evaluate(() => document.querySelector('[data-p3="legacy-page"] [data-sg-section="button-layout"] .btnl-lab')?.textContent ?? '');
+    ok(/min \d+px/.test(label), `${where}: the specimen repaints with the slider (its first row reads "${label}")`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+ok(buttonSpecimens === BRANDS.length && minWidthSteps >= 6, `the Button options check met ${buttonSpecimens} specimens (one per brand) and ${minWidthSteps} slider steps (floor 6)`);
+
+// =============================================================================================
 // 3c. Lever chips on Color › Interactive — the new markup (UI redesign S5.2)
 // =============================================================================================
 // The page's enum levers draw as the levers kit's chips: a `fieldset` whose `legend` names the lever, holding

@@ -39,6 +39,12 @@
 # tempting fix — leaving them excluded because "the feature is Figma-only" — would be the #474 stale
 # deploy with a rationale attached. Dead-code elimination is a size optimization, not a dependency
 # boundary, and this list is about the boundary.
+#
+# UI REDESIGN S8.1 MOVED THAT IMPORT OUT OF THE WEB BUILD. The gate above had kept the reference out and three
+# definition modules in (Button, IconButton and Icon), so the plugin now computes the catalog in its own
+# entry and the web reads a generated copy (`apps/studio/gen-component-catalog.ts`). The three files stay
+# OFF this list anyway: a file wrongly excluded skips a deploy, a file wrongly included costs one build, and
+# the generated copy changes with the definitions, so a definition change still reaches the site through it.
 
 set -uo pipefail
 
