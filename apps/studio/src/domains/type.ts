@@ -49,7 +49,7 @@ import { isDerived } from '../state/verdict';
 import {
   TYPE_GROUP_ORDER, addLibraryFace, inLibrary, removeLibraryFace, setAllFamilies, setFamily,
   setTypeScale, shapeBlocked, releasePinnedSizes, pinnedSizeCount, rowsOf, widestRowsOf, brandSizePin, modeSizePin, viewportPin,
-  setSizePin, setMobileSize, setFluid, setResponsiveViewport, setDisplayCeiling, ceilingPx, setTitleFloor, setCaptionFloor, setSizeFloor,
+  setSizePin, setMobileSize, setFluid, setResponsiveViewport, setDisplayCeiling, ceilingPx, ceilingBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, setItalicStyle, italicStyleOf, setFacePin,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
 } from '../state/type-input';
@@ -137,6 +137,8 @@ export const S63 = {
   dependsLayout: 'Depends on Layout: breakpoints',
   ceilingLabel: 'Largest display size',
   ceilingTip: 'The largest display size the brand makes. Display sizes above it are left out.',
+  /** A ceiling that would trim a display size set individually (owner, 2026-10-04, #2044). */
+  ceilingPinned: (size: string): string => `Smaller than display ${size}, which you set individually.`,
   titleFloorLabel: 'Smallest title size',
   titleFloorTip: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
   /** The 16px chip's reason under Compact: the approved info text's second sentence (owner, B8b). */
@@ -734,15 +736,22 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       el.append(b.el);
       out.push({ el: b.el, said: `${b.said} ${S63.minVp} ${S63.maxVp}`.toLowerCase(), key: 'typography.responsive', block: b });
     }
-    // The display ceiling: the largest display size the brand makes, each option priced by one trial build.
+    // The display ceiling: the largest display size the brand makes, each option priced by one trial build. A
+    // ceiling below a display size set individually (desktop, mobile or any mode's) is the engine's refusal, so it
+    // is disabled with that reason (owner, 2026-10-04, #2044), as a clashing scale chip is. A brand that arrives
+    // with such a ceiling keeps its current option live, so it can move out (B8b's rule).
     {
       const L = leverOf('typography.displayCeiling');
       const b = leverBlock('typography.displayCeiling', { label: S63.ceilingLabel, desc: S63.ceilingTip, forId: 'p3-type-ceiling' });
       const opts = L?.options ?? [];
       const px = ceilingPx(opts[opts.length - 1]?.value);
+      const cur = String(getPath(brandState, 'typography.displayCeiling') ?? L?.default);
+      const blocked = ceilingBlocked();
       const s2 = selectField('p3-type-ceiling', S63.ceilingLabel, 'type-ceiling', (v) => edit('typography.displayCeiling', () => setDisplayCeiling(v)));
-      s2.set(opts.map((o) => ({ v: String(o.value), l: px.get(String(o.value)) ? `display.${o.value} · ${px.get(String(o.value))}px` : `display.${o.value}` })),
-        String(getPath(brandState, 'typography.displayCeiling') ?? L?.default));
+      s2.set(opts.map((o) => {
+        const v = String(o.value), by = v === cur ? undefined : blocked.get(v);
+        return { v, l: px.get(v) ? `display.${o.value} · ${px.get(v)}px` : `display.${o.value}`, off: by && S63.ceilingPinned(by) };
+      }), cur);
       b.ctl.append(s2.el);
       el.append(b.el);
       out.push({ el: b.el, said: b.said, key: 'typography.displayCeiling', block: b });

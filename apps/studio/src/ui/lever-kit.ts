@@ -230,7 +230,7 @@ export const choice = <V extends string>(label: string, role: string, options: r
 
 /** A select in the chrome's style, its options given as value and label. */
 export const selectField = (id: string, label: string, role: string, onChange: (v: string) => void): {
-  el: HTMLElement; select: HTMLSelectElement; set: (opts: readonly { v: string; l: string }[], cur: string) => void;
+  el: HTMLElement; select: HTMLSelectElement; set: (opts: readonly { v: string; l: string; off?: string }[], cur: string) => void;
 } => {
   const wrap = h('div', 'p3-selwrap');
   const select = hook(h('select', 'p3-select'), role);
@@ -241,10 +241,11 @@ export const selectField = (id: string, label: string, role: string, onChange: (
   return {
     el: wrap, select,
     set: (opts, cur) => {
-      const sig = opts.map((o) => `${o.v}=${o.l}`).join('|');
+      const sig = opts.map((o) => `${o.v}=${o.l}${o.off ? `!${o.off}` : ''}`).join('|');
       if (select.dataset.sig !== sig) {
         select.dataset.sig = sig;
-        select.replaceChildren(...opts.map((o) => { const x = h('option', undefined, o.l); x.value = o.v; return x; }));
+        // `off`: the option is offered disabled, its reason in the title (#2044).
+        select.replaceChildren(...opts.map((o) => { const x = h('option', undefined, o.l); x.value = o.v; if (o.off) { x.disabled = true; x.title = o.off; } return x; }));
       }
       if (select.value !== cur) select.value = cur;
     },
