@@ -516,7 +516,7 @@ const classifyPair = (p, emission, mode) => {
  *    keeps having to convert into a failure.
  */
 const STATE_NODE_FLOOR = 12;
-const SWEEP_NODE_FLOOR = 6000;   // 8000 until UI redesign S9.2 moved Elevation and Motion out of the legacy sweep (section 1h measures them)
+const SWEEP_NODE_FLOOR = 5000;   // 8000 until UI redesign S7 and S9.2 moved Shape, Elevation and Motion out of the legacy sweep (sections 1g and 1h measure them)
 const SWEEP_STATE_FLOOR = 8;
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
@@ -3869,6 +3869,12 @@ for (const brand of BRANDS) {
   await hooks.need(page, '[data-p3="interactive-style-guide"] [data-p3="token-pill"]');
   await walkPills();
   pages.push('Interactive');
+  // Depth & motion (UI redesign S9.2): the shadow, duration, easing, transition and spring pills the legacy Elevation and
+  // Motion pages drew, in its preview now.
+  await gotoDepth(page);
+  await hooks.need(page, '[data-p3="depth-style-guide"] [data-p3="token-pill"]');
+  await walkPills();
+  pages.push('Depth & motion');
 
   const where = `#1147 / ${brand}`;
   const sample = (rows, fmt) => rows.slice(0, 3).map(fmt).join(' | ');
