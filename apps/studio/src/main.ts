@@ -553,10 +553,10 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
 // ===========================================================================
 
 // A per-role section container with a heading.
-/** Which sections answer to the mode bar. MEASURED, not asserted — every entry comes from
- *  `npm run -w @prism3/studio audit:modes`, which switches Light→Dark and diffs each section. That
- *  script also GATES this map (`--check-badges`), so a section whose behaviour changes, or whose
- *  title is renamed out from under an entry, fails rather than silently losing its badge.
+/** Which sections answer to the mode bar. MEASURED, not asserted — every entry came from
+ *  `mode-audit.mjs`, which switched Light→Dark and diffed each section, and gated this map
+ *  (`--check-badges`) on the web's legacy pages until UI redesign S8.3 deleted it with the last of them.
+ *  The web draws no legacy page now; the map goes with the mode strip in S13.
  *
  *  Two states, not three (#439). The audit distinguishes `displays` (the preview re-resolves, the
  *  control does not) from `inert` (nothing changes), and that split is real and worth keeping in the
@@ -593,7 +593,7 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
 // `SPECIMEN` and `specimen()` live in `preview/sections/kit.ts` (UI redesign S4a), so the shared Style guide
 // sections mark their specimens with the same attribute this file does. `specimenPair` (#1652) and
 // `legibleInkOn` (#555) moved there in UI redesign S5.1 with the Interactive section, their only reader.
-/** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
+/** Value editors only — what the three-state badge (and `mode-audit.mjs`, until S8.3) meant by "a control".
  *  `button` is excluded because the buttons in these sections play a motion preview or expand a
  *  disclosure; `[data-view-only]` because a playback speed is not a token. */
 const TOKEN_CONTROL_SEL =
@@ -1424,7 +1424,7 @@ let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
  *     way this list is trying to be — a post-render pass over the workspace DOM, which its own header
  *     defends on exactly these grounds ("a pass over the rendered DOM cannot be forgotten by code that
  *     does not know it exists"). They carry no cross-render refresh, so there is no forgettable second
- *     obligation to declare, and their placement rules are coupled to `mode-audit.mjs --check-badges`.
+ *     obligation to declare, and their placement rules were gated by `mode-audit.mjs --check-badges` until S8.3 deleted it.
  *     Declaring them would move working code for symmetry, and into #771's lane.
  *
  *   • The SEED / RESTORE / APPLY pills (#480, #722) render INSIDE `renderBar()`, which IS the

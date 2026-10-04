@@ -958,28 +958,3 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run -w @prism3/studio test:smoke
-
-      # #1897 — the mode audit, gating on its INSTRUMENT and, since #1887, its BADGES. REMOVED AT S13:
-      # the UI redesign's cleanup slice deletes `mode-audit.mjs` with the mode strip it audits, and this
-      # step, its `verify.ts` row and its three checklist lines go in the same PR.
-      #
-      # WHY IT GATES AT ALL. #1891 moved the audit onto `data-p3` hooks under `test-hooks.mjs` (#1829).
-      # Three of those hooks (`section-head`, `section-title`, `mode-scope-badge`) are read by THIS FILE
-      # ALONE — no other suite names them — so until this step a redesign slice could drop one with
-      # every gate green, and the audit would go blind with nobody running it.
-      #
-      # WHAT RED MEANS. The instrument fails by name when a hook it names never rendered, a page's
-      # section heads and section titles disagree in count, or no control label was read (the
-      # signature's floor). `--check-badges` adds the table itself: every section's badge must match
-      # what the audit measures, every section badged editable must hold a control that provably moves
-      # the persisted brand, and every badge must sit inside its section's padding. It was left off at
-      # #1897 because it was red on main; #1887 fixed the audit's radio probe, and the three sections
-      # the studio leaves unbadged (#1912) are listed in the audit as known gaps that fail the run once
-      # they go stale. Default brand (harbor) only; aurora and prism3 measured the same at #1887.
-      #
-      # After the smoke suite on purpose: it reuses the same browser setup, and a failure in the
-      # smoke suite explains a failure here, rather than the reverse. ~30s locally.
-      - name: "Studio mode audit: its instrument, and every badge against what it measures (#1897, #1887, removed at S13)"
-        run: |
-          npx playwright install --with-deps chromium
-          npm run -w @prism3/studio audit:modes -- --check-badges

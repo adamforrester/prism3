@@ -794,21 +794,6 @@ export const GATES: Gate[] = [
     // One of the TWO gates here that need a browser — see `chromiumPrecondition`.
     precondition: chromiumPrecondition,
   },
-  {
-    // #1897 — REMOVED AT S13, with `mode-audit.mjs` and the mode strip it audits (UI redesign plan).
-    // Gates the audit's INSTRUMENT (a hook it names never rendered, a page's section heads and titles
-    // disagreeing in count, no control label read) and, since #1887, its TABLE through `--check-badges`:
-    // every badge against the measurement, every editable badge against a control that provably moves
-    // the brand. The three unbadged sections filed as #1912 are known gaps in the audit itself, and fail
-    // the run once they go stale. Three hooks (`section-head`, `section-title`, `mode-scope-badge`) are
-    // read by this audit alone, so this row is the only thing that notices one being dropped.
-    id: 'mode-audit',
-    ciStep: 'Studio mode audit: its instrument, and every badge against what it measures (#1897, #1887, removed at S13)',
-    cmd: [...ws('@prism3/studio', 'audit:modes'), '--', '--check-badges'],
-    after: ['build-web', 'smoke'],
-    why: 'it drives the built dist/main.js in a browser, and a smoke failure explains a failure here',
-    precondition: chromiumPrecondition,
-  },
 ];
 
 // ---- ORPHAN CHECK: a gate file that exists and is named in nothing --------------------------------

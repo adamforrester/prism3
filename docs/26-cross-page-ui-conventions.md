@@ -77,8 +77,9 @@ ordered, and step 3 is the one that decides whether the findings are real.
   resolved value with an `auto` marker in the header; an interactive control there reaches the engine
   and prints its internal error string at the user. **Converting any control to columns re-opens this
   hole** — it is what #416 did on its way in.
-- **Which sections actually respond is MEASURED, and the probe is committed** — `apps/studio/mode-audit.mjs`
-  (`npm run -w @prism3/studio audit:modes`). It switches Light→Dark and diffs each `.psec`, reporting
+- **Which sections actually respond was MEASURED, by a committed probe** — `apps/studio/mode-audit.mjs`,
+  deleted in UI redesign S8.3 once the web had no legacy page or mode strip left to measure (the two panes'
+  levers edit the mode the preview shows; `test:smoke`'s sweep holds mode agreement on every place). It switched Light→Dark and diffed each `.psec`, reporting
   **EDITS** (the control set or its labels differ — the bar is an editing scope here), **displays**
   (only previews/readouts re-resolve — the bar is context, not scope) or **inert** (nothing changes).
   Committed rather than written down because the answer moves with every page change and has been

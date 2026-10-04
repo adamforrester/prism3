@@ -290,6 +290,10 @@
  * legacy page with a strip (section 9); Layout's Continue and Shape's See Components land on the Components tab's levers
  * on both hosts (sections 25 and 24), and the plugin's Pages menu offers the Style guide alone.
  *
+ * S8.3 RETIRES two web holds S8.2 left, now that `test:smoke` section 1 walks every place on the tabs (every mode, every
+ * corpus brand) and asserts no legacy page is drawn and the mode agrees on each: section 4's web arm (#1031 is measured
+ * on the plugin's Style guide alone) and section 9's legacy mode-strip hold.
+ *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
  *
@@ -1121,27 +1125,16 @@ console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 // RE-HOSTED IN S8.2. The Components tab was the last tab with a legacy page (S10 put #1031 there), and S8.2 moved it to
 // the two panes. In the plugin the one legacy page left is the Style guide, reached from the Pages menu, whose Customize
 // fold holds three selects: that is where #1031 is measured now. On the web no legacy page is left at all (the Pages
-// menu is gone, G19 A), so the check is RETIRED there, and held retired: the web shows no legacy page anywhere a
-// designer can go, and a legacy page that comes back fails here until it is measured again.
-for (const host of ['web', 'figma']) {
+// menu is gone, G19 A). The web arm that held that in place is RETIRED in S8.3: `test:smoke` section 1 now walks every
+// place in every mode on every brand and asserts no legacy page is drawn, and measures every field it finds.
+{
+  const host = 'figma';
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  if (host === 'figma') {
-    await hooks.click(page.locator('[data-p3="pages-menu"]'));
-    await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'));
-    await hooks.need(page, '[data-p3="legacy-page"]');
-    await hooks.need(page, '[data-p3="style-guide-customize"]');
-    await page.evaluate(() => { const d = document.querySelector('[data-p3="style-guide-customize"]'); if (d) d.open = true; });
-  } else {
-    const legacyAnywhere = [];
-    for (const place of Object.keys(PLACE_CLICKS)) {
-      await goPlace(page, place);
-      if (await page.evaluate(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage !== undefined)) legacyAnywhere.push(place);
-    }
-    ok(legacyAnywhere.length === 0 && (await page.locator('[data-p3="pages-menu"]').count()) === 0,
-      `web dark: #1031 is retired on the web because no legacy page is left to hold a field (S8.2) — legacy page drawn on ${JSON.stringify(legacyAnywhere)}, Pages menu ${(await page.locator('[data-p3="pages-menu"]').count()) ? 'present' : 'absent'}`);
-    await ctx.close();
-    continue;
-  }
+  await hooks.click(page.locator('[data-p3="pages-menu"]'));
+  await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'));
+  await hooks.need(page, '[data-p3="legacy-page"]');
+  await hooks.need(page, '[data-p3="style-guide-customize"]');
+  await page.evaluate(() => { const d = document.querySelector('[data-p3="style-guide-customize"]'); if (d) d.open = true; });
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
@@ -1516,7 +1509,6 @@ const modeState = (page) => page.evaluate(() => ({
     mode: b.dataset.mode, label: b.querySelector('.p3-mode-name')?.textContent, checked: b.getAttribute('aria-checked'), role: b.getAttribute('role'),
     hatch: /repeating-linear-gradient/.test(getComputedStyle(b).backgroundImage), tab: b.tabIndex })),
   group: document.querySelector('[data-p3="mode-control"]')?.getAttribute('role'),
-  legacy: document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent ?? null,
 }));
 for (const theme of ['light', 'dark']) {
   const where = `web ${theme} 1280 / color-palettes`;
@@ -1532,21 +1524,12 @@ for (const theme of ['light', 'dark']) {
   const mp = await measure(page, `${where} / preview header`, 'web', 1280);
   check(mp, `${where} / preview header`, 'web wide', PLACE_FLOOR);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s13-studio-${theme}-1280-mode-control.png`) });
-  // The mode control writes the mode the legacy pages draw in, and the legacy strip writes the same one back.
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
-  // THE LEGACY MODE STRIP'S SYNC CHECK IS RETIRED (S8.2). S9.2 moved it onto the web's Size & radius page, the last
-  // legacy page that drew a mode strip, and said the slice that moved that page would retire it: S8.2 moved the Button
-  // options to the Components tab's two panes, whose levers edit the mode the preview shows (Q22), so no place shows a
-  // legacy page, and no mode strip is left to sync with the mode control. Held retired, not skipped: every place is
-  // visited in Dark, and a legacy mode strip drawn anywhere fails here until this check is restored.
-  const strips = [];
-  for (const place of Object.keys(PLACE_CLICKS)) {
-    await goPlace(page, place);
-    if (await page.locator('[data-p3="legacy-page"] [data-p3="mode-tab"]').count()) strips.push(place);
-  }
-  ok(strips.length === 0, `mode control: no place draws a legacy mode strip to sync with (${where}: the check S9.2 moved onto Size & radius is retired with that page, S8.2) — drawn on ${JSON.stringify(strips)}`);
+  // The legacy mode strip's sync check is RETIRED (S8.2 moved the last legacy page with a strip), and the hold S8.2 left
+  // here is RETIRED in S8.3: `test:smoke` section 1 walks every place in every mode and asserts no legacy page (and so no
+  // legacy strip) is drawn, and that every place's header marks the one mode chosen (mode agreement).
   // The mode chosen on one page is the mode every page draws in: HC light, chosen on Components, holds on Palettes.
   await goPlace(page, 'components');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
